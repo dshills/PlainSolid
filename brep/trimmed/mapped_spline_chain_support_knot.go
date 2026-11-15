@@ -81,14 +81,6 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 	return slices.Insert(cuts, insert, added...), insert, nil
 }
 
-func mappedSplineInteriorSupportKnotPlane(patch *geom.SurfacePatch) ([4]*big.Rat, error) {
-	planes, err := mappedSplineInteriorSupportKnotPlanes(patch, 1)
-	if err != nil || len(planes) == 0 {
-		return [4]*big.Rat{}, err
-	}
-	return planes[0], nil
-}
-
 func mappedSplineInteriorSupportKnotPlanes(patch *geom.SurfacePatch, maxKnots int) ([][4]*big.Rat, error) {
 	u, v := patch.KnotBreaks()
 	if len(u)+len(v)-4 > maxKnots {

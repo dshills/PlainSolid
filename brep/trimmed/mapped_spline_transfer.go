@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"slices"
 
 	"plainsolid/geom"
 )
@@ -146,43 +147,85 @@ func ProveMappedSplineTransfer(ctx context.Context, support geom.Surface, source
 // A unique transverse rational UV event proposes a positive owner speed.
 // Exact homogeneous equality on both original support cells proves it.
 func ProveMappedSplineSupportKnotTransfer(ctx context.Context, support geom.Surface, source SplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, o geom.SurfacePatchOptions) (MappedSplineUV, error) {
+	return proveMappedSplineSupportKnotsTransfer(ctx, support, source, pieces[:], []*big.Rat{join}, o)
+}
+
+// ProveMappedSplineTwoSupportKnotsTransfer proves a single original UV
+// restriction against three stored model pieces with two normalized joins.
+// One positive owner parameter map must explain both isolated transverse
+// support crossings and all three exact homogeneous model lifts.
+func ProveMappedSplineTwoSupportKnotsTransfer(ctx context.Context, support geom.Surface, source SplineUV, pieces [3]*geom.ExactSplineCurve, joins [2]*big.Rat, o geom.SurfacePatchOptions) (MappedSplineUV, error) {
+	return proveMappedSplineSupportKnotsTransfer(ctx, support, source, pieces[:], joins[:], o)
+}
+
+func proveMappedSplineSupportKnotsTransfer(ctx context.Context, support geom.Surface, source SplineUV, pieces []*geom.ExactSplineCurve, joins []*big.Rat, o geom.SurfacePatchOptions) (MappedSplineUV, error) {
 	var zero MappedSplineUV
 	one := big.NewRat(1, 1)
-	if ctx == nil || support == nil || pieces[0] == nil || pieces[1] == nil ||
-		join == nil || join.Sign() <= 0 || join.Cmp(one) >= 0 {
+	if ctx == nil || support == nil {
 		return zero, geom.ErrInvalid
+	}
+	cuts := []*big.Rat{new(big.Rat)}
+	for _, join := range joins {
+		if join == nil || join.Cmp(cuts[len(cuts)-1]) <= 0 || join.Cmp(one) >= 0 {
+			return zero, geom.ErrInvalid
+		}
+		cuts = append(cuts, join)
+	}
+	cuts = append(cuts, one)
+	for _, piece := range pieces {
+		if piece == nil {
+			return zero, geom.ErrInvalid
+		}
 	}
 	p, err := exactFaceSupportPatch(Face{Surface: support}, o)
 	if err != nil {
 		return zero, err
 	}
-	plane, err := mappedSplineInteriorSupportKnotPlane(p)
+	planes, err := mappedSplineInteriorSupportKnotPlanes(p, 2)
 	if err != nil {
 		return zero, err
 	}
-	if plane[3] == nil {
-		return zero, geom.ErrConvergence
+	if len(planes) != len(joins) {
+		return zero, fmt.Errorf("stored model junctions must match original support knots: %w", geom.ErrConvergence)
 	}
 	raw, err := NewMappedSplineUV(ctx, source, one, o)
 	if err != nil {
 		return zero, err
 	}
-	root, err := mappedSplineSupportKnotRoot(ctx, raw.curve, plane, o, geom.ExactCurvePlaneEventOptions{
+	events := geom.ExactCurvePlaneEventOptions{
 		MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits,
-	})
-	if err != nil {
-		return zero, err
 	}
-	if root == nil {
-		return zero, geom.ErrConvergence
+	var roots []*big.Rat
+	for _, plane := range planes {
+		root, err := mappedSplineSupportKnotRoot(ctx, raw.curve, plane, o, events)
+		if err != nil {
+			return zero, err
+		}
+		if root == nil {
+			return zero, fmt.Errorf("original support crossing missing from unsplit coedge: %w", geom.ErrConvergence)
+		}
+		roots = append(roots, root)
 	}
-	num := new(big.Rat).Mul(root, new(big.Rat).Sub(one, join))
-	den := new(big.Rat).Mul(join, new(big.Rat).Sub(one, root))
+	slices.SortFunc(roots, func(a, b *big.Rat) int { return a.Cmp(b) })
+	num := new(big.Rat).Mul(roots[0], new(big.Rat).Sub(one, joins[0]))
+	den := new(big.Rat).Mul(joins[0], new(big.Rat).Sub(one, roots[0]))
 	mapped, err := NewMappedSplineUV(ctx, source, num.Quo(num, den), o)
 	if err != nil {
 		return zero, err
 	}
-	cuts := [3]*big.Rat{new(big.Rat), join, one}
+	for i := 1; i < len(roots); i++ {
+		proposed, err := mapped.AuthoredParameter(joins[i])
+		if err != nil {
+			return zero, err
+		}
+		exact, err := raw.AuthoredParameter(roots[i])
+		if err != nil {
+			return zero, err
+		}
+		if proposed.Cmp(exact) != 0 {
+			return zero, fmt.Errorf("one owner parameter map must explain all support crossings: %w", geom.ErrConvergence)
+		}
+	}
 	for i, model := range pieces {
 		part, err := restrictMappedSource(ctx, mapped, cuts[i], cuts[i+1], o)
 		if err != nil {

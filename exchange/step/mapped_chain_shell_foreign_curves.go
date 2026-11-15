@@ -59,7 +59,7 @@ func (g *mappedChainStepSource) proveForeignRoofUse(ctx context.Context, edgeID 
 }
 
 func proveMappedChainSTEPTransfer(ctx context.Context, support geom.Surface, source trimmed.SplineUV, edge mappedChainStepEdge, reverse bool, o geom.SurfacePatchOptions) (trimmed.MappedSplineUV, error) {
-	if edge.join == nil {
+	if len(edge.joins) == 0 {
 		model := edge.model
 		if reverse {
 			var err error
@@ -70,19 +70,33 @@ func proveMappedChainSTEPTransfer(ctx context.Context, support geom.Surface, sou
 		}
 		return trimmed.ProveMappedSplineTransfer(ctx, support, source, model, o)
 	}
-	pieces, join := edge.pieces, edge.join
+	pieces, joins := edge.pieces, mappedChainModelJoins(edge.joins, reverse)
 	if reverse {
-		pieces[0], pieces[1] = pieces[1], pieces[0]
-		for i, piece := range pieces {
+		pieces = make([]*geom.ExactSplineCurve, len(edge.pieces))
+		for i := range pieces {
+			piece := edge.pieces[len(pieces)-1-i]
 			var err error
 			pieces[i], err = piece.Reparameterize(0, 1, true, o)
 			if err != nil {
 				return trimmed.MappedSplineUV{}, err
 			}
 		}
-		join = new(big.Rat).Sub(big.NewRat(1, 1), join)
 	}
-	return trimmed.ProveMappedSplineSupportKnotTransfer(ctx, support, source, pieces, join, o)
+	if len(joins) == 1 {
+		return trimmed.ProveMappedSplineSupportKnotTransfer(ctx, support, source, [2]*geom.ExactSplineCurve(pieces), joins[0], o)
+	}
+	return trimmed.ProveMappedSplineTwoSupportKnotsTransfer(ctx, support, source, [3]*geom.ExactSplineCurve(pieces), [2]*big.Rat(joins), o)
+}
+
+func mappedChainModelJoins(joins []*big.Rat, reverse bool) []*big.Rat {
+	if !reverse {
+		return joins
+	}
+	out := make([]*big.Rat, len(joins))
+	for i := range out {
+		out[i] = new(big.Rat).Sub(big.NewRat(1, 1), joins[len(joins)-1-i])
+	}
+	return out
 }
 
 func (g *mappedChainStepSource) proveForeignModelLine(ctx context.Context, id int64, points [2][3]*big.Rat, o geom.SurfacePatchOptions) (*geom.ExactSplineCurve, error) {

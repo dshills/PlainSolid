@@ -23,11 +23,12 @@ type MappedChainShellSTEPOptions struct {
 	// Every emitted or read coedge must fit a closed original knot rectangle.
 	AllowMultiSpanRoofs bool
 	// AllowTwoInteriorRoofKnots admits up to two interior support knots per
-	// roof with explicit coedges. Also requires AllowMultiSpanRoofs.
+	// roof. Also requires AllowMultiSpanRoofs.
 	AllowTwoInteriorRoofKnots bool
 	// AllowUnsplitSupportKnot enables one foreign shared source EDGE_CURVE
-	// with a two-piece model spline and both original UV trims crossing the
-	// same support knot station. Also requires AllowMultiSpanRoofs.
+	// with a piecewise model spline and both original UV trims crossing the
+	// same support knot stations. Allows one crossing, or two with
+	// AllowTwoInteriorRoofKnots. Also requires AllowMultiSpanRoofs.
 	AllowUnsplitSupportKnot bool
 }
 
