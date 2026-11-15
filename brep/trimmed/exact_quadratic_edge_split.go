@@ -165,7 +165,13 @@ func (s Solid) mergeExactTrimEdges(ctx context.Context, first, second int, split
 	as, aok := x.surface.(*geom.BSplineSurface)
 	bs, bok := y.surface.(*geom.BSplineSurface)
 	if !aok || !bok || !geom.SameSplineSurface(as, bs) {
-		return Solid{}, bad, geom.ErrConvergence
+		same, e := sameExactBezierMergeSupport(ctx, x.surface, y.surface)
+		if e != nil {
+			return Solid{}, bad, e
+		}
+		if !same {
+			return Solid{}, bad, geom.ErrConvergence
+		}
 	}
 	whole, endpoints, e := join(x.curve, y.curve, split)
 	if e != nil {

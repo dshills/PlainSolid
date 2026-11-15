@@ -12,7 +12,8 @@ import (
 	"testing"
 )
 
-func TestSplitAuthoredCurvedSeam(t *testing.T) {
+func authoredCurvedSplitFixture(t *testing.T) (Solid, int, map[int]SplineUV) {
+	t.Helper()
 	ctx := context.Background()
 	weighted, weightedEdge := storedMixedWeightedKnotsFixture(t)
 	// A binary physical/UV point does not justify rounding the raw authored
@@ -22,7 +23,6 @@ func TestSplitAuthoredCurvedSeam(t *testing.T) {
 	}
 	original, edge := storedMixedCurvedFixture(t, false)
 	original, _ = storedMixedAffineSideFixture(t, original)
-	cut := big.NewRat(1, 2)
 	faces := original.Faces()
 	authored := map[int]SplineUV{}
 	owner := 0
@@ -63,6 +63,13 @@ func TestSplitAuthoredCurvedSeam(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	return s, edge, authored
+}
+
+func TestSplitAuthoredCurvedSeam(t *testing.T) {
+	ctx := context.Background()
+	s, edge, authored := authoredCurvedSplitFixture(t)
+	cut := big.NewRat(1, 2)
 	out, h, e := s.SplitExactBezierTrimEdge(ctx, edge, cut, edgecheck.Options{})
 	if e != nil {
 		t.Fatal(e)
