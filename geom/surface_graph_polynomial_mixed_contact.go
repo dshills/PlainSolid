@@ -67,83 +67,103 @@ func (r *SplineGraphPolynomialMixedContact) certifyArrangement(ctx context.Conte
 	r.Domain, r.FreeAxis, r.Power = pair.Domain, pair.FreeAxis, pair.Power
 	r.TerminalMasks, r.CertifiedCells, r.Graph = pair.TerminalMasks, pair.CertifiedCells, pair.Graph
 	stations := [4]*big.Rat{new(big.Rat).SetFloat64(d.UMin), roots[0], roots[1], new(big.Rat).SetFloat64(d.UMax)}
-	lower, e := r.certifyContactOrders(stations, b)
+	orders, e := certifyPolynomialGraphMixedOrders(r.FreeAxis, r.Power, stations[:], r.Nodes[:], b)
 	if e != nil {
 		return e
 	}
+	r.ContactOrder, r.DerivativeGap, r.Cofactor = [2]int(orders.orders), [2]*big.Rat(orders.gaps), orders.cofactor
 	if e = buildPolynomialGraphPieces(ctx, a, pair, stations[:], r.Vertices[:], r.Edges[:], b); e != nil {
 		return e
 	}
-	orderPolynomialGraphRegions(r.FreeAxis, r.Graph.ProjectionOrientation, pair.StripSigns[0], lower[:], r.Nodes[:], r.Regions[:])
+	orderPolynomialGraphRegions(r.FreeAxis, r.Graph.ProjectionOrientation, pair.StripSigns[0], orders.lower, r.Nodes[:], r.Regions[:])
 	if e = graphPolynomialRegionWitnesses(pair, d, stations[:], r.Vertices[4].Parameters[1-r.FreeAxis], r.Regions[:], b); e != nil {
 		return e
 	}
 	return ctx.Err()
 }
 
-func (r *SplineGraphPolynomialMixedContact) certifyContactOrders(stations [4]*big.Rat, b *polynomialBudget) ([3]int, error) {
-	var lower [3]int
-	delta, e := graphPolynomialSum(r.Power[1], r.Power[0], -1, b)
+type polynomialGraphMixedOrders struct {
+	orders   []int
+	gaps     []*big.Rat
+	lower    []int
+	cofactor rationalPolynomial
+}
+
+// certifyPolynomialGraphMixedOrders rechecks the local derivatives and the
+// complete factorization for one quadratic tangency and one or two crossings.
+func certifyPolynomialGraphMixedOrders(axis int, power [2][]*big.Rat, stations []*big.Rat, nodes []SplineGraphPolynomialJunction, b *polynomialBudget) (polynomialGraphMixedOrders, error) {
+	zero := polynomialGraphMixedOrders{}
+	delta, e := graphPolynomialSum(power[1], power[0], -1, b)
 	if e != nil {
-		return lower, e
+		return zero, e
 	}
-	cofactor := delta
-	for i, x := range stations[1:3] {
-		n := &r.Nodes[i]
+	out := polynomialGraphMixedOrders{
+		orders: make([]int, len(nodes)), gaps: make([]*big.Rat, len(nodes)),
+		lower: make([]int, len(nodes)+1), cofactor: delta,
+	}
+	dep := 1 - axis
+	derivatives := [2]rationalPolynomial{polynomialDerivative(power[0]), polynomialDerivative(power[1])}
+	secondDifference := polynomialDerivative(polynomialDerivative(delta))
+	tangencies := 0
+	for i, x := range stations[1 : len(stations)-1] {
+		n := &nodes[i]
 		n.Vertex = 4 + i
-		for j, power := range r.Power {
-			slope, e := polynomialValue(polynomialDerivative(power), x, b)
+		for j, derivative := range derivatives {
+			slope, e := polynomialValue(derivative, x, b)
 			if e != nil {
-				return lower, e
+				return zero, e
 			}
-			n.Tangents[j] = graphPolynomialUV(r.FreeAxis, big.NewRat(1, 1), slope)
+			n.Tangents[j] = graphPolynomialUV(axis, big.NewRat(1, 1), slope)
 		}
-		dep := 1 - r.FreeAxis
 		gap := new(big.Rat).Sub(n.Tangents[1][dep], n.Tangents[0][dep])
 		if e = b.check(gap); e != nil {
-			return lower, e
+			return zero, e
 		}
 		order := 1
-		lower[i+1] = 1 - lower[i]
+		out.lower[i+1] = 1 - out.lower[i]
 		if gap.Sign() == 0 {
 			order = 2
-			lower[i+1] = lower[i]
-			gap, e = polynomialValue(polynomialDerivative(polynomialDerivative(delta)), x, b)
+			tangencies++
+			out.lower[i+1] = out.lower[i]
+			gap, e = polynomialValue(secondDifference, x, b)
 			if e != nil {
-				return lower, e
+				return zero, e
 			}
 			if gap.Sign() == 0 {
-				return lower, ErrDegenerate
+				return zero, ErrDegenerate
 			}
 		}
-		r.ContactOrder[i], r.DerivativeGap[i] = order, gap
+		out.orders[i], out.gaps[i] = order, gap
 		factor := rationalPolynomial{new(big.Rat).Neg(x), big.NewRat(1, 1)}
 		for range order {
 			var remainder rationalPolynomial
-			cofactor, remainder, e = polynomialDivide(cofactor, factor, b)
+			out.cofactor, remainder, e = polynomialDivide(out.cofactor, factor, b)
 			if e != nil {
-				return lower, e
+				return zero, e
 			}
 			if len(remainder) != 0 {
-				return lower, ErrConvergence
+				return zero, ErrConvergence
 			}
 		}
 	}
-	if r.ContactOrder[0]+r.ContactOrder[1] != 3 || len(cofactor) == 0 || len(cofactor) > 2 {
-		return lower, ErrConvergence
+	// Each node accounts for one degree, and the double root for one more.
+	maxCofactorCoefficients := 5 - len(nodes) - tangencies
+	if tangencies != 1 || len(out.cofactor) == 0 || len(out.cofactor) > maxCofactorCoefficients {
+		return zero, ErrConvergence
 	}
-	// The gap is positive at the low endpoint by branch labeling. The simple
-	// factor there is negative and the squared factor is positive. A constant
-	// or affine cofactor is strictly negative throughout if both ends are.
-	for _, x := range []*big.Rat{stations[0], stations[3]} {
-		y, e := polynomialValue(cofactor, x, b)
+	// At the low endpoint the gap is positive and each simple monic factor
+	// is negative. The squared factor is positive. The constant or affine
+	// cofactor has the resulting strict sign throughout if both ends do.
+	crossings := len(nodes) - tangencies
+	sign := 1 - 2*(crossings%2)
+	for _, x := range []*big.Rat{stations[0], stations[len(stations)-1]} {
+		y, e := polynomialValue(out.cofactor, x, b)
 		if e != nil {
-			return lower, e
+			return zero, e
 		}
-		if y.Sign() >= 0 {
-			return lower, ErrConvergence
+		if y.Sign() != sign {
+			return zero, ErrConvergence
 		}
 	}
-	r.Cofactor = cofactor
-	return lower, nil
+	return out, nil
 }

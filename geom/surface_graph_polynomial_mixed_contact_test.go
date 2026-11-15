@@ -79,6 +79,23 @@ func TestSplineGraphPolynomialMixedContact(t *testing.T) {
 
 func checkPolynomialMixedContactRegions(t *testing.T, r SplineGraphPolynomialMixedContact, sources [2]*SurfacePatch, sign int, cycles [2][4]int) {
 	t.Helper()
+	checkOriginalPolynomialContactRegions(t, polynomialContactRegionTest{
+		r.FreeAxis, r.Graph.ProjectionOrientation, r.Power, r.Vertices[:], r.Edges[:], r.Nodes[:], r.Regions[:], r.ContactOrder[:],
+	}, sources, sign, cycles[:])
+}
+
+type polynomialContactRegionTest struct {
+	FreeAxis, ProjectionOrientation int
+	Power                           [2][]*big.Rat
+	Vertices                        []SplineGraphPolynomialVertex
+	Edges                           []SplineGraphPolynomialPiece
+	Nodes                           []SplineGraphPolynomialJunction
+	Regions                         []SplineGraphPolynomialRegion
+	ContactOrder                    []int
+}
+
+func checkOriginalPolynomialContactRegions(t *testing.T, r polynomialContactRegionTest, sources [2]*SurfacePatch, sign int, cycles [][4]int) {
+	t.Helper()
 	ctx := context.Background()
 	for _, edge := range r.Edges {
 		power := r.Power[edge.Branch]
@@ -105,7 +122,7 @@ func checkPolynomialMixedContactRegions(t *testing.T, r SplineGraphPolynomialMix
 		}
 	}
 
-	var uses [6][2]int
+	uses := make([][2]int, len(r.Edges))
 	for i, region := range r.Regions {
 		u, v := region.Witness[0], region.Witness[1]
 		a, e := sources[0].EvaluateRational(ctx, u, v, SurfacePatchEvaluationOptions{})
@@ -113,7 +130,10 @@ func checkPolynomialMixedContactRegions(t *testing.T, r SplineGraphPolynomialMix
 			t.Fatal(e)
 		}
 		b, e := sources[1].EvaluateRational(ctx, u, v, SurfacePatchEvaluationOptions{})
-		want := [5]int{sign, -sign, -sign, -sign, sign}[i]
+		want := -sign
+		if i == 0 || i == len(r.Regions)-1 {
+			want = sign
+		}
 		if e != nil || region.HeightSide != want || a.Point[2].Cmp(b.Point[2]) != want {
 			t.Fatal("signed original roof order", i, region, e)
 		}
@@ -132,11 +152,11 @@ func checkPolynomialMixedContactRegions(t *testing.T, r SplineGraphPolynomialMix
 			}
 			current = end
 		}
-		if i == 2 {
+		if i >= 2 && i < len(r.Regions)-2 {
 			if region.Perimeter != nil || current != begin || len(region.Edges) != 2 || region.Edges[0].Edge == region.Edges[1].Edge {
 				t.Fatal("interior lens must contain two original curved sides", region)
 			}
-		} else if p := region.Perimeter; p == nil || p.Start != current || p.End != begin || p.Start >= 4 || p.End >= 4 || p.ParameterDirection != r.Graph.ProjectionOrientation {
+		} else if p := region.Perimeter; p == nil || p.Start != current || p.End != begin || p.Start >= 4 || p.End >= 4 || p.ParameterDirection != r.ProjectionOrientation {
 			t.Fatal("original perimeter closes in positive model order", i, region)
 		}
 	}
@@ -147,12 +167,13 @@ func checkPolynomialMixedContactRegions(t *testing.T, r SplineGraphPolynomialMix
 	}
 
 	for i, node := range r.Nodes {
-		wantRegions := [4]int{i + 2, 4, i + 1, 0}
-		if r.Graph.ProjectionOrientation*(1-2*r.FreeAxis) < 0 {
-			slices.Reverse(cycles[i][1:])
+		wantRegions := [4]int{i + 2, len(r.Regions) - 1, i + 1, 0}
+		expected := cycles[i]
+		if r.ProjectionOrientation*(1-2*r.FreeAxis) < 0 {
+			slices.Reverse(expected[1:])
 			slices.Reverse(wantRegions[:])
 		}
-		if node.RayCycle != cycles[i] || node.Regions != wantRegions {
+		if node.RayCycle != expected || node.Regions != wantRegions {
 			t.Fatal("ordered model rays and retained sectors at both contact types", i, node)
 		}
 		for j, id := range node.RayCycle {
@@ -172,9 +193,28 @@ func checkPolynomialMixedContactRegions(t *testing.T, r SplineGraphPolynomialMix
 			}
 		}
 		if r.ContactOrder[i] == 1 {
-			checkPolynomialNodeRays(t, []SplineGraphPolynomialJunction{node}, r.Edges[:], r.Regions[:], r.Graph.ProjectionOrientation)
+			checkPolynomialNodeRays(t, []SplineGraphPolynomialJunction{node}, r.Edges, r.Regions, r.ProjectionOrientation)
+		} else {
+			checkQuadraticTangentOneSidedRays(t, node, r)
 		}
 	}
+}
+
+func checkQuadraticTangentOneSidedRays(t *testing.T, node SplineGraphPolynomialJunction, r polynomialContactRegionTest) {
+	t.Helper()
+	cycle := node.RayCycle
+	if r.ProjectionOrientation*(1-2*r.FreeAxis) < 0 {
+		slices.Reverse(cycle[1:])
+	}
+	check := func(lower, upper int, parameter *big.Rat) {
+		lo := testGraphBezierValue(r.Edges[lower].Controls, parameter)
+		hi := testGraphBezierValue(r.Edges[upper].Controls, parameter)
+		if lo[r.FreeAxis].Cmp(hi[r.FreeAxis]) != 0 || lo[1-r.FreeAxis].Cmp(hi[1-r.FreeAxis]) >= 0 {
+			t.Fatal("one-sided tangent rays must retain original branch order", node, lo, hi)
+		}
+	}
+	check(cycle[0], cycle[1], big.NewRat(1, 4))
+	check(cycle[3], cycle[2], big.NewRat(3, 4))
 }
 
 func TestSplineGraphPolynomialMixedContactOriginalUnits(t *testing.T) {
