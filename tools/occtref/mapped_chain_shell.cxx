@@ -77,16 +77,25 @@ static constexpr double secondSharedKnot = 99. / 256;
 static constexpr double secondCellSouthKnot = 917. / 2048;
 static constexpr double thirdSharedKnot = .75;
 
+enum class InferredSupportEvents { none, asynchronous, shared };
+
 struct RoofSupportLayout {
   int cuts = 3;
   int storedCells = 1;
   bool separated = false;
-  bool sameCellAsynchronous = false;
+  InferredSupportEvents inferred = InferredSupportEvents::none;
 };
 
+static double inferredSupportKnot(bool south, InferredSupportEvents events) {
+  if (events == InferredSupportEvents::shared) {
+    return 29. / 256;
+  }
+  return south ? 369. / 2048 : 107. / 2048;
+}
+
 static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout) {
-  if (layout.sameCellAsynchronous) {
-    return {0., south ? 369. / 2048 : 107. / 2048, 1.};
+  if (layout.inferred != InferredSupportEvents::none) {
+    return {0., inferredSupportKnot(south, layout.inferred), 1.};
   }
   if (layout.separated) {
     return south ? std::vector<double>{0., 29. / 256, .75, 1.}
@@ -116,9 +125,9 @@ static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout
 
 static double roofHeight(double x, double y, bool crease, bool three = false, bool south = false, RoofSupportLayout layout = {}) {
   if (three) {
-    if (layout.sameCellAsynchronous) {
-      const double separate = south ? 369. / 2048 : 107. / 2048;
-      return x * y + .125 * (y - .25) * std::max(0., x - separate);
+    if (layout.inferred != InferredSupportEvents::none) {
+      const double knot = inferredSupportKnot(south, layout.inferred);
+      return x * y + .125 * (y - .25) * std::max(0., x - knot);
     }
     if (layout.separated) {
       const double separate = south ? .75 : 107. / 2048;
@@ -351,8 +360,8 @@ static occ::handle<NCollection_HArray1<T>> stepArray(const std::array<T, N>& val
 static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepData_StepModel>& model,
   const occ::handle<StepData_Protocol>& protocol, bool unsplit, RoofSupportLayout layout) {
   const int supportCuts = layout.cuts;
-  const bool localCells = layout.storedCells >= 2 || layout.separated || layout.sameCellAsynchronous;
-  const double lastSouthParameter = layout.storedCells == 3 || layout.separated || layout.sameCellAsynchronous ? -2. : 0.;
+  const bool localCells = layout.storedCells >= 2 || layout.separated || layout.inferred != InferredSupportEvents::none;
+  const double lastSouthParameter = layout.storedCells == 3 || layout.separated || layout.inferred != InferredSupportEvents::none ? -2. : 0.;
   occ::handle<TCollection_HAsciiString> name = new TCollection_HAsciiString("");
   const std::array<double, 10> southX{1., .875, .625, .5, .4375, .34375, .25, .15625, .0625, 0.};
   std::array<occ::handle<StepGeom_CartesianPoint>, 10> poles;
@@ -482,11 +491,14 @@ int main(int argc, char** argv) {
     const int supportCuts = mode == "write-six-knots-mixed-unsplit" ? 6
       : mode == "write-five-knots-mixed-unsplit" ? 5 : mode == "write-four-knots-mixed-unsplit" ? 4 : 3;
     const bool sameCellAsynchronous = mode == "write-same-cell-asynchronous" || mode == "write-same-cell-redundant-knot";
+    const bool sharedInferred = mode == "write-shared-inferred-knot" || mode == "write-shared-inferred-redundant-knot";
+    const auto inferred = sharedInferred ? InferredSupportEvents::shared
+      : sameCellAsynchronous ? InferredSupportEvents::asynchronous : InferredSupportEvents::none;
     const int storedCells = mode == "write-three-support-cells" ? 3 : mode == "write-two-support-cells" ? 2
-      : mode == "write-same-cell-asynchronous" ? 0 : 1;
-    const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells", sameCellAsynchronous};
+      : (mode == "write-same-cell-asynchronous" || mode == "write-shared-inferred-knot") ? 0 : 1;
+    const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells", inferred};
     const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || storedCells >= 2
-      || layout.separated || sameCellAsynchronous;
+      || layout.separated || inferred != InferredSupportEvents::none;
     const bool mixedBasis = mode == "write-three-knots-mixed-basis" || unsplitBasis;
     const bool three = mode == "write-three-knots" || mixedBasis;
     const bool authoredPlanes = mode == "write-knot" || three;

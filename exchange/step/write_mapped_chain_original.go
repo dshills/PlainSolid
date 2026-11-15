@@ -12,8 +12,8 @@ import (
 )
 
 // WriteMappedChainRectangularOriginalShell exports the captured STEP graph of
-// a mixed-basis shell with a supported original-edge partition, including two
-// asynchronous cuts in one original model Bézier. Both
+// a mixed-basis shell with a supported original-edge partition, including
+// inferred support events on one original model Bézier. Both
 // the captured source and the staged canonical graph pass
 // the complete proof. The authored model poles, weights, knot values, and
 // directions survive, as do the original pcurve bases and parameter limits.
@@ -35,7 +35,8 @@ func WriteMappedChainRectangularOriginalShell(ctx context.Context, w io.Writer, 
 	recordedPartition := len(crossings) >= 3 && len(crossings) <= 6 &&
 		(allMappedChainCrossingsOnOneEdge(crossings) || mappedChainCrossingLocalCellCount(crossings) != 0 ||
 			mappedChainSeparatedSupportCells(source.Chain, crossings))
-	if independent[0] == independent[1] || !recordedPartition && !mappedChainSameCellAsynchronousCrossings(crossings) {
+	inferredPartition := mappedChainSameCellAsynchronousCrossings(crossings) || mappedChainInferredSharedCrossing(crossings)
+	if independent[0] == independent[1] || !recordedPartition && !inferredPartition {
 		return fmt.Errorf("original mixed STEP export requires a supported source-edge support-knot partition: %w", geom.ErrConvergence)
 	}
 	file, err := Parse(strings.NewReader(source.original), l)

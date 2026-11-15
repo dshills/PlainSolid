@@ -128,7 +128,14 @@ func mappedChainModelJoins(joins []*big.Rat, reverse bool) []*big.Rat {
 	return out
 }
 
-func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edge mappedChainStepEdge, reverse bool, interval [2]*big.Rat, mapped [2]trimmed.MappedSplineUV, ownerCuts [2][]*big.Rat, sameCellAsync, allowThree bool, v8Cuts int, o geom.SurfacePatchOptions) ([]MappedChainSTEPSupportCrossing, error) {
+type mappedChainBezierRepairs uint8
+
+const (
+	mappedChainBezierAsynchronous mappedChainBezierRepairs = 1 << iota
+	mappedChainBezierShared
+)
+
+func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edge mappedChainStepEdge, reverse bool, interval [2]*big.Rat, mapped [2]trimmed.MappedSplineUV, ownerCuts [2][]*big.Rat, bezierRepairs mappedChainBezierRepairs, allowThree bool, v8Cuts int, o geom.SurfacePatchOptions) ([]MappedChainSTEPSupportCrossing, error) {
 	joins := mappedChainModelJoins(edge.joins, reverse)
 	type cut struct {
 		t      *big.Rat
@@ -144,7 +151,16 @@ func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edg
 	case n > 1:
 		three := allowThree && a == 1 && b == 1
 		multiple := n+1 == v8Cuts && min(a, b) >= 1
-		singleBezier := sameCellAsync && len(joins) == 0 && a == 1 && b == 1
+		singleBezier := bezierRepairs != 0 && len(joins) == 0 && a == 1 && b == 1
+		if singleBezier && bezierRepairs&mappedChainBezierShared != 0 && ownerCuts[0][0].Cmp(ownerCuts[1][0]) == 0 {
+			// Each owner already proved both exact raw restrictions against
+			// this model Bézier. Equal model stations define one shared cut.
+			cuts = append(cuts, cut{t: ownerCuts[0][0], owners: [2]bool{true, true}})
+			break
+		}
+		if singleBezier && bezierRepairs&mappedChainBezierAsynchronous == 0 {
+			return nil, fmt.Errorf("the two inferred roof support events must coincide on the original model Bézier: %w", geom.ErrConvergence)
+		}
 		if !singleBezier && (len(joins) != 1 || !three && !multiple) {
 			return nil, fmt.Errorf("asynchronous repair permits one owner-side crossing per original edge: %w", geom.ErrConvergence)
 		}
