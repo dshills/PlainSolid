@@ -453,3 +453,48 @@ inch declarations, edited LINE speed and undersized spline knots also reject.
 PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
   go test ./exchange/step -run '^TestRepairFourConvertedInchConvexArc' -count=1
 ```
+
+## Five disjoint fillets in an original millimetre STEP
+
+The pinned `write-five-default-tilted` mode builds a five-sided profile
+with vertices `(0,0)`, `(3,0)`, `(3,2)`, `(2,2.75)`, and `(0,2.75)`.
+It authors the base plane explicitly and rounds the five vertical edges
+with distinct radii of `1/4`, `3/8`, `5/16`, `15/64` and `7/32` mm.
+The 836-entity AP214 original contains one twelve-face solid, ten profile
+segments and 60 original pcurve owners. This qualification covers the
+native millimetre chart family.
+
+The source proof retains 30 planar LINE owners, eight planar CIRCLEs,
+ten axial cylindrical owners, ten cylindrical arcs and two rational
+caps. The receipt includes twelve finite planar intervals, two unequal
+axial trims and both rational cap roots. The six shifted cylindrical
+charts keep their original offsets. Owners `#324` and `#633` have
+`u = t - 3.14159265359` with constant axial positions 0 and 5. Their
+unit circle and cylinder azimuths have exact dot product `-1`. For
+these antipodal frames the existing rational sine and cosine proof
+bounds the original lift over the full arc by `6.4e-14` mm. The
+associated OCCT witness compares the two half-turn owners at six
+stations. The general witness independently checks all 60 owners.
+
+Explicit repair at `1e-12` mm preserves the original source bytes,
+exact pose and native solid. A `1e-13` mm request rejects at original
+oblique owner `#267`. An edited offset, a borrowed owner, a
+non-antipodal frame and an insufficient entity budget also reject.
+Strict canonical reopen re-exports identical STEP bytes. Pinned OCCT
+reads the original, corrected and canonical files as one twelve-face
+solid with canonical volume `39.084768347549009` mm³, area
+`68.682455982680239` mm² and centroid
+`(2.8653432472612699, 1.3261479966457206, 0.34620900365163998)` mm.
+
+The independently authored `write-five-default-tilted-nondyadic`
+control changes the chamfer-to-top fillet from `15/64` to `3/16` mm.
+The supports at original edge `#804` are tangent exactly, and their
+product-local tangent point is `(-217/80, 41/20)` on the base plane.
+Those coordinates are non-binary. PlainSolid's current exact model
+representation rejects them with `geom.ErrUnrepresentable`. OCCT
+transfers the same original within its tolerance.
+
+```sh
+PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
+  go test ./exchange/step -run '^TestRepairFiveConvexArc' -count=1
+```

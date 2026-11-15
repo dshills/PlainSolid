@@ -39,12 +39,12 @@
 #include <iomanip>
 #include <string>
 
-static int shiftedCylinderWitness(const char* path, int expectedOwners = 2) {
+static int shiftedCylinderWitness(const char* path, int expectedOwners = 2, int expectedHalfTurns = 0) {
  STEPControl_Reader reader;
  if (reader.ReadFile(path) != IFSelect_RetDone) return 6;
  const auto model = reader.StepModel();
- int owners = 0;
- double maxDistance = 0, withoutPhase = 0;
+ int owners = 0, halfTurns = 0;
+ double maxDistance = 0, withoutPhase = 0, maxHalfTurnDistance = 0, withoutHalfTurn = 0;
  for (int i=1; i<=model->NbEntities(); ++i) {
   const auto edge = Handle(StepShape_EdgeCurve)::DownCast(model->Value(i));
   if (edge.IsNull()) continue;
@@ -79,17 +79,28 @@ static int shiftedCylinderWitness(const char* path, int expectedOwners = 2) {
    const double phase = uv->Value(0).X();
    if (phase == 0) continue;
    ++owners;
+   const bool halfTurn = std::abs(phase)>3;
+   if (halfTurn) ++halfTurns;
    for (double t : {first, (first+last)/2, last}) {
     const auto p = uv->Value(t);
     const auto xyz = circle->Value(t);
-    maxDistance = std::max(maxDistance, xyz.Distance(surface->Value(p.X(),p.Y())));
-    withoutPhase = std::max(withoutPhase, xyz.Distance(surface->Value(p.X()-phase,p.Y())));
+    const double withOffset = xyz.Distance(surface->Value(p.X(),p.Y()));
+    const double noOffset = xyz.Distance(surface->Value(p.X()-phase,p.Y()));
+    maxDistance = std::max(maxDistance, withOffset);
+    withoutPhase = std::max(withoutPhase, noOffset);
+    if (halfTurn) {
+     maxHalfTurnDistance = std::max(maxHalfTurnDistance, withOffset);
+     withoutHalfTurn = std::max(withoutHalfTurn, noOffset);
+    }
    }
   }
  }
  std::cout << std::setprecision(17) << "{\"Owners\":" << owners << ",\"Samples\":" << 3*owners
-           << ",\"MaxSourceDistance\":" << maxDistance << ",\"WithoutPhase\":" << withoutPhase << "}\n";
- return owners == expectedOwners ? 0 : 9;
+           << ",\"MaxSourceDistance\":" << maxDistance << ",\"WithoutPhase\":" << withoutPhase;
+ if (expectedHalfTurns>0) std::cout << ",\"HalfTurnOwners\":" << halfTurns
+           << ",\"MaxHalfTurnDistance\":" << maxHalfTurnDistance << ",\"WithoutHalfTurn\":" << withoutHalfTurn;
+ std::cout << "}\n";
+ return owners == expectedOwners && halfTurns == expectedHalfTurns ? 0 : 9;
 }
 
 static int circularLoopOwnerWitness(const char* path, double modelSpeed, double ownerScale, int fillets = 1, bool finiteCylinder = true) {
@@ -200,7 +211,7 @@ static int circularLoopOwnerWitness(const char* path, double modelSpeed, double 
                            << ",\"MaxShiftedDistance\":" << maxShiftedDistance;
  std::cout << "}\n";
  const int expectedCaps=fillets>1 ? 2 : 0;
- const int expectedPlaneLines=fillets==4 ? 24 : 18;
+ const int expectedPlaneLines=6*std::max(3,fillets);
  const int expectedShifted=finiteCylinder && fillets>=3 ? 2*(fillets-2) : 0;
  return planeLines==expectedPlaneLines && planeCircles==2*fillets-expectedCaps && cylinderLines==2*fillets &&
         cylinderCircles==2*fillets && rationalCaps==expectedCaps && shifted==expectedShifted ? 0 : 9;
@@ -227,6 +238,8 @@ if(std::string(argv[1])=="four-converted-metre-witness") return circularLoopOwne
 if(std::string(argv[1])=="four-converted-inch-witness") return circularLoopOwnerWitness(argv[2], 3.937007874016E-02, 5.0/127.0, 4);
 if(std::string(argv[1])=="four-owner-witness") return circularLoopOwnerWitness(argv[2], 1, 1, 4, false);
 if(std::string(argv[1])=="four-shifted-cylinder-witness") return shiftedCylinderWitness(argv[2], 4);
+if(std::string(argv[1])=="five-owner-witness") return circularLoopOwnerWitness(argv[2], 1, 1, 5, false);
+if(std::string(argv[1])=="five-shifted-cylinder-witness") return shiftedCylinderWitness(argv[2], 6, 2);
 if(std::string(argv[1])=="shifted-cylinder-witness") return shiftedCylinderWitness(argv[2]);
 if(std::string(argv[1])=="cap-trim") {
  STEPControl_Reader reader;if(reader.ReadFile(argv[2])!=IFSelect_RetDone)return 6;auto model=reader.StepModel();int count=0;double minStation=10,maxStation=0,maxEndpoint=0;
@@ -240,6 +253,8 @@ if(std::string(argv[1])=="cap-witness") {
  std::cout<<std::setprecision(17)<<"{\"Caps\":"<<count<<",\"MinSquared\":"<<minSquared<<",\"MaxSquared\":"<<maxSquared<<"}\n";return count==2?0:10;
 }
 const std::string mode = argv[1];
+const bool fiveNonDyadic = mode == "write-five-default-tilted-nondyadic";
+const bool five = mode == "write-five-default-tilted" || fiveNonDyadic;
 const bool fourNonDyadic = mode == "write-four-default-tilted-nondyadic";
 const bool fourAutomaticPlane = mode == "write-four-default-tilted-automatic-plane" ||
                                  mode == "write-four-default-tilted-converted-metre-automatic-plane";
@@ -266,38 +281,46 @@ const bool convertedInch = mode == "write-default-tilted-translated-converted-in
 const bool metre = mode == "write-default-tilted-translated-metre" || mode == "write-both-default-tilted-metre" || convertedMetre;
 const bool inch = mode == "write-default-tilted-translated-inch" || mode == "write-both-default-tilted-inch" || convertedInch;
 const bool tiltedDefault = mode == "write-default-tilted" || mode == "write-default-tilted-translated" ||
-                           mode == "write-three-default-tilted" || threeNonDyadic || groupedTilted || four || metre || inch;
+                           mode == "write-three-default-tilted" || threeNonDyadic || groupedTilted || four || five || metre || inch;
 if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || std::string(argv[1])=="write-translated" || std::string(argv[1])=="write-both" || std::string(argv[1])=="write-both-x" || std::string(argv[1])=="write-default" || std::string(argv[1])=="write-both-default" || std::string(argv[1])=="write-both-default-x" || std::string(argv[1])=="write-both-default-minus-x" || std::string(argv[1])=="write-both-default-translated" || tiltedDefault || three){
  BRepBuilderAPI_MakePolygon profile;
  profile.Add(gp_Pnt(0,0,0));
- profile.Add(gp_Pnt(four ? 2 : 4,0,0));
- if (four) profile.Add(gp_Pnt(2,1.5,0));
- profile.Add(gp_Pnt(0,3,0));
+ const double right = five ? 3 : four ? 2 : 4;
+ const double top = five ? 2.75 : 3;
+ profile.Add(gp_Pnt(right,0,0));
+ if (four || five) profile.Add(gp_Pnt(right,five ? 2 : 1.5,0));
+ if (five) profile.Add(gp_Pnt(2,top,0));
+ profile.Add(gp_Pnt(0,top,0));
  profile.Close();
- const auto face = four && !fourAutomaticPlane
+ const auto face = (four && !fourAutomaticPlane) || five
   ? BRepBuilderAPI_MakeFace(gp_Pln(gp_Pnt(0,0,0),gp_Dir(0,0,1)),profile.Wire()).Face()
   : BRepBuilderAPI_MakeFace(profile.Wire()).Face();
  const auto stock = BRepPrimAPI_MakePrism(face,gp_Vec(0,0,5)).Shape();
- const auto target = verticalEdge(stock, four ? 2 : 4, 0);
+ const auto target = verticalEdge(stock, right, 0);
  if (target.IsNull()) return 3;
  BRepFilletAPI_MakeFillet fillet(stock);
- fillet.Add(four ? 3.0/8 : 5.0/16, target);
+ fillet.Add(four || five ? 3.0/8 : 5.0/16, target);
  if (mode=="write-both" || mode=="write-both-x" || mode=="write-both-default" ||
      mode=="write-both-default-x" || mode=="write-both-default-minus-x" || mode=="write-both-default-translated" ||
-     groupedTilted || three || four) {
+     groupedTilted || three || four || five) {
   const auto other = verticalEdge(stock, 0, 0);
   if (other.IsNull()) return 8;
   fillet.Add(.25, other);
  }
- if (three || four) {
-  const auto third = verticalEdge(stock, 0, 3);
+ if (three || four || five) {
+  const auto third = verticalEdge(stock, 0, top);
   if (third.IsNull()) return 8;
-  fillet.Add(threeNonDyadic || fourNonDyadic ? 3.0/16 : 5.0/32, third);
+  fillet.Add(five ? 7.0/32 : (threeNonDyadic || fourNonDyadic ? 3.0/16 : 5.0/32), third);
  }
- if (four) {
-  const auto fourth = verticalEdge(stock, 2, 1.5);
+ if (four || five) {
+  const auto fourth = verticalEdge(stock, right, five ? 2 : 1.5);
   if (fourth.IsNull()) return 8;
   fillet.Add(5.0/16, fourth);
+ }
+ if (five) {
+  const auto fifth = verticalEdge(stock, 2, top);
+  if (fifth.IsNull()) return 8;
+  fillet.Add(fiveNonDyadic ? 3.0/16 : 15.0/64, fifth);
  }
  fillet.Build();if(!fillet.IsDone())return 4;shape=fillet.Shape();
  if (mode != "write" && mode != "write-both" && mode != "write-default" && mode != "write-both-default" && mode != "write-three-default") {
@@ -307,7 +330,7 @@ if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || 
   } else if (mode == "write-minus-x" || mode == "write-both-default-minus-x") {
    pose.SetValues(0,0,-1,2, -1,0,0,-3, 0,1,0,0);
   } else if (tiltedDefault) {
-   const bool translated = !groupedTilted && !three && !four && (mode == "write-default-tilted-translated" || metre || inch);
+   const bool translated = !groupedTilted && !three && !four && !five && (mode == "write-default-tilted-translated" || metre || inch);
    pose.SetValues(.6,0,.8,translated ? 1 : 0, 0,1,0,0, -.8,0,.6,translated ? 2 : 0);
   } else {
    pose.SetTranslation(gp_Vec(2,0,3));

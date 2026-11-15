@@ -186,9 +186,9 @@ func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o C
 	var owners []ConvexArcPCurveAgreement
 	converted := false
 	if grouped {
-		// The two triangular profiles and the four-fillet quadrilateral
+		// The supported triangular, quadrilateral and pentagonal profiles
 		// have distinct edge counts. Each edge has exactly two owners.
-		model, owners, e = convexPCurveModelView(f, 15, true, 18, 24)
+		model, owners, e = convexPCurveModelView(f, 15, true, 18, 24, 30)
 		switch len(owners) {
 		case 30:
 			fillets = 2
@@ -196,6 +196,8 @@ func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o C
 			fillets = 3
 		case 48:
 			sides, fillets = 4, 4
+		case 60:
+			sides, fillets = 5, 5
 		}
 	} else {
 		model, owners, e = convexPCurveModelView(f, 12, false)
@@ -218,6 +220,9 @@ func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o C
 				}
 			}
 		}
+	}
+	if fillets == 5 && converted {
+		return nil, geom.ErrDomain
 	}
 	pose, reference, body, metadata, e := rationalConvexArcPose(model, grouped)
 	if e != nil {
