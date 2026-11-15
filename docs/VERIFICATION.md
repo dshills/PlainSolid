@@ -27,6 +27,42 @@ A real Chromium module worker returned the same typed certificate as the
 raw Go dispatcher and a second worker strictly reopened and re-exported it.
 The focused logs are in `.worktrees/qualification/2026-11-15`.
 
+Focused qualification after the paired full run:
+
+- Native three-crossing Common and Fuse passed the main race in 67.018
+  seconds. Half-gap pinned OCCT returned one valid solid in all eight
+  chart/order/operation combinations and volume matched the analytical
+  result within `9.64e-11`. The separate full-gap exact native topology
+  check preserves the source sectors. Full-gap raw OCCT differs by
+  `5.33e-7` in one chart and order; its face counts are not used as
+  equivalent topology evidence.
+- Three-crossing Cut preserves two exterior components sharing all
+  three nodes, or four positive components linked by three exact points.
+  The full new and previous two-crossing Cut race passed in 356.942
+  seconds. Independent rational slab integration resolves volumes as low
+  as `1.28875293239510e-10`. Pinned OCCT merged the two exterior components
+  and missed the two smallest lenses, so its Cut results are diagnostics.
+- Mixed transverse and tangent geometry preserves five signed regions
+  for either contact order and both chart axes. Both original source
+  functions and all incident pieces are retained, with a separate
+  exact-coordinate gate. The focused main race passed in 11.547 seconds.
+- Two synchronized mapped support knots at `1/8` and `3/16` retain original
+  raw station pairs `(41,51)` and `(65,43)`. Native v4 re-proves 46 exact
+  coedges; output STEP reopens with one seven-face solid and independently
+  measured OCCT volume `0.958986651152372` and area `6.22813463037912`.
+  Main mapped native and exchange races passed in 12.429 and 9.720 seconds.
+- Exact planar STEP point-contact exchange passed its live pinned race in
+  2.315 seconds. Three independently authored box bodies retain one exact
+  corner contact. Rounded vertex coordinates, near model lines or planes,
+  or reversed, missing or detached edge pcurves reject before publication.
+- Independently authored metre and inch tilted STEP imports preserve exact
+  physical conversion and world geometry under pinned OCCT readback.
+  The bridge passes an explicit source-unit assertion, rejects missing or
+  mismatched units, and keeps physical quantities tagged in millimetres.
+  The focused main unit race passed in 46.490 seconds; the earlier complete
+  repair bridge cases passed in 177.235 seconds. Five typed adapter fixtures
+  passed with actual Go WASM in Node.
+
 ## Full baseline and recent exact modeling qualification (2026-11-14)
 
 The [normal Go record](evidence/main-6c4ab7c4-qualification-2026-11-14.json)

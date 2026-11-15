@@ -16,12 +16,22 @@ four WASM contract cases. The build, typechecks and bundle budget passed,
 the Playwright driver is pristine, and the production WASM matches the
 built asset. Later commits have focused differential and race checks.
 
+Three transverse nodes now qualify native Common, Fuse and both component
+Cut orders. The new mixed crossing and tangency proof retains five signed
+regions on the original analytic roofs. Canonical mapped STEP and native
+reload preserve two synchronized original support-knot crossings. Exact
+planar STEP point-contact transfer authenticates original model lines, planes
+and both incident pcurves when supplied. The optional PlainCAD STEP repair
+bridge preserves authored metre and inch units while reporting physical
+measurements and display coordinates in millimetres.
+
 The active release gaps include general curved Boolean and blend assembly,
 more complete STEP and IGES, current native race and runtime platform
 qualification, and end-to-end acceptance of the remaining specification.
-Immediate work is advancing exact three-crossing Cut contact graphs,
-multiple original support-knot splits, source-unit STEP transfer through
-the PlainCAD bridge, and stricter planar source-support authentication.
+The refreshed full race run on `d5906fde` is in progress. Immediate work
+includes native mixed-contact shell assembly, foreign STEP edge sharing across
+two support knots, asynchronous mapped support cuts, and exact planar IGES
+transfer of connected material with holes.
 
 The two PlainCAD integration branches are in `main` through implementation
 merge `8f76f16b` and verification merge `012096ee`.
