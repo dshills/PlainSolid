@@ -89,6 +89,14 @@ func (c *BSpline) Degree() int {
 	return c.degree
 }
 
+// PoleCount returns the number of control points without copying them.
+func (c *BSpline) PoleCount() int {
+	if c == nil {
+		return 0
+	}
+	return len(c.poles)
+}
+
 // Domain returns NaNs for a nil or zero-value curve.
 func (c *BSpline) Domain() (float64, float64) {
 	if c == nil || len(c.poles) == 0 {

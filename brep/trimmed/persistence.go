@@ -29,24 +29,25 @@ type nativeEdge struct {
 	P          *nativeUse      `json:",omitempty"`
 }
 type nativeUse struct {
-	Edge           int
-	Reversed       bool
-	UVStart, UVEnd geom.Vec2
-	Quadratic      *QuadraticUV       `json:",omitempty"`
-	ExactQuadratic *[3][3]string      `json:",omitempty"`
-	ExactBezier    [][3]string        `json:",omitempty"`
-	RationalEnds   bool               `json:",omitempty"`
-	Ellipse        *EllipseUV         `json:",omitempty"`
-	AnchoredCircle bool               `json:",omitempty"`
-	Implicit       *nativeImplicitUse `json:",omitempty"`
-	Tube           *nativeTubeUse     `json:",omitempty"`
-	Wall           *nativeWallTrim    `json:",omitempty"`
-	Spline         json.RawMessage    `json:",omitempty"`
-	SplineRange    UVInterval         `json:",omitempty"`
-	SplineReversed bool               `json:",omitempty"`
-	Subcurve       *nativeUse         `json:",omitempty"`
-	SubRange       UVInterval         `json:",omitempty"`
-	Flip           bool               `json:",omitempty"`
+	Edge                 int
+	Reversed             bool
+	UVStart, UVEnd       geom.Vec2
+	Quadratic            *QuadraticUV       `json:",omitempty"`
+	ExactQuadratic       *[3][3]string      `json:",omitempty"`
+	ExactBezier          [][3]string        `json:",omitempty"`
+	RationalEnds         bool               `json:",omitempty"`
+	Ellipse              *EllipseUV         `json:",omitempty"`
+	AnchoredCircle       bool               `json:",omitempty"`
+	Implicit             *nativeImplicitUse `json:",omitempty"`
+	Tube                 *nativeTubeUse     `json:",omitempty"`
+	Wall                 *nativeWallTrim    `json:",omitempty"`
+	Spline               json.RawMessage    `json:",omitempty"`
+	SplineRange          UVInterval         `json:",omitempty"`
+	SplineReversed       bool               `json:",omitempty"`
+	SplineExactEndpoints bool               `json:",omitempty"`
+	Subcurve             *nativeUse         `json:",omitempty"`
+	SubRange             UVInterval         `json:",omitempty"`
+	Flip                 bool               `json:",omitempty"`
 }
 type nativeImplicitUse struct {
 	Recipe, Contour, Segment int
@@ -86,13 +87,14 @@ type implicitRecipeKey struct {
 	options         intersect.SplinePlaneOptions
 }
 type trimEncoder struct {
-	keys           map[implicitRecipeKey]int
-	recipes        []nativeImplicitRecipe
-	tubeIDs        map[intersect.TubeRecipe]int
-	tubes          []nativeTubeRecipe
-	exactQuadratic bool
-	exactBezier    bool
-	rationalEnds   bool
+	keys                 map[implicitRecipeKey]int
+	recipes              []nativeImplicitRecipe
+	tubeIDs              map[intersect.TubeRecipe]int
+	tubes                []nativeTubeRecipe
+	exactQuadratic       bool
+	exactBezier          bool
+	rationalEnds         bool
+	exactSplineEndpoints bool
 }
 
 func (t *trimEncoder) encodeUses(uses []Use) ([]nativeUse, error) {
@@ -180,6 +182,13 @@ func (t *trimEncoder) encodeUses(uses []Use) ([]nativeUse, error) {
 			}
 			x.Subcurve, x.Flip = &base[0], true
 		case SplineUV:
+			if c.ExactEndpoints {
+				if _, e := c.WithExactEndpoints(); e != nil {
+					return nil, e
+				}
+				t.exactSplineEndpoints = true
+				x.SplineExactEndpoints = true
+			}
 			b, e := parametric.EncodeCurve(c.Curve)
 			if e != nil {
 				return nil, e
@@ -269,7 +278,7 @@ func WriteJSON(w io.Writer, s Solid) error {
 		d.Version, d.Tubes = 3, t.tubes
 	}
 	usesExactSurface := hasNativeExactSplineSupport(s)
-	if t.exactQuadratic || t.exactBezier || usesExactSurface {
+	if t.exactQuadratic || t.exactBezier || usesExactSurface || t.exactSplineEndpoints {
 		if e := validateNativeExactQuadratics(context.Background(), s); e != nil {
 			return e
 		}
@@ -283,6 +292,9 @@ func WriteJSON(w io.Writer, s Solid) error {
 	}
 	if usesExactSurface {
 		d.Version = 7
+	}
+	if t.exactSplineEndpoints {
+		d.Version = 8
 	}
 	b, err := json.Marshal(d)
 	if err != nil {
@@ -309,6 +321,9 @@ func (d trimDecoder) decodeUses(n []nativeUse, depth int) ([]Use, error) {
 	}
 	r := make([]Use, len(n))
 	for i, x := range n {
+		if x.SplineExactEndpoints && (d.version < 8 || len(x.Spline) == 0 || x.ExactBezier != nil || x.ExactQuadratic != nil || x.Quadratic != nil || x.Ellipse != nil || x.Implicit != nil || x.Tube != nil || x.Wall != nil || x.Subcurve != nil || x.Flip || x.SubRange != (UVInterval{}) || x.RationalEnds || x.AnchoredCircle) {
+			return nil, fmt.Errorf("trimmed: invalid exact spline endpoint mode")
+		}
 		u := Use{Edge: x.Edge, Reversed: x.Reversed, UVStart: x.UVStart, UVEnd: x.UVEnd}
 		if x.RationalEnds && (d.version < 5 || x.ExactQuadratic == nil) {
 			return nil, fmt.Errorf("trimmed: invalid rational endpoint representation")
@@ -446,7 +461,14 @@ func (d trimDecoder) decodeUses(n []nativeUse, depth int) ([]Use, error) {
 			if !ok {
 				return nil, fmt.Errorf("trimmed: p-curve spline type mismatch")
 			}
-			u.Curve = SplineUV{Curve: s, Range: x.SplineRange, Reversed: x.SplineReversed}
+			q := SplineUV{Curve: s, Range: x.SplineRange, Reversed: x.SplineReversed}
+			if x.SplineExactEndpoints {
+				q, e = q.WithExactEndpoints()
+				if e != nil {
+					return nil, e
+				}
+			}
+			u.Curve = q
 		} else if x.Quadratic != nil {
 			if x.Ellipse != nil {
 				return nil, fmt.Errorf("trimmed: multiple p-curve representations")
@@ -488,7 +510,7 @@ func parseNativeExactTrimCoefficient(raw string) (*big.Rat, error) {
 	return q, nil
 }
 
-// ReadJSON bounds and validates a version 1 through 6 trimmed boundary. Zero fields
+// ReadJSON bounds and validates a version 1 through 8 trimmed boundary. Zero fields
 // select 32 MiB, 20,000 entities and 4,096 poles per geometry record.
 func ReadJSON(r io.Reader, o JSONLimits) (Solid, error) {
 	return ReadJSONContext(context.Background(), r, o)
@@ -530,7 +552,7 @@ func ReadJSONContext(ctx context.Context, r io.Reader, o JSONLimits) (Solid, err
 	if err = d.Decode(&extra); err != io.EOF {
 		return Solid{}, fmt.Errorf("trimmed: trailing data")
 	}
-	if n.Version < 1 || n.Version > 7 || n.Kind != "trimmed-brep" || n.Version == 1 && len(n.Implicit) > 0 ||
+	if n.Version < 1 || n.Version > 8 || n.Kind != "trimmed-brep" || n.Version == 1 && len(n.Implicit) > 0 ||
 		n.Version < 3 && len(n.Tubes) > 0 {
 		return Solid{}, fmt.Errorf("trimmed: unsupported schema")
 	}
@@ -662,8 +684,11 @@ func ReadJSONContext(ctx context.Context, r io.Reader, o JSONLimits) (Solid, err
 		return solid, e
 	}
 	usesExactSurface := hasNativeExactSplineSupport(solid)
-	if usesExactSurface != (n.Version == 7) {
+	if usesExactSurface && n.Version < 7 || n.Version == 7 && !usesExactSurface {
 		return Solid{}, fmt.Errorf("trimmed: exact Bézier support requires native version 7")
+	}
+	if hasNativeExactSplineEndpoints(solid) != (n.Version == 8) {
+		return Solid{}, fmt.Errorf("trimmed: exact spline endpoint mode requires native version 8")
 	}
 	if n.Version < 4 {
 		return solid, nil
@@ -709,6 +734,8 @@ func validateNativeExactQuadratics(ctx context.Context, solid Solid) error {
 		switch c := p.(type) {
 		case ExactQuadraticUV, ExactBezierUV:
 			return true
+		case SplineUV:
+			return c.ExactEndpoints
 		case reverseTrim:
 			return containsExact(c.differentiableTrim)
 		case subTrim:

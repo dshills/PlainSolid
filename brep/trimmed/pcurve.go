@@ -70,6 +70,9 @@ type SplineUV struct {
 	Curve    *geom.BSpline
 	Range    UVInterval
 	Reversed bool
+	// ExactEndpoints opts into bounded exact source evaluation at t=0 and t=1.
+	// See WithExactEndpoints; the default preserves legacy floating evaluation.
+	ExactEndpoints bool
 }
 
 // UVInterval is the active parameter range of a SplineUV.
@@ -83,6 +86,9 @@ func (c SplineUV) EvalUV(t float64) (geom.Vec2, error) {
 		t = 1 - t
 	}
 	u := (1-t)*c.Range.Min + t*c.Range.Max
+	if c.ExactEndpoints && (t == 0 || t == 1) {
+		return exactSplineUVEndpoint(c, u)
+	}
 	p, e := c.Curve.Eval(u)
 	if e != nil {
 		return geom.Vec2{}, e

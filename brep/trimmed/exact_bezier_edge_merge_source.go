@@ -52,7 +52,7 @@ func sameAuthoredBezierSpline(a, b *geom.BSpline) bool {
 // merge API has no caller work options. Failure never publishes partial topology.
 func joinStoredBezierSources(ctx context.Context, a, b SplineUV, t *big.Rat) (PCurve, [2]geom.Vec2, error) {
 	var zero [2]geom.Vec2
-	if !sameAuthoredBezierSpline(a.Curve, b.Curve) || a.Reversed != b.Reversed || !finite(a.Range.Min) || !finite(a.Range.Max) || !finite(b.Range.Min) || !finite(b.Range.Max) || a.Range.Min >= a.Range.Max || b.Range.Min >= b.Range.Max {
+	if !sameAuthoredBezierSpline(a.Curve, b.Curve) || a.Reversed != b.Reversed || a.ExactEndpoints != b.ExactEndpoints || !finite(a.Range.Min) || !finite(a.Range.Max) || !finite(b.Range.Min) || !finite(b.Range.Max) || a.Range.Min >= a.Range.Max || b.Range.Min >= b.Range.Max {
 		return nil, zero, geom.ErrConvergence
 	}
 	q := a
