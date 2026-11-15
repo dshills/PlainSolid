@@ -22,6 +22,8 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 		count = 2
 	case mappedChainThreeKnotsRepair:
 		maxOwnerKnots, count = 2, 3
+	case mappedChainFourKnotsRepair:
+		maxOwnerKnots, count = 3, 4
 	}
 	type station struct {
 		parameter *big.Rat
@@ -43,6 +45,9 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 		}
 		if repair == mappedChainMixedKnotsRepair && len(planes) == 0 {
 			return nil, nil, fmt.Errorf("mixed repair requires one or two original support knots per roof: %w", geom.ErrConvergence)
+		}
+		if repair == mappedChainFourKnotsRepair && len(planes) < 2 {
+			return nil, nil, fmt.Errorf("roof %d requires two or three original support knots: %w", owner, geom.ErrConvergence)
 		}
 		originalKnots += len(planes)
 		if len(planes) == 0 {
@@ -96,13 +101,17 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 		(originalKnots != 3 || (stations[0].owners == 3) == (stations[1].owners == 3)) {
 		return nil, nil, fmt.Errorf("mixed repair requires one shared crossing and one single-owner crossing across three original support knots: %w", geom.ErrConvergence)
 	}
-	if repair == mappedChainThreeKnotsRepair {
-		var ownerChanges [4]bool
+	if repair == mappedChainThreeKnotsRepair || repair == mappedChainFourKnotsRepair {
+		var ownerChanges [4]int
 		for _, s := range stations {
-			ownerChanges[s.owners] = true
+			ownerChanges[s.owners]++
 		}
-		if !ownerChanges[1] || !ownerChanges[2] || !ownerChanges[3] {
+		if repair == mappedChainThreeKnotsRepair && ownerChanges != [4]int{0, 1, 1, 1} {
 			return nil, nil, fmt.Errorf("three-cut repair requires one shared crossing and one separate crossing for each owner: %w", geom.ErrConvergence)
+		}
+		if repair == mappedChainFourKnotsRepair && (originalKnots != 5 || ownerChanges[3] != 1 ||
+			min(ownerChanges[1], ownerChanges[2]) != 1 || max(ownerChanges[1], ownerChanges[2]) != 2) {
+			return nil, nil, fmt.Errorf("four-cut repair requires one shared crossing and one and two separate owner crossings: %w", geom.ErrConvergence)
 		}
 	}
 	slices.SortFunc(stations, func(a, b station) int { return a.parameter.Cmp(b.parameter) })

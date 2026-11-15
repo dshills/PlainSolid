@@ -274,6 +274,11 @@ func verifyIndependentlyAuthoredThreeKnotExport(t *testing.T, ctx context.Contex
 
 func verifyIndependentThreeKnotOCCTTransfer(t *testing.T, ctx context.Context, exe string, original, exported []byte) {
 	t.Helper()
+	verifyPinnedMappedChainTransfer(t, ctx, exe, original, exported, mappedChainThreeVolume, mappedChainThreeArea)
+}
+
+func verifyPinnedMappedChainTransfer(t *testing.T, ctx context.Context, exe string, original, exported []byte, volume, area float64) {
+	t.Helper()
 	type props struct {
 		Volume, Area  float64
 		Faces, Solids int
@@ -292,7 +297,7 @@ func verifyIndependentThreeKnotOCCTTransfer(t *testing.T, ctx context.Context, e
 		if err := json.Unmarshal(data, &p); err != nil {
 			t.Fatal(err)
 		}
-		if p.Solids != 1 || p.Faces != 7 || math.Abs(p.Volume-mappedChainThreeVolume) > 1e-8 || math.Abs(p.Area-mappedChainThreeArea) > 1e-8 ||
+		if p.Solids != 1 || p.Faces != 7 || math.Abs(p.Volume-volume) > 1e-8 || math.Abs(p.Area-area) > 1e-8 ||
 			i > 0 && (math.Abs(p.Volume-previous.Volume) > 1e-10 || math.Abs(p.Area-previous.Area) > 1e-10) {
 			t.Fatal("pinned OCCT must recover matching original and re-exported material", i, p, previous)
 		}
