@@ -16,10 +16,14 @@ import (
 
 func nativeFourPolynomialNodeFixture(t *testing.T, axis int, firstDenominator int64) (*geom.BSplineSurface, *geom.BSplineSurface, *geom.BSplineSurface) {
 	t.Helper()
-	// f=1/4+u^4/8 and g-f=(du-1)(8u-3)(8u-5)(8u-7)/4096.
+	return nativeQuarticRoofPairFixture(t, axis, big.NewRat(1, 4096), [4][2]int64{{1, firstDenominator}, {3, 8}, {5, 8}, {7, 8}})
+}
+
+func nativeQuarticRoofPairFixture(t *testing.T, axis int, scale *big.Rat, factors [4][2]int64) (*geom.BSplineSurface, *geom.BSplineSurface, *geom.BSplineSurface) {
+	t.Helper()
 	f := []*big.Rat{big.NewRat(1, 4), new(big.Rat), new(big.Rat), new(big.Rat), big.NewRat(1, 8)}
-	g := []*big.Rat{big.NewRat(1, 4096)}
-	for _, root := range [4][2]int64{{1, firstDenominator}, {3, 8}, {5, 8}, {7, 8}} {
+	g := []*big.Rat{new(big.Rat).Set(scale)}
+	for _, root := range factors {
 		next := make([]*big.Rat, len(g)+1)
 		for i := range next {
 			next[i] = new(big.Rat)
@@ -49,6 +53,16 @@ func fourPolynomialNodeMeasures(op parametric.BooleanOp) (area, volume float64) 
 }
 
 func fourPolynomialNodeSourceArea(fuse bool) float64 {
+	return polynomialPairSourceEnvelopeArea(fuse, []float64{0, .125, .375, .625, .875, 1}, func(u float64) (f, g, df, dg float64) {
+		f = 1.0/4 + u*u*u*u/8
+		g = f + (u-.125)*(u-.375)*(u-.625)*(u-.875)
+		df = u * u * u / 2
+		dg = df + ((4*u-6)*u+43.0/16)*u - 11.0/32
+		return f, g, df, dg
+	})
+}
+
+func polynomialPairSourceEnvelopeArea(fuse bool, stations []float64, branches func(float64) (f, g, df, dg float64)) float64 {
 	// Independent Gauss-Legendre integration directly on the original
 	// stock equations. Each quadrature rectangle maps to one signed
 	// strip over a slab and evaluates the original roof derivatives.
@@ -62,14 +76,10 @@ func fourPolynomialNodeSourceArea(fuse bool) float64 {
 		}
 		return sum * half
 	}
-	branches := func(u float64) (float64, float64) {
-		f := 1.0/4 + u*u*u*u/8
-		return f, f + (u-.125)*(u-.375)*(u-.625)*(u-.875)
-	}
 	roofHeight := func(u, v float64, raised bool) float64 {
 		base := 3 + u*v/64
 		if raised {
-			f, g := branches(u)
+			f, g, _, _ := branches(u)
 			base += (105.0 / 128) * (v - f) * (v - g)
 		}
 		return base
@@ -77,24 +87,21 @@ func fourPolynomialNodeSourceArea(fuse bool) float64 {
 	roofJacobian := func(u, v float64, raised bool) float64 {
 		du, dv := v/64, u/64
 		if raised {
-			f, g := branches(u)
-			df := u * u * u / 2
-			dg := df + ((4*u-6)*u+43.0/16)*u - 11.0/32
+			f, g, df, dg := branches(u)
 			du -= (105.0 / 128) * (df*(v-g) + dg*(v-f))
 			dv += (105.0 / 128) * (2*v - f - g)
 		}
 		return math.Sqrt(1 + du*du + dv*dv)
 	}
 	fiber := func(u float64, value func(float64, float64, bool) float64) float64 {
-		f, g := branches(u)
+		f, g, _, _ := branches(u)
 		lo, hi := min(f, g), max(f, g)
 		exterior := func(v float64) float64 { return value(u, v, fuse) }
 		interior := func(v float64) float64 { return value(u, v, !fuse) }
 		return integrate(0, lo, exterior) + integrate(lo, hi, interior) + integrate(hi, 1, exterior)
 	}
-	stations := [6]float64{0, .125, .375, .625, .875, 1}
 	area := 1.0 // shared base
-	for i := range stations[:5] {
+	for i := range stations[:len(stations)-1] {
 		area += integrate(stations[i], stations[i+1], func(u float64) float64 { return fiber(u, roofJacobian) })
 	}
 	// Each wall is a vertical fiber over an original domain side.
