@@ -128,7 +128,7 @@ func mappedChainModelJoins(joins []*big.Rat, reverse bool) []*big.Rat {
 	return out
 }
 
-func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edge mappedChainStepEdge, reverse bool, interval [2]*big.Rat, mapped [2]trimmed.MappedSplineUV, ownerCuts [2][]*big.Rat, allowThree bool, v8Cuts int, o geom.SurfacePatchOptions) ([]MappedChainSTEPSupportCrossing, error) {
+func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edge mappedChainStepEdge, reverse bool, interval [2]*big.Rat, mapped [2]trimmed.MappedSplineUV, ownerCuts [2][]*big.Rat, sameCellAsync, allowThree bool, v8Cuts int, o geom.SurfacePatchOptions) ([]MappedChainSTEPSupportCrossing, error) {
 	joins := mappedChainModelJoins(edge.joins, reverse)
 	type cut struct {
 		t      *big.Rat
@@ -144,7 +144,8 @@ func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edg
 	case n > 1:
 		three := allowThree && a == 1 && b == 1
 		multiple := n+1 == v8Cuts && min(a, b) >= 1
-		if len(joins) != 1 || !three && !multiple {
+		singleBezier := sameCellAsync && len(joins) == 0 && a == 1 && b == 1
+		if !singleBezier && (len(joins) != 1 || !three && !multiple) {
 			return nil, fmt.Errorf("asynchronous repair permits one owner-side crossing per original edge: %w", geom.ErrConvergence)
 		}
 		var extra []*big.Rat
@@ -156,6 +157,20 @@ func (g *mappedChainStepSource) edgeCrossings(ctx context.Context, id int64, edg
 				extra = append(extra, station)
 				cuts = append(cuts, cut{t: station, owners: [2]bool{owner == 0, owner == 1}})
 			}
+		}
+		if singleBezier {
+			model, err := mappedChainSTEPBezierInTraversal(edge.model, reverse, o)
+			if err != nil {
+				return nil, err
+			}
+			slices.SortFunc(extra, (*big.Rat).Cmp)
+			for owner, curve := range mapped {
+				face := g.faces[owner]
+				if err := trimmed.ProveMappedSplineBezierSupportPartition(ctx, face.surface, curve, model, [2]*big.Rat(extra), o); err != nil {
+					return nil, fmt.Errorf("owner #%d on the paired original Bézier partition: %w", face.id, err)
+				}
+			}
+			break
 		}
 		pieces, err := mappedChainSTEPPiecesInTraversal(edge.pieces, reverse, o)
 		if err != nil {
