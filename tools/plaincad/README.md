@@ -110,6 +110,11 @@ The scaled OCCT inch conversion keeps both axial maps inside their
 `[0,635]` knots and preserves the exact inch declaration. This fixture
 uses a `1e-11` inch budget and rejects `1e-12` inch. Its world mesh and
 geometric proofs use millimetres.
+The native millimetre five-fillet pentagon keeps all six shifted owner
+charts, including the original antipodal half-turns on both caps. Its
+fixture verifies the twelve finite planar intervals and both axial trims,
+the `1e-13` mm budget rejection, and rejection of the independently
+authored source with a non-binary tangent point at `1e-12` mm.
 
 Use `--suite development --step-repair-worker-fixture` to run the focused
 Chromium check with the pinned app's Playwright and Vite configuration. The
@@ -117,7 +122,8 @@ disposable app stages a test page and a dedicated module worker that imports
 the concrete adapter. It covers translated single-fillet inputs in all three
 units and tilted grouped inputs in metres and inches. Both include the
 corresponding original converted OCCT exports. The suite also covers the
-tilted three-fillet sources and all three qualified four-fillet STEP variants.
+tilted three-fillet sources, all three qualified four-fillet STEP variants,
+and the native millimetre five-fillet source and rejection control.
 It compares the certificate text with the original bytes returned by Go
 WASM. A fresh worker receives that certificate, derives the identical
 native receipt from its source, and strictly reopens and re-exports

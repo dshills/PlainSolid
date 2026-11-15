@@ -135,7 +135,9 @@ export default defineConfig({ ...base, test: {
       "occt-three-default-tilted-oblique-prism-fillet-converted-inch",
       "occt-four-default-tilted-trapezoidal-prism-fillet",
       "occt-four-default-tilted-trapezoidal-prism-fillet-converted-metre",
-      "occt-four-default-tilted-trapezoidal-prism-fillet-converted-inch"]) {
+      "occt-four-default-tilted-trapezoidal-prism-fillet-converted-inch",
+      "occt-five-default-tilted-pentagonal-prism-fillet",
+      "occt-five-default-tilted-pentagonal-prism-fillet-nondyadic"]) {
       const source = `exchange/step/testdata/${name}.step`;
       const input = await readFile(join(root, source));
       await writeFile(join(work, directory, `${name}.step`), input, { flag: "wx" });
@@ -184,9 +186,7 @@ function browserTests(suites) {
   ]);
 }
 async function runSTEPRepairWorkerFixture() {
-  const sourceFiles = {
-    "tools/plaincad/step-repair-worker.fixture.ts": "src/cad/kernel/plainSolidStepRepairProbe.ts",
-    "tools/plaincad/step-repair-worker.spec.fixture.ts": stepRepairWorkerTest,
+  const fixtureStepSources = {
     "exchange/step/testdata/occt-default-tilted-translated-oblique-prism-fillet.step": "public/plainsolid-step-repair-input.step",
     "exchange/step/testdata/occt-default-tilted-translated-oblique-prism-fillet-metre.step": "public/plainsolid-step-repair-metre.step",
     "exchange/step/testdata/occt-default-tilted-translated-oblique-prism-fillet-inch.step": "public/plainsolid-step-repair-inch.step",
@@ -202,6 +202,13 @@ async function runSTEPRepairWorkerFixture() {
     "exchange/step/testdata/occt-four-default-tilted-trapezoidal-prism-fillet.step": "public/plainsolid-four-step-repair.step",
     "exchange/step/testdata/occt-four-default-tilted-trapezoidal-prism-fillet-converted-metre.step": "public/plainsolid-four-converted-step-repair-metre.step",
     "exchange/step/testdata/occt-four-default-tilted-trapezoidal-prism-fillet-converted-inch.step": "public/plainsolid-four-converted-step-repair-inch.step",
+    "exchange/step/testdata/occt-five-default-tilted-pentagonal-prism-fillet.step": "public/plainsolid-five-step-repair.step",
+  };
+  const sourceFiles = {
+    "tools/plaincad/step-repair-worker.fixture.ts": "src/cad/kernel/plainSolidStepRepairProbe.ts",
+    "tools/plaincad/step-repair-worker.spec.fixture.ts": stepRepairWorkerTest,
+    ...fixtureStepSources,
+    "exchange/step/testdata/occt-five-default-tilted-pentagonal-prism-fillet-nondyadic.step": "public/plainsolid-five-nondyadic.step",
   };
   const sourceHashes = {};
   for (const [source, target] of Object.entries(sourceFiles)) {
@@ -225,7 +232,7 @@ async function runSTEPRepairWorkerFixture() {
     report.tests = browserTests(result.suites);
     report.summaries = [{ path, ...result.stats }];
     const count = report.tests.length;
-    const expectedCount = Object.keys(sourceFiles).filter(source => source.endsWith(".step")).length;
+    const expectedCount = Object.keys(fixtureStepSources).length;
     report.backendVerified = count > 0 && (grep !== ".*" || count === expectedCount) && report.tests.every(test =>
       test.status === "expected" && test.results.length === 1 && test.results[0].status === "passed");
   } catch (error) { report.error ??= `Cannot read the STEP repair worker result: ${error}`; }

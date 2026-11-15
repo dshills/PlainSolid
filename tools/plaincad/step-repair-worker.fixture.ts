@@ -3,7 +3,7 @@ import type { KernelShape } from "./KernelAdapter";
 import type { NativeStepExport } from "./nativeStep";
 
 export type StepRepairProbeRequest = { source: string; units?: StepSourceUnit } & (
-  { operation: "repair"; otherSource?: string; linearDeflection: number; maxDistance: number; rejectedDistance?: number }
+  { operation: "repair"; otherSource?: string; negativeSource?: string; linearDeflection: number; maxDistance: number; rejectedDistance?: number }
   | { operation: "reopen"; receipt: { certificate: string; fromWasm: ArrayBuffer } }
 );
 
@@ -20,6 +20,7 @@ export type StepRepairProbeReply = {
     certificateFromWasm: ArrayBuffer;
     strictFailure: string;
     budgetFailure?: string;
+    negativeFailure?: string;
     triangles: number;
     positionsInWorldBounds: boolean;
     wrongImport?: string;
@@ -80,10 +81,12 @@ async function runProbe(request: StepRepairProbeRequest) {
     return;
   }
 
-  const { maxDistance, rejectedDistance } = request;
+  const { maxDistance, rejectedDistance, negativeSource } = request;
   const strictFailure = failure(() => kernel.disposeShape(kernel.importStep(source, { units })));
   const budgetFailure = rejectedDistance === undefined ? undefined : failure(() => kernel.disposeShape(kernel.importStep(source,
     { units, stepRepair: { maxDistance: rejectedDistance, native: true } })));
+  const negativeFailure = negativeSource === undefined ? undefined : failure(() => kernel.disposeShape(kernel.importStep(negativeSource,
+    { units, stepRepair: { maxDistance, native: true } })));
   const wrongImport = units ? failure(() => kernel.disposeShape(kernel.importStep(source,
     { units: otherUnit, stepRepair: { maxDistance } }))) : undefined;
   const dispatch = host.plainSolidCall;
@@ -116,7 +119,7 @@ async function runProbe(request: StepRepairProbeRequest) {
       finally { kernel.disposeShape(other); }
     }
     const result = exportOccurrence(kernel, shape, units);
-    host.postMessage({ ok: true, ...result, repair: { certificateFromWasm, strictFailure, budgetFailure, triangles: mesh.indices.length / 3,
+    host.postMessage({ ok: true, ...result, repair: { certificateFromWasm, strictFailure, budgetFailure, negativeFailure, triangles: mesh.indices.length / 3,
       positionsInWorldBounds, wrongImport, omittedExport, wrongExport, mixedExport } }, [result.canonical, certificateFromWasm]);
   } finally { kernel.disposeShape(shape); }
 }
