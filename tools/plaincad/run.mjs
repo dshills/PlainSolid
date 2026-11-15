@@ -140,7 +140,9 @@ export default defineConfig({ ...base, test: {
       "occt-five-default-tilted-pentagonal-prism-fillet-converted-metre",
       "occt-five-default-tilted-pentagonal-prism-fillet-converted-inch",
       "occt-five-default-tilted-pentagonal-prism-fillet-converted-inch-unscaled",
-      "occt-five-default-tilted-pentagonal-prism-fillet-nondyadic"]) {
+      "occt-five-default-tilted-pentagonal-prism-fillet-nondyadic",
+      "occt-both-default-tilted-oblique-prism-fillet-through-bore",
+      "occt-both-default-tilted-oblique-prism-fillet-blind-bore"]) {
       const source = `exchange/step/testdata/${name}.step`;
       const input = await readFile(join(root, source));
       await writeFile(join(work, directory, `${name}.step`), input, { flag: "wx" });
@@ -208,6 +210,7 @@ async function runSTEPRepairWorkerFixture() {
     "exchange/step/testdata/occt-five-default-tilted-pentagonal-prism-fillet.step": "public/plainsolid-five-step-repair.step",
     "exchange/step/testdata/occt-five-default-tilted-pentagonal-prism-fillet-converted-metre.step": "public/plainsolid-five-converted-step-repair-metre.step",
     "exchange/step/testdata/occt-five-default-tilted-pentagonal-prism-fillet-converted-inch.step": "public/plainsolid-five-converted-step-repair-inch.step",
+    "exchange/step/testdata/occt-both-default-tilted-oblique-prism-fillet-through-bore.step": "public/plainsolid-through-bore-repair.step",
   };
   const sourceFiles = {
     "tools/plaincad/step-repair-worker.fixture.ts": "src/cad/kernel/plainSolidStepRepairProbe.ts",
@@ -215,6 +218,7 @@ async function runSTEPRepairWorkerFixture() {
     ...fixtureStepSources,
     "exchange/step/testdata/occt-five-default-tilted-pentagonal-prism-fillet-nondyadic.step": "public/plainsolid-five-nondyadic.step",
     "exchange/step/testdata/occt-five-default-tilted-pentagonal-prism-fillet-converted-inch-unscaled.step": "public/plainsolid-five-unscaled-inch.step",
+    "exchange/step/testdata/occt-both-default-tilted-oblique-prism-fillet-blind-bore.step": "public/plainsolid-blind-bore-control.step",
   };
   const sourceHashes = {};
   for (const [source, target] of Object.entries(sourceFiles)) {

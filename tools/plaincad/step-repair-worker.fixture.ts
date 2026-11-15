@@ -22,6 +22,7 @@ export type StepRepairProbeReply = {
     budgetFailure?: string;
     negativeFailure?: string;
     triangles: number;
+    displayEulerCharacteristic: number;
     positionsInWorldBounds: boolean;
     wrongImport?: string;
     omittedExport?: string;
@@ -106,6 +107,9 @@ async function runProbe(request: StepRepairProbeRequest) {
     const certificateFromWasm = new TextEncoder().encode(certificateFromWire).buffer;
     const millimetres = units === "m" ? 1000 : units === "in" ? 25.4 : 1;
     const mesh = kernel.tessellate(shape, { linearDeflection: request.linearDeflection, angularDeflection: .2, analyticNormals: true });
+    const points = new Set<string>();
+    for (let i = 0; i < mesh.positions.length; i += 3) points.add(`${mesh.positions[i]},${mesh.positions[i + 1]},${mesh.positions[i + 2]}`);
+    const displayEulerCharacteristic = points.size - mesh.indices.length / 6;
     const { min, max } = mesh.bounds;
     const margin = 1e-12 * millimetres;
     const positionsInWorldBounds = Array.from(mesh.positions).every((value, i) => value >= min[i % 3] - margin && value <= max[i % 3] + margin);
@@ -120,7 +124,7 @@ async function runProbe(request: StepRepairProbeRequest) {
     }
     const result = exportOccurrence(kernel, shape, units);
     host.postMessage({ ok: true, ...result, repair: { certificateFromWasm, strictFailure, budgetFailure, negativeFailure, triangles: mesh.indices.length / 3,
-      positionsInWorldBounds, wrongImport, omittedExport, wrongExport, mixedExport } }, [result.canonical, certificateFromWasm]);
+      displayEulerCharacteristic, positionsInWorldBounds, wrongImport, omittedExport, wrongExport, mixedExport } }, [result.canonical, certificateFromWasm]);
   } finally { kernel.disposeShape(shape); }
 }
 

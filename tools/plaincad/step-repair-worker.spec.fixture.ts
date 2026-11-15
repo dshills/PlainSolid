@@ -50,6 +50,9 @@ const fixtures = [
     otherPath: "/plainsolid-grouped-step-repair-metre.step", negativePath: "/plainsolid-five-unscaled-inch.step", scale: 25.4, metresPerUnit: .0254,
     grouped: true, fillets: 5, sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
     converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
+  { name: "tilted through-bore", path: "/plainsolid-through-bore-repair.step", negativePath: "/plainsolid-blind-bore-control.step",
+    units: undefined, otherPath: undefined, scale: 1, metresPerUnit: .001,
+    grouped: true, throughBore: true, rejectedDistance: 1e-13 },
 ] as const;
 const sha256 = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
 
@@ -70,7 +73,8 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   const four = phased && fixture.fillets === 4;
   const five = phased && fixture.fillets === 5;
   const converted = "converted" in fixture;
-  const linearDeflection = converted || phased ? .5 : .025 * fixture.scale;
+  const throughBore = "throughBore" in fixture;
+  const linearDeflection = converted || phased || throughBore ? .5 : .025 * fixture.scale;
   const maxDistance = "maxDistance" in fixture ? fixture.maxDistance : 1e-12;
   const rejectedDistance = "rejectedDistance" in fixture ? fixture.rejectedDistance : undefined;
   const negativePath = "negativePath" in fixture ? fixture.negativePath : undefined;
@@ -111,6 +115,7 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
       negativeFailure: repair.repair.negativeFailure,
       negativeSource,
       triangles: repair.repair.triangles,
+      displayEulerCharacteristic: repair.repair.displayEulerCharacteristic,
       positionsInWorldBounds: repair.repair.positionsInWorldBounds,
       before: repair.before,
       after: repair.after,
@@ -149,8 +154,8 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   const digest = sha256(source);
   const [x, z] = "poseTranslation" in fixture ? fixture.poseTranslation : fixture.grouped ? ["0", "0"] : ["8/5", "6/5"];
   const pose = [["0", "3/5", "4/5", x], ["-1", "0", "0", "0"], ["0", "-4/5", "3/5", z]];
-  const family = fixture.grouped ? "occt-rational-posed-grouped-pcurve-convex-arc" : "occt-rational-posed-single-pcurve-convex-arc";
-  const pcurveOwners = five ? 58 : four ? 46 : three ? 34 : fixture.grouped ? 28 : 24;
+  const family = throughBore ? "occt-rational-posed-grouped-through-bore-pcurve-convex-arc" : fixture.grouped ? "occt-rational-posed-grouped-pcurve-convex-arc" : "occt-rational-posed-single-pcurve-convex-arc";
+  const pcurveOwners = throughBore ? 34 : five ? 58 : four ? 46 : three ? 34 : fixture.grouped ? 28 : 24;
   expect(result.repairEvidence).toMatchObject({ family,
     sourceSHA256: digest, maxDistance, pcurveOwners, worldPose: pose, lengthUnit: fixture.metresPerUnit });
   const certificateBytes = Buffer.from(result.certificateFromWasm);
@@ -158,19 +163,32 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   expect(Buffer.from(result.certificateReopened, "utf8")).toEqual(certificateBytes);
   expect(result.certificate.endsWith("\n")).toBe(true);
   const certificate = JSON.parse(result.certificate);
-  const format = fixture.grouped ? "plainsolid-step-rational-posed-grouped-pcurve-convex-arc-source" : "plainsolid-step-rational-posed-pcurve-convex-arc-source";
+  const format = throughBore ? "plainsolid-step-rational-posed-convex-arc-through-bore-source" : fixture.grouped ? "plainsolid-step-rational-posed-grouped-pcurve-convex-arc-source" : "plainsolid-step-rational-posed-pcurve-convex-arc-source";
   expect(certificate).toMatchObject({ Format: format, Version: 1, MaxDistance: maxDistance,
     Claims: { SourceSHA256: digest, Pose: pose, MaxDistance: maxDistance } });
   expect(Buffer.from(certificate.Source, "base64")).toEqual(source);
   const finiteLineOwners = five ? (converted ? 30 : 12) : converted ? four ? 24 : 18 : 8;
   const groupedOwners = fixture.grouped ? { finiteLineOwners, rationalCaps: 2, axialTrims: phased ? 2 : 1, finiteTrims: 2 } : undefined;
+  const bore = throughBore ? certificate.Claims.Bore : undefined;
+  if (bore) {
+    expect(result.displayEulerCharacteristic).toBe(0);
+    expect(result.repairEvidence?.throughBore).toEqual({ capFaces: [137, 382], capBounds: [247, 432],
+      rimEdges: [250, 435], wallFace: 492, seamEdge: 497, seamOwners: [503, 510] });
+    expect(bore).toMatchObject({ WallFaceID: 492, WallSupportID: 267, SeamEdgeID: 497,
+      SeamParameters: ["1", "6"], SeamAngles: ["314159265359/50000000000", "0"],
+      Rims: [{ BoundID: 247, Owners: [{ PCurveID: 259 }, { PCurveID: 266 }] },
+        { BoundID: 432, Owners: [{ PCurveID: 444 }, { PCurveID: 451 }] }],
+      SeamOwners: [{ PCurveID: 503 }, { PCurveID: 510 }],
+    });
+  }
   if (groupedOwners) {
+    const outer = throughBore ? certificate.Claims.Exterior : certificate.Claims;
     expect(result.repairEvidence).toMatchObject({ finiteLineOwners: groupedOwners.finiteLineOwners, rationalCaps: 2, axialTrims: groupedOwners.axialTrims });
     expect(result.repairEvidence.repairs).toHaveLength(phased ? 10 : 8);
-    expect(certificate.Claims.FiniteLineOwners).toHaveLength(groupedOwners.finiteLineOwners);
-    expect(certificate.Claims.Grouped.RationalCaps).toHaveLength(groupedOwners.rationalCaps);
-    expect(certificate.Claims.Grouped.FiniteTrims).toHaveLength(groupedOwners.finiteTrims);
-    expect(certificate.Claims.Grouped.AxialTrims).toHaveLength(groupedOwners.axialTrims);
+    expect(outer.FiniteLineOwners).toHaveLength(groupedOwners.finiteLineOwners);
+    expect(outer.Grouped.RationalCaps).toHaveLength(groupedOwners.rationalCaps);
+    expect(outer.Grouped.FiniteTrims).toHaveLength(groupedOwners.finiteTrims);
+    expect(outer.Grouped.AxialTrims).toHaveLength(groupedOwners.axialTrims);
   }
   const phaseKind = converted ? "finite-phase-cylinder-circle" : "phase-cylinder-circle";
   const phaseOwners = phased ? certificate.Claims.PCurves.filter((owner: { Kind: string }) => owner.Kind === phaseKind) : undefined;
@@ -324,7 +342,7 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   expect(result.before).toHaveLength(1);
   const [proof] = result.before;
   const millimetresPerBase = fixture.scale * ("sourceScale" in fixture ? fixture.sourceScale : 1);
-  const [volume, area] = five ? [39.084768347549009, 68.682455982680239] : four ? [22.155304183748054, 51.012178844414059] :
+  const [volume, area] = throughBore ? [28.096231102869041, 73.08423752236105] : five ? [39.084768347549009, 68.682455982680239] : four ? [22.155304183748054, 51.012178844414059] :
     three ? [28.968988172080639, 64.184278587623695] :
     fixture.grouped ? [29.077978807115539, 65.622954970084379] : [29.145041881053842, 66.186284791166074];
   const [min, max] = five ? [[0, 0, -2.4], [5.8, 2.75, 3]] : four ? [[0, 0, -1.6], [5.2, 2.84375, 3]] :
@@ -360,5 +378,6 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
     units: result.initialUnits, unitFailures: result.unitFailures, family, groupedOwners, convertedOwners, phaseOwners, finiteAxialTransfer, proof,
     maxDistance, rejectedDistance, budgetFailure: result.budgetFailure, negativeSourceSha256, negativeFailure: result.negativeFailure,
     linearDeflection, triangles: result.triangles,
+    ...(throughBore && { bore, displayEulerCharacteristic: result.displayEulerCharacteristic }),
   }, null, 2) });
 });

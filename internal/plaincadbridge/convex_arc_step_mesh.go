@@ -1,6 +1,7 @@
 package plaincadbridge
 
 import (
+	"context"
 	"math"
 	"math/big"
 	"slices"
@@ -200,6 +201,10 @@ func (m *stepLoopMesh) arc(center, start, end rationalPoint2, radius *big.Rat) e
 // common height. Each source normal on a minor arc lies in the cone between
 // the endpoint radials, so checking both endpoints bounds the whole strip.
 func (p stepArcLoopSupport) tessellate(o parametric.TessellationOptions) (mesh.Mesh, bool, error) {
+	return p.tessellateWithHole(context.Background(), o, nil)
+}
+
+func (p stepArcLoopSupport) tessellateWithHole(ctx context.Context, o parametric.TessellationOptions, hole *trimmed.ExtrusionCircle) (mesh.Mesh, bool, error) {
 	d := p.descriptor
 	if !p.exactPlacement || !convexStepLoop(d.Segments) {
 		return mesh.Mesh{}, false, nil
@@ -281,6 +286,13 @@ func (p stepArcLoopSupport) tessellate(o parametric.TessellationOptions) (mesh.M
 			}
 		}
 		ring[i] = geom.Vec3{X: point.X, Y: point.Y}
+	}
+	if hole != nil {
+		if frameMap(d.Frame) != geom.Identity() {
+			return mesh.Mesh{}, false, nil
+		}
+		display, err := tessellateStepLoopThroughHole(ctx, ring, *hole, m, levels, o.MaxTriangles)
+		return display, true, err
 	}
 	display, err := mesh.Extrude(ring, geom.Vec3{Z: 1})
 	if err != nil {

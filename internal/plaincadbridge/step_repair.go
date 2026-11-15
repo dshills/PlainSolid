@@ -34,6 +34,16 @@ type stepRepairEvidence struct {
 	FiniteLineOwners int                            `json:"finiteLineOwners,omitempty"`
 	AxialTrims       int                            `json:"axialTrims,omitempty"`
 	WorldPose        *[3][4]*big.Rat                `json:"worldPose,omitempty"`
+	ThroughBore      *stepRepairBoreEvidence        `json:"throughBore,omitempty"`
+}
+
+type stepRepairBoreEvidence struct {
+	CapFaces   [2]int64 `json:"capFaces"`
+	CapBounds  [2]int64 `json:"capBounds"`
+	RimEdges   [2]int64 `json:"rimEdges"`
+	WallFace   int64    `json:"wallFace"`
+	SeamEdge   int64    `json:"seamEdge"`
+	SeamOwners [2]int64 `json:"seamOwners"`
 }
 
 type stepRepairMaterial interface {
@@ -74,6 +84,9 @@ func (b *Bridge) importSTEPWithRepair(ctx context.Context, source string, repair
 	}
 	if material, err := step.RepairRationalPosedGroupedPCurveOCCTConvexArcExtrusion(ctx, strings.NewReader(source), stepLimits(), options); err == nil {
 		return b.putSTEPRepair(ctx, material, *repair, units)
+	}
+	if material, err := step.InspectRationalPosedConvexArcThroughBore(ctx, strings.NewReader(source), stepLimits(), options); err == nil {
+		return b.putSTEPBoreRepair(ctx, material, *repair, units)
 	}
 	return Shape{}, unsupportedEdge("STEP source has no qualified default OCCT pcurve repair within maxDistance")
 }
@@ -163,6 +176,10 @@ func (b *Bridge) putSTEPRepair(ctx context.Context, material stepRepairMaterial,
 	if err != nil {
 		return Shape{}, err
 	}
+	return b.attachSTEPRepairEvidence(shape, evidence, q, proof), nil
+}
+
+func (b *Bridge) attachSTEPRepairEvidence(shape Shape, evidence stepRepairEvidence, q stepRepairRequest, proof bytes.Buffer) Shape {
 	shape.RepairEvidence = &evidence
 	if q.Native {
 		raw := json.RawMessage(proof.Bytes())
@@ -175,5 +192,49 @@ func (b *Bridge) putSTEPRepair(ctx context.Context, material stepRepairMaterial,
 	stored := b.shapes[shape.Handle]
 	stored.result = shape
 	b.shapes[shape.Handle] = stored
-	return shape, nil
+	return shape
+}
+
+func (b *Bridge) putSTEPBoreRepair(ctx context.Context, m step.RationalPosedConvexArcThroughBore, q stepRepairRequest, units stepFileUnit) (Shape, error) {
+	d := m.LocalDescriptor()
+	if err := checkRationalSTEPUnit(d.LengthUnit, units); err != nil {
+		return Shape{}, err
+	}
+	var proof bytes.Buffer
+	if q.Native || q.NativeText {
+		if err := step.WriteRationalPosedConvexArcThroughBoreJSON(ctx, &proof, m); err != nil {
+			return Shape{}, err
+		}
+		if proof.Len() > MaxRequestBytes {
+			return Shape{}, &failureError{"LIMIT", "STEP repair native proof exceeds 1 MiB"}
+		}
+	}
+	pose := m.Pose()
+	matrix, err := pose.Matrix()
+	if err != nil {
+		return Shape{}, err
+	}
+	native, err := m.Native(ctx)
+	if err != nil {
+		return Shape{}, err
+	}
+	d.Frame, _ = geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+	hole := m.LocalHole()
+	shape, err := b.putRationalSTEPArcLoopWithHole(ctx, native, d, pose, &hole)
+	if err != nil {
+		return Shape{}, err
+	}
+	outer := m.ExteriorProof()
+	bore := m.Bore
+	digest := sha256.Sum256([]byte(m.OriginalSTEP()))
+	evidence := stepRepairEvidence{
+		Family: "occt-rational-posed-grouped-through-bore-pcurve-convex-arc", SourceSHA256: hex.EncodeToString(digest[:]),
+		LengthUnit: d.LengthUnit, MaxDistance: float64(q.MaxDistance), Provenance: outer.Provenance(), Repairs: outer.Repairs(),
+		PCurveOwners: len(outer.PCurves()) + 2*len(bore.Rims) + len(bore.SeamOwners), RationalCaps: len(outer.RationalCaps()),
+		FiniteLineOwners: len(outer.FiniteLineOwners()), AxialTrims: len(outer.AxialTrims()), WorldPose: &matrix,
+		ThroughBore: &stepRepairBoreEvidence{CapFaces: [2]int64{bore.Rims[0].CapFaceID, bore.Rims[1].CapFaceID},
+			CapBounds: [2]int64{bore.Rims[0].BoundID, bore.Rims[1].BoundID}, RimEdges: [2]int64{bore.Rims[0].EdgeID, bore.Rims[1].EdgeID},
+			WallFace: bore.WallFaceID, SeamEdge: bore.SeamEdgeID, SeamOwners: [2]int64{bore.SeamOwners[0].PCurveID, bore.SeamOwners[1].PCurveID}},
+	}
+	return b.attachSTEPRepairEvidence(shape, evidence, q, proof), nil
 }
