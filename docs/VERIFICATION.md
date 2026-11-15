@@ -166,6 +166,31 @@ production browser used the exact just-built WASM and the Playwright driver
 kept its pristine hash. Raw results remain in
 `.worktrees/qualification/2026-11-15/plaincad-83e18008`.
 
+The older full native race `491b18f1` reproduced the same five shaded
+signed-frame failures as ordinary `5181d219`. Its `packages.jsonl` is
+retained in `.worktrees/qualification/2026-11-15/go-491b18f1-race`.
+The renewed native race also uses `ab33a412`, with eight independently
+listed trimmed lanes and the ordinary package lane. Keep the failing
+snapshots separate from the refreshed ordinary, race and PlainCAD runs.
+
+- Exact one-axis stepped Fuse (`810e2014`) passed the main-branch race in
+  336.976 seconds. The original planar wall atoms bind low and high roof
+  traces and tapered vertical stations. The tested shell has 28 vertices,
+  46 edges, 20 faces and one cyclic link at each vertex; independent exact
+  integration and source replay agree. Seventy earlier recipe hashes stayed
+  unchanged in isolation. Generic tessellation of the 20-face fixture
+  still exhausts its angle budget at 0.05 deflection and 0.15 radians.
+- Adjacent rational model cells (`8672cf02`) keep the inferred model
+  stations `8/7` and `64/5`, and two independently authored occurrences
+  of the true stored joint at `8`. The exact-law bridge preserves these
+  as separate owners through strict STEP and native replay and returns a
+  closed 2,020-triangle display. A foreign source that omits the required
+  joint rejects even though pinned OCCT reads it. Main native and live
+  STEP races took 565.449 and 654.165 seconds. Native volume agrees with
+  the pinned pre-transfer value `0.6352660806774346` to about `5e-13`;
+  pinned original and canonical STEP readbacks agree with each other at
+  `0.63526701737966`. The readback value is not the exact material oracle.
+
 - Native projected Common/Fuse (`d77c55df`) and both Cut orders (`1618e9db`)
   retain the two independent original roofs, ordered contacts, and source
   replay. Focused main race times were 182.651 and 151.126 seconds for the

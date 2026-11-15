@@ -153,21 +153,27 @@ controls; strict source replay and closed display retain the same station
 ownership.
 Five separated fillets on an original OCCT tilted pentagonal prism now qualify
 original millimetre, metre and inch STEP with independent antipodal owners.
-Native race on `491b18f1` is running. The newer ordinary run on `5181d219`
-found a missing exact axis extremum in five shaded STEP repair meshes.
+Native race on `491b18f1` and ordinary Go on `5181d219` both found a
+missing exact axis extremum in the same five shaded STEP repair meshes.
 All five now pass the focused ordinary, native race and actual Node/WASM
-checks with the original radial normals restored. A new full ordinary Go
-run and full PlainCAD run are progressing on immutable `ab33a412`.
+checks with the original radial normals restored. Full ordinary Go, native
+race and PlainCAD runs on immutable `ab33a412` test that correction.
 An independent tilted STEP bore now qualifies strict source authentication
 of both original cap holes and the inward-cylinder seam, exact native
 material, and strict canonical STEP reopen.
 Vet and Windows amd64 cross-build pass on `ab33a412`. The converted five-fillet
 inputs passed the focused native bridge and both actual WASM runtimes, with
-one legacy timing retry recorded. The unequal-footprint geometry also
-proves exact complement volumes and original wall owners. Current work
-covers native stepped walls on those footprints, the tilted bore PlainCAD
-route and multiple original rational
-STEP model cells.
+one legacy timing retry recorded. Native stepped Fuse (`810e2014`) now
+keeps the original roofs and base across one-axis partial and nested
+footprint offsets. Exact complement volumes and wall owners are proved for
+Cut, but component assembly is still open. Native Fuse accepts the exact
+wall loop; its generic tessellator exhausts the angle budget on a stepped
+fixture. The source mesh fallback and main tests of the concave two-axis
+union are in progress. Adjacent rational STEP model cells (`8672cf02`)
+retain inferred roots and both independently authored sides of a stored
+joint through native replay, strict STEP and closed display. Next are
+distinct rational transverse roof weights and the tilted bore PlainCAD
+route. Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
 
