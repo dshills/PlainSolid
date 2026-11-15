@@ -11,12 +11,13 @@ import (
 )
 
 // SplineShellRepeatedEllipseOptions selects a face pair for exact closed
-// double contact. An empty Hint derives the ellipse from the original
-// supports. A supplied hint uses the first original face's UV. Projection
-// orders the model axes for height comparison and defaults to XY.
+// double contact. With no hint the ellipse is derived from the original
+// supports. Supply at most one hint in the first original face's UV.
+// Projection orders the model axes for height comparison and defaults to XY.
 type SplineShellRepeatedEllipseOptions struct {
 	Faces, Projection [2]int
 	Hint              geom.GraphEllipseHint
+	QuadraticHint     geom.GraphQuadraticEllipseHint
 	Shells            SplineShellBooleanOptions
 	Contact           geom.GraphPointContactOptions
 }
@@ -25,8 +26,11 @@ type SplineShellRepeatedEllipseOptions struct {
 // affine map from each point of the first face's contact ellipse to the
 // second original chart. Height signs refer to the omitted model axis.
 type SplineShellRepeatedEllipse struct {
-	Faces, Projection               [2]int
+	Faces, Projection [2]int
+	// Contact is populated for the axis-aligned certificate. QuadraticContact
+	// is populated for the general definite conic certificate.
 	Contact                         geom.SplineGraphEllipse
+	QuadraticContact                geom.SplineGraphQuadraticEllipse
 	MapAtoB                         [2][3]*big.Rat
 	SeparatedPairs, ExactOperations int
 	// Enclosing selects the original operand of a proved nested contact,
@@ -59,6 +63,11 @@ func combineTangentSplineShellEllipse(ctx context.Context, a, b Solid, operation
 	o SplineShellRepeatedEllipseOptions, internal bool) (out Solid, history SplineShellCombineHistory, proof SplineShellRepeatedEllipse, err error) {
 	if ctx == nil || operation > parametric.Difference || o.Shells.MaxRays < 0 || o.Shells.MaxRays > 12 || o.Contact.MaxOperations < 0 ||
 		o.Contact.MaxCoefficientBits != 0 && o.Contact.MaxCoefficientBits < 64 || o.Contact.MaxCells < 0 || o.Contact.MaxDepth < 0 {
+		return out, history, proof, geom.ErrInvalid
+	}
+	axisHint := o.Hint != (geom.GraphEllipseHint{})
+	quadraticHint := o.QuadraticHint != (geom.GraphQuadraticEllipseHint{})
+	if axisHint && quadraticHint {
 		return out, history, proof, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
@@ -183,17 +192,38 @@ func combineTangentSplineShellEllipse(ctx context.Context, a, b Solid, operation
 	if child.MaxOperations < 1 {
 		return out, history, proof, geom.ErrConvergence
 	}
-	var contact geom.SplineGraphEllipse
-	if o.Hint == (geom.GraphEllipseHint{}) {
-		contact, e = geom.DiscoverSplineGraphRepeatedEllipse(ctx, source[0], alignment.TargetOnSource(), child)
-	} else {
-		contact, e = geom.CertifySplineGraphRepeatedEllipse(ctx, source[0], alignment.TargetOnSource(), o.Hint, child)
+	var proven bool
+	var inside, outside int
+	if !quadraticHint {
+		var contact geom.SplineGraphEllipse
+		if axisHint {
+			contact, e = geom.CertifySplineGraphRepeatedEllipse(ctx, source[0], alignment.TargetOnSource(), o.Hint, child)
+		} else {
+			contact, e = geom.DiscoverSplineGraphRepeatedEllipse(ctx, source[0], alignment.TargetOnSource(), child)
+		}
+		proof.ExactOperations += contact.ExactOperations
+		proven, inside, outside = contact.Proven, contact.InsideSide, contact.OutsideSide
+		proof.Contact = contact
 	}
-	proof.ExactOperations += contact.ExactOperations
+	if quadraticHint || (!axisHint && errors.Is(e, geom.ErrConvergence)) {
+		child.MaxOperations = limit().MaxOperations
+		if child.MaxOperations < 1 {
+			return out, history, proof, geom.ErrConvergence
+		}
+		var contact geom.SplineGraphQuadraticEllipse
+		if quadraticHint {
+			contact, e = geom.CertifySplineGraphRepeatedQuadraticEllipse(ctx, source[0], alignment.TargetOnSource(), o.QuadraticHint, child)
+		} else {
+			contact, e = geom.DiscoverSplineGraphRepeatedQuadraticEllipse(ctx, source[0], alignment.TargetOnSource(), child)
+		}
+		proof.ExactOperations += contact.ExactOperations
+		proven, inside, outside = contact.Proven, contact.InsideSide, contact.OutsideSide
+		proof.Contact, proof.QuadraticContact = geom.SplineGraphEllipse{}, contact
+	}
 	if e != nil {
 		return out, history, proof, fmt.Errorf("trimmed: tangent ellipse certificate: %w", e)
 	}
-	if !contact.Proven || contact.InsideSide != contact.OutsideSide || (!internal && contact.InsideSide != -outward[0]) {
+	if !proven || inside != outside || (!internal && inside != -outward[0]) {
 		return out, history, proof, geom.ErrConvergence
 	}
 	for i, f := range all[0] {
@@ -211,7 +241,7 @@ func combineTangentSplineShellEllipse(ctx context.Context, a, b Solid, operation
 	if e != nil {
 		return out, history, proof, e
 	}
-	proof.Faces, proof.Projection, proof.Contact, proof.MapAtoB = o.Faces, axes, contact, mapAtoB
+	proof.Faces, proof.Projection, proof.MapAtoB = o.Faces, axes, mapAtoB
 	proof.Enclosing = -1
 	if !internal {
 		if e := proveExternalSplineShellWitnesses(ctx, solids, all, o.Shells); e != nil {
@@ -222,7 +252,7 @@ func combineTangentSplineShellEllipse(ctx context.Context, a, b Solid, operation
 		return out, history, proof, nil
 	}
 	outer := 0
-	if contact.InsideSide != outward[0] {
+	if inside != outward[0] {
 		outer = 1
 	}
 	for i, s := range solids {

@@ -53,6 +53,15 @@ func TestSectionRepeatedRationalEllipseSplineGraphs(t *testing.T) {
 		}
 		supports[owner] = p
 	}
+	discovered, e := geom.DiscoverSplineGraphRepeatedQuadraticEllipse(ctx, supports[0], supports[1], geom.GraphPointContactOptions{})
+	if e != nil || !discovered.Proven || discovered.InsideSide != 1 || len(discovered.CertifiedCells) != 4 ||
+		discovered.Ellipse.Coefficients[5].Cmp(discovered.Ellipse.Coefficients[2]) != 0 {
+		t.Fatal("rotated factor discovered and re-proved across both original knot sets", discovered, e)
+	}
+	budget := geom.GraphPointContactOptions{MaxOperations: discovered.ExactOperations - 1}
+	if r, e := geom.DiscoverSplineGraphRepeatedQuadraticEllipse(ctx, supports[0], supports[1], budget); e == nil || r.Proven {
+		t.Fatal("one-short work budget must not produce a complete certificate", e)
+	}
 	point := [2]*big.Rat{big.NewRat(3, 4), big.NewRat(1, 2)}
 	section, e := SectionRepeatedRationalEllipseSplineGraphs(ctx, supports[0], supports[1], h, point,
 		geom.GraphPointContactOptions{}, geom.SurfaceCurveAgreementOptions{})

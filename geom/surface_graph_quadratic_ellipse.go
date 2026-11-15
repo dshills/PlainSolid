@@ -190,6 +190,19 @@ func quadraticGraphCellCoefficients(q [6]*big.Rat, d ParameterRectangle) (out [6
 // first union cell, normalizes its overall sign and independently certifies the
 // original supports. Rotated, elevated-degree and rational forms are supported.
 func DiscoverSplineGraphQuadraticEllipse(ctx context.Context, a, c *SurfacePatch, o GraphPointContactOptions) (r SplineGraphQuadraticEllipse, err error) {
+	return discoverSplineGraphQuadraticEllipse(ctx, a, c, o, 1)
+}
+
+// DiscoverSplineGraphRepeatedQuadraticEllipse recovers a definite quadratic
+// square from the first union-knot cell. The exact candidate is then factored
+// out of every cell of both original supports. A nonconstant strict-sign
+// cofactor on the first cell requires the explicit hint certifier.
+func DiscoverSplineGraphRepeatedQuadraticEllipse(ctx context.Context, a, c *SurfacePatch, o GraphPointContactOptions) (SplineGraphQuadraticEllipse, error) {
+	return discoverSplineGraphQuadraticEllipse(ctx, a, c, o, 2)
+}
+
+func discoverSplineGraphQuadraticEllipse(ctx context.Context, a, c *SurfacePatch, o GraphPointContactOptions,
+	multiplicity int) (r SplineGraphQuadraticEllipse, err error) {
 	if ctx == nil || a == nil || c == nil || len(a.net) == 0 || len(c.net) == 0 {
 		return r, ErrInvalid
 	}
@@ -221,7 +234,11 @@ func DiscoverSplineGraphQuadraticEllipse(ctx context.Context, a, c *SurfacePatch
 	if len(cells) == 0 {
 		return r, ErrConvergence
 	}
-	local, proved, e := graphQuadraticCoefficients(cells[0], budget)
+	infer := graphQuadraticCoefficients
+	if multiplicity == 2 {
+		infer = graphSquaredQuadraticCoefficients
+	}
+	local, proved, e := infer(cells[0], budget)
 	if e != nil {
 		return r, e
 	}
@@ -255,5 +272,53 @@ func DiscoverSplineGraphQuadraticEllipse(ctx context.Context, a, c *SurfacePatch
 	if o.MaxOperations < 1 {
 		return r, ErrConvergence
 	}
-	return CertifySplineGraphQuadraticEllipse(ctx, a, c, GraphQuadraticEllipseHint{Coefficients: q}, o)
+	return certifySplineGraphQuadraticEllipse(ctx, a, c, GraphQuadraticEllipseHint{Coefficients: q}, o, multiplicity)
+}
+
+func graphSquaredQuadraticCoefficients(p *SurfacePatch, b *polynomialBudget) (out [6]*big.Rat, proved bool, err error) {
+	if p.degreeU > 8 || p.degreeV > 8 {
+		return out, false, nil
+	}
+	columns, e := graphNumeratorPowerColumns(p, b)
+	if e != nil {
+		return out, false, e
+	}
+	for v, c := range columns {
+		for u, x := range c {
+			if u+v > 4 && x.Sign() != 0 {
+				return out, false, nil
+			}
+		}
+	}
+	coefficient := func(u, v int) *big.Rat {
+		if v >= len(columns) || u >= len(columns[v]) {
+			return new(big.Rat)
+		}
+		return columns[v][u]
+	}
+	k := coefficient(4, 0)
+	if k.Sign() == 0 {
+		return out, false, nil
+	}
+	// Write Q = U² + L(V)U + C(V). In kQ² the U³ column gives
+	// 2kL and the U² column gives k(L²+2C). Each step stays rational.
+	twice := new(big.Rat).Mul(big.NewRat(2, 1), k)
+	linear := new(big.Rat).Quo(coefficient(3, 0), twice)
+	mixed := new(big.Rat).Quo(coefficient(3, 1), twice)
+	out[1], out[2], out[5] = linear, big.NewRat(1, 1), mixed
+	linearSquared := [3]*big.Rat{
+		new(big.Rat).Mul(linear, linear),
+		new(big.Rat).Mul(big.NewRat(2, 1), new(big.Rat).Mul(linear, mixed)),
+		new(big.Rat).Mul(mixed, mixed),
+	}
+	for v, index := range [3]int{0, 3, 4} {
+		normalized := new(big.Rat).Quo(coefficient(2, v), k)
+		out[index] = new(big.Rat).Quo(new(big.Rat).Sub(normalized, linearSquared[v]), big.NewRat(2, 1))
+	}
+	for _, x := range out {
+		if e := b.check(x); e != nil {
+			return out, false, e
+		}
+	}
+	return out, true, nil
 }

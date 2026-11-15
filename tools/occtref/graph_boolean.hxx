@@ -162,10 +162,12 @@ static void ellipticalGraphBooleanRecords(std::ostream& out) {
   ellipticalGraphRecord(out,"ellipse-difference",BRepAlgoAPI_Cut(a,b).Shape());
 }
 
-static void tangentSplineShellRecords(std::ostream& out, bool quartic = false, bool separable = false, bool closedContact = false, bool containedContact = false) {
+static void tangentSplineShellRecords(std::ostream& out, bool quartic = false, bool separable = false, bool closedContact = false,
+                                      bool containedContact = false, bool rotatedContact = false) {
   BRepBuilderAPI_Sewing sewing(1e-9);
   const double sq[3]{.25,-.25,.25};
   const double q2[5]{3,0,-1,0,3}, q4[5]{1,-1,1,-1,1};
+  const double q1[5]{-.5,-.25,0,.25,.5}, q3[5]{-.125,.0625,0,-.0625,.125};
   const int degree[3]{quartic || separable ? 4 : 2, quartic ? 4 : 2, 1};
   for (int fixed = 0; fixed < 3; ++fixed) for (int side = 0; side < 2; ++side) {
     const int u = (fixed + 1) % 3, v = (fixed + 2) % 3;
@@ -177,9 +179,16 @@ static void tangentSplineShellRecords(std::ostream& out, bool quartic = false, b
       p[u] = i;
       p[v] = j;
       const double radialSquared = closedContact ? 1.0 / 16 : 0;
-      const double z = p[2] == 0 ? -1 : separable ? -q4[p[0]]/16 - sq[p[1]] : quartic ?
+      double z = p[2] == 0 ? -1 : separable ? -q4[p[0]]/16 - sq[p[1]] : quartic ?
         -(9*(q4[p[0]]+q4[p[1]])+2*q2[p[0]]*q2[p[1]]-24*radialSquared*(q2[p[0]]+q2[p[1]])+144*radialSquared*radialSquared)/256 :
         -sq[p[0]] - sq[p[1]];
+      if (p[2] && rotatedContact) {
+        const int x = p[0], y = p[1];
+        // Square the independent centered ellipse x²+y²+xy/2-1/16
+        // in degree-four Bernstein coefficients.
+        z = -((9*(q4[x]+q4[y]) + (9*q2[x]*q2[y])/4. - 1.5*(q2[x]+q2[y]) + 9./16)/256.
+             + (9./16)*(q3[x]*q1[y]+q1[x]*q3[y]-q1[x]*q1[y]/16.));
+      }
       poles.SetValue(i+1,j+1,gp_Pnt(double(p[0])/degree[0],double(p[1])/degree[1],z));
     }
     NCollection_Array1<double> k(1,2);

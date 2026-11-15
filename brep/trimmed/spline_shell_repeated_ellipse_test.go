@@ -19,14 +19,19 @@ import (
 )
 
 func TestOCCTExternallyTangentSplineShellEllipse(t *testing.T) {
-	oracle := os.Getenv("PLAINSOLID_OCCT_REPEATED_ELLIPSE")
+	compareOCCTExteriorEllipse(t, "PLAINSOLID_OCCT_REPEATED_ELLIPSE", "repeated-ellipse-tangent-shells")
+}
+
+func compareOCCTExteriorEllipse(t *testing.T, env, mode string) {
+	t.Helper()
+	oracle := os.Getenv(env)
 	if oracle == "" {
-		t.Skip("set PLAINSOLID_OCCT_REPEATED_ELLIPSE to the independent author")
+		t.Skip("set " + env + " to the independent author")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	path := filepath.Join(t.TempDir(), "ellipse-contact.json")
-	if logs, e := exec.CommandContext(ctx, oracle, path, "repeated-ellipse-tangent-shells").CombinedOutput(); e != nil {
+	if logs, e := exec.CommandContext(ctx, oracle, path, mode).CombinedOutput(); e != nil {
 		t.Fatalf("independent OCCT double ellipse: %v %s", e, logs)
 	}
 	data, e := os.ReadFile(path)
@@ -52,14 +57,24 @@ func TestOCCTExternallyTangentSplineShellEllipse(t *testing.T) {
 }
 
 func TestOCCTInternallyTangentSplineShellEllipse(t *testing.T) {
-	oracle := os.Getenv("PLAINSOLID_OCCT_CONTAINED_ELLIPSE")
+	compareOCCTContainedEllipse(t, "PLAINSOLID_OCCT_CONTAINED_ELLIPSE", "contained-ellipse-tangent-shells", 20227.0/20480)
+}
+
+func TestOCCTRotatedTangentSplineShellEllipse(t *testing.T) {
+	compareOCCTExteriorEllipse(t, "PLAINSOLID_OCCT_ROTATED_TANGENCY", "rotated-exterior-tangent-shells")
+	compareOCCTContainedEllipse(t, "PLAINSOLID_OCCT_ROTATED_TANGENCY", "rotated-contained-tangent-shells", 20207.0/20480)
+}
+
+func compareOCCTContainedEllipse(t *testing.T, env, mode string, volume float64) {
+	t.Helper()
+	oracle := os.Getenv(env)
 	if oracle == "" {
-		t.Skip("set PLAINSOLID_OCCT_CONTAINED_ELLIPSE to the independent author")
+		t.Skip("set " + env + " to the independent author")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	path := filepath.Join(t.TempDir(), "contained-ellipse-contact.json")
-	if logs, e := exec.CommandContext(ctx, oracle, path, "contained-ellipse-tangent-shells").CombinedOutput(); e != nil {
+	if logs, e := exec.CommandContext(ctx, oracle, path, mode).CombinedOutput(); e != nil {
 		t.Fatalf("independent OCCT contained ellipse: %v %s", e, logs)
 	}
 	r, e := os.Open(path)
@@ -71,7 +86,7 @@ func TestOCCTInternallyTangentSplineShellEllipse(t *testing.T) {
 	for _, want := range []struct {
 		name   string
 		volume float64
-	}{{"contained-tangent-common", 20227.0 / 20480}, {"contained-tangent-fuse", 25.0 / 8}} {
+	}{{"contained-tangent-common", volume}, {"contained-tangent-fuse", 25.0 / 8}} {
 		var q struct {
 			Name   string
 			Volume float64
@@ -183,5 +198,83 @@ func TestInternallyTangentSplineShellEllipse(t *testing.T) {
 				t.Fatal("regularized result must retain the identified original shell", outerIndex, operation, h.FacesA, h.FacesB)
 			}
 		}
+	}
+}
+
+func TestRotatedTangentSplineShellEllipse(t *testing.T) {
+	ctx := context.Background()
+	// q = (u-.5)² + (v-.5)² + (u-.5)(v-.5)/2 - 1/16.
+	// The support is -9q²/16 with independently built adjacent walls.
+	hint := geom.GraphQuadraticEllipseHint{Coefficients: [6]*big.Rat{
+		big.NewRat(9, 16), big.NewRat(-5, 4), big.NewRat(1, 1),
+		big.NewRat(-5, 4), big.NewRat(1, 1), big.NewRat(1, 2),
+	}}
+	powers := [6][2]int64{{0, 0}, {1, 0}, {2, 0}, {0, 1}, {0, 2}, {1, 1}}
+	inner := quarticHeightRoofSolid(t, func(i, j int) float64 {
+		height := new(big.Rat)
+		for a, uv := range powers {
+			for b, xy := range powers {
+				u, v := uv[0]+xy[0], uv[1]+xy[1]
+				if u > int64(i) || v > int64(j) {
+					continue
+				}
+				weight := new(big.Rat).SetFrac(
+					new(big.Int).Mul(new(big.Int).Binomial(int64(i), u), new(big.Int).Binomial(int64(j), v)),
+					new(big.Int).Mul(new(big.Int).Binomial(4, u), new(big.Int).Binomial(4, v)))
+				height.Add(height, weight.Mul(weight, new(big.Rat).Mul(hint.Coefficients[a], hint.Coefficients[b])))
+			}
+		}
+		value, exact := height.Mul(height, big.NewRat(9, 16)).Float64()
+		if !exact {
+			t.Fatal("independent source fixture must have exact controls")
+		}
+		return value
+	})
+	exterior, _ := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, 0)
+	enclosure, _ := makeOpenSplineBox(t, [3]float64{-.125, -.125, -2}, [3]float64{1.125, 1.125, 0}, 0)
+	for _, test := range []struct {
+		source          [2]Solid
+		faces           [2]int
+		internal, infer bool
+		outer           int
+	}{
+		{[2]Solid{exterior, inner}, [2]int{4, 1}, false, true, -1},
+		{[2]Solid{inner, exterior}, [2]int{1, 4}, false, false, -1},
+		{[2]Solid{enclosure, inner}, [2]int{5, 1}, true, false, 0},
+		{[2]Solid{inner, enclosure}, [2]int{1, 5}, true, true, 1},
+	} {
+		o := SplineShellRepeatedEllipseOptions{Faces: test.faces, QuadraticHint: hint}
+		if test.infer {
+			o.QuadraticHint = geom.GraphQuadraticEllipseHint{}
+		}
+		combine := CombineExternallyTangentSplineShellEllipse
+		if test.internal {
+			combine = CombineInternallyTangentSplineShellEllipse
+		}
+		result, _, p, e := combine(ctx, test.source[0], test.source[1], parametric.Intersection, o)
+		c := p.QuadraticContact
+		if e != nil || p.Contact.Proven || !c.Proven || c.Ellipse.Coefficients[5].Cmp(big.NewRat(1, 2)) != 0 ||
+			c.Center[0].Cmp(big.NewRat(1, 2)) != 0 || c.Center[1].Cmp(big.NewRat(1, 2)) != 0 ||
+			c.ProjectionRadiusSquared[0].Cmp(big.NewRat(1, 15)) != 0 || c.ProjectionRadiusSquared[1].Cmp(big.NewRat(1, 15)) != 0 ||
+			p.SeparatedPairs != 35 || p.Enclosing != test.outer {
+			t.Fatal("complete mixed-term original chart proof", p, e)
+		}
+		if test.internal {
+			if len(result.faces) != 6 || result.faces[1].Surface != inner.faces[1].Surface {
+				t.Fatal("Common must retain the complete original inner material")
+			}
+		} else if len(result.faces) != 0 {
+			t.Fatal("closed exterior contact has no common volume")
+		}
+	}
+	wrong := hint
+	wrong.Coefficients[5] = big.NewRat(0, 1)
+	o := SplineShellRepeatedEllipseOptions{Faces: [2]int{4, 1}, QuadraticHint: wrong}
+	if r, _, p, e := CombineExternallyTangentSplineShellEllipse(ctx, exterior, inner, parametric.Intersection, o); e == nil || p.QuadraticContact.Proven || len(r.faces) != 0 {
+		t.Fatal("an axis-aligned substitute must not qualify an original rotated conic", e)
+	}
+	o.Hint.Center[0] = big.NewRat(1, 2)
+	if _, _, _, e := CombineExternallyTangentSplineShellEllipse(ctx, exterior, inner, parametric.Intersection, o); !errors.Is(e, geom.ErrInvalid) {
+		t.Fatal("ambiguous explicit hints must be rejected", e)
 	}
 }

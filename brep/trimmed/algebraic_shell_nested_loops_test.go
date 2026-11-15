@@ -133,6 +133,11 @@ func quarticRoofSolid(t *testing.T, ri, ro float64) Solid {
 	height := func(i, j int) float64 {
 		return (9*(x4[i]+x4[j]) + 2*x2[i]*x2[j] - 12*(ri+ro)*(x2[i]+x2[j]) + 144*ri*ro) / 256
 	}
+	return quarticHeightRoofSolid(t, height)
+}
+
+func quarticHeightRoofSolid(t *testing.T, height func(i, j int) float64) Solid {
+	t.Helper()
 	knots := func(n int) []float64 {
 		k := make([]float64, 2*n)
 		for i := n; i < len(k); i++ {

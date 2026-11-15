@@ -94,29 +94,11 @@ func graphQuadraticCoefficients(p *SurfacePatch, b *polynomialBudget) (out [6]*b
 	for i := range out {
 		out[i] = new(big.Rat)
 	}
-	rows := make([]rationalPolynomial, p.countU)
-	for i := range rows {
-		values := make([]*big.Rat, p.countV)
-		for j := range values {
-			values[j] = p.net[i*p.countV+j][2]
-		}
-		rows[i], err = bernsteinToPower(values, b)
-		if err != nil {
-			return out, false, err
-		}
+	columns, err := graphNumeratorPowerColumns(p, b)
+	if err != nil {
+		return out, false, err
 	}
-	for j := 0; j < p.countV; j++ {
-		values := make([]*big.Rat, p.countU)
-		for i := range values {
-			values[i] = new(big.Rat)
-			if j < len(rows[i]) {
-				values[i].Set(rows[i][j])
-			}
-		}
-		column, e := bernsteinToPower(values, b)
-		if e != nil {
-			return out, false, e
-		}
+	for j, column := range columns {
 		for i, value := range column {
 			if value.Sign() == 0 {
 				continue
@@ -140,4 +122,37 @@ func graphQuadraticCoefficients(p *SurfacePatch, b *polynomialBudget) (out [6]*b
 		}
 	}
 	return out, true, nil
+}
+
+// graphNumeratorPowerColumns indexes the normalized tensor power form first
+// by V degree, then by U degree.
+func graphNumeratorPowerColumns(p *SurfacePatch, b *polynomialBudget) ([]rationalPolynomial, error) {
+	rows := make([]rationalPolynomial, p.countU)
+	for i := range rows {
+		values := make([]*big.Rat, p.countV)
+		for j := range values {
+			values[j] = p.net[i*p.countV+j][2]
+		}
+		powers, err := bernsteinToPower(values, b)
+		if err != nil {
+			return nil, err
+		}
+		rows[i] = powers
+	}
+	columns := make([]rationalPolynomial, p.countV)
+	for j := range columns {
+		values := make([]*big.Rat, p.countU)
+		for i := range values {
+			values[i] = new(big.Rat)
+			if j < len(rows[i]) {
+				values[i].Set(rows[i][j])
+			}
+		}
+		column, e := bernsteinToPower(values, b)
+		if e != nil {
+			return nil, e
+		}
+		columns[j] = column
+	}
+	return columns, nil
 }
