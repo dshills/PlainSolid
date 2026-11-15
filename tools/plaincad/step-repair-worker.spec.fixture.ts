@@ -39,6 +39,9 @@ const fixtures = [
     otherPath: "/plainsolid-grouped-step-repair-metre.step", scale: 25.4, metresPerUnit: .0254,
     grouped: true, fillets: 4, sourceScale: 5, maxDistance: 1e-11, rejectedDistance: 1e-12,
     converted: { ownerScale: "5/127", axialEnd: "635", height: "25" } },
+  { name: "five-fillet", path: "/plainsolid-five-step-repair.step", negativePath: "/plainsolid-five-nondyadic.step",
+    units: undefined, otherPath: undefined, scale: 1, metresPerUnit: .001,
+    grouped: true, fillets: 5, rejectedDistance: 1e-13 },
 ] as const;
 const sha256 = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
 
@@ -57,11 +60,13 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   const phased = "fillets" in fixture;
   const three = phased && fixture.fillets === 3;
   const four = phased && fixture.fillets === 4;
+  const five = phased && fixture.fillets === 5;
   const converted = "converted" in fixture;
   const linearDeflection = converted || phased ? .5 : .025 * fixture.scale;
   const maxDistance = "maxDistance" in fixture ? fixture.maxDistance : 1e-12;
   const rejectedDistance = "rejectedDistance" in fixture ? fixture.rejectedDistance : undefined;
-  const result = await page.evaluate(async ({ path, units, otherPath, linearDeflection, maxDistance, rejectedDistance }) => {
+  const negativePath = "negativePath" in fixture ? fixture.negativePath : undefined;
+  const result = await page.evaluate(async ({ path, units, otherPath, negativePath, linearDeflection, maxDistance, rejectedDistance }) => {
     function ask(request: StepRepairProbeRequest, transfer: ArrayBuffer[] = []): Promise<StepRepairProbeReply> {
       const worker = new Worker("/src/cad/kernel/plainSolidStepRepairProbe.ts", { type: "module" });
       return new Promise((resolve, reject) => {
@@ -78,7 +83,8 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
     }
     const source = await sourceAt(path);
     const otherSource = otherPath ? await sourceAt(otherPath) : undefined;
-    const repair = await ask({ operation: "repair", source, units, otherSource, linearDeflection, maxDistance, rejectedDistance });
+    const negativeSource = negativePath ? await sourceAt(negativePath) : undefined;
+    const repair = await ask({ operation: "repair", source, units, otherSource, negativeSource, linearDeflection, maxDistance, rejectedDistance });
     if (!repair.ok) throw new Error(repair.error);
     if (!repair.repair || !repair.evidence?.nativeProofJSON) throw new Error("Missing the repaired worker reply");
     const fromWasm = repair.repair.certificateFromWasm;
@@ -94,6 +100,8 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
       repairEvidence: repair.evidence.repairEvidence,
       strictFailure: repair.repair.strictFailure,
       budgetFailure: repair.repair.budgetFailure,
+      negativeFailure: repair.repair.negativeFailure,
+      negativeSource,
       triangles: repair.repair.triangles,
       positionsInWorldBounds: repair.repair.positionsInWorldBounds,
       before: repair.before,
@@ -109,7 +117,7 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
       canonical: Array.from(new Uint8Array(repair.canonical)),
       canonicalReopened: Array.from(new Uint8Array(strict.canonical)),
     };
-  }, { path: fixture.path, units: fixture.units, otherPath: fixture.otherPath, linearDeflection, maxDistance, rejectedDistance });
+  }, { path: fixture.path, units: fixture.units, otherPath: fixture.otherPath, negativePath, linearDeflection, maxDistance, rejectedDistance });
 
   expect(workers).toHaveLength(2);
   expect(wasmLoads.length).toBeGreaterThan(0);
@@ -119,6 +127,13 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   if (rejectedDistance !== undefined) {
     expect(result.budgetFailure).toMatch(/PlainSolid UNSUPPORTED: STEP source has no qualified default OCCT pcurve repair within maxDistance/);
   }
+  let negativeSourceSha256: string | undefined;
+  if (negativePath) {
+    expect(result.negativeFailure).toMatch(/PlainSolid UNSUPPORTED: STEP source has no qualified default OCCT pcurve repair within maxDistance/);
+    const staged = await readFile(`public${negativePath}`);
+    expect(Buffer.from(result.negativeSource!, "utf8")).toEqual(staged);
+    negativeSourceSha256 = sha256(staged);
+  }
   expect(result.triangles).toBeGreaterThan(0);
   expect(result.positionsInWorldBounds).toBe(true);
 
@@ -127,7 +142,7 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   const [x, z] = "poseTranslation" in fixture ? fixture.poseTranslation : fixture.grouped ? ["0", "0"] : ["8/5", "6/5"];
   const pose = [["0", "3/5", "4/5", x], ["-1", "0", "0", "0"], ["0", "-4/5", "3/5", z]];
   const family = fixture.grouped ? "occt-rational-posed-grouped-pcurve-convex-arc" : "occt-rational-posed-single-pcurve-convex-arc";
-  const pcurveOwners = four ? 46 : three ? 34 : fixture.grouped ? 28 : 24;
+  const pcurveOwners = five ? 58 : four ? 46 : three ? 34 : fixture.grouped ? 28 : 24;
   expect(result.repairEvidence).toMatchObject({ family,
     sourceSHA256: digest, maxDistance, pcurveOwners, worldPose: pose, lengthUnit: fixture.metresPerUnit });
   const certificateBytes = Buffer.from(result.certificateFromWasm);
@@ -139,7 +154,7 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   expect(certificate).toMatchObject({ Format: format, Version: 1, MaxDistance: maxDistance,
     Claims: { SourceSHA256: digest, Pose: pose, MaxDistance: maxDistance } });
   expect(Buffer.from(certificate.Source, "base64")).toEqual(source);
-  const finiteLineOwners = converted ? four ? 24 : 18 : 8;
+  const finiteLineOwners = five ? 12 : converted ? four ? 24 : 18 : 8;
   const groupedOwners = fixture.grouped ? { finiteLineOwners, rationalCaps: 2, axialTrims: phased ? 2 : 1, finiteTrims: 2 } : undefined;
   if (groupedOwners) {
     expect(result.repairEvidence).toMatchObject({ finiteLineOwners: groupedOwners.finiteLineOwners, rationalCaps: 2, axialTrims: groupedOwners.axialTrims });
@@ -152,9 +167,26 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   const phaseKind = converted ? "finite-phase-cylinder-circle" : "phase-cylinder-circle";
   const phaseOwners = phased ? certificate.Claims.PCurves.filter((owner: { Kind: string }) => owner.Kind === phaseKind) : undefined;
   if (phased) {
-    const owners = four ? (converted ? [207, 263, 472, 518] : [210, 267, 482, 529]) : converted ? [207, 416] : [210, 425];
+    const owners = five ? [210, 267, 324, 539, 586, 633] : four ? (converted ? [207, 263, 472, 518] : [210, 267, 482, 529]) :
+      converted ? [207, 416] : [210, 425];
     expect(phaseOwners).toMatchObject(
       owners.map(PCurveID => ({ PCurveID, DistanceSquaredUpper: expect.any(String) })));
+  }
+  if (five) {
+    expect(phaseOwners.filter((owner: { PCurveID: number }) => owner.PCurveID === 324 || owner.PCurveID === 633)).toMatchObject([
+      { PCurveID: 324, GeometryID: 331, SupportID: 325 },
+      { PCurveID: 633, GeometryID: 635, SupportID: 325 },
+    ]);
+    const original = source.toString("utf8");
+    for (const statement of [
+      "#332 = CARTESIAN_POINT('',(-3.14159265359,0.));", "#636 = CARTESIAN_POINT('',(-3.14159265359,5.));",
+      "#316 = DIRECTION('',(0.,-1.,0.));", "#625 = DIRECTION('',(0.,-1.,0.));", "#329 = DIRECTION('',(0.,1.,0.));",
+    ]) expect(original).toContain(statement);
+    expect(certificate.Claims.Grouped.AxialTrims).toMatchObject([{ EdgeID: 395 }, { EdgeID: 667 }]);
+    expect(certificate.Claims.Grouped.FiniteTrims).toMatchObject([
+      { CapOwner: { PCurveID: 372 }, CylinderOwner: { PCurveID: 383 }, EndStation: expect.any(Object) },
+      { CapOwner: { PCurveID: 432 }, CylinderOwner: { PCurveID: 425 }, EndStation: expect.any(Object) },
+    ]);
   }
   if (four && !converted) {
     expect(certificate.Claims.Grouped.AxialTrims).toMatchObject([{ EdgeID: 338 }, { EdgeID: 563 }]);
@@ -264,10 +296,10 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   expect(result.before).toHaveLength(1);
   const [proof] = result.before;
   const millimetresPerBase = fixture.scale * ("sourceScale" in fixture ? fixture.sourceScale : 1);
-  const [volume, area] = four ? [22.155304183748054, 51.012178844414059] :
+  const [volume, area] = five ? [39.084768347549009, 68.682455982680239] : four ? [22.155304183748054, 51.012178844414059] :
     three ? [28.968988172080639, 64.184278587623695] :
     fixture.grouped ? [29.077978807115539, 65.622954970084379] : [29.145041881053842, 66.186284791166074];
-  const [min, max] = four ? [[0, 0, -1.6], [5.2, 2.84375, 3]] :
+  const [min, max] = five ? [[0, 0, -2.4], [5.8, 2.75, 3]] : four ? [[0, 0, -1.6], [5.2, 2.84375, 3]] :
     three ? [[0, 0, -2.7], [6.025, 2.84375, 3]] :
     fixture.grouped ? [[0, 0, -2.7], [6.025, 3, 3]] : [[1, 0, -.7], [7.025, 3, 5]];
   expect(proof).toMatchObject({ valid: true, solidCount: 1 });
@@ -293,10 +325,12 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   expect(canonicalReopened).toEqual(canonical);
   if (fixture.units === "m") expect(canonical.toString("utf8")).toContain("SI_UNIT($,.METRE.)");
   if (fixture.units === "in") expect(canonical.toString("utf8")).toContain("LENGTH_MEASURE(0.0254)");
+  if (five) expect(canonical.toString("utf8")).toContain("SI_UNIT(.MILLI.,.METRE.)");
   await info.attach("step-repair-worker-proof", { contentType: "application/json", body: JSON.stringify({
     sourceSha256: digest, certificateSha256: sha256(certificateBytes), reopenedCertificateSha256: sha256(Buffer.from(result.certificateReopened)),
     canonicalSha256: sha256(canonical), reopenedCanonicalSha256: sha256(canonicalReopened),
     units: result.initialUnits, unitFailures: result.unitFailures, family, groupedOwners, convertedOwners, phaseOwners, finiteAxialTransfer, proof,
-    maxDistance, rejectedDistance, budgetFailure: result.budgetFailure, linearDeflection, triangles: result.triangles,
+    maxDistance, rejectedDistance, budgetFailure: result.budgetFailure, negativeSourceSha256, negativeFailure: result.negativeFailure,
+    linearDeflection, triangles: result.triangles,
   }, null, 2) });
 });

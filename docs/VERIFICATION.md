@@ -166,6 +166,13 @@ kept its pristine hash. Raw results remain in
   race with four-fillet converted regressions in 73.750 seconds. It preserves
   original antipodal owners `#324` and `#633` and rejects the distinct
   OCCT-authored nonbinary control at its exact original local point.
+  The focused main PlainCAD bridge race passed in 44.385 seconds. In the
+  isolated [bridge evidence](evidence/plaincad-five-fillet-bridge-2026-11-15.json),
+  all 18 typed Node WASM tests and 16 real Chromium two-worker tests passed.
+  Exact native and browser receipts match, and on strict reopen the workers
+  re-export the same source-unit STEP bytes. The five-fillet result has a
+  400-triangle display and rejects the original nonbinary control and the
+  tighter `1e-13 mm` tolerance before returning a shape.
 
 - Quintic native Common/Fuse and Cut with three transverse crossings and a
   quadratic tangency, plus exact curved inner wires, passed a combined main

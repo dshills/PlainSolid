@@ -16,6 +16,7 @@ import (
 )
 
 func TestRationalWorldSTEPRepairBridge(t *testing.T) {
+	const fiveSource = "occt-five-default-tilted-pentagonal-prism-fillet"
 	for _, tc := range []struct {
 		file, family string
 		bounds       Bounds
@@ -35,11 +36,19 @@ func TestRationalWorldSTEPRepairBridge(t *testing.T) {
 			Bounds{vector{0, 0, -2.7}, vector{6.025, 2.84375, 3}}, 28.968988172080639, 64.184278587623695, 2, 10, 2, 34, []int64{210, 425}},
 		{"occt-four-default-tilted-trapezoidal-prism-fillet", "occt-rational-posed-grouped-pcurve-convex-arc",
 			Bounds{vector{0, 0, -1.6}, vector{5.2, 2.84375, 3}}, 22.155304183748054, 51.012178844414059, 2, 10, 2, 46, []int64{210, 267, 482, 529}},
+		{fiveSource, "occt-rational-posed-grouped-pcurve-convex-arc",
+			Bounds{vector{0, 0, -2.4}, vector{5.8, 2.75, 3}}, 39.084768347549009, 68.682455982680239, 2, 10, 2, 58, []int64{210, 267, 324, 539, 586, 633}},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
 			b := New()
 			source := stepRepairFixture(t, tc.file)
 			rejectGroup(t, b, map[string]any{"op": "importStep", "source": source})
+			finiteLineOwners := 8
+			if tc.file == fiveSource {
+				finiteLineOwners = 12
+				rejectGroup(t, b, map[string]any{"op": "importStep", "source": stepRepairFixture(t, fiveSource+"-nondyadic"),
+					"stepRepair": map[string]any{"maxDistance": 1e-12, "native": true}})
+			}
 			linearDeflection := .025
 			if len(tc.phaseOwners) > 0 {
 				linearDeflection = .5
@@ -56,7 +65,7 @@ func TestRationalWorldSTEPRepairBridge(t *testing.T) {
 			evidence := result.RepairEvidence
 			if evidence == nil || evidence.Family != tc.family || evidence.WorldPose == nil || result.NativeProof == nil ||
 				evidence.PCurveOwners != tc.owners || evidence.RationalCaps != tc.caps || evidence.AxialTrims != tc.axial ||
-				len(evidence.Repairs) != tc.sites || evidence.FiniteLineOwners != 8 {
+				len(evidence.Repairs) != tc.sites || evidence.FiniteLineOwners != finiteLineOwners || evidence.LengthUnit != .001 {
 				t.Fatal("missing rational source evidence")
 			}
 			pose, err := arc.pose.Matrix()
@@ -98,6 +107,9 @@ func TestRationalWorldSTEPRepairBridge(t *testing.T) {
 							t.Fatal("four-fillet receipt lost an original trim", cap.CapOwner.PCurveID)
 						}
 					}
+				}
+				if tc.file == fiveSource {
+					checkFiveRoundBridgeReceipt(t, m)
 				}
 				reloadedSource = m.OriginalSTEP()
 				proofPose, err = m.Pose().Matrix()
@@ -176,6 +188,32 @@ func TestRationalWorldSTEPRepairBridge(t *testing.T) {
 				verifyRationalStepArcTransform(t, b, result, tc.bounds, tc.volume, tc.area)
 			}
 		})
+	}
+}
+
+func checkFiveRoundBridgeReceipt(t *testing.T, m step.RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion) {
+	t.Helper()
+	halfTurns := map[int64]int64{324: 331, 633: 635}
+	for _, owner := range m.PCurves() {
+		geometry, ok := halfTurns[owner.PCurveID]
+		if !ok {
+			continue
+		}
+		if owner.Kind != "phase-cylinder-circle" || owner.GeometryID != geometry || owner.SupportID != 325 ||
+			owner.DistanceSquaredUpper.Sign() <= 0 {
+			t.Fatal("half-turn receipt changed its original curve or support", owner.PCurveID)
+		}
+		delete(halfTurns, owner.PCurveID)
+	}
+	if len(halfTurns) != 0 {
+		t.Fatal("half-turn receipt lost an original owner", halfTurns)
+	}
+	caps, axial := m.FiniteTrims(), m.AxialTrims()
+	for i, cap := range caps {
+		if cap.CapOwner.PCurveID != [2]int64{372, 432}[i] || cap.CylinderOwner.PCurveID != [2]int64{383, 425}[i] ||
+			cap.EndStation == nil || axial[i].EdgeID != [2]int64{395, 667}[i] {
+			t.Fatal("five-fillet receipt lost an original trim", cap.CapOwner.PCurveID)
+		}
 	}
 }
 
