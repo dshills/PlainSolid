@@ -58,6 +58,9 @@ func polynomialGraphFixture(t *testing.T, degree, axis int) (*geom.BSplineSurfac
 			t.Fatal(e)
 		}
 		knot := .5
+		if owner == 1 {
+			knot = .3125
+		}
 		if (owner == 0) != (axis == 1) {
 			p, e = p.InsertUKnot(knot, 1, geom.SurfacePatchOptions{})
 		} else {
@@ -119,6 +122,22 @@ func TestNativePolynomialGraphBooleans(t *testing.T) {
 					}
 					if degree == 3 && h.Polynomial.Controls[1][axis].Cmp(big.NewRat(1, 3)) != 0 {
 						t.Fatal("nonbinary exact cubic control lost")
+					}
+					found := 0
+					for _, v := range s.vertices {
+						free, dependent := v.X, v.Y
+						if axis == 1 {
+							free, dependent = dependent, free
+						}
+						if free == 1 && dependent == .375 && v.Z > 0 {
+							found++
+							if v.Z != 1539.0/512 {
+								t.Fatal("rounded original wall endpoint", v)
+							}
+						}
+					}
+					if found != 1 {
+						t.Fatal("shared exact terminal ownership", found)
 					}
 					if len(s.Topology().Shells) != 1 || s.Topology().EulerCharacteristic != 2 {
 						t.Fatal(s.Topology())

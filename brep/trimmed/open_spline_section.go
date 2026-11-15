@@ -238,7 +238,7 @@ func openGraphLoop(c intersect.CertifiedContour, difference *geom.SurfacePatch, 
 	return append(contour, path...), len(contour), nil
 }
 
-func assembleOpenSplineGraphPair(surface, bottom *geom.BSplineSurface, height float64, above bool, tolerance float64, pieces []openSectionPiece) (Solid, OpenSectionHistory, error) {
+func assembleOpenSplineGraphPair(surface, bottom *geom.BSplineSurface, height float64, above bool, tolerance float64, pieces []openSectionPiece, evaluate ...graphVertexEvaluator) (Solid, OpenSectionHistory, error) {
 	fail := func(reason string) (Solid, OpenSectionHistory, error) {
 		return Solid{}, OpenSectionHistory{}, fmt.Errorf("trimmed: spline wall assembly: %s", reason)
 	}
@@ -250,10 +250,19 @@ func assembleOpenSplineGraphPair(surface, bottom *geom.BSplineSurface, height fl
 		if bottom == nil {
 			return geom.Vec3{X: p.X, Y: p.Y, Z: height}, nil
 		}
+		if len(evaluate) > 0 {
+			return evaluate[0](bottom, openSectionPiece{a: p})
+		}
 		return bottom.Eval(p.X, p.Y)
 	}
 	for i, x := range pieces {
-		p, e := surface.Eval(x.a.X, x.a.Y)
+		var p geom.Vec3
+		var e error
+		if len(evaluate) > 0 {
+			p, e = evaluate[0](surface, x)
+		} else {
+			p, e = surface.Eval(x.a.X, x.a.Y)
+		}
 		if e != nil {
 			return Solid{}, OpenSectionHistory{}, e
 		}

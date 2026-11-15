@@ -42,7 +42,7 @@ func assemblePolynomialGraphContact(ctx context.Context, base, a, b *geom.BSplin
 		lower.loop = []openSectionPiece{{a: zero, b: left, side: 0}, {a: left, b: right, c: curve, side: -1}, {a: right, b: tl, side: 2}, {a: tl, b: zero, side: 3}}
 		upper.loop = []openSectionPiece{{a: left, b: br, side: 0}, {a: br, b: tr, side: 1}, {a: tr, b: right, side: 2}, {a: right, b: left, c: reversePCurve(curve), side: -1}}
 	}
-	solid, history, e := combineOpenGraphRegions(ctx, base, a, b, []openGraphRegion{lower, upper}, op, tolerance)
+	solid, history, e := combineOpenGraphRegions(ctx, base, a, b, []openGraphRegion{lower, upper}, op, tolerance, exactGraphVertexEvaluator(ctx, proof))
 	if e != nil {
 		return fail(e)
 	}

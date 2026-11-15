@@ -289,8 +289,8 @@ func insertInteriorGraphLoops(ctx context.Context, regions []openGraphRegion, co
 	return regions, nil
 }
 
-func assembleGraphRegionDifference(a, b *geom.BSplineSurface, r openGraphRegion, tolerance float64) (Solid, OpenSectionHistory, error) {
-	s, h, e := assembleOpenSplineGraphPair(a, b, 0, true, tolerance, r.loop)
+func assembleGraphRegionDifference(a, b *geom.BSplineSurface, r openGraphRegion, tolerance float64, evaluate ...graphVertexEvaluator) (Solid, OpenSectionHistory, error) {
+	s, h, e := assembleOpenSplineGraphPair(a, b, 0, true, tolerance, r.loop, evaluate...)
 	if e != nil || len(r.holes) == 0 {
 		return s, h, e
 	}
@@ -299,7 +299,13 @@ func assembleGraphRegionDifference(a, b *geom.BSplineSurface, r openGraphRegion,
 		offset := len(v)
 		var uses []Use
 		for i, p := range hole {
-			point, e := graphTrimStartDisplay(context.Background(), a, p)
+			var point geom.Vec3
+			var e error
+			if len(evaluate) > 0 {
+				point, e = evaluate[0](a, p)
+			} else {
+				point, e = graphTrimStartDisplay(context.Background(), a, p)
+			}
 			if e != nil {
 				return Solid{}, OpenSectionHistory{}, e
 			}

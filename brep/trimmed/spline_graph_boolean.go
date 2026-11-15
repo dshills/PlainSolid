@@ -632,13 +632,13 @@ type graphEnvelopeRegion struct {
 	first bool
 }
 
-func combineOpenGraphRegions(ctx context.Context, base, a, b *geom.BSplineSurface, regions []openGraphRegion, op parametric.BooleanOp, tolerance float64) (Solid, SplineGraphBooleanHistory, error) {
+func combineOpenGraphRegions(ctx context.Context, base, a, b *geom.BSplineSurface, regions []openGraphRegion, op parametric.BooleanOp, tolerance float64, evaluate ...graphVertexEvaluator) (Solid, SplineGraphBooleanHistory, error) {
 	if op != parametric.Difference {
 		r := make([]graphEnvelopeRegion, len(regions))
 		for i, x := range regions {
 			r[i] = graphEnvelopeRegion{x.loop, x.holes, (x.sign > 0) == (op == parametric.Union)}
 		}
-		return assembleSplineEnvelope(ctx, base, a, b, r, tolerance)
+		return assembleSplineEnvelope(ctx, base, a, b, r, tolerance, evaluate...)
 	}
 	h := SplineGraphBooleanHistory{TopA: -1, TopB: -1, Base: -1}
 	var parts []PlacedSolid
@@ -647,7 +647,7 @@ func combineOpenGraphRegions(ctx context.Context, base, a, b *geom.BSplineSurfac
 		if r.sign <= 0 {
 			continue
 		}
-		s, local, e := assembleGraphRegionDifference(a, b, r, tolerance)
+		s, local, e := assembleGraphRegionDifference(a, b, r, tolerance, evaluate...)
 		if e != nil {
 			return Solid{}, h, e
 		}
@@ -678,7 +678,7 @@ func combineOpenGraphRegions(ctx context.Context, base, a, b *geom.BSplineSurfac
 }
 
 func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface,
-	regions []graphEnvelopeRegion, tolerance float64) (Solid, SplineGraphBooleanHistory, error) {
+	regions []graphEnvelopeRegion, tolerance float64, evaluate ...graphVertexEvaluator) (Solid, SplineGraphBooleanHistory, error) {
 	bad := func(reason string) (Solid, SplineGraphBooleanHistory, error) {
 		return Solid{}, SplineGraphBooleanHistory{}, fmt.Errorf("trimmed: spline envelope: %s", reason)
 	}
@@ -733,7 +733,13 @@ func assembleSplineEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface
 	top, low := map[geom.Vec2]int{}, map[geom.Vec2]int{}
 	vertex := func(ids map[geom.Vec2]int, x openSectionPiece, surface *geom.BSplineSurface) (int, error) {
 		uv := x.a
-		p, e := graphTrimStartDisplay(ctx, surface, x)
+		var p geom.Vec3
+		var e error
+		if len(evaluate) > 0 {
+			p, e = evaluate[0](surface, x)
+		} else {
+			p, e = graphTrimStartDisplay(ctx, surface, x)
+		}
 		if e != nil {
 			return 0, e
 		}
