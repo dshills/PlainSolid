@@ -199,6 +199,19 @@ kept its pristine hash. Raw results remain in
   measured volume changes of `-1.19703047079247` and `+0.817619549959659`.
   The exact tangent solver rejects irrational coordinates instead of
   fitting a nearby round.
+- Nonunit Cut and prior native Boolean cases passed the main trimmed race
+  in 284.486 seconds. Both Cut orders retain the original sloping base and
+  both independent roof owners. Independent physical integration agrees
+  on every component, including `3/19193135104`; 44 legacy recipe digests
+  matched in isolation. The source-backed proof rejects skew charts,
+  inexact physical contacts and an altered contact ledger.
+- A single original spatially nonplanar mapped STEP cubic has four model
+  poles with exact determinant `9/1048576`. Both original bicubic owners
+  retain their mixed three inferred stations; the original and strict
+  canonical cases agree with pinned OCCT material and enclose 414 display
+  triangles. A changed exact interior pole rejects atomically. Focused
+  main live race passed in 119.413 seconds and the isolated mapped native
+  race passed in 247.649 seconds.
 
 - Quintic native Common/Fuse and Cut with three transverse crossings and a
   quadratic tangency, plus exact curved inner wires, passed a combined main

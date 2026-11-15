@@ -173,7 +173,7 @@ func verifyMappedRoofSlopeJump(t *testing.T, ctx context.Context, surface *geom.
 	uv := [2]*big.Rat{cross, cross}
 	uv[axis] = mappedChainStepRat(knot)
 	for side, bounds := range [][2]float64{{breaks[i-1], knot}, {knot, breaks[i+1]}} {
-		box := geom.ParameterRectangle{UMax: 1, VMax: 1}
+		box := patch.Domain()
 		if axis == 0 {
 			box.UMin, box.UMax = bounds[0], bounds[1]
 		} else {
@@ -220,6 +220,11 @@ func verifyMappedChainCutDisplay(t *testing.T, ctx context.Context, m MappedChai
 	fill := trimmed.MixedExactMultiSpanMeshOptions{Face: trimmed.MixedExactCurvedMeshOptions{
 		BoundaryModelBudget: .005, Interior: trimmed.CurvedQuadraticTrimMeshOptions{Deflection: .04},
 	}}
+	verifyMappedChainCutDisplayWithOptions(t, ctx, m, fill)
+}
+
+func verifyMappedChainCutDisplayWithOptions(t *testing.T, ctx context.Context, m MappedChainSTEPModel, fill trimmed.MixedExactMultiSpanMeshOptions) {
+	t.Helper()
 	display, err := m.Shell.TessellateClosedCertified(ctx, nil, trimmed.MappedChainClosedMeshOptions{
 		Boundary: trimmed.MappedChainPolylineOptions{Deflection: .005}, Curved: [2]trimmed.MixedExactMultiSpanMeshOptions{fill, fill},
 	})
