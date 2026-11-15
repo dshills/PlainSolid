@@ -229,3 +229,22 @@ uses Euler and material measures because the Go stock has split side charts.
 planes. The counted original-floor trims remain separated on one support;
 `TestRationalGraphTwoRetainedRunsOnOneStockFace` additionally checks analytic
 volume, source identity, and native reload.
+## Paired affine shell material
+
+`affine_paired_shells.cxx` independently authors a stock box and its oblique
+partner as a planar polygon swept over the original oblique vector. It checks
+both input orders and all three material operations for a two-contact variant
+and a manifold one-contact variant.
+
+```sh
+c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" -L"$OCCT_LIB" -Wl,-rpath,"$OCCT_LIB" \
+  tools/occtref/affine_paired_shells.cxx -o /tmp/occt-affine-paired \
+  -lTKBO -lTKPrim -lTKTopAlgo -lTKBRep -lTKGeomBase -lTKG3d -lTKG2d -lTKMath -lTKernel
+PLAINSOLID_OCCT_AFFINE_PAIRED=/tmp/occt-affine-paired \
+  go test ./brep/trimmed -run '^TestOCCTAffinePairedMaterial$' -count=1
+```
+
+The native check verifies independent exact volumes against all 12 valid
+OCCT outputs. It requires closed circular vertex fans for each native
+single-shell result. The two-contact Cut therefore rejects in both input
+orders. OCCT reports one and two solids for those cases respectively.

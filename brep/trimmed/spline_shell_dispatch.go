@@ -15,6 +15,9 @@ import (
 // supplies optional edge-crossing proposals. Without them, disjoint, nested,
 // planar-interface and selected transverse cases are tried using face bounds.
 type SplineShellCombineOptions struct {
+	// AffinePaired explicitly selects complete exact convex affine authorization
+	// and original-fragment material assembly. Nil preserves legacy dispatch.
+	AffinePaired *ConvexAffineSplineShellOptions
 	Transverse   SplineShellTransverseOptions
 	Join         SplineShellJoinOptions
 	Open         SplineShellOpenOptions
@@ -78,6 +81,9 @@ type SplineShellAlgebraicNativeOptions struct {
 // records which certified Boolean path established the result. EdgesA and
 // EdgesB are populated by the section and planar arrangement paths.
 type SplineShellCombineHistory struct {
+	// AffinePaired retains exact fragment occupancy and full source ancestry for
+	// the explicit paired-affine path; other dispatch paths leave it nil.
+	AffinePaired   *AffineShellMaterial
 	FacesA, FacesB [][]int
 	EdgesA, EdgesB [][]int
 	SectionEdges   []int
@@ -104,6 +110,12 @@ func CombineSplineShells(ctx context.Context, a, b Solid, op parametric.BooleanO
 	}
 	if e := ctx.Err(); e != nil {
 		return Solid{}, r, e
+	}
+	if o.AffinePaired != nil {
+		if o.Algebraic != nil || len(o.Sections) != 0 || len(o.OpenSections) != 0 || o.DisableAffineDiscovery || o.VerticalQuadraticWarp != 0 || o.DiscoverVerticalQuadraticWarp {
+			return Solid{}, r, geom.ErrInvalid
+		}
+		return combineSplineShellsAffinePaired(ctx, a, b, op, *o.AffinePaired)
 	}
 	if o.Algebraic != nil {
 		if len(o.Sections) != 0 || len(o.OpenSections) != 0 {
