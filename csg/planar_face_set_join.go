@@ -40,8 +40,29 @@ func JoinMatchingPlanarFaces(ctx context.Context, a, b brep.Solid, o collision.P
 }
 
 func joinPlanarFaceSet(ctx context.Context, a, b brep.Solid, proof collision.PlanarFaceContactSet, o collision.LocationOptions) (brep.Solid, PlanarFaceSetJoinHistory, error) {
-	var zero PlanarFaceSetJoinHistory
-	h := PlanarFaceSetJoinHistory{Contact: proof}
+	var in planarInterface
+	in.volume = proof.SignedVolume
+	for _, f := range proof.Faces {
+		in.faces[0] = append(in.faces[0], f.FaceA)
+		in.faces[1] = append(in.faces[1], f.FaceB)
+		in.vertices = append(in.vertices, f.Vertices...)
+		in.edges = append(in.edges, f.Edges...)
+	}
+	result, owners, err := joinPlanarInterface(ctx, a, b, in, o)
+	if err != nil {
+		return brep.Solid{}, PlanarFaceSetJoinHistory{}, err
+	}
+	return result, PlanarFaceSetJoinHistory{Owners: owners, Contact: proof}, nil
+}
+
+type planarInterface struct {
+	faces           [2][]int
+	vertices, edges [][2]int
+	volume          *big.Rat
+}
+
+func joinPlanarInterface(ctx context.Context, a, b brep.Solid, proof planarInterface, o collision.LocationOptions) (brep.Solid, [2]PlanarFaceJoinOwner, error) {
+	var zero, owners [2]PlanarFaceJoinOwner
 	points := [2][]geom.Vec3{a.Vertices(), b.Vertices()}
 	lines := [2][]brep.Edge{a.Edges(), b.Edges()}
 	sides := [2][]brep.Face{a.Faces(), b.Faces()}
@@ -56,14 +77,16 @@ func joinPlanarFaceSet(ctx context.Context, a, b brep.Solid, proof collision.Pla
 	}
 	repsV := [2][]int{makeIDs(len(points[0]), 0), makeIDs(len(points[1]), len(points[0]))}
 	repsE := [2][]int{makeIDs(len(lines[0]), 0), makeIDs(len(lines[1]), len(lines[0]))}
-	for _, f := range proof.Faces {
-		removed[0][f.FaceA], removed[1][f.FaceB] = true, true
-		for _, v := range f.Vertices {
-			repsV[1][v[1]] = v[0]
+	for part, fs := range proof.faces {
+		for _, f := range fs {
+			removed[part][f] = true
 		}
-		for _, e := range f.Edges {
-			repsE[1][e[1]] = e[0]
-		}
+	}
+	for _, v := range proof.vertices {
+		repsV[1][v[1]] = v[0]
+	}
+	for _, e := range proof.edges {
+		repsE[1][e[1]] = e[0]
 	}
 	for part, fs := range sides {
 		for i, f := range fs {
@@ -101,7 +124,7 @@ func joinPlanarFaceSet(ctx context.Context, a, b brep.Solid, proof collision.Pla
 	var edges []brep.Edge
 	var faces []brep.Face
 	for part, ps := range points {
-		m := &h.Owners[part]
+		m := &owners[part]
 		m.Vertices = unassigned(len(ps))
 		for i, p := range ps {
 			k := repsV[part][i]
@@ -115,7 +138,7 @@ func joinPlanarFaceSet(ctx context.Context, a, b brep.Solid, proof collision.Pla
 	// Build only edges used by retained faces. Each merged seam keeps the
 	// first available original direction, including a reversed second owner.
 	for part, es := range lines {
-		vmap := h.Owners[part].Vertices
+		vmap := owners[part].Vertices
 		for i, e := range es {
 			k := repsE[part][i]
 			if used[part][i] && eIndex[k] < 0 {
@@ -125,7 +148,7 @@ func joinPlanarFaceSet(ctx context.Context, a, b brep.Solid, proof collision.Pla
 		}
 	}
 	for part, es := range lines {
-		m := &h.Owners[part]
+		m := &owners[part]
 		m.Edges = make([]brep.EdgeUse, len(es))
 		for i, e := range es {
 			k := eIndex[repsE[part][i]]
@@ -143,7 +166,7 @@ func joinPlanarFaceSet(ctx context.Context, a, b brep.Solid, proof collision.Pla
 		}
 	}
 	for part, fs := range sides {
-		m := &h.Owners[part]
+		m := &owners[part]
 		m.Faces = unassigned(len(fs))
 		for i, f := range fs {
 			if err := ctx.Err(); err != nil {
@@ -186,8 +209,8 @@ func joinPlanarFaceSet(ctx context.Context, a, b brep.Solid, proof collision.Pla
 		}
 		volume.Add(volume, s.SignedVolume)
 	}
-	if roots != 1 || volume.Cmp(proof.SignedVolume) != 0 {
+	if roots != 1 || volume.Cmp(proof.volume) != 0 {
 		return brep.Solid{}, zero, fmt.Errorf("%w: joined boundary must enclose the complete combined material", collision.ErrInvalid)
 	}
-	return result, h, nil
+	return result, owners, nil
 }
