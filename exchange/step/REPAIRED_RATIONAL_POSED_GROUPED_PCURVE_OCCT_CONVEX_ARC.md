@@ -127,3 +127,49 @@ exact source pose and native solid and re-exports identical bytes.
 PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
   go test ./exchange/step -run '^TestRepairGroupedConvertedMetreConvexArc' -count=1
 ```
+
+## Millimetre model converted to inch STEP by OCCT
+
+The pinned `write-both-default-tilted-converted-inch` mode scales the
+millimetre-native B-rep by 127 before transfer. The resulting 435-entity
+original keeps the exact two-fillet model with 25-inch height, the declared
+`127/5` millimetre inch factor and the rational world rotation.
+
+All 18 planar LINE owners use `t → 5t/127`. The exact original model LINE
+speed `3.937007874016E-02` differs from `5/127` by
+`1/396875000000000` inch per millimetre. The two finite lift proofs include
+this difference. The four axial splines have knots `[0,635]` and
+`dv/dt = 5/127`. Edge `#248` has a positive repaired start
+`1/984251968504000000000000000` and an original start of zero. Its exact
+affine map gives the original spline parameter at both repaired endpoints,
+and the lift remains within the authored knots.
+
+The reversed cylindrical spans retain `u = -t` and the two rational caps
+retain their exact radial and finite root proofs. OCCT uses opposite owner
+orders for the two cap edges. Original `SURFACE_CURVE #220` lists cap
+`#226` before cylinder `#237`. On `#271`, cylinder `#277` precedes cap
+`#283`. Both source associations are authenticated. A changed master
+representation, borrowed owner, shortened authored span, altered cap
+pole, inexact inch declaration or edited model speed is rejected.
+
+Source-only reproof and strict canonical inch reopen retain the exact
+owner laws, pose, and native material. The source passes at `1e-11` inch
+and rejects `1e-12` inch. Pinned OCCT samples all 30 original owners and
+measures a maximum discrepancy of `1.11e-12` inch with the planar map.
+The two original cap endpoint checks agree with the exact station
+enclosures, with maximum distance `2.78e-13` inch. Independent transfers
+of the original, corrected, and canonical STEP agree on world volume,
+area and centroid in millimetres.
+
+The separate `write-both-default-tilted-converted-inch-unscaled` output
+rounds both oblique cylinder-plane tangencies. Faces `#247` and `#401`
+share edge `#252` and have an exact source distance-minus-radius gap of
+`1/5000000000000000` inch. Faces `#301` and `#428` share edge `#306` and
+have a gap of `147/625000000000000` inch. OCCT transfers this source within
+its tolerance. PlainSolid's endpoint repair retains the original supports,
+so both gaps prevent exact reconstruction.
+
+```sh
+PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
+  go test ./exchange/step -run '^TestRepairGroupedConvertedInchConvexArc' -count=1
+```
