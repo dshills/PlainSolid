@@ -29,12 +29,10 @@ func CombineRectangularPolynomialEnvelope(ctx context.Context, base, a, b *geom.
 	if e != nil {
 		return nil, e
 	}
-	mapping, e := stock.base.MapCoefficients()
+	baseChart, e := polynomialEnvelopeBaseChart(stock.base)
 	if e != nil {
 		return nil, e
 	}
-	orientation := (mapping[0][0].Sign() * mapping[1][1].Sign()) - (mapping[0][1].Sign() * mapping[1][0].Sign())
-	baseChart := polynomialEnvelopeChart(mapping, orientation)
 	proof, e := geom.DiscoverProjectedSplineGraphPolynomialArrangement(ctx, stock.reference, stock.roofs[0], stock.roofs[1], axis, o.Proof)
 	if e != nil {
 		return nil, e
@@ -43,35 +41,51 @@ func CombineRectangularPolynomialEnvelope(ctx context.Context, base, a, b *geom.
 		nativeRectangularPolynomialEnvelope, proof.Arrangement, proof.Owners, baseChart, projectedPolynomialCharts(proof))
 }
 
-type rectangularPolynomialPatches struct {
+type footprintPolynomialPatches struct {
 	reference *geom.SurfacePatch
 	base      *geom.AffineXYChartAlignment
 	roofs     [2]*geom.SurfacePatch
 }
 
 func prepareRectangularPolynomialStock(ctx context.Context, base, a, b *geom.BSplineSurface,
-	o PolynomialCubicCrossingTangencyEnvelopeOptions) (rectangularPolynomialPatches, error) {
+	o PolynomialCubicCrossingTangencyEnvelopeOptions) (footprintPolynomialPatches, error) {
+	return prepareFootprintPolynomialStock(ctx, base, a, b, o, geom.NewAffineXYRectangleReference)
+}
+
+func prepareFootprintPolynomialStock(ctx context.Context, base, a, b *geom.BSplineSurface,
+	o PolynomialCubicCrossingTangencyEnvelopeOptions,
+	referenceChart func(context.Context, *geom.SurfacePatch, geom.SurfacePatchOptions) (*geom.SurfacePatch, error)) (footprintPolynomialPatches, error) {
 	limits := o.Section.Patch
 	bp, e := geom.NewSurfacePatch(base, limits)
 	if e != nil {
-		return rectangularPolynomialPatches{}, e
+		return footprintPolynomialPatches{}, e
 	}
-	reference, e := geom.NewAffineXYRectangleReference(ctx, bp, limits)
+	reference, e := referenceChart(ctx, bp, limits)
 	if e != nil {
-		return rectangularPolynomialPatches{}, e
+		return footprintPolynomialPatches{}, e
 	}
 	baseAlignment, e := geom.AlignAffineXYCharts(ctx, reference, bp, limits)
 	if e != nil {
-		return rectangularPolynomialPatches{}, e
+		return footprintPolynomialPatches{}, e
 	}
 	patches, e := preparePositivePolynomialRoofs(ctx, baseAlignment.TargetOnSource(), [2]*geom.BSplineSurface{a, b}, o)
 	if e != nil {
-		return rectangularPolynomialPatches{}, e
+		return footprintPolynomialPatches{}, e
 	}
-	return rectangularPolynomialPatches{reference: reference, base: baseAlignment, roofs: patches}, nil
+	return footprintPolynomialPatches{reference: reference, base: baseAlignment, roofs: patches}, nil
 }
 
-func bindRectangularEnvelopeBase(s Solid, base *geom.BSplineSurface, chart graphEnvelopeChart, h SplineGraphBooleanHistory) error {
+func polynomialEnvelopeBaseChart(base *geom.AffineXYChartAlignment) (graphEnvelopeChart, error) {
+	m, e := base.MapCoefficients()
+	if e != nil {
+		return graphEnvelopeChart{}, e
+	}
+	sign := m[0][0].Sign()*m[1][1].Sign() - m[0][1].Sign()*m[1][0].Sign()
+	return polynomialEnvelopeChart(m, sign), nil
+}
+
+func bindPolynomialEnvelopeBase(s Solid, base *geom.BSplineSurface, chart graphEnvelopeChart, h SplineGraphBooleanHistory,
+	reference graphEnvelopeReference) error {
 	f := s.faces[h.Base]
 	if f.Surface != base || f.Reversed != !chart.reversed || len(f.Outer) != len(h.WallFaces) {
 		return geom.ErrConvergence
@@ -79,8 +93,15 @@ func bindRectangularEnvelopeBase(s Solid, base *geom.BSplineSurface, chart graph
 	pieces := make(map[int]openSectionPiece, len(f.Outer))
 	for _, use := range f.Outer {
 		e := s.edges[use.Edge]
-		a, b := s.vertices[e.Start], s.vertices[e.End]
-		owned, err := chart.piece(openSectionPiece{a: geom.Vec2{X: a.X, Y: a.Y}, b: geom.Vec2{X: b.X, Y: b.Y}})
+		a, err := graphEnvelopeReferencePoint(s.vertices[e.Start], reference)
+		if err != nil {
+			return err
+		}
+		b, err := graphEnvelopeReferencePoint(s.vertices[e.End], reference)
+		if err != nil {
+			return err
+		}
+		owned, err := chart.piece(openSectionPiece{a: a, b: b})
 		if err != nil {
 			return err
 		}

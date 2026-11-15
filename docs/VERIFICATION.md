@@ -235,7 +235,21 @@ kept its pristine hash. Raw results remain in
   491.593 seconds. The independent unscaled inch original fails the exact
   support gate at seven sites even though pinned OCCT accepts its
   approximate geometry. The isolated exchange proof keeps all 30 prior
-  receipt, corrected-source and export digests.
+  receipt, corrected-source and export digests. The [converted PlainCAD
+  bridge evidence](evidence/plaincad-five-converted-bridge-2026-11-15.json)
+  accounts for all 18 Chromium cases and 20 distinct typed Node cases.
+  An older four-fillet metre case took 67.578 seconds under concurrent load
+  on the first Node run and passed in 42.845 seconds on an unchanged 60-second
+  budget on retry. The two new tests passed both times and preserved the
+  original units, exact native certificates and strict re-export bytes.
+  The integrated native bridge race passed in 157.372 seconds.
+- On an oblique determinant-five footprint, Common and Fuse retain both
+  independently charted original roofs and their exact sloping base, with
+  unnormalized original wall direction witnesses. Both axes and operand
+  orders agree with independent volume and area calculations. The main
+  native race with rectangular regressions passed in 359.033 seconds,
+  and the independent geometry volume race passed in 5.200 seconds.
+  All 48 earlier native recipe digests matched in the isolate.
 
 - Quintic native Common/Fuse and Cut with three transverse crossings and a
   quadratic tangency, plus exact curved inner wires, passed a combined main

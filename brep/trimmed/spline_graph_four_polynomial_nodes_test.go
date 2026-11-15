@@ -68,6 +68,11 @@ func polynomialPairSourceEnvelopeArea(fuse bool, stations []float64, branches fu
 
 func polynomialPairSourceEnvelopeAreaScaled(fuse bool, stations []float64, branches func(float64) (f, g, df, dg float64),
 	freeLength, dependentLength float64, base [3]float64) float64 {
+	return polynomialPairSourceEnvelopeAreaOnVectors(fuse, stations, branches, geom.Vec2{X: freeLength}, geom.Vec2{Y: dependentLength}, base)
+}
+
+func polynomialPairSourceEnvelopeAreaOnVectors(fuse bool, stations []float64, branches func(float64) (f, g, df, dg float64),
+	uVector, vVector geom.Vec2, base [3]float64) float64 {
 	// Independent Gauss-Legendre integration directly on the original
 	// stock equations. Each quadrature rectangle maps to one signed
 	// strip over a slab and evaluates the original roof derivatives.
@@ -89,6 +94,13 @@ func polynomialPairSourceEnvelopeAreaScaled(fuse bool, stations []float64, branc
 		}
 		return base
 	}
+	freeLength, dependentLength := math.Hypot(uVector.X, uVector.Y), math.Hypot(vVector.X, vVector.Y)
+	xy := uVector.X*vVector.Y - uVector.Y*vVector.X
+	areaScale := func(du, dv float64) float64 {
+		x := uVector.Y*dv - vVector.Y*du
+		y := vVector.X*du - uVector.X*dv
+		return math.Sqrt(xy*xy + x*x + y*y)
+	}
 	roofJacobian := func(u, v float64, raised bool) float64 {
 		du, dv := v/64, u/64
 		if raised {
@@ -96,9 +108,7 @@ func polynomialPairSourceEnvelopeAreaScaled(fuse bool, stations []float64, branc
 			du -= (105.0 / 128) * (df*(v-g) + dg*(v-f))
 			dv += (105.0 / 128) * (2*v - f - g)
 		}
-		du, dv = du*dependentLength, dv*freeLength
-		xy := freeLength * dependentLength
-		return math.Sqrt(xy*xy + du*du + dv*dv)
+		return areaScale(du, dv)
 	}
 	fiber := func(u float64, value func(float64, float64, bool) float64) float64 {
 		f, g, _, _ := branches(u)
@@ -107,9 +117,7 @@ func polynomialPairSourceEnvelopeAreaScaled(fuse bool, stations []float64, branc
 		interior := func(v float64) float64 { return value(u, v, !fuse) }
 		return integrate(0, lo, exterior) + integrate(lo, hi, interior) + integrate(hi, 1, exterior)
 	}
-	xy := freeLength * dependentLength
-	baseU, baseV := base[1]*dependentLength, base[2]*freeLength
-	area := math.Sqrt(xy*xy + baseU*baseU + baseV*baseV)
+	area := areaScale(base[1], base[2])
 	for i := range stations[:len(stations)-1] {
 		area += integrate(stations[i], stations[i+1], func(u float64) float64 { return fiber(u, roofJacobian) })
 	}

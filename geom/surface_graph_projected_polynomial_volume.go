@@ -24,7 +24,7 @@ func IntegrateProjectedSplineGraphPolynomialVolumes(ctx context.Context, referen
 	o GraphPointContactOptions) (ProjectedSplineGraphPolynomialVolumes, error) {
 	var volumes polynomialPositiveVolumes
 	proof, e := discoverProjectedSplineGraphPolynomialArrangement(ctx, reference, a, b, axis, o,
-		polynomialVolumeDiscovery(false, &volumes))
+		polynomialVolumeDiscovery(false, nil, &volumes))
 	if e != nil {
 		return ProjectedSplineGraphPolynomialVolumes{ExactOperations: proof.ExactOperations}, e
 	}

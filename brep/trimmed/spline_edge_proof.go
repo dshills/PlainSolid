@@ -247,8 +247,17 @@ func compareSplineWallUse(ctx context.Context, model parametric.Edge, surface ge
 	if !identity && !aligned || w.surface == nil || !finite(w.length) || w.length <= 0 || !finite(w.height) {
 		return false, nil
 	}
-	plane, ok := surface.(geom.PlaneSurface)
-	if !ok {
+	var chart edgecheck.Chart
+	switch surface := surface.(type) {
+	case geom.PlaneSurface:
+		f := surface.Frame()
+		chart = edgecheck.Chart{Origin: f.Origin(), U: f.XAxis(), V: f.YAxis()}
+	case splineGraphAffineWall:
+		if !aligned || w.length != 1 {
+			return false, nil
+		}
+		chart = surface.chart()
+	default:
 		return false, nil
 	}
 	a, b := use.UVStart, use.UVEnd
@@ -258,8 +267,7 @@ func compareSplineWallUse(ctx context.Context, model parametric.Edge, surface ge
 	if a != (geom.Vec2{Y: w.start}) || b != (geom.Vec2{X: w.length, Y: w.end}) {
 		return false, nil
 	}
-	f := plane.Frame()
-	origin, u, v := f.Origin(), f.XAxis(), f.YAxis()
+	origin, u, v := chart.Origin, chart.U, chart.V
 	if origin.Z != w.height || v != (geom.Vec3{Z: 1}) || u.Z != 0 {
 		return false, nil
 	}

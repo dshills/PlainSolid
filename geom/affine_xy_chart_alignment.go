@@ -5,10 +5,11 @@ import (
 	"math/big"
 )
 
-// AffineXYChartAlignment is immutable evidence for identical projected
-// rectangular domains. TargetOnSource retains exact model coordinates while
-// expressing target parameters in the source chart. Only signed axis
-// permutations/scales are supported; a shear is deliberately not a rectangle.
+// AffineXYChartAlignment is immutable evidence of the two rectangular
+// parameter domains' common affine XY footprint. TargetOnSource retains
+// exact model coordinates while expressing the target in the source chart.
+// The relative chart map uses signed axis permutations and independent scales.
+// The common model footprint can be oblique.
 type AffineXYChartAlignment struct {
 	source, target *SurfacePatch
 	mapping        [2][3]*big.Rat

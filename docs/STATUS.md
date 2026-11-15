@@ -127,18 +127,20 @@ through edits and placement.
 Native Common, Fuse and both Cut orders now keep two independently projected
 original roof charts. Common, Fuse and both Cut orders also qualify a
 translated nonunit axis-aligned footprint with a sloping original base.
+Common and Fuse also preserve both original roof and wall trims over a
+nonorthogonal parallelogram with a sloping original base.
 Independently authored unsplit STEP Béziers, including a spatially
 nonplanar cubic, keep three inferred events with mixed joint and independent
 support ownership. The independently authored rational cubic keeps exact
 non-dyadic model stations without inserting new stored source knots.
 Five separated fillets on an original OCCT tilted pentagonal prism now qualify
 original millimetre, metre and inch STEP with independent antipodal owners.
-The native
-race on `491b18f1` and ordinary Go on `5181d219` are still running. Vet and
+The native race on `491b18f1` and ordinary Go on `5181d219` are still running. Vet and
 Windows amd64 cross-build pass on `12ab5dbf`. The converted five-fillet
 inputs passed the focused native bridge and both actual WASM runtimes, with
 one legacy timing retry recorded. Current work covers analytic cap overlay
-exchange, oblique physical roof charts and independent rational owner clocks.
+exchange, oblique native Cut, physically different footprints and independent
+rational owner clocks.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
 
