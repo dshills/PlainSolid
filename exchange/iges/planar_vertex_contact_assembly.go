@@ -76,11 +76,12 @@ func WritePlanarVertexContactAssembly(ctx context.Context, w io.Writer, solids [
 // ReadPlanarVertexContactAssembly proves a flat type 402 form 1 group of
 // independently owned type 186 planar bodies. The group uses one shared
 // vertex list and one shared edge list; membership of individual records is
-// derived from the original directed coedges. Each body has one outward shell.
+// derived from the original directed coedges. Each body has one outward
+// exterior; Proof.AllowCavities also admits directly enclosed void shells.
 // Equal coordinates may occur in separate vertex records, but a source vertex
 // or edge record may not be owned by two bodies. Boundary contact is accepted
-// only at original vertices. Assemblies with transformations, void shells,
-// or other kinds of geometric contact are outside this entry point.
+// only at original vertices. Assemblies with transformations or other kinds
+// of geometric contact are outside this entry point.
 func ReadPlanarVertexContactAssembly(ctx context.Context, r io.Reader, o PlanarVertexContactAssemblyOptions) (PlanarVertexContactAssembly, error) {
 	if ctx == nil || o.Proof.MaxSolids < 0 {
 		return PlanarVertexContactAssembly{}, geom.ErrInvalid
@@ -156,7 +157,7 @@ func certifyIGESPlanarAssembly(ctx context.Context, d topologySource, o collisio
 		if err != nil {
 			return fail(err)
 		}
-		if len(body.SourceShells) != 1 {
+		if len(body.SourceShells) != 1 && !o.AllowCavities {
 			return fail(igesPlanarFailure(id, "vertex-contact assembly bodies require one outward shell"))
 		}
 		m.Bodies[i], err = owners.extract(ctx, body, faces, lists, o.Validation)

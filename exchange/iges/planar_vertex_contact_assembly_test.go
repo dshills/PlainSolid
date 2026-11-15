@@ -159,3 +159,71 @@ func TestPlanarVertexContactAssemblyIGESLiveOCCT(t *testing.T) {
 		}
 	}
 }
+
+func TestPlanarVertexContactAssemblyIGESCavity(t *testing.T) {
+	raw, err := os.ReadFile("testdata/occt-planar-material-void.igs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	m := checkPlanarIGESVoids(t, raw, 1, 448)
+	cube, err := brep.Box(geom.Vec3{}, geom.Vec3{X: 1, Y: 1, Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	v := cube.Vertices()
+	for i, p := range v {
+		v[i] = geom.Vec3{X: 2 + (p.X+p.Y+p.Z)/2, Y: 2 + (p.X+2*p.Y+p.Z)/2, Z: 2 + (p.X+p.Y+2*p.Z)/2}
+	}
+	insert, err := brep.NewSolid(v, cube.Edges(), cube.Faces())
+	if err != nil {
+		t.Fatal(err)
+	}
+	solids := []brep.Solid{m.Solid, insert}
+	o := PlanarVertexContactAssemblyOptions{}
+	var out bytes.Buffer
+	if _, err := WritePlanarVertexContactAssembly(ctx, &out, solids, .001, o); !errors.Is(err, collision.ErrInvalid) || out.Len() != 0 {
+		t.Fatalf("void shell was admitted without explicit opt-in: %v", err)
+	}
+	o.Proof.AllowCavities = true
+	proof, err := WritePlanarVertexContactAssembly(ctx, &out, solids, .001, o)
+	if err != nil || proof.SignedVolume.RatString() != "3585/8" || len(proof.Contacts) != 1 {
+		t.Fatalf("exact IGES cavity contact: %+v %v", proof, err)
+	}
+	if m, err := ReadPlanarVertexContactAssembly(ctx, bytes.NewReader(out.Bytes()), PlanarVertexContactAssemblyOptions{}); err == nil || m.Bodies != nil {
+		t.Fatalf("reader admitted cavity assembly without opt-in: %v", err)
+	}
+	reopened, err := ReadPlanarVertexContactAssembly(ctx, bytes.NewReader(out.Bytes()), o)
+	if err != nil || len(reopened.Bodies) != 2 || len(reopened.Bodies[0].SourceShells) != 2 || !reopened.Bodies[0].SourceShells[1].Void {
+		t.Fatalf("reopen lost original cavity ownership: %+v %v", reopened, err)
+	}
+	p := reopened.Proof.Contacts[0]
+	a, b := reopened.Bodies[0], reopened.Bodies[1]
+	want := geom.Vec3{X: 2, Y: 2, Z: 2}
+	if a.Solid.Vertices()[p.A.Vertex] != want || b.Solid.Vertices()[p.B.Vertex] != want ||
+		a.SourceVertexIndices[p.A.Vertex] == b.SourceVertexIndices[p.B.Vertex] {
+		t.Fatalf("cavity vertex contact was welded or moved: %+v", p)
+	}
+	if bin := os.Getenv("PLAINSOLID_OCCT_PLANAR_SHELLS_IGES"); bin != "" {
+		path := filepath.Join(t.TempDir(), "void-contact.igs")
+		if err := os.WriteFile(path, out.Bytes(), 0600); err != nil {
+			t.Fatal(err)
+		}
+		data, err := exec.Command(bin, "read", path).CombinedOutput()
+		if err != nil {
+			t.Fatalf("pinned OCCT cavity contact: %v %s", err, data)
+		}
+		var have struct {
+			Solids, Shells, Faces int
+			Volume, Area          float64
+			Centroid              [3]float64
+		}
+		i := bytes.LastIndexByte(data, '{')
+		if i < 0 || json.Unmarshal(data[i:], &have) != nil || have.Solids != 2 || have.Shells != 3 || have.Faces != 18 ||
+			math.Abs(have.Volume-448.125) > 1e-9 || math.Abs(have.Area-(480+math.Sqrt2+math.Sqrt(11)/2)) > 1e-9 ||
+			math.Abs(have.Centroid[0]-57355./14340) > 1e-9 ||
+			math.Abs(have.Centroid[1]-14339./3585) > 1e-9 || math.Abs(have.Centroid[2]-14339./3585) > 1e-9 {
+			t.Fatalf("pinned OCCT cavity contact measures: %s", data)
+		}
+	}
+}

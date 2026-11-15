@@ -45,7 +45,10 @@ bodies. They prove the ownership of every entry in the shared vertex and
 edge lists and preserve original list indices for each native body. The
 proof accepts isolated corner contact only between distinct original
 vertex records; welded records, shared edges, face contact, crossings
-and hidden overlaps fail. Separate cavity shells inside grouped bodies
-remain outside this entry point. The independently authored group of
-three boxes retains one corner contact; original and canonical IGES open
-in OCCT as three solids with 18 faces, volume 3 and area 18.
+and hidden overlaps fail. `Proof.AllowCavities` additionally permits
+directly enclosed void shells in each body. A separate noncontact
+containment witness is then proved on every original shell. The
+independently authored group of three boxes retains one corner contact;
+original and canonical IGES open in OCCT as three solids with 18 faces,
+volume 3 and area 18. An oblique insert touching only the corner of a void
+retains two independent solid owners and exact volume `3585/8`.

@@ -28,6 +28,9 @@ type VertexContactAssemblyOptions struct {
 	// Validation bounds each component's exact embedding and location
 	// queries. Its triangle limit also applies to the whole assembly.
 	Validation LocationOptions
+	// AllowCavities permits one exterior and directly enclosed void shells
+	// per component. Each shell gets an independent containment witness.
+	AllowCavities bool
 }
 
 // VertexContactAssemblyReport contains the proved, canonicalized contact
@@ -50,12 +53,13 @@ type vertexContactPair struct {
 }
 
 // ValidateVertexContactAssembly proves an opt-in planar component contact
-// graph. Every component must be one outward, embedded shell. Cross-component
+// graph. Every component must be outward and embedded; by default it has
+// exactly one shell. Cross-component
 // intersections must be exactly the declared points and both incident
 // triangles must use their declared original vertices. Edge/face contact,
 // hidden containment and undeclared or unrealized contacts are rejected.
-// One noncontact vertex per component and potentially overlapping mate must
-// be available to prove exterior membership. No partial report is published.
+// One noncontact vertex per shell and potentially overlapping mate must be
+// available to prove exterior membership. No partial report is published.
 func ValidateVertexContactAssembly(ctx context.Context, solids []brep.Solid, declarations []AssemblyVertexContact, o VertexContactAssemblyOptions) (VertexContactAssemblyReport, error) {
 	return prepareVertexContactAssembly(ctx, solids, declarations, o, false, nil)
 }
@@ -109,14 +113,21 @@ func prepareVertexContactAssembly(ctx context.Context, solids []brep.Solid, decl
 			return zero, fmt.Errorf("assembly component %d: %w", i, err)
 		}
 		if len(loc.shells) != 1 {
-			return zero, fmt.Errorf("%w: assembly component %d must contain exactly one shell", ErrInvalid, i)
+			if !o.AllowCavities {
+				return zero, fmt.Errorf("%w: assembly component %d must contain exactly one shell", ErrInvalid, i)
+			}
+			if !oneExteriorWithCavities(loc.shells) {
+				return zero, fmt.Errorf("%w: assembly component %d must have one exterior and only directly enclosed cavities", ErrInvalid, i)
+			}
 		}
 		box, err := geom.Bounds(m.Vertices)
 		if err != nil {
 			return zero, fmt.Errorf("%w: assembly component %d bounds", ErrInvalid, i)
 		}
 		components[i] = vertexContactComponent{m, box, loc}
-		report.SignedVolume.Add(report.SignedVolume, loc.shells[0].SignedVolume)
+		for _, shell := range loc.shells {
+			report.SignedVolume.Add(report.SignedVolume, shell.SignedVolume)
+		}
 	}
 	for i, c := range report.Contacts {
 		if c.A.Solid == c.B.Solid {
@@ -259,24 +270,78 @@ func sortAssemblyVertexContacts(contacts []AssemblyVertexContact) {
 	})
 }
 
+func oneExteriorWithCavities(shells []ShellInfo) bool {
+	outer := -1
+	for i, s := range shells {
+		if s.Depth == 0 {
+			if outer >= 0 {
+				return false
+			}
+			outer = i
+		}
+	}
+	if outer < 0 {
+		return false
+	}
+	for i, s := range shells {
+		if i != outer && (s.Depth != 1 || s.Parent != outer) {
+			return false
+		}
+	}
+	return true
+}
+
 func validateComponentOutside(ctx context.Context, component, other vertexContactComponent, skip map[int]bool) error {
+	if len(component.loc.shells) > 1 {
+		// Boundary intersection has already been excluded except for
+		// proved isolated vertex contacts. The other part has constant
+		// material membership on each connected shell minus those points.
+		// Disjoint shell components cannot share a single witness.
+		for _, shell := range component.loc.shells {
+			found := false
+		shellWitness:
+			for _, ti := range shell.Triangles {
+				for _, vi := range component.mesh.Triangles[ti] {
+					if skip[vi] {
+						continue
+					}
+					if err := validateAssemblyPointOutside(ctx, component.mesh.Vertices[vi], other); err != nil {
+						return err
+					}
+					found = true
+					break shellWitness
+				}
+			}
+			if !found {
+				return fmt.Errorf("%w: no noncontact shell vertex for containment proof", ErrInvalid)
+			}
+		}
+		return nil
+	}
 	for i, p := range component.mesh.Vertices {
 		if skip[i] {
 			continue
 		}
-		if !other.box.Contains(p) {
-			return nil
-		}
-		r, err := other.loc.Locate(ctx, p)
-		if err != nil {
-			return err
-		}
-		if r.Location != Outside {
-			return fmt.Errorf("%w: component interiors are not disjoint", ErrInvalid)
-		}
-		return nil
+		return validateAssemblyPointOutside(ctx, p, other)
 	}
 	return fmt.Errorf("%w: no noncontact component vertex for containment proof", ErrInvalid)
+}
+
+func validateAssemblyPointOutside(ctx context.Context, p geom.Vec3, other vertexContactComponent) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if !other.box.Contains(p) {
+		return nil
+	}
+	r, err := other.loc.Locate(ctx, p)
+	if err != nil {
+		return err
+	}
+	if r.Location != Outside {
+		return fmt.Errorf("%w: component interiors are not disjoint", ErrInvalid)
+	}
+	return nil
 }
 
 func closedBoxesMeet(a, b geom.Box) bool {
