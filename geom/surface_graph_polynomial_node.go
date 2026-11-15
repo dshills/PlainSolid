@@ -36,7 +36,7 @@ type SplineGraphPolynomialNode struct {
 // irrational and additional intersections are unresolved. Failure is atomic.
 func DiscoverSplineGraphPolynomialNode(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphPolynomialNode, error) {
 	var node SplineGraphPolynomialNode
-	r, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, &node)
+	r, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, &node, nil)
 	if e != nil {
 		return SplineGraphPolynomialNode{ExactOperations: r.ExactOperations}, e
 	}
@@ -45,26 +45,36 @@ func DiscoverSplineGraphPolynomialNode(ctx context.Context, a, b *SurfacePatch, 
 	return node, nil
 }
 
-func discoverGraphPolynomialCrossing(ctx context.Context, delta rationalPolynomial, maxCells int, visits *int, b *polynomialBudget) (*big.Rat, int, error) {
+func discoverGraphPolynomialCrossings(ctx context.Context, delta rationalPolynomial, count, maxCells int, visits *int, b *polynomialBudget) (roots [2]*big.Rat, order int, err error) {
 	if len(delta) < 2 || *visits >= maxCells {
-		return nil, 0, ErrConvergence
+		return roots, 0, ErrConvergence
 	}
 	zero, one := new(big.Rat), big.NewRat(1, 1)
 	end, e := polynomialValue(delta, one, b)
 	if e != nil {
-		return nil, 0, e
+		return roots, 0, e
 	}
-	order := delta[0].Sign()
-	if order*end.Sign() != -1 {
-		return nil, 0, ErrConvergence
+	order = delta[0].Sign()
+	if count == 1 && order*end.Sign() != -1 {
+		return roots, 0, ErrConvergence
+	}
+	if order == 0 || end.Sign() == 0 {
+		return roots, 0, ErrDomain
 	}
 	var minimumWidth *big.Rat
-	var crossing *big.Rat
+	found := 0
+	degenerate, irrational := ErrConvergence, ErrConvergence
+	if count == 2 {
+		degenerate, irrational = ErrDegenerate, ErrUnrepresentable
+	}
 	splits, e := isolatePolynomialRoots(delta, zero, one, b, (maxCells-*visits-1)/2, func(lo, hi *big.Rat, multiplicity int) (bool, error) {
 		if e := ctx.Err(); e != nil {
 			return false, e
 		}
-		if crossing != nil || multiplicity != 1 {
+		if multiplicity != 1 {
+			return false, degenerate
+		}
+		if found == count {
 			return false, ErrConvergence
 		}
 		x, e := recoverRationalPolynomialRoot(delta, lo, hi, b)
@@ -73,7 +83,7 @@ func discoverGraphPolynomialCrossing(ctx context.Context, delta rationalPolynomi
 		}
 		if x == nil {
 			if len(delta) <= 3 {
-				return false, ErrConvergence
+				return false, irrational
 			}
 			if minimumWidth == nil {
 				minimumWidth, e = graphRationalRootWidth(delta, b)
@@ -86,21 +96,25 @@ func discoverGraphPolynomialCrossing(ctx context.Context, delta rationalPolynomi
 				return false, e
 			}
 			if width.Cmp(minimumWidth) < 0 {
-				return false, ErrConvergence
+				return false, irrational
 			}
 			return false, nil
 		}
-		crossing = x
+		if x.Sign() <= 0 || x.Cmp(one) >= 0 || found > 0 && x.Cmp(roots[found-1]) <= 0 {
+			return false, ErrConvergence
+		}
+		roots[found] = x
+		found++
 		return true, nil
 	})
 	*visits += 1 + 2*splits
 	if e != nil {
-		return nil, 0, e
+		return [2]*big.Rat{}, 0, e
 	}
-	if crossing == nil || crossing.Sign() <= 0 || crossing.Cmp(one) >= 0 {
-		return nil, 0, ErrConvergence
+	if found != count {
+		return [2]*big.Rat{}, 0, ErrConvergence
 	}
-	return crossing, order, nil
+	return roots, order, nil
 }
 
 // Below this width the midpoint's convergents include any rational root in the

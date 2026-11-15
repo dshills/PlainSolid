@@ -28,10 +28,10 @@ type SplineGraphTwoPolynomials struct {
 // the complete domain. Positive Bernstein subdivision proves ordering; no root
 // samples substitute for full identities. All failure results are atomic.
 func DiscoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphTwoPolynomials, error) {
-	return discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, nil)
+	return discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, nil, nil)
 }
 
-func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions, node *SplineGraphPolynomialNode) (r SplineGraphTwoPolynomials, err error) {
+func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions, node *SplineGraphPolynomialNode, twoNodes *SplineGraphTwoPolynomialNodes) (r SplineGraphTwoPolynomials, err error) {
 	used := 0
 	defer func() {
 		if err != nil {
@@ -136,6 +136,9 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 	if len(disc) > 9 {
 		return r, ErrConvergence
 	}
+	if len(disc) == 0 && twoNodes != nil {
+		return r, ErrDegenerate
+	}
 	root, e := graphExactPolynomialSqrt(disc, budget)
 	if e != nil {
 		return r, e
@@ -205,11 +208,17 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 		return r, e
 	}
 	var order int
-	var crossing *big.Rat
-	if node == nil {
+	var crossings [2]*big.Rat
+	count := 0
+	if node != nil {
+		count = 1
+	} else if twoNodes != nil {
+		count = 2
+	}
+	if count == 0 {
 		order, e = proveSign(delta)
 	} else {
-		crossing, order, e = discoverGraphPolynomialCrossing(ctx, delta, o.MaxCells, &visits, budget)
+		crossings, order, e = discoverGraphPolynomialCrossings(ctx, delta, count, o.MaxCells, &visits, budget)
 	}
 	if e != nil {
 		return r, e
@@ -347,12 +356,19 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 	if axis == 1 {
 		r.TerminalMasks = [2]uint8{4, 8}
 	}
-	if node != nil {
-		free := new(big.Rat).Add(lo, new(big.Rat).Mul(width, crossing))
-		if e = budget.check(free); e != nil {
+	for _, crossing := range crossings[:count] {
+		crossing.Mul(crossing, width)
+		crossing.Add(crossing, lo)
+		if e = budget.check(crossing); e != nil {
 			return r, e
 		}
-		if e = node.certifySectors(ctx, a, r, free, d, budget); e != nil {
+	}
+	if node != nil {
+		if e = node.certifySectors(ctx, a, r, crossings[0], d, budget); e != nil {
+			return r, e
+		}
+	} else if twoNodes != nil {
+		if e = twoNodes.certifyArrangement(ctx, a, r, crossings, d, budget); e != nil {
 			return r, e
 		}
 	}
