@@ -64,9 +64,10 @@ on `42ab9727` includes the two committed test fixture corrections and
 the native oblique fillet bridge. The WASM build, typecheck, four
 contracts, 345 development cases, 66 production cases, 15 cross-browser
 cases and 1,691 units passed. The standard driver matches its pristine
-copy. The production WASM hash matches the built package. Another full
-Go run on `abb80f9f` uses five disjoint groups balanced by the measured
-trimmed case durations from `35c79311`.
+copy. The production WASM hash matches the built package. The temporary
+output from the follow-up Go run on `abb80f9f` is unavailable. Fresh Go
+and PlainCAD runs on `48b0ce58` started on 2026-11-15 with logs under
+`.worktrees/qualification/2026-11-15` in this workspace.
 
 Ordered roof Common and matching-footprint Fuse retain genuine original
 spline creases and imprint exact axis-aligned crossings inside original
@@ -2617,6 +2618,13 @@ into both owners' shared mesh ledger. The full raw basis is re-proved on
 reload. More general speed laws remain open.
 Exact split and merge now preserve the v10 source on either original
 span and at the original knot, with forward and reversed raw traversal.
+Native v11 supports three to eight independently mapped original spans,
+exact splitting and merging, and different original knot partitions on
+both owners. A separate boundary recipe validates composed curves whose
+geometry changes at a model knot and retains both raw histories on their
+common certified polyline. The same proof supplies mandatory seam cuts
+to a certified single-face fill. Closed assembly for these piecewise
+model edges is in progress.
 
 The opt-in polygon Cut with separated vertex links retains one connected
 boundary with two circular vertex links at one isolated original point.
@@ -2647,7 +2655,10 @@ arc-loop endpoint contract. Adjacent original vertical edges can retain
 independent fillet radii on a shared wall. The ordinary PlainCAD bridge
 resolves grouped axial chamfers through exact support reconstruction and
 qualifies native fillet STEP round trips on convex line/circle profiles.
-Curved offsets and general rolling ball transitions remain open.
+Spherical offsets retain exact support ancestry through cavity fill,
+transverse breakthrough, union of expanding components and removal of
+collapsed components. General offsets and rolling ball transitions
+remain open.
 
 ### Original curved loops and STEP cavities
 
@@ -2675,6 +2686,13 @@ contours in both chart directions. Original dependent knots can cross
 at irrational curve parameters. Exact evaluation supplies the shared
 representable wall vertices and the ordinary continuous edge proof
 still rejects a coherently perturbed one-ULP endpoint.
+The piecewise polynomial route certifies changed cubic and quartic
+branches across original knots and carries separate one-sided tangents
+through all native Boolean orders. The ordered two-contour mode certifies
+complete cubic or quartic factors and three material strips on the
+original supports. The forward Cut yields two components and the reverse
+Cut yields one. Crossings between curved branches remain a separate
+contact problem.
 
 The nonplanar STEP cavity route authenticates the original outer and
 reversed inner shell from `BREP_WITH_VOIDS`. Each shell retains its
@@ -2695,9 +2713,13 @@ cylinders. When the source has opposite circle axes, it proves both
 incident coedge reversals along with the corrected directed minor arc.
 The independent default single-fillet STEP with pcurves enabled also
 qualifies. Its source-bound record re-proves all 24 original owner lifts
-under the caller's tolerance. The corrected model uses the separately
-validated model-only representation. The grouped default files with
-rational cap pcurve parameterizations still require a complete proof.
+under the caller's tolerance. The grouped default repair also authenticates
+both rational cap curves, isolates finite trim endpoints, and proves their
+radial correspondence to the original angular model edges. Native reload
+checks the full original STEP evidence for the unposed, translated, and
+signed cardinal cases. The corrected output uses the separately validated
+model-only representation. Explicit repair at the bridge import entry
+point is in progress.
 
 ### Uniform periodic spline geometry
 
@@ -2713,3 +2735,7 @@ their original pole net and represented weights. Their native geometry
 record round-trips the original parameter ranges and optional ordinary
 knot axis. Exact tensor cells retain ownership and clipped rational ranges
 on both axes and adapt to the normalized exact surface engine.
+Exact jet, point-distance, and line queries preserve the physical knot
+owners and report unresolved line contacts. The certified fundamental
+patch also supports plane contours through C1 seams and an opt-in
+one-sided continuation proof at C0 creases.

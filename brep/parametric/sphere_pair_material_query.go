@@ -13,10 +13,11 @@ import (
 // support frames are accepted here. Arbitrary reconstructed solids are not
 // implicitly bound. The source recipe and face-owner lists are immutable.
 type SpherePairSet struct {
-	solid Solid
-	query geom.SpherePairMaterial
-	faces [2][]int
-	valid bool
+	solid     Solid
+	query     geom.SpherePairMaterial
+	faces     [2][]int
+	operation BooleanOp
+	valid     bool
 }
 
 // NewSpherePairSet constructs and checks a native ball Boolean before exposing
@@ -63,7 +64,7 @@ func NewSpherePairSet(ctx context.Context, a, b Ball, op BooleanOp, tolerance fl
 	if e != nil {
 		return zero, e
 	}
-	out := SpherePairSet{solid: solid, query: query}
+	out := SpherePairSet{solid: solid, query: query, operation: op}
 	var observed geom.BoreBoundaryMask
 	for id, face := range solid.Faces() {
 		full := face.V.Min == -math.Pi/2 && face.V.Max == math.Pi/2

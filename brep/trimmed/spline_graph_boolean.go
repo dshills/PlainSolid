@@ -17,6 +17,7 @@ import (
 // means that input's top was not retained. FacesA/FacesB enumerate all
 // retained fragments; TopA/TopB give the first of each, if present.
 type SplineGraphBooleanHistory struct {
+	TwoPolynomials                       *geom.SplineGraphTwoPolynomials
 	TopA, TopB, Base                     int
 	FacesA, FacesB                       []int
 	ContourEdges, WallFaces, DomainSides []int
