@@ -49,8 +49,8 @@ repaired world model. Ordinary OCCT TransferRoots reads the regenerated
 original and repaired world model as one valid seven-face solid. Independent volume
 `29.077978807115539`, area `65.622954970084379`, and centroid
 `(2.7627619257740741,1.0271143655601034,0.48298409896790118)` agree with
-posed native material within `1e-11`. Strict bridge integration and
-arbitrary rounded rotations remain open.
+posed native material within `1e-11`. Arbitrary rounded rotations require
+separate qualification.
 
 `WriteRationalPosedGroupedPCurveRepairedOCCTConvexArcJSON` and
 `ReadRationalPosedGroupedPCurveRepairedOCCTConvexArcJSON` use a distinct
@@ -59,3 +59,29 @@ the grouped record binds both directed axial intervals, circle and coedge
 reversals, rational cap owner evidence, and the exact finite root recipes.
 The writers and readers independently re-prove the original source under
 bounded STEP and JSON input limits.
+
+## Grouped metre and inch qualification
+
+The pinned author modes `write-both-default-tilted-metre` and
+`write-both-default-tilted-inch` create two independently authored originals
+with matching native modelling and STEP output units. The repair allowance
+and ledgers are in source units. Both files keep the exact rational world pose,
+eight original finite LINE owners, two finite rational cap trims and the
+unequal axial trim. Native reproof retains the exact source bytes and rejects
+substituting the other valid unit's original document into its proof record.
+
+The strict rational-world STEP consumer retains the same source unit, exact
+pose and native solid and re-exports identical canonical bytes. The inch
+factor in the canonical STEP is exactly `0.0254` metres. Pinned OCCT
+`TransferRoots` reads the original, corrected and canonical graphs as one
+valid seven-face solid. For the metre canonical it measures volume
+`29077978807.11554` mm³ and area `65622954.970084399` mm². The corresponding
+inch measures are `476502.69970284583` mm³ and `42337.305628499627` mm².
+World centroids agree with the source-unit native results scaled by `1000`
+or `127/5` to millimetres. A B-rep transferred from a different native unit
+can have different owner parameter charts and needs its own proof.
+
+```sh
+PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
+  go test ./exchange/step -run '^TestRationalPosedGroupedConvexArcNonMillimetreUnits' -count=1
+```
