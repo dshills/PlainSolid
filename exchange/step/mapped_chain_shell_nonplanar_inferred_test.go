@@ -33,17 +33,18 @@ const nonplanarInferredMappedChainArea = 4.649146934610298
 const nonplanarRationalInferredOCCTArea = 4.649146910413742
 const nonplanarIndependentOwnerClocksOCCTArea = 4.649146925043418
 
-type nonplanarMappedChainClock uint8
+type nonplanarMappedChainVariant uint8
 
 const (
-	nonplanarPolynomialClock nonplanarMappedChainClock = iota
+	nonplanarPolynomialClock nonplanarMappedChainVariant = iota
 	nonplanarRationalClock
 	nonplanarIndependentOwnerClocks
+	nonplanarRationalRoofs
 )
 
-func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw []byte, clock nonplanarMappedChainClock) []byte {
+func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw []byte, variant nonplanarMappedChainVariant) []byte {
 	t.Helper()
-	rationalModel := clock != nonplanarPolynomialClock
+	rationalModel := variant != nonplanarPolynomialClock
 	o := inferredMixedMappedChainOptions()
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, o)
 	if err != nil {
@@ -61,7 +62,7 @@ func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw [
 		north = 1
 	}
 	south := 1 - north
-	verifyNonplanarInferredMappedChainMaterial(t, ctx, m.Shell, m.Native)
+	verifyNonplanarInferredMappedChainMaterial(t, ctx, m.Shell, m.Native, variant)
 	edges, vertices, faces := m.Native.Solid.Edges(), m.Native.Solid.Vertices(), m.Native.Solid.Faces()
 	stations := [3]int64{2, 4, 6}
 	modelRaw := [3]*big.Rat{big.NewRat(2, 1), big.NewRat(4, 1), big.NewRat(6, 1)}
@@ -72,10 +73,10 @@ func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw [
 	stops[north], stops[south] = [5]int64{2, 17, 37, 65, 107}, [5]int64{48, 40, 32, 24, 16}
 	var clocks [2]*big.Rat
 	clocks[north], clocks[south] = big.NewRat(1, 2), big.NewRat(1, 1)
-	switch clock {
+	switch variant {
 	case nonplanarRationalClock:
 		clocks[north], clocks[south] = big.NewRat(1, 1), big.NewRat(2, 1)
-	case nonplanarIndependentOwnerClocks:
+	case nonplanarIndependentOwnerClocks, nonplanarRationalRoofs:
 		clocks[north], clocks[south] = big.NewRat(4, 3), big.NewRat(3, 1)
 		stops[north], stops[south] = [5]int64{2, 32, 68, 112, 167}, [5]int64{181, 126, 82, 46, 16}
 	}
@@ -115,7 +116,7 @@ func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw [
 		if err != nil {
 			t.Fatal(err)
 		}
-		if clock == nonplanarIndependentOwnerClocks {
+		if variant == nonplanarIndependentOwnerClocks || variant == nonplanarRationalRoofs {
 			weights := []float64{8, 12, 18, 27}
 			if owner == south {
 				weights = []float64{1, 2, 4, 8, 16, 32, 64, 96, 144, 216}
@@ -150,10 +151,15 @@ func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw [
 		}
 	}
 	northRoof, southRoof := faces[north].Surface.(*geom.BSplineSurface), faces[south].Surface.(*geom.BSplineSurface)
-	verifyMappedRoofSlopeJump(t, ctx, northRoof, 0, 3.0/64, big.NewRat(1, 2), big.NewRat(2743, 4096))
-	verifyMappedRoofSlopeJump(t, ctx, northRoof, 0, 9.0/64, big.NewRat(1, 2), big.NewRat(-2085, 4096))
-	verifyMappedRoofSlopeJump(t, ctx, southRoof, 1, 3.0/64, big.NewRat(1, 8), big.NewRat(-6055, 16384))
-	verifyMappedRoofSlopeJump(t, ctx, southRoof, 1, 3.0/32, big.NewRat(1, 8), big.NewRat(3975, 8192))
+	northScale, southScale := big.NewRat(1, 1), big.NewRat(1, 1)
+	if variant == nonplanarRationalRoofs {
+		verifyNonplanarRationalRoofPoints(t, ctx, northRoof, southRoof)
+		northScale, southScale = big.NewRat(6, 7), big.NewRat(24, 13)
+	}
+	verifyMappedRoofSlopeJump(t, ctx, northRoof, 0, 3.0/64, big.NewRat(1, 2), new(big.Rat).Mul(northScale, big.NewRat(2743, 4096)))
+	verifyMappedRoofSlopeJump(t, ctx, northRoof, 0, 9.0/64, big.NewRat(1, 2), new(big.Rat).Mul(northScale, big.NewRat(-2085, 4096)))
+	verifyMappedRoofSlopeJump(t, ctx, southRoof, 1, 3.0/64, big.NewRat(1, 8), new(big.Rat).Mul(southScale, big.NewRat(-6055, 16384)))
+	verifyMappedRoofSlopeJump(t, ctx, southRoof, 1, 3.0/32, big.NewRat(1, 8), new(big.Rat).Mul(southScale, big.NewRat(3975, 8192)))
 	for i, station := range stations {
 		p := float64(station) / 32
 		x, y := .75*p, .25+.75*p*(1-p)
@@ -178,7 +184,7 @@ func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw [
 	if err != nil {
 		t.Fatal(err)
 	}
-	verifyNonplanarInferredMappedChainMaterial(t, ctx, opened, native)
+	verifyNonplanarInferredMappedChainMaterial(t, ctx, opened, native, variant)
 	for i, cut := range m.Crossings {
 		if native.ChainStations[i+1].Cmp(cut.ModelStation) != 0 {
 			t.Fatal("native reload must rederive the exact original model station", i)
@@ -195,6 +201,9 @@ func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw [
 		t.Fatal("strict canonical reopening must preserve the unsplit nonplanar source edge and both original owners", err)
 	}
 	verifyOriginalMappedChainSTEPGraph(t, m, strict)
+	if variant == nonplanarRationalRoofs {
+		verifyOriginalRationalRoofSurfaces(t, m, strict)
+	}
 	replay.Reset()
 	if err := strict.Shell.WriteJSON(ctx, &replay, nativeOptions); err != nil || !bytes.Equal(recipe.Bytes(), replay.Bytes()) {
 		t.Fatal("strict STEP must reconstruct the identical original native recipe", err)
@@ -247,7 +256,7 @@ func verifyOriginalNonplanarModelBezier(t *testing.T, f *File, modelID int64, ra
 	}
 }
 
-func verifyNonplanarInferredMappedChainMaterial(t *testing.T, ctx context.Context, shell trimmed.MappedSplineChainShell, m trimmed.MappedChainRectangularSolid) {
+func verifyNonplanarInferredMappedChainMaterial(t *testing.T, ctx context.Context, shell trimmed.MappedSplineChainShell, m trimmed.MappedChainRectangularSolid, variant nonplanarMappedChainVariant) {
 	t.Helper()
 	s := m.Solid
 	if len(m.ChainEdges) != 6 || len(s.Faces()) != 7 || len(s.Edges()) != 24 || len(s.Vertices()) != 19 {
@@ -266,8 +275,12 @@ func verifyNonplanarInferredMappedChainMaterial(t *testing.T, ctx context.Contex
 	if err != nil || !proof.Complete || len(proof.Uses) != 48 {
 		t.Fatal("all original and rebuilt incidences must prove continuous equality", err)
 	}
+	volume, area := nonplanarInferredMappedChainVolume, nonplanarInferredMappedChainArea
+	if variant == nonplanarRationalRoofs {
+		volume, area = nonplanarRationalRoofVolume, nonplanarRationalRoofArea
+	}
 	mass, err := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-8})
-	if err != nil || math.Abs(mass.Volume-nonplanarInferredMappedChainVolume) > 1e-8 || math.Abs(mass.Area-nonplanarInferredMappedChainArea) > 1e-8 {
+	if err != nil || math.Abs(mass.Volume-volume) > 1e-8 || math.Abs(mass.Area-area) > 1e-8 {
 		t.Fatal("native material must match the independent nonplanar model", mass, err)
 	}
 }
@@ -283,7 +296,7 @@ func TestOCCTMappedChainRectangularNonplanarInferredMixedSupportKnotsClosedDispl
 	if err != nil {
 		t.Fatal(err)
 	}
-	verifyMappedChainCutDisplayWithOptions(t, ctx, m, nonplanarInferredDisplayOptions())
+	verifyMappedChainCutDisplayWithOptions(t, ctx, m, nonplanarInferredDisplayOptions(), .005)
 }
 
 func nonplanarInferredDisplayOptions() trimmed.MixedExactMultiSpanMeshOptions {
@@ -348,7 +361,7 @@ func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnotsClo
 	if err != nil {
 		t.Fatal(err)
 	}
-	verifyMappedChainCutDisplayWithOptions(t, ctx, m, nonplanarInferredDisplayOptions())
+	verifyMappedChainCutDisplayWithOptions(t, ctx, m, nonplanarInferredDisplayOptions(), .005)
 }
 
 func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnotsRejectsFalseWeight(t *testing.T) {
@@ -404,7 +417,7 @@ func TestOCCTMappedChainRectangularNonplanarIndependentOwnerClocksClosedDisplay(
 	if err != nil {
 		t.Fatal(err)
 	}
-	verifyMappedChainCutDisplayWithOptions(t, ctx, m, nonplanarInferredDisplayOptions())
+	verifyMappedChainCutDisplayWithOptions(t, ctx, m, nonplanarInferredDisplayOptions(), .005)
 }
 
 func TestOCCTMappedChainRectangularNonplanarIndependentOwnerClocksRejectsFalseOwnerWeight(t *testing.T) {

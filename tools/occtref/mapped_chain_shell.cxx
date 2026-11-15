@@ -21,6 +21,7 @@
 #include <StepGeom_BSplineCurveWithKnots.hxx>
 #include <StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve.hxx>
 #include <StepGeom_BSplineSurfaceWithKnots.hxx>
+#include <StepGeom_BSplineSurfaceWithKnotsAndRationalBSplineSurface.hxx>
 #include <StepGeom_Pcurve.hxx>
 #include <StepGeom_SurfaceCurve.hxx>
 #include <StepGeom_TrimmedCurve.hxx>
@@ -86,6 +87,7 @@ struct RoofSupportLayout {
   InferredSupportEvents inferred = InferredSupportEvents::none;
   bool rationalModel = false;
   bool independentOwnerClocks = false;
+  bool rationalRoofs = false;
 };
 
 static std::vector<double> inferredSupportKnots(bool south, InferredSupportEvents events) {
@@ -133,11 +135,16 @@ static double nonplanarRoofEnvelope(double u, double first, double last) {
 // Each affine-XY bicubic roof adds 24*A(u)*y*(3/4-y)*(y-h(u)) to z=x*y,
 // with u=4*x/3, h the common quadratic UV trace and A the owner's affine
 // envelope on this span. A vanishes on the x walls. The other factors vanish
-// on the y walls and along the shared trace. All Bernstein poles are dyadic.
-static occ::handle<Geom_BSplineSurface> nonplanarRoofSupport(bool south, const std::vector<double>& knots) {
+// on the y walls and along the shared trace. The rational form doubles this
+// correction and divides it by W(v)=1+3v², v=4y/3. Its homogeneous x and y
+// still represent the original affine XY chart, with dyadic Cartesian poles.
+static occ::handle<Geom_BSplineSurface> nonplanarRoofSupport(bool south, const std::vector<double>& knots, bool rational) {
   const int spanCount = static_cast<int>(knots.size()) - 1;
   const int xPoles = 3 * spanCount + 1;
   NCollection_Array2<gp_Pnt> poles(1, south ? 4 : xPoles, 1, south ? xPoles : 4);
+  NCollection_Array2<double> weights(1, south ? 4 : xPoles, 1, south ? xPoles : 4);
+  const std::array<double, 4> homogeneousWeights{1., 1., 2., 4.};
+  const std::array<double, 4> rationalY{0., .25, .25, .75};
   for (int span = 0; span < spanCount; ++span) {
     const double a = knots[span], b = knots[span + 1];
     const auto seam = nonplanarSeamPoles(a, b);
@@ -152,15 +159,18 @@ static occ::handle<Geom_BSplineSurface> nonplanarRoofSupport(bool south, const s
     for (int i = 0; i < 4; ++i) {
       const double x = nonplanarWidth * a + (b - a) * i / 4.;
       for (int j = 0; j < 4; ++j) {
-        const double y = j / 4.;
+        const double y = rational ? rationalY[j] : j / 4.;
+        const double weight = rational ? homogeneousWeights[j] : 1.;
         double z = x * y;
         if (j == 1 || j == 2) {
           // 3/16 is the nonzero Bernstein coefficient of y(3/4-y)
           // after multiplying its quadratic by the linear y-seam factor.
-          z += 3. / 16 * nonplanarAmplitude * ((j == 2 ? .75 * envelope[i] : 0.) - envelopeSeam[i]);
+          const double scale = rational ? 2. / weight : 1.;
+          z += 3. / 16 * nonplanarAmplitude * scale * ((j == 2 ? .75 * envelope[i] : 0.) - envelopeSeam[i]);
         }
         const int xi = 3 * span + i + 1, yi = j + 1;
         poles.SetValue(south ? yi : xi, south ? xi : yi, gp_Pnt(x, y, z));
+        weights.SetValue(south ? yi : xi, south ? xi : yi, weight);
       }
     }
   }
@@ -173,6 +183,10 @@ static occ::handle<Geom_BSplineSurface> nonplanarRoofSupport(bool south, const s
   yKnots.SetValue(1, 0.);
   yKnots.SetValue(2, .75);
   yMult.Init(4);
+  if (rational) {
+    return south ? new Geom_BSplineSurface(poles, weights, yKnots, xKnots, yMult, xMult, 3, 3)
+                 : new Geom_BSplineSurface(poles, weights, xKnots, yKnots, xMult, yMult, 3, 3);
+  }
   return south ? new Geom_BSplineSurface(poles, yKnots, xKnots, yMult, xMult, 3, 3)
                : new Geom_BSplineSurface(poles, xKnots, yKnots, xMult, yMult, 3, 3);
 }
@@ -224,7 +238,9 @@ static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout
 static double roofHeight(double x, double y, bool crease, bool three = false, bool south = false, RoofSupportLayout layout = {}) {
   if (layout.inferred == InferredSupportEvents::nonplanar) {
     const auto knots = inferredSupportKnots(south, layout.inferred);
-    return nonplanarWidth*x*y + 3.*nonplanarAmplitude*nonplanarRoofEnvelope(x, knots[0], knots[1])
+    const double v = y / .75;
+    const double scale = layout.rationalRoofs ? 2. / (1. + 3. * v * v) : 1.;
+    return nonplanarWidth*x*y + 3.*nonplanarAmplitude*scale*nonplanarRoofEnvelope(x, knots[0], knots[1])
       * y*(.75-y)*(y-nonplanarSeamY(x));
   }
   if (three) {
@@ -265,7 +281,7 @@ static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool un
   const bool nonplanar = layout.inferred == InferredSupportEvents::nonplanar;
   occ::handle<Geom_Surface> support;
   if (nonplanar) {
-    support = nonplanarRoofSupport(south, x);
+    support = nonplanarRoofSupport(south, x, layout.rationalRoofs);
   } else {
     const std::vector<double> y{0., 1.};
     const auto& u = south ? y : x;
@@ -490,6 +506,35 @@ static occ::handle<NCollection_HArray1<T>> stepArray(const std::array<T, N>& val
   return items;
 }
 
+static occ::handle<StepGeom_BSplineSurfaceWithKnots> stepRoofKnots(const occ::handle<StepGeom_Surface>& support) {
+  auto rational = occ::down_cast<StepGeom_BSplineSurfaceWithKnotsAndRationalBSplineSurface>(support);
+  if (!rational.IsNull()) {
+    return rational->BSplineSurfaceWithKnots();
+  }
+  return occ::down_cast<StepGeom_BSplineSurfaceWithKnots>(support);
+}
+
+// Retain every source pole and coedge but falsify one strictly interior
+// south-roof weight. The exact changed value remains a finite STEP decimal.
+static void authorFalseSouthRoofWeight(const occ::handle<StepData_StepModel>& model) {
+  bool changed = false;
+  for (int i = 1; i <= model->NbEntities(); ++i) {
+    auto roof = occ::down_cast<StepGeom_BSplineSurfaceWithKnotsAndRationalBSplineSurface>(model->Entity(i));
+    if (roof.IsNull() || roof->NbUKnots() != 2 || roof->NbVKnots() != 4) {
+      continue;
+    }
+    auto weights = roof->WeightsData();
+    if (changed || weights->Value(3, 8) != 2.) {
+      throw std::runtime_error("unexpected original south roof weights");
+    }
+    weights->SetValue(3, 8, 2. + 1. / 131072);
+    changed = true;
+  }
+  if (!changed) {
+    throw std::runtime_error("could not author the false south roof weight");
+  }
+}
+
 // Author one original south basis with a decreasing raw parameter and
 // nonuniform weights. The north roof keeps the six OCCT-generated bases.
 static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepData_StepModel>& model,
@@ -557,7 +602,7 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
       if (owner.IsNull()) {
         continue;
       }
-      const auto roof = occ::down_cast<StepGeom_BSplineSurfaceWithKnots>(owner->BasisSurface());
+      const auto roof = stepRoofKnots(owner->BasisSurface());
       if (!roof.IsNull() && roof->NbUKnots() == northKnots && roof->NbVKnots() == 2) {
         north = owner;
       }
@@ -668,7 +713,9 @@ int main(int argc, char** argv) {
     const bool sharedInferred = mode == "write-shared-inferred-knot" || mode == "write-shared-inferred-redundant-knot";
     const bool sharedPair = mode == "write-shared-inferred-knot-pair" || mode == "write-shared-inferred-pair-redundant-knot";
     const bool offsetPair = mode == "write-shared-inferred-offset-pair" || mode == "write-mixed-inferred-redundant-knot";
-    const bool independentOwnerClocks = mode == "write-nonplanar-independent-owner-clocks";
+    const bool falseRoofWeight = mode == "write-nonplanar-false-roof-weight";
+    const bool rationalRoofs = mode == "write-nonplanar-rational-roofs" || falseRoofWeight;
+    const bool independentOwnerClocks = mode == "write-nonplanar-independent-owner-clocks" || rationalRoofs;
     const bool rationalModel = mode == "write-nonplanar-rational-inferred-mixed" || independentOwnerClocks;
     const bool nonplanar = mode == "write-nonplanar-inferred-mixed" || rationalModel;
     const auto inferred = nonplanar ? InferredSupportEvents::nonplanar
@@ -680,7 +727,7 @@ int main(int argc, char** argv) {
     const int storedCells = mode == "write-three-support-cells" ? 3 : mode == "write-two-support-cells" ? 2
       : noModelKnot ? 0 : 1;
     const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells", inferred,
-                                   rationalModel, independentOwnerClocks};
+                                   rationalModel, independentOwnerClocks, rationalRoofs};
     const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || storedCells >= 2
       || layout.separated || inferred != InferredSupportEvents::none;
     const bool mixedBasis = mode == "write-three-knots-mixed-basis" || unsplitBasis;
@@ -760,6 +807,9 @@ int main(int argc, char** argv) {
         }
         if (mixedBasis) {
           model = authorMixedBasis(model, protocol, unsplitBasis, layout);
+        }
+        if (falseRoofWeight) {
+          authorFalseSouthRoofWeight(model);
         }
         StepData_StepWriter exactWriter(model);
         exactWriter.FloatWriter().SetFormat("%.18f", true);
