@@ -68,7 +68,11 @@ func (m RationalPosedPCurveRepairedOCCTConvexArcExtrusion) PCurves() []ConvexArc
 	return m.base.PCurves()
 }
 func (m RationalPosedPCurveRepairedOCCTConvexArcExtrusion) FiniteLineOwners() []FiniteConvexArcLineOwner {
-	out := append([]FiniteConvexArcLineOwner(nil), m.finite...)
+	return copyFiniteConvexArcLineOwners(m.finite)
+}
+
+func copyFiniteConvexArcLineOwners(src []FiniteConvexArcLineOwner) []FiniteConvexArcLineOwner {
+	out := append([]FiniteConvexArcLineOwner(nil), src...)
 	for i, q := range out {
 		out[i].StartParameter = new(big.Rat).Set(q.StartParameter)
 		out[i].EndParameter = new(big.Rat).Set(q.EndParameter)
@@ -83,82 +87,23 @@ func (m RationalPosedPCurveRepairedOCCTConvexArcExtrusion) FiniteLineOwners() []
 // Orientation, source ownership and all other owner proofs remain exact.
 func RepairRationalPosedPCurveOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o ConvexArcRepairOptions) (RationalPosedPCurveRepairedOCCTConvexArcExtrusion, error) {
 	var zero RationalPosedPCurveRepairedOCCTConvexArcExtrusion
-	if ctx == nil || r == nil || !finiteNumber(o.MaxDistance) || o.MaxDistance <= 0 {
-		return zero, geom.ErrInvalid
-	}
-	if e := ctx.Err(); e != nil {
-		return zero, e
-	}
-	l, e := l.defaults()
-	if e != nil {
-		return zero, e
-	}
-	l.MaxBytes = min(l.MaxBytes, 1<<20)
-	l.MaxEntities = min(l.MaxEntities, 1024)
-	l.MaxValues = min(l.MaxValues, 8192)
-	l.MaxDepth = min(l.MaxDepth, 16)
-	raw, e := io.ReadAll(io.LimitReader(r, l.MaxBytes+1))
-	if e != nil {
-		return zero, e
-	}
-	if int64(len(raw)) > l.MaxBytes {
-		return zero, geom.ErrConvergence
-	}
-	f, e := Parse(bytes.NewReader(raw), l)
-	if e != nil {
-		return zero, e
-	}
-	model, agreements, e := convexPCurveModelView(f, 12, false)
-	if e != nil {
-		return zero, e
-	}
-	pose, reference, body, metadata, e := rationalConvexArcPose(model)
-	if e != nil {
-		return zero, e
-	}
-	view := func(source *File, inverse bool) (*File, error) {
-		return convexArcTransformView(ctx, source, body, metadata, func(kind string, p [3]*big.Rat) ([3]*big.Rat, error) {
-			if kind == "DIRECTION" {
-				return pose.TransformVector(ctx, p, inverse, 512)
-			}
-			return pose.TransformPoint(ctx, p, inverse, 512)
-		})
-	}
-	localModel, e := view(model, true)
-	if e != nil {
-		return zero, e
-	}
-	modelRaw, e := mappedPlanarSourceBytes(localModel)
-	if e != nil {
-		return zero, e
-	}
-	material, e := RepairOCCTConvexArcExtrusion(ctx, bytes.NewReader(modelRaw), l, o)
-	if e != nil {
-		return zero, fmt.Errorf("rational pose model: %w", e)
-	}
-	// Only the proved model closure moves. The original numerically authored
-	// UV records retain their original charts and parameter semantics.
-	localFull, e := view(f, true)
-	if e != nil {
-		return zero, e
-	}
-	corrected, e := Parse(bytes.NewBufferString(material.CorrectedSTEP()), l)
+	src, e := readRationalConvexArcSource(ctx, r, l, o, false)
 	if e != nil {
 		return zero, e
 	}
 	tol := new(big.Rat).SetFloat64(o.MaxDistance)
 	tol.Mul(tol, tol)
 	var finiteRanges []FiniteConvexArcLineOwner
-	for i := range agreements {
+	for i := range src.owners {
 		if e = ctx.Err(); e != nil {
 			return zero, e
 		}
-		q := &agreements[i]
-		sc, _ := simple(f, q.SurfaceCurveID, "SURFACE_CURVE", 4)
-		q.Kind, q.DistanceSquaredUpper, e = boundConvexOwnerPCurve(localFull, corrected, sc.Args[1].Ref, q.GeometryID, q.SupportID)
+		q := &src.owners[i]
+		sc, _ := simple(src.original, q.SurfaceCurveID, "SURFACE_CURVE", 4)
+		q.Kind, q.DistanceSquaredUpper, e = boundConvexOwnerPCurve(src.local, src.corrected, sc.Args[1].Ref, q.GeometryID, q.SupportID)
 		if e != nil {
 			var domain FiniteConvexArcLineOwner
-			domain, q.DistanceSquaredUpper, e = boundFiniteConvexArcLineOwner(localFull, corrected, *q, sc.Args[1].Ref, tol)
+			domain, q.DistanceSquaredUpper, e = boundFiniteConvexArcLineOwner(src.local, src.corrected, *q, sc.Args[1].Ref, tol)
 			if e != nil {
 				return zero, fmt.Errorf("source pcurve #%d: %w", q.PCurveID, e)
 			}
@@ -169,74 +114,170 @@ func RepairRationalPosedPCurveOCCTConvexArcExtrusion(ctx context.Context, r io.R
 			return zero, fmt.Errorf("source pcurve #%d exceeds repair distance: %w", q.PCurveID, geom.ErrDomain)
 		}
 	}
-	worldView, e := view(corrected, false)
+	world, pose, e := src.placeCorrectedModel(ctx)
 	if e != nil {
 		return zero, e
+	}
+	base := PCurveRepairedOCCTConvexArcExtrusion{source: src.raw, material: src.material, agreements: src.owners, tolerance: o.MaxDistance}
+	return RationalPosedPCurveRepairedOCCTConvexArcExtrusion{
+		base: base, corrected: world, pose: pose, reference: src.reference, finite: finiteRanges,
+	}, nil
+}
+
+type rationalConvexArcSource struct {
+	raw                        string
+	original, local, corrected *File
+	rotation                   rigidplacement.RationalRigid
+	reference                  int64
+	body, metadata             map[int64]bool
+	owners                     []ConvexArcPCurveAgreement
+	material                   RepairedOCCTConvexArcExtrusion
+	limits                     Limits
+}
+
+func readRationalConvexArcSource(ctx context.Context, r io.Reader, l Limits, o ConvexArcRepairOptions, grouped bool) (*rationalConvexArcSource, error) {
+	if ctx == nil || r == nil || !finiteNumber(o.MaxDistance) || o.MaxDistance <= 0 {
+		return nil, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return nil, e
+	}
+	l, e := l.defaults()
+	if e != nil {
+		return nil, e
+	}
+	l.MaxBytes = min(l.MaxBytes, 1<<20)
+	l.MaxEntities = min(l.MaxEntities, 1024)
+	l.MaxValues = min(l.MaxValues, 8192)
+	l.MaxDepth = min(l.MaxDepth, 16)
+	raw, e := io.ReadAll(io.LimitReader(r, l.MaxBytes+1))
+	if e != nil {
+		return nil, e
+	}
+	if int64(len(raw)) > l.MaxBytes {
+		return nil, geom.ErrConvergence
+	}
+	f, e := Parse(bytes.NewReader(raw), l)
+	if e != nil {
+		return nil, e
+	}
+	count := 12
+	if grouped {
+		count = 15
+	}
+	model, owners, e := convexPCurveModelView(f, count, grouped)
+	if e != nil {
+		return nil, e
+	}
+	pose, reference, body, metadata, e := rationalConvexArcPose(model, grouped)
+	if e != nil {
+		return nil, e
+	}
+	src := &rationalConvexArcSource{
+		raw: string(raw), original: f, rotation: pose, reference: reference,
+		body: body, metadata: metadata, owners: owners, limits: l,
+	}
+	localModel, e := src.transformView(ctx, model, true)
+	if e != nil {
+		return nil, e
+	}
+	modelRaw, e := mappedPlanarSourceBytes(localModel)
+	if e != nil {
+		return nil, e
+	}
+	src.material, e = repairOCCTConvexArcModel(ctx, bytes.NewReader(modelRaw), l, o, grouped, grouped)
+	if e != nil {
+		return nil, fmt.Errorf("rational pose model: %w", e)
+	}
+	// Only the proved model closure moves. The original numerically authored
+	// UV records retain their original charts and parameter semantics.
+	src.local, e = src.transformView(ctx, f, true)
+	if e != nil {
+		return nil, e
+	}
+	src.corrected, e = Parse(bytes.NewBufferString(src.material.CorrectedSTEP()), l)
+	if e != nil {
+		return nil, e
+	}
+	return src, nil
+}
+
+func (src *rationalConvexArcSource) transformView(ctx context.Context, source *File, inverse bool) (*File, error) {
+	return convexArcTransformView(ctx, source, src.body, src.metadata, func(kind string, p [3]*big.Rat) ([3]*big.Rat, error) {
+		if kind == "DIRECTION" {
+			return src.rotation.TransformVector(ctx, p, inverse, 512)
+		}
+		return src.rotation.TransformPoint(ctx, p, inverse, 512)
+	})
+}
+
+func (src *rationalConvexArcSource) placeCorrectedModel(ctx context.Context) (string, rigidplacement.RationalRigid, error) {
+	var zero rigidplacement.RationalRigid
+	worldView, e := src.transformView(ctx, src.corrected, false)
+	if e != nil {
+		return "", zero, e
 	}
 	world, e := mappedPlanarSourceBytes(worldView)
 	if e != nil {
-		return zero, e
+		return "", zero, e
 	}
-	if _, e = Parse(bytes.NewReader(world), l); e != nil {
-		return zero, e
+	if _, e = Parse(bytes.NewReader(world), src.limits); e != nil {
+		return "", zero, e
 	}
-	for i := range material.sites {
-		q := &material.sites[i]
-		q.Original, e = pose.TransformPoint(ctx, q.Original, false, 512)
+	for i := range src.material.sites {
+		q := &src.material.sites[i]
+		q.Original, e = src.rotation.TransformPoint(ctx, q.Original, false, 512)
 		if e != nil {
-			return zero, e
+			return "", zero, e
 		}
-		q.Repaired, e = pose.TransformPoint(ctx, q.Repaired, false, 512)
+		q.Repaired, e = src.rotation.TransformPoint(ctx, q.Repaired, false, 512)
 		if e != nil {
-			return zero, e
+			return "", zero, e
 		}
-		rawPoint, e := occtLoopTriple(f, q.PointID, "CARTESIAN_POINT")
+		rawPoint, e := occtLoopTriple(src.original, q.PointID, "CARTESIAN_POINT")
 		if e != nil || !convexUVSame(rawPoint, q.Original) {
-			return zero, geom.ErrDomain
+			return "", zero, geom.ErrDomain
 		}
 		d := occtLoopSub(q.Repaired, q.Original)
 		if occtLoopDot(d, d).Cmp(q.SquaredDistance) != 0 {
-			return zero, geom.ErrDomain
+			return "", zero, geom.ErrDomain
 		}
 	}
-	for i := range material.tangencies {
-		q := &material.tangencies[i]
-		q.Point, e = pose.TransformPoint(ctx, q.Point, false, 512)
+	for i := range src.material.tangencies {
+		q := &src.material.tangencies[i]
+		q.Point, e = src.rotation.TransformPoint(ctx, q.Point, false, 512)
 		if e != nil {
-			return zero, e
+			return "", zero, e
 		}
 	}
 	if e = ctx.Err(); e != nil {
-		return zero, e
+		return "", zero, e
 	}
 	// The local material proof keeps its lateral shift in the profile and
 	// stores the represented axial origin separately from the native solid.
-	frame := material.Descriptor().Frame
+	frame := src.material.Descriptor().Frame
 	if frame.XAxis() != (geom.Vec3{X: 1}) || frame.ZAxis() != (geom.Vec3{Z: 1}) {
-		return zero, geom.ErrDomain
+		return "", zero, geom.ErrDomain
 	}
-	matrix, e := pose.Matrix()
+	matrix, e := src.rotation.Matrix()
 	if e != nil {
-		return zero, e
+		return "", zero, e
 	}
-	origin, e := pose.TransformPoint(ctx, occtLoopVec(frame.Origin()), false, 512)
+	origin, e := src.rotation.TransformPoint(ctx, occtLoopVec(frame.Origin()), false, 512)
 	if e != nil {
-		return zero, e
+		return "", zero, e
 	}
 	for i := range matrix {
 		matrix[i][3] = origin[i]
 	}
 	worldPlacement, e := rigidplacement.NewRationalRigid(matrix, 512)
 	if e != nil {
-		return zero, e
+		return "", zero, e
 	}
-	base := PCurveRepairedOCCTConvexArcExtrusion{source: string(raw), material: material, agreements: agreements, tolerance: o.MaxDistance}
-	return RationalPosedPCurveRepairedOCCTConvexArcExtrusion{
-		base: base, corrected: string(world), pose: worldPlacement, reference: reference, finite: finiteRanges,
-	}, nil
+	return string(world), worldPlacement, nil
 }
 
-func rationalConvexArcPose(f *File) (pose rigidplacement.RationalRigid, reference int64, body, metadata map[int64]bool, err error) {
+func rationalConvexArcPose(f *File, grouped bool) (pose rigidplacement.RationalRigid, reference int64, body, metadata map[int64]bool, err error) {
 	var repID int64
 	for _, id := range f.Order {
 		if _, e := simple(f, id, "ADVANCED_BREP_SHAPE_REPRESENTATION", 3); e == nil {
@@ -269,6 +310,26 @@ func rationalConvexArcPose(f *File) (pose rigidplacement.RationalRigid, referenc
 	if e != nil {
 		return pose, 0, nil, nil, e
 	}
+	var axial [3]*big.Rat
+	if grouped {
+		for _, id := range f.Order {
+			if !body[id] {
+				continue
+			}
+			c, e := simple(f, id, "CYLINDRICAL_SURFACE", 3)
+			if e != nil {
+				continue
+			}
+			_, _, _, axial, e = convexUVFrame(f, c.Args[1].Ref)
+			if e != nil {
+				return pose, 0, nil, nil, e
+			}
+			break
+		}
+		if axial[0] == nil {
+			return pose, 0, nil, nil, geom.ErrDomain
+		}
+	}
 	for _, id := range f.Order {
 		if !body[id] {
 			continue
@@ -280,6 +341,10 @@ func rationalConvexArcPose(f *File) (pose rigidplacement.RationalRigid, referenc
 		_, x, y, z, e := convexUVFrame(f, c.Args[1].Ref)
 		if e != nil {
 			return pose, 0, nil, nil, e
+		}
+		if grouped {
+			z = axial
+			y = convexUVCross(z, x)
 		}
 		var matrix [3][4]*big.Rat
 		for i := range matrix {

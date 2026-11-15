@@ -32,8 +32,9 @@ pcurve IDs and directed model parameter endpoints for the finite claims.
 The finite comparison concerns the original pcurve lift at the same parameter
 on the selected model interval. Each distance claim applies to its individual
 owner or repair site. Exact original UV trim closure, a combined material
-distance bound, general rounded rotations, tilted grouped repairs, native
-proof persistence, and strict bridge integration remain open.
+distance bound, general rounded rotations, native proof persistence, and
+strict bridge integration remain open. Independently authored tilted
+two-fillet sources use the separate [grouped repair](REPAIRED_RATIONAL_POSED_GROUPED_PCURVE_OCCT_CONVEX_ARC.md).
 
 ## Independent reproduction
 

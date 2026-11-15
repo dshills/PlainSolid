@@ -2,10 +2,13 @@ package step
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"io"
 	"math"
 	"math/big"
+	"slices"
+
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
 )
@@ -33,6 +36,7 @@ type RepairedOCCTConvexArcExtrusion struct {
 	azimuths            []int64
 	reversals           []ConvexArcRepairReversal
 	tangencies          []ConvexArcTangentEvidence
+	axialTrims          []ConvexArcAxialTrimRepair
 }
 
 // ConvexArcRepairProvenance maps corrected native roles to the unchanged
@@ -87,6 +91,10 @@ func RepairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 	return repairOCCTConvexArcExtrusion(ctx, r, l, o, false)
 }
 func repairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o ConvexArcRepairOptions, grouped bool) (RepairedOCCTConvexArcExtrusion, error) {
+	return repairOCCTConvexArcModel(ctx, r, l, o, grouped, false)
+}
+
+func repairOCCTConvexArcModel(ctx context.Context, r io.Reader, l Limits, o ConvexArcRepairOptions, grouped, finiteAxial bool) (RepairedOCCTConvexArcExtrusion, error) {
 	var zero RepairedOCCTConvexArcExtrusion
 	if ctx == nil || r == nil || math.IsNaN(o.MaxDistance) || math.IsInf(o.MaxDistance, 0) || o.MaxDistance <= 0 {
 		return zero, geom.ErrInvalid
@@ -232,9 +240,11 @@ func repairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 			roles[pid] = "tangent vertex"
 		}
 	}
-	// Only axial model lines can translate. Both original endpoint corrections
-	// must be identical; their complete infinite support then moves by that vector.
-	for _, ed := range edges {
+	var axialTrims []ConvexArcAxialTrimRepair
+	// Only axial model lines can translate. The ordinary rule moves the full
+	// support by the two endpoints' shared displacement. The rational pose
+	// mode can additionally prove unequal shifts on their finite stations.
+	for edgeID, ed := range edges {
 		c, err := simple(f, ed.Args[3].Ref, "LINE", 3)
 		if err != nil {
 			continue
@@ -261,26 +271,37 @@ func repairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 			tb = b
 		}
 		da, db := occtLoopSub(ta, a), occtLoopSub(tb, b)
-		for j := range da {
-			if da[j].Cmp(db[j]) != 0 {
+		pid := c.Args[1].Ref
+		var p [3]*big.Rat
+		var orig [3]*big.Rat
+		if !convexUVSame(da, db) {
+			if !finiteAxial {
 				return zero, geom.ErrDomain
 			}
-		}
-		if occtLoopDot(da, da).Sign() == 0 {
-			continue
-		}
-		pid := c.Args[1].Ref
-		orig, err := occtLoopTriple(f, pid, "CARTESIAN_POINT")
-		if err != nil {
-			return zero, err
-		}
-		offset := occtLoopSub(a, orig)
-		if occtLoopDot(offset, offset).Sign() != 0 && !occtLoopParallel(offset, d) {
-			return zero, geom.ErrDomain
-		}
-		var p [3]*big.Rat
-		for j := range p {
-			p[j] = new(big.Rat).Add(orig[j], da[j])
+			proof, before, after, err := proveConvexArcAxialTrim(f, edgeID, tangencies, [2][3]*big.Rat{ta, tb}, tol2)
+			if err != nil {
+				return zero, err
+			}
+			axialTrims = append(axialTrims, proof)
+			orig, p = before, after
+			if proof.SupportDistanceSquared.Sign() == 0 {
+				continue
+			}
+		} else {
+			if occtLoopDot(da, da).Sign() == 0 {
+				continue
+			}
+			orig, err = occtLoopTriple(f, pid, "CARTESIAN_POINT")
+			if err != nil {
+				return zero, err
+			}
+			offset := occtLoopSub(a, orig)
+			if occtLoopDot(offset, offset).Sign() != 0 && !occtLoopParallel(offset, d) {
+				return zero, geom.ErrDomain
+			}
+			for j := range p {
+				p[j] = new(big.Rat).Add(orig[j], da[j])
+			}
 		}
 		if old, ok := target[pid]; ok {
 			for j := range old {
@@ -316,7 +337,16 @@ func repairOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limits, o 
 			}
 		}
 	}
-	out := RepairedOCCTConvexArcExtrusion{original: string(raw)}
+	for _, q := range axialTrims {
+		if len(refs[q.LineID]) != 1 || refs[q.LineID][0] != q.EdgeID ||
+			len(refs[q.OriginPointID]) != 1 || refs[q.OriginPointID][0] != q.LineID {
+			return zero, geom.ErrDomain
+		}
+	}
+	slices.SortFunc(axialTrims, func(a, b ConvexArcAxialTrimRepair) int {
+		return cmp.Compare(a.EdgeID, b.EdgeID)
+	})
+	out := RepairedOCCTConvexArcExtrusion{original: string(raw), axialTrims: axialTrims}
 	// Use original entity order, not map iteration, for deterministic evidence.
 	for _, id := range f.Order {
 		for _, q := range tangencies {

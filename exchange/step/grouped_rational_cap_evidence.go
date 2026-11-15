@@ -29,11 +29,12 @@ type GroupedRationalCapEvidence struct {
 // original owner associations. It intentionally exposes no promoted solid:
 // rational-cap finite trim/reparameterization remains unresolved.
 type GroupedPCurveEvidence struct {
-	modelRepair RepairedOCCTConvexArcExtrusion
-	Caps        []GroupedRationalCapEvidence
-	OtherOwners []ConvexArcPCurveAgreement
-	Reversals   []ConvexArcRepairReversal
-	Repairs     []ConvexArcRepairSite
+	modelRepair      RepairedOCCTConvexArcExtrusion
+	finiteLineOwners []FiniteConvexArcLineOwner
+	Caps             []GroupedRationalCapEvidence
+	OtherOwners      []ConvexArcPCurveAgreement
+	Reversals        []ConvexArcRepairReversal
+	Repairs          []ConvexArcRepairSite
 }
 
 func groupedRatBounds(q []*big.Rat) (lo, hi *big.Rat) {
@@ -299,8 +300,13 @@ func InspectGroupedConvexArcPCurves(ctx context.Context, r io.Reader, l Limits, 
 	if e != nil {
 		return zero, e
 	}
+	return proveGroupedConvexArcOwners(ctx, f, fixed, owners, m, o.MaxDistance, false)
+}
+
+func proveGroupedConvexArcOwners(ctx context.Context, f, fixed *File, owners []ConvexArcPCurveAgreement, m RepairedOCCTConvexArcExtrusion, distance float64, allowFiniteLines bool) (GroupedPCurveEvidence, error) {
+	var zero GroupedPCurveEvidence
 	out := GroupedPCurveEvidence{modelRepair: m, Reversals: m.Reversals(), Repairs: m.Repairs()}
-	tol := new(big.Rat).SetFloat64(o.MaxDistance)
+	tol := new(big.Rat).SetFloat64(distance)
 	tol.Mul(tol, tol)
 	for _, q := range owners {
 		if e := ctx.Err(); e != nil {
@@ -321,7 +327,16 @@ func InspectGroupedConvexArcPCurves(ctx context.Context, r io.Reader, l Limits, 
 		}
 		// An original reversed circle has the same cosine axis and opposite sine
 		// axis to its cylinder. U=-t is therefore the exact owner correspondence.
+		var e error
 		q.Kind, q.DistanceSquaredUpper, e = boundGroupedSimplePCurve(f, fixed, model, q.GeometryID, q.SupportID)
+		if e != nil && allowFiniteLines {
+			var interval FiniteConvexArcLineOwner
+			interval, q.DistanceSquaredUpper, e = boundFiniteConvexArcLineOwner(f, fixed, q, model, tol)
+			if e == nil {
+				q.Kind = "finite-plane-line"
+				out.finiteLineOwners = append(out.finiteLineOwners, interval)
+			}
+		}
 		if e != nil || q.DistanceSquaredUpper.Cmp(tol) > 0 {
 			return zero, geom.ErrDomain
 		}
