@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"slices"
 
 	"plainsolid/geom"
 )
@@ -71,11 +72,32 @@ func ProveMappedSplineMixedSupportKnotsTransfer(ctx context.Context, support geo
 // against two stored model Béziers, one of which is further restricted at
 // the additional cut. Both input cuts are in whole normalized traversal.
 func ProveMappedSplineMixedSplitTransfer(ctx context.Context, support geom.Surface, mapped MappedSplineUV, pieces [2]*geom.ExactSplineCurve, join, extra *big.Rat, o geom.SurfacePatchOptions) error {
+	return proveMappedSplineStoredKnotPartition(ctx, support, mapped, pieces, join, []*big.Rat{extra}, o)
+}
+
+// ProveMappedSplineThreeKnotSplitTransfer compares the four exact raw
+// restrictions of one already mapped owner against two stored model
+// Béziers. The three distinct cuts are in whole normalized traversal.
+func ProveMappedSplineThreeKnotSplitTransfer(ctx context.Context, support geom.Surface, mapped MappedSplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, extra [2]*big.Rat, o geom.SurfacePatchOptions) error {
+	return proveMappedSplineStoredKnotPartition(ctx, support, mapped, pieces, join, extra[:], o)
+}
+
+func proveMappedSplineStoredKnotPartition(ctx context.Context, support geom.Surface, mapped MappedSplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, extra []*big.Rat, o geom.SurfacePatchOptions) error {
 	one := big.NewRat(1, 1)
-	if ctx == nil || support == nil || mapped.weight == nil || pieces[0] == nil || pieces[1] == nil ||
-		join == nil || extra == nil || join.Sign() <= 0 || extra.Sign() <= 0 ||
-		join.Cmp(one) >= 0 || extra.Cmp(one) >= 0 || join.Cmp(extra) == 0 {
+	if ctx == nil || support == nil || mapped.weight == nil || pieces[0] == nil || pieces[1] == nil {
 		return geom.ErrInvalid
+	}
+	stations := append([]*big.Rat{join}, extra...)
+	for _, t := range stations {
+		if t == nil || t.Sign() <= 0 || t.Cmp(one) >= 0 {
+			return geom.ErrInvalid
+		}
+	}
+	slices.SortFunc(stations, func(a, b *big.Rat) int { return a.Cmp(b) })
+	for i := 1; i < len(stations); i++ {
+		if stations[i-1].Cmp(stations[i]) == 0 {
+			return geom.ErrInvalid
+		}
 	}
 	for i, piece := range pieces {
 		var err error
@@ -84,12 +106,8 @@ func ProveMappedSplineMixedSplitTransfer(ctx context.Context, support geom.Surfa
 			return err
 		}
 	}
-	middle := [2]*big.Rat{join, extra}
-	if join.Cmp(extra) > 0 {
-		middle = [2]*big.Rat{extra, join}
-	}
-	cuts := [4]*big.Rat{new(big.Rat), middle[0], middle[1], one}
-	for i := range 3 {
+	cuts := append(append([]*big.Rat{new(big.Rat)}, stations...), one)
+	for i := 0; i < len(cuts)-1; i++ {
 		a, b := cuts[i], cuts[i+1]
 		part, err := restrictMappedSource(ctx, mapped, a, b, o)
 		if err != nil {

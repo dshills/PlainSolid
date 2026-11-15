@@ -53,6 +53,9 @@ func TestMappedChainRectangularSTEPThreeSupportKnots(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(m.Chain) != 6 {
+		t.Fatal("explicit STEP must retain the complete six original shared wire cells")
+	}
 	verifyThreeKnotMaterial(t, ctx, m)
 	wantStation := [3]*big.Rat{big.NewRat(1, 16), big.NewRat(1, 8), big.NewRat(3, 16)}
 	f, err := Parse(bytes.NewReader(raw), Limits{})
@@ -106,7 +109,7 @@ func TestMappedChainRectangularSTEPThreeSupportKnots(t *testing.T) {
 func verifyThreeKnotMaterial(t *testing.T, ctx context.Context, m MappedChainSTEPModel) {
 	t.Helper()
 	solid := m.Native.Solid
-	if len(m.Chain) != 6 || len(solid.Faces()) != 7 || len(solid.Edges()) != 24 || len(solid.Vertices()) != 19 {
+	if len(m.Native.ChainEdges) != 6 || len(solid.Faces()) != 7 || len(solid.Edges()) != 24 || len(solid.Vertices()) != 19 {
 		t.Fatal("three-cut fixture lost one of its original source coedges")
 	}
 	proof, err := solid.ValidateEdgeAgreement(ctx, edgecheck.Options{})
@@ -156,7 +159,7 @@ func verifyIndependentlyAuthoredThreeKnots(t *testing.T, ctx context.Context, ra
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m.OriginalSTEP() != string(raw) || len(m.Crossings) != 0 || len(m.Planes) != 5 {
+	if m.OriginalSTEP() != string(raw) || len(m.Chain) != 6 || len(m.Crossings) != 0 || len(m.Planes) != 5 {
 		t.Fatal("independent author must supply explicit original roof coedges and signed-axis planes")
 	}
 	verifyThreeKnotMaterial(t, ctx, m)

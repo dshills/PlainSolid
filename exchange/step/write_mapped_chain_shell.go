@@ -38,6 +38,10 @@ type MappedChainShellSTEPOptions struct {
 	// stored model knot crossed by both owners and one additional single-owner
 	// crossing. Requires AllowUnsplitSupportKnot and AllowTwoInteriorRoofKnots.
 	AllowMixedSupportKnots bool
+	// AllowThreeSupportKnots admits one original foreign edge with a stored
+	// model knot crossed by both owners and one separate cut per owner.
+	// Requires AllowUnsplitSupportKnot and AllowTwoInteriorRoofKnots.
+	AllowThreeSupportKnots bool
 }
 
 // WriteMappedChainRectangularShell writes a single independently certified
