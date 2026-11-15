@@ -407,3 +407,49 @@ and a forged finite owner endpoint in the native certificate.
 PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
   go test ./exchange/step -run '^TestRepairFourConvertedMetreConvexArc' -count=1
 ```
+
+## Four-fillet millimetre model converted to inch STEP
+
+The pinned `write-four-default-tilted-converted-inch` mode scales the
+millimetre-native trapezoidal prism by 127 before transfer. The 665-entity
+source declares the exact `127/5` millimetre inch factor and retains the
+rational world pose, four circular supports and 25-inch height. Its 24
+original planar LINE owners use `t → 5t/127`. The model LINE token
+`3.937007874016E-02` enters the proof as authored, including its exact
+difference of `1/396875000000000` from the owner scale.
+
+The sixteen cylindrical degree-one spline charts preserve their source
+knots, poles and directions. The four shifted arc owners retain the same
+rational angle brackets and original angular coefficients as the metre
+charts. The eight axial owners have knots `[0,635]` and
+`dv/dt = 5/127`. Both finite axial maps, on edges `#332` and `#551`,
+land inside the original knots. Their repaired start stations are
+`1/984251968504000000000000000` and
+`3/984251968504000000000000000`, respectively, with original start
+stations of zero. Both cap pairs retain their original owner order and
+finite rational root proofs.
+
+Explicit source repair passes at `1e-11` inch and rejects `1e-12` inch
+at planar owner `#64`. The original rejects under strict import.
+Native reproof rejects a forged axial map. The strict canonical reader
+preserves the inch factor, exact pose and native shape and re-exports
+identical bytes. Pinned OCCT samples all 48 owners and observes a maximum
+shifted lift difference of `6.06e-13` inch. It transfers the original,
+corrected, and canonical worlds as one ten-face solid. Its canonical
+measurements are volume `45382548.449818395` mm³, area
+`822775.4325815544` mm² and centroid
+`(321.63568895181112, 148.43097376037611, 100.31908139758519)` mm.
+
+The independently authored
+`write-four-default-tilted-converted-inch-unscaled` control contains three
+rounded cylinder-to-plane support pairs. Their exact plane distance
+minus radius is `1/5000000000000000`, `1/250000000000000`, and
+`351/2500000000000000` inch on edges `#338`, `#392`, and `#619`.
+OCCT transfers the original within its tolerance. PlainSolid rejects the
+nonzero tangency gaps while retaining the exact authored supports. Inexact
+inch declarations, edited LINE speed and undersized spline knots also reject.
+
+```sh
+PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
+  go test ./exchange/step -run '^TestRepairFourConvertedInchConvexArc' -count=1
+```
