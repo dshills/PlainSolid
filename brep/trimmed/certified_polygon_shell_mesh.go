@@ -11,7 +11,9 @@ import (
 // CertifiedPolygonShellOptions keeps the face approximation/evaluation and
 // edge proof budgets per face/use. MaxTriangles bounds the final shell (default
 // 1M, maximum 8M). At most two mesh passes are made per face; their triangle
-// checks share Face.MaxTriangleChecks. No existing tessellation defaults change.
+// checks share Face.MaxTriangleChecks. Optional knot cells/pieces also share
+// their per-face cumulative budgets across both passes. Existing tessellation
+// defaults remain unchanged.
 type CertifiedPolygonShellOptions struct {
 	Face         CertifiedPatchMeshOptions
 	Edges        edgecheck.Options
@@ -24,13 +26,17 @@ type CertifiedPolygonShellOptions struct {
 // BothDirections has the same per-face interpolation meaning as the patch API.
 // This does not certify embedding of the smooth shell or of its approximation.
 type CertifiedPolygonShellMesh struct {
-	Mesh           mesh.Mesh
-	OriginalFace   []int
-	SquaredErrors  []*big.Rat
-	UVTriangles    [][3]geom.Vec2
-	BothDirections bool
-	Subdivisions   int
-	TriangleChecks int
+	Mesh                  mesh.Mesh
+	OriginalFace          []int
+	SquaredErrors         []*big.Rat
+	UVTriangles           [][3]geom.Vec2
+	BothDirections        bool
+	Subdivisions          int
+	TriangleChecks        int
+	KnotCells, KnotPieces int
+	// Uses maps original UV coedge samples to the final shared mesh indices.
+	// Complete model-edge agreement is proved before any face is meshed.
+	Uses []PolygonFaceUseSamples
 }
 
 // TessellatePolygonShellCertified requires exact continuous same-parameter
@@ -103,12 +109,15 @@ func (s Solid) TessellatePolygonShellCertified(ctx context.Context, o CertifiedP
 	faces := make([]CertifiedPolygonPatchMesh, len(s.faces))
 	n := 1
 	checks := 0
+	knotCells, knotPieces := 0, 0
 	for i := range faces {
 		faces[i], err = s.TessellatePolygonFaceCertified(ctx, i, o.Face)
 		if err != nil {
 			return empty, err
 		}
 		checks += faces[i].TriangleChecks
+		knotCells += faces[i].KnotCells
+		knotPieces += faces[i].KnotPieces
 		if faces[i].Subdivisions > n {
 			n = faces[i].Subdivisions
 		}
@@ -119,6 +128,18 @@ func (s Solid) TessellatePolygonShellCertified(ctx context.Context, o CertifiedP
 			opt := o.Face
 			opt.MaxTriangleChecks -= faces[i].TriangleChecks
 			opt.MaxSubdivisions = n
+			if opt.PolygonMultiSpan != nil {
+				budget, e := newPolygonKnotBudget(*opt.PolygonMultiSpan)
+				if e != nil {
+					return empty, e
+				}
+				budget.o.MaxTotalCells -= faces[i].KnotCells
+				budget.o.MaxTotalPieces -= faces[i].KnotPieces
+				if budget.o.MaxTotalCells <= 0 || budget.o.MaxTotalPieces <= 0 {
+					return empty, geom.ErrConvergence
+				}
+				opt.PolygonMultiSpan = &budget.o
+			}
 			if opt.MaxTriangleChecks <= 0 {
 				return empty, geom.ErrConvergence
 			}
@@ -127,9 +148,11 @@ func (s Solid) TessellatePolygonShellCertified(ctx context.Context, o CertifiedP
 				return empty, err
 			}
 			checks += faces[i].TriangleChecks
+			knotCells += faces[i].KnotCells
+			knotPieces += faces[i].KnotPieces
 		}
 	}
-	result := CertifiedPolygonShellMesh{BothDirections: true, Subdivisions: n, TriangleChecks: checks}
+	result := CertifiedPolygonShellMesh{BothDirections: true, Subdivisions: n, TriangleChecks: checks, KnotCells: knotCells, KnotPieces: knotPieces}
 	// kind 0: original vertex; kind 1: edge sample; kind 2: face interior.
 	type identity struct{ kind, a, b int }
 	ids := map[identity]int{}
@@ -182,6 +205,13 @@ func (s Solid) TessellatePolygonShellCertified(ctx context.Context, o CertifiedP
 				remap[i] = id
 				result.Mesh.Vertices = append(result.Mesh.Vertices, fm.Mesh.Vertices[i])
 			}
+		}
+		for _, u := range fm.Uses {
+			u.Vertices = append([]int(nil), u.Vertices...)
+			for i, id := range u.Vertices {
+				u.Vertices[i] = remap[id]
+			}
+			result.Uses = append(result.Uses, u)
 		}
 		for i, t := range fm.Mesh.Triangles {
 			result.Mesh.Triangles = append(result.Mesh.Triangles, [3]int{remap[t[0]], remap[t[1]], remap[t[2]]})
