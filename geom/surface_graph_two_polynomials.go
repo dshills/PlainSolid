@@ -20,6 +20,8 @@ type SplineGraphTwoPolynomials struct {
 	CertifiedCells  []ParameterRectangle
 	Graph           SurfaceInjectivity
 	ExactOperations int
+
+	heightScale *big.Rat // signed physical coefficient when requested by a measure proof
 }
 
 // DiscoverSplineGraphTwoPolynomials accepts dependent quadratics with nonzero
@@ -33,6 +35,7 @@ func DiscoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 
 type polynomialGraphContactMode struct {
 	crossings, tangencies int
+	polynomialHeight      bool
 	certify               func(context.Context, *SurfacePatch, SplineGraphTwoPolynomials, []*big.Rat, ParameterRectangle, *polynomialBudget) error
 }
 
@@ -293,6 +296,16 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 		span := new(big.Rat).Sub(new(big.Rat).SetFloat64(cd.UMax), origin)
 		vlo := new(big.Rat).SetFloat64(cd.VMin)
 		vw := new(big.Rat).Sub(new(big.Rat).SetFloat64(cd.VMax), vlo)
+		if mode.polynomialHeight {
+			scale, e := graphPolynomialCellHeightScale(cell, c[2][0], vw, budget)
+			if e != nil {
+				return r, e
+			}
+			if r.heightScale != nil && r.heightScale.Cmp(scale) != 0 {
+				return r, ErrConvergence
+			}
+			r.heightScale = scale
+		}
 		var f [2]rationalPolynomial
 		for k := range f {
 			f[k], e = composeProjectionPolynomial(r.Power[k], rationalPolynomial{origin, span}, budget)

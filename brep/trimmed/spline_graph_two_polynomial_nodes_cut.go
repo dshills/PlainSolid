@@ -155,15 +155,9 @@ func assemblePolynomialNodeCutComponents(ctx context.Context, a, b *geom.BSpline
 	histories := make([]OpenSectionHistory, 0, len(material.regions))
 	evaluate := exactGraphVertexEvaluator(ctx, proof)
 	for _, index := range material.regions {
-		loop := loops[index]
-		if len(loop) == 3 {
-			// The only perimeter side of this end wedge has a zero-height
-			// upright at each end. Split it to retain a nonzero wall upright.
-			p, e := splitGraphSideAtMidpoint(loop[2])
-			if e != nil {
-				return polynomialNodeCutMaterial{}, e
-			}
-			loop = []openSectionPiece{loop[0], loop[1], p[0], p[1]}
+		loop, e := splitPolynomialNodeCutPerimeter(loops[index])
+		if e != nil {
+			return polynomialNodeCutMaterial{}, e
 		}
 		part, history, e := assembleOpenSplineGraphPair(a, b, 0, true, tolerance, loop, evaluate)
 		if e != nil {
@@ -225,6 +219,19 @@ func assemblePolynomialNodeCutComponents(ctx context.Context, a, b *geom.BSpline
 		return polynomialNodeCutMaterial{}, e
 	}
 	return material, nil
+}
+
+func splitPolynomialNodeCutPerimeter(loop []openSectionPiece) ([]openSectionPiece, error) {
+	if len(loop) != 3 {
+		return loop, nil
+	}
+	// The only perimeter side has zero-height uprights at both ends.
+	// Split it to retain the nonzero upright between its two walls.
+	p, e := splitGraphSideAtMidpoint(loop[2])
+	if e != nil {
+		return nil, e
+	}
+	return []openSectionPiece{loop[0], loop[1], p[0], p[1]}, nil
 }
 
 func (r polynomialNodeCutMaterial) validateContactIdentities() error {

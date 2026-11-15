@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"math/big"
 	"reflect"
 	"slices"
 	"testing"
@@ -14,7 +15,7 @@ import (
 	"plainsolid/geom"
 )
 
-func polynomialMixedCutVolumes(numerator int64, order int) []float64 {
+func polynomialMixedCutVolumes(numerator int64, order int) []*big.Rat {
 	// For each original free-coordinate slab, integrate the quadratic gap
 	// in the dependent coordinate. An exterior fiber has primitive
 	// l²h/2-l³/6 for the near and far branch distances l and h. Each
@@ -22,14 +23,14 @@ func polynomialMixedCutVolumes(numerator int64, order int) []float64 {
 	// then integrate the polynomial on the three exact slabs.
 	if numerator == 1 {
 		if order == 0 {
-			return []float64{55923235383397.0 / 5031365208702976, 396501040506981.0 / 5031365208702976}
+			return []*big.Rat{big.NewRat(55923235383397, 5031365208702976), big.NewRat(396501040506981, 5031365208702976)}
 		}
-		return []float64{1216335.0 / 457396837154816, 335.0 / 457396837154816, 653735.0 / 893353197568}
+		return []*big.Rat{big.NewRat(1216335, 457396837154816), big.NewRat(335, 457396837154816), big.NewRat(653735, 893353197568)}
 	}
 	if order == 0 {
-		return []float64{57845556889919.0 / 5031365208702976, 389508707518783.0 / 5031365208702976}
+		return []*big.Rat{big.NewRat(57845556889919, 5031365208702976), big.NewRat(389508707518783, 5031365208702976)}
 	}
-	return []float64{1131255.0 / 9826885173248, 6975.0 / 5031365208702976, 92195135.0 / 5031365208702976}
+	return []*big.Rat{big.NewRat(1131255, 9826885173248), big.NewRat(6975, 5031365208702976), big.NewRat(92195135, 5031365208702976)}
 }
 
 func TestNativePolynomialMixedCut(t *testing.T) {
@@ -80,8 +81,9 @@ func TestNativePolynomialMixedCut(t *testing.T) {
 						options.RelativeTolerance = 1e-5
 					}
 					m, e := part.MassProperties(ctx, options)
-					if e != nil || m.Volume <= 0 || math.Abs(m.Volume-want[i]) > math.Max(3e-15, 1e-8*want[i]) {
-						t.Fatal("independent exact positive slab integral", numerator, axis, order, i, m.Volume, want[i], e)
+					target, _ := want[i].Float64()
+					if e != nil || m.Volume <= 0 || math.Abs(m.Volume-target) > math.Max(3e-15, 1e-8*target) {
+						t.Fatal("independent exact positive slab integral", numerator, axis, order, i, m.Volume, target, e)
 					}
 				}
 				if numerator == 1 && axis == 0 && order == 0 {
