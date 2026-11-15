@@ -67,6 +67,12 @@ and an inner corner. Set `PLAINSOLID_OCCT_CIRCULAR_MIXED_FILLETS` to the
 helper linked against the OCCT Boolean and fillet toolkits to verify the
 resulting native material.
 
+`circular_sweep_line_arc_fillets.cxx` independently builds each original
+line-and-circle wire, extrudes it, then asks OCCT to round its vertical
+corner. Set `PLAINSOLID_OCCT_CIRCULAR_LINE_ARC_FILLETS` to the helper linked
+against the OCCT fillet toolkits. Its `internal` and `external` modes compare
+signed material changes for the two tangent circle configurations.
+
 `frustum-erosion` constructs each tapered reference by intersecting an
 inward-shifted full lateral cone with a separate cap slab. The Go test
 checks volume, area and centroid for rising and falling taper, then checks

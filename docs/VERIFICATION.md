@@ -192,6 +192,13 @@ kept its pristine hash. Raw results remain in
   Cut races passed together on main (2.251 seconds in geometry, 283.213 in
   trimmed). Independent physical integration uses area factor six and a
   sloping-base wall Jacobian; 36 legacy recipe digests were unchanged.
+- Axis-aligned line-to-arc rounds passed their main race and pinned OCCT
+  comparison in 37.574 seconds. Both internal and external tangencies
+  qualify in either traversal order. Native source-clock samples and
+  independent Green integral volume and area agree. OCCT independently
+  measured volume changes of `-1.19703047079247` and `+0.817619549959659`.
+  The exact tangent solver rejects irrational coordinates instead of
+  fitting a nearby round.
 
 - Quintic native Common/Fuse and Cut with three transverse crossings and a
   quadratic tangency, plus exact curved inner wires, passed a combined main

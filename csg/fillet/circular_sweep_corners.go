@@ -17,10 +17,14 @@ type CircularSweepCorner struct {
 }
 
 // CircularSweepCornerEdge retains the original directed parameter range and
-// identity of one surviving source span.
+// identity of one surviving source span. Map evaluates the original
+// parameter from [0,1] on the surviving edge as a fractional-linear function,
+// with constant/linear coefficients in the first row for the numerator and
+// the second row for the denominator.
 type CircularSweepCornerEdge struct {
 	Wall, LowerRim, UpperRim int
 	Minimum, Maximum         *big.Rat
+	Map                      [2][2]*big.Rat
 }
 
 // CircularSweepCornerRound identifies the newly added exact circular support.
@@ -41,6 +45,7 @@ type CircularSweepCornerResult struct {
 type mixedCornerRound struct {
 	incoming, outgoing, center geom.Vec2
 	radius                     float64
+	reach                      q
 }
 
 func mixedFilletAxis(curve trimmed.ExactCircularLoopSegment) (orthogonalDirection, q, bool) {
@@ -106,13 +111,15 @@ func mixedFilletTangent(c geom.Vec2, prev, next orthogonalDirection, r float64) 
 	if !okA || !okB || !okC {
 		return mixedCornerRound{}, geom.ErrUnrepresentable
 	}
-	return mixedCornerRound{incoming: in, outgoing: out, center: center, radius: r}, nil
+	// The disk with twice the radius also contains the original sharp corner.
+	return mixedCornerRound{incoming: in, outgoing: out, center: center, radius: r, reach: qm(rad, big.NewRat(2, 1))}, nil
 }
 
-// CircularSweepCorners rounds selected orthogonal line junctions on an
-// already curved model-Z sweep. Unselected arcs and holes stay on their
-// original supports. Every corner influence region is strictly separated
-// from all nonincident source spans and all other selected corners.
+// CircularSweepCorners rounds selected orthogonal line junctions or an
+// axis-aligned line meeting a circular arc on an already curved model-Z
+// sweep. A line-arc round requires exactly representable tangent points and
+// center. All arcs and holes retain their original supports. Every corner
+// influence region is separated from all nonincident spans and other rounds.
 func CircularSweepCorners(ctx context.Context, source trimmed.ExactCircularSweep, selection []CircularSweepCorner, o OrthogonalPrismOptions) (CircularSweepCornerResult, error) {
 	var zero CircularSweepCornerResult
 	if ctx == nil || len(selection) == 0 || len(selection) > 64 || o.MaxWork < 0 {
@@ -159,16 +166,16 @@ func CircularSweepCorners(ctx context.Context, source trimmed.ExactCircularSweep
 		prev := (s.Corner + len(ring) - 1) % len(ring)
 		da, _, a := mixedFilletAxis(ring[prev])
 		db, _, b := mixedFilletAxis(ring[s.Corner])
-		if !a || !b {
-			return zero, fmt.Errorf("%w: fillet site needs two original orthogonal lines", ErrInvalid)
+		var round mixedCornerRound
+		var err error
+		if a && b {
+			round, err = mixedFilletTangent(ring[s.Corner].Start, da, db, s.Radius)
+		} else {
+			round, err = mixedFilletLineArc(ring[prev], ring[s.Corner], s.Radius)
 		}
-		q, err := mixedFilletTangent(ring[s.Corner].Start, da, db, s.Radius)
 		if err != nil {
 			return zero, err
 		}
-		// The corner triangle and tangent arc fit this conservative disk.
-		// It also covers the original sharp corner, unlike the fillet disk.
-		reach := qm(num(s.Radius), big.NewRat(2, 1))
 		for i, wire := range rings {
 			for j, edge := range wire {
 				if i == s.Ring && (j == prev || j == s.Corner) {
@@ -177,7 +184,7 @@ func CircularSweepCorners(ctx context.Context, source trimmed.ExactCircularSweep
 				if err := tick(); err != nil {
 					return zero, err
 				}
-				if !mixedFilletDiskClear(q.center, reach, edge) {
+				if !mixedFilletDiskClear(round.center, round.reach, edge) {
 					return zero, fmt.Errorf("%w: fillet influence at ring %d corner %d reaches original ring %d span %d", ErrRadius, s.Ring, s.Corner, i, j)
 				}
 			}
@@ -186,12 +193,12 @@ func CircularSweepCorners(ctx context.Context, source trimmed.ExactCircularSweep
 			if err := tick(); err != nil {
 				return zero, err
 			}
-			r := qa(reach, qm(num(other.radius), big.NewRat(2, 1)))
-			if squaredDistance(q.center, other.center).Cmp(qm(r, r)) <= 0 {
+			r := qa(round.reach, other.reach)
+			if squaredDistance(round.center, other.center).Cmp(qm(r, r)) <= 0 {
 				return zero, fmt.Errorf("%w: selected fillet influence regions meet", ErrRadius)
 			}
 		}
-		sites[key] = q
+		sites[key] = round
 	}
 	return assembleMixedCircularSweepCorners(ctx, source, rings, sites, n+len(sites), o.Circular)
 }
@@ -213,18 +220,7 @@ func assembleMixedCircularSweepCorners(ctx context.Context, source trimmed.Exact
 			}
 			here, selected := sites[[2]int{i, j}]
 			next := sites[[2]int{i, (j + 1) % len(wire)}]
-			lo, hi := new(big.Rat), big.NewRat(1, 1)
-			if selected || next.radius > 0 {
-				_, length, ok := mixedFilletAxis(s)
-				if !ok {
-					return zero, ErrInvalid
-				}
-				lo.Quo(num(here.radius), length)
-				hi.Sub(hi, new(big.Rat).Quo(num(next.radius), length))
-				if lo.Cmp(hi) >= 0 {
-					return zero, fmt.Errorf("%w: fillets consume original ring %d span %d", ErrRadius, i, j)
-				}
-			}
+			parent := s
 			if selected {
 				k := offset + len(rebuilt)
 				out.Rounds = append(out.Rounds, CircularSweepCornerRound{
@@ -236,8 +232,17 @@ func assembleMixedCircularSweepCorners(ctx context.Context, source trimmed.Exact
 			if next.radius > 0 {
 				s.End = next.incoming
 			}
+			lo, hi := new(big.Rat), big.NewRat(1, 1)
+			law := [2][2]*big.Rat{{new(big.Rat), big.NewRat(1, 1)}, {big.NewRat(1, 1), new(big.Rat)}}
+			if selected || next.radius > 0 {
+				var err error
+				lo, hi, law, err = trimmed.CircularLoopRestriction(parent, s)
+				if err != nil {
+					return zero, fmt.Errorf("%w: fillets consume or reverse original ring %d span %d: %v", ErrRadius, i, j, err)
+				}
+			}
 			k := offset + len(rebuilt)
-			out.Original[i][j] = CircularSweepCornerEdge{Wall: 2 + k, LowerRim: k, UpperRim: total + k, Minimum: lo, Maximum: hi}
+			out.Original[i][j] = CircularSweepCornerEdge{Wall: 2 + k, LowerRim: k, UpperRim: total + k, Minimum: lo, Maximum: hi, Map: law}
 			rebuilt = append(rebuilt, s)
 		}
 		if i == 0 {
