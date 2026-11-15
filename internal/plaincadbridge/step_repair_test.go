@@ -247,3 +247,24 @@ func TestSTEPRepairRejectsInvalidRequestsAndOriginalOwners(t *testing.T) {
 		t.Fatal("repair opt-in altered ordinary valid STEP", strict)
 	}
 }
+
+func TestSTEPRepairNativeProofTextReprovesFromBridgeResponse(t *testing.T) {
+	b := New()
+	source := stepRepairFixture(t, "occt-default-tilted-translated-oblique-prism-fillet")
+	result := shape(t, b, map[string]any{
+		"op": "importStep", "source": source,
+		"stepRepair": map[string]any{"maxDistance": 1e-12, "nativeText": true},
+	})
+	if result.RepairEvidence == nil || result.NativeProof != nil || !strings.HasSuffix(result.NativeProofJSON, "\n") {
+		t.Fatal("bridge did not return the original JSON document as text")
+	}
+	ctx := context.Background()
+	reloaded, err := step.ReadRationalPosedPCurveRepairedOCCTConvexArcJSON(ctx, strings.NewReader(result.NativeProofJSON), step.IndependentMaterialJSONLimits{})
+	if err != nil || reloaded.OriginalSTEP() != source {
+		t.Fatal("native proof transported as text could not be reproved", err)
+	}
+	pose, err := reloaded.Pose().Matrix()
+	if err != nil || !reflect.DeepEqual(&pose, result.RepairEvidence.WorldPose) {
+		t.Fatal("native proof pose changed in transport", err)
+	}
+}

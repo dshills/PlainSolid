@@ -19,7 +19,9 @@ const work = resolve(option("--work", join(tmpdir(), `plainsolid-plaincad-${Date
 const suite = option("--suite", "development");
 const ports=suitePorts(suite,option("--port"),option("--preflight-port"));
 const port=ports.preflight;
-const testDefaults = { development: "e2e/extrusion-hole.spec.ts", production: "production-e2e", "cross-browser": "cross-browser-e2e", unit: "" };
+const stepRepairFixture = args.includes("--step-repair-fixture");
+const stepRepairTest = "plainSolidStepRepair.test.ts";
+const testDefaults = { development: "e2e/extrusion-hole.spec.ts", production: "production-e2e", "cross-browser": "cross-browser-e2e", unit: stepRepairFixture ? stepRepairTest : "" };
 const testFile = option("--test", testDefaults[suite]);
 const grep = option("--grep", suite === "development" ? "native negative/symmetric coordinate extents, parameter edits, save/open and STL winding" : ".*");
 const unitWorkers = option("--workers", "1");
@@ -30,6 +32,8 @@ const acceptanceConfig = acceptanceConfigs[suite];
 const sideDualDiskFixture = args.includes("--side-dual-disk-fixture");
 if (sideDualDiskFixture && (suite !== "development" || testFile !== "e2e/plainsolid-side-dual-disk.spec.ts"))
   throw new Error("The supplemental dual-disk fixture must run by itself in the development suite.");
+if (stepRepairFixture && (suite !== "unit" || testFile !== stepRepairTest))
+  throw new Error("The supplemental STEP repair fixture must run by itself in the unit suite.");
 const gitIdentity = cwd => {
   const git = (...argv) => { try { return execFileSync("git", argv, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return null; } };
   return { head: git("rev-parse", "HEAD"), status: git("status", "--porcelain=v1"), branch: git("branch", "--show-current") };
@@ -97,7 +101,7 @@ globalThis.fetch = async (input, init) => {
 };
 beforeAll(async () => OpenCascadeKernel.initialize());
 `;
-  const configPath = "vitest.plainsolid.config.ts";
+  const configPath = "vitest.plainsolid-acceptance.config.ts";
   const config = `import { defineConfig } from "vitest/config";
 import base from "./vite.config";
 export default defineConfig({ ...base, test: {
@@ -108,6 +112,23 @@ export default defineConfig({ ...base, test: {
   await writeFile(join(work, fixture), setup, { flag: "wx" });
   await writeFile(join(work, configPath), config, { flag: "wx" });
   report.unitSetup = { maxWorkers: Number(unitWorkers), sourceHashes: { [fixture]: hash(setup), [configPath]: hash(config) } };
+  if (stepRepairFixture) {
+    const fixture = `src/tests/${stepRepairTest}`;
+    const content = await readFile(join(root, "tools/plaincad/step-repair.fixture.ts"));
+    await writeFile(join(work, fixture), content, { flag: "wx" });
+    const directory = "src/tests/plainsolid-step-repair";
+    await mkdir(join(work, directory));
+    const inputs = {};
+    for (const name of ["occt-default-two-fillets-minus-x", "occt-default-tilted-translated-oblique-prism-fillet", "occt-both-default-tilted-oblique-prism-fillet"]) {
+      const source = `exchange/step/testdata/${name}.step`;
+      const input = await readFile(join(root, source));
+      await writeFile(join(work, directory, `${name}.step`), input, { flag: "wx" });
+      inputs[source] = hash(input);
+    }
+    report.supplementalFixture = { file: fixture, sha256: hash(content), inputs };
+    await command("node", [join(work, "node_modules/typescript/bin/tsc"), "-b", "--noEmit"], "typecheck.log");
+    report.typecheck = "passed";
+  }
   const unitResult = join(work, "unit-results.json");
   try {
     await command("node", [join(work, "node_modules/vitest/vitest.mjs"), "run", "--config", configPath, "--maxWorkers", unitWorkers,
@@ -135,7 +156,7 @@ export default defineConfig({ ...base, test: {
   const complete = report.unit.passed > 0 && report.unit.failed === 0 &&
     report.unit.total === report.unit.passed + report.unit.pending && (grep !== ".*" || report.unit.pending === 0);
   report.status = !report.error && complete ? "passed" : "failed";
-  if (report.status === "failed") report.error ??= "All selected original unit tests must pass.";
+  if (report.status === "failed") report.error ??= "All selected unit tests must pass.";
 }
 await mkdir(work, { recursive: true });
 if ((await readdir(work)).length) throw new Error("Acceptance workspace must be empty; choose a fresh --work directory.");
@@ -175,23 +196,25 @@ try {
   }).trim().split("\n").filter(path => path.startsWith(root + "/"));
   for (const path of [...runtimeSources, join(root, "go.mod")])
     report.plainSolidSourceHashes[path.slice(root.length + 1)] = hash(await readFile(path));
-  // The worker already accepts this progress callback for modeled threads.
-  // Report actual feature boundaries for the synchronous Go kernel as well.
-  const rebuildPath = join(work, "src/cad/features/rebuildGraph.ts");
-  const rebuildBefore = await readFile(rebuildPath, "utf8");
-  const featureBoundary = "        operationCount += 1;";
-  if (rebuildBefore.split(featureBoundary).length !== 2 || !rebuildBefore.includes("onNativeProgress?:")) {
-    throw new Error("PlainCAD rebuild progress boundary changed.");
+  if (!stepRepairFixture) {
+    // The worker already accepts this progress callback for modeled threads.
+    // Report actual feature boundaries for the synchronous Go kernel as well.
+    const rebuildPath = join(work, "src/cad/features/rebuildGraph.ts");
+    const rebuildBefore = await readFile(rebuildPath, "utf8");
+    const featureBoundary = "        operationCount += 1;";
+    if (rebuildBefore.split(featureBoundary).length !== 2 || !rebuildBefore.includes("onNativeProgress?:")) {
+      throw new Error("PlainCAD rebuild progress boundary changed.");
+    }
+    const rebuildAfter = rebuildBefore.replace(featureBoundary,
+      featureBoundary + '\n        options.onNativeProgress?.("native_feature");');
+    await writeFile(rebuildPath, rebuildAfter);
+    report.runtimeAdaptations = [{
+      file: "src/cad/features/rebuildGraph.ts",
+      purpose: "Report existing native-worker progress at each executed feature.",
+      beforeSha256: hash(rebuildBefore), afterSha256: hash(rebuildAfter),
+    }];
+    report.runtimeAdaptations.push(...await installDisplayRuntime(work, hash));
   }
-  const rebuildAfter = rebuildBefore.replace(featureBoundary,
-    featureBoundary + '\n        options.onNativeProgress?.("native_feature");');
-  await writeFile(rebuildPath, rebuildAfter);
-  report.runtimeAdaptations = [{
-    file: "src/cad/features/rebuildGraph.ts",
-    purpose: "Report existing native-worker progress at each executed feature.",
-    beforeSha256: hash(rebuildBefore), afterSha256: hash(rebuildAfter),
-  }];
-  report.runtimeAdaptations.push(...await installDisplayRuntime(work, hash));
   await cp(join(root, "tools/plaincad/PlainSolidKernel.ts"), join(work, "src/cad/kernel/OpenCascadeKernel.ts"));
   let vite = await readFile(join(work, "vite.config.ts"), "utf8");
   vite = vite.replace("export default defineConfig({", 'export default defineConfig({\n  cacheDir: ".plainSolidViteCache",');

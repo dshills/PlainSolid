@@ -126,6 +126,7 @@ type Shape struct {
 	Bounds             Bounds              `json:"bounds"`
 	RepairEvidence     *stepRepairEvidence `json:"repairEvidence,omitempty"`
 	NativeProof        *json.RawMessage    `json:"nativeProof,omitempty"`
+	NativeProofJSON    string              `json:"nativeProofJSON,omitempty"`
 }
 type stored struct {
 	solid           brep.Solid

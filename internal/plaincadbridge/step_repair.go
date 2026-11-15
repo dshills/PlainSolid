@@ -19,6 +19,7 @@ import (
 type stepRepairRequest struct {
 	MaxDistance number `json:"maxDistance"`
 	Native      bool   `json:"native,omitempty"`
+	NativeText  bool   `json:"nativeText,omitempty"`
 }
 
 type stepRepairEvidence struct {
@@ -88,25 +89,26 @@ func (b *Bridge) putSTEPRepair(ctx context.Context, material stepRepairMaterial,
 	var d step.ExactCircularLoopExtrusion
 	var pose *rigidplacement.RationalRigid
 	var err error
+	wantNative := q.Native || q.NativeText
 	switch m := material.(type) {
 	case step.PCurveRepairedOCCTConvexArcExtrusion:
 		d = m.Descriptor()
 		evidence.Family = "occt-single-pcurve-convex-arc"
-		if q.Native {
+		if wantNative {
 			err = step.WritePCurveRepairedOCCTConvexArcJSON(ctx, &proof, m)
 		}
 	case step.GroupedPCurveRepairedOCCTConvexArcExtrusion:
 		d = m.Descriptor()
 		evidence.Family = "occt-grouped-pcurve-convex-arc"
 		evidence.RationalCaps = len(m.RationalCaps())
-		if q.Native {
+		if wantNative {
 			err = step.WriteGroupedPCurveRepairedOCCTConvexArcJSON(ctx, &proof, m)
 		}
 	case step.PosedGroupedPCurveRepairedOCCTConvexArcExtrusion:
 		d = m.Descriptor()
 		evidence.Family = "occt-posed-grouped-pcurve-convex-arc"
 		evidence.RationalCaps = len(m.RationalCaps())
-		if q.Native {
+		if wantNative {
 			err = step.WritePosedGroupedPCurveRepairedOCCTConvexArcJSON(ctx, &proof, m)
 		}
 	case step.RationalPosedPCurveRepairedOCCTConvexArcExtrusion:
@@ -115,7 +117,7 @@ func (b *Bridge) putSTEPRepair(ctx context.Context, material stepRepairMaterial,
 		pose = &p
 		evidence.Family = "occt-rational-posed-single-pcurve-convex-arc"
 		evidence.FiniteLineOwners = len(m.FiniteLineOwners())
-		if q.Native {
+		if wantNative {
 			err = step.WriteRationalPosedPCurveRepairedOCCTConvexArcJSON(ctx, &proof, m)
 		}
 	case step.RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion:
@@ -126,7 +128,7 @@ func (b *Bridge) putSTEPRepair(ctx context.Context, material stepRepairMaterial,
 		evidence.RationalCaps = len(m.RationalCaps())
 		evidence.FiniteLineOwners = len(m.FiniteLineOwners())
 		evidence.AxialTrims = len(m.AxialTrims())
-		if q.Native {
+		if wantNative {
 			err = step.WriteRationalPosedGroupedPCurveRepairedOCCTConvexArcJSON(ctx, &proof, m)
 		}
 	default:
@@ -160,6 +162,10 @@ func (b *Bridge) putSTEPRepair(ctx context.Context, material stepRepairMaterial,
 	if q.Native {
 		raw := json.RawMessage(proof.Bytes())
 		shape.NativeProof = &raw
+	}
+	if q.NativeText {
+		// Preserve the codec's numeric lexemes through JavaScript transports.
+		shape.NativeProofJSON = proof.String()
 	}
 	stored := b.shapes[shape.Handle]
 	stored.result = shape
