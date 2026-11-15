@@ -143,6 +143,9 @@ nonplanar cubic, keep three inferred events with mixed joint and independent
 support ownership. The independently authored rational cubic keeps exact
 non-dyadic model stations without inserting new stored source knots, even
 when the two original owner curves have independent projective laws.
+Both original resolved roofs may also carry distinct rational off-seam
+controls; strict source replay and closed display retain the same station
+ownership.
 Five separated fillets on an original OCCT tilted pentagonal prism now qualify
 original millimetre, metre and inch STEP with independent antipodal owners.
 Native race on `491b18f1` is running. The newer ordinary run on `5181d219`
@@ -155,9 +158,11 @@ of both original cap holes and the inward-cylinder seam, exact native
 material, and strict canonical STEP reopen.
 Vet and Windows amd64 cross-build pass on `ab33a412`. The converted five-fillet
 inputs passed the focused native bridge and both actual WASM runtimes, with
-one legacy timing retry recorded. Current work covers analytic cap overlay
-physical complement regions, editable named multi-inset documents, the tilted
-bore PlainCAD route and rational off-seam support charts.
+one legacy timing retry recorded. The unequal-footprint geometry also
+proves exact complement volumes and original wall owners. Current work
+covers native stepped walls on those footprints, editable named multi-inset
+documents, the tilted bore PlainCAD route and multiple original rational
+STEP model cells.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
 

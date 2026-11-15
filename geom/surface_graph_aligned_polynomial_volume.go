@@ -37,6 +37,14 @@ func IntegrateAlignedSplineGraphPolynomialVolumes(ctx context.Context, a, b *Sur
 }
 
 func polynomialVolumeDiscovery(reverse bool, affineAreaScale *big.Rat, volumes *polynomialPositiveVolumes) polynomialArrangementDiscovery {
+	orders := [2]*polynomialPositiveVolumes{volumes, nil}
+	if reverse {
+		orders = [2]*polynomialPositiveVolumes{nil, volumes}
+	}
+	return polynomialVolumeOrdersDiscovery(affineAreaScale, orders)
+}
+
+func polynomialVolumeOrdersDiscovery(affineAreaScale *big.Rat, orders [2]*polynomialPositiveVolumes) polynomialArrangementDiscovery {
 	return func(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphPolynomialArrangement, error) {
 		var arrangement SplineGraphPolynomialArrangement
 		mode := polynomialGraphContactMode{
@@ -45,20 +53,28 @@ func polynomialVolumeDiscovery(reverse bool, affineAreaScale *big.Rat, volumes *
 				if e := arrangement.certifyArrangement(ctx, a, pair, roots, domain, budget); e != nil {
 					return e
 				}
-				regions, scale := arrangement.Regions, pair.heightScale
-				if reverse {
-					regions = slices.Clone(regions)
-					for i := range regions {
-						regions[i].HeightSide = -regions[i].HeightSide
+				for order, volumes := range orders {
+					if volumes == nil {
+						continue
 					}
-					scale = new(big.Rat).Neg(scale)
-					if e := budget.check(scale); e != nil {
+					regions, scale := arrangement.Regions, pair.heightScale
+					if order == 1 {
+						regions = slices.Clone(regions)
+						for i := range regions {
+							regions[i].HeightSide = -regions[i].HeightSide
+						}
+						scale = new(big.Rat).Neg(scale)
+						if e := budget.check(scale); e != nil {
+							return e
+						}
+					}
+					var e error
+					*volumes, e = integratePolynomialPositiveLayers(ctx, arrangement.Power, regions, arrangement.ContactOrder, roots, domain, scale, budget)
+					if e != nil {
 						return e
 					}
 				}
-				var e error
-				*volumes, e = integratePolynomialPositiveLayers(ctx, arrangement.Power, regions, arrangement.ContactOrder, roots, domain, scale, budget)
-				return e
+				return nil
 			},
 		}
 		pair, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, mode)

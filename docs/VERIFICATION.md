@@ -300,6 +300,13 @@ kept its pristine hash. Raw results remain in
   distinct original owner laws and a 700-triangle closed display. Both
   false owner weights reject. The main live and byte compatibility race
   passed in 302.752 seconds.
+- Both off-seam rational roofs preserve the three model and independent
+  owner stations. The closed display retains all three exact stations
+  in 3,790 triangles at 0.10 face and 0.0125 boundary deflection. The
+  stricter 0.04 face setting exhausted the existing work budget. Pinned
+  original and canonical solids agree, and an independently authored
+  false interior support weight rejects before publication. The main
+  focused and legacy receipt race passed in 568.600 seconds.
 - Independently authored tilted STEP authentication recognizes both
   original interior cap wires, the inward cylinder and its paired periodic
   seam. Its corrected transfer reopens in pinned OCCT as one eight-face
@@ -320,6 +327,14 @@ kept its pristine hash. Raw results remain in
   and trimmed races passed in 14.903 and 169.686 seconds; 60 previous
   recipe digests matched in isolation. Face-touch-only footprints,
   gaps, nonbinary owner bounds and edited original extents reject.
+- Exact geometry on unequal footprints now partitions both complement
+  regions and records every original footprint side and directed wall
+  interval for Common, Fuse and both Cut orders. Independent integrals
+  preserve positive overlap regions down to
+  `112545421/22540516134989332480`. The separately checked main geometry
+  races passed in 10.678 seconds for the arrangement and 23.949 seconds
+  for the volume and wall ledger. Native stepped-wall assembly remains
+  open for Fuse and Cut.
 
 - Quintic native Common/Fuse and Cut with three transverse crossings and a
   quadratic tangency, plus exact curved inner wires, passed a combined main
