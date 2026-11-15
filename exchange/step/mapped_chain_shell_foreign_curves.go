@@ -70,7 +70,11 @@ func proveMappedChainSTEPTransfer(ctx context.Context, support geom.Surface, sou
 			return trimmed.MappedSplineUV{}, nil, err
 		}
 		if asynchronous {
-			q, cut, err := trimmed.ProveMappedSplineAsynchronousTransfer(ctx, support, source, model, o)
+			prove := trimmed.ProveMappedSplineAsynchronousTransfer
+			if cellLocal {
+				prove = trimmed.ProveMappedSplineCellLocalAsynchronousTransfer
+			}
+			q, cut, err := prove(ctx, support, source, model, o)
 			if cut == nil {
 				return q, nil, err
 			}

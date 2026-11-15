@@ -331,7 +331,9 @@ func CertifyMappedSplineChainMultipleSupportKnotsAgreement(ctx context.Context, 
 // common cells with two transverse crossings each. Each cell has one shared
 // support event and one event from a single owner. The single-owner events
 // belong to opposite roofs. A third original common cell can contribute one
-// more shared crossing. Every authored roof knot contributes exactly once.
+// more shared crossing. The separated arrangement has one shared-plus-single
+// cell and an opposite single-owner event beyond an event-free original cell.
+// Every authored roof knot contributes exactly once.
 func CertifyMappedSplineChainCellLocalSupportKnotsAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
 	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainCellLocalKnotsRepair)
 }

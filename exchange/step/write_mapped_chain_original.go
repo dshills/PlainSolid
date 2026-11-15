@@ -32,7 +32,8 @@ func WriteMappedChainRectangularOriginalShell(ctx context.Context, w io.Writer, 
 	}
 	independent := source.Shell.IndependentOwnerBases()
 	if independent[0] == independent[1] || len(source.Crossings) < 3 || len(source.Crossings) > 6 ||
-		(!allMappedChainCrossingsOnOneEdge(source.Crossings) && mappedChainCrossingLocalCellCount(source.Crossings) == 0) {
+		(!allMappedChainCrossingsOnOneEdge(source.Crossings) && mappedChainCrossingLocalCellCount(source.Crossings) == 0 &&
+			!mappedChainSeparatedSupportCells(source.Chain, source.Crossings)) {
 		return fmt.Errorf("original mixed STEP export requires a supported source-edge support-knot partition: %w", geom.ErrConvergence)
 	}
 	file, err := Parse(strings.NewReader(source.original), l)
