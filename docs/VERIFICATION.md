@@ -20,7 +20,9 @@ The [Go `4078f85a` rerun](evidence/main-4078f85a-qualification-2026-11-14.json)
 records the three preflight fixture failures and the complete pinned STEP
 package rerun with the exact one-line catalog correction `36380200`.
 The corrected STEP run passed 1,098 top-level cases with 214 optional
-skips in 665.561 seconds. The three unchanged trimmed lanes remain active.
+skips in 665.561 seconds. The three unchanged trimmed lanes finished
+with 1,204 passes and 15 optional skips across their exact 1,219-case
+inventory.
 
 The independent OCCT prism comparator passed 48 original constructions,
 including through, one-ended and interior side cuts against a shared stock
@@ -6563,3 +6565,106 @@ circular link fans at one vertex, which the strict native result reports.
 Multispan border sewing retains the exact original model split at
 `1/3` with lossless original chart and output vertex coordinates. The
 knot and coedge agreement are verified on native reload.
+
+### Exact model rays, polygon link normalization, and curved STEP
+
+The rational spline contact test retains original coordinates `1/3`
+and `3/5`, finds the exact nonnormalized line parameter `7/6`, and
+certifies negative crossing orientation. It also exercises an original
+support edge and confirms a coefficient limit leaves a pending cell.
+The original quartic cavity point query proves both occupancy signs and
+nonbinary boundary height. An exact ray through the two shells returns
+three correctly oriented crossings with the stock exit at parameter
+two. The focused geometry and trimmed race tests passed in 2.533 and
+58.424 seconds respectively.
+
+The forward full-width polygon Cut retains 42 original triangles, 63
+edges and 23 native vertex indices with Euler characteristic two. The
+two indices at `(0,-1,0)` have circular links of four and six faces.
+The exact all-pair proof classifies 861 triangle pairs. Native reload
+preserves separate indices and the original source comparison repeats
+the contact proof. The independent OCCT comparison returned one solid
+of volume 27.296874999999996 and one vertex identity at that point.
+The exact native volume is `1747/64`. Strict operations still reject
+the pinched embedding.
+
+The independent parabolic STEP roof preserves 24 original pcurves.
+Source, native reload and generated STEP match OCCT volume 28, area
+58.149412499881279 and six faces. A second authored source uses
+quadratic pcurves with distinct quarter and half interior knots. Whole
+original spline identities retain each ownership record, and the
+combined main qualification passed in 12.861 seconds under race with
+both reference oracles active.
+
+The weighted curved seam fixture passed native reload with 420
+triangles and no unexpected contacts. The independently knotted curved
+seam passed with 288 triangles and 12 common seam samples. Both have
+exact source volume `23/448`. Mutated later spans, an excessive span
+count and exhausted work allowances reject before publishing a mesh.
+
+### Convex miter, thick-solid, and authored spline qualification
+
+The independent `3-4-5` triangular prism has volume 30. The outward
+and inward normal offsets of `1/2` each retain five faces and agree
+with OCCT volumes 81 and 6 and surface areas 135 and 27. Eroding the
+clipped-corner prism by `3/2` removes the corner facet at exact edge
+contact and leaves a six-face box of volume two. Further collapse to
+a segment returns empty material. The direct OCCT offset at the exact
+extinction event retained a seventh degenerate face and failed its
+shape validity check. The native tilted stock with an open top gives
+one nine-face shell, exact volume `93/4` and area 99. This agrees with
+the independently authored OCCT thick solid. The full planar BRep
+package passed under race with the OCCT comparator enabled.
+
+The exact rational query classifies the shared vertex `x=1/3` on its
+original support. Its stored float64 display position is outside that
+stock and both point-query APIs preserve the distinction. The weighted
+seam ledger retains an independently evaluated original raw parameter
+on both owners, including reversed traversal. Native reload and closed
+meshing passed with 420 triangles and 23 shared seam samples. Splitting
+a distinct cubic seam at its exact original station retains the source
+poles and knots on both child ranges. The reloaded closed display has
+288 triangles, no unexpected contacts, and the same `23/448` source
+volume. The standalone main seam split race passed in 9.045 seconds.
+
+The bicubic AP242 roof measures volume 90 with centroid
+`(159/50,159/50,359/280)`. Independent OCCT measured area
+139.72366383868012 and six faces. The shared-speed rational roof
+independently checks positive source ratios two and one half. Each
+model edge and both pcurves satisfy the same exact homogeneous map.
+Both source replays and generated output returned the original six
+faces, volume 28 and area 58.14941249988127. The focused rational
+source suite passed in 14.304 seconds under race on main.
+
+The unequal-setback convex chamfer uses setbacks `1/2` and `5/8` on
+the original acute oblique edge. Both source-face orders give six
+facets, volume `945/32`, and area `1089/16`. Pinned OCCT returned a
+valid matching solid with the oblique reference face. Its opposite
+reference-face order returned an invalid solid in the control. The
+closed inward cavity has two oriented shells and volume 24. The
+opposite-cap opening has two lips on one connected shell and volume
+`45/2`. Both area-99 outputs match independent OCCT constructions.
+
+The rotated elliptical graph Boolean uses original knot partitions
+on different axes. Native reload re-proves the retained original model
+edges for all operations and both operand orders. Independent OCCT
+volume differences were below `6e-11`. Two disjoint circular loops on
+one original roof produce two independent four-edge lens boundaries,
+while Common and Fuse retain both holes on the original exterior roof.
+The independent OCCT comparison returns the same two forward Cut
+solids and volumes within `2e-10`. At this milestone the reverse Cut
+remains rejected at a near-collinear original wall seed.
+
+The nonplanar AP242 `BREP_WITH_VOIDS` fixture has two original
+six-face spline shells. Original source, source-bound native reload and
+generated STEP retain inward orientation and strict containment. The
+independent OCCT comparison reports volume `441/16`, area
+61.783750781123864 and 12 faces. The focused main STEP cavity race
+passed in 37.133 seconds.
+
+The [completed PlainCAD record](evidence/plaincad-main-35c79311-2026-11-14.json)
+retains all original and corrected browser results. The configured
+development run passed 345 tests. Production passed all 66 with the
+unchanged Playwright driver and in-flight WASM response hashing. The
+original inspector-cache control and the test-only repairs are recorded
+with the WASM, driver and archive hashes.

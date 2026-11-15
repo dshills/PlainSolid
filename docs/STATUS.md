@@ -10,7 +10,7 @@ The [full ordinary Go run](evidence/main-6c4ab7c4-qualification-2026-11-14.json)
 on `6c4ab7c4` accounted for 4,567 passing top-level cases, 421 explicit
 optional skips and five packages without tests. All 1,081 trimmed-solid
 cases were accounted for, with 1,068 passes and 13 optional skips.
-The [newest full PlainCAD qualification](evidence/plaincad-main-acf376e1-2026-11-14.json)
+The [earlier full PlainCAD qualification](evidence/plaincad-main-acf376e1-2026-11-14.json)
 uses provider `acf376e1` and app `efae4d2`. Its WASM build, typecheck, bundle
 budgets, 345 development cases, 15 cross-browser cases, 1,691 ordinary
 units and four WASM contract cases passed. The production control passed
@@ -37,11 +37,23 @@ preflight catalog did not recognize `SPECIFIED_HIGHER_USAGE_OCCURRENCE`.
 The entire pinned STEP package passed after the one-line catalog correction
 in `36380200`.
 
-The refreshed macOS, Linux arm64 and PlainCAD runs use pinned kernel
-`35c79311`. The Linux geometry package passed all 945 required cases
-after the original parameter domain changes in `c855ecaa`, with one
-optional skip. The pinned Windows amd64 build passed.
+The refreshed macOS and Linux arm64 runs use pinned kernel `35c79311`.
+The macOS run finished every package outside `brep/trimmed`, with
+3,657 passing top-level cases and 436 optional skips. The three pinned
+trimmed groups and the Linux run are in progress. The Linux geometry
+package passed all 945 required cases after the original parameter
+domain changes in `c855ecaa`, with one optional skip. The pinned
+Windows amd64 build passed.
 [Linux geometry qualification](evidence/linux-geometry-go126-2026-11-14.json).
+
+The [newest full PlainCAD qualification](evidence/plaincad-main-35c79311-2026-11-14.json)
+uses the same pinned kernel and app `efae4d2`. The corrected toolbar
+locator passed the full 345-case development run on its configured
+origin. The direct asset-capture fixture passed all 66 production
+cases with the standard Playwright driver. The WASM build, typecheck,
+bundle limit, 15 cross-browser cases, 1,691 ordinary units and four
+WASM contracts also passed. The original failure controls and the
+interrupted alternate-origin development run are retained in the record.
 
 Ordered roof Common and matching-footprint Fuse retain genuine original
 spline creases and imprint exact axis-aligned crossings inside original
@@ -2551,3 +2563,77 @@ images of isolated roots through degree eight. Its quotient-algebra
 characteristic polynomial uses exact rational matrix operations and
 the output is independently isolated and compared in the original
 coordinate system.
+
+### Exact model queries, source-bound curved imports, and conforming seams
+
+`LocateRationalSplineMaterialPoint` and `SplineRayRational` preserve
+the caller's exact model coordinates and direction scale. The regular
+spline contact isolator and the original-edge contact proof use the
+same exact line. Point membership can recover nonbinary original UV
+from an affine-placed nonlinear graph. The cavity case classifies
+inside, outside, and exact boundary points with inward and outward
+source faces. Tangencies and unresolved trim-boundary crossings still
+need a complete proof before contributing to a material winding.
+
+The nonplanar native STEP routes retain original 3D supports and actual
+owner pcurves under complete model and UV agreement. The independent
+parabolic roof passes with both linear and multispan quadratic original
+pcurves. Source-bound native reload re-proves the imported records.
+The bicubic fixture varies along both graph axes. A further source route
+proves that the original rational model and both owner curves use the
+same strictly increasing endpoint-fixed map. The native material uses
+the certified normalized speed, and the original coefficients and
+map remain in source provenance. The proof is bounded to a six-face
+material family.
+
+Closed mixed meshes accept original weighted curved seams with separate
+source domains and independently inserted knots. The complete exact
+identity authorizes one shared sample network. The checked cases cover
+all active source spans, reject mutations in later cells, and retain
+the original knots through native reload. The sample ledger records both
+normalized and authored source parameters on weighted original curves.
+The curved seam split retains independently knotted source curves with
+their original reversal and restricted raw ranges. Exact complementary
+range merges restore the authored knot, pole and weight records. Arbitrarily
+different nonlinear parameter laws on the two owners remain open.
+
+The opt-in polygon Cut with separated vertex links retains one connected
+boundary with two circular vertex links at one isolated original point.
+All resulting face pairs are checked for additional contacts. The
+reported contact retains both native vertex IDs and the original source
+event. Native serialization preserves the two IDs. The original source
+pair is required to re-prove the global contact report after reload.
+This topology has an isolated self-contact, so embedded-manifold
+operations require their own embedding proof.
+
+### Convex planar offsets and wall thickness
+
+`brep.Solid.OffsetConvex` certifies the complete convex source boundary,
+translates its support planes by signed normal distance, and constructs
+the result from their exact halfspace intersections. It returns the
+original face map and removes facets with only lower-dimensional
+contact. Boundary collapse regularizes to empty material.
+`ThickenConvexOpenFace` retains the selected support as the lip, keeps
+the other outer faces, and sews the inward offset walls around one
+opening. `ThickenConvex` also qualifies separate openings or a closed
+inward cavity. `ChamferConvexEdge` constructs an exact planar transition
+from possibly unequal setbacks on its two original incident supports.
+The translated supports require rational normal lengths and exactly
+representable vertices. Curved offsets and general rolling ball
+transitions remain open.
+
+### Original curved loops and STEP cavities
+
+The automatic graph Boolean uses bounded rational direction recovery
+for circular and rotated elliptical contacts and re-proves the full
+original conic. The rotated fixture has separate knot directions on
+the two original supports. A separate two-slab family proves both
+closed section loops and excludes contacts at the separator. Common
+and Fuse retain two trim holes and the forward Cut returns two closed
+components. The reverse Cut still needs the original near-collinear
+C0 display wall to pass the native triangulator.
+
+The nonplanar STEP cavity route authenticates the original outer and
+reversed inner shell from `BREP_WITH_VOIDS`. Each shell retains its
+complete owner graph. Exact original separation and containment are
+re-proved after source-bound native reload and writer generation.

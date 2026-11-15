@@ -1,0 +1,204 @@
+{
+  "schema": 1,
+  "kernelRevision": "35c79311bd39f84cf8918b571458ba242ba55246",
+  "appRevision": "efae4d2ffa6065875d3a76fc5926f358b5936a29",
+  "checkpointAt": "2026-11-14T21:17:09-06:00",
+  "status": "completed after isolated PlainCAD test fixture corrections using the configured runner origins",
+  "stagedAppRoot": "/tmp/plainsolid-refresh-plaincad.juLm9D",
+  "tools": {
+    "go": "go version go1.27.4 darwin/arm64",
+    "node": "v26.13.1",
+    "playwright": "1.63.0"
+  },
+  "wasm": {
+    "path": "/tmp/plainsolid-refresh-plaincad.juLm9D/src/cad/kernel/plainsolid-kernel.wasm",
+    "bytes": 16611267,
+    "sha256": "cab13effcf6453b75a85431e31846b057d7aaaf6652de2282134db361e8b24ef"
+  },
+  "wasmRuntime": {
+    "path": "/tmp/plainsolid-refresh-plaincad.juLm9D/src/cad/kernel/wasm_exec.js",
+    "bytes": 16992,
+    "sha256": "0c949f4996f9a89698e4b5c586de32249c3b69b7baadb64d220073cc04acba14"
+  },
+  "build": {
+    "jsBundles": 72,
+    "largestBundleKB": 496.5,
+    "limitKB": 500
+  },
+  "originalExitCodes": {
+    "wasm": 0,
+    "build": 0,
+    "types": 0,
+    "selected-kernel": 0,
+    "development": 1,
+    "production": 1,
+    "capture-control": 0,
+    "production-buffered": 0,
+    "cross-browser": 0,
+    "ordinary-units": 0
+  },
+  "tests": {
+    "developmentControl": {
+      "path": "/tmp/plainsolid-refresh-plaincad.juLm9D/development.json",
+      "bytes": 414633,
+      "sha256": "81efc06ab150ba882de16d9f41c6171e2f00060ea5bf410d45aca185a4b4133a",
+      "summary": {
+        "startTime": "2026-11-15T02:03:34.957Z",
+        "duration": 2205677.153,
+        "expected": 344,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      }
+    },
+    "focusedScopedLocator": {
+      "path": "/tmp/plainsolid-plaincad-35c79311-locator.KhmbJP/fastener-repair.json",
+      "bytes": 6603,
+      "sha256": "9f86fc95b0f25f6213f66992afd4c8218081180a106346808f99ba57e814f3d2",
+      "summary": {
+        "startTime": "2026-11-15T02:12:58.399Z",
+        "duration": 21625.272,
+        "expected": 4,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "developmentConfiguredOrigin": {
+      "path": "/tmp/plainsolid-plaincad-35c79311-locator.KhmbJP/development-original-port.json",
+      "bytes": 408812,
+      "sha256": "f2820a0c819b67e6adc843bf29d72ada1e883cf79d3dce0ba62ad8c753c83b73",
+      "summary": {
+        "startTime": "2026-11-15T02:40:26.953Z",
+        "duration": 2168055.999,
+        "expected": 345,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "productionControl": {
+      "path": "/tmp/plainsolid-refresh-plaincad.juLm9D/production.json",
+      "bytes": 83846,
+      "sha256": "955d748ee0ca5a188c9679d7b12fa2a777eee7d8f4a75839762b7675f2906c1f",
+      "summary": {
+        "startTime": "2026-11-15T02:40:21.310Z",
+        "duration": 261953.838,
+        "expected": 65,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      }
+    },
+    "productionBufferedControl": {
+      "path": "/tmp/plainsolid-refresh-plaincad.juLm9D/production-buffered.json",
+      "bytes": 78757,
+      "sha256": "f41f63017571947a96e0c76fc7574762b802de21338e8fc7250a381a2e979f0e",
+      "summary": {
+        "startTime": "2026-11-15T02:44:43.956Z",
+        "duration": 276452.168,
+        "expected": 66,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "focusedWASMResponseCapture": {
+      "path": "/tmp/plainsolid-plaincad-csp-asset-capture.LK6ESQ/focused.json",
+      "bytes": 5486,
+      "sha256": "a328982b418ea2e680036395ba4c661db6c039ca54a2b4882a149331e048fd26",
+      "summary": {
+        "startTime": "2026-11-15T02:49:25.750Z",
+        "duration": 18936.95,
+        "expected": 3,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "productionStandardDriver": {
+      "path": "/tmp/plainsolid-plaincad-csp-asset-capture.LK6ESQ/production.json",
+      "bytes": 78817,
+      "sha256": "554e3e3ab8a59a55886fb58abdcc16dfda75587504167ed34e6f0478f5bb1e90",
+      "summary": {
+        "startTime": "2026-11-15T02:49:45.335Z",
+        "duration": 267904.022,
+        "expected": 66,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "crossBrowser": {
+      "path": "/tmp/plainsolid-refresh-plaincad.juLm9D/cross-browser.json",
+      "bytes": 456394,
+      "sha256": "dc0d55a59f7ed772b0f76fe26b14509b36a785f68dede2e8f78ccf7c44c1336c",
+      "summary": {
+        "startTime": "2026-11-15T02:49:20.960Z",
+        "duration": 62570.68,
+        "expected": 15,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "ordinaryUnits": {
+      "path": "/tmp/plainsolid-refresh-plaincad.juLm9D/ordinary-units.json",
+      "bytes": 659475,
+      "sha256": "a9de999e61d6ca913a2db7fa6e3b30bdbba288d5b8189fd90dc75efbf28300d4",
+      "summary": {
+        "numTotalTests": 1691,
+        "numPassedTests": 1691,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    },
+    "selectedActualWASM": {
+      "path": "/tmp/plainsolid-refresh-plaincad.juLm9D/selected-kernel.json",
+      "bytes": 2163,
+      "sha256": "7504f3e4dc531eefc571c9c5d549510f07f3d24aa55ab80f081bcde7960eafa5",
+      "summary": {
+        "numTotalTests": 4,
+        "numPassedTests": 4,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    }
+  },
+  "captureAdjustmentControl": {
+    "playwright": "1.63.0",
+    "chromiumNetworkBufferBytes": 134217728,
+    "chromiumResourceBufferBytes": 33554432,
+    "beforeSha256": "549070af3acabb3efcc4f55bfe6210f9f7c2fcf633cf7eaa59bfe60719969171",
+    "afterSha256": "2bad350c6198b7ebdb3875b91afdc1d61c15d1c5c84ccc6f483dddb5bc1e9a39",
+    "restoredSha256": "549070af3acabb3efcc4f55bfe6210f9f7c2fcf633cf7eaa59bfe60719969171"
+  },
+  "repairs": {
+    "development": {
+      "commit": "7b02b165",
+      "patch": "tools/plaincad/plaincad-fastener-preset-locator.patch",
+      "configuredOrigin": "http://127.0.0.1:5279",
+      "controlFailure": "The same accessible name matched two visible buttons before the hole operation ran.",
+      "rerun": "The original visibility and modeling assertions ran after limiting the action to the CAD toolbar.",
+      "discardedRun": "The attempted alternate-origin run was interrupted after two origin-specific storage tests failed. The configured original-origin full run supersedes it.",
+      "alternateOriginReport": {
+        "path": "/tmp/plainsolid-plaincad-35c79311-locator.KhmbJP/development-repaired.json",
+        "bytes": 324173,
+        "sha256": "74cbededc78238b4aa38ed64a2d46d3af1573474a334f1fea0d7d6ce34e1da8a"
+      }
+    },
+    "production": {
+      "commit": "7f818706",
+      "patch": "tools/plaincad/plaincad-production-wasm-capture.patch",
+      "configuredOrigin": "http://127.0.0.1:5280",
+      "controlFailure": "Chromium evicted the fingerprinted WASM body from the inspector before Playwright collected it.",
+      "rerun": "The test forwarded the real preview response for the actual requested WASM, compared its digest with the manifest, and checked Chromium-observed statuses and security headers.",
+      "standardDriverSha256": "549070af3acabb3efcc4f55bfe6210f9f7c2fcf633cf7eaa59bfe60719969171"
+    }
+  },
+  "archive": {
+    "path": "/tmp/plainsolid-plaincad-main-35c79311-2026-11-14.tar.gz",
+    "bytes": 567924,
+    "sha256": "603441f7ad2ba2452002145e1d359e54ba26ed4cb8834569f4dac0b400faebe4"
+  }
+}

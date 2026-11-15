@@ -122,5 +122,30 @@
     "cgoEnabled": 0,
     "command": "go build ./...",
     "exitCode": 0
+  },
+  "nativeCallers": {
+    "path": "/tmp/plainsolid-linux-exact-geometry-repair.M1Fpze/logs/go126-native-callers.jsonl",
+    "bytes": 3793,
+    "sha256": "b725d31391b529c84ce6169a68544f889f7999f7e4c3a0d8653e506855376908",
+    "passedPackages": {
+      "plainsolid/brep/trimmed": 16.111,
+      "plainsolid/intersect": 25.51
+    },
+    "topLevelPasses": 4,
+    "tested": [
+      "TestCombineSplineShellsConvexAffinePolygonCrossing",
+      "TestSewExactSplineSubdivisions",
+      "TestCombineSplineShellsClosedEllipseTangency",
+      "TestAutomaticClosedYZGraphPair"
+    ]
+  },
+  "macOSGeometryRace": {
+    "path": "/tmp/plainsolid-geometry-portability-main-race.jsonl",
+    "bytes": 736435,
+    "sha256": "ecf53e67a444ef735b0dfa430673d34dd24040e578b6f70d35188cba36a2d478",
+    "passedPackages": {
+      "plainsolid/geom": 192.711
+    },
+    "topLevelPasses": 945
   }
 }
