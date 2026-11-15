@@ -16,6 +16,12 @@ type and size runs on `0e57c2d8`. All 66 production cases passed after
 the test driver's temporary Chromium response buffer increase. The
 unadjusted control retained one inspector-cache eviction.
 
+The [Go `4078f85a` rerun](evidence/main-4078f85a-qualification-2026-11-14.json)
+records the three preflight fixture failures and the complete pinned STEP
+package rerun with the exact one-line catalog correction `36380200`.
+The corrected STEP run passed 1,098 top-level cases with 214 optional
+skips in 665.561 seconds. The three unchanged trimmed lanes remain active.
+
 The independent OCCT prism comparator passed 48 original constructions,
 including through, one-ended and interior side cuts against a shared stock
 wall. Exact affine imprint subdivision produced 60 triangles with 35
@@ -39,6 +45,18 @@ proper negative-axis occurrences. The integrated group passed under
 race in 60.875 seconds. The coincident trim section test covers a
 reversed original cubic over knot range `[2,6]`, the opposing face's
 hole, two retained closed-face runs, and source-bound native reload.
+
+Independent OCCT split the reversed simultaneous affine Cut into two
+solids, with volumes agreeing with the exact `7/32` and `77/64` result.
+The native arrangement proves their sole shared vertex from opposite
+original halfspaces. Two inclined cap Fuse fixtures with genuine
+nonparallel extrusion directions produced volumes `39/4` and `25/2`
+in both operand orders. Their integrated dispatch and live comparisons
+passed under race. Independent OCCT returned an empty regularized Common
+for the quartic closed tangency ring and a Cut with unit volume, area six
+and the original stock centroid. A rotated nonplanar repeated loop
+and a rational double-contact arc clipped against a slanted original
+hole passed their focused race checks, including exact algebraic roots.
 
 ## Native qualification and piecewise reconstruction (2026-11-14)
 

@@ -28,6 +28,13 @@ optional skips, with no duplicate or unresolved cases.
 General curved Boolean assembly, advanced surface modeling and broader CAD
 exchange remain required under the specification.
 
+The [ordinary Go rerun on `4078f85a`](evidence/main-4078f85a-qualification-2026-11-14.json)
+has completed the packages outside `brep/trimmed`. Three independently
+authored AP242 fixture inventories initially failed because the STEP
+preflight catalog did not recognize `SPECIFIED_HIGHER_USAGE_OCCURRENCE`.
+With the one-line catalog correction in `36380200`, the entire pinned
+STEP package passed. The three trimmed groups continue on the pinned source.
+
 Ordered roof Common and matching-footprint Fuse retain genuine original
 spline creases and imprint exact axis-aligned crossings inside original
 knot rectangles. Adjacent cap tiles share the same exact edge. Crossings
@@ -93,8 +100,23 @@ coedge spans contribute closed-face section intervals with original
 algebraic endpoint identities. Mapped whole spline face equality retains
 the original outer and hole identities in all eight supported chart
 symmetries, including bounded one-to-many trim refinements and hole
-permutations. Independently authored anisotropic filled and bored NURBS
-round-trip in STEP as individual solids and flat shared-product assemblies.
+permutations. Exact orthogonal and convex polygon chart overlays reconstruct
+material boundaries and hole loops. Convex affine Cut can certify two
+separate manifold components meeting at a single proved original point.
+Inclined cap joins with nonparallel original extrusion directions now pass
+all face-pair checks and preserve original source faces and overlap-edge
+owners. Exact closed ellipse tangency produces a regularized empty Common
+and a source-preserving Cut. Rotated tangent sections retain both originals
+across knot events, and nonlinear double-contact arcs retain original coedge
+parameters through rational spline trims.
+
+Independently authored anisotropic filled and bored NURBS round-trip in
+STEP as individual solids and flat or nested shared-product assemblies.
+The exact rational occurrence path retains original frame and use records.
+A source with compound oblique parent transforms retains its exact
+`(-7/25, 24/25)` planar direction components on native reload. Generated
+flat occurrences accept lossless STEP decimal frames and reprove every
+original material support and occurrence before writing.
 
 Recent native progress covers the original mixed curved intersection, union,
 and difference (`407ea58d`), revalidated persistence and conservative volume

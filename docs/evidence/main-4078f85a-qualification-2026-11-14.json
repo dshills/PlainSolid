@@ -1,0 +1,186 @@
+{
+  "checkpointAt": "2026-11-14T19:22:44-06:00",
+  "snapshot": "4078f85abf4f1ceb4fb40341ad0cea5563070790",
+  "status": "all ordinary nontrimmed packages accounted for after the scoped STEP correction; full trimmed groups running",
+  "command": "CGO_ENABLED=0 GOMAXPROCS=2 ordinary Go test, count 1, all packages with three deterministic brep/trimmed lanes",
+  "lanes": {
+    "packages": {
+      "path": "/tmp/plainsolid-refresh-go.rPwzm1/packages.jsonl",
+      "bytesAtCheckpoint": 5699319,
+      "sha256AtCheckpoint": "943eca61f4aa4a5a4d507f304ba951878ff54e656e6c989b24aeaeb37e9d5927",
+      "packages": {
+        "fail": 1,
+        "pass": 50,
+        "skip": 4
+      },
+      "terminalPackages": {
+        "plainsolid/brep/edgecheck": "pass",
+        "plainsolid/brep/faceclip": "pass",
+        "plainsolid/brep": "pass",
+        "plainsolid/brep/placement": "pass",
+        "plainsolid/brep/splinebounds": "pass",
+        "plainsolid/brep/support": "pass",
+        "plainsolid/brep/trimvalidate": "pass",
+        "plainsolid/brep/trimvalidate/adapter": "pass",
+        "plainsolid/capability": "pass",
+        "plainsolid/cmd/plaincadwasm": "skip",
+        "plainsolid/collision": "pass",
+        "plainsolid/csg": "pass",
+        "plainsolid/csg/draft": "pass",
+        "plainsolid/csg/elbow": "pass",
+        "plainsolid/csg/feature": "pass",
+        "plainsolid/csg/fillet": "pass",
+        "plainsolid/csg/loft": "pass",
+        "plainsolid/brep/parametric": "pass",
+        "plainsolid/csg/poly": "pass",
+        "plainsolid/csg/prism": "pass",
+        "plainsolid/csg/thread": "pass",
+        "plainsolid/csg/offset": "pass",
+        "plainsolid/examples/boredplate": "pass",
+        "plainsolid/examples/bracket": "pass",
+        "plainsolid/examples/ellipticallens": "pass",
+        "plainsolid/examples/pressurecap": "pass",
+        "plainsolid/examples/splineenvelope": "pass",
+        "plainsolid/examples/tubelens": "skip",
+        "plainsolid/examples/wrappedbore": "pass",
+        "plainsolid/exchange": "pass",
+        "plainsolid/exchange/analytic": "pass",
+        "plainsolid/exchange/cylinder": "pass",
+        "plainsolid/exchange/cylindercells": "pass",
+        "plainsolid/exchange/extrusion": "pass",
+        "plainsolid/exchange/iges": "pass",
+        "plainsolid/exchange/plane": "pass",
+        "plainsolid/exchange/revolution": "pass",
+        "plainsolid/exchange/sphere": "pass",
+        "plainsolid/document": "pass",
+        "plainsolid/exchange/torus": "pass",
+        "plainsolid/geom": "pass",
+        "plainsolid/heal": "pass",
+        "plainsolid/heal/frommesh": "pass",
+        "plainsolid/heal/unify": "pass",
+        "plainsolid/internal/ellipticprism": "skip",
+        "plainsolid/internal/occtcheck": "pass",
+        "plainsolid/internal/plaincadbridge": "pass",
+        "plainsolid/internal/testgraphfixture": "skip",
+        "plainsolid/exchange/step": "fail",
+        "plainsolid/mesh": "pass",
+        "plainsolid/query": "pass",
+        "plainsolid/scene": "pass",
+        "plainsolid/section": "pass",
+        "plainsolid/solid": "pass",
+        "plainsolid/intersect": "pass"
+      },
+      "topLevel": {
+        "pass": 3602,
+        "skip": 425,
+        "fail": 1
+      },
+      "includingSubtests": {
+        "pass": 6742,
+        "skip": 435,
+        "fail": 4
+      },
+      "activeTopLevel": {},
+      "failures": [
+        {
+          "package": "plainsolid/exchange/step",
+          "test": "TestPreflightIndependentFixtures/occt-ap242-combined-context-colors.step"
+        },
+        {
+          "package": "plainsolid/exchange/step",
+          "test": "TestPreflightIndependentFixtures/occt-ap242-deep-shuo-colors.step"
+        },
+        {
+          "package": "plainsolid/exchange/step",
+          "test": "TestPreflightIndependentFixtures/occt-ap242-shuo-colors.step"
+        },
+        {
+          "package": "plainsolid/exchange/step",
+          "test": "TestPreflightIndependentFixtures"
+        },
+        {
+          "package": "plainsolid/exchange/step",
+          "test": null
+        }
+      ]
+    },
+    "trimmed-0": {
+      "path": "/tmp/plainsolid-refresh-go.rPwzm1/trimmed-0.jsonl",
+      "bytesAtCheckpoint": 204727,
+      "sha256AtCheckpoint": "8b37466ee8c81b734a1ddde982b1a478c718c4d2adc70a7a2391ed89c005d31c",
+      "packages": {},
+      "terminalPackages": {},
+      "topLevel": {
+        "pass": 196
+      },
+      "includingSubtests": {
+        "pass": 235
+      },
+      "activeTopLevel": {
+        "plainsolid/brep/trimmed": "TestClipCrossingRationalGraphThroughHole"
+      },
+      "failures": []
+    },
+    "trimmed-1": {
+      "path": "/tmp/plainsolid-refresh-go.rPwzm1/trimmed-1.jsonl",
+      "bytesAtCheckpoint": 69006,
+      "sha256AtCheckpoint": "5b9bf6938e183a2d443188854f38f3efefb51e5c06c0dd2fdfb385c00c1283dc",
+      "packages": {},
+      "terminalPackages": {},
+      "topLevel": {
+        "pass": 60
+      },
+      "includingSubtests": {
+        "pass": 71
+      },
+      "activeTopLevel": {
+        "plainsolid/brep/trimmed": "TestAlgebraicShellTripleRadialMaterialComponents"
+      },
+      "failures": []
+    },
+    "trimmed-2": {
+      "path": "/tmp/plainsolid-refresh-go.rPwzm1/trimmed-2.jsonl",
+      "bytesAtCheckpoint": 70293,
+      "sha256AtCheckpoint": "e78b4e3f77a246e6318b5a41981853357380eb4b6a5f9d6a5b3ab253a1057484",
+      "packages": {},
+      "terminalPackages": {},
+      "topLevel": {
+        "pass": 67
+      },
+      "includingSubtests": {
+        "pass": 74
+      },
+      "activeTopLevel": {
+        "plainsolid/brep/trimmed": "TestCertifiedSelectedNestedDiskAnnulus"
+      },
+      "failures": []
+    }
+  },
+  "stepRerun": {
+    "source": "4078f85abf4f1ceb4fb40341ad0cea5563070790",
+    "onlyCorrection": "363802001d4a826e594f9ecca7c8c265ba38add8",
+    "correctedFile": "exchange/step/preflight.go",
+    "correction": "Catalog SPECIFIED_HIGHER_USAGE_OCCURRENCE as assembly. Existing independent fixture parsers and native color ownership are unchanged.",
+    "result": {
+      "path": "/tmp/plainsolid-4078f85a-step-fixed-qualification.jsonl",
+      "bytesAtCheckpoint": 2907187,
+      "sha256AtCheckpoint": "24383e99b74b0f641933e9686f19e1b34f8eed1582fbdf6ac1d2611fd9941467",
+      "packages": {
+        "pass": 1
+      },
+      "terminalPackages": {
+        "plainsolid/exchange/step": "pass"
+      },
+      "topLevel": {
+        "pass": 1098,
+        "skip": 214
+      },
+      "includingSubtests": {
+        "pass": 3355,
+        "skip": 224
+      },
+      "activeTopLevel": {},
+      "failures": []
+    }
+  }
+}
