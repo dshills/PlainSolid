@@ -85,19 +85,8 @@ func CutSplineGraphPolynomialMixedComponents(ctx context.Context, base, a, b *ge
 	if e != nil {
 		return nil, e
 	}
-	pieces, e := polynomialNodePieces(arrangement.Edges[:], uv[:])
-	if e != nil {
-		return nil, e
-	}
-	loops, e := polynomialNodeRegionLoops(arrangement.Regions[:], uv[:], pieces)
-	if e != nil {
-		return nil, e
-	}
-	bindLayer := func(part Solid, history OpenSectionHistory, loop []openSectionPiece) error {
-		return bindPolynomialCutSourceLayer(ctx, part, history, [2]*geom.BSplineSurface{a, b}, loop, o.Proof)
-	}
-	material, e := assemblePolynomialNodeCutComponents(ctx, a, b, tolerance, o.Proof,
-		arrangement.Regions[:], arrangement.Nodes[:], arrangement.Vertices[:], xyz[:], loops, bindLayer)
+	material, e := assemblePolynomialCutSourceComponents(ctx, a, b, tolerance, o.Proof, arrangement.Regions[:], arrangement.Edges[:],
+		arrangement.Nodes[:], arrangement.Vertices[:], uv[:], xyz[:])
 	if e != nil {
 		return nil, e
 	}
@@ -108,4 +97,23 @@ func CutSplineGraphPolynomialMixedComponents(ctx context.Context, base, a, b *ge
 		sources: [3]*geom.BSplineSurface{base, a, b}, material: material,
 		orders: arrangement.ContactOrder, derivatives: arrangement.DerivativeGap, axis: axis, tolerance: tolerance,
 	}, nil
+}
+
+// Assemble each positive region using the exact source loops and original
+// coedges. This path also binds regions with quadratic tangent boundaries.
+func assemblePolynomialCutSourceComponents(ctx context.Context, a, b *geom.BSplineSurface, tolerance float64, proof geom.GraphPointContactOptions,
+	regions []geom.SplineGraphPolynomialRegion, edges []geom.SplineGraphPolynomialPiece, nodes []geom.SplineGraphPolynomialJunction,
+	vertices []geom.SplineGraphPolynomialVertex, uv []geom.Vec2, xyz []geom.Vec3) (polynomialNodeCutMaterial, error) {
+	pieces, e := polynomialNodePieces(edges, uv)
+	if e != nil {
+		return polynomialNodeCutMaterial{}, e
+	}
+	loops, e := polynomialNodeRegionLoops(regions, uv, pieces)
+	if e != nil {
+		return polynomialNodeCutMaterial{}, e
+	}
+	bindLayer := func(part Solid, history OpenSectionHistory, loop []openSectionPiece) error {
+		return bindPolynomialCutSourceLayer(ctx, part, history, [2]*geom.BSplineSurface{a, b}, loop, proof)
+	}
+	return assemblePolynomialNodeCutComponents(ctx, a, b, tolerance, proof, regions, nodes, vertices, xyz, loops, bindLayer)
 }
