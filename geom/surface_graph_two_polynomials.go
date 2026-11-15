@@ -21,7 +21,7 @@ type SplineGraphTwoPolynomials struct {
 	Graph           SurfaceInjectivity
 	ExactOperations int
 
-	heightScale *big.Rat // signed physical coefficient when requested by a measure proof
+	heightScale *big.Rat // signed coefficient, with planar Jacobian for affine volume proofs
 }
 
 // DiscoverSplineGraphTwoPolynomials accepts dependent quadratics with nonzero
@@ -36,6 +36,7 @@ func DiscoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 type polynomialGraphContactMode struct {
 	crossings, tangencies, cubicCrossings, quarticTangencies int
 	polynomialHeight, allowQuintic, discoverArrangement      bool
+	affineAreaScale                                          *big.Rat
 	certify                                                  func(context.Context, *SurfacePatch, SplineGraphTwoPolynomials, []*big.Rat, ParameterRectangle, *polynomialBudget) error
 }
 
@@ -303,7 +304,7 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 		vlo := new(big.Rat).SetFloat64(cd.VMin)
 		vw := new(big.Rat).Sub(new(big.Rat).SetFloat64(cd.VMax), vlo)
 		if mode.polynomialHeight {
-			scale, e := graphPolynomialCellHeightScale(cell, c[2][0], vw, budget)
+			scale, e := graphPolynomialCellHeightScale(cell, c[2][0], vw, mode.affineAreaScale, budget)
 			if e != nil {
 				return r, e
 			}

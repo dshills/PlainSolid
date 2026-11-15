@@ -26,7 +26,7 @@ type AlignedSplineGraphPolynomialVolumes struct {
 // The alignment and root order remain in A's chart in both difference orders.
 func IntegrateAlignedSplineGraphPolynomialVolumes(ctx context.Context, a, b *SurfacePatch, axis int, reverse bool, o GraphPointContactOptions) (AlignedSplineGraphPolynomialVolumes, error) {
 	var volumes polynomialPositiveVolumes
-	proof, e := discoverAlignedSplineGraphPolynomialArrangement(ctx, a, b, axis, o, polynomialVolumeDiscovery(reverse, &volumes))
+	proof, e := discoverAlignedSplineGraphPolynomialArrangement(ctx, a, b, axis, o, polynomialVolumeDiscovery(reverse, nil, &volumes))
 	if e != nil {
 		return AlignedSplineGraphPolynomialVolumes{ExactOperations: proof.ExactOperations}, e
 	}
@@ -36,11 +36,11 @@ func IntegrateAlignedSplineGraphPolynomialVolumes(ctx context.Context, a, b *Sur
 	}, nil
 }
 
-func polynomialVolumeDiscovery(reverse bool, volumes *polynomialPositiveVolumes) polynomialArrangementDiscovery {
+func polynomialVolumeDiscovery(reverse bool, affineAreaScale *big.Rat, volumes *polynomialPositiveVolumes) polynomialArrangementDiscovery {
 	return func(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphPolynomialArrangement, error) {
 		var arrangement SplineGraphPolynomialArrangement
 		mode := polynomialGraphContactMode{
-			allowQuintic: true, polynomialHeight: true, discoverArrangement: true,
+			allowQuintic: true, polynomialHeight: true, discoverArrangement: true, affineAreaScale: affineAreaScale,
 			certify: func(ctx context.Context, a *SurfacePatch, pair SplineGraphTwoPolynomials, roots []*big.Rat, domain ParameterRectangle, budget *polynomialBudget) error {
 				if e := arrangement.certifyArrangement(ctx, a, pair, roots, domain, budget); e != nil {
 					return e

@@ -46,7 +46,7 @@ func IntegrateSplineGraphPolynomialMixedVolumes(ctx context.Context, a, b *Surfa
 	return result, nil
 }
 
-func graphPolynomialCellHeightScale(cell *SurfacePatch, numerator, dependentWidth *big.Rat, b *polynomialBudget) (*big.Rat, error) {
+func graphPolynomialCellHeightScale(cell *SurfacePatch, numerator, dependentWidth, affineAreaScale *big.Rat, b *polynomialBudget) (*big.Rat, error) {
 	weight := cell.net[0][3]
 	for _, p := range cell.net {
 		if e := b.check(p[3]); e != nil {
@@ -59,8 +59,10 @@ func graphPolynomialCellHeightScale(cell *SurfacePatch, numerator, dependentWidt
 	if weight.Sign() <= 0 {
 		return nil, ErrConvergence
 	}
-	if e := proveIdentityGraphCell(cell, b); e != nil {
-		return nil, e
+	if affineAreaScale == nil {
+		if e := proveIdentityGraphCell(cell, b); e != nil {
+			return nil, e
+		}
 	}
 	denominator := new(big.Rat).Mul(weight, dependentWidth)
 	denominator.Mul(denominator, dependentWidth)
@@ -68,6 +70,11 @@ func graphPolynomialCellHeightScale(cell *SurfacePatch, numerator, dependentWidt
 		return nil, e
 	}
 	scale := new(big.Rat).Quo(numerator, denominator)
+	if affineAreaScale != nil {
+		// The reference's affine projection and both original chart
+		// alignments already give the constant physical XY Jacobian.
+		scale.Mul(scale, affineAreaScale)
+	}
 	return scale, b.check(scale)
 }
 
