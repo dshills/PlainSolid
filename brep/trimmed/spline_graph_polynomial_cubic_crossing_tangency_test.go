@@ -63,17 +63,21 @@ func polynomialCubicCrossingTangencyEnvelopeMeasures(t *testing.T, profile int, 
 			t.Fatal("exact original Common material", exact)
 		}
 	}
+	area = polynomialPairSourceEnvelopeArea(fuse, []float64{0, .25, .75, 1}, cubicCrossingTangencyBranches(profile))
+	volume, _ = exact.Float64()
+	return area, volume
+}
+
+func cubicCrossingTangencyBranches(profile int) func(float64) (f, g, df, dg float64) {
 	cubic, tangent := [2]float64{.25, .75}[profile], [2]float64{.75, .25}[profile]
-	area = polynomialPairSourceEnvelopeArea(fuse, []float64{0, .25, .75, 1}, func(u float64) (f, g, df, dg float64) {
+	return func(u float64) (f, g, df, dg float64) {
 		f = ((u/8-3.0/8)*u+3.0/8)*u + .25
 		df = (3*u/8-.75)*u + .375
 		x, y := u-cubic, u-tangent
 		g = f - x*x*x*y*y
 		dg = df - x*x*y*(3*y+2*x)
 		return f, g, df, dg
-	})
-	volume, _ = exact.Float64()
-	return area, volume
+	}
 }
 
 func TestNativePolynomialCubicCrossingTangencyEnvelope(t *testing.T) {

@@ -119,14 +119,15 @@ Named document cap joins resolve original walls, split rims and vertices
 through edits and placement.
 
 Native Common, Fuse and both Cut orders now keep two independently projected
-original roof charts. One independently authored unsplit STEP Bézier keeps
+original roof charts. Common and Fuse also qualify a translated nonunit
+axis-aligned footprint with a sloping original base. One independently authored unsplit STEP Bézier keeps
 three inferred events with mixed joint and independent support ownership.
 Five separated fillets on an original OCCT tilted pentagonal prism now qualify
 original millimetre STEP with both independent antipodal owners. The native
 race on `491b18f1` and ordinary Go on `5181d219` are still running. Vet and
 Windows amd64 cross-build pass on `12ab5dbf`. Current work covers tangent
-rounds at line-to-arc corners,
-nonunit physical roof charts, nonplanar mapped model curves and converted
+rounds at line-to-arc corners, nonunit Cut and oblique physical roof charts,
+nonplanar mapped model curves and converted
 five-fillet STEP originals. Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
 

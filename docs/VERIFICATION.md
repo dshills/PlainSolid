@@ -186,6 +186,12 @@ kept its pristine hash. Raw results remain in
   retain the curved parent's exact `8/11` midpoint and the line's affine
   law after a cyclic source reorder, placement and reopen, and reject an
   edit that separates the cap planes.
+- Nonunit rectangular Common and Fuse retain the two exact affine roof
+  charts and a reflected or positive sloping original base. The new
+  translated `[2,4] × [-1,2]` cases and earlier projected envelope and
+  Cut races passed together on main (2.251 seconds in geometry, 283.213 in
+  trimmed). Independent physical integration uses area factor six and a
+  sloping-base wall Jacobian; 36 legacy recipe digests were unchanged.
 
 - Quintic native Common/Fuse and Cut with three transverse crossings and a
   quadratic tangency, plus exact curved inner wires, passed a combined main
