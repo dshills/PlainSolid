@@ -140,3 +140,71 @@ func ProveMappedSplineTransfer(ctx context.Context, support geom.Surface, source
 	}
 	return q, nil
 }
+
+// ProveMappedSplineSupportKnotTransfer checks one unsplit original UV
+// restriction against a two-piece model curve with the given normalized join.
+// A unique transverse rational UV event proposes a positive owner speed.
+// Exact homogeneous equality on both original support cells proves it.
+func ProveMappedSplineSupportKnotTransfer(ctx context.Context, support geom.Surface, source SplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, o geom.SurfacePatchOptions) (MappedSplineUV, error) {
+	var zero MappedSplineUV
+	one := big.NewRat(1, 1)
+	if ctx == nil || support == nil || pieces[0] == nil || pieces[1] == nil ||
+		join == nil || join.Sign() <= 0 || join.Cmp(one) >= 0 {
+		return zero, geom.ErrInvalid
+	}
+	p, err := exactFaceSupportPatch(Face{Surface: support}, o)
+	if err != nil {
+		return zero, err
+	}
+	plane, err := mappedSplineInteriorSupportKnotPlane(p)
+	if err != nil {
+		return zero, err
+	}
+	if plane[3] == nil {
+		return zero, geom.ErrConvergence
+	}
+	raw, err := NewMappedSplineUV(ctx, source, one, o)
+	if err != nil {
+		return zero, err
+	}
+	root, err := mappedSplineSupportKnotRoot(ctx, raw.curve, plane, o, geom.ExactCurvePlaneEventOptions{
+		MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits,
+	})
+	if err != nil {
+		return zero, err
+	}
+	if root == nil {
+		return zero, geom.ErrConvergence
+	}
+	num := new(big.Rat).Mul(root, new(big.Rat).Sub(one, join))
+	den := new(big.Rat).Mul(join, new(big.Rat).Sub(one, root))
+	mapped, err := NewMappedSplineUV(ctx, source, num.Quo(num, den), o)
+	if err != nil {
+		return zero, err
+	}
+	cuts := [3]*big.Rat{new(big.Rat), join, one}
+	for i, model := range pieces {
+		part, err := restrictMappedSource(ctx, mapped, cuts[i], cuts[i+1], o)
+		if err != nil {
+			return zero, err
+		}
+		lift, err := ExactTrimModelBezier(ctx, support, part, false, o)
+		if err != nil {
+			return zero, err
+		}
+		normalized, err := model.Reparameterize(0, 1, false, o)
+		if err != nil {
+			return zero, err
+		}
+		proof, err := geom.CompareExactCurvesContext(ctx, lift, normalized, geom.ExactCurveComparisonOptions{
+			MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits,
+		})
+		if err != nil {
+			return zero, err
+		}
+		if !proof.Complete || !proof.Equal {
+			return zero, geom.ErrConvergence
+		}
+	}
+	return mapped, nil
+}

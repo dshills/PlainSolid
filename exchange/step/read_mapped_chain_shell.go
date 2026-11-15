@@ -26,6 +26,16 @@ type MappedChainSTEPCell struct {
 	Owners               [2]MappedChainSTEPCoedge
 }
 
+// MappedChainSTEPSupportCrossing relates one unsplit original STEP edge to
+// its two certified native edges. RawParameters follow the original owners.
+type MappedChainSTEPSupportCrossing struct {
+	EdgeID               int64
+	SourceModelParameter *big.Rat
+	ModelStation         *big.Rat
+	RawParameters        [2]*big.Rat
+	NativeEdges          [2]int
+}
+
 // MappedChainSTEPModel contains the rebuilt source certificate, embedded native
 // material, and original roof ownership. FaceIDs follows the native face order.
 type MappedChainSTEPModel struct {
@@ -36,6 +46,7 @@ type MappedChainSTEPModel struct {
 	FaceIDs    []int64
 	Chain      []MappedChainSTEPCell
 	Planes     []MappedChainSTEPPlane
+	Crossing   *MappedChainSTEPSupportCrossing
 	original   string
 }
 
@@ -75,6 +86,8 @@ func ReadMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 // AP242 shell with two original spline roof charts and five signed-axis
 // analytic planes. It discovers the two roofs and the cyclic shared chain.
 // Each direct original roof pcurve retains its individual source spline basis.
+// The opt-in unsplit route also admits both roof chains as parameter-valued
+// restrictions on their original complete bases.
 func ReadOCCTMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits, o MappedChainShellSTEPOptions) (MappedChainSTEPModel, error) {
 	return readMappedChainRectangularShell(ctx, r, l, o, true)
 }
@@ -82,6 +95,9 @@ func ReadOCCTMappedChainRectangularShell(ctx context.Context, r io.Reader, l Lim
 func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits, o MappedChainShellSTEPOptions, foreign bool) (MappedChainSTEPModel, error) {
 	var zero MappedChainSTEPModel
 	if ctx == nil || r == nil {
+		return zero, geom.ErrInvalid
+	}
+	if foreign && o.AllowUnsplitSupportKnot && !o.AllowMultiSpanRoofs {
 		return zero, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -117,7 +133,12 @@ func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 	if err != nil {
 		return zero, err
 	}
-	if len(source.vertices) > l.MaxVertices || len(source.vertices) != len(out.Native.Solid.Vertices()) {
+	sourceVertices := len(source.vertices)
+	if out.Crossing != nil {
+		sourceVertices++
+	}
+	if sourceVertices > l.MaxVertices || sourceVertices != len(out.Native.Solid.Vertices()) ||
+		2*len(out.Native.Solid.Edges()) > l.MaxEdgeUses {
 		return zero, geom.ErrConvergence
 	}
 	out.original = string(raw)
@@ -288,12 +309,18 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	var basisIDs [2]int64
 	var chain []MappedChainSTEPCell
 	var stations []*big.Rat
+	var crossing *MappedChainSTEPSupportCrossing
+	var foreignTrimmed bool
+	allowUnsplit := g.foreign && o.AllowUnsplitSupportKnot
 	for _, id := range chainIDs {
-		e, err := g.edge(ctx, id, o.Geometry)
+		e, err := g.edge(ctx, id, o.Geometry, allowUnsplit)
 		if err != nil {
 			return zero, fmt.Errorf("mapped STEP edge #%d: %w", id, err)
 		}
-		if g.foreign {
+		if allowUnsplit && len(chain) == 0 {
+			_, foreignTrimmed = component(g.file.Entities[e.pcurves[0].curve], "TRIMMED_CURVE")
+		}
+		if g.foreign && !foreignTrimmed {
 			if len(stations) == 0 {
 				stations = append(stations, new(big.Rat))
 			}
@@ -307,10 +334,28 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 			}
 			stations = append(stations, e.hi)
 		}
+		var localCrossing *big.Rat
+		if e.join != nil {
+			if crossing != nil {
+				return zero, geom.ErrConvergence
+			}
+			localCrossing = e.join
+			if !g.uses[id][0].sense {
+				localCrossing = new(big.Rat).Sub(big.NewRat(1, 1), localCrossing)
+			}
+			a, b := stations[len(stations)-2], stations[len(stations)-1]
+			global := new(big.Rat).Add(a, new(big.Rat).Mul(localCrossing, new(big.Rat).Sub(b, a)))
+			original := new(big.Rat).Add(e.lo, new(big.Rat).Mul(e.join, new(big.Rat).Sub(e.hi, e.lo)))
+			crossing = &MappedChainSTEPSupportCrossing{EdgeID: id, SourceModelParameter: original, ModelStation: global}
+		}
 		row := MappedChainSTEPCell{EdgeID: id, ModelCurveID: e.modelID}
 		for owner, p := range e.pcurves {
 			var q trimmed.MappedSplineUV
-			if g.foreign {
+			_, trimmedPCurve := component(g.file.Entities[p.curve], "TRIMMED_CURVE")
+			if allowUnsplit && trimmedPCurve != foreignTrimmed {
+				return zero, geom.ErrConvergence
+			}
+			if g.foreign && !foreignTrimmed {
 				q, err = g.proveForeignRoofUse(ctx, id, e, owner, o.Geometry)
 				row.Owners[owner] = MappedChainSTEPCoedge{FaceID: g.faces[owner].id, PCurveID: p.id, BasisID: p.curve}
 			} else {
@@ -323,7 +368,9 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 				if err != nil {
 					return zero, err
 				}
-				q, err = trimmed.ProveMappedSplineTransfer(ctx, g.faces[owner].surface, trimmed.SplineUV{Curve: spline, Range: span, Reversed: reversed}, e.model, o.Geometry)
+				reverseModel := !g.uses[id][owner].sense
+				source := trimmed.SplineUV{Curve: spline, Range: span, Reversed: reversed != reverseModel}
+				q, err = proveMappedChainSTEPTransfer(ctx, g.faces[owner].surface, source, e, reverseModel, o.Geometry)
 				if err != nil {
 					return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 				}
@@ -332,11 +379,18 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 			if err != nil {
 				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
+			if localCrossing != nil {
+				crossing.RawParameters[owner], err = q.AuthoredParameter(localCrossing)
+				if err != nil {
+					return zero, err
+				}
+			}
 			parts[owner] = append(parts[owner], q)
 		}
 		chain = append(chain, row)
 	}
-	if stations[0].Sign() != 0 || stations[len(stations)-1].Cmp(big.NewRat(1, 1)) != 0 || (!g.foreign && basisIDs[0] == basisIDs[1]) {
+	if stations[0].Sign() != 0 || stations[len(stations)-1].Cmp(big.NewRat(1, 1)) != 0 ||
+		((!g.foreign || foreignTrimmed) && basisIDs[0] == basisIDs[1]) {
 		return zero, geom.ErrInvalid
 	}
 	var seams [][2]trimmed.MappedChainClosedUse
@@ -345,7 +399,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		if !ok || slices.Contains(chainIDs, id) {
 			continue
 		}
-		e, err := g.edge(ctx, id, o.Geometry)
+		e, err := g.edge(ctx, id, o.Geometry, false)
 		if err != nil {
 			return zero, fmt.Errorf("mapped STEP edge #%d: %w", id, err)
 		}
@@ -392,7 +446,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	}
 	var chains [2]trimmed.MappedSplineChain
 	makeChain := trimmed.NewMappedSplineChain
-	if g.foreign {
+	if g.foreign && !foreignTrimmed {
 		makeChain = trimmed.NewMappedSplineEdgeChain
 	}
 	for i, source := range parts {
@@ -403,7 +457,11 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		chains[i] = q
 	}
 	budget := edgecheck.Options{MaxWork: o.Geometry.MaxOperations, MaxBits: o.Geometry.MaxCoefficientBits}
-	agreement, err := trimmed.CertifyMappedSplineChainAgreement(ctx, g.faces[0].surface, chains[0], g.faces[1].surface, chains[1], budget)
+	certify := trimmed.CertifyMappedSplineChainAgreement
+	if crossing != nil {
+		certify = trimmed.CertifyMappedSplineChainSupportKnotAgreement
+	}
+	agreement, err := certify(ctx, g.faces[0].surface, chains[0], g.faces[1].surface, chains[1], budget)
 	if err != nil {
 		return zero, fmt.Errorf("mapped source chain agreement: %w", err)
 	}
@@ -416,7 +474,14 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	if err != nil {
 		return zero, fmt.Errorf("mapped source solid: %w", err)
 	}
-	out := MappedChainSTEPModel{Name: g.name, LengthUnit: g.unit, Shell: shell, Native: native, Chain: chain}
+	if crossing != nil {
+		i := slices.IndexFunc(native.ChainStations, func(t *big.Rat) bool { return t.Cmp(crossing.ModelStation) == 0 })
+		if i < 1 || i >= len(native.ChainEdges) || len(native.ChainEdges) != len(chain)+1 {
+			return zero, geom.ErrConvergence
+		}
+		crossing.NativeEdges = [2]int{native.ChainEdges[i-1], native.ChainEdges[i]}
+	}
+	out := MappedChainSTEPModel{Name: g.name, LengthUnit: g.unit, Shell: shell, Native: native, Chain: chain, Crossing: crossing}
 	for _, f := range g.faces {
 		out.FaceIDs = append(out.FaceIDs, f.id)
 		if f.plane != nil {
@@ -448,9 +513,11 @@ type mappedChainStepEdge struct {
 	lo, hi  *big.Rat
 	pcurves [2]struct{ id, curve int64 }
 	points  [2][3]*big.Rat
+	pieces  [2]*geom.ExactSplineCurve
+	join    *big.Rat
 }
 
-func (g *mappedChainStepSource) edge(ctx context.Context, id int64, o geom.SurfacePatchOptions) (mappedChainStepEdge, error) {
+func (g *mappedChainStepSource) edge(ctx context.Context, id int64, o geom.SurfacePatchOptions, allowUnsplit bool) (mappedChainStepEdge, error) {
 	var zero mappedChainStepEdge
 	if err := ctx.Err(); err != nil {
 		return zero, err
@@ -489,7 +556,11 @@ func (g *mappedChainStepSource) edge(ctx context.Context, id int64, o geom.Surfa
 		out.lo, out.hi = new(big.Rat), big.NewRat(1, 1)
 	} else {
 		var spline mappedChainStepSpline
-		spline, err = readMappedChainStepSpline(g.file, mid, 3, 16, 17, g.foreign)
+		maxPoles := 17
+		if allowUnsplit {
+			maxPoles = 33
+		}
+		spline, err = readMappedChainStepSpline(g.file, mid, 3, 16, maxPoles, g.foreign)
 		if err != nil {
 			return zero, err
 		}
@@ -502,7 +573,11 @@ func (g *mappedChainStepSource) edge(ctx context.Context, id int64, o geom.Surfa
 				}
 			}
 		}
-		out.model, err = spline.exactBezier(ctx, o)
+		if allowUnsplit && len(spline.poles) != spline.degree+1 {
+			out.pieces, out.join, err = spline.exactTwoBezier(ctx, o)
+		} else {
+			out.model, err = spline.exactBezier(ctx, o)
+		}
 	}
 	if err != nil {
 		return zero, err

@@ -90,14 +90,38 @@ reopen. The same multi-span writer exports the repaired boundary as
 adjacent standard `EDGE_CURVE` records referencing one common
 `VERTEX_POINT`. Each roof keeps its whole spline basis, and each coedge
 keeps its own parameter-valued `TRIMMED_CURVE` and `PCURVE`. Model
-stations must have exact terminating STEP decimals. The bounded readers
-consume explicit coedges contained in individual support cells.
+stations must have exact terminating STEP decimals.
 
 The repaired fixture adds model station `1/8` at support knot `29/256`.
 Its original raw owner parameters are `5` and `27`, on different UV axes
 and opposite raw traversal directions. PlainSolid reconstructs and
 rewrites the paired coedges byte-identically, and pinned OCCT independently
 opens the output as one valid seven-face solid.
+
+### One unsplit foreign STEP edge
+
+Set both `AllowMultiSpanRoofs` and `AllowUnsplitSupportKnot` for
+`ReadOCCTMappedChainRectangularShell`. One original shared `EDGE_CURVE`
+may store a two-piece clamped rational model spline with one interior
+knot of degree multiplicity. Each original cubic or quartic UV trim
+must cross one support knot transversely and admit an exact raw split.
+The reader recovers a positive parameter map from that event and compares
+the full homogeneous model lift of each restriction with the corresponding
+stored model piece. It then uses the native support-knot proof to rebuild
+the shared vertex. `Crossing` records the original edge and model
+parameter, the common native station, both raw parameters and both rebuilt
+edge IDs. `Chain` retains the original STEP edge inventory.
+
+Both roof chains can use direct per-edge pcurves or parameter-valued
+restrictions on a single whole basis per owner. For the latter, the stored
+model domains must form one contiguous chain over `[0,1]`. The exact
+fixture `standard_mapped_chain_unsplit_knot.step` re-encodes the repaired
+source as one shared degree-five spline across the interior knot, with
+five signed-axis analytic planes and exact linear closing pcurves.
+Pinned OCCT independently validates the source as one seven-face solid
+with the same volume as the repaired shell. PlainSolid retains the two
+original bases and raw values `5` and `27` through native reopen and
+emits explicit paired coedges when writing STEP.
 
 The independently authored creased shell has height
 `x*y + max(x-1/2,0)/2` over `[0,1] × [0,3/4]` and floor height `-1`.

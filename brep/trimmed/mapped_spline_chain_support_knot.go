@@ -18,19 +18,12 @@ func mappedSplineSupportKnotCut(ctx context.Context, chains [2]MappedSplineChain
 	var station *big.Rat
 	var insert int
 	for owner, patch := range patches {
-		u, v := patch.KnotBreaks()
-		count := len(u) + len(v) - 4
-		if count == 0 {
+		plane, err := mappedSplineInteriorSupportKnotPlane(patch)
+		if err != nil {
+			return nil, 0, fmt.Errorf("roof %d: %w", owner, err)
+		}
+		if plane[3] == nil {
 			continue
-		}
-		if count != 1 {
-			return nil, 0, fmt.Errorf("roof %d requires at most one original interior support knot: %w", owner, geom.ErrInvalid)
-		}
-		var plane [4]*big.Rat
-		for axis, knots := range [2][]float64{u, v} {
-			if len(knots) == 3 {
-				plane[axis], plane[3] = big.NewRat(1, 1), ratInset(-knots[1])
-			}
 		}
 		for i := 0; i+1 < len(cuts); i++ {
 			trim, err := chains[owner].cell(cuts[i], cuts[i+1])
@@ -56,6 +49,20 @@ func mappedSplineSupportKnotCut(ctx context.Context, chains [2]MappedSplineChain
 		return nil, 0, fmt.Errorf("no interior model crossing of an original support knot: %w", geom.ErrConvergence)
 	}
 	return slices.Insert(cuts, insert, station), insert, nil
+}
+
+func mappedSplineInteriorSupportKnotPlane(patch *geom.SurfacePatch) ([4]*big.Rat, error) {
+	var plane [4]*big.Rat
+	u, v := patch.KnotBreaks()
+	if len(u)+len(v) > 5 {
+		return plane, fmt.Errorf("at most one original interior support knot is supported: %w", geom.ErrInvalid)
+	}
+	for axis, knots := range [2][]float64{u, v} {
+		if len(knots) == 3 {
+			plane[axis], plane[3] = big.NewRat(1, 1), ratInset(-knots[1])
+		}
+	}
+	return plane, nil
 }
 
 func mappedSplineSupportKnotRoot(ctx context.Context, trim ExactBezierUV, plane [4]*big.Rat, limits geom.SurfacePatchOptions, events geom.ExactCurvePlaneEventOptions) (*big.Rat, error) {
