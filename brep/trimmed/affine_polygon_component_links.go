@@ -22,8 +22,8 @@ func (e *ConvexAffinePolygonPinchError) Error() string {
 }
 func (e *ConvexAffinePolygonPinchError) Unwrap() error { return geom.ErrDomain }
 
-// This combinatorial test uses exact lossless source endpoints, before Sew can
-// merge anything by tolerance. Each incident face has exactly two neighbors at
+// This combinatorial test uses exact lossless source endpoints, before Sew identifies
+// all exactly equal model points. Each incident face has exactly two neighbors at
 // the point. More than one connected cycle is a pinched, not circular, link.
 func polygonComponentLinks(b *nativePrismAffineBudget, r *ConvexAffinePolygonCrossing, faces []SewFace, component int) error {
 	type key struct{ a, c geom.Vec3 }
