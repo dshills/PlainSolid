@@ -1,3 +1,9 @@
+#include <StepShape_EdgeCurve.hxx>
+#include <StepShape_VertexPoint.hxx>
+#include <StepGeom_CartesianPoint.hxx>
+#include <StepGeom_Circle.hxx>
+#include <Geom_Circle.hxx>
+#include <Geom_CartesianPoint.hxx>
 #include <StepData_StepModel.hxx>
 #include <StepGeom_SurfaceCurve.hxx>
 #include <StepGeom_Pcurve.hxx>
@@ -26,6 +32,12 @@
 #include <iomanip>
 #include <string>
 int main(int argc,char**argv){if(argc!=3)return 2;TopoDS_Shape shape;
+if(std::string(argv[1])=="cap-trim") {
+ STEPControl_Reader reader;if(reader.ReadFile(argv[2])!=IFSelect_RetDone)return 6;auto model=reader.StepModel();int count=0;double minStation=10,maxStation=0,maxEndpoint=0;
+ for(int i=1;i<=model->NbEntities();++i){auto edge=Handle(StepShape_EdgeCurve)::DownCast(model->Value(i));if(edge.IsNull())continue;auto sc=Handle(StepGeom_SurfaceCurve)::DownCast(edge->EdgeGeometry());if(sc.IsNull())continue;auto circleSource=Handle(StepGeom_Circle)::DownCast(sc->Curve3d());if(circleSource.IsNull())continue;auto circle=StepToGeom::MakeCircle(circleSource);for(int j=1;j<=sc->NbAssociatedGeometry();++j){auto pc=sc->AssociatedGeometryValue(j).Pcurve();if(pc.IsNull()||Handle(StepGeom_Plane)::DownCast(pc->BasisSurface()).IsNull())continue;auto bs=Handle(StepGeom_BSplineCurve)::DownCast(pc->ReferenceToCurve()->ItemsValue(1));if(bs.IsNull())continue;auto uv=StepToGeom::MakeCurve2d(bs);auto surf=StepToGeom::MakeSurface(pc->BasisSurface());auto point=[&](double t){auto p=uv->Value(t);return surf->Value(p.X(),p.Y());};double lo=uv->FirstParameter(),hi=lo+(uv->LastParameter()-lo)/3;auto axis=circle->Position().XDirection();for(int k=0;k<60;++k){double mid=(lo+hi)/2;double x=gp_Vec(circle->Location(),point(mid)).Dot(gp_Vec(axis));if(x>0)lo=mid;else hi=mid;}double station=(lo+hi)/2;minStation=std::min(minStation,station);maxStation=std::max(maxStation,station);
+ auto start=Handle(StepShape_VertexPoint)::DownCast(edge->EdgeStart());auto end=Handle(StepShape_VertexPoint)::DownCast(edge->EdgeEnd());if(start.IsNull()||end.IsNull()||!edge->SameSense())return 11;auto a=StepToGeom::MakeCartesianPoint(Handle(StepGeom_CartesianPoint)::DownCast(start->VertexGeometry()));auto b=StepToGeom::MakeCartesianPoint(Handle(StepGeom_CartesianPoint)::DownCast(end->VertexGeometry()));if(a.IsNull()||b.IsNull())return 12;maxEndpoint=std::max(maxEndpoint,point(uv->FirstParameter()).Distance(a->Pnt()));maxEndpoint=std::max(maxEndpoint,point(station).Distance(b->Pnt()));++count;}}
+ std::cout<<std::setprecision(17)<<"{\"Caps\":"<<count<<",\"MinStation\":"<<minStation<<",\"MaxStation\":"<<maxStation<<",\"MaxEndpointDistance\":"<<maxEndpoint<<"}\n";return count==2?0:10;
+}
 if(std::string(argv[1])=="cap-witness") {
  STEPControl_Reader r;if(r.ReadFile(argv[2])!=IFSelect_RetDone)return 6;auto model=r.StepModel();int count=0;double minSquared=1,maxSquared=0;
  for(int i=1;i<=model->NbEntities();++i){auto sc=Handle(StepGeom_SurfaceCurve)::DownCast(model->Value(i));if(sc.IsNull())continue;for(int j=1;j<=sc->NbAssociatedGeometry();++j){auto pc=sc->AssociatedGeometryValue(j).Pcurve();if(pc.IsNull()||Handle(StepGeom_Plane)::DownCast(pc->BasisSurface()).IsNull())continue;auto bs=Handle(StepGeom_BSplineCurve)::DownCast(pc->ReferenceToCurve()->ItemsValue(1));if(bs.IsNull())continue;auto uv=StepToGeom::MakeCurve2d(bs);auto c=StepToGeom::MakeCurve(sc->Curve3d());auto surface=StepToGeom::MakeSurface(pc->BasisSurface());if(uv.IsNull()||c.IsNull()||surface.IsNull())return 9;double t=2.094395102393/4;auto p=uv->Value(t);double d=surface->Value(p.X(),p.Y()).SquareDistance(c->Value(t));minSquared=std::min(minSquared,d);maxSquared=std::max(maxSquared,d);++count;}}

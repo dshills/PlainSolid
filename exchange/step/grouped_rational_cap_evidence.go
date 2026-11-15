@@ -13,6 +13,7 @@ import (
 // circle; it is not a same-parameter bound. WitnessDistanceSquaredLower proves
 // a discrepancy at WitnessParameter against that circle's angular parameter.
 type GroupedRationalCapEvidence struct {
+	firstSpan                                     [3][]*big.Rat
 	Owner                                         ConvexArcPCurveAgreement
 	CircleID                                      int64
 	Domain                                        [2]*big.Rat
@@ -28,6 +29,7 @@ type GroupedRationalCapEvidence struct {
 // original owner associations. It intentionally exposes no promoted solid:
 // rational-cap finite trim/reparameterization remains unresolved.
 type GroupedPCurveEvidence struct {
+	modelRepair RepairedOCCTConvexArcExtrusion
 	Caps        []GroupedRationalCapEvidence
 	OtherOwners []ConvexArcPCurveAgreement
 	Reversals   []ConvexArcRepairReversal
@@ -247,7 +249,7 @@ func groupedRationalCap(f *File, q ConvexArcPCurveAgreement, model int64) (out G
 	if lower.Sign() <= 0 {
 		return bad()
 	}
-	return GroupedRationalCapEvidence{Owner: q, CircleID: model, Domain: [2]*big.Rat{new(big.Rat).Set(unique[1]), new(big.Rat).Set(unique[4])}, Knots: unique, PoleIDs: ids, Weights: weights, RadialDistanceUpper: radial, PositiveAngularVelocity: true, ClosedOneTurn: true, WitnessParameter: t, WitnessDistanceSquaredLower: lower}, nil
+	return GroupedRationalCapEvidence{firstSpan: spans[0], Owner: q, CircleID: model, Domain: [2]*big.Rat{new(big.Rat).Set(unique[1]), new(big.Rat).Set(unique[4])}, Knots: unique, PoleIDs: ids, Weights: weights, RadialDistanceUpper: radial, PositiveAngularVelocity: true, ClosedOneTurn: true, WitnessParameter: t, WitnessDistanceSquaredLower: lower}, nil
 }
 
 // InspectGroupedConvexArcPCurves proves original owner bindings and a closed
@@ -297,7 +299,7 @@ func InspectGroupedConvexArcPCurves(ctx context.Context, r io.Reader, l Limits, 
 	if e != nil {
 		return zero, e
 	}
-	out := GroupedPCurveEvidence{Reversals: m.Reversals(), Repairs: m.Repairs()}
+	out := GroupedPCurveEvidence{modelRepair: m, Reversals: m.Reversals(), Repairs: m.Repairs()}
 	tol := new(big.Rat).SetFloat64(o.MaxDistance)
 	tol.Mul(tol, tol)
 	for _, q := range owners {
