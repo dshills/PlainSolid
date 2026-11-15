@@ -166,6 +166,22 @@ production browser used the exact just-built WASM and the Playwright driver
 kept its pristine hash. Raw results remain in
 `.worktrees/qualification/2026-11-15/plaincad-83e18008`.
 
+The [PlainCAD `ab33a412` control record](evidence/plaincad-main-ab33a412-lead-control-2026-11-15.json)
+retains the initial failure and the unchanged focused reruns. Build,
+typechecks, selected PlainSolid WASM, and all 345 development, 66 production
+and 15 cross-browser cases passed. The pinned ordinary Vitest config forces
+OCCT, so its `1690/1691` result is an OCCT control failure. The four-start
+lead screw and nut case timed out at its original 45-second limit; it also
+timed out when first rerun alone. The same unmodified case passed at 39.644
+seconds on a second focus run. An instrumented run passed at 36.577 seconds,
+with 34.286 seconds in OCCT construction. Separately, the same body with
+the real PlainSolid adapter and first optimized WASM passed in 13.793 seconds;
+its original TypeScript mesh checks took 1.378 seconds combined. The focused
+passes do not qualify the full failed run. The whole ordinary suite reruns
+on the same immutable app and WASM. No deadline or geometry tolerance was
+increased. Raw phase records are in
+`.worktrees/qualification/2026-11-15/plaincad-lead-phase-evidence`.
+
 The older full native race `491b18f1` reproduced the same five shaded
 signed-frame failures as ordinary `5181d219`. Its `packages.jsonl` is
 retained in `.worktrees/qualification/2026-11-15/go-491b18f1-race`.
@@ -179,7 +195,37 @@ snapshots separate from the refreshed ordinary, race and PlainCAD runs.
   46 edges, 20 faces and one cyclic link at each vertex; independent exact
   integration and source replay agree. Seventy earlier recipe hashes stayed
   unchanged in isolation. Generic tessellation of the 20-face fixture
-  still exhausts its angle budget at 0.05 deflection and 0.15 radians.
+  exhausted its angle budget at 0.05 deflection and 0.15 radians;
+  the source mesher below fixes that case.
+- The two-axis stepped native Fuse (`8a0b3e80`) passed the complete
+  one- and two-axis regression under the main race in 778.167 seconds.
+  The 16 diagonal cases have a concave base with two reentrant corners
+  and physical area `93/16`. The native topology retains 35 vertices,
+  58 edges and 25 faces, exact tapered risers, and two exact subdivisions
+  shared by adjacent walls. Four two-axis containment cases also passed.
+  Independent material and source reload passed, and all 18 one-axis
+  recipe hashes matched in isolation.
+- The clipped Cut component graph (`35bff0d0`) passed its main focused
+  race in 13.943 seconds. It proves which open material chambers attach
+  through exclusive strips, checks stock-side vertex links and integrates
+  exact per-component volumes. It reports two original point contacts
+  even when the higher-roof Cut joins their incident chambers through
+  the same outside strip. That case is a self-contact inside one positive
+  component rather than contact between separate shells.
+- Source-aware stepped Fuse display (`068bb176`) passed the main race
+  together with exact boundary extraction in 441.230 seconds. At 0.05
+  deflection and 0.15 radians, the 16 one-axis meshes have 304–744
+  triangles and the 16 diagonal two-axis meshes have 426–458. All are
+  closed, retain every native vertex and have no detected non-incidence
+  contacts. Four two-axis containment cases and strict replay passed;
+  the two-axis extension preserved all 16 earlier mesh hashes exactly.
+- Native unequal-footprint Cut (`bce76c45`) keeps the original base and
+  cutter-roof floor pieces in strip-attached components. The main Cut,
+  recipe refusal and dependent-footprint race cases passed in 143.91,
+  38.93 and 32.39 seconds. Independent exact per-component volumes,
+  original roofs and walls, local contact sectors and source replay
+  qualified 20 configurations in isolation. All 38 prior Fuse recipe
+  hashes matched after the shared native builder change.
 - Adjacent rational model cells (`8672cf02`) keep the inferred model
   stations `8/7` and `64/5`, and two independently authored occurrences
   of the true stored joint at `8`. The exact-law bridge preserves these
@@ -190,6 +236,46 @@ snapshots separate from the refreshed ordinary, race and PlainCAD runs.
   the pinned pre-transfer value `0.6352660806774346` to about `5e-13`;
   pinned original and canonical STEP readbacks agree with each other at
   `0.63526701737966`. The readback value is not the exact material oracle.
+- The two adjacent model cells with different positive rational roof
+  weights (`cb3bcd42`) preserve both independently owned laws and the
+  original joint in a 4,932-triangle closed display. The pinned isolate
+  live and compatibility race passed in 642.026 seconds. The independent
+  pre-transfer material volume and area are `0.64050827338950` and
+  `4.65185532305421`; the pinned original and canonical STEP readbacks
+  agree at `0.640509222445185` and `4.651865358117015`. Independently
+  authored joint and support-weight controls reject.
+- The stepped Fuse analytic STEP (`936ef7be`) uses exact native model
+  and paired coedge laws, and one original supported wall chart per face.
+  Pinned OCCT reopens one valid 20-face solid: volume `16.4362535417463`
+  and area `40.443802639426494`. The focused main source and tamper race
+  passed in 67.615 seconds. A nonterminating decimal pole requires an
+  explicit coordinate bound (the fixture uses `1e-14`); vertices and
+  weights retain exact values. Changes to curve ownership or declared
+  units fail the strict source verification. Unrelated independent STEP
+  graphs are outside this source-backed mode.
+- The analytic IGES transfer (`67db7b54`) reuses those native coedges and
+  exact spline wall charts. Pinned OCCT opens a valid 20-face solid with
+  the same material. The verification rejects changed units and a changed
+  use orientation, with strict decimal and input limits. Main pinned IGES
+  race took 97.115 seconds. No independent arbitrary IGES import is claimed.
+- Three original rational model cells (`c3fb8b82`) retain raw original
+  domains `[0,8]`, `[8,16]`, `[16,32]`, inferred stops `8/3`, `48/5`,
+  `160/9` and both true original joints. The independently moved second
+  support joint is a valid pinned OCCT solid but is refused by exact
+  native and STEP paths. The direct 2,958-triangle closed display and
+  full pinned isolate race passed (744.966 seconds); native source and
+  live STEP ran together on main in 227.259 seconds. Native volume and
+  area agree with the pre-transfer `0.64045099678815 / 4.655759693110`.
+- The [tilted through-bore bridge](evidence/plaincad-tilted-bore-bridge-2026-11-15.json)
+  (`8e9cae2c`) keeps both cap openings in a closed 644-triangle display and
+  re-proves the original source graph on native reopen. The integrated
+  exchange and bridge races passed in 60.001 and 328.767 seconds; the
+  latter includes all five repaired signed-frame previews. The pinned
+  canonical OCCT test passed in 4.016 seconds and returns one valid
+  11-face solid. Actual Go/Node WASM on immutable `8e9cae2c` passed both
+  bore tests in 47.856 seconds. The isolated pinned browser and typed
+  Node adapter evidence includes byte-identical strict re-export from
+  a fresh worker; all 36 older exact STEP bytes were checked in isolation.
 
 - Native projected Common/Fuse (`d77c55df`) and both Cut orders (`1618e9db`)
   retain the two independent original roofs, ordered contacts, and source

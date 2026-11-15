@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "appRevision": "efae4d2ffa6065875d3a76fc5926f358b5936a29",
+  "kernelRevision": "ab33a4129b82aea2d14ffb750a68b1e9f44c5511",
+  "plainSolidWasmSha256": "7515d76bf63f981b39d871b95791c25caf725d83aa47cabee9148f2333eccef7",
+  "ordinaryVitestProvider": "opencascade (explicit in pinned Vite Vitest configuration)",
+  "leadDeadlineMs": 45000,
+  "exits": {
+    "wasm": 0,
+    "build": 0,
+    "types": 0,
+    "selected-kernel": 0,
+    "development": 0,
+    "production": 0,
+    "cross-browser": 0,
+    "ordinary-units": 1
+  },
+  "reports": {
+    "ordinary-units": {
+      "report": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/plaincad-ab33a412/ordinary-units.json",
+      "sha256": "f89cb47fc651a198b3fbad408c860425308888a8179fa130480574078dd856ea",
+      "passes": 1690,
+      "failures": 1,
+      "leadStatus": "failed",
+      "leadDurationMs": 164152.79654200003
+    },
+    "lead-fit-four-repro": {
+      "report": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/plaincad-ab33a412/lead-fit-four-repro.json",
+      "sha256": "079a6095d0f8f1be2ce4e2f086081cb1e0f3e2020e235c8a14a64f8c55a1b3e2",
+      "passes": 0,
+      "failures": 1,
+      "leadStatus": "failed",
+      "leadDurationMs": 58625.427625
+    },
+    "lead-fit-four-occt-control-recheck": {
+      "report": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/plaincad-ab33a412/lead-fit-four-occt-control-recheck.json",
+      "sha256": "28451db3f5cae187e22fde510315db1bcb23db4be8e358e05994c143626138f9",
+      "passes": 1,
+      "failures": 0,
+      "leadStatus": "passed",
+      "leadDurationMs": 39644.439
+    }
+  },
+  "browserPasses": {
+    "development": 345,
+    "production": 66,
+    "crossBrowser": 15
+  },
+  "status": "The complete baseline is not qualified: seven stages passed, the ordinary OCCT control failed its four-start lead deadline, and an unchanged focused run initially reproduced that deadline."
+}

@@ -69,6 +69,14 @@ The [latest full PlainCAD run on `83e18008`](evidence/plaincad-main-83e18008-202
 passed all eight stages: 345 development, 66 production, 15 cross-browser,
 1,691 ordinary unit and four real WASM cases. The production WASM is
 byte-identical to the build and the Playwright driver is pristine.
+On `ab33a412`, the first seven PlainCAD stages passed. The ordinary
+Vitest suite runs OCCT explicitly and timed out in its four-start lead
+screw and nut test. The same unmodified test passed on a fresh focused
+run in 39.644 seconds under the unchanged 45-second deadline. The actual
+PlainSolid adapter passed the same body in 13.793 seconds with the first
+candidate mesher optimization. The [failure record](evidence/plaincad-main-ab33a412-lead-control-2026-11-15.json)
+remains separate from the full ordinary suite rerun. Repeat the full
+browser and unit gates on a later pinned main snapshot after qualification.
 Vet and the Windows amd64 cross-build on `016354ee` pass; native
 Windows execution remains unqualified.
 
@@ -160,20 +168,38 @@ checks with the original radial normals restored. Full ordinary Go, native
 race and PlainCAD runs on immutable `ab33a412` test that correction.
 An independent tilted STEP bore now qualifies strict source authentication
 of both original cap holes and the inward-cylinder seam, exact native
-material, and strict canonical STEP reopen.
+material, and strict canonical STEP reopen. PlainCAD's optional bridge
+(`8e9cae2c`) retains the open bores through typed worker import, native
+receipt replay, display and strict re-export. Native race and actual
+Node/WASM pass on main; isolated real Chromium workers also pass.
 Vet and Windows amd64 cross-build pass on `ab33a412`. The converted five-fillet
 inputs passed the focused native bridge and both actual WASM runtimes, with
-one legacy timing retry recorded. Native stepped Fuse (`810e2014`) now
-keeps the original roofs and base across one-axis partial and nested
-footprint offsets. Exact complement volumes and wall owners are proved for
-Cut, but component assembly is still open. Native Fuse accepts the exact
-wall loop; its generic tessellator exhausts the angle budget on a stepped
-fixture. The source mesh fallback and main tests of the concave two-axis
-union are in progress. Adjacent rational STEP model cells (`8672cf02`)
-retain inferred roots and both independently authored sides of a stored
-joint through native replay, strict STEP and closed display. Next are
-distinct rational transverse roof weights and the tilted bore PlainCAD
-route. Wider independent STEP and IGES graphs are still required.
+one legacy timing retry recorded. Native stepped Fuse (`810e2014`,
+`8a0b3e80`) keeps the original roofs and base across one- and two-axis
+partial and nested footprint offsets, including a concave union base.
+The exact complement proof (`35bff0d0`) retains chamber volumes, walls,
+strip adjacency and original point contacts. It distinguishes contacts
+between separate components from a pinch inside one connected component.
+Native Cut (`bce76c45`) builds separate exact shells for admitted layouts
+and refuses a proved pinch before publishing geometry. The source mesher
+for stepped Fuse (`068bb176`) retains original vertices, closed topology
+and measure across one- and two-axis layouts. Cut previews (`9fa3ce82`)
+prove that each displayed shell is outward and embedded and that the shells
+meet only at the original points. The existing Common preview passed all 32
+checked layouts (`81308396`). Exact two-transverse Cut (`ace75343`) now
+builds separate closed native components; tighter preview volume and
+matching transverse Common and Fuse are under integration verification. Adjacent
+rational STEP model cells (`8672cf02`) retain inferred roots and both
+independently authored sides of a stored joint through native replay,
+strict STEP and closed display. Distinct transverse rational roof weights
+passed independently authored transfer and display (`cb3bcd42`). The
+stepped Fuse transfers through analytic STEP (`936ef7be`) and IGES
+(`67db7b54`) with an explicit decimal pole bound where needed. Three original
+rational model cells (`c3fb8b82`) now retain two original support joints.
+The case with only one roof changing support at the second joint, the exact
+collision performance improvement and the helical mesher optimization are
+under main-branch verification.
+Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
 
