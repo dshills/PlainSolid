@@ -19,7 +19,7 @@ type ExactSplineSewOptions struct {
 	Point                          geom.ExactCurveSegmentOptions
 	MaxPairTests, MaxDiscoveryWork int
 	// MultiSpan admits original model borders with interior knots when the
-	// interval endpoints have exact native model-curve parameters.
+	// common interval can be proved on the original parametrizations.
 	MultiSpan bool
 }
 
@@ -231,7 +231,7 @@ func (d *splineSewDiscovery) overlap(a, b *splineSewBorder) ([2][2]*big.Rat, err
 		return empty, nil
 	}
 	var parts [2]*geom.ExactSplineCurve
-	var reverse [2]bool
+	var pieces [2]geom.SurfaceAffineCurvePieces
 	multi := a.multispan || b.multispan
 	for side, c := range [2]*splineSewBorder{a, b} {
 		left, right := c.absolute(anchors[0][side]), c.absolute(anchors[1][side])
@@ -239,36 +239,35 @@ func (d *splineSewDiscovery) overlap(a, b *splineSewBorder) ([2][2]*big.Rat, err
 		if limit == 0 {
 			return empty, geom.ErrConvergence
 		}
-		var part *geom.ExactSplineCurve
-		var err error
+		o := geom.TubeAffineLineOptions{MaxOperations: limit, MaxCoefficientBits: d.curveOptions.MaxCoefficientBits, MaxPoles: d.curveOptions.MaxPoles}
 		if multi {
-			l, le := left.Float64()
-			r, re := right.Float64()
-			if !le || !re {
-				return empty, geom.ErrUnrepresentable
+			part, err := c.curve.RationalSegmentPieces(d.ctx, left, right, geom.SurfaceAffineCurveOptions{TubeAffineLineOptions: o})
+			if err != nil {
+				return empty, err
 			}
-			options := d.curveOptions
-			options.MaxOperations = limit
-			reverse[side] = l > r
-			part, err = c.curve.Restrict(min(l, r), max(l, r), options)
+			pieces[side] = part
+			d.work += part.ExactOperations
 		} else {
-			part, err = c.curve.RationalSegment(d.ctx, left, right, geom.TubeAffineLineOptions{
-				MaxOperations: limit, MaxCoefficientBits: d.curveOptions.MaxCoefficientBits, MaxPoles: d.curveOptions.MaxPoles,
-			})
+			part, err := c.curve.RationalSegment(d.ctx, left, right, o)
+			if err != nil {
+				return empty, err
+			}
+			parts[side] = part
+			d.work += part.ExactOperations()
 		}
-		if err != nil {
-			return empty, err
-		}
-		parts[side] = part
-		d.work += part.ExactOperations()
 	}
 	limit := d.remaining(d.curveOptions.MaxOperations)
 	if limit == 0 {
 		return empty, geom.ErrConvergence
 	}
-	check, err := geom.CompareExactCurvesContext(d.ctx, parts[0], parts[1], geom.ExactCurveComparisonOptions{
-		NormalizeDomains: true, ReverseB: reverse[0] != reverse[1], MaxOperations: limit, MaxCoefficientBits: d.curveOptions.MaxCoefficientBits,
-	})
+	o := geom.ExactCurveComparisonOptions{NormalizeDomains: true, MaxOperations: limit, MaxCoefficientBits: d.curveOptions.MaxCoefficientBits}
+	var check geom.ExactCurveComparison
+	var err error
+	if multi {
+		check, err = geom.CompareAffineParameterCurvePieces(d.ctx, pieces[0], pieces[1], o)
+	} else {
+		check, err = geom.CompareExactCurvesContext(d.ctx, parts[0], parts[1], o)
+	}
 	if err != nil {
 		return empty, err
 	}

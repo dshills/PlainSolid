@@ -26,6 +26,8 @@ func exactEdgeSplineWithOptions(e parametric.Edge, o geom.SurfacePatchOptions) (
 	switch x := base.(type) {
 	case *geom.BSpline:
 		c, err = geom.NewExactSplineCurve(x, o)
+	case *geom.ExactSplineCurve:
+		c = x
 	case surfaceTrimCurve:
 		return exactTrimIsoWithOptions(x.surface, x.a, x.b, x.curve, e.Range, placement, o)
 	default:

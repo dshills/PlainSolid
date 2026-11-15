@@ -188,11 +188,6 @@ func exactSewCurve(ctx context.Context, edge parametric.Edge, endpoints [2]geom.
 			return nil, false, e
 		}
 		c, err = geom.NewExactSplineCurve(spline, o)
-	case *geom.ExactSplineCurve:
-		c, err = model.Restrict(edge.Range.Min, edge.Range.Max, o)
-		if err == nil && placement != geom.Identity() {
-			c, err = c.Transform(placement, o)
-		}
 	default:
 		c, reversed, err = exactEdgeSplineWithOptions(edge, o)
 	}

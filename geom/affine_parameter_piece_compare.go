@@ -64,6 +64,23 @@ func (c *SurfaceIsoCurve) RationalSegment(ctx context.Context, start, end *big.R
 	return exactCurveFromHomogeneousBezier(restricted, o, b)
 }
 
+// RationalSegmentPieces extracts a continuous directed segment from an exact
+// model spline. The piece boundaries are normalized to [0,1] for the
+// requested segment. Each piece records its original curve knot interval
+// in Cell.UMin and Cell.UMax. Start and end need not have binary representations.
+func (c *SurfaceIsoCurve) RationalSegmentPieces(ctx context.Context, start, end *big.Rat, o SurfaceAffineCurveOptions) (SurfaceAffineCurvePieces, error) {
+	if c == nil || c.patch == nil || start == nil || end == nil || start.Cmp(end) == 0 {
+		return SurfaceAffineCurvePieces{}, ErrInvalid
+	}
+	fixed := new(big.Rat).SetFloat64(c.patch.Domain().VMin)
+	out, err := c.patch.AffineParameterCurvePieces(ctx, [2]*big.Rat{start, fixed}, [2]*big.Rat{end, fixed}, o)
+	for i := range out.Pieces {
+		out.Pieces[i].Cell.VMin = 0
+		out.Pieces[i].Cell.VMax = 0
+	}
+	return out, err
+}
+
 // CompareAffineParameterCurvePieces compares exact piece collections over global
 // normalized [0,1], using the union of their rational cut parameters. Each piece
 // must contain a single Bezier curve on local [0,1]. ReverseB reverses the entire

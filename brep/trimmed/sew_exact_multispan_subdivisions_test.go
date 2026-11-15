@@ -13,21 +13,23 @@ import (
 	"plainsolid/geom"
 )
 
-func TestSewExactMultispanSplineSubdivisions(t *testing.T) {
-	ctx := context.Background()
+func exactMultispanSewSource(t *testing.T, width float64) (Solid, []*geom.BSplineSurface) {
+	t.Helper()
 	var surfaces []*geom.BSplineSurface
 	var reverse []bool
-	breaks := [3][]float64{{0, .5, 1}, {0, 1}, {0, 1}}
-	knots := [3][]float64{{0, 0, .5, 1, 1}, {0, 0, 1, 1}, {0, 0, 1, 1}}
+	breaks := [3][]float64{{0, width / 2, width}, {0, 1}, {0, 1}}
+	knots := [3][]float64{{0, 0, width / 2, width, width}, {0, 0, 1, 1}, {0, 0, 1, 1}}
 	for axis := range 3 {
 		u, v := (axis+1)%3, (axis+2)%3
-		for _, side := range []float64{0, 1} {
+		for _, side := range []float64{0, breaks[axis][len(breaks[axis])-1]} {
 			var net []geom.Vec3
 			for _, a := range breaks[u] {
 				for _, b := range breaks[v] {
 					var p [3]float64
 					p[axis], p[u], p[v] = side, a, b
-					p[2] += .25 - .5*math.Abs(p[0]-.5)
+					if p[0] == width/2 {
+						p[2] += width / 8
+					}
 					net = append(net, geom.Vec3{X: p[0], Y: p[1], Z: p[2]})
 				}
 			}
@@ -39,10 +41,16 @@ func TestSewExactMultispanSplineSubdivisions(t *testing.T) {
 			reverse = append(reverse, side == 0)
 		}
 	}
-	baseline, _, e := SewSplineRectangles(ctx, surfaces, make([]geom.ParameterRectangle, len(surfaces)), reverse, SewOptions{Tolerance: 1e-9})
+	baseline, _, e := SewSplineRectangles(context.Background(), surfaces, make([]geom.ParameterRectangle, len(surfaces)), reverse, SewOptions{Tolerance: 1e-9})
 	if e != nil {
 		t.Fatal("exact warped rectangular input", e)
 	}
+	return baseline, surfaces
+}
+
+func TestSewExactMultispanSplineSubdivisions(t *testing.T) {
+	ctx := context.Background()
+	baseline, surfaces := exactMultispanSewSource(t, 1)
 	for _, cut := range []float64{.5, .75} {
 		vertices, edges, faces := explodeExactSewSource(baseline)
 		// Original roof edge follows x across a genuine C0 knot. It is
@@ -150,6 +158,79 @@ func TestSewExactMultispanSplineSubdivisions(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestSewExactMultispanRationalModelPreimage(t *testing.T) {
+	ctx := context.Background()
+	stock, supports := exactMultispanSewSource(t, 3)
+	vertices, edges, faces := explodeExactSewSource(stock)
+	roof := &faces[5]
+	for j, use := range roof.Outer {
+		edge := edges[use.Edge]
+		a, b := vertices[edge.Start], vertices[edge.End]
+		if a.X == b.X {
+			continue
+		}
+		coarse := -1
+		for k, neighbor := range edges {
+			if k != use.Edge && vertices[neighbor.Start] == a && vertices[neighbor.End] == b {
+				coarse = k
+				break
+			}
+		}
+		if coarse < 0 {
+			t.Fatal("whole original model edge")
+		}
+		model, reversal, e := exactSewCurve(ctx, edges[coarse], [2]geom.Vec3{a, b}, geom.SurfacePatchOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		model, e = model.Reparameterize(0, 1, reversal, geom.SurfacePatchOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		edges[coarse].Curve = model
+		uv := geom.Vec2{X: 1, Y: use.UVStart.Y}
+		id, second := len(vertices), len(edges)
+		vertices = append(vertices, geom.Vec3{X: 1, Y: a.Y, Z: 1.25})
+		start, end := use.UVStart, use.UVEnd
+		if use.Reversed {
+			start, end = end, start
+		}
+		range01 := parametric.Interval{Max: 1}
+		edges[use.Edge] = parametric.Edge{Start: edge.Start, End: id, Range: range01, Curve: surfaceTrimCurve{surface: roof.Surface, a: start, b: uv}}
+		edges = append(edges, parametric.Edge{Start: id, End: edge.End, Range: range01, Curve: surfaceTrimCurve{surface: roof.Surface, a: uv, b: end}})
+		x, y := use, use
+		x.UVEnd, y.UVStart = uv, uv
+		if use.Reversed {
+			x.Edge = second
+		} else {
+			y.Edge = second
+		}
+		roof.Outer = append(append(append([]Use(nil), roof.Outer[:j]...), x, y), roof.Outer[j+1:]...)
+
+		s, report, e := SewExactSplineSubdivisions(ctx, vertices, edges, faces, ExactSplineSewOptions{MultiSpan: true})
+		if e != nil || s.Topology().EulerCharacteristic != 2 || report.InsertedVertices != 1 || s.faces[5].Surface != supports[5] {
+			t.Fatal("native exact split from a nonbinary model parameter", e)
+		}
+		want := big.NewRat(1, 3)
+		if a.X > b.X {
+			want = big.NewRat(2, 3)
+		}
+		if split := report.Segments[coarse]; len(split) != 2 || split[0].Upper.Cmp(want) != 0 || split[1].Lower.Cmp(want) != 0 {
+			t.Fatal("nonbinary original model range lost", report.Segments[coarse])
+		}
+		var data bytes.Buffer
+		if e := WriteJSON(&data, s); e != nil {
+			t.Fatal(e)
+		}
+		s, e = ReadJSONContext(ctx, &data, JSONLimits{})
+		if e != nil || s.Topology().EulerCharacteristic != 2 {
+			t.Fatal("original support and sewn partition round trip", e)
+		}
+		return
+	}
+	t.Fatal("no original edge crossing the roof knot")
 }
 
 func TestExactMultispanSewRejectsChangedInnerKnot(t *testing.T) {
