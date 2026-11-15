@@ -27,6 +27,14 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		return Shape{}, &failureError{"LIMIT", "STEP source must contain between 1 byte and 1 MiB"}
 	}
 	r := func() *strings.Reader { return strings.NewReader(source) }
+	// The product identifier is a dispatch hint. The exact reader still
+	// authenticates the complete rooted graph and its original geometry.
+	if strings.Contains(source, "'exact-circular-loop-extrusion'") {
+		ctx := context.Background()
+		if m, e := step.ReadExactCircularLoopExtrusion(ctx, r(), stepLimits()); e == nil {
+			return b.putExactSTEPArcLoop(ctx, m.Native, m.Descriptor)
+		}
+	}
 	if m, e := step.Read(r(), stepLimits()); e == nil {
 		if len(m.Bodies) != 1 {
 			return Shape{}, &failureError{"UNSUPPORTED", "STEP import requires exactly one solid"}
@@ -581,6 +589,12 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	case s.analytic != nil && s.analytic.pockets != nil:
 		p := s.analytic.pockets
 		e = step.WriteBoxPocketExtrusions(&out, step.BoxPocketModel{LengthUnit: .001, Bodies: []step.BoxPocketBody{{Name: "PlainSolid", Frame: p.frame, Size: p.size, Pockets: p.pockets, Bores: p.bores}}})
+	case s.analytic != nil && s.analytic.stepArcLoop != nil:
+		d := s.analytic.stepArcLoop.descriptor
+		if d.LengthUnit != .001 || !cardinalFrame(d.Frame) {
+			return nil, unsupportedEdge("exact circular-loop STEP export requires millimetres and a signed-coordinate frame")
+		}
+		e = step.WriteExactCircularLoopExtrusion(context.Background(), &out, d)
 	case s.analytic != nil && s.analytic.torus != nil:
 		e = s.analytic.torus.writeSTEP(&out)
 	case s.analytic != nil:

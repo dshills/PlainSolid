@@ -128,6 +128,26 @@ The bridge bounds input/output size and body count, and rejects unsupported
 STEP structures. Existing STEP fixtures keep their independent reader oracle,
 placed bounds, cancellation, stale-result, persistence, and STL assertions.
 
+The raw `plainSolidCall` JSON bridge supports explicit bounded repair for the
+qualified default OCCT fillet sources. Supply the original STEP text as
+`source` and set `stepRepair` to `{"maxDistance": 1e-12, "native": true}`
+on `importStep`. The finite positive distance is in source length units.
+The bridge tries strict import first. If strict import fails as unsupported,
+it can prove a single fillet, a pair of fillets, or the signed-coordinate poses
+of the grouped source within that distance. Omitting `stepRepair` keeps the
+strict import behavior.
+
+A repaired handle reports world placement in millimetres. Its
+`repairEvidence` identifies the proof family, source SHA-256, original entity
+roles, repair sites, and owner counts. `pcurveOwners` counts same-parameter
+owner bounds. `rationalCaps` counts the separately proved radial projections
+and finite trims. With `native: true`, `nativeProof` contains the exchange
+package's source-bound JSON record, which includes the unchanged STEP and
+allows complete reproof. These fields are present on the repaired import
+result and subsequent inspection. Export writes the repaired material as
+canonical model-only STEP in millimetres, verified by ordinary strict
+readback. The original pcurve evidence remains in the native proof record.
+
 Finite to-face extrusion resolves one actual retained planar face and proves that
 it covers the projected profile, including the target's boundaries and holes.
 Straight polygon profiles support planar termination; a full circle requires a

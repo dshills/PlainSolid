@@ -97,6 +97,7 @@ type request struct {
 	Distance          number               `json:"distance,omitempty"`
 	Radius            number               `json:"radius,omitempty"`
 	Source            string               `json:"source,omitempty"`
+	StepRepair        *stepRepairRequest   `json:"stepRepair,omitempty"`
 	Handles           []string             `json:"handles,omitempty"`
 	Lead              *leadRequest         `json:"lead,omitempty"`
 	Nut               bool                 `json:"nut,omitempty"`
@@ -120,9 +121,11 @@ type Bounds struct {
 	Max vector `json:"max"`
 }
 type Shape struct {
-	Handle             string     `json:"handle"`
-	GeometryAssertions Assertions `json:"geometryAssertions"`
-	Bounds             Bounds     `json:"bounds"`
+	Handle             string              `json:"handle"`
+	GeometryAssertions Assertions          `json:"geometryAssertions"`
+	Bounds             Bounds              `json:"bounds"`
+	RepairEvidence     *stepRepairEvidence `json:"repairEvidence,omitempty"`
+	NativeProof        *json.RawMessage    `json:"nativeProof,omitempty"`
 }
 type stored struct {
 	solid    brep.Solid
@@ -224,6 +227,9 @@ func loop(vs []vector) []geom.Vec3 {
 }
 func (b *Bridge) execute(q request) (any, error) {
 	ctx := context.Background()
+	if q.StepRepair != nil && q.Op != "importStep" {
+		return nil, errors.New("stepRepair applies only to importStep")
+	}
 	switch q.Op {
 	case "capabilities":
 		return map[string]any{"schema": 1, "kernel": "plainsolid", "domain": "planar_and_circular_brep", "operations": []string{"box", "prism", "prismToFace", "circleToFace", "circle", "mixedExtrude", "revolvePolygon", "revolveCircle", "edgeAvailable", "fillet", "filletCylinderRims", "chamferCylinderRims", "chamfer", "capChamfer", "capFillet", "cut", "cutMany", "overlapVolume", "fuse", "joinAll", "common", "shell", "planarFace", "pocketFloor", "holeRim", "drawingGeometry", "displayEdges", "thread", "leadPart", "assertLeadPair", "importStep", "exportStep", "clone", "transform", "inspect", "mesh", "stl", "dispose"}, "maxHandles": MaxHandles, "maxProfileVertices": MaxProfileVertices, "cancellation": "terminate-worker"}, nil
@@ -256,7 +262,7 @@ func (b *Bridge) execute(q request) (any, error) {
 		}
 		return b.threadBody(s, *q.Thread)
 	case "importStep":
-		return b.importSTEP(q.Source)
+		return b.importSTEPWithRepair(ctx, q.Source, q.StepRepair)
 	case "exportStep":
 		return b.exportSTEP(q.Handles)
 	case "pocketFloor", "holeRim":
