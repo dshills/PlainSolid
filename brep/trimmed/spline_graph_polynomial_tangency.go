@@ -82,52 +82,13 @@ func CombineSplineGraphPolynomialTangency(ctx context.Context, base, a, b *geom.
 		o.Section.Domain != (geom.ParameterRectangle{}) {
 		return nil, geom.ErrInvalid
 	}
-	patches, e := prepareSharedBaseGraphContact(ctx, base, a, b, o.Section)
-	if e != nil {
-		return nil, e
-	}
-	proof, e := geom.DiscoverSplineGraphPolynomialTangency(ctx, patches[0], patches[1], axis, o.Proof)
-	if e != nil {
-		return nil, e
-	}
-	if !proof.Proven || proof.Domain != (geom.ParameterRectangle{UMax: 1, VMax: 1}) || proof.Graph.ProjectionOrientation != 1 {
-		return nil, geom.ErrConvergence
-	}
-	var uv [5]geom.Vec2
-	var xyz [5]geom.Vec3
-	for i, vertex := range proof.Vertices {
-		uv[i], e = exactGraphPartitionUV(vertex.Parameters)
-		if e != nil {
-			return nil, e
-		}
-		xyz[i], e = geom.RepresentedExactPoint(vertex.Point)
-		if e != nil {
-			return nil, e
-		}
-	}
-	pieces, e := tangencyEnvelopePieces(proof, uv)
+	prepared, e := preparePolynomialTangency(ctx, base, a, b, axis, o.Section, o.Proof)
 	if e != nil {
 		return nil, e
 	}
 	var regions [4]graphEnvelopeRegion
-	for i, region := range proof.Regions {
-		for _, use := range region.Edges {
-			p := pieces[use.Edge]
-			if use.Reversed {
-				p.a, p.b, p.c = p.b, p.a, reversePCurve(p.c)
-			}
-			regions[i].loop = append(regions[i].loop, p)
-		}
-		p := region.Perimeter
-		if p == nil || p.ParameterDirection != 1 {
-			return nil, geom.ErrConvergence
-		}
-		arc, e := saddleSquareArc(uv[p.Start], uv[p.End])
-		if e != nil {
-			return nil, e
-		}
-		regions[i].loop = append(regions[i].loop, arc...)
-		regions[i].first = (region.HeightSide > 0) == (op == parametric.Union)
+	for i, sector := range prepared.proof.Regions {
+		regions[i] = graphEnvelopeRegion{loop: prepared.loops[i], first: (sector.HeightSide > 0) == (op == parametric.Union)}
 	}
 	solid, envelope, e := assembleSplineEnvelope(ctx, base, a, b, regions[:], tolerance, exactGraphVertexEvaluator(ctx, o.Proof))
 	if e != nil {
@@ -136,14 +97,72 @@ func CombineSplineGraphPolynomialTangency(ctx context.Context, base, a, b *geom.
 	if e = validateExactGraphPartitionEdges(ctx, solid, o.Proof); e != nil {
 		return nil, e
 	}
-	history, e := bindPolynomialTangencyEnvelope(ctx, solid, envelope, proof, [2]*geom.BSplineSurface{a, b}, regions, pieces, xyz)
+	history, e := bindPolynomialTangencyEnvelope(ctx, solid, envelope, prepared.proof, [2]*geom.BSplineSurface{a, b}, regions, prepared.pieces, prepared.xyz)
 	if e != nil {
 		return nil, e
 	}
+	contact := prepared.proof.Vertices[4]
 	return &PolynomialTangencyEnvelope{
 		solid: solid, history: history, sources: [3]*geom.BSplineSurface{base, a, b},
-		parameters: proof.Vertices[4].Parameters, point: proof.Vertices[4].Point, axis: axis, op: op, tolerance: tolerance,
+		parameters: contact.Parameters, point: contact.Point, axis: axis, op: op, tolerance: tolerance,
 	}, nil
+}
+
+type preparedPolynomialTangency struct {
+	proof  geom.SplineGraphPolynomialTangency
+	xyz    [5]geom.Vec3
+	pieces [4]openSectionPiece
+	loops  [4][]openSectionPiece
+}
+
+func preparePolynomialTangency(ctx context.Context, base, a, b *geom.BSplineSurface, axis int, section intersect.SplinePlaneOptions, options geom.GraphPointContactOptions) (preparedPolynomialTangency, error) {
+	var prepared preparedPolynomialTangency
+	patches, e := prepareSharedBaseGraphContact(ctx, base, a, b, section)
+	if e != nil {
+		return prepared, e
+	}
+	proof, e := geom.DiscoverSplineGraphPolynomialTangency(ctx, patches[0], patches[1], axis, options)
+	if e != nil {
+		return prepared, e
+	}
+	if !proof.Proven || proof.Domain != (geom.ParameterRectangle{UMax: 1, VMax: 1}) || proof.Graph.ProjectionOrientation != 1 {
+		return prepared, geom.ErrConvergence
+	}
+	prepared.proof = proof
+	var uv [5]geom.Vec2
+	for i, vertex := range proof.Vertices {
+		uv[i], e = exactGraphPartitionUV(vertex.Parameters)
+		if e != nil {
+			return prepared, e
+		}
+		prepared.xyz[i], e = geom.RepresentedExactPoint(vertex.Point)
+		if e != nil {
+			return prepared, e
+		}
+	}
+	prepared.pieces, e = tangencyEnvelopePieces(proof, uv)
+	if e != nil {
+		return prepared, e
+	}
+	for i, region := range proof.Regions {
+		for _, use := range region.Edges {
+			p := prepared.pieces[use.Edge]
+			if use.Reversed {
+				p.a, p.b, p.c = p.b, p.a, reversePCurve(p.c)
+			}
+			prepared.loops[i] = append(prepared.loops[i], p)
+		}
+		p := region.Perimeter
+		if p == nil || p.ParameterDirection != 1 {
+			return prepared, geom.ErrConvergence
+		}
+		arc, e := saddleSquareArc(uv[p.Start], uv[p.End])
+		if e != nil {
+			return prepared, e
+		}
+		prepared.loops[i] = append(prepared.loops[i], arc...)
+	}
+	return prepared, nil
 }
 
 func tangencyEnvelopePieces(proof geom.SplineGraphPolynomialTangency, uv [5]geom.Vec2) ([4]openSectionPiece, error) {
@@ -184,6 +203,19 @@ func matchesTangencyTrim(got, want PCurve) bool {
 	return true
 }
 
+func bindPolynomialTangencyFace(f Face, source *geom.BSplineSurface, reversed bool, loop []openSectionPiece) error {
+	if f.Surface != source || f.Reversed != reversed || len(f.Holes) != 0 || len(f.Outer) != len(loop) {
+		return geom.ErrConvergence
+	}
+	for i, p := range loop {
+		u := f.Outer[i]
+		if u.UVStart != p.a || u.UVEnd != p.b || !matchesTangencyTrim(u.Curve, p.c) {
+			return fmt.Errorf("trimmed: tangent coedge %d changed: %w", i, geom.ErrConvergence)
+		}
+	}
+	return nil
+}
+
 func bindPolynomialTangencyEnvelope(ctx context.Context, solid Solid, envelope SplineGraphBooleanHistory, proof geom.SplineGraphPolynomialTangency, roofs [2]*geom.BSplineSurface, regions [4]graphEnvelopeRegion, pieces [4]openSectionPiece, xyz [5]geom.Vec3) (PolynomialTangencyEnvelopeHistory, error) {
 	var h PolynomialTangencyEnvelopeHistory
 	topology := solid.Topology()
@@ -202,16 +234,9 @@ func bindPolynomialTangencyEnvelope(ctx context.Context, solid Solid, envelope S
 		if region.first {
 			owner = 0
 		}
-		f := solid.faces[i]
-		if f.Surface != roofs[owner] || f.Reversed || len(f.Holes) != 0 || len(f.Outer) != len(region.loop) {
-			return h, geom.ErrConvergence
-		}
 		h.RoofFaces[i], h.RoofOwners[i] = i, owner
-		for j, p := range region.loop {
-			u := f.Outer[j]
-			if u.UVStart != p.a || u.UVEnd != p.b || !matchesTangencyTrim(u.Curve, p.c) {
-				return h, fmt.Errorf("trimmed: tangent sector %d coedge %d changed: %w", i, j, geom.ErrConvergence)
-			}
+		if e := bindPolynomialTangencyFace(solid.faces[i], roofs[owner], false, region.loop); e != nil {
+			return h, fmt.Errorf("trimmed: tangent sector %d: %w", i, e)
 		}
 	}
 	for i := range h.Vertices {

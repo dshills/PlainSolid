@@ -130,14 +130,21 @@ func CutSplineGraphPolynomialNodeComponents(ctx context.Context, base, a, b *geo
 		}
 		r.components[i], r.contact.Vertices[i] = part, vertex
 	}
+	if e = validatePolynomialPointCutIdentity(r); e != nil {
+		return nil, e
+	}
+	return r, nil
+}
+
+func validatePolynomialPointCutIdentity(r *PolynomialNodeCut) error {
 	for i, p := range r.components[0].vertices {
 		for j, q := range r.components[1].vertices {
 			if p == q && r.contact.Vertices != ([2]int{i, j}) {
-				return nil, geom.ErrConvergence
+				return geom.ErrConvergence
 			}
 		}
 	}
-	return r, nil
+	return nil
 }
 
 func validatePolynomialNodeCutComponent(ctx context.Context, part Solid, history OpenSectionHistory, center geom.Vec3, witness [2]*big.Rat, proof geom.GraphPointContactOptions) (int, error) {
@@ -151,15 +158,7 @@ func validatePolynomialNodeCutComponent(ctx context.Context, part Solid, history
 }
 
 func validatePolynomialCutLayer(ctx context.Context, part Solid, history OpenSectionHistory, witness [2]*big.Rat, proof geom.GraphPointContactOptions) error {
-	topology := part.Topology()
-	if len(topology.Shells) != 1 || topology.EulerCharacteristic != 2 || topology.CollapsedEdges != 0 ||
-		part.faces[history.SplineFace].Reversed || !part.faces[history.PlaneFace].Reversed {
-		return geom.ErrConvergence
-	}
-	if e := affineMaterialVertexLinks(ctx, part); e != nil {
-		return e
-	}
-	if e := validateExactGraphPartitionEdges(ctx, part, proof); e != nil {
+	if e := validatePolynomialCutBoundary(ctx, part, history, proof); e != nil {
 		return e
 	}
 	// Both roof trims use this same UV loop. Identity XY and strict graph
@@ -173,6 +172,18 @@ func validatePolynomialCutLayer(ctx context.Context, part Solid, history OpenSec
 		return geom.ErrConvergence
 	}
 	return nil
+}
+
+func validatePolynomialCutBoundary(ctx context.Context, part Solid, history OpenSectionHistory, proof geom.GraphPointContactOptions) error {
+	topology := part.Topology()
+	if len(topology.Shells) != 1 || topology.EulerCharacteristic != 2 || topology.CollapsedEdges != 0 ||
+		part.faces[history.SplineFace].Reversed || !part.faces[history.PlaneFace].Reversed {
+		return geom.ErrConvergence
+	}
+	if e := affineMaterialVertexLinks(ctx, part); e != nil {
+		return e
+	}
+	return validateExactGraphPartitionEdges(ctx, part, proof)
 }
 
 func polynomialCutContactVertex(part Solid, history OpenSectionHistory, center geom.Vec3) (int, error) {
