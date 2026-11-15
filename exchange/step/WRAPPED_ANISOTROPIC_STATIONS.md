@@ -80,3 +80,37 @@ Exact native source bounds enclose the volume; the difference axial factor is
 preserves both original wall families, one closed shell, two cap holes and the
 independent volume/area/centroid. Mutations cover owner, inward orientation,
 nonrepresentable authored weights, touching walls, limits and proof budgets.
+
+## Flat original-product occurrence exchange
+
+The separate `WrappedAnisotropicStationAssembly` and
+`WrappedAnisotropicStationBoreAssembly` read/write/source APIs accept one original
+local material product and one geometry-free root with 2–16 shared flat uses.
+Each use must be a proper signed-coordinate rigid placement with a neutral child
+frame. Product, original body/face IDs, all original wall/rim/vertex roles and
+NAUO/CDSR/relationship/placement IDs remain local and distinct from the occurrence
+matrices. Every original support is re-proved once per shared local product,
+not reconstructed from displayed instances. No regularized assembly union is
+claimed. The filled and bore paths cross-reject each other's material graphs.
+
+This mode uses uniform metre/millimetre source units and the established strict
+flat ownership/closure proof. Unknown geometry, orphan entities, pcurve ownership
+changes, cycles, improper or noncardinal frames, mixed units, nested groups and
+appearance records are unsupported. The returned local native asset can be saved
+and reloaded with its exact original geometry; a source-bound JSON envelope for
+the entire assembly is not part of these APIs. Original source export re-proves
+the complete original graph before retaining its entity IDs. Canonical output
+stages the explicit local source supports through the existing assembly writer
+and validates the entire resulting graph before output.
+
+Independent OCCT XCAF `filled-assembly` and `bore-assembly` modes author AP242
+sources (258 and 450 records respectively) with identity and
+`(x,y,z)->(z+10,x-2,y+3)` occurrences. `filled-assembly-negative` additionally
+qualifies the proper negative-axis rotation `(-x+10,y-2,-z+3)`.
+`read-assembly` uses XCAF to require that both components refer to the same local
+product. Live original-source preservation and native-local-reload→new STEP
+output retain that sharing and agree on aggregate volume, area and world
+centroid. Local source data is not flattened into world control points. Focused
+negative tests include source owner/sense-class changes, unrepresentable weights,
+parser limits, cancellation, unit mismatch and reflection rejection; a bounded
+two-family fuzz target uses the actual strict readers.
