@@ -15,7 +15,7 @@ type mappedChainStepFace struct {
 	plane         *mappedChainForeignPlane
 }
 
-func parseMappedChainStepFace(f *File, id int64, foreign, allowMultiSpan bool) (mappedChainStepFace, error) {
+func parseMappedChainStepFace(f *File, id int64, foreign bool, maxRoofKnots int) (mappedChainStepFace, error) {
 	var zero mappedChainStepFace
 	face, err := simple(f, id, "ADVANCED_FACE", 4)
 	if err != nil || face.Args[0].Kind != String {
@@ -81,7 +81,7 @@ func parseMappedChainStepFace(f *File, id int64, foreign, allowMultiSpan bool) (
 	if foreign && plane {
 		out.surface, out.plane, err = readMappedChainForeignPlane(f, sid, out.uses)
 	} else {
-		out.surface, err = decodeMappedChainStepSurface(f, sid, allowMultiSpan)
+		out.surface, err = decodeMappedChainStepSurface(f, sid, maxRoofKnots)
 	}
 	if err != nil {
 		return zero, err
@@ -89,14 +89,10 @@ func parseMappedChainStepFace(f *File, id int64, foreign, allowMultiSpan bool) (
 	return out, nil
 }
 
-func decodeMappedChainStepSurface(f *File, id int64, allowMultiSpan bool) (*geom.BSplineSurface, error) {
+func decodeMappedChainStepSurface(f *File, id int64, maxInterior int) (*geom.BSplineSurface, error) {
 	s, err := DecodeBSplineSurface(f, id, 81)
 	if err != nil || s.ClosedU != "F" || s.ClosedV != "F" || s.SelfIntersect != "F" {
 		return nil, geom.ErrInvalid
-	}
-	maxInterior := 0
-	if allowMultiSpan {
-		maxInterior = 1
 	}
 	if mappedChainInteriorSupportKnots(s.Geometry) > maxInterior {
 		return nil, geom.ErrConvergence

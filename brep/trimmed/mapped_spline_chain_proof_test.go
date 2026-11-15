@@ -10,7 +10,11 @@ import (
 
 func mappedChainFixture(t *testing.T, other bool) (geom.Surface, MappedSplineChain) {
 	t.Helper()
-	return mappedChainFixtureWithRawWidth(t, other, 3)
+	width := 3.
+	if other {
+		width = 5
+	}
+	return mappedChainFixtureWithRawWidth(t, other, width)
 }
 
 func mappedChainFixtureWithRawWidth(t *testing.T, other bool, width float64) (geom.Surface, MappedSplineChain) {
@@ -41,7 +45,7 @@ func mappedChainFixtureWithRawWidth(t *testing.T, other bool, width float64) (ge
 		pieces = []ExactBezierUV{left, right, b}
 		stations = []*big.Rat{big.NewRat(1, 4), big.NewRat(1, 2)}
 		speeds = []*big.Rat{big.NewRat(4, 1), big.NewRat(2, 1), big.NewRat(1, 4)}
-		raw = []float64{10, 15, 21, 28}
+		raw = []float64{10, 10 + width, 16 + width, 23 + width}
 	}
 	var h [][3]*big.Rat
 	for i, p := range pieces {

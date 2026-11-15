@@ -98,6 +98,24 @@ and opposite raw traversal directions. PlainSolid reconstructs and
 rewrites the paired coedges byte-identically, and pinned OCCT independently
 opens the output as one valid seven-face solid.
 
+### Two synchronized support crossings
+
+`CertifyMappedSplineChainTwoSupportKnotsAgreement` proves two distinct
+transverse crossings of the same original shared chain cell. Both roof
+charts must recover the same two exact model stations, and both raw
+owner restrictions must fit their original support cells. The version 4
+native boundary recipe retains the original bases, maps, and authored
+stations and rederives the two additional stations on reopen.
+
+Set both `AllowMultiSpanRoofs` and `AllowTwoInteriorRoofKnots` to exchange
+the explicitly split coedges. The fixture has exact model stations
+`1/8` and `3/16`, with raw values `41`, `65` on the first roof and
+`51`, `43` on the reversed roof. PlainSolid preserves both original
+support knot vectors and owner spline bases, rebuilding and rewriting the
+paired STEP coedges byte-identically. Pinned OCCT independently opens the
+result as one valid seven-face solid. The unsplit foreign import below
+covers a single crossing.
+
 ### One unsplit foreign STEP edge
 
 Set both `AllowMultiSpanRoofs` and `AllowUnsplitSupportKnot` for

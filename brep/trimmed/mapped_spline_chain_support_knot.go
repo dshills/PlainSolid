@@ -10,19 +10,26 @@ import (
 	"plainsolid/geom"
 )
 
-// Work is bounded by one curve-plane proof per original common cell and
-// owner. Any interior events must all identify one common model station.
-func mappedSplineSupportKnotCut(ctx context.Context, chains [2]MappedSplineChain, patches [2]*geom.SurfacePatch, cuts []*big.Rat, o edgecheck.Options) ([]*big.Rat, int, error) {
+// Each original knot line has one curve-plane proof per common chain cell.
+// A two-cut repair requires both owners to cross both lines in the same cell.
+func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChain, patches [2]*geom.SurfacePatch, cuts []*big.Rat, count int, o edgecheck.Options) ([]*big.Rat, int, error) {
 	limits := geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits}
 	events := geom.ExactCurvePlaneEventOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits, MaxSubdivisions: o.MaxDepth}
-	var station *big.Rat
+	type station struct {
+		parameter *big.Rat
+		owners    uint8
+	}
+	var stations []station
 	var insert int
 	for owner, patch := range patches {
-		plane, err := mappedSplineInteriorSupportKnotPlane(patch)
+		planes, err := mappedSplineInteriorSupportKnotPlanes(patch, count)
 		if err != nil {
 			return nil, 0, fmt.Errorf("roof %d: %w", owner, err)
 		}
-		if plane[3] == nil {
+		if count == 2 && len(planes) != count {
+			return nil, 0, fmt.Errorf("roof %d requires two original support knots: %w", owner, geom.ErrConvergence)
+		}
+		if len(planes) == 0 {
 			continue
 		}
 		for i := 0; i+1 < len(cuts); i++ {
@@ -30,39 +37,72 @@ func mappedSplineSupportKnotCut(ctx context.Context, chains [2]MappedSplineChain
 			if err != nil {
 				return nil, 0, err
 			}
-			root, err := mappedSplineSupportKnotRoot(ctx, trim, plane, limits, events)
-			if err != nil {
-				return nil, 0, fmt.Errorf("roof %d chain cell %d support knot: %w", owner, i, err)
+			for axisKnot, plane := range planes {
+				root, err := mappedSplineSupportKnotRoot(ctx, trim, plane, limits, events)
+				if err != nil {
+					return nil, 0, fmt.Errorf("roof %d chain cell %d support knot %d: %w", owner, i, axisKnot, err)
+				}
+				if root == nil {
+					continue
+				}
+				if insert != 0 && insert != i+1 {
+					return nil, 0, fmt.Errorf("original support crossings span common chain cells: %w", geom.ErrConvergence)
+				}
+				insert = i + 1
+				width := new(big.Rat).Sub(cuts[i+1], cuts[i])
+				t := new(big.Rat).Add(cuts[i], new(big.Rat).Mul(width, root))
+				j := slices.IndexFunc(stations, func(s station) bool { return s.parameter.Cmp(t) == 0 })
+				mask := uint8(1) << owner
+				if j >= 0 {
+					if stations[j].owners&mask != 0 {
+						return nil, 0, fmt.Errorf("original support crossings must have distinct model stations: %w", geom.ErrConvergence)
+					}
+					stations[j].owners |= mask
+					continue
+				}
+				if len(stations) == count {
+					return nil, 0, fmt.Errorf("original support crossings disagree in model stations: %w", geom.ErrConvergence)
+				}
+				stations = append(stations, station{t, mask})
 			}
-			if root == nil {
-				continue
-			}
-			width := new(big.Rat).Sub(cuts[i+1], cuts[i])
-			t := new(big.Rat).Add(cuts[i], new(big.Rat).Mul(width, root))
-			if station != nil && t.Cmp(station) != 0 {
-				return nil, 0, fmt.Errorf("multiple model crossings of original support knots: %w", geom.ErrConvergence)
-			}
-			station, insert = t, i+1
 		}
 	}
-	if station == nil {
-		return nil, 0, fmt.Errorf("no interior model crossing of an original support knot: %w", geom.ErrConvergence)
+	if len(stations) != count {
+		return nil, 0, fmt.Errorf("required interior model crossings of original support knots were not proved: %w", geom.ErrConvergence)
 	}
-	return slices.Insert(cuts, insert, station), insert, nil
+	added := make([]*big.Rat, len(stations))
+	for i, s := range stations {
+		if count == 2 && s.owners != 3 {
+			return nil, 0, fmt.Errorf("both owners must cross at both original support knot stations: %w", geom.ErrConvergence)
+		}
+		added[i] = s.parameter
+	}
+	slices.SortFunc(added, func(a, b *big.Rat) int { return a.Cmp(b) })
+	return slices.Insert(cuts, insert, added...), insert, nil
 }
 
 func mappedSplineInteriorSupportKnotPlane(patch *geom.SurfacePatch) ([4]*big.Rat, error) {
-	var plane [4]*big.Rat
-	u, v := patch.KnotBreaks()
-	if len(u)+len(v) > 5 {
-		return plane, fmt.Errorf("at most one original interior support knot is supported: %w", geom.ErrInvalid)
+	planes, err := mappedSplineInteriorSupportKnotPlanes(patch, 1)
+	if err != nil || len(planes) == 0 {
+		return [4]*big.Rat{}, err
 	}
+	return planes[0], nil
+}
+
+func mappedSplineInteriorSupportKnotPlanes(patch *geom.SurfacePatch, maxKnots int) ([][4]*big.Rat, error) {
+	u, v := patch.KnotBreaks()
+	if len(u)+len(v)-4 > maxKnots {
+		return nil, fmt.Errorf("at most %d original interior support knots are supported: %w", maxKnots, geom.ErrInvalid)
+	}
+	var planes [][4]*big.Rat
 	for axis, knots := range [2][]float64{u, v} {
-		if len(knots) == 3 {
-			plane[axis], plane[3] = big.NewRat(1, 1), ratInset(-knots[1])
+		for _, knot := range knots[1 : len(knots)-1] {
+			var plane [4]*big.Rat
+			plane[axis], plane[3] = big.NewRat(1, 1), ratInset(-knot)
+			planes = append(planes, plane)
 		}
 	}
-	return plane, nil
+	return planes, nil
 }
 
 func mappedSplineSupportKnotRoot(ctx context.Context, trim ExactBezierUV, plane [4]*big.Rat, limits geom.SurfacePatchOptions, events geom.ExactCurvePlaneEventOptions) (*big.Rat, error) {
