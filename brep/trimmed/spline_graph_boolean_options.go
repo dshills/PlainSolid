@@ -19,6 +19,8 @@ type SplineGraphBooleanOptions struct {
 	Parabola         *geom.GraphPointContactOptions
 	// ParabolaAxis selects the original free coordinate (0=U, 1=V).
 	ParabolaAxis int
+	// PiecewiseParabola retains every original free-axis knot slab and exact join.
+	PiecewiseParabola *geom.PiecewiseParabolaOptions
 }
 
 // CombineSplineGraphSolidsWithOptions is the opt-in normal common-base graph
@@ -27,7 +29,7 @@ type SplineGraphBooleanOptions struct {
 // requirements as CombineSplineGraphSolids. These options recognize only
 // their complete original chart domains documented by the geometry APIs.
 func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.BSplineSurface, op parametric.BooleanOp, tolerance float64, o SplineGraphBooleanOptions) (Solid, SplineGraphBooleanHistory, error) {
-	if o.DisjointEllipses == nil && o.ThreeEllipses == nil && o.Parabola == nil {
+	if o.DisjointEllipses == nil && o.ThreeEllipses == nil && o.Parabola == nil && o.PiecewiseParabola == nil {
 		return CombineSplineGraphSolids(ctx, base, a, b, op, tolerance, o.Section)
 	}
 	fail := func(e error) (Solid, SplineGraphBooleanHistory, error) {
@@ -43,6 +45,9 @@ func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.B
 	if o.Parabola != nil {
 		selected++
 	}
+	if o.PiecewiseParabola != nil {
+		selected++
+	}
 	if selected > 1 {
 		return fail(geom.ErrInvalid)
 	}
@@ -55,6 +60,13 @@ func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.B
 	patches, e := prepareSharedBaseGraphContact(ctx, base, a, b, o.Section)
 	if e != nil {
 		return fail(e)
+	}
+	if o.PiecewiseParabola != nil {
+		section, e := geom.DiscoverPiecewiseSplineGraphParabola(ctx, patches[0], patches[1], *o.PiecewiseParabola)
+		if e != nil {
+			return fail(e)
+		}
+		return assemblePiecewiseParabolicGraphContact(ctx, base, a, b, op, tolerance, section, o.PiecewiseParabola.Proof)
 	}
 	if o.Parabola != nil {
 		section, e := geom.DiscoverSplineGraphParabolaOnAxis(ctx, patches[0], patches[1], o.ParabolaAxis, *o.Parabola)
