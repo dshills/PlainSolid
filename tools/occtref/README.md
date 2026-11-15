@@ -74,6 +74,26 @@ At the full gap, the pinned OCCT comparison on the swapped chart in reverse
 operand order differs from the exact volume by approximately `5.33e-7`
 for both Common and Fuse.
 
+### Planar point-contact STEP
+
+The independent author transfers three separately constructed boxes with
+OCCT's default edge pcurves enabled. The first two boxes meet at one corner;
+the third box is separate. The strict reader authenticates the direct model
+lines and both actual incident planar owner charts on each shared edge.
+
+```sh
+c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" -L"$OCCT_LIB" -Wl,-rpath,"$OCCT_LIB" \
+  tools/occtref/author_planar_contact_step.cxx -o /tmp/occt-planar-contact \
+  -lTKDESTEP -lTKXSBase -lTKPrim -lTKTopAlgo -lTKBRep -lTKGeomBase -lTKG3d -lTKG2d -lTKMath -lTKernel
+PLAINSOLID_OCCT_PLANAR_CONTACT_AUTHOR=/tmp/occt-planar-contact \
+  go test -race ./exchange/step -run '^TestPlanarVertexContactAssemblySTEP'
+```
+
+The checked-in specimen removes the writer's trailing layout whitespace.
+Mutations leave its material unchanged under ordinary floating-point import
+but fail the exact proof if a pcurve misses its model line or if an identical
+plane entity is substituted for the actual incident owner.
+
 ### Tangent polynomial-roof diagnostic
 
 The `tangent` mode builds the same two original mixed-degree roof stocks as

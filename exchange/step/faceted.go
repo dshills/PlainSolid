@@ -327,6 +327,11 @@ func readPlanarBody(f *File, id int64, maxVertices, maxFaces, maxEdgeUses int, a
 	linearEdges := map[int64]linearEdge{}
 	vertexOwners := map[int]int64{}
 	edgeOwners := map[[2]int]int64{}
+	type curveOwners struct {
+		expected [2]int64
+		seen     [2]bool
+	}
+	edgePCurves := map[int]curveOwners{}
 	bound := func(id int64, outer bool) ([]brep.EdgeUse, error) {
 		kind := "FACE_BOUND"
 		if outer {
@@ -407,13 +412,17 @@ func readPlanarBody(f *File, id int64, maxVertices, maxFaces, maxEdgeUses int, a
 			}
 			n, ok := edgeIndex[key]
 			if !ok {
+				n = len(edges)
 				if advanced && exactSupports {
 					source := linear.edges[i]
-					if err := exactVertexContactLine(f, source, linearEdges[source]); err != nil {
+					owners, err := exactVertexContactLine(f, source, linearEdges[source])
+					if err != nil {
 						return nil, fmt.Errorf("step: exact edge #%d: %w", source, err)
 					}
+					if owners[0] != 0 {
+						edgePCurves[n] = curveOwners{expected: owners}
+					}
 				}
-				n = len(edges)
 				edgeIndex[key] = n
 				edges = append(edges, brep.Edge{Start: key[0], End: key[1]})
 			}
@@ -493,9 +502,31 @@ func readPlanarBody(f *File, id int64, maxVertices, maxFaces, maxEdgeUses int, a
 			if e := exactVertexContactPlane(f, r, vertices, edges, face); e != nil {
 				return Body{}, fmt.Errorf("step: exact face #%d: %w", id, e)
 			}
+			for _, loop := range append([][]brep.EdgeUse{face.Boundary}, face.Holes...) {
+				for _, use := range loop {
+					owners, ok := edgePCurves[use.Edge]
+					if !ok {
+						continue
+					}
+					owner := 0
+					if owners.expected[1] == r.Args[2].Ref {
+						owner = 1
+					}
+					if owners.expected[owner] != r.Args[2].Ref || owners.seen[owner] {
+						return Body{}, fmt.Errorf("step: face #%d is not a distinct owner of its exact edge pcurve", id)
+					}
+					owners.seen[owner] = true
+					edgePCurves[use.Edge] = owners
+				}
+			}
 		}
 		supportingPlanes = append(supportingPlanes, plane)
 		faces = append(faces, face)
+	}
+	for _, owners := range edgePCurves {
+		if !owners.seen[0] || !owners.seen[1] {
+			return Body{}, errors.New("step: exact edge is missing an incident pcurve owner")
+		}
 	}
 	s, e := brep.NewSolid(vertices, edges, faces)
 	if e != nil {

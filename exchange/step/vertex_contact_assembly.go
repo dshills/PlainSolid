@@ -28,9 +28,10 @@ type VertexContactSTEPOptions struct {
 // contact graph. The file requires no private marker or supplementary ledger.
 // Original STEP vertex coordinates must be exactly representable as binary64,
 // and each bounded original face polygon must be exactly planar. Declared
-// planes and direct STEP lines must agree exactly with the boundary. Vertices
-// that would coincide only after rounding cannot acquire a contact. Mapped
-// occurrences, edge pcurves, and nonplanar geometry are outside this entry point.
+// planes and model lines must agree exactly with the boundary. If present,
+// both planar edge pcurves must lift exactly in rational owner charts.
+// Vertices that would coincide only after rounding cannot acquire a contact.
+// Mapped occurrences and nonplanar geometry are outside this entry point.
 func ReadVertexContactAssembly(ctx context.Context, r io.Reader, o VertexContactSTEPOptions) (Model, collision.VertexContactAssemblyReport, error) {
 	var zero Model
 	var noReport collision.VertexContactAssemblyReport
