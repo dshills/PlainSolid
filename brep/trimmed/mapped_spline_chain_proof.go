@@ -203,12 +203,13 @@ type MappedSplineChainAgreement struct {
 
 type mappedChainKnotRepair uint8
 
-// Nonzero identifiers map to native boundary recipe versions 3 through 5.
+// Nonzero identifiers map to native boundary recipe versions 3 through 6.
 const (
 	mappedChainNoKnotRepair mappedChainKnotRepair = iota
 	mappedChainSingleKnotRepair
 	mappedChainSynchronizedKnotsRepair
 	mappedChainAsynchronousKnotsRepair
+	mappedChainMixedKnotsRepair
 )
 
 func (r MappedSplineChainAgreement) ModelCuts() []*big.Rat {
@@ -281,6 +282,15 @@ func CertifyMappedSplineChainTwoSupportKnotsAgreement(ctx context.Context, a geo
 // and their model lifts are preserved on every resulting restriction.
 func CertifyMappedSplineChainAsynchronousSupportKnotsAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
 	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainAsynchronousKnotsRepair)
+}
+
+// CertifyMappedSplineChainMixedSupportKnotsAgreement proves two distinct exact
+// support crossings in one original common chain cell. At one crossing both
+// owners change their original support cells. At the other only the owner
+// with two original support knots changes cells. Both raw source restrictions
+// and their complete model equality are certified in every resulting cell.
+func CertifyMappedSplineChainMixedSupportKnotsAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
+	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainMixedKnotsRepair)
 }
 
 func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options, repair mappedChainKnotRepair) (MappedSplineChainAgreement, error) {
