@@ -37,7 +37,8 @@ func (r *AlignedPolynomialEnvelope) ClippedFootprint() (ClippedPolynomialFootpri
 // CommonClippedPolynomialEnvelope builds the material intersection over the
 // exact shared portion of two axis-aligned physical stock footprints. Each
 // original roof must be strictly above the common base over its full stock.
-// A cubic crossing and a quadratic tangency must remain in the overlap.
+// Two transverse crossings, or a cubic crossing and a quadratic tangency,
+// must remain in the overlap.
 // The shell retains unmodified original cap sources and owner wall trims.
 func CommonClippedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface, axis int,
 	tolerance float64, o PolynomialCubicCrossingTangencyEnvelopeOptions) (*AlignedPolynomialEnvelope, error) {
