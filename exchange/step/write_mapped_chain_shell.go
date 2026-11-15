@@ -38,6 +38,11 @@ type MappedChainShellSTEPOptions struct {
 	// crossings inside one original model Bézier with mixed owner bases.
 	// Requires AllowMultiSpanRoofs, AllowUnsplitSupportKnot and AllowMixedOwnerBases.
 	AllowSameCellAsynchronousSupportKnots bool
+	// AllowInferredSharedSupportKnot admits one coincident transverse
+	// crossing of both original roof supports on a single model Bézier
+	// with mixed owner bases. The model has no stored interior knot.
+	// Its prerequisites match AllowSameCellAsynchronousSupportKnots.
+	AllowInferredSharedSupportKnot bool
 	// AllowMixedSupportKnots admits one original foreign shared edge with a
 	// stored model knot crossed by both owners and one additional single-owner
 	// crossing. Requires AllowUnsplitSupportKnot and AllowTwoInteriorRoofKnots.
@@ -126,7 +131,7 @@ func (o MappedChainShellSTEPOptions) allowsUnsplitMixedOwnerBases() bool {
 	if !o.AllowMixedOwnerBases || !o.AllowMultiSpanRoofs || !o.AllowUnsplitSupportKnot {
 		return false
 	}
-	return o.AllowSameCellAsynchronousSupportKnots || o.AllowTwoInteriorRoofKnots &&
+	return o.AllowSameCellAsynchronousSupportKnots || o.AllowInferredSharedSupportKnot || o.AllowTwoInteriorRoofKnots &&
 		(o.AllowThreeSupportKnots || o.AllowFourSupportKnots || o.AllowUpToSixSupportKnots || o.AllowMultipleSupportKnotCells ||
 			o.AllowThreeSupportKnotCells || o.AllowSeparatedSupportKnotCells)
 }
