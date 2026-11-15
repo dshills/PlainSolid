@@ -7,18 +7,25 @@ import (
 	"plainsolid/geom"
 )
 
-// ExactBezierUV is an immutable cubic or quartic rational Bézier trim.
-// It retains exact homogeneous coefficients and requires exactly
-// representable endpoint coordinates. Its parameter range is [0,1].
+const maxSourceGraphBezierControls = 6
+
+// ExactBezierUV is an immutable positive-weight rational Bézier trim.
+// It retains exact homogeneous coefficients and losslessly represented
+// endpoints on [0,1]. Proved graph restrictions may also use degree five.
 type ExactBezierUV struct {
 	control [][3]*big.Rat
 	ends    [2]geom.Vec2
 }
 
-// NewExactBezierUV copies positive-weight (w*u,w*v,w) coefficients.
+// NewExactBezierUV copies positive-weight cubic or quartic coefficients
+// in the form (w*u,w*v,w).
 func NewExactBezierUV(h [][3]*big.Rat) (ExactBezierUV, error) {
+	return newExactBezierUV(h, 5)
+}
+
+func newExactBezierUV(h [][3]*big.Rat, maxControls int) (ExactBezierUV, error) {
 	var zero ExactBezierUV
-	if len(h) < 4 || len(h) > 5 {
+	if len(h) < 4 || len(h) > maxControls {
 		return zero, geom.ErrInvalid
 	}
 	for _, p := range h {
@@ -79,11 +86,11 @@ func (q ExactBezierUV) Split(t *big.Rat) (ExactBezierUV, ExactBezierUV, error) {
 		return zero, zero, geom.ErrConvergence
 	}
 	a, b := splitHomogeneousUV(q.control, t)
-	first, e := NewExactBezierUV(a)
+	first, e := newExactBezierUV(a, len(q.control))
 	if e != nil {
 		return zero, zero, e
 	}
-	second, e := NewExactBezierUV(b)
+	second, e := newExactBezierUV(b, len(q.control))
 	if e != nil {
 		return zero, zero, e
 	}
@@ -94,7 +101,7 @@ func (q ExactBezierUV) Split(t *big.Rat) (ExactBezierUV, ExactBezierUV, error) {
 // shared read-only endpoints, all intermediate coordinates are new values.
 func splitHomogeneousUV(h [][3]*big.Rat, t *big.Rat) ([][3]*big.Rat, [][3]*big.Rat) {
 	n := len(h)
-	var work, lower, upper [5][3]*big.Rat
+	var work, lower, upper [maxSourceGraphBezierControls][3]*big.Rat
 	copy(work[:n], h)
 	u := new(big.Rat).Sub(big.NewRat(1, 1), t)
 	lower[0], upper[n-1] = work[0], work[n-1]

@@ -129,6 +129,7 @@ func twoPolynomialNodePieces(arrangement geom.SplineGraphTwoPolynomialNodes, uv 
 	return [6][]openSectionPiece(pieces), nil
 }
 
+// polynomialNodePieces keeps each already-proved graph restriction at its original degree.
 func polynomialNodePieces(edges []geom.SplineGraphPolynomialPiece, uv []geom.Vec2) ([][]openSectionPiece, error) {
 	pieces := make([][]openSectionPiece, len(edges))
 	for i, edge := range edges {
@@ -136,7 +137,7 @@ func polynomialNodePieces(edges []geom.SplineGraphPolynomialPiece, uv []geom.Vec
 		for j, p := range edge.Controls {
 			h[j] = [3]*big.Rat{p[0], p[1], big.NewRat(1, 1)}
 		}
-		curve, e := NewExactBezierUV(h)
+		curve, e := newExactBezierUV(h, maxSourceGraphBezierControls)
 		if e != nil {
 			return pieces, e
 		}
