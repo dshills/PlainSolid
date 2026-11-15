@@ -7,6 +7,7 @@ import (
 
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
+	"plainsolid/exchange/step"
 	"plainsolid/geom"
 	"plainsolid/mesh"
 )
@@ -95,15 +96,19 @@ func stepLoopWithinAngle(a, b rationalPoint2, angleSquared *big.Rat) bool {
 
 type stepLoopMesh struct {
 	ring                      []geom.Vec2
+	exact                     []rationalPoint2
 	deflection, angleSquared  *big.Rat
 	maxPoints, maxArcSegments int
 }
 
-func (m *stepLoopMesh) add(p geom.Vec2) error {
+func (m *stepLoopMesh) add(p stepLoopMeshPoint) error {
 	if len(m.ring) == m.maxPoints {
 		return parametric.ErrBudget
 	}
-	m.ring = append(m.ring, p)
+	m.ring = append(m.ring, p.xy)
+	if m.exact != nil {
+		m.exact = append(m.exact, p.exact)
+	}
 	return nil
 }
 
@@ -114,7 +119,7 @@ func (m *stepLoopMesh) line(a, b stepLoopMeshPoint) error {
 	if m.angleSquared.Sign() > 0 && !stepLoopWithinAngle(b.exact.sub(a.exact), b.display.sub(a.display), m.angleSquared) {
 		return parametric.ErrBudget
 	}
-	return m.add(a.xy)
+	return m.add(a)
 }
 
 func (m *stepLoopMesh) arc(center, start, end rationalPoint2, radius *big.Rat) error {
@@ -169,7 +174,7 @@ func (m *stepLoopMesh) arc(center, start, end rationalPoint2, radius *big.Rat) e
 			stepLoopWithinAngle(normal, a.exact.sub(center), m.angleSquared) &&
 				stepLoopWithinAngle(normal, b.exact.sub(center), m.angleSquared)
 		if errorBound.Cmp(m.deflection) <= 0 && normalOK && (chord[0].Sign() != 0 || chord[1].Sign() != 0) {
-			return m.add(a.xy)
+			return m.add(a)
 		}
 		if pieces == m.maxArcSegments {
 			return parametric.ErrBudget
@@ -200,6 +205,10 @@ func (m *stepLoopMesh) arc(center, start, end rationalPoint2, radius *big.Rat) e
 // common height. Each source normal on a minor arc lies in the cone between
 // the endpoint radials, so checking both endpoints bounds the whole strip.
 func (p stepArcLoopSupport) tessellate(o parametric.TessellationOptions) (mesh.Mesh, bool, error) {
+	return p.tessellateNormals(o, nil)
+}
+
+func (p stepArcLoopSupport) tessellateNormals(o parametric.TessellationOptions, normals *[][3]geom.Vec3) (mesh.Mesh, bool, error) {
 	d := p.descriptor
 	if !p.exactPlacement || !convexStepLoop(d.Segments) {
 		return mesh.Mesh{}, false, nil
@@ -240,7 +249,12 @@ func (p stepArcLoopSupport) tessellate(o parametric.TessellationOptions) (mesh.M
 	if levels[0] >= levels[1] || m.deflection.Sign() < 0 {
 		return mesh.Mesh{}, true, parametric.ErrBudget
 	}
-	for _, s := range d.Segments {
+	var segmentEnds []int
+	if normals != nil {
+		m.exact = make([]rationalPoint2, 0, len(d.Segments))
+		segmentEnds = make([]int, len(d.Segments))
+	}
+	for i, s := range d.Segments {
 		start, end := rationalXY(s.Start), rationalXY(s.End)
 		var err error
 		if s.Radius == 0 {
@@ -251,6 +265,9 @@ func (p stepArcLoopSupport) tessellate(o parametric.TessellationOptions) (mesh.M
 		}
 		if err != nil {
 			return mesh.Mesh{}, true, err
+		}
+		if normals != nil {
+			segmentEnds[i] = len(m.ring)
 		}
 	}
 	// Prove the rounded ring is a strictly convex, singly traversed polygon
@@ -294,5 +311,57 @@ func (p stepArcLoopSupport) tessellate(o parametric.TessellationOptions) (mesh.M
 	if err := display.ValidateSolid(); err != nil {
 		return mesh.Mesh{}, true, err
 	}
+	if normals != nil {
+		*normals, err = stepLoopCornerNormals(display, m.exact, segmentEnds, translation, d)
+		if err != nil {
+			return mesh.Mesh{}, true, err
+		}
+	}
 	return display, true, nil
+}
+
+// Side triangles have just two adjacent profile stations. Their outgoing
+// chord determines the original owner, including at a crease where the
+// same vertex has two different exact normals.
+func stepLoopCornerNormals(display mesh.Mesh, profile []rationalPoint2, ends []int, translation rationalPoint2, d step.ExactCircularLoopExtrusion) ([][3]geom.Vec3, error) {
+	n := len(profile)
+	normals := make([][3]geom.Vec3, len(display.Triangles))
+	for i, tri := range display.Triangles {
+		layer := tri[0] / n
+		if tri[1]/n == layer && tri[2]/n == layer {
+			normal := d.Frame.ZAxis().Scale(float64(2*layer - 1))
+			normals[i] = [3]geom.Vec3{normal, normal, normal}
+			continue
+		}
+		a, b := tri[0]%n, tri[1]%n
+		if a == b {
+			b = tri[2] % n
+		}
+		if (b+1)%n == a {
+			a, b = b, a
+		}
+		if (a+1)%n != b {
+			return nil, geom.ErrDomain
+		}
+		owner, _ := slices.BinarySearch(ends, a+1)
+		s := d.Segments[owner]
+		if s.Radius == 0 {
+			u, v, w := display.Vertices[tri[0]], display.Vertices[tri[1]], display.Vertices[tri[2]]
+			normal, err := v.Sub(u).Cross(w.Sub(u)).Unit()
+			if err != nil {
+				return nil, err
+			}
+			normals[i] = [3]geom.Vec3{normal, normal, normal}
+			continue
+		}
+		center := rationalXY(s.Center).add(translation)
+		r := new(big.Rat).SetFloat64(s.Radius)
+		for j, id := range tri {
+			p := profile[id%n].sub(center)
+			x, _ := p[0].Quo(p[0], r).Float64()
+			y, _ := p[1].Quo(p[1], r).Float64()
+			normals[i][j] = d.Frame.XAxis().Scale(x).Add(d.Frame.YAxis().Scale(y))
+		}
+	}
+	return normals, nil
 }

@@ -13,6 +13,15 @@ func (s stored) analyticDisplayMesh(q request) (mesh.Mesh, [][3]geom.Vec3, bool,
 	if err != nil {
 		return mesh.Mesh{}, nil, true, err
 	}
+	if s.analytic != nil && s.analytic.stepArcLoop != nil {
+		// The source-aware sampler includes exact axis support extrema.
+		// Generic compact charts sample only at evenly spaced parameters.
+		var normals [][3]geom.Vec3
+		m, ok, err := s.analytic.stepArcLoop.tessellateNormals(o, &normals)
+		if ok {
+			return m, normals, true, err
+		}
+	}
 	if s.cylinder != nil {
 		m, err := s.tessellate(q)
 		if err != nil {

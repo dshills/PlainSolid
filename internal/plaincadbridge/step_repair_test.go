@@ -138,6 +138,29 @@ func TestSTEPRepairImportWorldMeshAndCanonicalExport(t *testing.T) {
 				len(nativeMesh.Triangles) > 500 {
 				t.Fatal("compact mesh lost an exact world extremum", meshBounds, len(nativeMesh.Triangles), err)
 			}
+			axis, sign := 0, 1.
+			switch tc.name {
+			case "occt-default-two-fillets-x":
+				axis = 1
+			case "occt-default-two-fillets-minus-x":
+				axis, sign = 1, -1
+			}
+			extreme := tc.bounds.Max[axis]
+			if sign < 0 {
+				extreme = tc.bounds.Min[axis]
+			}
+			var radial vector
+			radial[axis] = sign
+			normalAtExtremum := false
+			for j := 0; j < len(display.Positions); j += 3 {
+				if display.Positions[j+axis] == extreme && vector(display.Normals[j:j+3]) == radial {
+					normalAtExtremum = true
+					break
+				}
+			}
+			if !normalAtExtremum {
+				t.Fatal("shaded display lost the original cylinder normal at the exact world extremum")
+			}
 			if tc.name == "occt-default-two-fillets-minus-x" {
 				arc := b.shapes[result.Handle].analytic.stepArcLoop
 				for _, options := range []parametric.TessellationOptions{
