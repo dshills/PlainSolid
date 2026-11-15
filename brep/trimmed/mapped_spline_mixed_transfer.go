@@ -15,17 +15,30 @@ import (
 // positive raw map on both sides of that additional cut. The returned
 // normalized station is nil for the owner that crosses only the model knot.
 func ProveMappedSplineMixedSupportKnotsTransfer(ctx context.Context, support geom.Surface, source SplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, o geom.SurfacePatchOptions) (MappedSplineUV, *big.Rat, error) {
+	mapped, extra, err := ProveMappedSplineSingleStoredKnotTransfer(ctx, support, source, pieces, join, 2, o)
+	if len(extra) == 0 {
+		return mapped, nil, err
+	}
+	return mapped, extra[0], err
+}
+
+// ProveMappedSplineSingleStoredKnotTransfer recovers one positive raw map
+// from a pair of stored model Béziers and an original owner coedge. One
+// original support crossing must match the stored knot. Up to two other
+// support crossings are proved in the same map and returned in traversal order.
+// maxSupportKnots is two or three.
+func ProveMappedSplineSingleStoredKnotTransfer(ctx context.Context, support geom.Surface, source SplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, maxSupportKnots int, o geom.SurfacePatchOptions) (MappedSplineUV, []*big.Rat, error) {
 	var zero MappedSplineUV
 	one := big.NewRat(1, 1)
 	if ctx == nil || support == nil || pieces[0] == nil || pieces[1] == nil || join == nil ||
-		join.Sign() <= 0 || join.Cmp(one) >= 0 {
+		join.Sign() <= 0 || join.Cmp(one) >= 0 || maxSupportKnots < 2 || maxSupportKnots > 3 {
 		return zero, nil, geom.ErrInvalid
 	}
 	patch, err := exactFaceSupportPatch(Face{Surface: support}, o)
 	if err != nil {
 		return zero, nil, err
 	}
-	planes, err := mappedSplineInteriorSupportKnotPlanes(patch, 2)
+	planes, err := mappedSplineInteriorSupportKnotPlanes(patch, maxSupportKnots)
 	if err != nil {
 		return zero, nil, err
 	}
@@ -53,16 +66,22 @@ func ProveMappedSplineMixedSupportKnotsTransfer(ctx context.Context, support geo
 	if err != nil {
 		return zero, nil, err
 	}
-	a, b := mappedSplineModelStation(roots[0], weight), mappedSplineModelStation(roots[1], weight)
-	firstIsJoin, secondIsJoin := a.Cmp(join) == 0, b.Cmp(join) == 0
-	if a.Cmp(b) >= 0 || !firstIsJoin && !secondIsJoin {
+	var extra []*big.Rat
+	last := new(big.Rat)
+	for _, root := range roots {
+		station := mappedSplineModelStation(root, weight)
+		if station.Cmp(last) <= 0 {
+			return zero, nil, fmt.Errorf("original support crossings must have distinct model stations: %w", geom.ErrConvergence)
+		}
+		last = station
+		if station.Cmp(join) != 0 {
+			extra = append(extra, station)
+		}
+	}
+	if len(extra) != len(roots)-1 {
 		return zero, nil, fmt.Errorf("one exact support crossing must match the stored model knot: %w", geom.ErrConvergence)
 	}
-	extra := a
-	if firstIsJoin {
-		extra = b
-	}
-	if err := ProveMappedSplineMixedSplitTransfer(ctx, support, mapped, pieces, join, extra, o); err != nil {
+	if err := ProveMappedSplineStoredKnotPartition(ctx, support, mapped, pieces, join, extra, o); err != nil {
 		return zero, nil, err
 	}
 	return mapped, extra, nil
@@ -72,19 +91,22 @@ func ProveMappedSplineMixedSupportKnotsTransfer(ctx context.Context, support geo
 // against two stored model Béziers, one of which is further restricted at
 // the additional cut. Both input cuts are in whole normalized traversal.
 func ProveMappedSplineMixedSplitTransfer(ctx context.Context, support geom.Surface, mapped MappedSplineUV, pieces [2]*geom.ExactSplineCurve, join, extra *big.Rat, o geom.SurfacePatchOptions) error {
-	return proveMappedSplineStoredKnotPartition(ctx, support, mapped, pieces, join, []*big.Rat{extra}, o)
+	return ProveMappedSplineStoredKnotPartition(ctx, support, mapped, pieces, join, []*big.Rat{extra}, o)
 }
 
 // ProveMappedSplineThreeKnotSplitTransfer compares the four exact raw
 // restrictions of one already mapped owner against two stored model
 // Béziers. The three distinct cuts are in whole normalized traversal.
 func ProveMappedSplineThreeKnotSplitTransfer(ctx context.Context, support geom.Surface, mapped MappedSplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, extra [2]*big.Rat, o geom.SurfacePatchOptions) error {
-	return proveMappedSplineStoredKnotPartition(ctx, support, mapped, pieces, join, extra[:], o)
+	return ProveMappedSplineStoredKnotPartition(ctx, support, mapped, pieces, join, extra[:], o)
 }
 
-func proveMappedSplineStoredKnotPartition(ctx context.Context, support geom.Surface, mapped MappedSplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, extra []*big.Rat, o geom.SurfacePatchOptions) error {
+// ProveMappedSplineStoredKnotPartition compares up to five original owner
+// restrictions against two stored model Béziers. join and up to three extra
+// distinct cuts are in whole normalized model traversal.
+func ProveMappedSplineStoredKnotPartition(ctx context.Context, support geom.Surface, mapped MappedSplineUV, pieces [2]*geom.ExactSplineCurve, join *big.Rat, extra []*big.Rat, o geom.SurfacePatchOptions) error {
 	one := big.NewRat(1, 1)
-	if ctx == nil || support == nil || mapped.weight == nil || pieces[0] == nil || pieces[1] == nil {
+	if ctx == nil || support == nil || mapped.weight == nil || pieces[0] == nil || pieces[1] == nil || len(extra) > 3 {
 		return geom.ErrInvalid
 	}
 	stations := append([]*big.Rat{join}, extra...)

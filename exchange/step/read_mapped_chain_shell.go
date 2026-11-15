@@ -28,13 +28,15 @@ type MappedChainSTEPCell struct {
 
 // MappedChainSTEPSupportCrossing records one original STEP edge junction
 // and its two adjacent certified native edges. RawParameters and
-// OwnersChangingCells follow the original owners.
+// OwnersChangingCells follow the original owners. StoredModelKnot distinguishes
+// an authored model spline knot from an inferred owner-only support cut.
 type MappedChainSTEPSupportCrossing struct {
 	EdgeID               int64
 	SourceModelParameter *big.Rat
 	ModelStation         *big.Rat
 	RawParameters        [2]*big.Rat
 	OwnersChangingCells  [2]bool
+	StoredModelKnot      bool
 	NativeEdges          [2]int
 }
 
@@ -114,7 +116,10 @@ func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 	if foreign && o.AllowAsynchronousSupportKnots && !o.AllowUnsplitSupportKnot {
 		return zero, geom.ErrInvalid
 	}
-	if foreign && (o.AllowMixedSupportKnots || o.AllowThreeSupportKnots) && (!o.AllowUnsplitSupportKnot || !o.AllowTwoInteriorRoofKnots) {
+	if foreign && (o.AllowMixedSupportKnots || o.AllowThreeSupportKnots || o.AllowFourSupportKnots) && (!o.AllowUnsplitSupportKnot || !o.AllowTwoInteriorRoofKnots) {
+		return zero, geom.ErrInvalid
+	}
+	if o.AllowFourSupportKnots && !o.AllowTwoInteriorRoofKnots {
 		return zero, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -148,6 +153,9 @@ func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 	}
 	if o.AllowTwoInteriorRoofKnots {
 		maxRoofKnots = 2
+	}
+	if o.AllowFourSupportKnots {
+		maxRoofKnots = 3
 	}
 	source, err := openMappedChainSTEPSource(f, l, foreign, maxRoofKnots)
 	if err != nil {
@@ -340,9 +348,16 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	knotsA, knotsB := mappedChainInteriorSupportKnots(g.faces[0].surface), mappedChainInteriorSupportKnots(g.faces[1].surface)
 	allowAsync := g.foreign && o.AllowAsynchronousSupportKnots && knotsA == 1 && knotsB == 1
 	allowMixed := g.foreign && o.AllowMixedSupportKnots && min(knotsA, knotsB) == 1 && max(knotsA, knotsB) == 2
-	allowThree := (g.foreign && o.AllowThreeSupportKnots || canonicalOriginal) && knotsA == 2 && knotsB == 2
+	allowThree := (g.foreign || canonicalOriginal) && o.AllowThreeSupportKnots && knotsA == 2 && knotsB == 2
+	allowFour := (g.foreign || canonicalOriginal) && o.AllowFourSupportKnots && min(knotsA, knotsB) == 2 && max(knotsA, knotsB) == 3
+	maxCrossings, maxInferredSupportKnots := 3, 0
+	if allowFour {
+		maxCrossings, maxInferredSupportKnots = 4, 3
+	} else if allowMixed || allowThree {
+		maxInferredSupportKnots = 2
+	}
 	maxModelPieces := 1
-	if canonicalOriginal && allowThree {
+	if canonicalOriginal && (allowThree || allowFour) {
 		maxModelPieces = 2
 	} else if allowUnsplit {
 		maxModelPieces = 2
@@ -366,7 +381,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 				foreignTrimmed = [2]bool{true, true}
 			}
 		}
-		if (foreignMixed || canonicalOriginal) && len(e.joins) != 0 && (!allowThree || len(e.joins) != 1) {
+		if (foreignMixed || canonicalOriginal) && len(e.joins) != 0 && (!(allowThree || allowFour) || len(e.joins) != 1) {
 			return zero, geom.ErrConvergence
 		}
 		if g.foreign && foreignTrimmed == [2]bool{} {
@@ -386,7 +401,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		reverse := !g.uses[id][0].sense
 		row := MappedChainSTEPCell{EdgeID: id, ModelCurveID: e.modelID}
 		var mapped [2]trimmed.MappedSplineUV
-		var ownerCuts [2]*big.Rat
+		var ownerCuts [2][]*big.Rat
 		for owner, p := range e.pcurves {
 			var source trimmed.SplineUV
 			_, trimmedPCurve := component(g.file.Entities[p.curve], "TRIMMED_CURVE")
@@ -411,22 +426,22 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 			if err != nil {
 				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
-			mapped[owner], ownerCuts[owner], err = proveMappedChainSTEPTransfer(ctx, g.faces[owner].surface, source, e, reverse, allowAsync && !foreignMixed, allowMixed || allowThree, o.Geometry)
+			mapped[owner], ownerCuts[owner], err = proveMappedChainSTEPTransfer(ctx, g.faces[owner].surface, source, e, reverse, allowAsync && !foreignMixed, maxInferredSupportKnots, o.Geometry)
 			if err != nil {
 				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
 			parts[owner] = append(parts[owner], mapped[owner])
 		}
 		interval := [2]*big.Rat{stations[len(stations)-2], stations[len(stations)-1]}
-		edgeCrossings, err := g.edgeCrossings(ctx, id, e, reverse, interval, mapped, ownerCuts, allowThree, o.Geometry)
+		edgeCrossings, err := g.edgeCrossings(ctx, id, e, reverse, interval, mapped, ownerCuts, allowThree, allowFour, o.Geometry)
 		if err != nil {
 			return zero, fmt.Errorf("mapped STEP edge #%d: %w", id, err)
 		}
-		if len(crossings)+len(edgeCrossings) > 3 {
+		if len(crossings)+len(edgeCrossings) > maxCrossings {
 			return zero, geom.ErrConvergence
 		}
-		if (foreignMixed || canonicalOriginal) && len(e.joins) != 0 && len(edgeCrossings) != 3 {
-			return zero, fmt.Errorf("mixed original owner bases require a complete three-cut repair: %w", geom.ErrConvergence)
+		if (foreignMixed || canonicalOriginal) && len(e.joins) != 0 && len(edgeCrossings) != maxCrossings {
+			return zero, fmt.Errorf("mixed original owner bases require a complete %d-cut repair: %w", maxCrossings, geom.ErrConvergence)
 		}
 		crossings = append(crossings, edgeCrossings...)
 		chain = append(chain, row)
@@ -563,10 +578,15 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 			certify = trimmed.CertifyMappedSplineChainAsynchronousSupportKnotsAgreement
 		}
 	case 3:
-		if !allowThree || crossings[0].EdgeID != crossings[1].EdgeID || crossings[1].EdgeID != crossings[2].EdgeID {
+		if !allowThree || !allMappedChainCrossingsOnOneEdge(crossings) {
 			return zero, fmt.Errorf("three support cuts must belong to one original foreign edge: %w", geom.ErrConvergence)
 		}
 		certify = trimmed.CertifyMappedSplineChainThreeSupportKnotsAgreement
+	case 4:
+		if !allowFour || !allMappedChainCrossingsOnOneEdge(crossings) {
+			return zero, fmt.Errorf("four support cuts must belong to one original edge: %w", geom.ErrConvergence)
+		}
+		certify = trimmed.CertifyMappedSplineChainFourSupportKnotsAgreement
 	}
 	agreement, err := certify(ctx, g.faces[0].surface, chains[0], g.faces[1].surface, chains[1], budget)
 	if err != nil {
@@ -603,6 +623,18 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		}
 	}
 	return out, nil
+}
+
+func allMappedChainCrossingsOnOneEdge(crossings []MappedChainSTEPSupportCrossing) bool {
+	if len(crossings) == 0 {
+		return false
+	}
+	for _, cut := range crossings[1:] {
+		if cut.EdgeID != crossings[0].EdgeID {
+			return false
+		}
+	}
+	return true
 }
 
 func mappedChainSTEPBasisModes(chain []MappedChainSTEPCell) ([2]bool, error) {

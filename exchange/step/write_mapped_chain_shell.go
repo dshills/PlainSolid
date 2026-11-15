@@ -20,7 +20,7 @@ type MappedChainShellSTEPOptions struct {
 	Geometry  geom.SurfacePatchOptions
 	Tolerance float64
 	// AllowMultiSpanRoofs admits one interior original support knot per roof.
-	// Every emitted or read coedge must fit a closed original knot rectangle.
+	// Each explicit coedge must fit a closed original knot rectangle.
 	AllowMultiSpanRoofs bool
 	// AllowTwoInteriorRoofKnots admits up to two interior support knots per
 	// roof. Also requires AllowMultiSpanRoofs.
@@ -42,14 +42,19 @@ type MappedChainShellSTEPOptions struct {
 	// model knot crossed by both owners and one separate cut per owner.
 	// Requires AllowUnsplitSupportKnot and AllowTwoInteriorRoofKnots.
 	AllowThreeSupportKnots bool
+	// AllowFourSupportKnots admits one original model edge with a shared
+	// stored knot and one and two separate owner support crossings. This
+	// admits a third interior roof knot. Requires AllowTwoInteriorRoofKnots
+	// and, for original unsplit input, AllowUnsplitSupportKnot.
+	AllowFourSupportKnots bool
 	// AllowIndependentOwnerBases admits an explicit coedge graph with a whole
 	// original spline for each owner of every shared edge, on both roofs. The
 	// model stations use a common integer scale of at most 53 bits in STEP.
 	AllowIndependentOwnerBases bool
 	// AllowMixedOwnerBases admits one whole basis shared by all coedges of
 	// one roof, and one whole basis per original coedge of the other. It uses
-	// the same exact integer model scale. With AllowThreeSupportKnots the
-	// readers can prove three cuts of one mixed-basis original coedge.
+	// the same exact integer model scale. The matching support-knot opt-in
+	// admits three or four cuts of one mixed-basis original coedge.
 	AllowMixedOwnerBases bool
 }
 
@@ -95,7 +100,8 @@ func writeReprovedMappedChainSTEP(ctx context.Context, w io.Writer, raw []byte, 
 }
 
 func (o MappedChainShellSTEPOptions) allowsUnsplitMixedOwnerBases() bool {
-	return o.AllowMixedOwnerBases && o.AllowMultiSpanRoofs && o.AllowTwoInteriorRoofKnots && o.AllowUnsplitSupportKnot && o.AllowThreeSupportKnots
+	return o.AllowMixedOwnerBases && o.AllowMultiSpanRoofs && o.AllowTwoInteriorRoofKnots && o.AllowUnsplitSupportKnot &&
+		(o.AllowThreeSupportKnots || o.AllowFourSupportKnots)
 }
 
 func (o MappedChainShellSTEPOptions) allowsOwnerBases(independent [2]bool) bool {
