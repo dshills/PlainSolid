@@ -65,7 +65,7 @@ lanes returned zero, with 52 tested packages and four without tests.
 The [full native race on `d5906fde`](evidence/native-main-d5906fde-race-2026-11-15.json)
 accounted for all 5,769 cases: 5,247 passed and 522 optional cases were
 skipped. All 52 tested packages and the eight trimmed groups finished.
-The [newer full PlainCAD run on `05ce6e82`](evidence/plaincad-main-05ce6e82-2026-11-15.json)
+The [latest full PlainCAD run on `83e18008`](evidence/plaincad-main-83e18008-2026-11-15.json)
 passed all eight stages: 345 development, 66 production, 15 cross-browser,
 1,691 ordinary unit and four real WASM cases. The production WASM is
 byte-identical to the build and the Playwright driver is pristine.
@@ -111,12 +111,18 @@ curved inset joins keep original host caps, guest walls, and separate
 exposed floors inside through-openings. They qualify compact display, native
 and document replay, and analytic STEP and IGES with supported placements.
 Complete equal curved caps also join, leaving one common original rim.
+Different original rim partitions are now refined to exactly shared stations;
+native replay re-proves the two directed source parameter maps.
 
-Immediate work includes different curved cap rim partitions, two independently
-projected original roof charts, two jointly inferred roots in one model cell,
-and five separated original STEP fillets. The fresh full PlainCAD run on
-`83e18008` and native race on `491b18f1` are running. Vet and Windows amd64
-cross-build also pass on `12ab5dbf`. Wider contact discovery, advanced modeling,
+Native Common, Fuse and both Cut orders now keep two independently projected
+original roof charts. One independently authored unsplit STEP Bézier keeps
+three inferred events with mixed joint and independent support ownership.
+Five separated fillets on an original OCCT tilted pentagonal prism now qualify
+original millimetre STEP with both independent antipodal owners. The native
+race on `491b18f1` is still running. Vet and Windows amd64 cross-build pass
+on `12ab5dbf`. Current work covers named document rounds and cap joins,
+nonunit physical roof charts, nonplanar mapped model curves and converted
+five-fillet STEP originals. Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
 
 The two PlainCAD integration branches are in `main` through implementation

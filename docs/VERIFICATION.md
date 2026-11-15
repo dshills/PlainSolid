@@ -142,6 +142,31 @@ inventoried trimmed lanes account for 1,433 passes and 48 optional skips.
 Raw runs, source, and input lists are under
 `.worktrees/qualification/2026-11-15/go-a1030049`.
 
+The [latest full PlainCAD report](evidence/plaincad-main-83e18008-2026-11-15.json)
+uses immutable `83e18008` and the same pinned app revision. All eight
+stages returned zero: 345 development, 66 production, 15 cross-browser,
+1,691 ordinary unit and four real WASM tests passed without failures,
+skips or flaky cases. Build, typechecks and bundle budgets passed; the
+production browser used the exact just-built WASM and the Playwright driver
+kept its pristine hash. Raw results remain in
+`.worktrees/qualification/2026-11-15/plaincad-83e18008`.
+
+- Native projected Common/Fuse (`d77c55df`) and both Cut orders (`1618e9db`)
+  retain the two independent original roofs, ordered contacts, and source
+  replay. Focused main race times were 182.651 and 151.126 seconds for the
+  trimmed package. The smallest Cut component is independently integrated
+  as `1/38386270208`; 24 legacy byte comparisons remained unchanged.
+- Mapped STEP (`b3d44702`) keeps three inferred events on one original
+  unsplit Bézier. The raw owner pairs are `[17,40]`, `[37,32]` and
+  `[65,24]`. Independent original material, exact stations, strict re-export
+  and an actual redundant stored knot rejection passed in the focused main
+  race (87.618 seconds) and full mapped STEP race (520.971 seconds) on the
+  isolated patch. The isolated native mapped race passed in 209.857 seconds.
+- Original five-fillet millimetre STEP (`7e647e57`) passed the main live
+  race with four-fillet converted regressions in 73.750 seconds. It preserves
+  original antipodal owners `#324` and `#633` and rejects the distinct
+  OCCT-authored nonbinary control at its exact original local point.
+
 - Quintic native Common/Fuse and Cut with three transverse crossings and a
   quadratic tangency, plus exact curved inner wires, passed a combined main
   race: 34 top-level cases across `geom` and `brep/trimmed`. Pinning geometry
