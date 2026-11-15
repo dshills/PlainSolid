@@ -74,6 +74,7 @@ const (
 // be composed before applying a placement transform.
 // A circular inset join uses Input as the host and Tool as the inset sweep.
 // A circular corner fillet uses Input and named CircularCornerRounds.
+// A circular cap overlay joins the full abutting caps of Input and Tool.
 // Planar protrusion/pocket uses a named box face through Input and EntryRole,
 // an interior world-space Profile and full translation Offset; holes unsupported.
 // PlanarToFace uses Input, EntryRole, Profile, Holes and Direction; its
@@ -179,9 +180,10 @@ func (s State) EvaluateFeatures(ctx context.Context) (State, error) {
 }
 
 type featureFaceObserver struct {
-	needsHistory func(Feature) bool
-	needsEdges   func(Feature) bool
-	record       func(string, Feature, State, poly.TopologyHistory) error
+	needsHistory          func(Feature) bool
+	needsEdges            func(Feature) bool
+	record                func(string, Feature, State, poly.TopologyHistory) error
+	recordCircularOverlay func(string, trimmed.CircularSweepCapOverlay)
 }
 
 func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserver) (State, error) {
@@ -252,8 +254,8 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 				stack = append(stack, item{name, true})
 				needsInput := f.Kind == LinkedHelicalNutFeature || f.Kind == PlanarToFaceFeature || f.Kind == PlanarThroughPocketFeature || f.Kind == PlanarProtrusionFeature || f.Kind == PlanarPocketFeature || f.Kind == TransformFeature || f.Kind == PlanarOffsetFeature || f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == PlanarEdgeSplitFeature || f.Kind == CylinderBoreFeature || f.Kind == SideOpenDualDiskCutFeature ||
 					f.Kind == WrappedDraftFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedFrustumOffsetFeature ||
-					f.Kind == WrappedCylinderFilletFeature || f.Kind == WrappedCylinderOffsetFeature || f.Kind == WrappedStationBoreFeature || f.Kind == DirectedCircularExtrusionOffsetFeature || f.Kind == DirectedCircularInsetJoinFeature || f.Kind == DirectedCircularCornerFilletFeature
-				needsTool := f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedStationBoreFeature || f.Kind == DirectedCircularInsetJoinFeature
+					f.Kind == WrappedCylinderFilletFeature || f.Kind == WrappedCylinderOffsetFeature || f.Kind == WrappedStationBoreFeature || f.Kind == DirectedCircularExtrusionOffsetFeature || f.Kind == DirectedCircularInsetJoinFeature || f.Kind == DirectedCircularCornerFilletFeature || f.Kind == DirectedCircularCapOverlayFeature
+				needsTool := f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedStationBoreFeature || f.Kind == DirectedCircularInsetJoinFeature || f.Kind == DirectedCircularCapOverlayFeature
 				if (f.Input != "") != needsInput || (f.Tool != "") != needsTool {
 					return State{}, fmt.Errorf("document: invalid input for feature %q", name)
 				}
@@ -338,6 +340,22 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 				if e == nil {
 					r = rounded.Solid
 					circularSweeps[name] = rounded.Profile
+				}
+			case DirectedCircularCapOverlayFeature:
+				uv = true
+				a, hasInput := circularSweeps[f.Input]
+				b, hasTool := circularSweeps[f.Tool]
+				if !hasInput || !hasTool {
+					e = fmt.Errorf("circular cap overlay needs two authored unplaced sweeps")
+					break
+				}
+				var overlay trimmed.CircularSweepCapOverlay
+				overlay, e = trimmed.JoinExactCircularSweepCapOverlay(ctx, a, b, trimmed.ExactCircularLoopOptions{DisplayTolerance: f.Tolerance})
+				if e == nil {
+					r = overlay.Solid
+					if observe != nil && observe.recordCircularOverlay != nil {
+						observe.recordCircularOverlay(name, overlay)
+					}
 				}
 			case PrismFilletFeature:
 				uv = true
@@ -508,7 +526,7 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 			} else {
 				result.Planar[name] = p
 			}
-			if observe != nil {
+			if observe != nil && observe.record != nil {
 				if e = observe.record(name, f, result, topology); e != nil {
 					return State{}, e
 				}

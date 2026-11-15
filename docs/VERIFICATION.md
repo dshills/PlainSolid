@@ -180,6 +180,12 @@ kept its pristine hash. Raw results remain in
   Both added radii and all unchanged arc names survived placement, radius
   edit, undo, redo and reopen. Duplicate identities, a curved incident span
   and an oversized round failed without publishing a document edit.
+- Named complete cap overlay and existing planar face and edge history
+  passed together under the main race in 43.025 seconds. The two split
+  original rims share seam edge identities with both named wall sets,
+  retain the curved parent's exact `8/11` midpoint and the line's affine
+  law after a cyclic source reorder, placement and reopen, and reject an
+  edit that separates the cap planes.
 
 - Quintic native Common/Fuse and Cut with three transverse crossings and a
   quadratic tangency, plus exact curved inner wires, passed a combined main

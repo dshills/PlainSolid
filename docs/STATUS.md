@@ -114,15 +114,18 @@ Named corner rounds on mixed line-and-arc profiles retain the original arcs,
 shortened straight spans, and independent holes through edits and reopen.
 Complete equal curved caps also join, leaving one common original rim.
 Different original rim partitions are now refined to exactly shared stations;
-native replay re-proves the two directed source parameter maps.
+native and document replay re-prove the two directed source parameter maps.
+Named document cap joins resolve original walls, split rims and vertices
+through edits and placement.
 
 Native Common, Fuse and both Cut orders now keep two independently projected
 original roof charts. One independently authored unsplit STEP Bézier keeps
 three inferred events with mixed joint and independent support ownership.
 Five separated fillets on an original OCCT tilted pentagonal prism now qualify
 original millimetre STEP with both independent antipodal owners. The native
-race on `491b18f1` is still running. Vet and Windows amd64 cross-build pass
-on `12ab5dbf`. Current work covers named document cap joins,
+race on `491b18f1` and ordinary Go on `5181d219` are still running. Vet and
+Windows amd64 cross-build pass on `12ab5dbf`. Current work covers tangent
+rounds at line-to-arc corners,
 nonunit physical roof charts, nonplanar mapped model curves and converted
 five-fillet STEP originals. Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
