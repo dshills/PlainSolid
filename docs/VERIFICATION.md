@@ -6794,3 +6794,33 @@ the cyclic owner on cycle `2^100`. Native reload preserves the original
 pole and weight data, including period and parameter units. Exact grids
 reject out-of-domain, past-budget and altered input records. The focused
 geometry and parametric suites passed under race.
+
+The two ordered curved-contour cases qualify native Boolean results on
+both original chart axes and in both operand orders. All 12 combinations
+pass exact owner checks and reload. Independent OCCT checks from the
+2026-11-14 run agreed within `2.68e-9` in volume. The forward Cut has two
+components, while the reverse Cut has one. The exact side-wall split
+handles the middle strip where its two roof endpoints coincide.
+
+The piecewise boundary fixture retains exact agreement between original
+owners whose common model curve changes polynomial at a knot. The native
+boundary recipe re-proves both owner charts and reproduces the certified
+sample ledger. Its curved single-face fill retains all 19 prescribed seam
+vertices and reports no nonincident triangle contacts. Independent
+samples check the original source parameters and the `z=xy` support.
+
+Spherical cavity and separated-sphere offsets pass exact radius, face
+ownership, tangent rejection, regularized collapse, and analytic mass
+checks. The cavity survives signed offsets and can fill or open through
+the outside sphere. Independent simple OCCT offsets matched the retained
+cavity. Separate OCCT sphere Booleans verified the transition supports.
+The OCCT comparator uses adaptive mass integration for the trimmed
+transverse case. The first nonadaptive reference integration exceeded
+the comparison allowance on that case despite the native result matching
+the analytic formula.
+
+The fresh 2026-11-15 focused race run passed the ordered-contour, piecewise
+boundary and face-fill, and spherical offset cases in `geom`,
+`brep/parametric`, and `brep/trimmed`. Three optional live comparisons
+were skipped in that run while the pinned OCCT reference was rebuilding.
+The run log is under `.worktrees/qualification/2026-11-15` in the workspace.
