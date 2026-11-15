@@ -39,6 +39,22 @@ func (r MappedSplineChainAgreement) mappedChainClosingSource(closing [2][]PCurve
 	return g, nil
 }
 
+func mappedChainCellPairs(nCells int, seams [][2]MappedChainClosedUse) [][2]MappedChainClosedUse {
+	pairs := make([][2]MappedChainClosedUse, nCells, nCells+len(seams))
+	for i := range pairs {
+		pairs[i] = [2]MappedChainClosedUse{{Face: 0, Trim: i}, {Face: 1, Trim: i}}
+	}
+	for _, seam := range seams {
+		for i, u := range seam {
+			if u.Face < 2 {
+				seam[i].Trim += nCells
+			}
+		}
+		pairs = append(pairs, seam)
+	}
+	return pairs
+}
+
 func (g mappedChainClosingSource) proveSeams(ctx context.Context, seams [][2]MappedChainClosedUse, o edgecheck.Options) error {
 	trims := g.trims
 	faceCount := len(trims)

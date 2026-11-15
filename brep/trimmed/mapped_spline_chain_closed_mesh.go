@@ -166,18 +166,7 @@ func (r MappedSplineChainAgreement) TessellateClosedCertified(ctx context.Contex
 	// Translate the original seam uses once into the face mesh's trim indexes.
 	// Each original chain cell has one paired use in each roof chart.
 	nCells := len(r.cuts) - 1
-	pairs := make([][2]MappedChainClosedUse, nCells, nCells+len(seams))
-	for i := range pairs {
-		pairs[i] = [2]MappedChainClosedUse{{Face: 0, Trim: i}, {Face: 1, Trim: i}}
-	}
-	for _, seam := range seams {
-		for i, u := range seam {
-			if u.Face < 2 {
-				seam[i].Trim += nCells
-			}
-		}
-		pairs = append(pairs, seam)
-	}
+	pairs := mappedChainCellPairs(nCells, seams)
 	cuts := make([][][]*big.Rat, faceCount)
 	if err := build(cuts); err != nil {
 		return zero, err
