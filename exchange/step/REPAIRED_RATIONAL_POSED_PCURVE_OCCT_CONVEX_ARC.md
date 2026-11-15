@@ -90,6 +90,47 @@ This qualification covers the proved degree-one cylindrical spans and
 binary-lossless local model coordinates of this converted single-fillet
 family.
 
+## Millimetre model converted to inch STEP by OCCT
+
+The pinned `write-default-tilted-translated-converted-inch` author scales the
+millimetre-native model by 127 before transferring it with OCCT's inch output
+unit. This choice retains the dyadic model geometry as five times the
+dimensionless base profile in inches. The original cylinder and both
+adjacent planes satisfy the exact tangency equations. The repaired shape keeps
+its 25-inch height and the exact `127/5` millimetre unit factor. Its
+product-local-to-world pose translates by `(8, 0, 6)` inches, with the
+lateral shift retained in the local profile.
+
+The file uses `3.937007874016E-02` as the model LINE speed. This authored
+decimal exceeds the declared conversion `5/127` by exactly
+`1/396875000000000` inch per millimetre. All 18 planar LINE owners retain
+unit speed and use the declared exact parameter map `t → 5t/127`. The
+finite lift bounds include the difference between that map and the actual
+model speed. The two axial cylindrical owners have knots `[0,635]` and
+exact slope `5/127`. At constant angle the difference between the lifted
+spline and the model line is affine, so the source and repaired interval
+endpoints bound the entire discrepancy. The zero-angle axial owner's maximum
+drift is `25/15625000000001` inch. The two degree-one circular spans and two
+planar circles retain the same proofs used for the converted metre source.
+The source-only receipt re-proves every coefficient and accepts the fixture
+with a `1e-11` inch budget. A `1e-12` inch budget rejects it.
+
+The independent OCCT midpoint check measures a maximum owner lift discrepancy
+of about `1.11e-12` inch with the declared planar map and `362.1875` inches
+with the model parameter used directly. Ordinary OCCT transfer measures the
+same world volume, surface area, and centroid in millimetres across the
+original, corrected model-only, and strict canonical inch STEP.
+
+The pinned `write-default-tilted-translated-converted-inch-unscaled` author
+converts the base millimetre geometry directly. The decimal placement of the
+original oblique plane, face `#340`, puts it
+`297/1250000000000000` inch beyond tangency with the original
+cylinder, face `#214`. Both values come from the original STEP tokens and its
+exact unit side-plane normal. OCCT transfers the source using its geometric
+tolerance. PlainSolid's endpoint repair rejects the file because it retains
+both supports, which have no exact shared tangent regardless of vertex
+placement.
+
 ## Source-only native proof
 
 `WriteRationalPosedPCurveRepairedOCCTConvexArcJSON` and
@@ -114,7 +155,7 @@ translation `(1,0,2)`. Each source has 352 entities and 24 owner pcurves.
 
 ```sh
 PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
-  go test ./exchange/step -run '^(TestRepairRationalPosedPCurveOCCTConvexArc|TestRationalPosedConvexArc|TestRepairConvertedMetreConvexArc)' -count=1
+  go test ./exchange/step -run '^(TestRepairRationalPosedPCurveOCCTConvexArc|TestRationalPosedConvexArc|TestRepairConverted(Metre|Inch)ConvexArc)' -count=1
 ```
 
 The live test regenerates both sources and reloads their native proofs.
