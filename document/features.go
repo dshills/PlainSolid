@@ -72,6 +72,7 @@ const (
 // profile and cap elevations, with Tolerance used for display validation.
 // Its lateral offset uses Input, signed Distance and Tolerance. Offsets can
 // be composed before applying a placement transform.
+// A circular inset join uses Input as the host and Tool as the inset sweep.
 // Planar protrusion/pocket uses a named box face through Input and EntryRole,
 // an interior world-space Profile and full translation Offset; holes unsupported.
 // PlanarToFace uses Input, EntryRole, Profile, Holes and Direction; its
@@ -248,8 +249,8 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 				stack = append(stack, item{name, true})
 				needsInput := f.Kind == LinkedHelicalNutFeature || f.Kind == PlanarToFaceFeature || f.Kind == PlanarThroughPocketFeature || f.Kind == PlanarProtrusionFeature || f.Kind == PlanarPocketFeature || f.Kind == TransformFeature || f.Kind == PlanarOffsetFeature || f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == PlanarEdgeSplitFeature || f.Kind == CylinderBoreFeature || f.Kind == SideOpenDualDiskCutFeature ||
 					f.Kind == WrappedDraftFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedFrustumOffsetFeature ||
-					f.Kind == WrappedCylinderFilletFeature || f.Kind == WrappedCylinderOffsetFeature || f.Kind == WrappedStationBoreFeature || f.Kind == DirectedCircularExtrusionOffsetFeature
-				needsTool := f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedStationBoreFeature
+					f.Kind == WrappedCylinderFilletFeature || f.Kind == WrappedCylinderOffsetFeature || f.Kind == WrappedStationBoreFeature || f.Kind == DirectedCircularExtrusionOffsetFeature || f.Kind == DirectedCircularInsetJoinFeature
+				needsTool := f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedStationBoreFeature || f.Kind == DirectedCircularInsetJoinFeature
 				if (f.Input != "") != needsInput || (f.Tool != "") != needsTool {
 					return State{}, fmt.Errorf("document: invalid input for feature %q", name)
 				}
@@ -308,6 +309,19 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 				if e == nil {
 					r = next.Solid
 					circularSweeps[name] = next.Profile
+				}
+			case DirectedCircularInsetJoinFeature:
+				uv = true
+				host, hasHost := circularSweeps[f.Input]
+				guest, hasGuest := circularSweeps[f.Tool]
+				if !hasHost || !hasGuest {
+					e = fmt.Errorf("circular inset join needs two authored unplaced sweeps")
+					break
+				}
+				var join trimmed.CircularSweepInset
+				join, e = trimmed.JoinExactCircularSweepInset(ctx, host, guest, trimmed.ExactCircularLoopOptions{DisplayTolerance: f.Tolerance})
+				if e == nil {
+					r = join.Solid
 				}
 			case PrismFilletFeature:
 				uv = true
