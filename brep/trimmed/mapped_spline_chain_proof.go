@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"slices"
 
 	"plainsolid/brep/edgecheck"
 	"plainsolid/geom"
@@ -200,11 +201,12 @@ type MappedSplineChainAgreement struct {
 	supports     [2]geom.Surface
 	knotRepair   mappedChainKnotRepair
 	knotCutCount int
+	jointChanges [][2]bool
 }
 
 type mappedChainKnotRepair uint8
 
-// Nonzero identifiers map to native boundary recipe versions 3 through 11.
+// Nonzero identifiers map to native boundary recipe versions 3 through 12.
 const (
 	mappedChainNoKnotRepair mappedChainKnotRepair = iota
 	mappedChainSingleKnotRepair
@@ -216,7 +218,15 @@ const (
 	mappedChainCellLocalKnotsRepair
 	mappedChainSameCellAsynchronousKnotsRepair
 	mappedChainJoinedKnotsRepair
+	mappedChainAsymmetricJoinedKnotsRepair
 )
+
+// OriginalJointSupportChanges reports the proved original joint masks in
+// traversal order. Each bit reports whether that source roof changes its
+// support cell there. The joined support proofs populate this record.
+func (r MappedSplineChainAgreement) OriginalJointSupportChanges() [][2]bool {
+	return slices.Clone(r.jointChanges)
+}
 
 func (r MappedSplineChainAgreement) ModelCuts() []*big.Rat {
 	out := make([]*big.Rat, len(r.cuts))
@@ -357,6 +367,15 @@ func CertifyMappedSplineChainJoinedSupportKnotsAgreement(ctx context.Context, a 
 	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainJoinedKnotsRepair)
 }
 
+// CertifyMappedSplineChainAsymmetricJoinedSupportKnotsAgreement proves
+// three original coedges with one shared and one unilateral support joint.
+// The original roofs have two and four support knots, respectively. Exactly
+// one roof changes support inside each coedge, and both contribute interior
+// events. The other roof's original span extends across the unilateral joint.
+func CertifyMappedSplineChainAsymmetricJoinedSupportKnotsAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
+	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainAsymmetricJoinedKnotsRepair)
+}
+
 func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options, repair mappedChainKnotRepair) (MappedSplineChainAgreement, error) {
 	var zero MappedSplineChainAgreement
 	if ctx == nil || len(ca.parts) < 2 || len(cb.parts) < 2 {
@@ -397,9 +416,19 @@ func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca M
 	var repairedCuts []bool
 	if repair != mappedChainNoKnotRepair {
 		originalCount := len(cuts)
-		cuts, repairedCuts, e = mappedSplineSupportKnotCuts(ctx, out.sources, [2]*geom.SurfacePatch{pa, pb}, cuts, repair, o)
-		if e != nil {
-			return zero, e
+		patches := [2]*geom.SurfacePatch{pa, pb}
+		switch repair {
+		case mappedChainJoinedKnotsRepair, mappedChainAsymmetricJoinedKnotsRepair:
+			partition, err := mappedSplineJoinedSupportKnotCuts(ctx, out.sources, patches, cuts, repair, o)
+			if err != nil {
+				return zero, err
+			}
+			cuts, repairedCuts, out.jointChanges = partition.cuts, partition.inserted, partition.jointChanges
+		default:
+			cuts, repairedCuts, e = mappedSplineSupportKnotCuts(ctx, out.sources, patches, cuts, repair, o)
+			if e != nil {
+				return zero, e
+			}
 		}
 		if len(cuts) > 16 || o.MaxIntervals > 0 && len(cuts)-1 > o.MaxIntervals {
 			return zero, geom.ErrConvergence

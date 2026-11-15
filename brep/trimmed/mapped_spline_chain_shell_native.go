@@ -44,7 +44,8 @@ type MappedChainShellNativeOptions struct {
 
 // WriteJSON stores the original support charts, spline owners, UV trims and
 // coedge pairings. It re-proves those source records under the reader's limits
-// before writing. Proof reports and tessellation data are absent from the format.
+// before writing. Original support-joint ownership, where present, is
+// checked against the source. Tessellation data is absent from the format.
 func (r MappedSplineChainShell) WriteJSON(ctx context.Context, w io.Writer, o MappedChainShellNativeOptions) error {
 	if ctx == nil || w == nil || r.topology.Faces < 3 {
 		return geom.ErrInvalid

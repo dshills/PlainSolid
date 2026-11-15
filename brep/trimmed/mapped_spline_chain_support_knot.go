@@ -14,9 +14,6 @@ import (
 func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChain, patches [2]*geom.SurfacePatch, cuts []*big.Rat, repair mappedChainKnotRepair, o edgecheck.Options) ([]*big.Rat, []bool, error) {
 	limits := geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits}
 	events := geom.ExactCurvePlaneEventOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits, MaxSubdivisions: o.MaxDepth}
-	if repair == mappedChainJoinedKnotsRepair {
-		return mappedSplineJoinedSupportKnotCuts(ctx, chains, patches, cuts, limits, events)
-	}
 	maxOwnerKnots, count := 1, 1
 	switch repair {
 	case mappedChainSynchronizedKnotsRepair, mappedChainMixedKnotsRepair:
