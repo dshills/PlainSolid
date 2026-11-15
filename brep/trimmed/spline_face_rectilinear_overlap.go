@@ -58,10 +58,10 @@ type CoincidentRectangleOverlap struct {
 }
 
 func (a Solid) IntersectCoincidentRectangularTrims(ctx context.Context, faceA int, b Solid, faceB int, o CoincidentRectangleOverlapOptions) (CoincidentRectangleOverlap, error) {
-	return a.intersectCoincidentOrthogonalTrims(ctx, faceA, b, faceB, o, true)
+	return a.intersectCoincidentOrthogonalTrims(ctx, faceA, b, faceB, o, true, parametric.Intersection)
 }
 
-func (a Solid) intersectCoincidentOrthogonalTrims(ctx context.Context, faceA int, b Solid, faceB int, o CoincidentRectangleOverlapOptions, rectangular bool) (CoincidentRectangleOverlap, error) {
+func (a Solid) intersectCoincidentOrthogonalTrims(ctx context.Context, faceA int, b Solid, faceB int, o CoincidentRectangleOverlapOptions, rectangular bool, operation parametric.BooleanOp) (CoincidentRectangleOverlap, error) {
 	fail := func(e error) (CoincidentRectangleOverlap, error) { return CoincidentRectangleOverlap{}, e }
 	if ctx == nil || faceA < 0 || faceA >= len(a.faces) || faceB < 0 || faceB >= len(b.faces) {
 		return fail(geom.ErrInvalid)
@@ -201,17 +201,23 @@ func (a Solid) intersectCoincidentOrthogonalTrims(ctx context.Context, faceA int
 	}
 	r := CoincidentRectangleOverlap{Injectivity: injective, Faces: ids, Map: proof.Map, UVArea: [2]*big.Rat{new(big.Rat), new(big.Rat)}, Cells: (nx - 1) * (ny - 1)}
 	inside := func(p [2]*big.Rat) bool {
-		for _, loops := range rings {
-			if coincidentOrthogonalLocation(loops[0], p) == 0 {
-				return false
-			}
+		var material [2]bool
+		for source, loops := range rings {
+			material[source] = coincidentOrthogonalLocation(loops[0], p) != 0
 			for _, hole := range loops[1:] {
 				if coincidentOrthogonalLocation(hole, p) == 1 {
-					return false
+					material[source] = false
 				}
 			}
 		}
-		return true
+		switch operation {
+		case parametric.Union:
+			return material[0] || material[1]
+		case parametric.Difference:
+			return material[0] && !material[1]
+		default:
+			return material[0] && material[1]
+		}
 	}
 	owners := func(p [2]*big.Rat) []CoincidentTrimOwner {
 		var found []CoincidentTrimOwner

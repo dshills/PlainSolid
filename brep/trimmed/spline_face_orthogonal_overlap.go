@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math/big"
+	"plainsolid/brep/parametric"
 )
 
 // IntersectCoincidentOrthogonalTrims admits simple independently validated
@@ -13,7 +14,7 @@ import (
 // Disconnected positive-area pieces remain separate tiles; lower-dimensional
 // contacts are returned only where no tile closure already covers them.
 func (a Solid) IntersectCoincidentOrthogonalTrims(ctx context.Context, faceA int, b Solid, faceB int, o CoincidentRectangleOverlapOptions) (CoincidentRectangleOverlap, error) {
-	return a.intersectCoincidentOrthogonalTrims(ctx, faceA, b, faceB, o, false)
+	return a.intersectCoincidentOrthogonalTrims(ctx, faceA, b, faceB, o, false, parametric.Intersection)
 }
 
 // 0 outside, 1 strict interior, 2 boundary. Exact half-open vertical crossings
