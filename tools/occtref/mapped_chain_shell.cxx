@@ -10,6 +10,10 @@
 #include <BRepGProp.hxx>
 #include <BRepLib.hxx>
 #include <GProp_GProps.hxx>
+#ifdef PLAINSOLID_AUTHORED_STEP
+#include <STEPControl_Writer.hxx>
+#include <Interface_Static.hxx>
+#endif
 #include <Geom2d_BezierCurve.hxx>
 #include <Geom_BezierSurface.hxx>
 #include <NCollection_Array1.hxx>
@@ -21,10 +25,12 @@
 #include <TopoDS_Solid.hxx>
 #include <NCollection_IndexedMap.hxx>
 #include <TopTools_ShapeMapHasher.hxx>
+#include <algorithm>
 #include <array>
 #include <iomanip>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 using Cubic = std::array<gp_Pnt2d, 4>;
@@ -42,7 +48,7 @@ static std::array<Cubic, 2> split(const Cubic& p) {
   return {Cubic{p[0], a, d, m}, Cubic{m, e, c, p[3]}};
 }
 
-static TopoDS_Face roof(bool south) {
+static TopoDS_Face roof(bool south, int rotate = 0) {
   NCollection_Array2<gp_Pnt> poles(1, 2, 1, 2);
   for (int i = 0; i < 2; ++i) {
     for (int j = 0; j < 2; ++j) {
@@ -70,13 +76,18 @@ static TopoDS_Face roof(bool south) {
   const Cubic a{gp_Pnt2d(0, .25), gp_Pnt2d(.125, .125), gp_Pnt2d(.375, .125), gp_Pnt2d(.5, .25)};
   const Cubic b{gp_Pnt2d(.5, .25), gp_Pnt2d(.625, .5), gp_Pnt2d(.875, .5), gp_Pnt2d(1, .25)};
   const auto ab = split(a);
+  std::vector<std::vector<gp_Pnt2d>> traces;
   for (const auto& p : {ab[0], ab[1], b}) {
-    use(std::vector<gp_Pnt2d>(p.begin(), p.end()));
+    traces.emplace_back(p.begin(), p.end());
   }
   const double outer = south ? 0 : .75;
-  use({gp_Pnt2d(1, .25), gp_Pnt2d(1, outer)});
-  use({gp_Pnt2d(1, outer), gp_Pnt2d(0, outer)});
-  use({gp_Pnt2d(0, outer), gp_Pnt2d(0, .25)});
+  traces.push_back({gp_Pnt2d(1, .25), gp_Pnt2d(1, outer)});
+  traces.push_back({gp_Pnt2d(1, outer), gp_Pnt2d(0, outer)});
+  traces.push_back({gp_Pnt2d(0, outer), gp_Pnt2d(0, .25)});
+  std::rotate(traces.begin(), traces.begin() + rotate, traces.end());
+  for (const auto& p : traces) {
+    use(p);
+  }
   BRepBuilderAPI_MakeFace builder(support, wire.Wire(), true);
   if (!builder.IsDone()) {
     throw std::runtime_error("could not build the independent roof face");
@@ -105,16 +116,26 @@ static TopoDS_Face planar(const std::vector<gp_Pnt>& points, bool reverse) {
   return result;
 }
 
-int main() {
+int main(int argc, char** argv) {
   try {
+    const std::string mode = argc > 1 ? argv[1] : "";
+    const bool reordered = mode == "write-reordered";
+    const std::array<TopoDS_Face, 7> source{
+      roof(false, reordered ? 4 : 0),
+      roof(true, reordered ? 5 : 0),
+      planar({{1, 0, -1}, {1, .75, -1}, {1, .75, .75}, {1, .25, .25}, {1, 0, 0}}, false),
+      planar({{0, 0, -1}, {0, .75, -1}, {0, .75, 0}, {0, .25, 0}, {0, 0, 0}}, true),
+      planar({{0, .75, -1}, {1, .75, -1}, {1, .75, .75}, {0, .75, 0}}, true),
+      planar({{0, 0, -1}, {1, 0, -1}, {1, 0, 0}, {0, 0, 0}}, false),
+      planar({{0, 0, -1}, {1, 0, -1}, {1, .75, -1}, {0, .75, -1}}, true)
+    };
+    const std::array<int, 7> order = reordered
+      ? std::array<int, 7>{6, 2, 1, 4, 3, 0, 5}
+      : std::array<int, 7>{0, 1, 2, 3, 4, 5, 6};
     BRepBuilderAPI_Sewing sewing(1e-8);
-    sewing.Add(roof(false));
-    sewing.Add(roof(true));
-    sewing.Add(planar({{1, 0, -1}, {1, .75, -1}, {1, .75, .75}, {1, .25, .25}, {1, 0, 0}}, false));
-    sewing.Add(planar({{0, 0, -1}, {0, .75, -1}, {0, .75, 0}, {0, .25, 0}, {0, 0, 0}}, true));
-    sewing.Add(planar({{0, .75, -1}, {1, .75, -1}, {1, .75, .75}, {0, .75, 0}}, true));
-    sewing.Add(planar({{0, 0, -1}, {1, 0, -1}, {1, 0, 0}, {0, 0, 0}}, false));
-    sewing.Add(planar({{0, 0, -1}, {1, 0, -1}, {1, .75, -1}, {0, .75, -1}}, true));
+    for (int i : order) {
+      sewing.Add(source[i]);
+    }
     sewing.Perform();
     TopExp_Explorer shell(sewing.SewedShape(), TopAbs_SHELL);
     if (!shell.More() || sewing.NbFreeEdges() || sewing.NbMultipleEdges()) {
@@ -126,6 +147,21 @@ int main() {
       throw std::runtime_error("independent source solid is invalid");
     }
 
+#ifdef PLAINSOLID_AUTHORED_STEP
+    if (argc == 3 && (mode == "write" || reordered)) {
+      STEPControl_Writer writer;
+      Interface_Static::SetIVal("write.surfacecurve.mode", 1);
+      Interface_Static::SetCVal("write.step.schema", "AP242DIS");
+      if (writer.Transfer(solid, STEPControl_ManifoldSolidBrep) != IFSelect_RetDone ||
+          writer.Write(argv[2]) != IFSelect_RetDone) {
+        throw std::runtime_error("independent STEP writer failed");
+      }
+      return 0;
+    }
+#endif
+    if (argc != 1) {
+      return 2;
+    }
     GProp_GProps volume, area;
     BRepGProp::VolumeProperties(solid, volume, 1e-10);
     BRepGProp::SurfaceProperties(solid, area, 1e-10);

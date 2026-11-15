@@ -226,7 +226,7 @@ func mappedChainStepSplineParts(f *File, id int64) ([]Value, []Value, []Value, e
 	return base, knot, weight, nil
 }
 
-func readMappedChainStepSpline(f *File, id int64, dim, maxDegree, maxPoles int) (mappedChainStepSpline, error) {
+func readMappedChainStepSpline(f *File, id int64, dim, maxDegree, maxPoles int, foreign bool) (mappedChainStepSpline, error) {
 	var zero mappedChainStepSpline
 	base, knot, weight, err := mappedChainStepSplineParts(f, id)
 	if err != nil {
@@ -234,7 +234,7 @@ func readMappedChainStepSpline(f *File, id int64, dim, maxDegree, maxPoles int) 
 	}
 	d, err := integer(base[0])
 	if err != nil || d < 1 || d > maxDegree || base[2].Kind != Enumeration || base[2].Text != "UNSPECIFIED" ||
-		knot[2].Kind != Enumeration || knot[2].Text != "UNSPECIFIED" {
+		knot[2].Kind != Enumeration || (knot[2].Text != "UNSPECIFIED" && (!foreign || knot[2].Text != "PIECEWISE_BEZIER_KNOTS")) {
 		return zero, geom.ErrInvalid
 	}
 	for _, v := range base[3:] {

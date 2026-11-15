@@ -35,6 +35,7 @@ type MappedChainSTEPModel struct {
 	Native     trimmed.MappedChainRectangularSolid
 	FaceIDs    []int64
 	Chain      []MappedChainSTEPCell
+	Planes     []MappedChainSTEPPlane
 	original   string
 }
 
@@ -56,6 +57,7 @@ type mappedChainStepSource struct {
 	bases    map[int64]*geom.BSpline
 	name     string
 	unit     float64
+	foreign  bool
 }
 
 // ReadMappedChainRectangularShell authenticates a standard single seven-face
@@ -66,6 +68,18 @@ type mappedChainStepSource struct {
 // building the independently embedded native material. The two roofs have
 // whole original cubic or quartic bases restricted by parameter-valued trims.
 func ReadMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits, o MappedChainShellSTEPOptions) (MappedChainSTEPModel, error) {
+	return readMappedChainRectangularShell(ctx, r, l, o, false)
+}
+
+// ReadOCCTMappedChainRectangularShell authenticates an independent seven-face
+// AP242 shell with two original spline roof charts and five signed-axis
+// analytic planes. It discovers the two roofs and the cyclic shared chain.
+// Each direct original roof pcurve retains its individual source spline basis.
+func ReadOCCTMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits, o MappedChainShellSTEPOptions) (MappedChainSTEPModel, error) {
+	return readMappedChainRectangularShell(ctx, r, l, o, true)
+}
+
+func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits, o MappedChainShellSTEPOptions, foreign bool) (MappedChainSTEPModel, error) {
 	var zero MappedChainSTEPModel
 	if ctx == nil || r == nil {
 		return zero, geom.ErrInvalid
@@ -95,7 +109,7 @@ func ReadMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 	if err != nil {
 		return zero, err
 	}
-	source, err := openMappedChainSTEPSource(f, l)
+	source, err := openMappedChainSTEPSource(f, l, foreign)
 	if err != nil {
 		return zero, err
 	}
@@ -110,7 +124,7 @@ func ReadMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 	return out, nil
 }
 
-func openMappedChainSTEPSource(f *File, l Limits) (mappedChainStepSource, error) {
+func openMappedChainSTEPSource(f *File, l Limits, foreign bool) (mappedChainStepSource, error) {
 	var zero mappedChainStepSource
 	var rid int64
 	for _, id := range f.Order {
@@ -126,14 +140,33 @@ func openMappedChainSTEPSource(f *File, l Limits) (mappedChainStepSource, error)
 		return zero, geom.ErrInvalid
 	}
 	items, err := listRefs(rep.Args[1], 1)
-	if err != nil || len(items) != 1 {
+	if err != nil || len(items) != 1 && !foreign || len(items) != 2 && foreign {
 		return zero, geom.ErrInvalid
 	}
-	body, err := simple(f, items[0], "MANIFOLD_SOLID_BREP", 2)
+	var bodyID int64
+	for _, id := range items {
+		if _, ok := component(f.Entities[id], "MANIFOLD_SOLID_BREP"); ok {
+			if bodyID != 0 {
+				return zero, geom.ErrInvalid
+			}
+			bodyID = id
+			continue
+		}
+		p, err := readMappedChainForeignFrame(f, id)
+		if !foreign || err != nil || p.normal != [3]int{0, 0, 1} || p.dir[0] != [3]int{1, 0, 0} {
+			return zero, geom.ErrInvalid
+		}
+		for _, q := range p.origin {
+			if q.Sign() != 0 {
+				return zero, geom.ErrInvalid
+			}
+		}
+	}
+	body, err := simple(f, bodyID, "MANIFOLD_SOLID_BREP", 2)
 	if err != nil || body.Args[0].Kind != String {
 		return zero, geom.ErrInvalid
 	}
-	fids, err := bodyFaceIDs(f, items[0])
+	fids, err := bodyFaceIDs(f, bodyID)
 	if err != nil || len(fids) != 7 || len(fids) > l.MaxFaces {
 		return zero, geom.ErrInvalid
 	}
@@ -145,18 +178,18 @@ func openMappedChainSTEPSource(f *File, l Limits) (mappedChainStepSource, error)
 	if err != nil {
 		return zero, err
 	}
-	if err := validateMappedChainSTEPClosure(f, rid); err != nil {
+	if err := validateMappedChainSTEPClosure(f, rid, foreign); err != nil {
 		return zero, err
 	}
 	source := mappedChainStepSource{
-		file: f, name: body.Args[0].Text, unit: unit,
+		file: f, name: body.Args[0].Text, unit: unit, foreign: foreign,
 		uses: make(map[int64][]mappedChainStepUseIndex), vertices: make(map[int64]bool), pcurves: make(map[int64]bool),
 		edgeEnds: make(map[int64][2]int64), curves: make(map[int64]bool), bases: make(map[int64]*geom.BSpline),
 	}
 	supports := make(map[int64]bool)
 	used := 0
-	for i, id := range fids {
-		face, err := parseMappedChainStepFace(f, id)
+	for _, id := range fids {
+		face, err := parseMappedChainStepFace(f, id, foreign)
 		if err != nil {
 			return zero, fmt.Errorf("mapped STEP face #%d: %w", id, err)
 		}
@@ -165,6 +198,14 @@ func openMappedChainSTEPSource(f *File, l Limits) (mappedChainStepSource, error)
 		}
 		supports[face.supportID] = true
 		source.faces = append(source.faces, face)
+	}
+	if foreign {
+		source.faces, err = orderMappedChainForeignFaces(source.faces)
+		if err != nil {
+			return zero, err
+		}
+	}
+	for i, face := range source.faces {
 		for j, u := range face.uses {
 			source.uses[u.id] = append(source.uses[u.id], mappedChainStepUseIndex{i, j, u.sense})
 		}
@@ -176,7 +217,7 @@ func openMappedChainSTEPSource(f *File, l Limits) (mappedChainStepSource, error)
 	return source, nil
 }
 
-func validateMappedChainSTEPClosure(f *File, rid int64) error {
+func validateMappedChainSTEPClosure(f *File, rid int64, foreign bool) error {
 	closure, err := nauoClosure(f, []int64{rid}, 32)
 	if err != nil {
 		return err
@@ -190,6 +231,10 @@ func validateMappedChainSTEPClosure(f *File, rid int64) error {
 				"GEOMETRIC_REPRESENTATION_ITEM", "RATIONAL_B_SPLINE_CURVE", "REPRESENTATION_ITEM", "BOUNDED_SURFACE",
 				"B_SPLINE_SURFACE", "B_SPLINE_SURFACE_WITH_KNOTS", "RATIONAL_B_SPLINE_SURFACE", "SURFACE":
 				if !closure[id] {
+					return geom.ErrInvalid
+				}
+			case "PLANE", "LINE", "VECTOR", "DIRECTION", "AXIS2_PLACEMENT_3D", "FACE_BOUND":
+				if !foreign || !closure[id] {
 					return geom.ErrInvalid
 				}
 			case "ADVANCED_BREP_SHAPE_REPRESENTATION", "GEOMETRIC_REPRESENTATION_CONTEXT", "GLOBAL_UNIT_ASSIGNED_CONTEXT",
@@ -218,7 +263,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		if owners[1].face != 1 {
 			continue
 		}
-		if len(chainIDs) != i || owners[1].trim != i || !use.sense || !owners[1].sense {
+		if len(chainIDs) != i || owners[1].trim != i || use.sense != owners[1].sense || (!g.foreign && !use.sense) {
 			return zero, geom.ErrInvalid
 		}
 		chainIDs = append(chainIDs, use.id)
@@ -245,34 +290,50 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		if err != nil {
 			return zero, err
 		}
-		if len(stations) == 0 {
-			stations = append(stations, e.lo)
-		}
-		if stations[len(stations)-1].Cmp(e.lo) != 0 {
-			return zero, geom.ErrInvalid
-		}
-		stations = append(stations, e.hi)
-		row := MappedChainSTEPCell{EdgeID: id, ModelCurveID: e.modelID}
-		for owner, p := range e.pcurves {
-			basis, span, reversed, err := mappedChainStepRawUse(g.file, p.curve)
-			if err != nil || (basisIDs[owner] != 0 && basis != basisIDs[owner]) {
+		if g.foreign {
+			if len(stations) == 0 {
+				stations = append(stations, new(big.Rat))
+			}
+			stations = append(stations, big.NewRat(int64(len(stations)), int64(n)))
+		} else {
+			if len(stations) == 0 {
+				stations = append(stations, e.lo)
+			}
+			if stations[len(stations)-1].Cmp(e.lo) != 0 {
 				return zero, geom.ErrInvalid
 			}
-			basisIDs[owner] = basis
-			spline, err := g.ownerBasis(basis)
-			if err != nil {
-				return zero, err
+			stations = append(stations, e.hi)
+		}
+		row := MappedChainSTEPCell{EdgeID: id, ModelCurveID: e.modelID}
+		for owner, p := range e.pcurves {
+			var q trimmed.MappedSplineUV
+			if g.foreign {
+				q, err = g.proveForeignRoofUse(ctx, id, e, owner, o.Geometry)
+				row.Owners[owner] = MappedChainSTEPCoedge{FaceID: g.faces[owner].id, PCurveID: p.id, BasisID: p.curve}
+			} else {
+				basis, span, reversed, err := mappedChainStepRawUse(g.file, p.curve)
+				if err != nil || (basisIDs[owner] != 0 && basis != basisIDs[owner]) {
+					return zero, geom.ErrInvalid
+				}
+				basisIDs[owner] = basis
+				spline, err := g.ownerBasis(basis)
+				if err != nil {
+					return zero, err
+				}
+				q, err = trimmed.ProveMappedSplineTransfer(ctx, g.faces[owner].surface, trimmed.SplineUV{Curve: spline, Range: span, Reversed: reversed}, e.model, o.Geometry)
+				if err != nil {
+					return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
+				}
+				row.Owners[owner] = MappedChainSTEPCoedge{g.faces[owner].id, p.id, p.curve, basis}
 			}
-			q, err := trimmed.ProveMappedSplineTransfer(ctx, g.faces[owner].surface, trimmed.SplineUV{Curve: spline, Range: span, Reversed: reversed}, e.model, o.Geometry)
 			if err != nil {
 				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
 			parts[owner] = append(parts[owner], q)
-			row.Owners[owner] = MappedChainSTEPCoedge{g.faces[owner].id, p.id, p.curve, basis}
 		}
 		chain = append(chain, row)
 	}
-	if stations[0].Sign() != 0 || stations[len(stations)-1].Cmp(big.NewRat(1, 1)) != 0 || basisIDs[0] == basisIDs[1] {
+	if stations[0].Sign() != 0 || stations[len(stations)-1].Cmp(big.NewRat(1, 1)) != 0 || (!g.foreign && basisIDs[0] == basisIDs[1]) {
 		return zero, geom.ErrInvalid
 	}
 	var seams [][2]trimmed.MappedChainClosedUse
@@ -288,7 +349,12 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		var pair [2]trimmed.MappedChainClosedUse
 		for j, use := range owners {
 			f := g.faces[use.face]
-			c, err := g.closingUse(ctx, f.surface, e, j, !use.sense, o.Geometry)
+			var c trimmed.PCurve
+			if g.foreign {
+				c, err = g.proveForeignClosingUse(ctx, f, e, j, !use.sense, o.Geometry)
+			} else {
+				c, err = g.closingUse(ctx, f.surface, e, j, !use.sense, o.Geometry)
+			}
 			if err != nil {
 				return zero, fmt.Errorf("mapped STEP closing edge #%d owner #%d: %w", id, f.id, err)
 			}
@@ -322,8 +388,12 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		}
 	}
 	var chains [2]trimmed.MappedSplineChain
+	makeChain := trimmed.NewMappedSplineChain
+	if g.foreign {
+		makeChain = trimmed.NewMappedSplineEdgeChain
+	}
 	for i, source := range parts {
-		q, err := trimmed.NewMappedSplineChain(ctx, source, stations[1:len(stations)-1], o.Geometry)
+		q, err := makeChain(ctx, source, stations[1:len(stations)-1], o.Geometry)
 		if err != nil {
 			return zero, err
 		}
@@ -346,6 +416,9 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	out := MappedChainSTEPModel{Name: g.name, LengthUnit: g.unit, Shell: shell, Native: native, Chain: chain}
 	for _, f := range g.faces {
 		out.FaceIDs = append(out.FaceIDs, f.id)
+		if f.plane != nil {
+			out.Planes = append(out.Planes, f.plane.evidence(f.id, f.supportID))
+		}
 	}
 	return out, nil
 }
@@ -354,7 +427,7 @@ func (g *mappedChainStepSource) ownerBasis(id int64) (*geom.BSpline, error) {
 	if c := g.bases[id]; c != nil {
 		return c, nil
 	}
-	s, err := readMappedChainStepSpline(g.file, id, 2, 4, 64)
+	s, err := readMappedChainStepSpline(g.file, id, 2, 4, 64, g.foreign)
 	if err != nil || s.degree < 3 {
 		return nil, geom.ErrInvalid
 	}
@@ -371,6 +444,7 @@ type mappedChainStepEdge struct {
 	model   *geom.ExactSplineCurve
 	lo, hi  *big.Rat
 	pcurves [2]struct{ id, curve int64 }
+	points  [2][3]*big.Rat
 }
 
 func (g *mappedChainStepSource) edge(ctx context.Context, id int64, o geom.SurfacePatchOptions) (mappedChainStepEdge, error) {
@@ -389,7 +463,8 @@ func (g *mappedChainStepSource) edge(ctx context.Context, id int64, o geom.Surfa
 	}
 	g.edgeEnds[id] = [2]int64{start, end}
 	sc, err := simple(g.file, sid, "SURFACE_CURVE", 4)
-	if err != nil || sc.Args[0].Kind != String || sc.Args[3].Kind != Enumeration || sc.Args[3].Text != "CURVE_3D" {
+	if err != nil || sc.Args[0].Kind != String || sc.Args[3].Kind != Enumeration ||
+		(sc.Args[3].Text != "CURVE_3D" && (!g.foreign || sc.Args[3].Text != "PCURVE_S1" && sc.Args[3].Text != "PCURVE_S2")) {
 		return zero, geom.ErrInvalid
 	}
 	mid, err := ref(sc.Args[1])
@@ -397,32 +472,42 @@ func (g *mappedChainStepSource) edge(ctx context.Context, id int64, o geom.Surfa
 		return zero, geom.ErrInvalid
 	}
 	g.curves[mid] = true
-	spline, err := readMappedChainStepSpline(g.file, mid, 3, 16, 17)
-	if err != nil {
-		return zero, err
-	}
-	model, err := spline.exactBezier(ctx, o)
-	if err != nil {
-		return zero, err
-	}
+	out := mappedChainStepEdge{modelID: mid}
 	for i, v := range []int64{start, end} {
 		x, err := mappedChainStepVertex(g.file, v)
 		if err != nil {
 			return zero, err
 		}
-		point := spline.poles[i*(len(spline.poles)-1)]
-		for axis, q := range x {
-			if q.Cmp(point[axis]) != 0 {
-				return zero, geom.ErrConvergence
+		out.points[i] = x
+		g.vertices[v] = true
+	}
+	if _, line := component(g.file.Entities[mid], "LINE"); g.foreign && line {
+		out.model, err = g.proveForeignModelLine(ctx, mid, out.points, o)
+		out.lo, out.hi = new(big.Rat), big.NewRat(1, 1)
+	} else {
+		var spline mappedChainStepSpline
+		spline, err = readMappedChainStepSpline(g.file, mid, 3, 16, 17, g.foreign)
+		if err != nil {
+			return zero, err
+		}
+		out.lo, out.hi = spline.knots[0], spline.knots[len(spline.knots)-1]
+		for i, x := range out.points {
+			point := spline.poles[i*(len(spline.poles)-1)]
+			for axis, q := range x {
+				if q.Cmp(point[axis]) != 0 {
+					return zero, geom.ErrConvergence
+				}
 			}
 		}
-		g.vertices[v] = true
+		out.model, err = spline.exactBezier(ctx, o)
+	}
+	if err != nil {
+		return zero, err
 	}
 	ids, err := listRefs(sc.Args[2], 2)
 	if err != nil || len(ids) != 2 {
 		return zero, geom.ErrInvalid
 	}
-	out := mappedChainStepEdge{modelID: mid, model: model, lo: spline.knots[0], hi: spline.knots[len(spline.knots)-1]}
 	for _, pc := range ids {
 		sid, curve, err := mappedChainStepPCurve(g.file, pc)
 		if err != nil || g.pcurves[pc] || g.curves[curve] {
@@ -444,7 +529,7 @@ func (g *mappedChainStepSource) edge(ctx context.Context, id int64, o geom.Surfa
 }
 
 func (g *mappedChainStepSource) closingUse(ctx context.Context, surface *geom.BSplineSurface, edge mappedChainStepEdge, i int, reverse bool, o geom.SurfacePatchOptions) (trimmed.PCurve, error) {
-	input, err := readMappedChainStepSpline(g.file, edge.pcurves[i].curve, 2, 4, 5)
+	input, err := readMappedChainStepSpline(g.file, edge.pcurves[i].curve, 2, 4, 5, g.foreign)
 	if err != nil || edge.lo.Sign() != 0 || edge.hi.Cmp(big.NewRat(1, 1)) != 0 {
 		return nil, geom.ErrInvalid
 	}
