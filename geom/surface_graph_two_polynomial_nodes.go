@@ -12,9 +12,8 @@ type SplineGraphPolynomialVertex struct {
 	Point      [3]*big.Rat
 }
 
-// SplineGraphPolynomialPiece is one of the six original contact-branch
-// restrictions. Controls are exact original UV Bézier controls on the piece;
-// Start and End index the vertices in increasing free-coordinate order.
+// SplineGraphPolynomialPiece is an original contact-branch restriction.
+// Its exact UV Bézier controls run from Start to End in increasing free order.
 type SplineGraphPolynomialPiece struct {
 	Branch, Start, End int
 	Controls           [][2]*big.Rat
@@ -278,6 +277,46 @@ func (r *SplineGraphTwoPolynomialNodes) orderRegions(orientation, sign int) {
 	}
 	if orientation < 0 {
 		reversePolynomialGraphRegionBoundaries(r.Regions[:])
+	}
+}
+
+// orderPolynomialGraphRegions uses the proved lower branch in each open slab.
+// It preserves each original edge ID while orienting the sectors in model XY.
+func orderPolynomialGraphRegions(axis, projectionOrientation, sign int, lower []int, nodes []SplineGraphPolynomialJunction, regions []SplineGraphPolynomialRegion) {
+	perimeter := func(start, end int) *SplineGraphPolynomialPerimeter {
+		return &SplineGraphPolynomialPerimeter{start, end, projectionOrientation}
+	}
+	lastStrip, above := len(lower), len(regions)-1
+	lastLower := lower[lastStrip-1]
+	edge := func(slab, branch int) int { return len(lower)*branch + slab }
+	for i, branch := range lower {
+		low, high := edge(i, branch), edge(i, 1-branch)
+		regions[0].Edges = append(regions[0].Edges, SplineGraphPolynomialUse{low, true})
+		regions[above].Edges = append(regions[above].Edges, SplineGraphPolynomialUse{high, false})
+		regions[i+1] = SplineGraphPolynomialRegion{Edges: []SplineGraphPolynomialUse{{low, false}, {high, true}}, HeightSide: -sign}
+	}
+	slices.Reverse(regions[0].Edges)
+	regions[0].Perimeter, regions[0].HeightSide = perimeter(0, 2*lastLower+1), sign
+	regions[above].Perimeter, regions[above].HeightSide = perimeter(2*(1-lastLower)+1, 2), sign
+	regions[1].Perimeter = perimeter(2, 0)
+	slices.Reverse(regions[lastStrip].Edges)
+	regions[lastStrip].Perimeter = perimeter(2*lastLower+1, 2*(1-lastLower)+1)
+
+	orientation := projectionOrientation * (1 - 2*axis)
+	for i := range nodes {
+		n := &nodes[i]
+		// On each side, the exact branch order also orders coincident
+		// tangents. The right-going rays run lower then higher, and
+		// the left-going rays run higher then lower.
+		n.RayCycle = [4]int{edge(i+1, lower[i+1]), edge(i+1, 1-lower[i+1]), edge(i, 1-lower[i]), edge(i, lower[i])}
+		n.Regions = [4]int{i + 2, above, i + 1, 0}
+		if orientation < 0 {
+			slices.Reverse(n.RayCycle[1:])
+			slices.Reverse(n.Regions[:])
+		}
+	}
+	if orientation < 0 {
+		reversePolynomialGraphRegionBoundaries(regions)
 	}
 }
 

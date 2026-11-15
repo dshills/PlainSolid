@@ -3,7 +3,6 @@ package geom
 import (
 	"context"
 	"math/big"
-	"slices"
 )
 
 // SplineGraphPolynomialMixedContact proves the complete original UV contact
@@ -75,7 +74,7 @@ func (r *SplineGraphPolynomialMixedContact) certifyArrangement(ctx context.Conte
 	if e = buildPolynomialGraphPieces(ctx, a, pair, stations[:], r.Vertices[:], r.Edges[:], b); e != nil {
 		return e
 	}
-	r.orderRegions(lower, pair.StripSigns[0])
+	orderPolynomialGraphRegions(r.FreeAxis, r.Graph.ProjectionOrientation, pair.StripSigns[0], lower[:], r.Nodes[:], r.Regions[:])
 	if e = graphPolynomialRegionWitnesses(pair, d, stations[:], r.Vertices[4].Parameters[1-r.FreeAxis], r.Regions[:], b); e != nil {
 		return e
 	}
@@ -147,39 +146,4 @@ func (r *SplineGraphPolynomialMixedContact) certifyContactOrders(stations [4]*bi
 	}
 	r.Cofactor = cofactor
 	return lower, nil
-}
-
-func (r *SplineGraphPolynomialMixedContact) orderRegions(lower [3]int, sign int) {
-	perimeter := func(start, end int) *SplineGraphPolynomialPerimeter {
-		return &SplineGraphPolynomialPerimeter{start, end, r.Graph.ProjectionOrientation}
-	}
-	edge := func(slab, branch int) int { return len(lower)*branch + slab }
-	for i, branch := range lower {
-		below, above := edge(i, branch), edge(i, 1-branch)
-		r.Regions[0].Edges = append(r.Regions[0].Edges, SplineGraphPolynomialUse{below, true})
-		r.Regions[4].Edges = append(r.Regions[4].Edges, SplineGraphPolynomialUse{above, false})
-		r.Regions[i+1] = SplineGraphPolynomialRegion{Edges: []SplineGraphPolynomialUse{{below, false}, {above, true}}, HeightSide: -sign}
-	}
-	slices.Reverse(r.Regions[0].Edges)
-	r.Regions[0].Perimeter, r.Regions[0].HeightSide = perimeter(0, 2*lower[2]+1), sign
-	r.Regions[4].Perimeter, r.Regions[4].HeightSide = perimeter(2*(1-lower[2])+1, 2), sign
-	r.Regions[1].Perimeter = perimeter(2, 0)
-	slices.Reverse(r.Regions[3].Edges)
-	r.Regions[3].Perimeter = perimeter(2*lower[2]+1, 2*(1-lower[2])+1)
-
-	orientation := r.Graph.ProjectionOrientation * (1 - 2*r.FreeAxis)
-	for i := range r.Nodes {
-		n := &r.Nodes[i]
-		// The right-going rays are lower then upper. The left-going rays
-		// are upper then lower, using their respective one-sided order.
-		n.RayCycle = [4]int{edge(i+1, lower[i+1]), edge(i+1, 1-lower[i+1]), edge(i, 1-lower[i]), edge(i, lower[i])}
-		n.Regions = [4]int{i + 2, 4, i + 1, 0}
-		if orientation < 0 {
-			slices.Reverse(n.RayCycle[1:])
-			slices.Reverse(n.Regions[:])
-		}
-	}
-	if orientation < 0 {
-		reversePolynomialGraphRegionBoundaries(r.Regions[:])
-	}
 }
