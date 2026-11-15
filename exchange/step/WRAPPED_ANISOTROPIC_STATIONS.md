@@ -184,3 +184,41 @@ Unknown fields, trailing data, wrong tags, corrupted ancestry/supports/material,
 limits and cancellation are tested. Live filled and bore XCAF chains pass
 through the full envelope before source and regenerated STEP export, preserving
 shared subgroup/leaf identity and independent world measures.
+
+## Exact rational flat filled occurrences
+
+`ReadRationalWrappedAnisotropicStationAssembly` is a separate filled-material
+route for proper rational orthonormal placement frames whose normalized entries
+have finite decimal expansions and at most 256 numerator/denominator bits. It
+retains the common metre/mm, neutral child-frame, one-local-product and two to
+sixteen-use restrictions. It does not widen the signed-coordinate APIs, admit
+mixed units or nonneutral source mapping origins, or accept approximate frames.
+
+The original local material is independently proved through the same original
+NURBS graph. A private neutral-placement view permits reuse of the flat graph
+ownership proof only after proving every replaced frame dependency disjoint
+from all material dependencies. All original placement IDs and exact normalized
+direction ratios are then restored in immutable `ExactNAUOOccurrence` values.
+`Matrix` and `ApplyExact` return owned rational values; `ApplyRepresented` rejects
+world coordinates that binary64 cannot represent exactly. There is no rounded
+public affine matrix or world geometry baking.
+
+`WriteRationalWrappedAnisotropicStationAssemblySource` re-proves and emits the
+original standard STEP graph; it never exports the private neutral view. The
+separate version-one native tag
+`plainsolid-step-rational-anisotropic-station-assembly` stores original source,
+local material/support claims, product/root/face identities and rational
+relationship matrices. Its `Write/ReadRationalWrappedAnisotropicStationAssemblyJSON`
+APIs re-prove the original source and reject stale or forged claims, with the
+same 16 MiB native / 1 MiB source ceilings. This is source-bound persistence,
+not an arbitrary pose editing or new assembly authoring API.
+
+The genuine pinned XCAF `filled-assembly-oblique` mode authors AP242 with an
+identity use and the frame `X=(0.6,0.8,0)`, `Z=(0,0,1)` at `(10,-2,3)`.
+The original 258-record source admits exact ratios 3/5 and 4/5. Live source →
+native envelope → original-source STEP retains shared product identity, volume,
+area and centroid. Tests distinguish exact rational evaluation from refused
+binary64 conversion, mutate nonorthogonal and rounded direction ratios, reject
+material/frame dependency sharing and nonneutral child frames, and check
+source limits, cancellation, tags, support/native/provenance corruption and
+immutable matrix copies. The through-bore rational route is not included yet.
