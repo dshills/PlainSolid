@@ -72,7 +72,24 @@ func DiscoverVertexContactAssembly(ctx context.Context, solids []brep.Solid, o V
 	return prepareVertexContactAssembly(ctx, solids, nil, o, true, nil)
 }
 
+// ValidateMeshVertexContactAssembly verifies the exact declared vertex contacts
+// of independently indexed display meshes. It applies the same embedding,
+// orientation, containment and contact checks as ValidateVertexContactAssembly.
+func ValidateMeshVertexContactAssembly(ctx context.Context, components []mesh.Mesh, declarations []AssemblyVertexContact,
+	o VertexContactAssemblyOptions) (VertexContactAssemblyReport, error) {
+	return prepareVertexContactMeshes(ctx, len(components), func(i int) (mesh.Mesh, []int) {
+		return components[i], nil
+	}, declarations, o, false, nil)
+}
+
 func prepareVertexContactAssembly(ctx context.Context, solids []brep.Solid, declarations []AssemblyVertexContact, o VertexContactAssemblyOptions, discover bool, prepared *[]vertexContactComponent) (VertexContactAssemblyReport, error) {
+	return prepareVertexContactMeshes(ctx, len(solids), func(i int) (mesh.Mesh, []int) {
+		return solids[i].Tessellate(), solids[i].TriangleFaces()
+	}, declarations, o, discover, prepared)
+}
+
+func prepareVertexContactMeshes(ctx context.Context, count int, source func(int) (mesh.Mesh, []int), declarations []AssemblyVertexContact,
+	o VertexContactAssemblyOptions, discover bool, prepared *[]vertexContactComponent) (VertexContactAssemblyReport, error) {
 	var zero VertexContactAssemblyReport
 	if ctx == nil || o.MaxSolids < 0 || o.MaxDeclaredContacts < 0 || o.MaxCrossPairs < 0 || o.MaxQueryWork < 0 {
 		return zero, ErrInvalid
@@ -89,7 +106,7 @@ func prepareVertexContactAssembly(ctx context.Context, solids []brep.Solid, decl
 	if o.MaxCrossPairs == 0 {
 		o.MaxCrossPairs = DefaultMaxPairs
 	}
-	if len(solids) > o.MaxSolids || len(declarations) > o.MaxDeclaredContacts {
+	if count > o.MaxSolids || len(declarations) > o.MaxDeclaredContacts {
 		return zero, ErrLimit
 	}
 	validation, err := locationDefaults(o.Validation)
@@ -97,18 +114,18 @@ func prepareVertexContactAssembly(ctx context.Context, solids []brep.Solid, decl
 		return zero, err
 	}
 	report := VertexContactAssemblyReport{SignedVolume: new(big.Rat), Contacts: append([]AssemblyVertexContact(nil), declarations...)}
-	components := make([]vertexContactComponent, len(solids))
+	components := make([]vertexContactComponent, count)
 	triangles := 0
-	for i, solid := range solids {
+	for i := range count {
 		if err := ctx.Err(); err != nil {
 			return zero, err
 		}
-		m := solid.Tessellate()
+		m, faces := source(i)
 		triangles += len(m.Triangles)
 		if triangles > validation.MaxTriangles {
 			return zero, ErrLimit
 		}
-		loc, err := NewMeshPointLocator(ctx, m, solid.TriangleFaces(), validation)
+		loc, err := NewMeshPointLocator(ctx, m, faces, validation)
 		if err != nil {
 			return zero, fmt.Errorf("assembly component %d: %w", i, err)
 		}

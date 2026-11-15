@@ -454,19 +454,13 @@ func (s Solid) Tessellate(ctx context.Context, o parametric.TessellationOptions)
 }
 
 func (s Solid) tessellateWithTrimMemo(ctx context.Context, o parametric.TessellationOptions, memo *tessellationTrimMemo) (mesh.Mesh, error) {
-	if ctx == nil || !finite(o.Deflection) || o.Deflection <= 0 || !finite(o.Angle) || o.Angle < 0 || o.Angle > math.Pi ||
-		o.MaxSubdivisions < 0 || o.MaxSubdivisions > 1024 || o.MaxTriangles < 0 {
-		return mesh.Mesh{}, fmt.Errorf("trimmed: invalid options")
+	o, err := normalizeTrimmedTessellationOptions(ctx, o)
+	if err != nil {
+		return mesh.Mesh{}, err
 	}
 	s = s.withTessellationTrimMemo(memo)
-	if o.MaxSubdivisions == 0 {
-		o.MaxSubdivisions = 128
-	}
-	if o.MaxTriangles == 0 {
-		o.MaxTriangles = 1000000
-	}
 	if s.clippedFuseAxis != 0 && !o.AnalyticBound {
-		m, err := s.tessellateClippedFuse(ctx, s.clippedFuseAxis-1, o)
+		m, err := s.tessellateClippedPolynomial(ctx, s.clippedFuseAxis-1, o)
 		if err != parametric.ErrBudget && err != errTrimFold {
 			return m, err
 		}
@@ -531,6 +525,20 @@ func (s Solid) tessellateWithTrimMemo(ctx context.Context, o parametric.Tessella
 		n *= 4
 	}
 	return mesh.Mesh{}, parametric.ErrBudget
+}
+
+func normalizeTrimmedTessellationOptions(ctx context.Context, o parametric.TessellationOptions) (parametric.TessellationOptions, error) {
+	if ctx == nil || !finite(o.Deflection) || o.Deflection <= 0 || !finite(o.Angle) || o.Angle < 0 || o.Angle > math.Pi ||
+		o.MaxSubdivisions < 0 || o.MaxSubdivisions > 1024 || o.MaxTriangles < 0 {
+		return parametric.TessellationOptions{}, fmt.Errorf("trimmed: invalid options")
+	}
+	if o.MaxSubdivisions == 0 {
+		o.MaxSubdivisions = 128
+	}
+	if o.MaxTriangles == 0 {
+		o.MaxTriangles = 1000000
+	}
+	return o, nil
 }
 
 var errRefine = fmt.Errorf("trimmed: refinement required")

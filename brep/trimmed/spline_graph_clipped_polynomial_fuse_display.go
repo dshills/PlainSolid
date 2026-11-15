@@ -38,10 +38,10 @@ func fuseDisplayCoordinate(p geom.Vec3, axis int) float64 {
 	return [2]float64{p.X, p.Y}[axis]
 }
 
-// The clipped Fuse proves affine XY charts and polynomial traces
+// The source-backed clipped stock proves affine XY charts and polynomial traces
 // in a common free coordinate. Slicing both owners at the same stations
 // keeps thin contact regions from being filled by nearly parallel ears.
-func (s Solid) tessellateClippedFuse(ctx context.Context, axis int, o parametric.TessellationOptions) (mesh.Mesh, error) {
+func (s Solid) tessellateClippedPolynomial(ctx context.Context, axis int, o parametric.TessellationOptions) (mesh.Mesh, error) {
 	if len(s.vertices) > o.MaxTriangles {
 		return mesh.Mesh{}, parametric.ErrBudget
 	}
