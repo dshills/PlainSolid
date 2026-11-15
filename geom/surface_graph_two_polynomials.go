@@ -27,7 +27,11 @@ type SplineGraphTwoPolynomials struct {
 // Both roots must be cubic/quartic polynomials, strictly ordered and interior on
 // the complete domain. Positive Bernstein subdivision proves ordering; no root
 // samples substitute for full identities. All failure results are atomic.
-func DiscoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (r SplineGraphTwoPolynomials, err error) {
+func DiscoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphTwoPolynomials, error) {
+	return discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, nil)
+}
+
+func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions, node *SplineGraphPolynomialNode) (r SplineGraphTwoPolynomials, err error) {
 	used := 0
 	defer func() {
 		if err != nil {
@@ -35,7 +39,7 @@ func DiscoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 		}
 		r.ExactOperations = used
 	}()
-	if ctx == nil || a == nil || b == nil || axis < 0 || axis > 1 {
+	if ctx == nil || a == nil || b == nil || len(a.net) == 0 || len(b.net) == 0 || axis < 0 || axis > 1 {
 		return r, ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
@@ -200,7 +204,13 @@ func DiscoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 	if e != nil {
 		return r, e
 	}
-	order, e := proveSign(delta)
+	var order int
+	var crossing *big.Rat
+	if node == nil {
+		order, e = proveSign(delta)
+	} else {
+		crossing, order, e = discoverGraphPolynomialCrossing(ctx, delta, o.MaxCells, &visits, budget)
+	}
 	if e != nil {
 		return r, e
 	}
@@ -336,6 +346,15 @@ func DiscoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 	r.TerminalMasks = [2]uint8{1, 2}
 	if axis == 1 {
 		r.TerminalMasks = [2]uint8{4, 8}
+	}
+	if node != nil {
+		free := new(big.Rat).Add(lo, new(big.Rat).Mul(width, crossing))
+		if e = budget.check(free); e != nil {
+			return r, e
+		}
+		if e = node.certifySectors(ctx, a, r, free, d, budget); e != nil {
+			return r, e
+		}
 	}
 	return r, nil
 }
