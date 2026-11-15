@@ -49,10 +49,29 @@ func (r MappedSplineChainAgreement) TessellateFaceCertified(ctx context.Context,
 	if e != nil {
 		return zero, e
 	}
+	out, e := r.tessellateFaceWithBoundary(ctx, owner, closing, boundary, nil, o.Face)
+	if e != nil {
+		return zero, e
+	}
+	report, e := collision.SelfIntersectionsBVHContext(ctx, out.Face.Mesh, o.Collision)
+	if e != nil {
+		return zero, fmt.Errorf("mapped chain face contact: %w", e)
+	}
+	if !report.Complete || len(report.Contacts) > 0 {
+		return zero, geom.ErrConvergence
+	}
+	out.Collision = report
+	return out, nil
+}
+
+// The caller supplies the shared boundary and checks represented contacts on
+// either the individual face or the complete assembled mesh.
+func (r MappedSplineChainAgreement) tessellateFaceWithBoundary(ctx context.Context, owner int, closing []PCurve, boundary CertifiedMappedChainPolyline, prescribed [][]*big.Rat, o MixedExactMultiSpanMeshOptions) (CertifiedMappedChainFace, error) {
+	var zero CertifiedMappedChainFace
 	if len(boundary.Vertices)+len(r.cuts)-2 > 2048 {
 		return zero, geom.ErrConvergence
 	}
-	if o.Face.Face.Cuts != nil {
+	if o.Face.Cuts != nil {
 		return zero, geom.ErrInvalid
 	}
 	var outer []PCurve
@@ -77,23 +96,19 @@ func (r MappedSplineChainAgreement) TessellateFaceCertified(ctx context.Context,
 	for range closing {
 		cuts = append(cuts, nil)
 	}
-	o.Face.Face.Cuts = [][][]*big.Rat{cuts}
-	p, e := exactSplineSupportPatch(r.supports[owner], o.Face.Face.Boundary.Composition.SurfacePatchOptions)
+	if prescribed != nil {
+		cuts = prescribed
+	}
+	o.Face.Cuts = [][][]*big.Rat{cuts}
+	p, e := exactSplineSupportPatch(r.supports[owner], o.Face.Boundary.Composition.SurfacePatchOptions)
 	if e != nil {
 		return zero, e
 	}
-	face, e := TessellateMixedExactMultiSpanRegionCertified(ctx, p, outer, nil, o.Face)
+	face, e := TessellateMixedExactMultiSpanRegionCertified(ctx, p, outer, nil, o)
 	if e != nil {
 		return zero, fmt.Errorf("mapped chain face fill: %w", e)
 	}
-	report, e := collision.SelfIntersectionsBVHContext(ctx, face.Mesh, o.Collision)
-	if e != nil {
-		return zero, fmt.Errorf("mapped chain face contact: %w", e)
-	}
-	if !report.Complete || len(report.Contacts) > 0 {
-		return zero, geom.ErrConvergence
-	}
-	out := CertifiedMappedChainFace{Face: face, Boundary: boundary, Owner: owner, Collision: report, LedgerVertices: make([]int, len(boundary.Vertices))}
+	out := CertifiedMappedChainFace{Face: face, Boundary: boundary, Owner: owner, LedgerVertices: make([]int, len(boundary.Vertices))}
 	for i := range out.LedgerVertices {
 		out.LedgerVertices[i] = -1
 	}
