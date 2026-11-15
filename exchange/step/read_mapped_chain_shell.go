@@ -53,6 +53,7 @@ type MappedChainSTEPModel struct {
 	Crossings []MappedChainSTEPSupportCrossing
 	Crossing  *MappedChainSTEPSupportCrossing
 	original  string
+	foreign   bool
 }
 
 func (m MappedChainSTEPModel) OriginalSTEP() string { return m.original }
@@ -84,7 +85,8 @@ type mappedChainStepSource struct {
 // building the independently embedded native material. The two roofs have
 // whole original cubic or quartic bases restricted by parameter-valued trims.
 // The independent and mixed basis opt-ins admit separate full coedge bases
-// on both roofs or one roof, respectively.
+// on both roofs or one roof, respectively. The three-cut mixed-basis opt-in
+// also admits the canonical original source graph before repair.
 func ReadMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits, o MappedChainShellSTEPOptions) (MappedChainSTEPModel, error) {
 	return readMappedChainRectangularShell(ctx, r, l, o, false)
 }
@@ -161,6 +163,7 @@ func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 		return zero, geom.ErrConvergence
 	}
 	out.original = string(raw)
+	out.foreign = foreign
 	return out, nil
 }
 
@@ -297,6 +300,8 @@ func validateMappedChainSTEPClosure(f *File, rid int64, foreign bool) error {
 
 func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTEPOptions) (MappedChainSTEPModel, error) {
 	var zero MappedChainSTEPModel
+	canonicalOriginal := !g.foreign && o.allowsUnsplitMixedOwnerBases()
+	var canonicalReversed bool
 	var chainIDs []int64
 	for i, use := range g.faces[0].uses {
 		owners := g.uses[use.id]
@@ -306,9 +311,10 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		if owners[1].face != 1 {
 			continue
 		}
-		if len(chainIDs) != i || owners[1].trim != i || use.sense != owners[1].sense || (!g.foreign && !use.sense) {
+		if len(chainIDs) != i || owners[1].trim != i || use.sense != owners[1].sense || (!g.foreign && !canonicalOriginal && !use.sense) {
 			return zero, geom.ErrInvalid
 		}
+		canonicalReversed = canonicalReversed || !g.foreign && !use.sense
 		chainIDs = append(chainIDs, use.id)
 	}
 	n := len(chainIDs)
@@ -334,9 +340,11 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	knotsA, knotsB := mappedChainInteriorSupportKnots(g.faces[0].surface), mappedChainInteriorSupportKnots(g.faces[1].surface)
 	allowAsync := g.foreign && o.AllowAsynchronousSupportKnots && knotsA == 1 && knotsB == 1
 	allowMixed := g.foreign && o.AllowMixedSupportKnots && min(knotsA, knotsB) == 1 && max(knotsA, knotsB) == 2
-	allowThree := g.foreign && o.AllowThreeSupportKnots && knotsA == 2 && knotsB == 2
+	allowThree := (g.foreign && o.AllowThreeSupportKnots || canonicalOriginal) && knotsA == 2 && knotsB == 2
 	maxModelPieces := 1
-	if allowUnsplit {
+	if canonicalOriginal && allowThree {
+		maxModelPieces = 2
+	} else if allowUnsplit {
 		maxModelPieces = 2
 		if o.AllowTwoInteriorRoofKnots {
 			maxModelPieces = 3
@@ -358,7 +366,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 				foreignTrimmed = [2]bool{true, true}
 			}
 		}
-		if foreignMixed && len(e.joins) != 0 && (!allowThree || len(e.joins) != 1) {
+		if (foreignMixed || canonicalOriginal) && len(e.joins) != 0 && (!allowThree || len(e.joins) != 1) {
 			return zero, geom.ErrConvergence
 		}
 		if g.foreign && foreignTrimmed == [2]bool{} {
@@ -417,7 +425,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		if len(crossings)+len(edgeCrossings) > 3 {
 			return zero, geom.ErrConvergence
 		}
-		if foreignMixed && len(e.joins) != 0 && len(edgeCrossings) != 3 {
+		if (foreignMixed || canonicalOriginal) && len(e.joins) != 0 && len(edgeCrossings) != 3 {
 			return zero, fmt.Errorf("mixed original owner bases require a complete three-cut repair: %w", geom.ErrConvergence)
 		}
 		crossings = append(crossings, edgeCrossings...)
@@ -431,7 +439,8 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		if independent != [2]bool{!foreignTrimmed[0], !foreignTrimmed[1]} {
 			return zero, geom.ErrInvalid
 		}
-	} else if !o.allowsOwnerBases(independent) {
+	} else if !o.allowsOwnerBases(independent) ||
+		len(crossings) != 0 && independent[0] == independent[1] || canonicalReversed && len(crossings) == 0 {
 		return zero, geom.ErrInvalid
 	}
 	end := stations[len(stations)-1]

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"math"
 	"math/big"
 	"os"
 	"os/exec"
@@ -271,17 +270,6 @@ func TestOCCTMappedChainRectangularUnsplitThreeSupportKnotsMixedBasesLive(t *tes
 		t.Fatal(err)
 	}
 	verifyUnsplitMixedBasisMappedChain(t, ctx, raw)
-	data, err := exec.CommandContext(ctx, reader, "read", path).CombinedOutput()
-	if err != nil {
-		t.Fatalf("pinned OCCT rejected the independent unsplit source shell: %v\n%s", err, data)
-	}
-	var props struct {
-		Volume, Area  float64
-		Faces, Solids int
-	}
-	if err := json.Unmarshal(data, &props); err != nil || props.Solids != 1 || props.Faces != 7 ||
-		math.Abs(props.Volume-mappedChainThreeVolume) > 1e-8 || math.Abs(props.Area-mappedChainThreeArea) > 1e-8 {
-		t.Fatal("pinned OCCT must recover the same original material as rebuilt native v7", props, err)
-	}
-	t.Logf("OCCT independently reopened unsplit source, volume %.15g, area %.15g", props.Volume, props.Area)
+	canonical := canonicalUnsplitMixedBasisSTEP(t, ctx, raw)
+	verifyIndependentThreeKnotOCCTTransfer(t, ctx, reader, raw, canonical)
 }
