@@ -1,3 +1,13 @@
+#include <StepData_StepModel.hxx>
+#include <StepGeom_SurfaceCurve.hxx>
+#include <StepGeom_Pcurve.hxx>
+#include <StepGeom_Plane.hxx>
+#include <StepGeom_BSplineCurve.hxx>
+#include <StepRepr_DefinitionalRepresentation.hxx>
+#include <StepToGeom.hxx>
+#include <Geom_Curve.hxx>
+#include <Geom_Surface.hxx>
+#include <Geom2d_Curve.hxx>
 #include <BRepBuilderAPI_MakePolygon.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
@@ -16,6 +26,11 @@
 #include <iomanip>
 #include <string>
 int main(int argc,char**argv){if(argc!=3)return 2;TopoDS_Shape shape;
+if(std::string(argv[1])=="cap-witness") {
+ STEPControl_Reader r;if(r.ReadFile(argv[2])!=IFSelect_RetDone)return 6;auto model=r.StepModel();int count=0;double minSquared=1,maxSquared=0;
+ for(int i=1;i<=model->NbEntities();++i){auto sc=Handle(StepGeom_SurfaceCurve)::DownCast(model->Value(i));if(sc.IsNull())continue;for(int j=1;j<=sc->NbAssociatedGeometry();++j){auto pc=sc->AssociatedGeometryValue(j).Pcurve();if(pc.IsNull()||Handle(StepGeom_Plane)::DownCast(pc->BasisSurface()).IsNull())continue;auto bs=Handle(StepGeom_BSplineCurve)::DownCast(pc->ReferenceToCurve()->ItemsValue(1));if(bs.IsNull())continue;auto uv=StepToGeom::MakeCurve2d(bs);auto c=StepToGeom::MakeCurve(sc->Curve3d());auto surface=StepToGeom::MakeSurface(pc->BasisSurface());if(uv.IsNull()||c.IsNull()||surface.IsNull())return 9;double t=2.094395102393/4;auto p=uv->Value(t);double d=surface->Value(p.X(),p.Y()).SquareDistance(c->Value(t));minSquared=std::min(minSquared,d);maxSquared=std::max(maxSquared,d);++count;}}
+ std::cout<<std::setprecision(17)<<"{\"Caps\":"<<count<<",\"MinSquared\":"<<minSquared<<",\"MaxSquared\":"<<maxSquared<<"}\n";return count==2?0:10;
+}
 if(std::string(argv[1])=="write" || std::string(argv[1])=="write-x" || std::string(argv[1])=="write-minus-x" || std::string(argv[1])=="write-translated" || std::string(argv[1])=="write-both" || std::string(argv[1])=="write-both-x" || std::string(argv[1])=="write-default" || std::string(argv[1])=="write-both-default"){
  BRepBuilderAPI_MakePolygon p;p.Add(gp_Pnt(0,0,0));p.Add(gp_Pnt(4,0,0));p.Add(gp_Pnt(0,3,0));p.Close();auto stock=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(p.Wire()).Face(),gp_Vec(0,0,5)).Shape();TopoDS_Edge target;
  for(TopExp_Explorer e(stock,TopAbs_EDGE);e.More();e.Next()){GProp_GProps g;BRepGProp::LinearProperties(e.Current(),g);if(g.CentreOfMass().Distance(gp_Pnt(4,0,2.5))<1e-12)target=TopoDS::Edge(e.Current());}

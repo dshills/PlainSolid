@@ -287,138 +287,9 @@ func RepairPCurveOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limi
 	if e != nil {
 		return zero, e
 	}
-	owners := map[int64][]occtLoopFace{}
-	refs := map[int64][]int64{}
-	var collect func(int64, Value)
-	collect = func(owner int64, v Value) {
-		if v.Kind == Reference {
-			refs[v.Ref] = append(refs[v.Ref], owner)
-		}
-		for _, q := range v.Items {
-			collect(owner, q)
-		}
-	}
-	for _, id := range f.Order {
-		en := f.Entities[id]
-		for _, rec := range en.Records {
-			for _, v := range rec.Args {
-				collect(id, v)
-			}
-		}
-		if _, err := simple(f, id, "ADVANCED_FACE", 4); err == nil {
-			face, err := occtLoopReadFace(f, id)
-			if err != nil {
-				return zero, err
-			}
-			for _, u := range face.uses {
-				owners[u.id] = append(owners[u.id], face)
-			}
-		}
-	}
-	if len(owners) != 12 {
-		return zero, geom.ErrDomain
-	}
-	view := &File{Header: f.Header, Order: append([]int64(nil), f.Order...), Entities: make(map[int64]Entity, len(f.Entities))}
-	for id, en := range f.Entities {
-		view.Entities[id] = en
-	}
-	remove := map[int64]bool{}
-	var agreements []ConvexArcPCurveAgreement
-	for _, eid := range f.Order {
-		faces, ok := owners[eid]
-		if !ok {
-			continue
-		}
-		if len(faces) != 2 || faces[0].id == faces[1].id || faces[0].surface == faces[1].surface {
-			return zero, geom.ErrDomain
-		}
-		edge, e := simple(f, eid, "EDGE_CURVE", 5)
-		if e != nil {
-			return zero, e
-		}
-		scid := edge.Args[3].Ref
-		sc, e := simple(f, scid, "SURFACE_CURVE", 4)
-		if e != nil || sc.Args[0].Kind != String || sc.Args[3].Kind != Enumeration || sc.Args[3].Text != "PCURVE_S1" || len(refs[scid]) != 1 || refs[scid][0] != eid {
-			return zero, geom.ErrDomain
-		}
-		pcs, e := listRefs(sc.Args[2], 2)
-		if e != nil || len(pcs) != 2 || pcs[0] == pcs[1] {
-			return zero, geom.ErrDomain
-		}
-		seen := map[int64]bool{}
-		for _, pcid := range pcs {
-			pc, e := simple(f, pcid, "PCURVE", 3)
-			if e != nil || pc.Args[0].Kind != String || len(refs[pcid]) != 1 || refs[pcid][0] != scid {
-				return zero, geom.ErrDomain
-			}
-			support := pc.Args[1].Ref
-			var face int64
-			for _, q := range faces {
-				if q.surface == support {
-					face = q.id
-				}
-			}
-			if face == 0 || seen[face] {
-				return zero, geom.ErrDomain
-			}
-			seen[face] = true
-			drid := pc.Args[2].Ref
-			dr, e := simple(f, drid, "DEFINITIONAL_REPRESENTATION", 3)
-			if e != nil || dr.Args[0].Kind != String || len(refs[drid]) != 1 || refs[drid][0] != pcid {
-				return zero, geom.ErrDomain
-			}
-			gs, e := listRefs(dr.Args[1], 1)
-			if e != nil || len(gs) != 1 || len(refs[gs[0]]) != 1 || refs[gs[0]][0] != drid || validatePCurveContext(f, dr.Args[2].Ref) != nil {
-				return zero, geom.ErrDomain
-			}
-			closure, e := nauoClosure(f, []int64{gs[0], dr.Args[2].Ref}, 16)
-			if e != nil {
-				return zero, e
-			}
-			for id := range closure {
-				for _, rec := range f.Entities[id].Records {
-					switch rec.Type {
-					case "LINE", "CIRCLE", "AXIS2_PLACEMENT_2D", "CARTESIAN_POINT", "DIRECTION", "VECTOR":
-						if len(rec.Args) == 0 || rec.Args[0].Kind != String {
-							return zero, geom.ErrDomain
-						}
-					case "GEOMETRIC_REPRESENTATION_CONTEXT", "PARAMETRIC_REPRESENTATION_CONTEXT", "REPRESENTATION_CONTEXT":
-					default:
-						return zero, geom.ErrDomain
-					}
-				}
-				remove[id] = true
-			}
-			remove[pcid], remove[drid] = true, true
-			agreements = append(agreements, ConvexArcPCurveAgreement{EdgeID: eid, SurfaceCurveID: scid, PCurveID: pcid, FaceID: face, SupportID: support, GeometryID: gs[0]})
-		}
-		remove[scid] = true
-		edge.Args = append([]Value(nil), edge.Args...)
-		edge.Args[3] = sc.Args[1]
-		view.Entities[eid] = Entity{ID: eid, Records: []Record{edge}}
-	}
-	// Every discarded incoming reference is internal, except the one edge's
-	// registered SURFACE_CURVE link replaced above. No original geometry is hidden.
-	for id := range remove {
-		for _, owner := range refs[id] {
-			if remove[owner] {
-				continue
-			}
-			ed, e := simple(f, owner, "EDGE_CURVE", 5)
-			if e != nil || ed.Args[3].Ref != id {
-				return zero, geom.ErrDomain
-			}
-			if _, e = simple(f, id, "SURFACE_CURVE", 4); e != nil {
-				return zero, geom.ErrDomain
-			}
-		}
-		delete(view.Entities, id)
-	}
-	view.Order = nil
-	for _, id := range f.Order {
-		if !remove[id] {
-			view.Order = append(view.Order, id)
-		}
+	view, agreements, e := convexPCurveModelView(f, 12, false)
+	if e != nil {
+		return zero, e
 	}
 	modelRaw, e := mappedPlanarSourceBytes(view)
 	if e != nil {
@@ -449,4 +320,145 @@ func RepairPCurveOCCTConvexArcExtrusion(ctx context.Context, r io.Reader, l Limi
 		return zero, e
 	}
 	return PCurveRepairedOCCTConvexArcExtrusion{source: string(raw), material: material, agreements: agreements, tolerance: o.MaxDistance}, nil
+}
+
+func convexPCurveModelView(f *File, edgeCount int, rational bool) (*File, []ConvexArcPCurveAgreement, error) {
+	owners := map[int64][]occtLoopFace{}
+	refs := map[int64][]int64{}
+	var collect func(int64, Value)
+	collect = func(owner int64, v Value) {
+		if v.Kind == Reference {
+			refs[v.Ref] = append(refs[v.Ref], owner)
+		}
+		for _, q := range v.Items {
+			collect(owner, q)
+		}
+	}
+	for _, id := range f.Order {
+		en := f.Entities[id]
+		for _, rec := range en.Records {
+			for _, v := range rec.Args {
+				collect(id, v)
+			}
+		}
+		if _, err := simple(f, id, "ADVANCED_FACE", 4); err == nil {
+			face, err := occtLoopReadFace(f, id)
+			if err != nil {
+				return nil, nil, err
+			}
+			for _, u := range face.uses {
+				owners[u.id] = append(owners[u.id], face)
+			}
+		}
+	}
+	if len(owners) != edgeCount {
+		return nil, nil, geom.ErrDomain
+	}
+	view := &File{Header: f.Header, Order: append([]int64(nil), f.Order...), Entities: make(map[int64]Entity, len(f.Entities))}
+	for id, en := range f.Entities {
+		view.Entities[id] = en
+	}
+	remove := map[int64]bool{}
+	var agreements []ConvexArcPCurveAgreement
+	for _, eid := range f.Order {
+		faces, ok := owners[eid]
+		if !ok {
+			continue
+		}
+		if len(faces) != 2 || faces[0].id == faces[1].id || faces[0].surface == faces[1].surface {
+			return nil, nil, geom.ErrDomain
+		}
+		edge, e := simple(f, eid, "EDGE_CURVE", 5)
+		if e != nil {
+			return nil, nil, e
+		}
+		scid := edge.Args[3].Ref
+		sc, e := simple(f, scid, "SURFACE_CURVE", 4)
+		if e != nil || sc.Args[0].Kind != String || sc.Args[3].Kind != Enumeration || sc.Args[3].Text != "PCURVE_S1" || len(refs[scid]) != 1 || refs[scid][0] != eid {
+			return nil, nil, geom.ErrDomain
+		}
+		pcs, e := listRefs(sc.Args[2], 2)
+		if e != nil || len(pcs) != 2 || pcs[0] == pcs[1] {
+			return nil, nil, geom.ErrDomain
+		}
+		seen := map[int64]bool{}
+		for _, pcid := range pcs {
+			pc, e := simple(f, pcid, "PCURVE", 3)
+			if e != nil || pc.Args[0].Kind != String || len(refs[pcid]) != 1 || refs[pcid][0] != scid {
+				return nil, nil, geom.ErrDomain
+			}
+			support := pc.Args[1].Ref
+			var face int64
+			for _, q := range faces {
+				if q.surface == support {
+					face = q.id
+				}
+			}
+			if face == 0 || seen[face] {
+				return nil, nil, geom.ErrDomain
+			}
+			seen[face] = true
+			drid := pc.Args[2].Ref
+			dr, e := simple(f, drid, "DEFINITIONAL_REPRESENTATION", 3)
+			if e != nil || dr.Args[0].Kind != String || len(refs[drid]) != 1 || refs[drid][0] != pcid {
+				return nil, nil, geom.ErrDomain
+			}
+			gs, e := listRefs(dr.Args[1], 1)
+			if e != nil || len(gs) != 1 || len(refs[gs[0]]) != 1 || refs[gs[0]][0] != drid || validatePCurveContext(f, dr.Args[2].Ref) != nil {
+				return nil, nil, geom.ErrDomain
+			}
+			closure, e := nauoClosure(f, []int64{gs[0], dr.Args[2].Ref}, 16)
+			if e != nil {
+				return nil, nil, e
+			}
+			for id := range closure {
+				for _, rec := range f.Entities[id].Records {
+					switch rec.Type {
+					case "LINE", "CIRCLE", "AXIS2_PLACEMENT_2D", "CARTESIAN_POINT", "DIRECTION", "VECTOR":
+						if len(rec.Args) == 0 || rec.Args[0].Kind != String {
+							return nil, nil, geom.ErrDomain
+						}
+					case "BOUNDED_CURVE", "B_SPLINE_CURVE", "B_SPLINE_CURVE_WITH_KNOTS", "CURVE", "GEOMETRIC_REPRESENTATION_ITEM", "RATIONAL_B_SPLINE_CURVE", "REPRESENTATION_ITEM":
+						if !rational {
+							return nil, nil, geom.ErrDomain
+						}
+					case "GEOMETRIC_REPRESENTATION_CONTEXT", "PARAMETRIC_REPRESENTATION_CONTEXT", "REPRESENTATION_CONTEXT":
+					default:
+						return nil, nil, geom.ErrDomain
+					}
+				}
+				remove[id] = true
+			}
+			remove[pcid], remove[drid] = true, true
+			agreements = append(agreements, ConvexArcPCurveAgreement{EdgeID: eid, SurfaceCurveID: scid, PCurveID: pcid, FaceID: face, SupportID: support, GeometryID: gs[0]})
+		}
+		remove[scid] = true
+		edge.Args = append([]Value(nil), edge.Args...)
+		edge.Args[3] = sc.Args[1]
+		view.Entities[eid] = Entity{ID: eid, Records: []Record{edge}}
+	}
+	// Every discarded incoming reference is internal, except the one edge's
+	// registered SURFACE_CURVE link replaced above. No original geometry is hidden.
+	for id := range remove {
+		for _, owner := range refs[id] {
+			if remove[owner] {
+				continue
+			}
+			ed, e := simple(f, owner, "EDGE_CURVE", 5)
+			if e != nil || ed.Args[3].Ref != id {
+				return nil, nil, geom.ErrDomain
+			}
+			if _, e = simple(f, id, "SURFACE_CURVE", 4); e != nil {
+				return nil, nil, geom.ErrDomain
+			}
+		}
+		delete(view.Entities, id)
+	}
+	view.Order = nil
+	for _, id := range f.Order {
+		if !remove[id] {
+			view.Order = append(view.Order, id)
+		}
+	}
+	return view, agreements, nil
 }
