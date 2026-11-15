@@ -144,8 +144,20 @@ def main():
     require(set(statuses) == set(lanes), f"missing final lane exit status: {sorted(set(lanes) - set(statuses))}")
     revision = (stage / "revision").read_text().strip()
     require(re.fullmatch(r"[0-9a-f]{40}", revision), "invalid Git revision")
-    launcher = stage / "run.sh"
-    mode = "race" if "go test -race " in launcher.read_text() else "ordinary"
+    launcher = stage / "run-commands.json"
+    if launcher.is_file():
+        run = json.loads(launcher.read_text())
+        mode = run.get("mode")
+        commands = run.get("commands")
+        require(mode in {"ordinary", "race"} and isinstance(commands, dict) and set(commands) == set(lanes),
+                "invalid qualification command record")
+        for command in commands.values():
+            require(isinstance(command, list) and command[:2] == ["go", "test"] and
+                    ("-race" in command) == (mode == "race") and "-count=1" in command and "-json" in command,
+                    "recorded Go lane command disagrees with qualification mode")
+    else:
+        launcher = stage / "run.sh"
+        mode = "race" if "go test -race " in launcher.read_text() else "ordinary"
     total = collections.Counter()
     trimmed = collections.Counter()
     for lane, record in reports.items():
