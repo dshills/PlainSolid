@@ -186,6 +186,13 @@ kept its pristine hash. Raw results remain in
   retain the curved parent's exact `8/11` midpoint and the line's affine
   law after a cyclic source reorder, placement and reopen, and reject an
   edit that separates the cap planes.
+- Both analytic cap overlay formats reopen in pinned OCCT as one 22-face
+  solid with volume `125π−20` and area `100π+32`. Strict reads with the
+  supplied original profiles retain both wall/rim intervals and reject a
+  mismatching cap. Main combined STEP and IGES overlay race passed in
+  40.684 seconds; the pinned inset controls also passed. The standard
+  exported solid carries the common partition; the native receipt keeps
+  the independent originals.
 - Nonunit rectangular Common and Fuse retain the two exact affine roof
   charts and a reflected or positive sloping original base. The new
   translated `[2,4] × [-1,2]` cases and earlier projected envelope and
