@@ -224,6 +224,7 @@ if(std::string(argv[1])=="grouped-converted-inch-witness") return circularLoopOw
 if(std::string(argv[1])=="three-converted-metre-witness") return circularLoopOwnerWitness(argv[2], .001, .001, 3);
 if(std::string(argv[1])=="three-converted-inch-witness") return circularLoopOwnerWitness(argv[2], 3.937007874016E-02, 5.0/127.0, 3);
 if(std::string(argv[1])=="four-converted-metre-witness") return circularLoopOwnerWitness(argv[2], .001, .001, 4);
+if(std::string(argv[1])=="four-converted-inch-witness") return circularLoopOwnerWitness(argv[2], 3.937007874016E-02, 5.0/127.0, 4);
 if(std::string(argv[1])=="four-owner-witness") return circularLoopOwnerWitness(argv[2], 1, 1, 4, false);
 if(std::string(argv[1])=="four-shifted-cylinder-witness") return shiftedCylinderWitness(argv[2], 4);
 if(std::string(argv[1])=="shifted-cylinder-witness") return shiftedCylinderWitness(argv[2]);
@@ -244,7 +245,9 @@ const bool fourAutomaticPlane = mode == "write-four-default-tilted-automatic-pla
                                  mode == "write-four-default-tilted-converted-metre-automatic-plane";
 const bool fourConvertedMetre = mode == "write-four-default-tilted-converted-metre" ||
                                  mode == "write-four-default-tilted-converted-metre-automatic-plane";
-const bool four = mode == "write-four-default-tilted" || fourNonDyadic || fourAutomaticPlane || fourConvertedMetre;
+const bool fourConvertedInch = mode == "write-four-default-tilted-converted-inch" ||
+                                mode == "write-four-default-tilted-converted-inch-unscaled";
+const bool four = mode == "write-four-default-tilted" || fourNonDyadic || fourAutomaticPlane || fourConvertedMetre || fourConvertedInch;
 const bool threeNonDyadic = mode == "write-three-default-tilted-nondyadic";
 const bool threeConvertedMetre = mode == "write-three-default-tilted-converted-metre";
 const bool threeConvertedInch = mode == "write-three-default-tilted-converted-inch" ||
@@ -259,7 +262,7 @@ const bool groupedTilted = mode == "write-both-default-tilted" || mode == "write
 const bool convertedMetre = mode == "write-default-tilted-translated-converted-metre" ||
                             groupedConvertedMetre || threeConvertedMetre || fourConvertedMetre;
 const bool convertedInch = mode == "write-default-tilted-translated-converted-inch" ||
-                           mode == "write-default-tilted-translated-converted-inch-unscaled" || groupedConvertedInch || threeConvertedInch;
+                           mode == "write-default-tilted-translated-converted-inch-unscaled" || groupedConvertedInch || threeConvertedInch || fourConvertedInch;
 const bool metre = mode == "write-default-tilted-translated-metre" || mode == "write-both-default-tilted-metre" || convertedMetre;
 const bool inch = mode == "write-default-tilted-translated-inch" || mode == "write-both-default-tilted-inch" || convertedInch;
 const bool tiltedDefault = mode == "write-default-tilted" || mode == "write-default-tilted-translated" ||
@@ -319,7 +322,8 @@ if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || 
    // retain terminating inch decimals even though the LINE speed does not.
    if (mode != "write-default-tilted-translated-converted-inch-unscaled" &&
        mode != "write-both-default-tilted-converted-inch-unscaled" &&
-       mode != "write-three-default-tilted-converted-inch-unscaled") {
+       mode != "write-three-default-tilted-converted-inch-unscaled" &&
+       mode != "write-four-default-tilted-converted-inch-unscaled") {
     gp_Trsf scale;
     scale.SetScale(gp_Pnt(0,0,0), convertedMetre ? 1000.0 : 127.0);
     shape = BRepBuilderAPI_Transform(shape,scale,true).Shape();
