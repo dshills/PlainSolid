@@ -9,8 +9,13 @@ import (
 func bivariateGraphFixture(t *testing.T, degree, axis int, a, b []*big.Rat) (*SurfacePatch, *SurfacePatch, []*big.Rat) {
 	t.Helper()
 	f := []*big.Rat{big.NewRat(1, 4), big.NewRat(3, 8), big.NewRat(-3, 8), big.NewRat(1, 8)}
-	if degree == 4 {
-		f = []*big.Rat{big.NewRat(1, 4), new(big.Rat), new(big.Rat), new(big.Rat), big.NewRat(1, 8)}
+	if degree > 3 {
+		f = make([]*big.Rat, degree+1)
+		for i := range f {
+			f[i] = new(big.Rat)
+		}
+		f[0].SetFrac64(1, 4)
+		f[degree].SetFrac64(1, 8)
 	}
 	n := len(f) + max(len(a), len(b)) - 2
 	product := func(x, y []*big.Rat) []*big.Rat {

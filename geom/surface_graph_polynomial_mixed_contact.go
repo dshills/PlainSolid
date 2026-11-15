@@ -91,7 +91,7 @@ type polynomialGraphContactOrders struct {
 
 // certifyPolynomialGraphContactOrders rechecks the local derivatives and the
 // complete factorization of the prescribed simple, double or triple roots.
-// These profiles use at least three degrees, leaving a constant or affine cofactor.
+// The accepted quotient is constant or affine and has strict sign over the span.
 func certifyPolynomialGraphContactOrders(axis int, power [2][]*big.Rat, stations []*big.Rat, nodes []SplineGraphPolynomialJunction,
 	expectedTangencies, expectedCubicCrossings int, b *polynomialBudget) (polynomialGraphContactOrders, error) {
 	zero := polynomialGraphContactOrders{}
@@ -107,7 +107,6 @@ func certifyPolynomialGraphContactOrders(axis int, power [2][]*big.Rat, stations
 	derivatives := [2]rationalPolynomial{polynomialDerivative(power[0]), polynomialDerivative(power[1])}
 	secondDifference := polynomialDerivative(polynomialDerivative(delta))
 	orders := [4]int{}
-	totalOrder := 0
 	for i, x := range stations[1 : len(stations)-1] {
 		n := &nodes[i]
 		n.Vertex = 4 + i
@@ -148,7 +147,6 @@ func certifyPolynomialGraphContactOrders(axis int, power [2][]*big.Rat, stations
 			out.lower[i+1] = 1 - out.lower[i]
 		}
 		orders[order]++
-		totalOrder += order
 		out.orders[i], out.gaps[i] = order, gap
 		factor := rationalPolynomial{new(big.Rat).Neg(x), big.NewRat(1, 1)}
 		for range order {
@@ -162,9 +160,8 @@ func certifyPolynomialGraphContactOrders(axis int, power [2][]*big.Rat, stations
 			}
 		}
 	}
-	maxCofactorCoefficients := 5 - totalOrder
 	if orders[2] != expectedTangencies || orders[3] != expectedCubicCrossings ||
-		len(out.cofactor) == 0 || len(out.cofactor) > maxCofactorCoefficients {
+		len(out.cofactor) == 0 || len(out.cofactor) > 2 {
 		return zero, ErrConvergence
 	}
 	// At the low endpoint the gap is positive. Odd powers of the monic

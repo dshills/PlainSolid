@@ -277,7 +277,7 @@ func checkNativeThreePolynomialBranch(t *testing.T, c PCurve, axis int, power []
 	t.Helper()
 	q, ok := c.(ExactBezierUV)
 	if !ok || len(q.control) != len(power) {
-		t.Fatal("original cubic or quartic degree and exact native curve")
+		t.Fatal("original polynomial degree and exact native curve")
 	}
 	left := q.control[0][axis]
 	interval := new(big.Rat).Sub(q.control[len(power)-1][axis], left)
