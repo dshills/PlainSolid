@@ -21,11 +21,18 @@ type exactLoopAssemblyNativeEnvelope struct {
 }
 
 func exactLoopAssemblyNativeClaim(ctx context.Context, m ExactCircularLoopAssembly) (exactLoopAssemblyNativeEnvelope, error) {
+	return exactLoopAssemblyNativeClaimMode(ctx, m, false)
+}
+func exactLoopAssemblyNativeClaimMode(ctx context.Context, m ExactCircularLoopAssembly, nested bool) (exactLoopAssemblyNativeEnvelope, error) {
+	products, minUses, maxUses := 2, 2, 16
+	if nested {
+		products, minUses, maxUses = 3, 3, 17
+	}
 	q := exactLoopAssemblyNativeEnvelope{Format: exactLoopAssemblyNativeFormat, Version: 1, Assembly: m.Assembly}
 	if e := ctx.Err(); e != nil {
 		return q, e
 	}
-	if !independentNativeSourceRecordBound(m.Assembly.Source, 4096, 16) || len(m.Assembly.Products) != 2 || len(m.Assembly.Roots) != 1 || len(m.Assembly.Occurrences) < 2 || len(m.Assembly.Occurrences) > 16 || len(m.Occurrences) < 2 || len(m.Occurrences) > 16 {
+	if !independentNativeSourceRecordBound(m.Assembly.Source, 4096, 16) || len(m.Assembly.Products) != products || len(m.Assembly.Roots) != 1 || len(m.Assembly.Occurrences) < minUses || len(m.Assembly.Occurrences) > maxUses || len(m.Occurrences) < minUses || len(m.Occurrences) > maxUses {
 		return q, geom.ErrInvalid
 	}
 	for _, p := range m.Assembly.Products {

@@ -242,7 +242,12 @@ func regeneratedExactLoopAssembly(t testing.TB, m ExactCircularLoopAssembly) []b
 	if e != nil {
 		t.Fatal(e)
 	}
-	if _, e = ReadExactCircularLoopAssembly(context.Background(), bytes.NewReader(out.Bytes()), Limits{}); e != nil {
+	if len(m.Assembly.Products) == 3 {
+		_, e = ReadNestedExactCircularLoopAssembly(context.Background(), bytes.NewReader(out.Bytes()), Limits{})
+	} else {
+		_, e = ReadExactCircularLoopAssembly(context.Background(), bytes.NewReader(out.Bytes()), Limits{})
+	}
+	if e != nil {
 		t.Fatal(e)
 	}
 	return out.Bytes()

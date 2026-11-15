@@ -271,3 +271,35 @@ native geometry, role and occurrence identities, transforms and tags. Live XCAF
 qualification reloads native before source re-export and before regenerating
 analytic local STEP geometry plus standard shared occurrence records; both
 outputs retain shared product identity, topology and world measures.
+
+### One reusable nested group
+
+`ReadNestedExactCircularLoopAssembly`, `WriteNestedExactCircularLoopAssembly`
+and `WriteNestedExactCircularLoopAssemblySource` admit exactly three products:
+a geometry-free root, one geometry-free subgroup reused 2–16 times, and one
+original rounded-prism product used once inside that subgroup. All products and
+relationships must be reachable and uniquely owned. There are no styles, other
+leaf families, mixed contexts, arbitrary nesting or inferred geometry instances.
+The flat APIs remain strict.
+
+`Instances` retains each original two-NAUO path and its exactly composed proper
+signed-coordinate `Transform`, mapping product coordinates to root coordinates.
+The local native body's `Descriptor.Frame` still applies first. Composition uses
+rational arithmetic and rejects a translation whose exact sum is not binary64
+representable; it does not round the placement. Group/root uses, original
+CDSR/relationship/placement IDs and local body roles remain available separately.
+
+The corresponding JSON functions use the distinct version-one
+`plainsolid-step-nested-exact-circular-loop-assembly` format. They store one source
+and local native asset and re-prove the entire original graph, every path and
+composed matrix before accepting any claims. Flat tags retain their meaning.
+Limits remain 8 MiB native / 1 MiB source plus caller STEP limits and cancellation.
+
+Pinned OCCT `write-nested-assembly` creates the original 297-record XCAF fixture.
+The subgroup applies translation `(1,2,0)` to its leaf; root uses are identity and
+`(x,y,z)->(z+10,x-2,y+3)`. `read-nested-assembly` verifies both root uses share one
+subgroup whose single use references the leaf. Original, source-reexported,
+authored and native-reloaded regenerated files match 2 solids/16 faces/36 edges/
+24 vertices, analytic aggregate volume/area, and world centroid. Tests include
+cycle, wrong support/relationship, forged path/composed matrix, old-tag rejection,
+nonrepresentable composition, limits, cancellation and bounded decoder fuzz.

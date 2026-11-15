@@ -20,12 +20,15 @@ type ExactCircularLoopAssembly struct {
 // ReadExactCircularLoopAssembly authenticates original line/circle topology and
 // independently bound NAUO relationships. Local geometry remains unflattened.
 func ReadExactCircularLoopAssembly(ctx context.Context, r io.Reader, l Limits) (ExactCircularLoopAssembly, error) {
+	return readExactCircularLoopAssembly(ctx, r, l, false)
+}
+func readExactCircularLoopAssembly(ctx context.Context, r io.Reader, l Limits, nested bool) (ExactCircularLoopAssembly, error) {
 	var zero ExactCircularLoopAssembly
 	l, e := occurrenceColorSourceLimits(l)
 	if e != nil {
 		return zero, e
 	}
-	base, e := readExactFlatSingleProductAssembly(ctx, r, l)
+	base, e := readExactFlatSingleProductAssembly(ctx, r, l, nested)
 	if e != nil {
 		return zero, e
 	}
@@ -98,14 +101,21 @@ type ExactCircularLoopAssemblyModel struct {
 // product, stages its unchanged local geometry and verifies the complete output.
 // The root product has nil Source; names and occurrence poses are explicit.
 func WriteExactCircularLoopAssembly(ctx context.Context, w io.Writer, m ExactCircularLoopAssemblyModel, l Limits) error {
-	if ctx == nil || w == nil || len(m.Products) != 2 || len(m.Occurrences) < 2 || len(m.Occurrences) > 16 {
+	return writeExactCircularLoopAssembly(ctx, w, m, l, false)
+}
+func writeExactCircularLoopAssembly(ctx context.Context, w io.Writer, m ExactCircularLoopAssemblyModel, l Limits, nested bool) error {
+	products, minUses, maxUses := 2, 2, 16
+	if nested {
+		products, minUses, maxUses = 3, 3, 17
+	}
+	if ctx == nil || w == nil || len(m.Products) != products || len(m.Occurrences) < minUses || len(m.Occurrences) > maxUses {
 		return geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
 		return e
 	}
 	graph := AssemblyModel{LengthUnit: m.LengthUnit, Occurrences: m.Occurrences}
-	counts := make([]int, 2)
+	counts := make([]int, products)
 	bodies := 0
 	var bodyID int64
 	for i, p := range m.Products {
@@ -146,7 +156,7 @@ func WriteExactCircularLoopAssembly(ctx context.Context, w io.Writer, m ExactCir
 	if e != nil {
 		return e
 	}
-	if _, e = ReadExactCircularLoopAssembly(ctx, bytes.NewReader(staged.Bytes()), l); e != nil {
+	if _, e = readExactCircularLoopAssembly(ctx, bytes.NewReader(staged.Bytes()), l, nested); e != nil {
 		return e
 	}
 	if e = ctx.Err(); e != nil {

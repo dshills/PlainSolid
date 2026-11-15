@@ -15,7 +15,7 @@ type exactFlatSingleProductAssembly struct {
 	Occurrences  []ExactNAUOOccurrence
 }
 
-func readExactFlatSingleProductAssembly(ctx context.Context, r io.Reader, l Limits) (exactFlatSingleProductAssembly, error) {
+func readExactFlatSingleProductAssembly(ctx context.Context, r io.Reader, l Limits, nestedMode ...bool) (exactFlatSingleProductAssembly, error) {
 	var zero exactFlatSingleProductAssembly
 	if ctx == nil || r == nil {
 		return zero, geom.ErrInvalid
@@ -31,7 +31,12 @@ func readExactFlatSingleProductAssembly(ctx context.Context, r io.Reader, l Limi
 	if e != nil {
 		return zero, e
 	}
-	if len(a.Products) != 2 || len(a.Roots) != 1 || len(a.Occurrences) < 2 || len(a.Occurrences) > 16 {
+	nested := len(nestedMode) == 1 && nestedMode[0]
+	products, minUses, maxUses := 2, 2, 16
+	if nested {
+		products, minUses, maxUses = 3, 3, 17
+	}
+	if len(a.Products) != products || len(a.Roots) != 1 || len(a.Occurrences) < minUses || len(a.Occurrences) > maxUses {
 		return zero, geom.ErrInvalid
 	}
 	out := exactFlatSingleProductAssembly{Assembly: a}
@@ -39,14 +44,25 @@ func readExactFlatSingleProductAssembly(ctx context.Context, r io.Reader, l Limi
 	var geometryRoots []int64
 	var prefix string
 	var havePrefix bool
-	products := map[int64]bool{}
+	productIDs := map[int64]bool{}
+	var group int64
 	for _, p := range a.Products {
 		if len(p.Representations) != 1 {
 			return zero, geom.ErrInvalid
 		}
-		products[p.ProductID] = true
+		productIDs[p.ProductID] = true
 		kind := "ADVANCED_BREP_SHAPE_REPRESENTATION"
 		root := p.DefinitionID == a.Roots[0]
+		if nested && !root {
+			if _, err := simple(f, p.Representations[0], "SHAPE_REPRESENTATION", 3); err == nil {
+				if group != 0 {
+					return zero, geom.ErrInvalid
+				}
+				group = p.DefinitionID
+				root = true
+			}
+		}
+
 		if root {
 			kind = "SHAPE_REPRESENTATION"
 		}
@@ -103,11 +119,29 @@ func readExactFlatSingleProductAssembly(ctx context.Context, r io.Reader, l Limi
 		return zero, e
 	}
 	occurrences := map[int64]AssemblyOccurrence{}
+	rootUses, leafUses := 0, 0
 	for _, u := range a.Occurrences {
-		if u.Parent != a.Roots[0] || u.Child != out.Product.DefinitionID || !planarSplineRigid(u.Transform) {
+		if !planarSplineRigid(u.Transform) {
+			return zero, geom.ErrInvalid
+		}
+		if nested {
+			if group == 0 {
+				return zero, geom.ErrInvalid
+			}
+			if u.Parent == a.Roots[0] && u.Child == group {
+				rootUses++
+			} else if u.Parent == group && u.Child == out.Product.DefinitionID {
+				leafUses++
+			} else {
+				return zero, geom.ErrInvalid
+			}
+		} else if u.Parent != a.Roots[0] || u.Child != out.Product.DefinitionID {
 			return zero, geom.ErrInvalid
 		}
 		occurrences[u.ID] = u
+	}
+	if nested && (leafUses != 1 || rootUses < 2 || rootUses > 16) {
+		return zero, geom.ErrInvalid
 	}
 	metadata := map[string]bool{}
 	for _, k := range []string{"APPLICATION_CONTEXT", "APPLICATION_PROTOCOL_DEFINITION", "PRODUCT_CONTEXT", "PRODUCT_DEFINITION_CONTEXT", "PRODUCT", "PRODUCT_DEFINITION_FORMATION", "PRODUCT_DEFINITION", "PRODUCT_DEFINITION_SHAPE", "PRODUCT_RELATED_PRODUCT_CATEGORY", "SHAPE_DEFINITION_REPRESENTATION", "SHAPE_REPRESENTATION", "ADVANCED_BREP_SHAPE_REPRESENTATION", "NEXT_ASSEMBLY_USAGE_OCCURRENCE", "ITEM_DEFINED_TRANSFORMATION", "REPRESENTATION_RELATIONSHIP", "REPRESENTATION_RELATIONSHIP_WITH_TRANSFORMATION", "SHAPE_REPRESENTATION_RELATIONSHIP", "CONTEXT_DEPENDENT_SHAPE_REPRESENTATION", "GEOMETRIC_REPRESENTATION_CONTEXT", "GLOBAL_UNIT_ASSIGNED_CONTEXT", "REPRESENTATION_CONTEXT", "LENGTH_UNIT", "NAMED_UNIT", "SI_UNIT", "PLANE_ANGLE_UNIT", "SOLID_ANGLE_UNIT", "GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT", "UNCERTAINTY_MEASURE_WITH_UNIT"} {
@@ -140,7 +174,7 @@ func readExactFlatSingleProductAssembly(ctx context.Context, r io.Reader, l Limi
 					}
 				}
 				ids, e := listRefs(q.Args[2], 1)
-				if e != nil || len(ids) != 1 || !products[ids[0]] || categories[ids[0]] {
+				if e != nil || len(ids) != 1 || !productIDs[ids[0]] || categories[ids[0]] {
 					return zero, geom.ErrInvalid
 				}
 				categories[ids[0]] = true
@@ -201,7 +235,7 @@ func readExactFlatSingleProductAssembly(ctx context.Context, r io.Reader, l Limi
 			}
 		}
 	}
-	if counts["APPLICATION_PROTOCOL_DEFINITION"] != 1 || counts["SHAPE_DEFINITION_REPRESENTATION"] != 2 || counts["CONTEXT_DEPENDENT_SHAPE_REPRESENTATION"] != len(a.Occurrences) || len(linked) != len(a.Occurrences) || (len(categories) != 0 && len(categories) != 2) {
+	if counts["APPLICATION_PROTOCOL_DEFINITION"] != 1 || counts["SHAPE_DEFINITION_REPRESENTATION"] != products || counts["CONTEXT_DEPENDENT_SHAPE_REPRESENTATION"] != len(a.Occurrences) || len(linked) != len(a.Occurrences) || (len(categories) != 0 && len(categories) != products) {
 		return zero, geom.ErrInvalid
 	}
 	all, e := nauoClosure(f, roots, l.MaxDepth)
