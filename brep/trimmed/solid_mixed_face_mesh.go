@@ -22,7 +22,7 @@ type SolidMixedFaceMeshOptions struct {
 // TrimParameters are normalized original coedge parameters, independent of
 // face reversal. AuthoredParameters are exact original SplineUV.Curve parameters
 // after Range and SplineUV.Reversed (and the exact authored speed map for
-// MappedSplineUV), or equal TrimParameters for native normalized
+// MappedSplineUV/PiecewiseMappedSplineUV), or equal TrimParameters for native normalized
 // curves/straight uses. They are independent owned values, not model parameters.
 // ModelParameters are exact values in the stored edge's actual Range, including
 // Use.Reversed. Vertices refer to the final display. FaceReversed records the
@@ -44,9 +44,11 @@ type CertifiedSolidMixedFaceMesh struct {
 // TessellateMixedFaceCertified certifies one stored spline face, preserving its
 // exact represented affine placement and physical orientation. Straight uses,
 // native ExactQuadraticUV/ExactBezierUV, and degree<=4 SplineUV with an exact
-// single-Bezier trace, plus explicitly mapped original MappedSplineUV, are
+// single-Bezier trace, plus explicitly mapped original MappedSplineUV and
+// PiecewiseMappedSplineUV, are
 // supported when endpoints and complete correspondence
 // are proved. Up to eight original redundant knot spans may be retained.
+// Original piecewise source knots become mandatory shared boundary cuts.
 // Each complete pcurve/model-edge correspondence is independently proved before
 // meshing. Unsupported periodic/collapsed topology, curves, parameterizations or
 // proof budgets reject atomically. This does not stitch neighboring faces or
@@ -140,6 +142,10 @@ func (s Solid) TessellateMixedFaceCertified(ctx context.Context, face int, o Sol
 			loops[li] = append(loops[li], curve)
 		}
 	}
+	o.Face.Face.Cuts, e = piecewiseMappedFaceCuts(uses, o.Face.Face.Cuts)
+	if e != nil {
+		return empty, e
+	}
 	result, e := TessellateMixedExactMultiSpanRegionCertified(ctx, patch, loops[0], loops[1:], o.Face)
 	if e != nil {
 		return empty, e
@@ -164,6 +170,12 @@ func (s Solid) TessellateMixedFaceCertified(ctx context.Context, face int, o Sol
 				authored.Add(authored, ratInset(q.Range.Min))
 			}
 			if q, ok := source.(MappedSplineUV); ok {
+				authored, e = q.AuthoredParameter(t)
+				if e != nil {
+					return empty, e
+				}
+			}
+			if q, ok := source.(PiecewiseMappedSplineUV); ok {
 				authored, e = q.AuthoredParameter(t)
 				if e != nil {
 					return empty, e
@@ -208,6 +220,11 @@ func mixedStoredUseCurveContext(ctx context.Context, u Use, o geom.SurfacePatchO
 		return nil, e
 	}
 	switch q := u.Curve.(type) {
+	case PiecewiseMappedSplineUV:
+		if q.station == nil {
+			return nil, geom.ErrInvalid
+		}
+		return q.curve, nil
 	case MappedSplineUV:
 		if q.weight == nil {
 			return nil, geom.ErrInvalid
