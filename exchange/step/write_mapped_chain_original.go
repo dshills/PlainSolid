@@ -35,7 +35,7 @@ func WriteMappedChainRectangularOriginalShell(ctx context.Context, w io.Writer, 
 	recordedPartition := len(crossings) >= 3 && len(crossings) <= 6 &&
 		(allMappedChainCrossingsOnOneEdge(crossings) || mappedChainCrossingLocalCellCount(crossings) != 0 ||
 			mappedChainSeparatedSupportCells(source.Chain, crossings))
-	inferredPartition := mappedChainSameCellAsynchronousCrossings(crossings) || mappedChainInferredSharedCrossing(crossings)
+	inferredPartition := mappedChainSameCellAsynchronousCrossings(crossings) || mappedChainInferredSharedCrossings(crossings)
 	if independent[0] == independent[1] || !recordedPartition && !inferredPartition {
 		return fmt.Errorf("original mixed STEP export requires a supported source-edge support-knot partition: %w", geom.ErrConvergence)
 	}

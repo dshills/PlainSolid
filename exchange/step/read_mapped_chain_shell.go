@@ -405,6 +405,10 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 			withStoredKnots++
 		}
 	}
+	if withStoredKnots == 0 && (g.foreign || canonicalOriginal) && o.AllowInferredSharedSupportKnot &&
+		o.AllowTwoInteriorRoofKnots && knotsA == 2 && knotsB == 2 {
+		bezierRepairs |= mappedChainBezierSharedPair
+	}
 	localCells := 0
 	if canUseTwoCells && withStoredKnots == 2 || canUseThreeCells && withStoredKnots == 3 {
 		localCells = withStoredKnots
@@ -483,7 +487,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
 			mapped[owner], ownerCuts[owner], err = proveMappedChainSTEPTransfer(ctx, g.faces[owner].surface, source, e, reverse,
-				allowAsync && !foreignMixed || separatedCandidate || edgeBezierRepairs != 0, cellLocal || separatedCandidate, maxInferredSupportKnots, o.Geometry)
+				allowAsync && !foreignMixed || separatedCandidate, cellLocal || separatedCandidate, edgeBezierRepairs, maxInferredSupportKnots, o.Geometry)
 			if err != nil {
 				return zero, fmt.Errorf("mapped STEP edge #%d owner #%d: %w", id, g.faces[owner].id, err)
 			}
@@ -720,8 +724,16 @@ func allMappedChainCrossingsOnOneEdge(crossings []MappedChainSTEPSupportCrossing
 	return true
 }
 
-func mappedChainInferredSharedCrossing(crossings []MappedChainSTEPSupportCrossing) bool {
-	return len(crossings) == 1 && !crossings[0].StoredModelKnot && crossings[0].OwnersChangingCells == [2]bool{true, true}
+func mappedChainInferredSharedCrossings(crossings []MappedChainSTEPSupportCrossing) bool {
+	if len(crossings) == 0 || len(crossings) > 2 {
+		return false
+	}
+	for _, cut := range crossings {
+		if cut.EdgeID != crossings[0].EdgeID || cut.StoredModelKnot || cut.OwnersChangingCells != [2]bool{true, true} {
+			return false
+		}
+	}
+	return true
 }
 
 func mappedChainSameCellAsynchronousCrossings(crossings []MappedChainSTEPSupportCrossing) bool {

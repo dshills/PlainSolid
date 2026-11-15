@@ -77,7 +77,7 @@ static constexpr double secondSharedKnot = 99. / 256;
 static constexpr double secondCellSouthKnot = 917. / 2048;
 static constexpr double thirdSharedKnot = .75;
 
-enum class InferredSupportEvents { none, asynchronous, shared };
+enum class InferredSupportEvents { none, asynchronous, shared, sharedPair, offsetPair };
 
 struct RoofSupportLayout {
   int cuts = 3;
@@ -86,16 +86,26 @@ struct RoofSupportLayout {
   InferredSupportEvents inferred = InferredSupportEvents::none;
 };
 
-static double inferredSupportKnot(bool south, InferredSupportEvents events) {
-  if (events == InferredSupportEvents::shared) {
-    return 29. / 256;
+static std::vector<double> inferredSupportKnots(bool south, InferredSupportEvents events) {
+  switch (events) {
+  case InferredSupportEvents::shared:
+    return {29. / 256};
+  case InferredSupportEvents::sharedPair:
+  case InferredSupportEvents::offsetPair:
+    return {107. / 2048, south && events == InferredSupportEvents::offsetPair ? 29. / 256 : 369. / 2048};
+  case InferredSupportEvents::asynchronous:
+    return {south ? 369. / 2048 : 107. / 2048};
+  default:
+    return {};
   }
-  return south ? 369. / 2048 : 107. / 2048;
 }
 
 static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout) {
   if (layout.inferred != InferredSupportEvents::none) {
-    return {0., inferredSupportKnot(south, layout.inferred), 1.};
+    auto knots = inferredSupportKnots(south, layout.inferred);
+    knots.insert(knots.begin(), 0.);
+    knots.push_back(1.);
+    return knots;
   }
   if (layout.separated) {
     return south ? std::vector<double>{0., 29. / 256, .75, 1.}
@@ -126,8 +136,11 @@ static std::vector<double> roofSupportKnots(bool south, RoofSupportLayout layout
 static double roofHeight(double x, double y, bool crease, bool three = false, bool south = false, RoofSupportLayout layout = {}) {
   if (three) {
     if (layout.inferred != InferredSupportEvents::none) {
-      const double knot = inferredSupportKnot(south, layout.inferred);
-      return x * y + .125 * (y - .25) * std::max(0., x - knot);
+      double z = x * y;
+      for (const double knot : inferredSupportKnots(south, layout.inferred)) {
+        z += .125 * (y - .25) * std::max(0., x - knot);
+      }
+      return z;
     }
     if (layout.separated) {
       const double separate = south ? .75 : 107. / 2048;
@@ -492,10 +505,15 @@ int main(int argc, char** argv) {
       : mode == "write-five-knots-mixed-unsplit" ? 5 : mode == "write-four-knots-mixed-unsplit" ? 4 : 3;
     const bool sameCellAsynchronous = mode == "write-same-cell-asynchronous" || mode == "write-same-cell-redundant-knot";
     const bool sharedInferred = mode == "write-shared-inferred-knot" || mode == "write-shared-inferred-redundant-knot";
-    const auto inferred = sharedInferred ? InferredSupportEvents::shared
+    const bool sharedPair = mode == "write-shared-inferred-knot-pair" || mode == "write-shared-inferred-pair-redundant-knot";
+    const bool offsetPair = mode == "write-shared-inferred-offset-pair";
+    const auto inferred = offsetPair ? InferredSupportEvents::offsetPair : sharedPair ? InferredSupportEvents::sharedPair
+      : sharedInferred ? InferredSupportEvents::shared
       : sameCellAsynchronous ? InferredSupportEvents::asynchronous : InferredSupportEvents::none;
+    const bool noModelKnot = mode == "write-same-cell-asynchronous" || mode == "write-shared-inferred-knot"
+      || mode == "write-shared-inferred-knot-pair" || offsetPair;
     const int storedCells = mode == "write-three-support-cells" ? 3 : mode == "write-two-support-cells" ? 2
-      : (mode == "write-same-cell-asynchronous" || mode == "write-shared-inferred-knot") ? 0 : 1;
+      : noModelKnot ? 0 : 1;
     const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells", inferred};
     const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || storedCells >= 2
       || layout.separated || inferred != InferredSupportEvents::none;

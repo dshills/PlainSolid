@@ -40,8 +40,9 @@ type MappedChainShellSTEPOptions struct {
 	AllowSameCellAsynchronousSupportKnots bool
 	// AllowInferredSharedSupportKnot admits one coincident transverse
 	// crossing of both original roof supports on a single model Bézier
-	// with mixed owner bases. The model has no stored interior knot.
-	// Its prerequisites match AllowSameCellAsynchronousSupportKnots.
+	// with mixed owner bases. AllowTwoInteriorRoofKnots also permits two
+	// such crossings on the same edge. The model has no stored interior
+	// knot. Its prerequisites match AllowSameCellAsynchronousSupportKnots.
 	AllowInferredSharedSupportKnot bool
 	// AllowMixedSupportKnots admits one original foreign shared edge with a
 	// stored model knot crossed by both owners and one additional single-owner
