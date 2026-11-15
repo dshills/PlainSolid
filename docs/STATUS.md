@@ -58,6 +58,10 @@ passed the build, typechecks, bundle budget, 345 development browser cases,
 WASM contracts. The [newer ordinary Go run on `509cdbd3`](evidence/main-509cdbd3-qualification-2026-11-15.json)
 accounted for all 5,921 top-level cases: 5,374 passes and 547 optional
 skips, including 1,411 trimmed passes and 47 optional trimmed skips.
+The [latest ordinary Go run on `a1030049`](evidence/main-a1030049-qualification-2026-11-15.json)
+accounted for all 6,006 cases with 5,448 passes and 558 optional skips,
+including 1,433 trimmed passes and 48 optional trimmed skips. All nine
+lanes returned zero, with 52 tested packages and four without tests.
 The [full native race on `d5906fde`](evidence/native-main-d5906fde-race-2026-11-15.json)
 accounted for all 5,769 cases: 5,247 passed and 522 optional cases were
 skipped. All 52 tested packages and the eight trimmed groups finished.
@@ -84,26 +88,32 @@ Common and Fuse in both event orders. Geometry discovery also preserves
 independent exact source roof charts, including reversed affine stations.
 Mapped v8 retains four to six exact support cuts in one original cell, including
 the original unsplit author graph with both basis families and raw knots.
-Mapped v9 retains four events in two original cells or five in three cells.
+Mapped v9 retains four events in two original cells, five in three cells,
+or three events on either side of a complete original edge with no event.
 It preserves both sides of each joint and the separate stored and inferred
 stations.
 The original and converted metre and inch three-fillet STEP bodies pass
 the native bridge and real Node and Chromium WASM. Four separated fillets
 now qualify exact STEP transfer in the original millimetre charts and real
-PlainCAD worker runtimes. Native
+PlainCAD worker runtimes; the converted metre version qualifies original
+STEP with separate raw and proved finite axial stations. Native
 extrusion, canonical STEP and canonical IGES retain directed minor arcs and
 separate curved cap holes. The original two-hole OCCT STEP also reopens from
 a source-backed native receipt. Original IGES preserves 16 transformed arcs
 and 32 explicit cylindrical pcurves with exact chart and endpoint proofs.
 Directed profiles keep stable named walls and rims across edits, placement,
-undo, redo, and reopen. Orthogonal reentrant fillets also regenerate.
+undo, redo, and reopen. Orthogonal reentrant fillets also regenerate. Exact
+lateral offsets retain line and arc ownership and cap elevations, proving
+clearance for the complete offset path before returning material. An exact
+curved inset join keeps the original host cap, guest walls, and separate
+exposed floors inside through-openings. Its compact mesh shares original rims.
 
-Immediate work includes curved inset joins, native envelope assembly with
-original owner-specific roof charts, mapped event cells separated by empty
-cells, and four-fillet converted units. The fresh ordinary Go run on
-immutable `a1030049` is still running. Vet and Windows amd64 cross-build
-also pass on `12ab5dbf`. Wider contact discovery, advanced modeling,
-exchange and native platform gates remain open.
+Immediate work includes editable lateral offsets, native envelope assembly
+with original owner-specific roof charts, two inferred owner events in one
+unsplit mapped cell, and the converted four-fillet PlainCAD bridge. A newer
+PlainCAD rerun is being staged on `83e18008`. Vet and Windows amd64 cross-build
+also pass on `12ab5dbf`. Wider contact discovery, advanced modeling, exchange
+and native platform gates remain open.
 
 The two PlainCAD integration branches are in `main` through implementation
 merge `8f76f16b` and verification merge `012096ee`.

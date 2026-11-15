@@ -134,10 +134,13 @@ passes. The source, launcher and original result logs are under
 `.worktrees/qualification/2026-11-15/go-d5906fde-race`. This replaces the
 earlier running status for this same immutable snapshot.
 
-The next ordinary Go rerun uses immutable `a1030049`, including the latest
-five-crossing Common/Fuse, original directed STEP, mapped two-cell and
-four-fillet exchange milestones. Its in-progress inventory and raw lanes are
-under `.worktrees/qualification/2026-11-15/go-a1030049`.
+The [latest full ordinary Go run](evidence/main-a1030049-qualification-2026-11-15.json)
+on immutable `a1030049` finished all nine lanes with zero failures. Independent
+inventories account for all 6,006 top-level cases: 5,448 passes, 558 explicit
+optional skips, 52 tested packages and four without tests. The separately
+inventoried trimmed lanes account for 1,433 passes and 48 optional skips.
+Raw runs, source, and input lists are under
+`.worktrees/qualification/2026-11-15/go-a1030049`.
 
 - Quintic native Common/Fuse and Cut with three transverse crossings and a
   quadratic tangency, plus exact curved inner wires, passed a combined main
@@ -203,6 +206,31 @@ under `.worktrees/qualification/2026-11-15/go-a1030049`.
   reordering, resized holes, placement, failed edits, undo, redo, and
   canonical reopen. Complete `go vet` and Windows amd64 cross-build on
   immutable `12ab5dbf` passed; Windows runtime remains unqualified.
+- Mapped v9 with an event-free middle original edge `2f0a3932` passed the
+  main race in 75.627 seconds. The three retained raw event pairs are
+  `(17,40)`, `(37,32)`, `(858,−1)`, with the last on an original unsplit
+  Bézier. Pinned OCCT returned one seven-face solid and the closed display
+  retains all three events in 4,022 triangles. Existing v7–v9 source DATA,
+  canonical STEP, and native recipe checksums stayed unchanged.
+- Signed lateral offsets `336bb29a` passed the main race in 9.486 seconds,
+  including independent material for two holes, the reentrant tangent arc,
+  unchanged cap elevations and a zero offset. Collapsing arcs, colliding
+  original holes and inadequate separation work reject atomically.
+- Converted four-fillet metre and native exchange `b1eaeaee` passed the
+  main live race in 24.619 seconds. The original shifted spline owner
+  rejects at `1e−13 m`. The unequal axial trim keeps the unmodified projected
+  endpoint `5000+4e−26` and the separately proved finite station `5000`.
+  Twelve earlier receipt, corrected STEP, and canonical STEP checksums
+  remained identical. The isolated native-four full STEP package coverage
+  separately reconciled all 1,514 named cases (1,255 passes, 259 optional
+  skips) across the timed prefix and same-commit tail replay.
+- Curved inset join and compact regression `83e18008` passed the main
+  race in 21.289 seconds. The original host through-hole survives, and an
+  independent floor on the same cap support is exposed inside the guest
+  through-opening. Both cap directions preserve 48 edges and 20 faces,
+  reject touch and gaps, and match independently authored OCCT material.
+  The compact mesh closes with 112 triangles under the bounded display
+  test. Native JSON replay preserves the resulting exact cap and floor trims.
 
 Focused main verification adds two bounded cases:
 
