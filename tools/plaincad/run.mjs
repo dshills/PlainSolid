@@ -21,9 +21,11 @@ const ports=suitePorts(suite,option("--port"),option("--preflight-port"));
 const port=ports.preflight;
 const stepRepairFixture = args.includes("--step-repair-fixture");
 const stepRepairTest = "plainSolidStepRepair.test.ts";
-const testDefaults = { development: "e2e/extrusion-hole.spec.ts", production: "production-e2e", "cross-browser": "cross-browser-e2e", unit: stepRepairFixture ? stepRepairTest : "" };
+const stepRepairWorkerFixture = args.includes("--step-repair-worker-fixture");
+const stepRepairWorkerTest = "e2e/plainsolid-step-repair-worker.spec.ts";
+const testDefaults = { development: stepRepairWorkerFixture ? stepRepairWorkerTest : "e2e/extrusion-hole.spec.ts", production: "production-e2e", "cross-browser": "cross-browser-e2e", unit: stepRepairFixture ? stepRepairTest : "" };
 const testFile = option("--test", testDefaults[suite]);
-const grep = option("--grep", suite === "development" ? "native negative/symmetric coordinate extents, parameter edits, save/open and STL winding" : ".*");
+const grep = option("--grep", suite === "development" && !stepRepairWorkerFixture ? "native negative/symmetric coordinate extents, parameter edits, save/open and STL winding" : ".*");
 const unitWorkers = option("--workers", "1");
 if (suite === "unit" && !/^[1-9]\d*$/.test(unitWorkers)) throw new Error("Invalid --workers");
 const acceptanceConfigs = { development: undefined, production: "playwright.production.config.ts", "cross-browser": "playwright.cross-browser.config.ts", unit: undefined };
@@ -34,6 +36,8 @@ if (sideDualDiskFixture && (suite !== "development" || testFile !== "e2e/plainso
   throw new Error("The supplemental dual-disk fixture must run by itself in the development suite.");
 if (stepRepairFixture && (suite !== "unit" || testFile !== stepRepairTest))
   throw new Error("The supplemental STEP repair fixture must run by itself in the unit suite.");
+if (stepRepairWorkerFixture && (suite !== "development" || testFile !== stepRepairWorkerTest))
+  throw new Error("The supplemental STEP repair worker fixture must run by itself in the development suite.");
 const gitIdentity = cwd => {
   const git = (...argv) => { try { return execFileSync("git", argv, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return null; } };
   return { head: git("rev-parse", "HEAD"), status: git("status", "--porcelain=v1"), branch: git("branch", "--show-current") };
@@ -158,6 +162,49 @@ export default defineConfig({ ...base, test: {
   report.status = !report.error && complete ? "passed" : "failed";
   if (report.status === "failed") report.error ??= "All selected unit tests must pass.";
 }
+function browserTests(suites) {
+  return suites.flatMap(suite => [
+    ...(suite.specs ?? []).flatMap(spec => spec.tests.map(test => ({
+      file: spec.file, line: spec.line, title: spec.title, project: test.projectName, status: test.status,
+      results: test.results.map(result => ({ status: result.status, durationMs: result.duration, errors: result.errors })),
+    }))),
+    ...browserTests(suite.suites ?? []),
+  ]);
+}
+async function runSTEPRepairWorkerFixture() {
+  const sourceFiles = {
+    "tools/plaincad/step-repair-worker.fixture.ts": "src/cad/kernel/plainSolidStepRepairProbe.ts",
+    "tools/plaincad/step-repair-worker.spec.fixture.ts": stepRepairWorkerTest,
+    "exchange/step/testdata/occt-default-tilted-translated-oblique-prism-fillet.step": "public/plainsolid-step-repair-input.step",
+  };
+  const sourceHashes = {};
+  for (const [source, target] of Object.entries(sourceFiles)) {
+    const input = await readFile(join(root, source));
+    await writeFile(join(work, target), input, { flag: "wx" });
+    sourceHashes[source] = hash(input);
+  }
+  const page = "<!doctype html><meta charset=utf-8><title>PlainSolid STEP repair worker</title>\n";
+  await writeFile(join(work, "public/plainsolid-step-repair-worker.html"), page, { flag: "wx" });
+  report.supplementalFixture = { file: stepRepairWorkerTest, sourceHashes, pageSha256: hash(page) };
+  await command("node", [join(work, "node_modules/typescript/bin/tsc"), "-b", "--noEmit"], "typecheck.log");
+  await command("node", [join(work, "node_modules/typescript/bin/tsc"), "-p", "tsconfig.e2e.json"], "typecheck-e2e.log");
+  report.typecheck = "passed";
+  const path = join(work, "playwright-results.json");
+  try {
+    await command("node", [join(work, "node_modules/@playwright/test/cli.js"), "test", stepRepairWorkerTest, "--grep", grep,
+      "--reporter=list,json"], "acceptance.log", { PLAYWRIGHT_JSON_OUTPUT_FILE: path });
+  } catch (error) { report.error = String(error); }
+  try {
+    const result = JSON.parse(await readFile(path, "utf8"));
+    report.tests = browserTests(result.suites);
+    report.summaries = [{ path, ...result.stats }];
+    const [test] = report.tests;
+    report.backendVerified = report.tests.length === 1 && test.status === "expected" &&
+      test.results.length === 1 && test.results[0].status === "passed";
+  } catch (error) { report.error ??= `Cannot read the STEP repair worker result: ${error}`; }
+  report.status = !report.error && report.backendVerified ? "passed" : "failed";
+  if (report.status === "failed") report.error ??= "The dedicated STEP repair worker test must pass.";
+}
 await mkdir(work, { recursive: true });
 if ((await readdir(work)).length) throw new Error("Acceptance workspace must be empty; choose a fresh --work directory.");
 try {
@@ -196,7 +243,7 @@ try {
   }).trim().split("\n").filter(path => path.startsWith(root + "/"));
   for (const path of [...runtimeSources, join(root, "go.mod")])
     report.plainSolidSourceHashes[path.slice(root.length + 1)] = hash(await readFile(path));
-  if (!stepRepairFixture) {
+  if (!stepRepairFixture && !stepRepairWorkerFixture) {
     // The worker already accepts this progress callback for modeled threads.
     // Report actual feature boundaries for the synchronous Go kernel as well.
     const rebuildPath = join(work, "src/cad/features/rebuildGraph.ts");
@@ -230,6 +277,8 @@ try {
   report.wasmSha256 = hash(await readFile(join(work, "public/assets/plainsolid-kernel.wasm")));
   if (suite === "unit") {
     await runOriginalUnitTests();
+  } else if (stepRepairWorkerFixture) {
+    await runSTEPRepairWorkerFixture();
   } else {
     await runOriginalBrowserTests();
   }
@@ -611,15 +660,11 @@ test("PlainSolid backend: real Go WASM dispatcher and no OCCT requests", async (
     report.status = "passed";
   } catch (error) { report.status = "failed"; report.error = String(error); }
   try {
-    const visit = suite => {
-      for (const spec of suite.specs ?? []) for (const test of spec.tests ?? []) report.tests.push({ file: spec.file, line: spec.line, title: spec.title, project: test.projectName, status: test.status, results: test.results.map(result => ({ status: result.status, durationMs: result.duration, errors: result.errors })) });
-      for (const child of suite.suites ?? []) visit(child);
-    };
     report.tests = [];
     report.summaries = [];
     for (const path of resultPaths) {
       const results = JSON.parse(await readFile(path, "utf8"));
-      for (const suite of results.suites ?? []) visit(suite);
+      report.tests.push(...browserTests(results.suites ?? []));
       report.summaries.push({ path, ...results.stats });
     }
     const passed = test => test.status === "expected" && test.results.length > 0 && test.results.every(result => result.status === "passed");
