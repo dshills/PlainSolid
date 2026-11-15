@@ -220,13 +220,13 @@ func verifyMappedChainCutDisplay(t *testing.T, ctx context.Context, m MappedChai
 	fill := trimmed.MixedExactMultiSpanMeshOptions{Face: trimmed.MixedExactCurvedMeshOptions{
 		BoundaryModelBudget: .005, Interior: trimmed.CurvedQuadraticTrimMeshOptions{Deflection: .04},
 	}}
-	verifyMappedChainCutDisplayWithOptions(t, ctx, m, fill)
+	verifyMappedChainCutDisplayWithOptions(t, ctx, m, fill, .005)
 }
 
-func verifyMappedChainCutDisplayWithOptions(t *testing.T, ctx context.Context, m MappedChainSTEPModel, fill trimmed.MixedExactMultiSpanMeshOptions) {
+func verifyMappedChainCutDisplayWithOptions(t *testing.T, ctx context.Context, m MappedChainSTEPModel, fill trimmed.MixedExactMultiSpanMeshOptions, boundaryDeflection float64) {
 	t.Helper()
 	display, err := m.Shell.TessellateClosedCertified(ctx, nil, trimmed.MappedChainClosedMeshOptions{
-		Boundary: trimmed.MappedChainPolylineOptions{Deflection: .005}, Curved: [2]trimmed.MixedExactMultiSpanMeshOptions{fill, fill},
+		Boundary: trimmed.MappedChainPolylineOptions{Deflection: boundaryDeflection}, Curved: [2]trimmed.MixedExactMultiSpanMeshOptions{fill, fill},
 	})
 	if err != nil || !display.DisplayCollision.Complete || len(display.DisplayCollision.Contacts) != 0 {
 		t.Fatal("all exact cuts must support one closed display with no unintended contact", err)
