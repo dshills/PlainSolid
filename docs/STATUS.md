@@ -77,19 +77,26 @@ edge intervals through splits, joins, edits, undo and reopen.
 Native Common, Fuse and Cut cover mixed simple/order-three crossings,
 distinct second- and fourth-order contacts, and three simple crossings
 with a quadratic tangency, with original-source reload. The general
-geometry arrangement proves exact multiplicities through degree five.
+geometry arrangement proves exact multiplicities through degree five. Five
+transverse crossings qualify source-backed Common, Fuse and both Cut orders.
 Mapped v8 retains four to six exact support cuts in one original cell, including
 the original unsplit author graph with both basis families and raw knots.
+Mapped v9 retains four events in two original cells or five in three cells.
+It preserves both sides of each joint and the separate stored and inferred
+stations.
 The original and converted metre and inch three-fillet STEP bodies pass
-the native bridge and real Node and Chromium WASM. Native extrusion and
-canonical STEP retain directed minor arcs and separate curved cap holes;
-orthogonal reentrant fillets also regenerate through document edits.
+the native bridge and real Node and Chromium WASM. Four separated fillets
+now qualify exact STEP transfer in the original millimetre charts. Native
+extrusion, canonical STEP and canonical IGES retain directed minor arcs and
+separate curved cap holes. The original two-hole OCCT STEP also reopens from
+a source-backed native receipt. Orthogonal reentrant fillets regenerate
+through document edits.
 
-Immediate work includes five-crossing native Booleans, original STEP cap
-wire authentication, mapped support events across several original cells,
-and four separated STEP fillet charts and their application bridge. Wider
-contact discovery, advanced modeling, exchange and native platform gates
-remain open.
+Immediate work includes original IGES cylinder-chart qualification, unequal
+original roof parameter maps, mapped event cells separated by empty cells,
+and the four-fillet application bridge. A fresh ordinary Go run is running
+on immutable `a1030049`. Wider contact discovery, advanced modeling,
+exchange and native platform gates remain open.
 
 The two PlainCAD integration branches are in `main` through implementation
 merge `8f76f16b` and verification merge `012096ee`.

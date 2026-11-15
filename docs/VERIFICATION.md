@@ -134,6 +134,46 @@ passes. The source, launcher and original result logs are under
 `.worktrees/qualification/2026-11-15/go-d5906fde-race`. This replaces the
 earlier running status for this same immutable snapshot.
 
+The next ordinary Go rerun uses immutable `a1030049`, including the latest
+five-crossing Common/Fuse, original directed STEP, mapped two-cell and
+four-fillet exchange milestones. Its in-progress inventory and raw lanes are
+under `.worktrees/qualification/2026-11-15/go-a1030049`.
+
+- Quintic native Common/Fuse and Cut with three transverse crossings and a
+  quadratic tangency, plus exact curved inner wires, passed a combined main
+  race: 34 top-level cases across `geom` and `brep/trimmed`. Pinning geometry
+  `400e24a4` to the 31 ordered degree-five multiplicity patterns passed its
+  main race in 56.722 seconds. Native five-crossing Common/Fuse passed its
+  main race in 107.633 seconds, with all five contacts and original-source
+  reload.
+- Original directed STEP `98648522` passed the circular STEP main race in
+  86.355 seconds. OCCT independently authored the two-hole model and read
+  its original, source-preserving and canonical files as one 14-face solid
+  with volume `48−π` and area `88+3π`. The source-backed native receipt
+  `f1e7830d` passed the focused main race in 8.204 seconds, including
+  failure on changed cap-bound IDs, ring offsets and source circle sense.
+- The two-cell mapped v9 live main test retains all four source stations and
+  a closed display of 1,262 triangles. Pinned OCCT read the original and
+  re-export with volume `0.951533576007932` and area `6.22315111712234`.
+  Earlier v7/v8 native and STEP records passed unchanged. The four-fillet
+  live STEP main race also passed. It verifies 48 original owner charts and
+  rejects the automatic cap's exact `1/5000000000000 mm` displacement.
+- Five-crossing Cut `99e2923f` passed its main race in 283.796 seconds.
+  The forward Cut preserves two solids with five shared points; the reverse
+  preserves six positive components, with a smallest exact volume of
+  `1015625/1152921504606846976`. The ordinary display collision diagnostic
+  reports an incomplete result at its million-pair limit. The exact contact
+  and source reload proofs passed independently.
+- Mapped v9 through three original cells `d857b12b` passed its main live
+  and compatibility race in 74.384 seconds. It retains event counts `2,2,1`,
+  60 proved edge uses, and a closed 1,310-triangle display. OCCT read the
+  original and canonical re-export with volume `0.954463263507933` and
+  area `6.26467813350028`; five earlier recipe pairs stayed byte-identical.
+- Canonical directed IGES `ec0f5558` passed its focused main race in
+  23.400 seconds, including pinned OCCT readback of the nine-face reentrant
+  solid and the 14-face two-hole solid. It rejects edited source arcs,
+  cylinder sense, cap loop order, and orphan data.
+
 Focused main verification adds two bounded cases:
 
 - `d54df03f`: the exact full-face join checks both winding and every original
