@@ -90,13 +90,17 @@ that `1e-12` inch is insufficient.
 The grouped converted metre fixture uses a `1e-12` metre budget and rejects
 `1e-13`. Each grouped conversion receipt retains the finite axial map, both original cap trims,
 and their reversed cylindrical spans.
+The original three-fillet millimetre fixture checks both phase-shifted
+cylinder charts, two unequal axial trims, and strict canonical reopen. It
+uses a `1e-12` mm repair budget and rejects `1e-13` mm.
 
 Use `--suite development --step-repair-worker-fixture` to run the focused
 Chromium check with the pinned app's Playwright and Vite configuration. The
 disposable app stages a test page and a dedicated module worker that imports
 the concrete adapter. It covers translated single-fillet inputs in all three
 units and tilted grouped inputs in metres and inches. Both include the
-corresponding original converted OCCT exports. The
+corresponding original converted OCCT exports. It also covers the tilted
+three-fillet millimetre original. The
 test compares the certificate text with the original bytes returned by Go
 WASM. A fresh worker receives that certificate, derives the identical
 native receipt from its source, and strictly reopens and re-exports
