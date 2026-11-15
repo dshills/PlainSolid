@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"plainsolid/brep"
 	"plainsolid/geom"
+	"plainsolid/mesh"
 	"slices"
 	"testing"
 )
@@ -50,6 +51,14 @@ func TestVertexContactAssemblyVerifiesTwoOriginalPointContacts(t *testing.T) {
 	r, err := ValidateVertexContactAssembly(ctx, parts, []AssemblyVertexContact{p, q}, VertexContactAssemblyOptions{})
 	if err != nil || len(r.Contacts) != 2 || r.SignedVolume.Cmp(big.NewRat(29, 2)) != 0 || r.ContactPairs < 2 || r.BroadPairs < r.ContactPairs {
 		t.Fatalf("component contact proof %+v, %v", r, err)
+	}
+	display := []mesh.Mesh{a.Tessellate(), b.Tessellate()}
+	meshReport, err := ValidateMeshVertexContactAssembly(ctx, display, []AssemblyVertexContact{p, q}, VertexContactAssemblyOptions{})
+	if err != nil || !slices.Equal(meshReport.Contacts, r.Contacts) || meshReport.SignedVolume.Cmp(r.SignedVolume) != 0 {
+		t.Fatalf("indexed display proof differs from the original faceted proof: %+v %v", meshReport, err)
+	}
+	if bad, err := ValidateMeshVertexContactAssembly(ctx, display, []AssemblyVertexContact{p}, VertexContactAssemblyOptions{}); !errors.Is(err, ErrInvalid) || bad.SignedVolume != nil {
+		t.Fatalf("indexed display accepted an undeclared contact: %+v %v", bad, err)
 	}
 	for _, entry := range r.Contacts {
 		if entry.A.Solid != 0 || entry.B.Solid != 1 {
