@@ -183,7 +183,7 @@ func (s State) ResolvePlanarEdgeHistory(ctx context.Context, ref PlanarEdgeHisto
 				} else {
 					next.err = geom.ErrUnrepresentable
 				}
-			case BooleanFeature, PlanarSeamJoinFeature, PlanarInsetJoinFeature:
+			case BooleanFeature, PlanarSeamJoinFeature, PlanarInsetJoinFeature, PlanarEdgeSplitFeature:
 				if len(a.edges) == 0 && len(b.edges) == 0 {
 					return nil
 				}

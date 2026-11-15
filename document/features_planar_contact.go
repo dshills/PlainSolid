@@ -45,6 +45,11 @@ func evaluatePlanarContactFeature(ctx context.Context, kind FeatureKind, a, b br
 	default:
 		return brep.Solid{}, topology, geom.ErrInvalid
 	}
+	return topologyFromPlanarOwnership(ctx, s, faces, edges, wantFaces, wantEdges)
+}
+
+func topologyFromPlanarOwnership(ctx context.Context, s brep.Solid, faces [2][]int, edges [2][][]csg.PlanarRegionResultEdge, wantFaces, wantEdges bool) (brep.Solid, poly.TopologyHistory, error) {
+	var topology poly.TopologyHistory
 	if !wantFaces && !wantEdges {
 		return s, topology, nil
 	}

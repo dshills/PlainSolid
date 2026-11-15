@@ -39,6 +39,7 @@ const (
 	BooleanFeature               FeatureKind = "planar-boolean"
 	PlanarSeamJoinFeature        FeatureKind = "planar-seam-join"
 	PlanarInsetJoinFeature       FeatureKind = "planar-inset-join"
+	PlanarEdgeSplitFeature       FeatureKind = "planar-edge-split"
 	CylinderBoreFeature          FeatureKind = "cylinder-bore"
 	SideOpenDualDiskCutFeature   FeatureKind = "side-open-dual-disk-cut"
 	PrismFilletFeature           FeatureKind = "prism-corner-fillet"
@@ -55,7 +56,8 @@ const (
 // Feature describes a reproducible construction. Asset IDs stay stable across
 // edits. Input is required for offset, transform and Boolean. Boolean also
 // requires Tool and uses Operation. Seam and inset joins use Input and Tool;
-// an inset join treats Input as the host. Box uses Min and Max;
+// an inset join treats Input as the host. Edge splitting uses Input and
+// PlanarEdgeSplit. Box uses Min and Max;
 // Prism uses Profile, Holes and Offset; Sphere uses Center and Radius;
 // RoundedBox uses Min, Max and Radius; planar offset uses Distance and
 // Tolerance; transform uses Transform. A bore uses a box input (possibly
@@ -104,6 +106,7 @@ type Feature struct {
 	HelicalPair                 *HelicalPairPartRecipe       `json:",omitempty"`
 	LinkedHelicalNut            *LinkedHelicalNutRecipe      `json:",omitempty"`
 	SideOpenDualDisk            *SideOpenDualDiskRecipe      `json:",omitempty"`
+	PlanarEdgeSplit             *PlanarEdgeSplitRecipe       `json:",omitempty"`
 }
 
 func (f Feature) clone() Feature {
@@ -127,6 +130,11 @@ func (f Feature) clone() Feature {
 		recipe := *f.LinkedHelicalNut
 		recipe.Nut = recipe.Nut.clone()
 		f.LinkedHelicalNut = &recipe
+	}
+	if f.PlanarEdgeSplit != nil {
+		recipe := *f.PlanarEdgeSplit
+		recipe.Parameters = append([]string(nil), recipe.Parameters...)
+		f.PlanarEdgeSplit = &recipe
 	}
 	if f.SideOpenDualDisk != nil {
 		recipe := *f.SideOpenDualDisk
@@ -225,7 +233,7 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 				}
 				marks[name] = 1
 				stack = append(stack, item{name, true})
-				needsInput := f.Kind == LinkedHelicalNutFeature || f.Kind == PlanarToFaceFeature || f.Kind == PlanarThroughPocketFeature || f.Kind == PlanarProtrusionFeature || f.Kind == PlanarPocketFeature || f.Kind == TransformFeature || f.Kind == PlanarOffsetFeature || f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == CylinderBoreFeature || f.Kind == SideOpenDualDiskCutFeature ||
+				needsInput := f.Kind == LinkedHelicalNutFeature || f.Kind == PlanarToFaceFeature || f.Kind == PlanarThroughPocketFeature || f.Kind == PlanarProtrusionFeature || f.Kind == PlanarPocketFeature || f.Kind == TransformFeature || f.Kind == PlanarOffsetFeature || f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == PlanarEdgeSplitFeature || f.Kind == CylinderBoreFeature || f.Kind == SideOpenDualDiskCutFeature ||
 					f.Kind == WrappedDraftFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedFrustumOffsetFeature ||
 					f.Kind == WrappedCylinderFilletFeature || f.Kind == WrappedCylinderOffsetFeature || f.Kind == WrappedStationBoreFeature
 				needsTool := f.Kind == BooleanFeature || f.Kind == PlanarSeamJoinFeature || f.Kind == PlanarInsetJoinFeature || f.Kind == WrappedBoreFeature || f.Kind == WrappedStationBoreFeature
@@ -351,6 +359,14 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 					return State{}, fmt.Errorf("document: feature %q needs planar input %q", name, f.Input)
 				}
 				p, e = csg.Offset(a, f.Distance, f.Tolerance)
+			case PlanarEdgeSplitFeature:
+				in, ok := result.Planar[f.Input]
+				if !ok {
+					return State{}, fmt.Errorf("document: feature %q requires a planar box or placement", name)
+				}
+				wantFaces := observe != nil && observe.needsHistory != nil && observe.needsHistory(f)
+				wantEdges := observe != nil && observe.needsEdges != nil && observe.needsEdges(f)
+				p, topology, e = s.evaluatePlanarEdgeSplit(ctx, in, f, wantFaces, wantEdges)
 			case PlanarSeamJoinFeature, PlanarInsetJoinFeature:
 				a, ok := result.Planar[f.Input]
 				b, hasTool := result.Planar[f.Tool]

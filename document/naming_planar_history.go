@@ -108,7 +108,7 @@ func (s State) ResolvePlanarFaceHistory(ctx context.Context, ref PlanarFaceHisto
 					}
 				}
 				next.err = geom.ErrUnrepresentable
-			case BooleanFeature, PlanarSeamJoinFeature, PlanarInsetJoinFeature:
+			case BooleanFeature, PlanarSeamJoinFeature, PlanarInsetJoinFeature, PlanarEdgeSplitFeature:
 				sources := history.Faces
 				if len(sources) != len(geometry.Planar[id].Faces()) {
 					next.err = geom.ErrUnrepresentable
