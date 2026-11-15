@@ -218,7 +218,19 @@ kept its pristine hash. Raw results remain in
   canonical cases agree with pinned OCCT material and enclose 414 display
   triangles. A changed exact interior pole rejects atomically. Focused
   main live race passed in 119.413 seconds and the isolated mapped native
-  race passed in 247.649 seconds.
+  race passed in 247.649 seconds. The broader pinned mapped STEP race
+  passed in 669.019 seconds.
+- A separately authored rational nonplanar STEP cubic keeps raw exact
+  model station parameters `8/7`, `8/3` and `24/5`, with the same original
+  owner stops and 700 closed display triangles. The strict repeat
+  export, changed interior weight rejection and existing receipt digest
+  suite passed in 203.624 seconds under the main race.
+- Original converted five-fillet metre and inch STEP, with both antipodal
+  owners, passed the full main repair and original comparator race in
+  491.593 seconds. The independent unscaled inch original fails the exact
+  support gate at seven sites even though pinned OCCT accepts its
+  approximate geometry. The isolated exchange proof keeps all 30 prior
+  receipt, corrected-source and export digests.
 
 - Quintic native Common/Fuse and Cut with three transverse crossings and a
   quadratic tangency, plus exact curved inner wires, passed a combined main

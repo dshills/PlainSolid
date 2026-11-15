@@ -84,6 +84,7 @@ struct RoofSupportLayout {
   int storedCells = 1;
   bool separated = false;
   InferredSupportEvents inferred = InferredSupportEvents::none;
+  bool rationalModel = false;
 };
 
 static std::vector<double> inferredSupportKnots(bool south, InferredSupportEvents events) {
@@ -585,6 +586,20 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
       }
       spatial->SetKnots(stepArray(std::array{station[cell], station[cell + 1]}));
     }
+    if (layout.rationalModel && cell == 0) {
+      // Geometric homogeneous weights compose the original nonplanar cubic
+      // with t -> 2t/(1+t). The Cartesian poles and endpoint knots stay exact.
+      std::array<double, 4> weights{1., 2., 4., 8.};
+      if (a > b) {
+        std::reverse(weights.begin(), weights.end());
+      }
+      occ::handle<StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve> rational =
+        new StepGeom_BSplineCurveWithKnotsAndRationalBSplineCurve;
+      rational->Init(name, 3, spatial->ControlPointsList(), StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
+                     spatial->KnotMultiplicities(), stepArray(std::array{station[cell], station[cell + 1]}),
+                     StepGeom_ktUnspecified, stepArray(weights));
+      curve->SetCurve3d(rational);
+    }
     if (unsplit) {
       // The first two Cartesian nets are exact half restrictions of the
       // original north cubic. The homogeneous weights express the original
@@ -645,7 +660,8 @@ int main(int argc, char** argv) {
     const bool sharedInferred = mode == "write-shared-inferred-knot" || mode == "write-shared-inferred-redundant-knot";
     const bool sharedPair = mode == "write-shared-inferred-knot-pair" || mode == "write-shared-inferred-pair-redundant-knot";
     const bool offsetPair = mode == "write-shared-inferred-offset-pair" || mode == "write-mixed-inferred-redundant-knot";
-    const bool nonplanar = mode == "write-nonplanar-inferred-mixed";
+    const bool rationalModel = mode == "write-nonplanar-rational-inferred-mixed";
+    const bool nonplanar = mode == "write-nonplanar-inferred-mixed" || rationalModel;
     const auto inferred = nonplanar ? InferredSupportEvents::nonplanar
       : offsetPair ? InferredSupportEvents::offsetPair : sharedPair ? InferredSupportEvents::sharedPair
       : sharedInferred ? InferredSupportEvents::shared
@@ -654,7 +670,7 @@ int main(int argc, char** argv) {
       || mode == "write-shared-inferred-knot-pair" || mode == "write-shared-inferred-offset-pair" || nonplanar;
     const int storedCells = mode == "write-three-support-cells" ? 3 : mode == "write-two-support-cells" ? 2
       : noModelKnot ? 0 : 1;
-    const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells", inferred};
+    const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells", inferred, rationalModel};
     const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || storedCells >= 2
       || layout.separated || inferred != InferredSupportEvents::none;
     const bool mixedBasis = mode == "write-three-knots-mixed-basis" || unsplitBasis;

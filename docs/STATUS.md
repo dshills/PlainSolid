@@ -127,14 +127,16 @@ original roof charts. Common, Fuse and both Cut orders also qualify a
 translated nonunit axis-aligned footprint with a sloping original base.
 Independently authored unsplit STEP Béziers, including a spatially
 nonplanar cubic, keep three inferred events with mixed joint and independent
-support ownership.
+support ownership. The independently authored rational cubic keeps exact
+non-dyadic model stations without inserting new stored source knots.
 Five separated fillets on an original OCCT tilted pentagonal prism now qualify
-original millimetre STEP with both independent antipodal owners. The native
+original millimetre, metre and inch STEP with independent antipodal owners.
+The native
 race on `491b18f1` and ordinary Go on `5181d219` are still running. Vet and
 Windows amd64 cross-build pass on `12ab5dbf`. Current work covers tangent
-rounds on oblique line profiles, oblique physical roof charts,
-non-dyadic rational mapped model parameters and converted
-five-fillet STEP originals. Wider contact discovery, advanced modeling,
+rounds on oblique line profiles, oblique physical roof charts, independent
+rational owner clocks and the converted five-fillet typed app qualification.
+Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
 
 The two PlainCAD integration branches are in `main` through implementation
