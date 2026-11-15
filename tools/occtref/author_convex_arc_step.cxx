@@ -44,8 +44,10 @@ if(std::string(argv[1])=="cap-witness") {
  std::cout<<std::setprecision(17)<<"{\"Caps\":"<<count<<",\"MinSquared\":"<<minSquared<<",\"MaxSquared\":"<<maxSquared<<"}\n";return count==2?0:10;
 }
 const std::string mode = argv[1];
+const bool metre = mode == "write-default-tilted-translated-metre";
+const bool inch = mode == "write-default-tilted-translated-inch";
 const bool tiltedDefault = mode == "write-default-tilted" || mode == "write-default-tilted-translated" ||
-                           mode == "write-both-default-tilted";
+                           mode == "write-both-default-tilted" || metre || inch;
 if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || std::string(argv[1])=="write-translated" || std::string(argv[1])=="write-both" || std::string(argv[1])=="write-both-x" || std::string(argv[1])=="write-default" || std::string(argv[1])=="write-both-default" || std::string(argv[1])=="write-both-default-x" || std::string(argv[1])=="write-both-default-minus-x" || std::string(argv[1])=="write-both-default-translated" || tiltedDefault){
  BRepBuilderAPI_MakePolygon p;p.Add(gp_Pnt(0,0,0));p.Add(gp_Pnt(4,0,0));p.Add(gp_Pnt(0,3,0));p.Close();auto stock=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(p.Wire()).Face(),gp_Vec(0,0,5)).Shape();TopoDS_Edge target;
  for(TopExp_Explorer e(stock,TopAbs_EDGE);e.More();e.Next()){GProp_GProps g;BRepGProp::LinearProperties(e.Current(),g);if(g.CentreOfMass().Distance(gp_Pnt(4,0,2.5))<1e-12)target=TopoDS::Edge(e.Current());}
@@ -59,14 +61,21 @@ if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || 
   } else if (mode == "write-minus-x" || mode == "write-both-default-minus-x") {
    pose.SetValues(0,0,-1,2, -1,0,0,-3, 0,1,0,0);
   } else if (tiltedDefault) {
-   const bool translated = mode == "write-default-tilted-translated";
+   const bool translated = mode == "write-default-tilted-translated" || metre || inch;
    pose.SetValues(.6,0,.8,translated ? 1 : 0, 0,1,0,0, -.8,0,.6,translated ? 2 : 0);
   } else {
    pose.SetTranslation(gp_Vec(2,0,3));
   }
   shape = BRepBuilderAPI_Transform(shape,pose,true).Shape();
  }
- STEPControl_Writer w;Interface_Static::SetCVal("write.step.schema","AP214IS");Interface_Static::SetIVal("write.surfacecurve.mode",(mode=="write-default" || mode=="write-both-default" || mode=="write-both-default-x" || mode=="write-both-default-minus-x" || mode=="write-both-default-translated" || tiltedDefault)?1:0);if(w.Transfer(shape,STEPControl_AsIs)!=IFSelect_RetDone||w.Write(argv[2])!=IFSelect_RetDone)return 5;
+ STEPControl_Writer w;
+ if (metre || inch) {
+  // The native solid was authored in this unit. Keep the 3D and UV charts
+  // in those coordinates while asking the vendor to emit the unit declaration.
+  w.Model()->SetLocalLengthUnit(metre ? 1000.0 : 25.4);
+  if (!Interface_Static::SetCVal("write.step.unit", metre ? "M" : "INCH")) return 9;
+ }
+ Interface_Static::SetCVal("write.step.schema","AP214IS");Interface_Static::SetIVal("write.surfacecurve.mode",(mode=="write-default" || mode=="write-both-default" || mode=="write-both-default-x" || mode=="write-both-default-minus-x" || mode=="write-both-default-translated" || tiltedDefault)?1:0);if(w.Transfer(shape,STEPControl_AsIs)!=IFSelect_RetDone||w.Write(argv[2])!=IFSelect_RetDone)return 5;
 }else if(std::string(argv[1])=="read"){STEPControl_Reader r;if(r.ReadFile(argv[2])!=IFSelect_RetDone||r.TransferRoots()==0)return 6;shape=r.OneShape();}else return 2;
 if(!BRepCheck_Analyzer(shape).IsValid())return 7;GProp_GProps v,a;BRepGProp::VolumeProperties(shape,v,1e-12);BRepGProp::SurfaceProperties(shape,a,1e-12);int faces=0,solids=0;for(TopExp_Explorer e(shape,TopAbs_FACE);e.More();e.Next())faces++;for(TopExp_Explorer e(shape,TopAbs_SOLID);e.More();e.Next())solids++;
 std::cout<<std::setprecision(17)<<"{\"Volume\":"<<v.Mass()<<",\"Area\":"<<a.Mass()<<",\"Faces\":"<<faces<<",\"Solids\":"<<solids<<",\"Centroid\":["<<v.CentreOfMass().X()<<","<<v.CentreOfMass().Y()<<","<<v.CentreOfMass().Z()<<"]}\n";

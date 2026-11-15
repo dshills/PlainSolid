@@ -32,9 +32,34 @@ pcurve IDs and directed model parameter endpoints for the finite claims.
 The finite comparison concerns the original pcurve lift at the same parameter
 on the selected model interval. Each distance claim applies to its individual
 owner or repair site. Exact original UV trim closure, a combined material
-distance bound, general rounded rotations, and strict bridge integration
-remain open. Independently authored tilted
+distance bound, and general rounded rotations remain open. Independently authored tilted
 two-fillet sources use the separate [grouped repair](REPAIRED_RATIONAL_POSED_GROUPED_PCURVE_OCCT_CONVEX_ARC.md).
+
+## Native metre and inch sources
+
+The Go exchange reader also qualifies a translated tilted single-fillet
+authored directly in metres or inches. The length unit, repair allowance,
+owner records, model coordinate tokens, and exact pose stay in source units.
+OCCT's inch declaration must contain the exact `127/5` millimetre factor,
+length dimensions, and a millimetre SI base. The reader rejects a changed
+decimal that would round to the same binary64 factor.
+
+`WriteRationalPosedExactCircularLoopExtrusion` writes the repaired shape in
+its original unit, including the exact `0.0254` metre factor for an inch.
+Assuming the product-local frame is set to identity as
+required by the writer, `ReadRationalPosedExactCircularLoopExtrusion`
+recovers identical native geometry and the exact source-world pose before
+writing byte-stable canonical STEP. To express world measures in millimetres,
+apply the source length factor to world points after placement, its square
+to areas, and its cube to volumes. The independent OCCT reader verifies that
+scale on the original, corrected model-only, and generated canonical files.
+
+The pinned author uses `write-default-tilted-translated-metre` and
+`write-default-tilted-translated-inch` with the same local modelling and
+output unit. These two default exports retain the proved analytic owner
+charts. Exporting an existing millimetre-native B-rep in a different unit can
+instead produce degree-one spline owners with different parameter scales.
+Those charts require a separate proof.
 
 ## Source-only native proof
 
@@ -60,7 +85,7 @@ translation `(1,0,2)`. Each source has 352 entities and 24 owner pcurves.
 
 ```sh
 PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
-  go test ./exchange/step -run '^TestRepairRationalPosedPCurveOCCTConvexArc' -count=1
+  go test ./exchange/step -run '^(TestRepairRationalPosedPCurveOCCTConvexArc|TestRationalPosedConvexArc)' -count=1
 ```
 
 The live test regenerates both sources and reloads their native proofs.

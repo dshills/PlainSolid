@@ -39,12 +39,17 @@ func WriteRationalPosedExactCircularLoopExtrusion(ctx context.Context, w io.Writ
 	if e := WriteExactCircularLoopExtrusion(ctx, &staged, d); e != nil {
 		return e
 	}
-	f, _, _, bodies, e := parseCanonicalCircularExtrusions(&staged, Limits{})
+	f, rep, _, bodies, e := parseCanonicalCircularExtrusions(&staged, Limits{})
 	if e != nil {
 		return e
 	}
 	if len(bodies) != 1 {
 		return geom.ErrDomain
+	}
+	if d.LengthUnit == .0254 {
+		if e = changeRationalLoopInchFactor(f, rep, real(.0254), "0.0254"); e != nil {
+			return e
+		}
 	}
 	body, e := nauoClosure(f, bodies, 16)
 	if e != nil {
@@ -94,7 +99,7 @@ func ReadRationalPosedExactCircularLoopExtrusion(ctx context.Context, r io.Reade
 	if e != nil {
 		return zero, e
 	}
-	f, _, _, bodies, e := parseCanonicalCircularExtrusions(r, l)
+	f, rep, unit, bodies, e := parseCanonicalCircularExtrusions(r, l)
 	if e != nil {
 		return zero, e
 	}
@@ -116,6 +121,14 @@ func ReadRationalPosedExactCircularLoopExtrusion(ctx context.Context, r io.Reade
 	if e = setExactCircularLoopProductIdentifier(local, rationalPosedExactCircularLoopProduct, localExactCircularLoopProduct); e != nil {
 		return zero, e
 	}
+	if unit == .0254 {
+		// The world graph must declare the exact named unit. Translate only
+		// that metadata in the private view used to authenticate the legacy
+		// local graph, whose writer formats units through binary64.
+		if e = changeRationalLoopInchFactor(local, rep, "0.0254", real(.0254)); e != nil {
+			return zero, e
+		}
+	}
 	normalized, e := mappedPlanarSourceBytes(local)
 	if e != nil {
 		return zero, e
@@ -132,6 +145,46 @@ func ReadRationalPosedExactCircularLoopExtrusion(ctx context.Context, r io.Reade
 	}
 	out.Source = f
 	return RationalPosedExactCircularLoopExtrusionProduct{ExactCircularLoopExtrusionProduct: out, Pose: pose}, nil
+}
+
+func changeRationalLoopInchFactor(f *File, rep int64, from, to string) error {
+	r, e := simple(f, rep, "ADVANCED_BREP_SHAPE_REPRESENTATION", 3)
+	if e != nil || r.Args[2].Kind != Reference {
+		return geom.ErrDomain
+	}
+	units, ok := component(f.Entities[r.Args[2].Ref], "GLOBAL_UNIT_ASSIGNED_CONTEXT")
+	if !ok || len(units.Args) != 1 {
+		return geom.ErrDomain
+	}
+	ids, e := listRefs(units.Args[0], 3)
+	if e != nil || len(ids) != 3 {
+		return geom.ErrDomain
+	}
+	var measureID int64
+	for _, id := range ids {
+		c, ok := component(f.Entities[id], "CONVERSION_BASED_UNIT")
+		if !ok {
+			continue
+		}
+		if measureID != 0 || len(c.Args) != 2 || c.Args[0].Kind != String || c.Args[0].Text != "inch" || c.Args[1].Kind != Reference {
+			return geom.ErrDomain
+		}
+		measureID = c.Args[1].Ref
+	}
+	m, e := simple(f, measureID, "MEASURE_WITH_UNIT", 2)
+	if e != nil || m.Args[0].Kind != Typed || m.Args[0].Text != "LENGTH_MEASURE" || len(m.Args[0].Items) != 1 {
+		return geom.ErrDomain
+	}
+	actual, e := liftSourceRat(m.Args[0].Items[0])
+	want, ok := new(big.Rat).SetString(from)
+	if e != nil || !ok || actual.Cmp(want) != 0 {
+		return geom.ErrDomain
+	}
+	m.Args = append([]Value(nil), m.Args...)
+	m.Args[0].Items = append([]Value(nil), m.Args[0].Items...)
+	m.Args[0].Items[0].Text = to
+	f.Entities[measureID] = Entity{ID: measureID, Records: []Record{m}}
+	return nil
 }
 
 func setExactCircularLoopProductIdentifier(f *File, from, to string) error {
