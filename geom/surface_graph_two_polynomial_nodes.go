@@ -83,7 +83,7 @@ type SplineGraphTwoPolynomialNodes struct {
 // ErrUnrepresentable. Other unresolved proofs return an error without geometry.
 func DiscoverSplineGraphTwoPolynomialNodes(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphTwoPolynomialNodes, error) {
 	var result SplineGraphTwoPolynomialNodes
-	pair, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, nil, &result, nil)
+	pair, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, polynomialGraphContactMode{count: 2, multiplicity: 1, certify: result.certifyArrangement})
 	if e != nil {
 		return SplineGraphTwoPolynomialNodes{ExactOperations: pair.ExactOperations}, e
 	}
@@ -101,28 +101,35 @@ func (r SplineGraphTwoPolynomialNodes) RepresentedVertices() ([6]Vec2, [6]Vec3, 
 	if !r.Proven {
 		return uv, xyz, ErrInvalid
 	}
-	for i, v := range r.Vertices {
-		if v.Parameters[0] == nil || v.Parameters[1] == nil {
-			return [6]Vec2{}, [6]Vec3{}, ErrInvalid
-		}
-		u, e := RepresentedExactScalar(v.Parameters[0])
-		if e != nil {
-			return [6]Vec2{}, [6]Vec3{}, e
-		}
-		w, e := RepresentedExactScalar(v.Parameters[1])
-		if e != nil {
-			return [6]Vec2{}, [6]Vec3{}, e
-		}
-		uv[i] = Vec2{u, w}
-		xyz[i], e = RepresentedExactPoint(v.Point)
-		if e != nil {
-			return [6]Vec2{}, [6]Vec3{}, e
-		}
+	if e := representPolynomialArrangementVertices(r.Vertices[:], uv[:], xyz[:]); e != nil {
+		return [6]Vec2{}, [6]Vec3{}, e
 	}
 	return uv, xyz, nil
 }
 
-func (r *SplineGraphTwoPolynomialNodes) certifyArrangement(ctx context.Context, a *SurfacePatch, pair SplineGraphTwoPolynomials, free [2]*big.Rat, d ParameterRectangle, b *polynomialBudget) error {
+func representPolynomialArrangementVertices(vertices []SplineGraphPolynomialVertex, uv []Vec2, xyz []Vec3) error {
+	for i, v := range vertices {
+		if v.Parameters[0] == nil || v.Parameters[1] == nil {
+			return ErrInvalid
+		}
+		u, e := RepresentedExactScalar(v.Parameters[0])
+		if e != nil {
+			return e
+		}
+		w, e := RepresentedExactScalar(v.Parameters[1])
+		if e != nil {
+			return e
+		}
+		uv[i] = Vec2{u, w}
+		xyz[i], e = RepresentedExactPoint(v.Point)
+		if e != nil {
+			return e
+		}
+	}
+	return nil
+}
+
+func (r *SplineGraphTwoPolynomialNodes) certifyArrangement(ctx context.Context, a *SurfacePatch, pair SplineGraphTwoPolynomials, free []*big.Rat, d ParameterRectangle, b *polynomialBudget) error {
 	r.Domain, r.FreeAxis, r.Power = pair.Domain, pair.FreeAxis, pair.Power
 	r.TerminalMasks, r.CertifiedCells, r.Graph = pair.TerminalMasks, pair.CertifiedCells, pair.Graph
 	stations := [4]*big.Rat{new(big.Rat).SetFloat64(d.UMin), free[0], free[1], new(big.Rat).SetFloat64(d.UMax)}

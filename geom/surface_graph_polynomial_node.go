@@ -36,7 +36,7 @@ type SplineGraphPolynomialNode struct {
 // irrational and additional intersections are unresolved. Failure is atomic.
 func DiscoverSplineGraphPolynomialNode(ctx context.Context, a, b *SurfacePatch, axis int, o GraphPointContactOptions) (SplineGraphPolynomialNode, error) {
 	var node SplineGraphPolynomialNode
-	r, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, &node, nil, nil)
+	r, e := discoverSplineGraphTwoPolynomials(ctx, a, b, axis, o, polynomialGraphContactMode{count: 1, multiplicity: 1, certify: node.certifySectors})
 	if e != nil {
 		return SplineGraphPolynomialNode{ExactOperations: r.ExactOperations}, e
 	}
@@ -45,25 +45,25 @@ func DiscoverSplineGraphPolynomialNode(ctx context.Context, a, b *SurfacePatch, 
 	return node, nil
 }
 
-func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynomial, count, multiplicity, maxCells int, visits *int, b *polynomialBudget) (roots [2]*big.Rat, order int, err error) {
+func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynomial, count, multiplicity, maxCells int, visits *int, b *polynomialBudget) ([]*big.Rat, int, error) {
 	if len(delta) < 2 || *visits >= maxCells {
-		return roots, 0, ErrConvergence
+		return nil, 0, ErrConvergence
 	}
 	zero, one := new(big.Rat), big.NewRat(1, 1)
 	end, e := polynomialValue(delta, one, b)
 	if e != nil {
-		return roots, 0, e
+		return nil, 0, e
 	}
-	order = delta[0].Sign()
+	order := delta[0].Sign()
 	singleCrossing := count == 1 && multiplicity == 1
 	if singleCrossing && order*end.Sign() != -1 {
-		return roots, 0, ErrConvergence
+		return nil, 0, ErrConvergence
 	}
 	if order == 0 || end.Sign() == 0 {
-		return roots, 0, ErrDomain
+		return nil, 0, ErrDomain
 	}
 	var minimumWidth *big.Rat
-	found := 0
+	roots := make([]*big.Rat, 0, count)
 	degenerate, irrational := ErrConvergence, ErrConvergence
 	if !singleCrossing {
 		degenerate, irrational = ErrDegenerate, ErrUnrepresentable
@@ -78,7 +78,7 @@ func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynom
 			}
 			return false, degenerate
 		}
-		if found == count {
+		if len(roots) == count {
 			return false, ErrConvergence
 		}
 		x, e := recoverRationalPolynomialRoot(delta, lo, hi, b)
@@ -104,19 +104,18 @@ func discoverGraphPolynomialPairRoots(ctx context.Context, delta rationalPolynom
 			}
 			return false, nil
 		}
-		if x.Sign() <= 0 || x.Cmp(one) >= 0 || found > 0 && x.Cmp(roots[found-1]) <= 0 {
+		if x.Sign() <= 0 || x.Cmp(one) >= 0 || len(roots) > 0 && x.Cmp(roots[len(roots)-1]) <= 0 {
 			return false, ErrConvergence
 		}
-		roots[found] = x
-		found++
+		roots = append(roots, x)
 		return true, nil
 	})
 	*visits += 1 + 2*splits
 	if e != nil {
-		return [2]*big.Rat{}, 0, e
+		return nil, 0, e
 	}
-	if found != count {
-		return [2]*big.Rat{}, 0, ErrConvergence
+	if len(roots) != count {
+		return nil, 0, ErrConvergence
 	}
 	return roots, order, nil
 }
@@ -141,7 +140,8 @@ func graphRationalRootWidth(p rationalPolynomial, b *polynomialBudget) (*big.Rat
 	return width, b.check(width)
 }
 
-func (n *SplineGraphPolynomialNode) certifySectors(ctx context.Context, a *SurfacePatch, pair SplineGraphTwoPolynomials, free *big.Rat, d ParameterRectangle, b *polynomialBudget) error {
+func (n *SplineGraphPolynomialNode) certifySectors(ctx context.Context, a *SurfacePatch, pair SplineGraphTwoPolynomials, roots []*big.Rat, d ParameterRectangle, b *polynomialBudget) error {
+	free := roots[0]
 	n.Domain, n.FreeAxis = pair.Domain, pair.FreeAxis
 	n.Power, n.Controls = pair.Power, pair.Controls
 	n.TerminalMasks, n.CertifiedCells, n.Graph = pair.TerminalMasks, pair.CertifiedCells, pair.Graph

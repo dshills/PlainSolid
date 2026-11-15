@@ -170,15 +170,15 @@ func checkTwoPolynomialNodeGeometry(t *testing.T, r SplineGraphTwoPolynomialNode
 			t.Fatal("contact edge has two opposite regional uses", uses)
 		}
 	}
-	checkTwoPolynomialNodeRays(t, r)
+	checkPolynomialNodeRays(t, r.Nodes[:], r.Edges[:], r.Regions[:], r.Graph.ProjectionOrientation)
 }
 
-func checkTwoPolynomialNodeRays(t *testing.T, r SplineGraphTwoPolynomialNodes) {
+func checkPolynomialNodeRays(t *testing.T, nodes []SplineGraphPolynomialJunction, edges []SplineGraphPolynomialPiece, regions []SplineGraphPolynomialRegion, orientation int) {
 	t.Helper()
-	for _, node := range r.Nodes {
+	for _, node := range nodes {
 		var rays [4][2]*big.Rat
 		for i, id := range node.RayCycle {
-			edge := r.Edges[id]
+			edge := edges[id]
 			if (edge.Start == node.Vertex) == (edge.End == node.Vertex) {
 				t.Fatal("nonincident junction ray", node, edge)
 			}
@@ -187,21 +187,21 @@ func checkTwoPolynomialNodeRays(t *testing.T, r SplineGraphTwoPolynomialNodes) {
 				ray = [2]*big.Rat{new(big.Rat).Neg(ray[0]), new(big.Rat).Neg(ray[1])}
 			}
 			rays[i] = ray
-			region := r.Regions[node.Regions[i]]
+			region := regions[node.Regions[i]]
 			matches := 0
 			for _, use := range region.Edges {
 				if use.Edge == id || use.Edge == node.RayCycle[(i+1)%4] {
 					matches++
 				}
 			}
-			if matches != 2 || region.HeightSide != -r.Regions[node.Regions[(i+1)%4]].HeightSide {
+			if matches != 2 || region.HeightSide != -regions[node.Regions[(i+1)%4]].HeightSide {
 				t.Fatal("local sector incidence and sign", node, region)
 			}
 		}
 		for i, a := range rays {
 			b := rays[(i+1)%4]
 			cross := new(big.Rat).Sub(new(big.Rat).Mul(a[0], b[1]), new(big.Rat).Mul(a[1], b[0]))
-			if cross.Sign()*r.Graph.ProjectionOrientation != 1 {
+			if cross.Sign()*orientation != 1 {
 				t.Fatal("exact transverse model-CCW ray cycle", node, cross)
 			}
 		}
