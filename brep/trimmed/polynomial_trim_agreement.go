@@ -23,37 +23,28 @@ func polynomialTrimDescriptor(ctx context.Context, c PCurve, reverse bool, o geo
 		}
 		return q.descriptor(ctx, o)
 	case SplineUV:
-		if q.Curve == nil || q.Curve.Degree() < 1 || q.Curve.Degree() > 4 || q.Range != (UVInterval{Max: 1}) {
+		if q.Curve == nil || q.Curve.Degree() < 1 || q.Curve.Degree() > 4 {
 			return nil, geom.ErrConvergence
 		}
-		n := q.Curve.Degree()
-		poles := q.Curve.Poles()
-		knots := q.Curve.Knots()
-		if len(poles) != n+1 || len(knots) != 2*(n+1) {
-			return nil, geom.ErrConvergence
-		}
-		for i, k := range knots {
-			want := 0.
-			if i > n {
-				want = 1
-			}
-			if k != want {
-				return nil, geom.ErrConvergence
-			}
-		}
-		for _, p := range poles {
-			if p.Z != 0 {
-				return nil, geom.ErrConvergence
-			}
-		}
-		exact, e := geom.NewExactSplineCurve(q.Curve, o)
+		// Restrict the original authored domain before normalizing. A single
+		// exact Bezier cell is required; endpoints alone never establish identity.
+		exact, orientation, e := coincidentUseCurve(ctx, Use{Curve: q}, o)
 		if e != nil {
 			return nil, e
 		}
-		if q.Reversed != reverse {
-			return exact.Reparameterize(0, 1, true, o)
+		net, _, e := exact.BezierControlNet(ctx, o)
+		if e != nil {
+			return nil, e
 		}
-		return exact, nil
+		if len(net.Control) != q.Curve.Degree()+1 {
+			return nil, geom.ErrConvergence
+		}
+		for _, p := range net.Control {
+			if p[2].Sign() != 0 {
+				return nil, geom.ErrConvergence
+			}
+		}
+		return exact.Reparameterize(0, 1, orientation != reverse, o)
 	default:
 		return nil, geom.ErrConvergence
 	}
