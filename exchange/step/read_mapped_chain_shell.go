@@ -95,7 +95,8 @@ func ReadMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 // Each direct original roof pcurve retains its individual source spline basis.
 // The opt-in unsplit route also admits both roof chains as parameter-valued
 // restrictions on their original complete bases.
-// The mixed-basis opt-in admits explicit edges with exactly one of each form.
+// The mixed-basis opt-in admits one roof in each form, and can combine with
+// the three-support-knot opt-in for one certified unsplit original edge.
 func ReadOCCTMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits, o MappedChainShellSTEPOptions) (MappedChainSTEPModel, error) {
 	return readMappedChainRectangularShell(ctx, r, l, o, true)
 }
@@ -357,7 +358,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 				foreignTrimmed = [2]bool{true, true}
 			}
 		}
-		if foreignMixed && len(e.joins) != 0 {
+		if foreignMixed && len(e.joins) != 0 && (!allowThree || len(e.joins) != 1) {
 			return zero, geom.ErrConvergence
 		}
 		if g.foreign && foreignTrimmed == [2]bool{} {
@@ -416,6 +417,9 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		if len(crossings)+len(edgeCrossings) > 3 {
 			return zero, geom.ErrConvergence
 		}
+		if foreignMixed && len(e.joins) != 0 && len(edgeCrossings) != 3 {
+			return zero, fmt.Errorf("mixed original owner bases require a complete three-cut repair: %w", geom.ErrConvergence)
+		}
 		crossings = append(crossings, edgeCrossings...)
 		chain = append(chain, row)
 	}
@@ -443,6 +447,10 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 				return zero, geom.ErrInvalid
 			}
 			stations[i] = new(big.Rat).Quo(station, end)
+		}
+		for i := range crossings {
+			crossing := &crossings[i]
+			crossing.ModelStation.Quo(crossing.ModelStation, end)
 		}
 	} else if end.Cmp(big.NewRat(1, 1)) != 0 {
 		return zero, geom.ErrInvalid

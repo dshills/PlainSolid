@@ -47,8 +47,10 @@ type MappedChainShellSTEPOptions struct {
 	// model stations use a common integer scale of at most 53 bits in STEP.
 	AllowIndependentOwnerBases bool
 	// AllowMixedOwnerBases admits one whole basis shared by all coedges of
-	// one roof, and one whole basis per coedge of the other. This explicit
-	// coedge graph uses the same exact integer scale on model stations.
+	// one roof, and one whole basis per original coedge of the other. It uses
+	// the same exact integer model scale. With AllowThreeSupportKnots the
+	// foreign reader can prove three cuts of one mixed-basis original coedge.
+	// The canonical exchange path covers explicit original coedges.
 	AllowMixedOwnerBases bool
 }
 
