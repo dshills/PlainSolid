@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 
 const nonplanarInferredMappedChainPath = "testdata/occt_mapped_chain_nonplanar_inferred_mixed.step"
 const nonplanarRationalInferredMappedChainPath = "testdata/occt_mapped_chain_nonplanar_rational_inferred_mixed.step"
+const nonplanarIndependentOwnerClocksPath = "testdata/occt_mapped_chain_nonplanar_independent_owner_clocks.step"
 
 // Integrate the common graph xy and both bicubic perturbations over their
 // original roof domains split by y = 1/4 + 3u(1-u)/4, with u = 4x/3.
@@ -29,9 +31,19 @@ const nonplanarInferredMappedChainArea = 4.649146934610298
 // Pinned OCCT evaluates the original and canonical rational STEP trims at
 // this area. The exact material has the same graph as the polynomial source.
 const nonplanarRationalInferredOCCTArea = 4.649146910413742
+const nonplanarIndependentOwnerClocksOCCTArea = 4.649146925043418
 
-func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw []byte, rationalModel bool) []byte {
+type nonplanarMappedChainClock uint8
+
+const (
+	nonplanarPolynomialClock nonplanarMappedChainClock = iota
+	nonplanarRationalClock
+	nonplanarIndependentOwnerClocks
+)
+
+func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw []byte, clock nonplanarMappedChainClock) []byte {
 	t.Helper()
+	rationalModel := clock != nonplanarPolynomialClock
 	o := inferredMixedMappedChainOptions()
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, o)
 	if err != nil {
@@ -58,6 +70,15 @@ func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw [
 	}
 	var stops [2][5]int64
 	stops[north], stops[south] = [5]int64{2, 17, 37, 65, 107}, [5]int64{48, 40, 32, 24, 16}
+	var clocks [2]*big.Rat
+	clocks[north], clocks[south] = big.NewRat(1, 2), big.NewRat(1, 1)
+	switch clock {
+	case nonplanarRationalClock:
+		clocks[north], clocks[south] = big.NewRat(1, 1), big.NewRat(2, 1)
+	case nonplanarIndependentOwnerClocks:
+		clocks[north], clocks[south] = big.NewRat(4, 3), big.NewRat(3, 1)
+		stops[north], stops[south] = [5]int64{2, 32, 68, 112, 167}, [5]int64{181, 126, 82, 46, 16}
+	}
 	for i, cut := range m.Crossings {
 		p := float64(stations[i]) / 32
 		x, y := .75*p, .25+.75*p*(1-p)
@@ -85,10 +106,23 @@ func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw [
 		t.Fatal(err)
 	}
 	verifyOriginalNonplanarModelBezier(t, f, m.Chain[0].ModelCurveID, rationalModel)
+	modelCuts := [5]*big.Rat{new(big.Rat), nil, nil, nil, big.NewRat(1, 1)}
+	for i, station := range modelRaw {
+		modelCuts[i+1] = new(big.Rat).Quo(station, big.NewRat(8, 1))
+	}
 	for owner, use := range m.Chain[0].Owners {
 		original, err := originalMappedChainStepOwner(f, use, true)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if clock == nonplanarIndependentOwnerClocks {
+			weights := []float64{8, 12, 18, 27}
+			if owner == south {
+				weights = []float64{1, 2, 4, 8, 16, 32, 64, 96, 144, 216}
+			}
+			if !slices.Equal(original.Curve.Weights(), weights) || original.Reversed != (owner == south) {
+				t.Fatal("both independently authored source clock coefficients and their direction must survive", owner)
+			}
 		}
 		for child := range 4 {
 			q := faces[owner].Outer[child].Curve.(trimmed.MappedSplineUV)
@@ -100,6 +134,18 @@ func verifyNonplanarInferredMappedChain(t *testing.T, ctx context.Context, raw [
 				if err != nil || rawParameter.Cmp(big.NewRat(expected, 1)) != 0 {
 					t.Fatal("the four intervals must retain exact raw limits on both original owner maps", owner, child, end, err)
 				}
+			}
+			// Independently evaluate the original projective law at the
+			// complete model interval's corresponding interior parameter.
+			mid := new(big.Rat).Quo(new(big.Rat).Add(modelCuts[child], modelCuts[child+1]), big.NewRat(2, 1))
+			numerator := new(big.Rat).Mul(clocks[owner], mid)
+			denominator := new(big.Rat).Add(new(big.Rat).Sub(big.NewRat(1, 1), mid), numerator)
+			width := big.NewRat(stops[owner][4]-stops[owner][0], 1)
+			want := new(big.Rat).Mul(new(big.Rat).Quo(numerator, denominator), width)
+			want.Add(want, big.NewRat(stops[owner][0], 1))
+			got, err := q.AuthoredParameter(big.NewRat(1, 2))
+			if err != nil || got.Cmp(want) != 0 {
+				t.Fatal("a child must preserve the exact original clock between its raw endpoints", owner, child, got, want, err)
 			}
 		}
 	}
@@ -227,7 +273,7 @@ func verifyNonplanarInferredMappedChainMaterial(t *testing.T, ctx context.Contex
 }
 
 func TestOCCTMappedChainRectangularNonplanarInferredMixedSupportKnots(t *testing.T) {
-	verifyNonplanarInferredMappedChain(t, context.Background(), readInferredSharedMappedChainFixture(t, nonplanarInferredMappedChainPath), false)
+	verifyNonplanarInferredMappedChain(t, context.Background(), readInferredSharedMappedChainFixture(t, nonplanarInferredMappedChainPath), nonplanarPolynomialClock)
 }
 
 func TestOCCTMappedChainRectangularNonplanarInferredMixedSupportKnotsClosedDisplay(t *testing.T) {
@@ -287,12 +333,12 @@ func TestOCCTMappedChainRectangularNonplanarInferredMixedSupportKnotsLive(t *tes
 		t.Fatalf("pinned OCCT author failed: %v\n%s", err, output)
 	}
 	raw := readInferredSharedMappedChainFixture(t, path)
-	canonical := verifyNonplanarInferredMappedChain(t, ctx, raw, false)
+	canonical := verifyNonplanarInferredMappedChain(t, ctx, raw, nonplanarPolynomialClock)
 	verifyPinnedMappedChainTransfer(t, ctx, reader, raw, canonical, nonplanarInferredMappedChainVolume, nonplanarInferredMappedChainArea)
 }
 
 func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnots(t *testing.T) {
-	verifyNonplanarInferredMappedChain(t, context.Background(), readInferredSharedMappedChainFixture(t, nonplanarRationalInferredMappedChainPath), true)
+	verifyNonplanarInferredMappedChain(t, context.Background(), readInferredSharedMappedChainFixture(t, nonplanarRationalInferredMappedChainPath), nonplanarRationalClock)
 }
 
 func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnotsClosedDisplay(t *testing.T) {
@@ -342,6 +388,76 @@ func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnotsLiv
 		t.Fatalf("pinned OCCT author failed: %v\n%s", err, output)
 	}
 	raw := readInferredSharedMappedChainFixture(t, path)
-	canonical := verifyNonplanarInferredMappedChain(t, ctx, raw, true)
+	canonical := verifyNonplanarInferredMappedChain(t, ctx, raw, nonplanarRationalClock)
 	verifyPinnedMappedChainTransfer(t, ctx, reader, raw, canonical, nonplanarInferredMappedChainVolume, nonplanarRationalInferredOCCTArea)
+}
+
+func TestOCCTMappedChainRectangularNonplanarIndependentOwnerClocks(t *testing.T) {
+	raw := readInferredSharedMappedChainFixture(t, nonplanarIndependentOwnerClocksPath)
+	verifyNonplanarInferredMappedChain(t, context.Background(), raw, nonplanarIndependentOwnerClocks)
+}
+
+func TestOCCTMappedChainRectangularNonplanarIndependentOwnerClocksClosedDisplay(t *testing.T) {
+	ctx := context.Background()
+	raw := readInferredSharedMappedChainFixture(t, nonplanarIndependentOwnerClocksPath)
+	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, inferredMixedMappedChainOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	verifyMappedChainCutDisplayWithOptions(t, ctx, m, nonplanarInferredDisplayOptions())
+}
+
+func TestOCCTMappedChainRectangularNonplanarIndependentOwnerClocksRejectsFalseOwnerWeight(t *testing.T) {
+	ctx := context.Background()
+	raw := readInferredSharedMappedChainFixture(t, nonplanarIndependentOwnerClocksPath)
+	o := inferredMixedMappedChainOptions()
+	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	north := 0
+	if !m.Shell.IndependentOwnerBases()[0] {
+		north = 1
+	}
+	for _, control := range []struct {
+		name         string
+		owner, index int
+		weight       string
+	}{
+		{"independent north basis", north, 1, "11."},
+		{"whole south basis", 1 - north, 7, "95."},
+	} {
+		t.Run(control.name, func(t *testing.T) {
+			f, err := Parse(bytes.NewReader(raw), Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, _, weights, err := mappedChainStepSplineParts(f, m.Chain[0].Owners[control.owner].BasisID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			// Leave the weighted 3D model and all raw endpoint values fixed.
+			weights[control.index].Text = control.weight
+			bad, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(serializeWrappedProofFile(f)), Limits{}, o)
+			if !errors.Is(err, geom.ErrUnrepresentable) || len(bad.Crossings) != 0 || len(bad.Native.ChainEdges) != 0 {
+				t.Fatal("each original basis requires its own exact parameter law", err)
+			}
+		})
+	}
+}
+
+func TestOCCTMappedChainRectangularNonplanarIndependentOwnerClocksLive(t *testing.T) {
+	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_INDEPENDENT_OWNER_CLOCKS_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
+	if author == "" || reader == "" {
+		t.Skip("optional pinned OCCT source author and STEP consumer")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+	path := filepath.Join(t.TempDir(), "nonplanar-independent-owner-clocks.step")
+	if output, err := exec.CommandContext(ctx, author, "write-nonplanar-independent-owner-clocks", path).CombinedOutput(); err != nil {
+		t.Fatalf("pinned OCCT author failed: %v\n%s", err, output)
+	}
+	raw := readInferredSharedMappedChainFixture(t, path)
+	canonical := verifyNonplanarInferredMappedChain(t, ctx, raw, nonplanarIndependentOwnerClocks)
+	verifyPinnedMappedChainTransfer(t, ctx, reader, raw, canonical, nonplanarInferredMappedChainVolume, nonplanarIndependentOwnerClocksOCCTArea)
 }
