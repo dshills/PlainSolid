@@ -3,6 +3,8 @@ package trimmed
 import (
 	"context"
 	"fmt"
+	"math"
+	"slices"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/collision"
@@ -55,11 +57,65 @@ func (r *ClippedPolynomialCut) Tessellate(ctx context.Context, o parametric.Tess
 			B: collision.AssemblyVertex{Solid: contact.Components[1], Vertex: contact.Vertices[1]},
 		})
 	}
-	_, e = collision.ValidateMeshVertexContactAssembly(ctx, displays, declarations, collision.VertexContactAssemblyOptions{
-		Validation: collision.LocationOptions{MaxTriangles: maximum},
-	})
-	if e != nil {
+	validation := collision.VertexContactAssemblyOptions{Validation: collision.LocationOptions{MaxTriangles: maximum}}
+	if _, e = collision.ValidateMeshVertexContactAssembly(ctx, displays, declarations, validation); e != nil {
 		return nil, fmt.Errorf("trimmed: clipped Cut display contacts: %w", e)
 	}
+	preferred, e := r.preferTransverseStripDisplays(ctx, o, displays, remaining)
+	if e != nil {
+		return nil, e
+	}
+	if preferred != nil {
+		if _, e := collision.ValidateMeshVertexContactAssembly(ctx, preferred, declarations, validation); e == nil {
+			return preferred, nil
+		}
+		if e := ctx.Err(); e != nil {
+			return nil, e
+		}
+	}
 	return displays, nil
+}
+
+// Prefer closer agreement with the exact source volume after the requested
+// geometric preview has qualified. A transverse component whose floor steps
+// from the base to the cutter can use spare capacity for another subdivision.
+func (r *ClippedPolynomialCut) preferTransverseStripDisplays(ctx context.Context, o parametric.TessellationOptions,
+	displays []mesh.Mesh, remaining int) ([]mesh.Mesh, error) {
+	if r.native.orders != ([2]int{1, 1}) || remaining == 0 {
+		return nil, nil
+	}
+	const relativeVolumePreference = .003
+	var preferred []mesh.Mesh
+	for i, display := range displays {
+		chambers := r.shells[i].Chambers
+		if len(chambers) < 2 || chambers[0].Tile != 0 || chambers[len(chambers)-1].Tile == 0 {
+			continue
+		}
+		volume, _ := r.native.volumes[i].Float64()
+		if volume <= 0 || !finite(volume) {
+			continue
+		}
+		withinPreference := func(m mesh.Mesh) bool {
+			return math.Abs(m.SignedVolume()-volume) <= relativeVolumePreference*volume
+		}
+		if withinPreference(display) {
+			continue
+		}
+		options := o
+		options.MaxTriangles = remaining + len(display.Triangles)
+		part := r.native.material.components[i].withTessellationTrimMemo(&tessellationTrimMemo{limit: tessellationTrimMemoLimit})
+		candidate, e := part.tessellateClippedPolynomialCandidate(ctx, r.native.axis, options, withinPreference)
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if e != nil {
+			continue
+		}
+		if preferred == nil {
+			preferred = slices.Clone(displays)
+		}
+		preferred[i] = candidate
+		remaining += len(display.Triangles) - len(candidate.Triangles)
+	}
+	return preferred, nil
 }

@@ -42,6 +42,11 @@ func fuseDisplayCoordinate(p geom.Vec3, axis int) float64 {
 // in a common free coordinate. Slicing both owners at the same stations
 // keeps thin contact regions from being filled by nearly parallel ears.
 func (s Solid) tessellateClippedPolynomial(ctx context.Context, axis int, o parametric.TessellationOptions) (mesh.Mesh, error) {
+	return s.tessellateClippedPolynomialCandidate(ctx, axis, o, nil)
+}
+
+func (s Solid) tessellateClippedPolynomialCandidate(ctx context.Context, axis int, o parametric.TessellationOptions,
+	prefer func(mesh.Mesh) bool) (mesh.Mesh, error) {
 	if len(s.vertices) > o.MaxTriangles {
 		return mesh.Mesh{}, parametric.ErrBudget
 	}
@@ -78,6 +83,9 @@ func (s Solid) tessellateClippedPolynomial(ctx context.Context, axis int, o para
 			stations = append(stations, end)
 		}
 		m, err := s.clippedFuseDisplayCandidate(ctx, axis, n, stations, o)
+		if err == nil && prefer != nil && !prefer(m) {
+			continue
+		}
 		if err != errRefine && err != errTrimFold {
 			return m, err
 		}
