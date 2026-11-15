@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "revision": "0402eb6329b37d3d6d1987f3ec2f6b23d4cb6606",
+  "recordedAt": "2026-11-14T21:33:00-06:00",
+  "linuxArm64": {
+    "toolchain": "go version go1.26.0 linux/arm64",
+    "image": "sha256:1bf57f277dfcb5ca2f2aaf22d7a4e1ac62661788e29fae795d21fc84d1f78879",
+    "cgo": false,
+    "focusedTopLevel": {
+      "pass": 36,
+      "skip": 10
+    },
+    "packages": {
+      "plainsolid/brep": {
+        "status": "pass",
+        "elapsedSeconds": 0.012
+      },
+      "plainsolid/geom": {
+        "status": "pass",
+        "elapsedSeconds": 0.342
+      },
+      "plainsolid/brep/trimmed": {
+        "status": "pass",
+        "elapsedSeconds": 7.9030000000000005
+      },
+      "plainsolid/exchange/step": {
+        "status": "pass",
+        "elapsedSeconds": 12.919
+      }
+    },
+    "rawLog": {
+      "path": "/tmp/plainsolid-linux-arm64-0402eb63/evidence/focused.jsonl",
+      "bytes": 85271,
+      "sha256": "d25ba6d771e9a0aff2fd3c145c98babcca8ac31a2459bf45bcaa2ebbe5931181"
+    },
+    "scope": "Exact line and cavity queries, convex miter and wall modeling, axial fillet, complete two-loop Booleans, exact wall UV fallback, original seam splitting and merging, source-bound nonplanar STEP.",
+    "optionalSkips": "Live OCCT subprocesses require Linux reference executables. Authoring fixture and native reproof tests passed."
+  },
+  "windowsAmd64": {
+    "command": "GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build ./...",
+    "exitCode": 0,
+    "scope": "cross-build, Windows runtime execution pending",
+    "rawLog": {
+      "path": "/tmp/plainsolid-main-0402eb63-windows-amd64.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "archive": {
+    "path": "/tmp/plainsolid-0402eb63-focused-platform-qualification-2026-11-14.tar.gz",
+    "bytes": 8208,
+    "sha256": "a7a26b506810d9c347198d27ab222b285d84463c5646062b31fb694c5d2dfc08"
+  }
+}

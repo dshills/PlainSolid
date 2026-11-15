@@ -6652,8 +6652,11 @@ volume differences were below `6e-11`. Two disjoint circular loops on
 one original roof produce two independent four-edge lens boundaries,
 while Common and Fuse retain both holes on the original exterior roof.
 The independent OCCT comparison returns the same two forward Cut
-solids and volumes within `2e-10`. At this milestone the reverse Cut
-remains rejected at a near-collinear original wall seed.
+solids and volumes within `2e-10`. The exact UV fallback completes the
+reverse Cut with six faces, four inner wires and Euler characteristic
+`-2`. Its native volume is 0.08930865706060948. The pinned OCCT
+result has one solid and volume 0.08930865722429136. Native reload
+re-proves the exact model-edge ownership and near-collinear wall.
 
 The nonplanar AP242 `BREP_WITH_VOIDS` fixture has two original
 six-face spline shells. Original source, source-bound native reload and
@@ -6668,3 +6671,38 @@ development run passed 345 tests. Production passed all 66 with the
 unchanged Playwright driver and in-flight WASM response hashing. The
 original inspector-cache control and the test-only repairs are recorded
 with the WASM, driver and archive hashes.
+
+The original acute prism edge fillet has exact radius `5/16`, tangent
+locations `(49/16,0)` and `(13/4,9/16)`, and center `(49/16,5/16)`
+in its original profile. Four analytic cylinder charts and their cap
+trims survive native reload. The independent OCCT fillet returns one
+solid of volume 29.145041881053835 and area 66.186284791166074.
+The native mass integrals agree within `1e-7` and independently agree
+with the analytic cross-section. Circular evaluation retains the
+bounded endpoint tolerance of the analytic arc extrusion.
+
+Independent OCCT checks qualify two- and three-loop Boolean results
+under both original U and V knot partition searches. Three-loop Cut
+returns three components and volume `3π/2097152` for the original
+inward choice. Reverse Cut returns one connected component with Euler
+characteristic `-4`. Native reload re-proves owner identity. The V-knot
+and weighted speed-map suites passed together under race in 39.665
+seconds. A mapped weighted seam keeps 288 triangles with zero contacts,
+including after source-bound native reload. Reversed traversal and ten
+nonlinear source stations agree with independent exact evaluation.
+
+The unified nonplanar STEP reader passed all six authenticated source
+families and live OCCT checks under race in 42.469 seconds. The prior
+multiple-void suite independently tested two, three and four voids,
+with 18, 24 and 30 faces. The source-bound proofs preserve nesting and
+owner constraints on write and reload.
+
+The ordinary PlainCAD bridge qualifies grouped axial chamfers on the
+oblique `3-4-5` triangular prism in XY and YZ. Two adjacent original
+corners remove a combined volume of `25/64`. Native output retains
+the unrelated original vertical edge and agrees with exact sectional
+volume and analytic surface area. The oblique fillet also survives
+STEP export, import, and byte-identical canonical re-export on both
+axes. Independent OCCT transferred the canonical analytic file and
+matched the fillet's volume, area and one-solid boundary. The focused
+STEP and bridge suites passed under race with the live reader enabled.

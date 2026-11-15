@@ -39,12 +39,17 @@ in `36380200`.
 
 The refreshed macOS and Linux arm64 runs use pinned kernel `35c79311`.
 The macOS run finished every package outside `brep/trimmed`, with
-3,657 passing top-level cases and 436 optional skips. The three pinned
-trimmed groups and the Linux run are in progress. The Linux geometry
-package passed all 945 required cases after the original parameter
-domain changes in `c855ecaa`, with one optional skip. The pinned
-Windows amd64 build passed.
+3,657 passing top-level cases and 436 optional skips. Two macOS trimmed
+groups passed. The last macOS group and the three Linux trimmed groups
+are in progress. Linux finished every
+other package. Its four original geometry case failures were resolved
+by the exact parameter-domain changes in `c855ecaa`. The complete
+repaired geometry package passed all 945 required cases with one
+optional skip. The pinned Windows amd64 build passed.
 [Linux geometry qualification](evidence/linux-geometry-go126-2026-11-14.json).
+The newer `0402eb63` platform run passed 36 focused Linux arm64 cases
+with 10 optional OCCT skips, and its Windows amd64 cross-build passed.
+[Focused platform qualification](evidence/main-0402eb63-focused-platform-2026-11-14.json).
 
 The [newest full PlainCAD qualification](evidence/plaincad-main-35c79311-2026-11-14.json)
 uses the same pinned kernel and app `efae4d2`. The corrected toolbar
@@ -54,6 +59,9 @@ cases with the standard Playwright driver. The WASM build, typecheck,
 bundle limit, 15 cross-browser cases, 1,691 ordinary units and four
 WASM contracts also passed. The original failure controls and the
 interrupted alternate-origin development run are retained in the record.
+A new complete PlainCAD run on `42ab9727` includes the committed fixture
+corrections and the native oblique fillet bridge. Its WASM build,
+typecheck, and four contracts passed. Browser qualification is in progress.
 
 Ordered roof Common and matching-footprint Fuse retain genuine original
 spline creases and imprint exact axis-aligned crossings inside original
@@ -2594,8 +2602,11 @@ the original knots through native reload. The sample ledger records both
 normalized and authored source parameters on weighted original curves.
 The curved seam split retains independently knotted source curves with
 their original reversal and restricted raw ranges. Exact complementary
-range merges restore the authored knot, pole and weight records. Arbitrarily
-different nonlinear parameter laws on the two owners remain open.
+range merges restore the authored knot, pole and weight records. Native
+version 9 accepts a proved positive Möbius speed map on one original
+cubic or quartic spline owner. The closed mesher evaluates the nonlinear
+source stations on both owners and proves their common positions. General
+piecewise speed laws remain open.
 
 The opt-in polygon Cut with separated vertex links retains one connected
 boundary with two circular vertex links at one isolated original point.
@@ -2619,8 +2630,14 @@ opening. `ThickenConvex` also qualifies separate openings or a closed
 inward cavity. `ChamferConvexEdge` constructs an exact planar transition
 from possibly unequal setbacks on its two original incident supports.
 The translated supports require rational normal lengths and exactly
-representable vertices. Curved offsets and general rolling ball
-transitions remain open.
+representable vertices. `FilletConvexPrismEdge` constructs a cylindrical
+transition on one original vertical edge of a convex right prism. It
+proves the exact represented tangencies and uses the bounded analytic
+arc-loop endpoint contract. Adjacent original vertical edges can retain
+independent fillet radii on a shared wall. The ordinary PlainCAD bridge
+resolves grouped axial chamfers through exact support reconstruction and
+qualifies native fillet STEP round trips on convex line/circle profiles.
+Curved offsets and general rolling ball transitions remain open.
 
 ### Original curved loops and STEP cavities
 
@@ -2630,10 +2647,17 @@ original conic. The rotated fixture has separate knot directions on
 the two original supports. A separate two-slab family proves both
 closed section loops and excludes contacts at the separator. Common
 and Fuse retain two trim holes and the forward Cut returns two closed
-components. The reverse Cut still needs the original near-collinear
-C0 display wall to pass the native triangulator.
+components. The reverse Cut retains one shell with four inner wires.
+When the legacy triangulator rejects a near-collinear C0 wall, the
+bounded exact UV fallback proves its full directed boundary and area.
+Successful legacy triangulations keep their original ordering.
+An opt-in original-knot search qualifies two and three closed loops on
+either chart axis. Native reload preserves all selected boundary owners.
 
 The nonplanar STEP cavity route authenticates the original outer and
 reversed inner shell from `BREP_WITH_VOIDS`. Each shell retains its
 complete owner graph. Exact original separation and containment are
 re-proved after source-bound native reload and writer generation.
+The same proof qualifies up to four original inner shells. One strict
+reader dispatches these cavity families and the four qualified exterior
+spline shell forms according to their actual source graphs.
