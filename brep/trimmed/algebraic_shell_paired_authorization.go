@@ -36,6 +36,7 @@ type AffineShellPairedImprintOptions struct {
 // pairs. It is not a material Boolean or an already split native shell.
 type AffineShellPairedImprint struct {
 	sources     [2]Solid
+	charts      [2][]splineEmbeddingFace
 	vertices    [][3]*big.Rat
 	edges       []AffineShellImprintEdge
 	paired      []AffineShellPairedImprintNode
@@ -137,7 +138,7 @@ func AuthorizeAffineSplineShellPairedImprint(ctx context.Context, a, b Solid, o 
 	if len(charts[0]) == 0 || len(charts[1]) == 0 || len(charts[0]) > o.MaxFacePairs/len(charts[1]) {
 		return nil, geom.ErrConvergence
 	}
-	out := &AffineShellPairedImprint{sources: solids}
+	out := &AffineShellPairedImprint{sources: solids, charts: charts}
 	type occurrence struct {
 		faces [2]int
 		uv    [2][2]*big.Rat
