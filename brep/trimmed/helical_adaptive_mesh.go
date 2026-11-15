@@ -8,7 +8,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"plainsolid/mesh"
-	"sort"
+	"slices"
 )
 
 type adaptiveSideKey struct {
@@ -95,6 +95,7 @@ func (s Solid) refineAnalyticMeshAllocation(ctx context.Context, o parametric.Te
 		}
 	}
 	midpointIDs := map[adaptiveSideKey]int{}
+	coarsen := adaptiveCoarsenScratch{}
 	maxRounds := 4 * (bits.Len(uint(o.MaxSubdivisions)) - 1)
 	if maxRounds < 2 {
 		return mesh.Mesh{}, parametric.ErrBudget
@@ -110,7 +111,7 @@ func (s Solid) refineAnalyticMeshAllocation(ctx context.Context, o parametric.Te
 				}
 			}
 			if round >= 5 {
-				current[fi], e = adaptiveCoarsen(ctx, numericalWrappedSupport(s.faces[fi].Surface), current[fi], m.Vertices, o, pole)
+				current[fi], e = adaptiveCoarsen(ctx, numericalWrappedSupport(s.faces[fi].Surface), current[fi], m.Vertices, o, pole, &coarsen)
 				if e != nil {
 					return mesh.Mesh{}, e
 				}
@@ -123,13 +124,22 @@ func (s Solid) refineAnalyticMeshAllocation(ctx context.Context, o parametric.Te
 		count := 0
 		for fi, triangles := range current {
 			surface := numericalWrappedSupport(s.faces[fi].Surface)
-			for _, t := range triangles {
+			for ti, t := range triangles {
 				if e := ctx.Err(); e != nil {
 					return mesh.Mesh{}, e
 				}
 				count++
 				if count > o.MaxTriangles {
 					return mesh.Mesh{}, parametric.ErrBudget
+				}
+				if round < 2 {
+					for i := range 3 {
+						marked[adaptiveKey(fi, t, i)] = true
+					}
+					continue
+				}
+				if t.adaptiveValidated {
+					continue
 				}
 				collapsed := t.ids[0] == t.ids[1] || t.ids[1] == t.ids[2] || t.ids[2] == t.ids[0]
 				angle := o.Angle
@@ -138,33 +148,8 @@ func (s Solid) refineAnalyticMeshAllocation(ctx context.Context, o parametric.Te
 				}
 				points := [3]geom.Vec3{m.Vertices[t.ids[0]], m.Vertices[t.ids[1]], m.Vertices[t.ids[2]]}
 				e := check(surface, t, points, o.Deflection, angle, [3]bool{pole[t.ids[0]], pole[t.ids[1]], pole[t.ids[2]]})
-				if round < 2 {
-					for i := range 3 {
-						marked[adaptiveKey(fi, t, i)] = true
-					}
-					continue
-				}
-				phaseRefine := false
-				base, _ := parametric.SurfaceMapping(surface)
-				for i := range 3 {
-					a, b := t.uv[i], t.uv[(i+1)%3]
-					phase := 0.
-					switch x := base.(type) {
-					case geom.TwistedCylinderSurface:
-						_, _, tw, _ := x.Parameters()
-						angular := b.X - a.X
-						if x.AngularReversed() {
-							angular = -angular
-						}
-						phase = math.Abs(angular + tw*(b.Y-a.Y))
-					case geom.HelicalProfileSurface:
-						phase = math.Abs(b.X - a.X)
-					}
-					if phase > .25 {
-						phaseRefine = true
-					}
-				}
-				if e == nil && !phaseRefine {
+				if e == nil && adaptivePhaseSafe(surface, t) {
+					triangles[ti].adaptiveValidated = true
 					continue
 				}
 				if e == nil {
@@ -209,7 +194,7 @@ func (s Solid) refineAnalyticMeshAllocation(ctx context.Context, o parametric.Te
 			for fi := range current {
 				for pass := 0; improve && pass < 32; pass++ {
 					before := len(current[fi])
-					current[fi], e = adaptiveCoarsen(ctx, numericalWrappedSupport(s.faces[fi].Surface), current[fi], m.Vertices, o, pole)
+					current[fi], e = adaptiveCoarsen(ctx, numericalWrappedSupport(s.faces[fi].Surface), current[fi], m.Vertices, o, pole, &coarsen)
 					if e != nil {
 						return mesh.Mesh{}, e
 					}
@@ -414,7 +399,9 @@ func appendAdaptiveTriangle(dst []samples, t samples, p [3]geom.Vec2, id [3]int,
 func adaptiveImprove(ctx context.Context, surface geom.Surface, triangles []samples) ([]samples, error) {
 	for pass := 0; pass < 4; pass++ {
 		type owner struct{ tri, side int }
-		owners := map[adaptiveSideKey]owner{}
+		// A single face's interior diagonals need only their unordered UV
+		// endpoints. Model-edge ranges and the face number are constant here.
+		owners := make(map[[2]geom.Vec2]owner, len(triangles))
 		changed := make([]bool, len(triangles))
 		flips := 0
 		for ti, t := range triangles {
@@ -428,7 +415,11 @@ func adaptiveImprove(ctx context.Context, surface geom.Surface, triangles []samp
 				if t.edge[si].edge >= 0 {
 					continue
 				}
-				key := adaptiveKey(0, t, si)
+				a, b := t.uv[si], t.uv[(si+1)%3]
+				key := [2]geom.Vec2{a, b}
+				if a.X > b.X || a.X == b.X && a.Y > b.Y {
+					key = [2]geom.Vec2{b, a}
+				}
 				other, ok := owners[key]
 				if !ok {
 					owners[key] = owner{ti, si}
@@ -438,7 +429,7 @@ func adaptiveImprove(ctx context.Context, surface geom.Surface, triangles []samp
 					continue
 				}
 				u := triangles[other.tri]
-				a, b, c := t.uv[si], t.uv[(si+1)%3], t.uv[(si+2)%3]
+				c := t.uv[(si+2)%3]
 				d := u.uv[(other.side+2)%3]
 				if !adaptivePositiveFilter(c, a, d) || !adaptivePositiveFilter(c, d, b) {
 					continue
@@ -464,28 +455,8 @@ func adaptiveImprove(ctx context.Context, surface geom.Surface, triangles []samp
 				if angleAt(c, a, b)+angleAt(d, a, b) <= math.Pi+1e-12 {
 					continue
 				}
-				type side struct {
-					edge       trimSide
-					start, end float64
-				}
-				boundary := map[[2]geom.Vec2]side{}
-				ids := map[geom.Vec2]int{}
-				for _, v := range []samples{t, u} {
-					for i := range 3 {
-						ids[v.uv[i]] = v.ids[i]
-						boundary[[2]geom.Vec2{v.uv[i], v.uv[(i+1)%3]}] = side{v.edge[i], v.start[i], v.end[i]}
-					}
-				}
-				makeTri := func(x, y, z geom.Vec2) samples {
-					r := samples{uv: [3]geom.Vec2{x, y, z}, ids: [3]int{ids[x], ids[y], ids[z]}, edge: [3]trimSide{internalSide(), internalSide(), internalSide()}}
-					for i := range 3 {
-						if v, ok := boundary[[2]geom.Vec2{r.uv[i], r.uv[(i+1)%3]}]; ok {
-							r.edge[i], r.start[i], r.end[i] = v.edge, v.start, v.end
-						}
-					}
-					return r
-				}
-				triangles[ti], triangles[other.tri] = makeTri(c, a, d), makeTri(c, d, b)
+				triangles[ti] = adaptiveFlippedTriangle([3]geom.Vec2{c, a, d}, &t, &u)
+				triangles[other.tri] = adaptiveFlippedTriangle([3]geom.Vec2{c, d, b}, &t, &u)
 				changed[ti], changed[other.tri] = true, true
 				flips++
 				break
@@ -498,16 +469,35 @@ func adaptiveImprove(ctx context.Context, surface geom.Surface, triangles []samp
 	return triangles, nil
 }
 
+func adaptiveFlippedTriangle(uv [3]geom.Vec2, a, b *samples) samples {
+	r := samples{uv: uv, edge: [3]trimSide{internalSide(), internalSide(), internalSide()}}
+	// The previous maps gave the last directed occurrence precedence.
+	// There are just six uses, so copy the four surviving sides directly.
+	for _, old := range [2]*samples{a, b} {
+		for i, p := range old.uv {
+			q := old.uv[(i+1)%3]
+			for j, x := range uv {
+				if x != p {
+					continue
+				}
+				r.ids[j] = old.ids[i]
+				if uv[(j+1)%3] == q {
+					r.edge[j], r.start[j], r.end[j] = old.edge[i], old.start[i], old.end[i]
+				}
+			}
+		}
+	}
+	return r
+}
+
 // Coarsen only unconstrained interior vertices, and only when every replacement
 // triangle already satisfies the requested surface checks. The link condition
 // preserves a manifold chart triangulation and all boundary samples stay fixed.
-func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samples, vertices []geom.Vec3, o parametric.TessellationOptions, poles map[int]bool) ([]samples, error) {
+func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samples, vertices []geom.Vec3, o parametric.TessellationOptions, poles map[int]bool, scratch *adaptiveCoarsenScratch) ([]samples, error) {
 	base, _ := parametric.SurfaceMapping(surface)
 	cylinder, isCylinder := base.(geom.TwistedCylinderSurface)
 	collapseToBoundary := isCylinder && !cylinder.AngularReversed()
-	boundary := map[int]bool{}
-	incident := map[int][]int{}
-	uvs := map[int]geom.Vec2{}
+	local := scratch.reset(len(vertices))
 	// Retain directed boundary ownership when an interior vertex collapses
 	// onto a trim vertex: a deleted triangle may transfer its model edge
 	// to a replacement triangle, but no boundary sample is moved or removed.
@@ -516,7 +506,6 @@ func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samp
 		start, end float64
 	}
 	boundarySides := map[[2]int]boundarySide{}
-	candidates := []int{}
 	for ti, t := range triangles {
 		if ti%256 == 0 {
 			if e := ctx.Err(); e != nil {
@@ -524,30 +513,27 @@ func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samp
 			}
 		}
 		for j, id := range t.ids {
-			if _, ok := uvs[id]; !ok {
-				candidates = append(candidates, id)
+			v := &local[id]
+			if len(v.incident) == 0 {
+				scratch.used = append(scratch.used, id)
 			}
-			uvs[id] = t.uv[j]
-			found := false
-			for _, x := range incident[id] {
-				found = found || x == ti
-			}
-			if !found {
-				incident[id] = append(incident[id], ti)
+			v.uv = t.uv[j]
+			if n := len(v.incident); n == 0 || v.incident[n-1] != ti {
+				v.incident = append(v.incident, ti)
 			}
 			if t.edge[j].edge >= 0 {
 				boundarySides[[2]int{id, t.ids[(j+1)%3]}] = boundarySide{t.edge[j], t.start[j], t.end[j]}
-				boundary[id] = true
-				boundary[t.ids[(j+1)%3]] = true
+				v.boundary = true
+				local[t.ids[(j+1)%3]].boundary = true
 			}
 		}
 	}
 	removed := make([]bool, len(triangles))
 	unlink := func(id, ti int) {
-		list := incident[id]
+		list := local[id].incident
 		for i, x := range list {
 			if x == ti {
-				incident[id] = append(list[:i], list[i+1:]...)
+				local[id].incident = append(list[:i], list[i+1:]...)
 				return
 			}
 		}
@@ -557,16 +543,17 @@ func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samp
 		index int
 		tri   samples
 	}
-	for _, v := range candidates {
+	for _, v := range scratch.used {
 		if e := ctx.Err(); e != nil {
 			return nil, e
 		}
-		if boundary[v] || poles[v] || len(incident[v]) == 0 || len(incident[v]) > 32 {
+		incident := local[v].incident
+		if local[v].boundary || poles[v] || len(incident) == 0 || len(incident) > 32 {
 			continue
 		}
 		var neighbors [64]int
 		n := 0
-		for _, ti := range incident[v] {
+		for _, ti := range incident {
 			for _, id := range triangles[ti].ids {
 				if id == v {
 					continue
@@ -581,24 +568,34 @@ func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samp
 				}
 			}
 		}
-		order := neighbors[:n]
-		sort.Slice(order, func(i, j int) bool {
-			a, b := vertices[order[i]].Distance(vertices[v]), vertices[order[j]].Distance(vertices[v])
-			if a == b {
-				return order[i] < order[j]
+		type neighborRank struct {
+			id       int
+			distance float64
+		}
+		var ranked [64]neighborRank
+		for i, id := range neighbors[:n] {
+			ranked[i] = neighborRank{id, vertices[id].Distance(vertices[v])}
+		}
+		slices.SortFunc(ranked[:n], func(a, b neighborRank) int {
+			if a.distance < b.distance || a.distance == b.distance && a.id < b.id {
+				return -1
 			}
-			return a < b
+			if b.distance < a.distance || a.distance == b.distance && b.id < a.id {
+				return 1
+			}
+			return 0
 		})
-		for _, u := range order {
-			if boundary[u] && !collapseToBoundary || poles[u] || len(incident[u]) == 0 {
+		for _, ranked := range ranked[:n] {
+			u := ranked.id
+			if local[u].boundary && !collapseToBoundary || poles[u] || len(local[u].incident) == 0 {
 				continue
 			}
 			shared := 0
 			// A periodic seam vertex can own different UV coordinates. Use the
 			// coordinate belonging to this collapse fan, never a global choice.
-			targetUV := uvs[u]
+			targetUV := local[u].uv
 			compatibleUV := true
-			for _, ti := range incident[v] {
+			for _, ti := range incident {
 				if contains(triangles[ti], u) {
 					for j, id := range triangles[ti].ids {
 						if id == u {
@@ -620,7 +617,7 @@ func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samp
 					continue
 				}
 				found := false
-				for _, ti := range incident[u] {
+				for _, ti := range local[u].incident {
 					if contains(triangles[ti], id) {
 						found = true
 						break
@@ -638,7 +635,7 @@ func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samp
 			var deletes [2]int
 			nd := 0
 			valid := true
-			for _, ti := range incident[v] {
+			for _, ti := range incident {
 				t := triangles[ti]
 				if contains(t, u) {
 					deletes[nd] = ti
@@ -652,7 +649,11 @@ func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samp
 					}
 				}
 				for j, id := range t.ids {
-					if side, ok := boundarySides[[2]int{id, t.ids[(j+1)%3]}]; ok {
+					next := t.ids[(j+1)%3]
+					if !local[id].boundary || !local[next].boundary {
+						continue
+					}
+					if side, ok := boundarySides[[2]int{id, next}]; ok {
 						t.edge[j], t.start[j], t.end[j] = side.side, side.start, side.end
 					}
 				}
@@ -670,6 +671,7 @@ func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samp
 					valid = false
 					break
 				}
+				t.adaptiveValidated = true
 				replacements[nr] = replacement{ti, t}
 				nr++
 			}
@@ -688,7 +690,7 @@ func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samp
 				}
 				triangles[r.index] = r.tri
 				for _, id := range r.tri.ids {
-					incident[id] = append(incident[id], r.index)
+					local[id].incident = append(local[id].incident, r.index)
 				}
 			}
 			break
@@ -706,6 +708,33 @@ func adaptiveCoarsen(ctx context.Context, surface geom.Surface, triangles []samp
 		}
 	}
 	return out, nil
+}
+
+// Vertex IDs are dense within one refinement. Reuse a scratch array across
+// faces and rounds instead of hashing each ID for UV, incidence and boundary
+// queries. Reset only records touched on the preceding face.
+type adaptiveCoarsenScratch struct {
+	vertices []adaptiveCoarsenVertex
+	used     []int
+}
+
+type adaptiveCoarsenVertex struct {
+	uv       geom.Vec2
+	incident []int
+	boundary bool
+}
+
+func (s *adaptiveCoarsenScratch) reset(count int) []adaptiveCoarsenVertex {
+	for _, id := range s.used {
+		v := &s.vertices[id]
+		v.incident = v.incident[:0]
+		v.boundary = false
+	}
+	s.used = s.used[:0]
+	if count > len(s.vertices) {
+		s.vertices = append(s.vertices, make([]adaptiveCoarsenVertex, count-len(s.vertices))...)
+	}
+	return s.vertices[:count]
 }
 
 // Optional optimization declines nearly-collinear proposals before exact

@@ -1,0 +1,223 @@
+{
+  "schema": 1,
+  "purpose": "Compare unchanged four-start lead mesh and fit responses from the Go WASM dispatcher. This does not qualify the separate OCCT control.",
+  "referenceKernel": "ab33a4129b82aea2d14ffb750a68b1e9f44c5511",
+  "referenceWasmSha256": "7515d76bf63f981b39d871b95791c25caf725d83aa47cabee9148f2333eccef7",
+  "optimizedWasmSha256": "35d4b4a6755cb90d88c599092b590347891b50ecd1faad7d3333bbc2508364a1",
+  "optimizedMesherSourceSha256": {
+    "brep/trimmed/helical_adaptive_mesh.go": "4da4e51bc9053d7a4edc0009f3488de0bd222b78ce6d2f29a4c5e1cf1a8658ec",
+    "brep/trimmed/solid.go": "96b2a281e49cb3f8a185762c6a6bfec003471530f3a3efa023eaf319d0378ef7"
+  },
+  "exactResponseHashesMatch": true,
+  "meshingSeconds": {
+    "baseline": 19.504913708,
+    "optimized": 13.212515458
+  },
+  "reference": {
+    "create screw": {
+      "seconds": 0.729750125,
+      "keys": [
+        "handle",
+        "geometryAssertions",
+        "bounds"
+      ],
+      "sha256": "4864a6022de127612f27d8b77b523d8a0734e2a5dc36001e3f6b9b017792b242",
+      "bounds": {
+        "min": [
+          -5.656854249672461,
+          -5.656854249672461,
+          -1.8025579538487366e-10
+        ],
+        "max": [
+          5.656854249672461,
+          5.656854249672461,
+          18.000000000180258
+        ]
+      },
+      "volume": 744.0732715901926
+    },
+    "create nut": {
+      "seconds": 0.263811875,
+      "keys": [
+        "handle",
+        "geometryAssertions",
+        "bounds"
+      ],
+      "sha256": "54831f4820821236703a3405257a772470469a6c8738046f48477c9349b32be0",
+      "bounds": {
+        "min": [
+          -6.000000000100086,
+          -6.000000000100086,
+          -1.0014210854715202e-10
+        ],
+        "max": [
+          6.000000000100086,
+          6.000000000100086,
+          10.000000000100144
+        ]
+      },
+      "volume": 628.4512684396785
+    },
+    "mesh screw": {
+      "seconds": 13.26173475,
+      "keys": [
+        "positions",
+        "normals",
+        "indices",
+        "bounds",
+        "geometryAssertions"
+      ],
+      "sha256": "fedfefbd84e2d430f31d39baff47c7be1a4473008eee041f6fcbb8a6c9d664ca",
+      "indices": 44286,
+      "bounds": {
+        "min": [
+          -5.656854249672461,
+          -5.656854249672461,
+          -1.8025579538487366e-10
+        ],
+        "max": [
+          5.656854249672461,
+          5.656854249672461,
+          18.000000000180258
+        ]
+      },
+      "volume": 744.0732715901926
+    },
+    "mesh nut": {
+      "seconds": 6.243178957999999,
+      "keys": [
+        "positions",
+        "normals",
+        "indices",
+        "bounds",
+        "geometryAssertions"
+      ],
+      "sha256": "68b676e69ce3588735a0c2b92b7652a92ea9079255685fc03b89849637147c9a",
+      "indices": 23664,
+      "bounds": {
+        "min": [
+          -6.000000000100086,
+          -6.000000000100086,
+          -1.0014210854715202e-10
+        ],
+        "max": [
+          6.000000000100086,
+          6.000000000100086,
+          10.000000000100144
+        ]
+      },
+      "volume": 628.4512684396785
+    },
+    "fit assertions": {
+      "seconds": 0.001213292000000365,
+      "keys": [
+        "compatible"
+      ],
+      "sha256": "05a6bbf3aced39dac4fba5635473442d749605ce360e07858eb67d8f9746b4fa"
+    }
+  },
+  "optimized": {
+    "create screw": {
+      "seconds": 0.521333125,
+      "keys": [
+        "handle",
+        "geometryAssertions",
+        "bounds"
+      ],
+      "sha256": "4864a6022de127612f27d8b77b523d8a0734e2a5dc36001e3f6b9b017792b242",
+      "bounds": {
+        "min": [
+          -5.656854249672461,
+          -5.656854249672461,
+          -1.8025579538487366e-10
+        ],
+        "max": [
+          5.656854249672461,
+          5.656854249672461,
+          18.000000000180258
+        ]
+      },
+      "volume": 744.0732715901926
+    },
+    "create nut": {
+      "seconds": 0.12663074999999993,
+      "keys": [
+        "handle",
+        "geometryAssertions",
+        "bounds"
+      ],
+      "sha256": "54831f4820821236703a3405257a772470469a6c8738046f48477c9349b32be0",
+      "bounds": {
+        "min": [
+          -6.000000000100086,
+          -6.000000000100086,
+          -1.0014210854715202e-10
+        ],
+        "max": [
+          6.000000000100086,
+          6.000000000100086,
+          10.000000000100144
+        ]
+      },
+      "volume": 628.4512684396785
+    },
+    "mesh screw": {
+      "seconds": 9.759399125,
+      "keys": [
+        "positions",
+        "normals",
+        "indices",
+        "bounds",
+        "geometryAssertions"
+      ],
+      "sha256": "fedfefbd84e2d430f31d39baff47c7be1a4473008eee041f6fcbb8a6c9d664ca",
+      "indices": 44286,
+      "bounds": {
+        "min": [
+          -5.656854249672461,
+          -5.656854249672461,
+          -1.8025579538487366e-10
+        ],
+        "max": [
+          5.656854249672461,
+          5.656854249672461,
+          18.000000000180258
+        ]
+      },
+      "volume": 744.0732715901926
+    },
+    "mesh nut": {
+      "seconds": 3.453116333,
+      "keys": [
+        "positions",
+        "normals",
+        "indices",
+        "bounds",
+        "geometryAssertions"
+      ],
+      "sha256": "68b676e69ce3588735a0c2b92b7652a92ea9079255685fc03b89849637147c9a",
+      "indices": 23664,
+      "bounds": {
+        "min": [
+          -6.000000000100086,
+          -6.000000000100086,
+          -1.0014210854715202e-10
+        ],
+        "max": [
+          6.000000000100086,
+          6.000000000100086,
+          10.000000000100144
+        ]
+      },
+      "volume": 628.4512684396785
+    },
+    "fit assertions": {
+      "seconds": 0.0035631659999999102,
+      "keys": [
+        "compatible"
+      ],
+      "sha256": "05a6bbf3aced39dac4fba5635473442d749605ce360e07858eb67d8f9746b4fa"
+    }
+  },
+  "rawRoot": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/lead-wasm-profile"
+}

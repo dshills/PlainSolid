@@ -71,6 +71,9 @@ type samples struct {
 	edge [3]trimSide
 	// Corresponding edge parameters on each oriented triangle side.
 	start, end [3]float64
+	// Set only by analytic adaptive refinement after the complete surface
+	// and phase checks. New or changed facets must prove themselves again.
+	adaptiveValidated bool
 }
 
 func (s Solid) Vertices() []geom.Vec3    { return append([]geom.Vec3(nil), s.vertices...) }
