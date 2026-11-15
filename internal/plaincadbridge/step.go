@@ -591,7 +591,7 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		e = step.WriteBoxPocketExtrusions(&out, step.BoxPocketModel{LengthUnit: .001, Bodies: []step.BoxPocketBody{{Name: "PlainSolid", Frame: p.frame, Size: p.size, Pockets: p.pockets, Bores: p.bores}}})
 	case s.analytic != nil && s.analytic.stepArcLoop != nil:
 		d := s.analytic.stepArcLoop.descriptor
-		if d.LengthUnit != .001 || !cardinalFrame(d.Frame) {
+		if !s.analytic.stepArcLoop.exactPlacement {
 			return nil, unsupportedEdge("exact circular-loop STEP export requires millimetres and a signed-coordinate frame")
 		}
 		e = step.WriteExactCircularLoopExtrusion(context.Background(), &out, d)

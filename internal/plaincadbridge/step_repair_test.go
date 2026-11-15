@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
 	"plainsolid/mesh"
@@ -130,6 +132,55 @@ func TestSTEPRepairImportWorldMeshAndCanonicalExport(t *testing.T) {
 			p, err := nativeMesh.MassProperties()
 			if err != nil || p.Volume < .999*tc.volume || p.Volume > 1.001*tc.volume {
 				t.Fatal("closed display mesh differs from original material", p, err)
+			}
+			meshBounds, err := geom.Bounds(nativeMesh.Vertices)
+			if err != nil || coordinates(meshBounds.Min) != tc.bounds.Min || coordinates(meshBounds.Max) != tc.bounds.Max ||
+				len(nativeMesh.Triangles) > 500 {
+				t.Fatal("compact mesh lost an exact world extremum", meshBounds, len(nativeMesh.Triangles), err)
+			}
+			if tc.name == "occt-default-two-fillets-minus-x" {
+				arc := b.shapes[result.Handle].analytic.stepArcLoop
+				for _, options := range []parametric.TessellationOptions{
+					{Deflection: .025, Angle: .1, MaxSubdivisions: 1, MaxTriangles: 500, AnalyticBound: true},
+					{Deflection: .025, Angle: .1, MaxSubdivisions: 256, MaxTriangles: 8, AnalyticBound: true},
+				} {
+					m, qualified, err := arc.tessellate(options)
+					if !qualified || !errors.Is(err, parametric.ErrBudget) || len(m.Vertices) != 0 || len(m.Triangles) != 0 {
+						t.Fatal("certified display did not respect its resource budget", qualified, err)
+					}
+				}
+				// Reflect the world -X extrusion onto +Y. The right-handed
+				// stored frame then traverses a negative extrusion height.
+				reflected := shape(t, b, map[string]any{
+					"op": "transform", "handle": result.Handle,
+					"matrix": [3][4]float64{{0, -1, 0, 0}, {-1, 0, 0, 0}, {0, 0, 1, 0}},
+				})
+				placed := b.shapes[reflected.Handle].analytic.stepArcLoop
+				certified, qualified, err := placed.tessellate(parametric.TessellationOptions{
+					Deflection: .025, Angle: .1, MaxSubdivisions: 256, MaxTriangles: 500, AnalyticBound: true,
+				})
+				if err != nil || !qualified || placed.descriptor.Height >= 0 ||
+					placed.descriptor.Frame.ZAxis() != (geom.Vec3{Y: -1}) {
+					t.Fatal("reflected signed extrusion was not meshed analytically", qualified, err)
+				}
+				mass, err := certified.MassProperties()
+				if err != nil || mass.Volume < .999*tc.volume || mass.Volume > 1.001*tc.volume {
+					t.Fatal("reflected mesh winding or volume changed", mass, err)
+				}
+				bounds, err := geom.Bounds(certified.Vertices)
+				if err != nil || bounds.Min != (geom.Vec3{X: 3, Y: -2}) ||
+					bounds.Max != (geom.Vec3{X: 3 + maxX, Y: 3, Z: 3}) {
+					t.Fatal("reflected mesh lost a Y-axis extremum", bounds, err)
+				}
+				// A small shear can pass the numeric rigidity gate and leave
+				// X and Z unchanged while moving Y out of the certified frame.
+				sheared, err := arc.transformed(geom.Affine{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 1e-13, 1, 0}})
+				if err != nil || !cardinalFrame(sheared.descriptor.Frame) {
+					t.Fatal("shear fixture should leave reconstructed X/Z directions cardinal", err)
+				}
+				if _, qualified, err := sheared.tessellate(parametric.TessellationOptions{Deflection: .025, Angle: .1}); err != nil || qualified {
+					t.Fatal("approximately rigid map entered the exact mesh route", qualified, err)
+				}
 			}
 
 			var exported stepExport

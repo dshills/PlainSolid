@@ -148,6 +148,13 @@ result and subsequent inspection. Export writes the repaired material as
 canonical model-only STEP in millimetres, verified by ordinary strict
 readback. The original pcurve evidence remains in the native proof record.
 
+For convex repaired or canonical circular extrusions in signed-coordinate
+frames, the bridge subdivides the exact circular profile once and shares the
+same rim samples across both caps and the axial walls. Each chord checks
+distance and angular deflection with rational arithmetic, accounting for
+vertex rounding and including the exact axis extrema. The existing polygon
+mesh assembler uses that profile to produce a closed oriented display.
+
 Finite to-face extrusion resolves one actual retained planar face and proves that
 it covers the projected profile, including the target's boundaries and holes.
 Straight polygon profiles support planar termination; a full circle requires a

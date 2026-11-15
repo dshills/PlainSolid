@@ -53,8 +53,9 @@ func (b *Bridge) putConvexArcExtrusionSTEP(m step.ConvexArcExtrusionModel) (Shap
 }
 
 type stepArcLoopSupport struct {
-	descriptor step.ExactCircularLoopExtrusion
-	bounds     geom.Box
+	descriptor     step.ExactCircularLoopExtrusion
+	bounds         geom.Box
+	exactPlacement bool
 }
 
 // putExactSTEPArcLoop accepts an already authenticated product-local solid.
@@ -81,7 +82,7 @@ func (b *Bridge) putExactSTEPArcLoop(ctx context.Context, solid trimmed.Solid, d
 	}
 	return b.putAnalyticBody(&analyticBody{
 		solid: solid, volume: p.Volume * scale * scale * scale, area: p.Area * scale * scale,
-		stepArcLoop: &stepArcLoopSupport{descriptor: d, bounds: bounds},
+		stepArcLoop: &stepArcLoopSupport{descriptor: d, bounds: bounds, exactPlacement: d.LengthUnit == .001 && cardinalFrame(d.Frame)},
 	})
 }
 
@@ -89,7 +90,7 @@ func (p stepArcLoopSupport) transformed(m geom.Affine) (*stepArcLoopSupport, err
 	d := p.descriptor
 	scale := d.LengthUnit / .001
 	origin := m.Apply(d.Frame.Origin().Scale(scale)).Scale(1 / scale)
-	x, z := m.ApplyVector(d.Frame.XAxis()), m.ApplyVector(d.Frame.ZAxis())
+	x, y, z := m.ApplyVector(d.Frame.XAxis()), m.ApplyVector(d.Frame.YAxis()), m.ApplyVector(d.Frame.ZAxis())
 	// Reversing local Z preserves the loop's two axes through a reflection.
 	if m.Determinant() < 0 {
 		z, d.Height = z.Scale(-1), -d.Height
@@ -103,7 +104,11 @@ func (p stepArcLoopSupport) transformed(m geom.Affine) (*stepArcLoopSupport, err
 	if err != nil {
 		return nil, err
 	}
-	return &stepArcLoopSupport{descriptor: d, bounds: bounds}, nil
+	// The bridge's general rigid check permits numerical error. Check all
+	// original axes before this recipe can authorize an exact operation.
+	exact := p.exactPlacement && cardinalFrame(d.Frame) &&
+		d.Frame.XAxis() == x && d.Frame.YAxis() == y && d.Frame.ZAxis() == z
+	return &stepArcLoopSupport{descriptor: d, bounds: bounds, exactPlacement: exact}, nil
 }
 
 func stepArcLoopBounds(d step.ExactCircularLoopExtrusion, scale float64) (geom.Box, error) {
