@@ -49,10 +49,12 @@ func sameAuthoredBezierSpline(a, b *geom.BSpline) bool {
 // At most eight active spans/64 authored controls are admitted by the shared
 // descriptor proof. Each of the whole/two restriction descriptors and two full
 // comparisons has a separate bounded 1M-operation/16384-bit proof, as the native
-// merge API has no caller work options. Failure never publishes partial topology.
+// merge API has no caller work options. Opt-in mode normalization adds at most
+// eight exact endpoint evaluations, each bounded as WithExactEndpoints. Failure
+// never publishes partial topology.
 func joinStoredBezierSources(ctx context.Context, a, b SplineUV, t *big.Rat) (PCurve, [2]geom.Vec2, error) {
 	var zero [2]geom.Vec2
-	if !sameAuthoredBezierSpline(a.Curve, b.Curve) || a.Reversed != b.Reversed || a.ExactEndpoints != b.ExactEndpoints || !finite(a.Range.Min) || !finite(a.Range.Max) || !finite(b.Range.Min) || !finite(b.Range.Max) || a.Range.Min >= a.Range.Max || b.Range.Min >= b.Range.Max {
+	if !sameAuthoredBezierSpline(a.Curve, b.Curve) || a.Reversed != b.Reversed || !finite(a.Range.Min) || !finite(a.Range.Max) || !finite(b.Range.Min) || !finite(b.Range.Max) || a.Range.Min >= a.Range.Max || b.Range.Min >= b.Range.Max {
 		return nil, zero, geom.ErrConvergence
 	}
 	q := a
@@ -97,6 +99,43 @@ func joinStoredBezierSources(ctx context.Context, a, b SplineUV, t *big.Rat) (PC
 		}
 		if !proof.Complete || !proof.Equal {
 			return nil, zero, geom.ErrConvergence
+		}
+	}
+	if a.ExactEndpoints || b.ExactEndpoints {
+		// Evaluation mode is not source identity. Reprove the actual endpoint
+		// behavior on each child before normalizing the restored whole range.
+		// This does not repair an invalid legacy child whose endpoint rounded.
+		for i, source := range []SplineUV{a, b} {
+			ends := []ExactBezierUV{left, right}[i].ends
+			for j := 0; j < 2; j++ {
+				p, e := source.EvalUV(float64(j))
+				if e != nil {
+					return nil, zero, e
+				}
+				if p != ends[j] {
+					return nil, zero, geom.ErrConvergence
+				}
+			}
+		}
+		q.ExactEndpoints = false
+		legacy := true
+		for j := 0; j < 2; j++ {
+			p, e := q.EvalUV(float64(j))
+			if e != nil || p != whole.ends[j] {
+				legacy = false
+			}
+		}
+		if !legacy {
+			q, e = q.WithExactEndpoints()
+			if e != nil {
+				return nil, zero, e
+			}
+			for j := 0; j < 2; j++ {
+				p, e := q.EvalUV(float64(j))
+				if e != nil || p != whole.ends[j] {
+					return nil, zero, geom.ErrConvergence
+				}
+			}
 		}
 	}
 	return q, whole.ends, nil

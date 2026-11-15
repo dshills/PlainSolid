@@ -137,7 +137,9 @@ func (s Solid) SplitExactBezierTrimEdge(ctx context.Context, edge int, t *big.Ra
 // intermediate vertex must not belong to any other edge. Original SplineUV
 // children additionally require unchanged authored curves, exactly touching raw
 // ranges, and the exact original split ratio; both normalized restrictions are
-// independently reproved before the authored full range is restored.
+// independently reproved before the authored full range is restored. Exact
+// endpoint modes are normalized to legacy only when both whole-source endpoint
+// evaluations equal their independently proved exact values.
 func (s Solid) MergeExactBezierTrimEdges(ctx context.Context, first, second int, split *big.Rat) (Solid, EdgeMergeHistory, error) {
 	return s.mergeExactTrimEdges(ctx, first, second, split, func(a, b PCurve, t *big.Rat) (PCurve, [2]geom.Vec2, error) {
 		if x, ok := a.(SplineUV); ok {
