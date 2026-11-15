@@ -311,7 +311,6 @@ func proveGroupedConvexArcOwners(ctx context.Context, f, fixed *File, owners []C
 	tol := new(big.Rat).SetFloat64(distance)
 	tol.Mul(tol, tol)
 	segments := len(m.material.Descriptor.Segments)
-	allowAnalyticPhase := segments == 6 || segments == 8
 	for _, q := range owners {
 		if e := ctx.Err(); e != nil {
 			return zero, e
@@ -332,7 +331,7 @@ func proveGroupedConvexArcOwners(ctx context.Context, f, fixed *File, owners []C
 		// An original reversed circle has the same cosine axis and opposite sine
 		// axis to its cylinder. U=-t is therefore the exact owner correspondence.
 		var e error
-		q.Kind, q.DistanceSquaredUpper, e = boundGroupedSimplePCurve(f, fixed, model, q.GeometryID, q.SupportID, allowAnalyticPhase)
+		q.Kind, q.DistanceSquaredUpper, e = boundGroupedSimplePCurve(f, fixed, model, q.GeometryID, q.SupportID, segments)
 		if e != nil && allowFiniteLines {
 			var trim *ConvexArcAxialTrimRepair
 			if conversion != nil {
@@ -390,7 +389,7 @@ func proveGroupedConvexArcOwners(ctx context.Context, f, fixed *File, owners []C
 	return out, nil
 }
 
-func boundGroupedSimplePCurve(f, fixed *File, model, geometry, support int64, allowPhase bool) (string, *big.Rat, error) {
+func boundGroupedSimplePCurve(f, fixed *File, model, geometry, support int64, segments int) (string, *big.Rat, error) {
 	circle, e := simple(f, model, "CIRCLE", 3)
 	if e == nil {
 		cyl, e := simple(f, support, "CYLINDRICAL_SURFACE", 3)
@@ -424,7 +423,15 @@ func boundGroupedSimplePCurve(f, fixed *File, model, geometry, support int64, al
 			}
 			delta := occtLoopSub(o, co)
 			if uv[0].Sign() != 0 {
-				if !allowPhase || sign.Sign() != 1 || !convexUVSame(cz, z) || new(big.Rat).Abs(uv[0]).Cmp(big.NewRat(3, 1)) > 0 {
+				if (segments != 6 && segments != 8 && segments != 10) || sign.Sign() != 1 || !convexUVSame(cz, z) {
+					return "", nil, geom.ErrDomain
+				}
+				// The pentagonal source also authors a half-turn between
+				// exact antipodal azimuths. The lift still encloses the
+				// original decimal phase over the entire model arc.
+				phase := new(big.Rat).Abs(uv[0])
+				if phase.Cmp(big.NewRat(3, 1)) > 0 &&
+					(segments != 10 || phase.Cmp(big.NewRat(4, 1)) > 0 || occtLoopDot(x, cx).Cmp(big.NewRat(-1, 1)) != 0) {
 					return "", nil, geom.ErrDomain
 				}
 				bound, err := boundGroupedCylinderPhase(delta, x, y, cx, cy, r, uv[0])
