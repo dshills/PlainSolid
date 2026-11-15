@@ -1,7 +1,9 @@
 package trimmed
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"math/big"
 	"testing"
@@ -83,5 +85,60 @@ func TestSectionRepeatedSplineGraphArcTrimmed(t *testing.T) {
 	}
 	if p, e := SectionRepeatedSplineGraphArc(ctx, faces, 1, RepeatedSplineArcTrimOptions{MaxContacts: 1}); !errors.Is(e, geom.ErrConvergence) || p.Complete || len(p.Nodes) != 0 {
 		t.Fatal("contact limit must fail atomically", e)
+	}
+
+	// Replace the bottom edge with a curved UV(t)=((t+t²)/2,3/8+t/8).
+	// Its original spline is reversed and has knot units [2,6].
+	faces[0].Outer = wire(45, geom.Vec2{Y: .375}, geom.Vec2{X: 1, Y: .5}, geom.Vec2{X: 1, Y: 1}, geom.Vec2{Y: 1})
+	curved, e := geom.NewBSpline(2, []geom.Vec3{{X: 1, Y: .5}, {X: .25, Y: 7.0 / 16}, {Y: .375}}, []float64{2, 2, 2, 6, 6, 6}, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	faces[0].Outer[0].Curve = SplineUV{Curve: curved, Range: UVInterval{Min: 2, Max: 6}, Reversed: true}
+	faces[0].Outer[0].Reversed = true
+	faces[1].Holes = nil
+	r, e = SectionRepeatedSplineGraphArc(ctx, faces, 1, RepeatedSplineArcTrimOptions{})
+	if e != nil || !r.Complete || len(r.Nodes) != 3 || !r.Intervals[0].Retained || r.Intervals[1].Retained || len(r.Nodes[1].Contacts[0]) != 1 {
+		t.Fatalf("exact curved original coedge section: %v nodes=%d: %v", r.Complete, len(r.Nodes), e)
+	}
+	c = r.Nodes[1].Contacts[0][0]
+	if c.Edge != 45 || c.Span != 0 || !c.Reversed || c.ExactCoedgeParameter == nil || c.CoedgeEndpointMask != 0 {
+		t.Fatal("original reversed curve ownership", c)
+	}
+	root, e = geom.ImportExactRoot(ctx, geom.ExactRootRecipe{Version: 1, Coefficients: []string{"-1", "4", "0", "1"}, Lower: "0", Upper: "1/4"}, geom.ExactRootCodecOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	root, _, e = root.AffineMap(ctx, big.NewRat(6, 1), big.NewRat(-4, 1), geom.ExactCurvePlaneEventOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if q, e := c.ExactCoedgeParameter.Compare(ctx, root, geom.ExactCurvePlaneEventOptions{}); e != nil || !q.Proven || q.Order != 0 {
+		t.Fatal("exact original curved coedge root in knot units", q, e)
+	}
+	var encoded bytes.Buffer
+	r.Nodes = nil
+	if e := WriteRepeatedSplineGraphArcJSON(&encoded, r); e != nil {
+		t.Fatal(e)
+	}
+	back, e := ReadRepeatedSplineGraphArcJSON(ctx, bytes.NewReader(encoded.Bytes()), JSONLimits{}, RepeatedSplineArcTrimOptions{})
+	if e != nil || !back.Complete || len(back.Nodes) != 3 || !back.Intervals[0].Retained || back.Intervals[1].Retained {
+		t.Fatal("source recipe must independently reprove trimmed arc", e)
+	}
+	contact := back.Nodes[1].Contacts[0][0]
+	if q, e := contact.ExactCoedgeParameter.Compare(ctx, root, geom.ExactCurvePlaneEventOptions{}); e != nil || !q.Proven || q.Order != 0 || contact.Edge != 45 {
+		t.Fatal("native reload lost original source-use identity", q, e)
+	}
+	var corrupt nativeRepeatedSplineArcSection
+	if e := json.Unmarshal(encoded.Bytes(), &corrupt); e != nil {
+		t.Fatal(e)
+	}
+	corrupt.Faces[0].Outer[0].SplineReversed = false
+	bad, e := json.Marshal(corrupt)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if q, e := ReadRepeatedSplineGraphArcJSON(ctx, bytes.NewReader(bad), JSONLimits{}, RepeatedSplineArcTrimOptions{}); e == nil || q.Complete {
+		t.Fatal("corrupted original pcurve direction accepted", e)
 	}
 }

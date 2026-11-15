@@ -18,6 +18,7 @@ type SplineGraphRepeatedArc struct {
 	ModelEndpoints            [2][3]*big.Rat
 	Projection                SurfaceInjectivity
 	ExactOperations           int
+	source                    *repeatedSplineGraphArcSource
 }
 
 // DiscoverSplineGraphRepeatedArc examines the full homogeneous difference
@@ -162,6 +163,7 @@ func DiscoverSplineGraphRepeatedArc(ctx context.Context, a, c *SurfacePatch, dep
 	}
 	r.Proven, r.Domain, r.DependentAxis, r.HeightSign = true, d, dependent, sign
 	r.Projection, r.UVCurve = projection, curve
+	r.source = &repeatedSplineGraphArcSource{curve: curve, free: 1 - dependent, domain: ranges[1-dependent]}
 	return r, nil
 }
 

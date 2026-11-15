@@ -18,11 +18,16 @@ type RepeatedSplineArcTrimOptions struct {
 }
 
 type RepeatedSplineArcTrimContact struct {
-	Face, Loop, Use, Edge int
-	Reversed              bool
-	Event                 *geom.ExactComposedCurveEvent
-	CoedgeParameter       geom.ExactParameterInterval
-	CoedgeEndpointMask    uint8
+	Face, Loop, Use, Edge, Span int
+	Reversed                    bool
+	// Event evaluates the original chart UV contact. ArcParameter uses
+	// normalized arc units. CoedgeParameter encloses the original spline
+	// knot parameter or the directed [0,1] parameter of a straight segment.
+	Event                *geom.ExactComposedCurveEvent
+	ArcParameter         *geom.ExactAlgebraicRoot
+	ExactCoedgeParameter *geom.ExactAlgebraicRoot
+	CoedgeParameter      geom.ExactParameterInterval
+	CoedgeEndpointMask   uint8
 }
 
 type RepeatedSplineArcTrimNode struct {
@@ -49,13 +54,13 @@ type RepeatedSplineArcTrimSection struct {
 	Nodes                                   []RepeatedSplineArcTrimNode
 	Intervals                               []RepeatedSplineArcTrimInterval
 	ExactOperations, Subdivisions, LoopWork int
+	native                                  *nativeRepeatedSplineArcSection
 }
 
 // SectionRepeatedSplineGraphArc proves a rational double-contact arc between
-// two original common-XY graph faces. It exhausts all straight outer and
-// hole coedges and classifies the intervals between their exact contacts.
-// A positive-length overlap with a straight coedge requires a separate
-// coincidence proof and is reported as unresolved.
+// two original common-XY graph faces. It exhausts supported straight and
+// rational spline coedges and classifies intervals between their exact
+// contacts. Positive-length overlap requires a separate coincidence proof.
 func SectionRepeatedSplineGraphArc(ctx context.Context, faces [2]Face, dependent int,
 	o RepeatedSplineArcTrimOptions) (r RepeatedSplineArcTrimSection, err error) {
 	if ctx == nil || dependent < 0 || dependent > 1 || o.MaxContacts < 0 || o.MaxContacts > 16384 {
@@ -122,18 +127,13 @@ func SectionRepeatedSplineGraphArc(ctx context.Context, faces [2]Face, dependent
 		if validated.Status != trimvalidate.Certified {
 			return r, geom.ErrConvergence
 		}
-		domain := p.Domain()
-		for _, loop := range append([][]Use{f.Outer}, f.Holes...) {
-			for _, u := range loop {
-				if u.Curve != nil {
-					return r, geom.ErrConvergence
-				}
-				for _, q := range []geom.Vec2{u.UVStart, u.UVEnd} {
-					if q.X < domain.UMin || q.X > domain.UMax || q.Y < domain.VMin || q.Y > domain.VMax {
-						return r, geom.ErrDomain
-					}
-				}
-			}
+		d := p.Domain()
+		bounds, e := faceUVBounds(f)
+		if e != nil {
+			return r, e
+		}
+		if bounds.UMin < d.UMin || bounds.UMax > d.UMax || bounds.VMin < d.VMin || bounds.VMax > d.VMax {
+			return r, geom.ErrDomain
 		}
 	}
 	p := o.Contact
@@ -189,7 +189,7 @@ func SectionRepeatedSplineGraphArc(ctx context.Context, faces [2]Face, dependent
 		return q, e
 	}
 	insert := func(c RepeatedSplineArcTrimContact) error {
-		root := c.Event.Root()
+		root := c.ArcParameter
 		lo, hi := 0, len(r.Nodes)
 		for lo < hi {
 			m := (lo + hi) / 2
@@ -222,9 +222,91 @@ func SectionRepeatedSplineGraphArc(ctx context.Context, faces [2]Face, dependent
 		return nil
 	}
 	contacts := 0
+	addCurved := func(chart, loop, index int, u Use) error {
+		p := patchOptions()
+		if p.MaxOperations < 1 {
+			return geom.ErrConvergence
+		}
+		spans, used, e := tubeFaceTrimSpans(ctx, u, SplineTubeTrimSource{Loop: loop, Use: index, Edge: u.Edge, Reversed: u.Reversed}, p)
+		r.ExactOperations += used
+		if e != nil {
+			return e
+		}
+		for spanIndex, span := range spans {
+			p := patchOptions()
+			if p.MaxOperations < 1 {
+				return geom.ErrConvergence
+			}
+			curve, e := exactBezierTrimParameterCurve(ctx, span.controls, p)
+			if e != nil {
+				return e
+			}
+			r.ExactOperations += curve.ExactOperations()
+			p = patchOptions()
+			if p.MaxOperations < 1 || remaining().MaxSubdivisions < 1 {
+				return geom.ErrConvergence
+			}
+			q, e := r.Arc.IntersectUVTrim(ctx, curve, geom.SurfaceCurveAgreementOptions{SurfacePatchOptions: p,
+				MaxEvents: max(2, o.MaxContacts-contacts), MaxSubdivisions: remaining().MaxSubdivisions})
+			r.ExactOperations += q.ExactOperations
+			r.Subdivisions += q.Subdivisions
+			if e != nil {
+				return e
+			}
+			if !q.Complete || len(q.Hits) > o.MaxContacts-contacts {
+				return geom.ErrConvergence
+			}
+			contacts += len(q.Hits)
+			for _, hit := range q.Hits {
+				original := hit.TrimEvent.Root()
+				var endpointMask uint8
+				for side, onFirstSpan := range [2]bool{spanIndex == 0, spanIndex == len(spans)-1} {
+					if !onFirstSpan {
+						continue
+					}
+					position := 0
+					if side == 1 {
+						position = len(r.Nodes) - 1
+					}
+					order, e := compare(original, r.Nodes[position].Parameter)
+					if e != nil {
+						return e
+					}
+					if order.Order == 0 {
+						endpointMask |= 1 << side
+					}
+				}
+				start, end := span.source.ParameterStart, span.source.ParameterEnd
+				if start != 0 || end != 1 {
+					p := remaining()
+					if p.MaxOperations < 1 || p.MaxSubdivisions < 1 {
+						return geom.ErrConvergence
+					}
+					a, z := ratInset(start), ratInset(end)
+					original, used, e = original.AffineMap(ctx, a, new(big.Rat).Sub(z, a), p)
+					r.ExactOperations += used
+					if e != nil {
+						return e
+					}
+				}
+				c := RepeatedSplineArcTrimContact{Face: chart, Loop: loop, Use: index, Edge: u.Edge, Span: span.source.Span, Reversed: u.Reversed,
+					Event: hit.TrimEvent, ArcParameter: hit.ArcParameter, ExactCoedgeParameter: original, CoedgeParameter: original.Interval(), CoedgeEndpointMask: endpointMask}
+				if e := insert(c); e != nil {
+					return e
+				}
+			}
+		}
+		return nil
+	}
 	for chart, f := range faces {
 		for i, loop := range append([][]Use{f.Outer}, f.Holes...) {
 			for j, u := range loop {
+				if u.Curve != nil {
+					if e := addCurved(chart, i, j, u); e != nil {
+						return r, e
+					}
+					continue
+				}
 				p := remaining()
 				if p.MaxOperations < 1 || p.MaxSubdivisions < 1 {
 					return r, geom.ErrConvergence
@@ -242,7 +324,8 @@ func SectionRepeatedSplineGraphArc(ctx context.Context, faces [2]Face, dependent
 				}
 				contacts += len(q.Hits)
 				for _, hit := range q.Hits {
-					c := RepeatedSplineArcTrimContact{chart, i, j, u.Edge, u.Reversed, hit.Event, hit.LineParameter, hit.BoundaryMask}
+					c := RepeatedSplineArcTrimContact{Face: chart, Loop: i, Use: j, Edge: u.Edge, Reversed: u.Reversed,
+						Event: hit.Event, ArcParameter: hit.Event.Root(), CoedgeParameter: hit.LineParameter, CoedgeEndpointMask: hit.BoundaryMask}
 					if e := insert(c); e != nil {
 						return r, e
 					}
@@ -311,5 +394,6 @@ func SectionRepeatedSplineGraphArc(ctx context.Context, faces [2]Face, dependent
 		r.Model[i] = q
 	}
 	r.Complete = true
+	r.native = encodeRepeatedSplineArcSection(faces, dependent)
 	return r, nil
 }

@@ -102,3 +102,47 @@ func TestRepeatedSplineGraphRejectsDifferentContactSet(t *testing.T) {
 		t.Fatal("cancellation", r, e)
 	}
 }
+
+func TestRepeatedSplineGraphArcNonlinearTrimRoots(t *testing.T) {
+	ctx := context.Background()
+	a, b := repeatedRationalArcFixture(t, false, "")
+	arc, e := DiscoverSplineGraphRepeatedArc(ctx, a, b, 1, GraphPointContactOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	// UV(t)=(t²,3/8+t/8) intersects the graph at the unique root
+	// 2t³−2t²+5t−1=0. Its independent arc parameter is u=t².
+	z, w := new(big.Rat), big.NewRat(1, 1)
+	trim, e := NewExactHomogeneousBezier(ctx, [][4]*big.Rat{
+		{z, big.NewRat(3, 8), z, w}, {z, big.NewRat(7, 16), z, w}, {w, big.NewRat(1, 2), z, w},
+	}, SurfacePatchOptions{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	q, e := arc.IntersectUVTrim(ctx, trim, SurfaceCurveAgreementOptions{})
+	if e != nil || !q.Complete || len(q.Hits) != 1 || q.Hits[0].SideSigns != [2]int{-1, 1} {
+		t.Fatal("exact isolated curved trim contact", q, e)
+	}
+	for i, want := range []struct {
+		recipe ExactRootRecipe
+		actual *ExactAlgebraicRoot
+	}{
+		{ExactRootRecipe{Version: 1, Coefficients: []string{"-1", "5", "-2", "2"}, Lower: "0", Upper: "1/4"}, q.Hits[0].TrimEvent.Root()},
+		{ExactRootRecipe{Version: 1, Coefficients: []string{"-1", "21", "16", "4"}, Lower: "0", Upper: "1/16"}, q.Hits[0].ArcParameter},
+	} {
+		root, e := ImportExactRoot(ctx, want.recipe, ExactRootCodecOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		if comparison, e := root.Compare(ctx, want.actual, ExactCurvePlaneEventOptions{}); e != nil || !comparison.Proven || comparison.Order != 0 {
+			t.Fatal("independent original root", i, comparison, e)
+		}
+	}
+	point, e := q.Hits[0].TrimEvent.Enclose(ctx, ComposedCurveEndpointOptions{})
+	if e != nil || point.Bounds.Min.Z != 0 || point.Bounds.Max.Z != 0 || point.Bounds.Min.Y < .375 || point.Bounds.Max.Y > .5 {
+		t.Fatal("original UV event coordinates", point, e)
+	}
+	if q, e := arc.IntersectUVTrim(ctx, arc.UVCurve, SurfaceCurveAgreementOptions{}); !errors.Is(e, ErrConvergence) || q.Complete || len(q.Coincident) == 0 {
+		t.Fatal("whole original overlap needs its own topology", q, e)
+	}
+}
