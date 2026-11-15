@@ -25,6 +25,19 @@ type SplineGraphQuadraticEllipseArcs struct {
 // basis. Four overlapping projective parameter charts cover the conic once,
 // meeting only at the exact junctions. No model-curve composition is implied.
 func BuildSplineGraphQuadraticEllipseArcs(ctx context.Context, a, c *SurfacePatch, h GraphQuadraticEllipseHint, point [2]*big.Rat, o GraphPointContactOptions) (r SplineGraphQuadraticEllipseArcs, err error) {
+	return buildSplineGraphQuadraticEllipseArcs(ctx, a, c, h, point, o, 1)
+}
+
+// BuildSplineGraphRepeatedQuadraticEllipseArcs proves doubled contact before
+// constructing the exact directed rational UV loop through the supplied
+// point. The same strict height sign holds inside and outside the loop.
+func BuildSplineGraphRepeatedQuadraticEllipseArcs(ctx context.Context, a, c *SurfacePatch, h GraphQuadraticEllipseHint,
+	point [2]*big.Rat, o GraphPointContactOptions) (SplineGraphQuadraticEllipseArcs, error) {
+	return buildSplineGraphQuadraticEllipseArcs(ctx, a, c, h, point, o, 2)
+}
+
+func buildSplineGraphQuadraticEllipseArcs(ctx context.Context, a, c *SurfacePatch, h GraphQuadraticEllipseHint,
+	point [2]*big.Rat, o GraphPointContactOptions, multiplicity int) (r SplineGraphQuadraticEllipseArcs, err error) {
 	if ctx == nil || point[0] == nil || point[1] == nil {
 		return r, ErrInvalid
 	}
@@ -37,7 +50,7 @@ func BuildSplineGraphQuadraticEllipseArcs(ctx context.Context, a, c *SurfacePatc
 	if o.MaxCoefficientBits == 0 {
 		o.MaxCoefficientBits = 16384
 	}
-	certificate, e := CertifySplineGraphQuadraticEllipse(ctx, a, c, h, o)
+	certificate, e := certifySplineGraphQuadraticEllipse(ctx, a, c, h, o, multiplicity)
 	r.Certificate = certificate
 	r.ExactOperations = certificate.ExactOperations
 	if e != nil {

@@ -31,6 +31,19 @@ type SplineGraphQuadraticEllipse struct {
 // A strict Bernstein residual excludes all other contact. The ellipse need not
 // remain Euclidean elliptical after the original injective XY chart mapping.
 func CertifySplineGraphQuadraticEllipse(ctx context.Context, a, c *SurfacePatch, h GraphQuadraticEllipseHint, o GraphPointContactOptions) (r SplineGraphQuadraticEllipse, err error) {
+	return certifySplineGraphQuadraticEllipse(ctx, a, c, h, o, 1)
+}
+
+// CertifySplineGraphRepeatedQuadraticEllipse proves a closed double contact
+// on the original common graph chart, including mixed U*V terms. Both
+// strict height signs are the same after removing the two equal factors.
+func CertifySplineGraphRepeatedQuadraticEllipse(ctx context.Context, a, c *SurfacePatch, h GraphQuadraticEllipseHint,
+	o GraphPointContactOptions) (SplineGraphQuadraticEllipse, error) {
+	return certifySplineGraphQuadraticEllipse(ctx, a, c, h, o, 2)
+}
+
+func certifySplineGraphQuadraticEllipse(ctx context.Context, a, c *SurfacePatch, h GraphQuadraticEllipseHint,
+	o GraphPointContactOptions, multiplicity int) (r SplineGraphQuadraticEllipse, err error) {
 	if ctx == nil || a == nil || c == nil || len(a.net) == 0 || len(c.net) == 0 {
 		return r, ErrInvalid
 	}
@@ -110,12 +123,15 @@ func CertifySplineGraphQuadraticEllipse(ctx context.Context, a, c *SurfacePatch,
 			return r, e
 		}
 		local := quadraticGraphCellCoefficients(q, cell.Domain())
-		residual, e := divideGraphQuadraticBernstein(ctx, cell, local, budget)
-		if e != nil {
-			return r, e
-		}
-		if residual == nil {
-			return r, ErrConvergence
+		residual := cell
+		for i := 0; i < multiplicity; i++ {
+			residual, e = divideGraphQuadraticBernstein(ctx, residual, local, budget)
+			if e != nil {
+				return r, e
+			}
+			if residual == nil {
+				return r, ErrConvergence
+			}
 		}
 		for _, h := range residual.net {
 			s := h[2].Sign()
@@ -144,7 +160,10 @@ func CertifySplineGraphQuadraticEllipse(ctx context.Context, a, c *SurfacePatch,
 	if e := ctx.Err(); e != nil {
 		return r, e
 	}
-	r.InsideSide = -sign
+	r.InsideSide = sign
+	if multiplicity%2 != 0 {
+		r.InsideSide = -sign
+	}
 	r.OutsideSide = sign
 	r.Proven = true
 	return r, nil

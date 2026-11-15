@@ -23,11 +23,28 @@ type SplineGraphEllipseSection struct {
 func SectionRationalEllipseSplineGraphs(ctx context.Context, a, b *geom.SurfacePatch,
 	hint geom.GraphQuadraticEllipseHint, point [2]*big.Rat, proof geom.GraphPointContactOptions,
 	o geom.SurfaceCurveAgreementOptions) (SplineGraphEllipseSection, error) {
-	var empty SplineGraphEllipseSection
 	r, e := geom.BuildSplineGraphQuadraticEllipseArcs(ctx, a, b, hint, point, proof)
 	if e != nil {
-		return empty, e
+		return SplineGraphEllipseSection{}, e
 	}
+	return composeSplineGraphEllipseSection(ctx, a, b, r, o)
+}
+
+// SectionRepeatedRationalEllipseSplineGraphs composes a closed double
+// contact on both original supports and verifies continuous equality.
+func SectionRepeatedRationalEllipseSplineGraphs(ctx context.Context, a, b *geom.SurfacePatch,
+	hint geom.GraphQuadraticEllipseHint, point [2]*big.Rat, proof geom.GraphPointContactOptions,
+	o geom.SurfaceCurveAgreementOptions) (SplineGraphEllipseSection, error) {
+	r, e := geom.BuildSplineGraphRepeatedQuadraticEllipseArcs(ctx, a, b, hint, point, proof)
+	if e != nil {
+		return SplineGraphEllipseSection{}, e
+	}
+	return composeSplineGraphEllipseSection(ctx, a, b, r, o)
+}
+
+func composeSplineGraphEllipseSection(ctx context.Context, a, b *geom.SurfacePatch, r geom.SplineGraphQuadraticEllipseArcs,
+	o geom.SurfaceCurveAgreementOptions) (SplineGraphEllipseSection, error) {
+	var empty SplineGraphEllipseSection
 	if !r.Complete {
 		return empty, geom.ErrConvergence
 	}
