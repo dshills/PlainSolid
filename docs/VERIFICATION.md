@@ -193,6 +193,12 @@ kept its pristine hash. Raw results remain in
   40.684 seconds; the pinned inset controls also passed. The standard
   exported solid carries the common partition; the native receipt keeps
   the independent originals.
+- Named document occurrence export, the original editable inset exchange,
+  and named circular fillet regeneration passed the main document race
+  together in 324.615 seconds. STEP preserved both original source
+  partitions and a composed tilted occurrence; IGES preserved both
+  source partitions after an in-plane rotation and translation. The
+  tests reject unsupported and inexact placements before writing bytes.
 - Nonunit rectangular Common and Fuse retain the two exact affine roof
   charts and a reflected or positive sloping original base. The new
   translated `[2,4] × [-1,2]` cases and earlier projected envelope and

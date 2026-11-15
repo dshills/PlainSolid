@@ -13,27 +13,24 @@ import (
 	"plainsolid/geom"
 )
 
-func (s State) circularInsetExportRecipe(ctx context.Context, nodeID string) (trimmed.ExactCircularSweep, trimmed.ExactCircularSweep, geom.Affine, string, error) {
+func (s State) circularJoinExportRecipe(ctx context.Context, nodeID string, kind FeatureKind) (trimmed.ExactCircularSweep, trimmed.ExactCircularSweep, geom.Affine, string, error) {
 	fail := func(err error) (trimmed.ExactCircularSweep, trimmed.ExactCircularSweep, geom.Affine, string, error) {
 		return trimmed.ExactCircularSweep{}, trimmed.ExactCircularSweep{}, geom.Affine{}, "", err
 	}
 	node, ok := s.Nodes[nodeID]
 	if !ok || node.Asset == "" {
-		return fail(fmt.Errorf("document: node %q has no circular inset asset", nodeID))
-	}
-	layout, err := s.circularInsetRoles(node.Asset)
-	if err != nil {
-		return fail(err)
+		return fail(fmt.Errorf("document: node %q has no circular sweep join asset", nodeID))
 	}
 	parentPose := geom.Identity()
 	seen := map[string]bool{}
+	var err error
 	for id := nodeID; id != ""; {
 		if err := ctx.Err(); err != nil {
 			return fail(err)
 		}
 		n, ok := s.Nodes[id]
 		if !ok || seen[id] || len(seen) >= 256 || !circularInsetSignedPose(n.Transform) {
-			return fail(fmt.Errorf("document: invalid circular inset node placement %q: %w", id, geom.ErrDomain))
+			return fail(fmt.Errorf("document: invalid circular sweep join node placement %q: %w", id, geom.ErrDomain))
 		}
 		seen[id] = true
 		parentPose, err = circularInsetExactCompose(n.Transform, parentPose)
@@ -43,12 +40,23 @@ func (s State) circularInsetExportRecipe(ctx context.Context, nodeID string) (tr
 		id = n.Parent
 	}
 	featurePose := geom.Identity()
-	for id := node.Asset; s.Features[id].Kind == TransformFeature; {
-		f := s.Features[id]
-		// circularInsetRoles has already proved a bounded acyclic feature
-		// chain ending at the authored join.
-		if !circularInsetSignedPose(f.Transform) {
-			return fail(geom.ErrDomain)
+	seen = map[string]bool{}
+	var join Feature
+	for id := node.Asset; ; {
+		if err := ctx.Err(); err != nil {
+			return fail(err)
+		}
+		f, ok := s.Features[id]
+		if !ok || seen[id] || len(seen) >= 10000 {
+			return fail(fmt.Errorf("document: invalid circular sweep join feature chain at %q", id))
+		}
+		seen[id] = true
+		if f.Kind == kind {
+			join = f
+			break
+		}
+		if f.Kind != TransformFeature || !circularInsetSignedPose(f.Transform) {
+			return fail(fmt.Errorf("document: expected %s feature with exact placement: %w", kind, geom.ErrDomain))
 		}
 		featurePose, err = circularInsetExactCompose(featurePose, f.Transform)
 		if err != nil {
@@ -61,13 +69,13 @@ func (s State) circularInsetExportRecipe(ctx context.Context, nodeID string) (tr
 		return fail(err)
 	}
 	if pose.Determinant() != 1 {
-		return fail(fmt.Errorf("document: circular inset export needs a proper signed-coordinate placement: %w", geom.ErrDomain))
+		return fail(fmt.Errorf("document: circular sweep join export needs a proper signed-coordinate placement: %w", geom.ErrDomain))
 	}
-	host, err := s.circularInsetExportSweep(ctx, layout.input)
+	host, err := s.circularJoinExportSweep(ctx, join.Input)
 	if err != nil {
 		return fail(err)
 	}
-	guest, err := s.circularInsetExportSweep(ctx, layout.tool)
+	guest, err := s.circularJoinExportSweep(ctx, join.Tool)
 	if err != nil {
 		return fail(err)
 	}
@@ -78,8 +86,14 @@ func (s State) circularInsetExportRecipe(ctx context.Context, nodeID string) (tr
 	return host, guest, pose, name, nil
 }
 
-func (s State) circularInsetExportSweep(ctx context.Context, id string) (trimmed.ExactCircularSweep, error) {
+func (s State) circularJoinExportSweep(ctx context.Context, id string) (trimmed.ExactCircularSweep, error) {
 	var zero trimmed.ExactCircularSweep
+	if !localCircularSweepKind(s.Features[id].Kind) {
+		return zero, geom.ErrDomain
+	}
+	if _, err := s.directedCircularSource(id); err != nil {
+		return zero, err
+	}
 	var modifiers []Feature
 	for k := s.Features[id].Kind; k == DirectedCircularExtrusionOffsetFeature || k == DirectedCircularCornerFilletFeature; k = s.Features[id].Kind {
 		f := s.Features[id]
@@ -162,7 +176,7 @@ func (s State) WriteCircularInsetSTEP(ctx context.Context, w io.Writer, nodeID s
 	if ctx == nil || w == nil {
 		return geom.ErrInvalid
 	}
-	host, guest, pose, name, err := s.circularInsetExportRecipe(ctx, nodeID)
+	host, guest, pose, name, err := s.circularJoinExportRecipe(ctx, nodeID, DirectedCircularInsetJoinFeature)
 	if err != nil {
 		return err
 	}
@@ -182,12 +196,19 @@ func (s State) WriteCircularInsetIGES(ctx context.Context, w io.Writer, nodeID s
 	if ctx == nil || w == nil {
 		return geom.ErrInvalid
 	}
-	host, guest, pose, _, err := s.circularInsetExportRecipe(ctx, nodeID)
+	host, guest, pose, _, err := s.circularJoinExportRecipe(ctx, nodeID, DirectedCircularInsetJoinFeature)
 	if err != nil {
 		return err
 	}
+	if err := placeCircularJoinProfilesForIGES(pose, &host, &guest); err != nil {
+		return err
+	}
+	return iges.WriteExactCircularSweepInset(ctx, w, iges.ExactCircularSweepInset{Host: host, Guest: guest, Unit: s.LengthUnit})
+}
+
+func placeCircularJoinProfilesForIGES(pose geom.Affine, members ...*trimmed.ExactCircularSweep) error {
 	if pose.ApplyVector(geom.Vec3{Z: 1}) != (geom.Vec3{Z: 1}) {
-		return fmt.Errorf("document: circular inset IGES needs a positive-Z placement: %w", geom.ErrDomain)
+		return fmt.Errorf("document: circular sweep join IGES needs a positive-Z placement: %w", geom.ErrDomain)
 	}
 	apply := func(v geom.Vec3) (geom.Vec3, error) {
 		p := pose.ApplyVector(v)
@@ -202,7 +223,7 @@ func (s State) WriteCircularInsetIGES(ctx context.Context, w io.Writer, nodeID s
 		}
 		return geom.Vec3{X: v0[0], Y: v0[1], Z: v0[2]}, nil
 	}
-	for _, member := range []*trimmed.ExactCircularSweep{&host, &guest} {
+	for _, member := range members {
 		for _, v := range []*float64{&member.Bottom, &member.Top} {
 			t, err := apply(geom.Vec3{Z: *v})
 			if err != nil {
@@ -227,5 +248,5 @@ func (s State) WriteCircularInsetIGES(ctx context.Context, w io.Writer, nodeID s
 			}
 		}
 	}
-	return iges.WriteExactCircularSweepInset(ctx, w, iges.ExactCircularSweepInset{Host: host, Guest: guest, Unit: s.LengthUnit})
+	return nil
 }

@@ -3,11 +3,15 @@ package document
 import (
 	"bytes"
 	"context"
+	"errors"
 	"math"
 	"math/big"
 	"testing"
 
 	"plainsolid/brep/parametric"
+	"plainsolid/brep/trimmed"
+	"plainsolid/exchange/iges"
+	"plainsolid/exchange/step"
 	"plainsolid/geom"
 )
 
@@ -35,6 +39,10 @@ func TestDirectedCircularCapOverlayKeepsNamedOriginalFragments(t *testing.T) {
 			Outer: upperOuter, Holes: [][]NamedCircularProfileSegment{hole}, Bottom: 0, Top: 3}},
 		"join":  {Kind: DirectedCircularCapOverlayFeature, Input: "lower", Tool: "upper"},
 		"posed": {Kind: TransformFeature, Input: "join", Transform: pose},
+	}, Nodes: map[string]Node{
+		"step-group": {Transform: geom.Affine{{1, 0, 0, 10}, {0, 1, 0, -1}, {0, 0, 1, 6}}},
+		"step-part":  {Name: "Placed complete curved join", Asset: "posed", Parent: "step-group", Transform: geom.Identity()},
+		"iges-part":  {Asset: "join", Transform: geom.Affine{{0, -1, 0, 14}, {1, 0, 0, -2}, {0, 0, 1, 7}}},
 	}}, 2)
 	if err != nil {
 		t.Fatal(err)
@@ -117,4 +125,59 @@ func TestDirectedCircularCapOverlayKeepsNamedOriginalFragments(t *testing.T) {
 		t.Fatal(err)
 	}
 	check(reopened, 4)
+
+	s, _ := reopened.Snapshot()
+	var source [2]trimmed.ExactCircularSweep
+	for i, id := range [2]string{"lower", "upper"} {
+		d := s.Features[id].DirectedCircularExtrusion
+		rings, _, err := d.profile()
+		if err != nil {
+			t.Fatal(err)
+		}
+		source[i] = trimmed.ExactCircularSweep{Outer: rings[0], Holes: rings[1:], Bottom: d.Bottom, Top: d.Top}
+	}
+	frame, err := geom.NewFrame(geom.Vec3{X: 18, Y: 1, Z: 10}, geom.Vec3{Z: 1}, geom.Vec3{X: -1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stepRaw, igesRaw bytes.Buffer
+	if err := s.WriteCircularCapOverlaySTEP(ctx, &stepRaw, "step-part"); err != nil {
+		t.Fatal(err)
+	}
+	stepSource := step.ExactCircularSweepCapOverlay{Name: "Placed complete curved join", Frame: frame, Sweeps: source, LengthUnit: .001}
+	a, err := step.ReadExactCircularSweepCapOverlay(ctx, &stepRaw, stepSource, step.Limits{})
+	if err != nil || len(a.Faces[0][2]) != 2 || len(a.Faces[1][0]) != 0 {
+		t.Fatalf("STEP changed the edited source or composed placement: %v", err)
+	}
+	for i := range source {
+		source[i].Bottom += 7
+		source[i].Top += 7
+		for _, ring := range append([][]trimmed.ExactCircularLoopSegment{source[i].Outer}, source[i].Holes...) {
+			for j := range ring {
+				q := &ring[j]
+				q.Start, q.End = p(14-q.Start.Y, q.Start.X-2), p(14-q.End.Y, q.End.X-2)
+				if q.Radius > 0 {
+					q.Center = p(14-q.Center.Y, q.Center.X-2)
+				}
+			}
+		}
+	}
+	if err := s.WriteCircularCapOverlayIGES(ctx, &igesRaw, "iges-part"); err != nil {
+		t.Fatal(err)
+	}
+	b, err := iges.ReadExactCircularSweepCapOverlay(ctx, &igesRaw, iges.ExactCircularSweepCapOverlay{Sweeps: source, Unit: .001}, iges.Limits{})
+	if err != nil || len(b.Faces[0][2]) != 2 || len(b.Faces[1][0]) != 0 {
+		t.Fatalf("IGES changed the original split wires after placement: %v", err)
+	}
+	igesRaw.Reset()
+	if err := s.WriteCircularCapOverlayIGES(ctx, &igesRaw, "step-part"); !errors.Is(err, geom.ErrDomain) || igesRaw.Len() != 0 {
+		t.Fatalf("IGES wrote an unsupported tilted placement: %v", err)
+	}
+	group, part := s.Nodes["step-group"], s.Nodes["step-part"]
+	group.Transform[0][3], part.Transform[0][3] = 1e16, .25
+	s.Nodes["step-group"], s.Nodes["step-part"] = group, part
+	stepRaw.Reset()
+	if err := s.WriteCircularCapOverlaySTEP(ctx, &stepRaw, "step-part"); !errors.Is(err, geom.ErrUnrepresentable) || stepRaw.Len() != 0 {
+		t.Fatalf("STEP rounded the composed occurrence translation: %v", err)
+	}
 }

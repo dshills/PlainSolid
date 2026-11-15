@@ -125,6 +125,8 @@ Named document cap joins resolve original walls, split rims and vertices
 through edits and placement.
 Complete cap overlay exports one analytic solid through STEP and IGES.
 Strict import uses the two original profiles to re-prove the seam maps.
+Both formats also export editable named occurrences after exact composition
+of the supported assembly placements.
 
 Native Common, Fuse and both Cut orders now keep two independently projected
 original roof charts. Common, Fuse and both Cut orders also qualify a
@@ -144,7 +146,7 @@ failure is retained while the source-aware display fix is being tested.
 Vet and Windows amd64 cross-build pass on `12ab5dbf`. The converted five-fillet
 inputs passed the focused native bridge and both actual WASM runtimes, with
 one legacy timing retry recorded. Current work covers analytic cap overlay
-document export, physically different footprints, shaded STEP extrema and
+physically different footprints, shaded STEP extrema and
 rational off-seam support charts.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
