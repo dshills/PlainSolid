@@ -84,14 +84,36 @@ func (r *ClippedPolynomialCut) Walls(component int) []ClippedPolynomialWallBindi
 // exact indexed points proved by the original source arrangement.
 func CutClippedPolynomialComponents(ctx context.Context, base, a, b *geom.BSplineSurface, axis int,
 	tolerance float64, o PolynomialNodeCutOptions) (*ClippedPolynomialCut, error) {
-	if ctx == nil || base == nil || a == nil || b == nil || axis < 0 || axis > 1 || !finite(tolerance) || tolerance <= 0 ||
+	sources := [3]*geom.BSplineSurface{base, a, b}
+	cut, e := buildClippedPolynomialCut(ctx, sources, axis, tolerance, o, isNativeClippedPolynomialArrangement)
+	if e != nil {
+		return nil, e
+	}
+	native := &AlignedPolynomialCut{sources: sources, material: cut.material, orders: [2]int(cut.orders),
+		derivatives: [2]*big.Rat(cut.derivatives), volumes: cut.volumes, total: cut.total,
+		axis: axis, tolerance: tolerance, kind: nativeClippedPolynomialCut}
+	return &ClippedPolynomialCut{native: native, footprints: cut.footprints, shells: cut.shells}, nil
+}
+
+type clippedPolynomialCutData struct {
+	material    polynomialNodeCutMaterial
+	orders      []int
+	derivatives []*big.Rat
+	volumes     []*big.Rat
+	total       *big.Rat
+	footprints  [2]geom.ParameterRectangle
+	shells      []clippedPolynomialCutShellLedger
+}
+
+func buildClippedPolynomialCut(ctx context.Context, sources [3]*geom.BSplineSurface, axis int, tolerance float64,
+	o PolynomialNodeCutOptions, admit func(geom.SplineGraphPolynomialArrangement, int) bool) (*clippedPolynomialCutData, error) {
+	if ctx == nil || sources[0] == nil || sources[1] == nil || sources[2] == nil || axis < 0 || axis > 1 || !finite(tolerance) || tolerance <= 0 ||
 		o.Section.Domain != (geom.ParameterRectangle{}) {
 		return nil, geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
 		return nil, e
 	}
-	sources := [3]*geom.BSplineSurface{base, a, b}
 	var patches [3]*geom.SurfacePatch
 	for i, source := range sources {
 		p, e := geom.NewSurfacePatch(source, o.Section.Patch)
@@ -109,7 +131,7 @@ func CutClippedPolynomialComponents(ctx context.Context, base, a, b *geom.BSplin
 	}
 	projection := cut.Material.Overlap.Projection
 	proof := projection.Arrangement
-	if !isNativeClippedPolynomialArrangement(proof, axis) {
+	if !admit(proof, axis) {
 		return nil, geom.ErrConvergence
 	}
 	order := cut.Orders[0]
@@ -180,10 +202,8 @@ func CutClippedPolynomialComponents(ctx context.Context, base, a, b *geom.BSplin
 	if e := ctx.Err(); e != nil {
 		return nil, e
 	}
-	native := &AlignedPolynomialCut{sources: sources, material: material, orders: [2]int(proof.ContactOrder),
-		derivatives: [2]*big.Rat(proof.DerivativeGap), volumes: volumes, total: order.Total,
-		axis: axis, tolerance: tolerance, kind: nativeClippedPolynomialCut}
-	return &ClippedPolynomialCut{native: native, footprints: cut.Material.Footprints, shells: ledgers}, nil
+	return &clippedPolynomialCutData{material: material, orders: proof.ContactOrder, derivatives: proof.DerivativeGap,
+		volumes: volumes, total: order.Total, footprints: cut.Material.Footprints, shells: ledgers}, nil
 }
 
 func isNativeClippedPolynomialArrangement(proof geom.SplineGraphPolynomialArrangement, axis int) bool {
