@@ -1,0 +1,180 @@
+package trimmed
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"math"
+	"math/big"
+	"testing"
+
+	"plainsolid/brep/edgecheck"
+	"plainsolid/brep/parametric"
+	"plainsolid/geom"
+)
+
+func TestSewExactMultispanSplineSubdivisions(t *testing.T) {
+	ctx := context.Background()
+	var surfaces []*geom.BSplineSurface
+	var reverse []bool
+	breaks := [3][]float64{{0, .5, 1}, {0, 1}, {0, 1}}
+	knots := [3][]float64{{0, 0, .5, 1, 1}, {0, 0, 1, 1}, {0, 0, 1, 1}}
+	for axis := range 3 {
+		u, v := (axis+1)%3, (axis+2)%3
+		for _, side := range []float64{0, 1} {
+			var net []geom.Vec3
+			for _, a := range breaks[u] {
+				for _, b := range breaks[v] {
+					var p [3]float64
+					p[axis], p[u], p[v] = side, a, b
+					p[2] += .25 - .5*math.Abs(p[0]-.5)
+					net = append(net, geom.Vec3{X: p[0], Y: p[1], Z: p[2]})
+				}
+			}
+			s, e := geom.NewBSplineSurface(1, 1, len(breaks[u]), len(breaks[v]), net, knots[u], knots[v], nil)
+			if e != nil {
+				t.Fatal(e)
+			}
+			surfaces = append(surfaces, s)
+			reverse = append(reverse, side == 0)
+		}
+	}
+	baseline, _, e := SewSplineRectangles(ctx, surfaces, make([]geom.ParameterRectangle, len(surfaces)), reverse, SewOptions{Tolerance: 1e-9})
+	if e != nil {
+		t.Fatal("exact warped rectangular input", e)
+	}
+	for _, cut := range []float64{.5, .75} {
+		vertices, edges, faces := explodeExactSewSource(baseline)
+		// Original roof edge follows x across a genuine C0 knot. It is
+		// independently split on the roof while the side keeps its full range.
+		const roof = 5
+		var coarse, first, second int
+		for j, use := range faces[roof].Outer {
+			edge := edges[use.Edge]
+			a, b := vertices[edge.Start], vertices[edge.End]
+			if a.X == b.X {
+				continue
+			}
+			first, second, coarse = use.Edge, len(edges), -1
+			for i, candidate := range edges {
+				if i != first && vertices[candidate.Start] == a && vertices[candidate.End] == b {
+					coarse = i
+					break
+				}
+			}
+			if coarse < 0 || edge.Range != (parametric.Interval{Max: 1}) {
+				t.Fatal("missing original whole opposing coedge")
+			}
+			span, backward, e := exactSewCurve(ctx, edge, [2]geom.Vec3{a, b}, geom.SurfacePatchOptions{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			if _, _, e := span.BezierControlNet(ctx, geom.SurfacePatchOptions{}); !errors.Is(e, geom.ErrConvergence) {
+				t.Fatal("source border must have a genuine interior knot", e)
+			}
+			lo, hi := span.Domain()
+			toward := cut
+			if use.Reversed {
+				toward = 1 - toward
+			}
+			modelParameter := cut
+			if backward {
+				modelParameter = 1 - cut
+			}
+			mid, e := span.ExactPoint(lo + (hi-lo)*modelParameter)
+			if e != nil || mid.Z <= 1 {
+				t.Fatal("split point must follow curved source border", mid, e)
+			}
+			id := len(vertices)
+			vertices = append(vertices, mid)
+			loEdge, hiEdge := edge, edge
+			loEdge.End, loEdge.Range.Max = id, cut
+			hiEdge.Start, hiEdge.Range.Min = id, cut
+			edges[first] = loEdge
+			edges = append(edges, hiEdge)
+			uv := geom.Vec2{
+				X: use.UVStart.X + toward*(use.UVEnd.X-use.UVStart.X),
+				Y: use.UVStart.Y + toward*(use.UVEnd.Y-use.UVStart.Y),
+			}
+			before, after := use, use
+			before.UVEnd, after.UVStart = uv, uv
+			if use.Reversed {
+				before.Edge = second
+			} else {
+				after.Edge = second
+			}
+			faces[roof].Outer = append(append(append([]Use(nil), faces[roof].Outer[:j]...), before, after), faces[roof].Outer[j+1:]...)
+			break
+		}
+		if second == 0 {
+			t.Fatal("missing independently subdivided source face")
+		}
+		if old, _, e := SewExactSplineSubdivisions(ctx, vertices, edges, faces, ExactSplineSewOptions{}); e == nil || len(old.faces) != 0 {
+			t.Fatal("expected the explicit multispan subdivision proof", e)
+		}
+		out, report, e := SewExactSplineSubdivisions(ctx, vertices, edges, faces, ExactSplineSewOptions{MultiSpan: true})
+		if e != nil || report.InsertedVertices != 1 || out.Topology().EulerCharacteristic != 2 {
+			t.Fatal("exact multispan sew", cut, report, e)
+		}
+		segments := report.Segments[coarse]
+		if len(segments) != 2 || segments[0].Upper.Cmp(new(big.Rat).SetFloat64(cut)) != 0 ||
+			report.Segments[first][0].Edge != segments[0].Edge || report.Segments[second][0].Edge != segments[1].Edge ||
+			out.faces[roof].Surface != surfaces[roof] {
+			t.Fatal("original closed seam ranges and supports", cut, segments)
+		}
+		var native bytes.Buffer
+		if e := WriteJSON(&native, out); e != nil {
+			t.Fatal(e)
+		}
+		out, e = ReadJSONContext(ctx, &native, JSONLimits{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		p, e := out.MassProperties(ctx, parametric.IntegrationOptions{})
+		if e != nil || math.Abs(p.Volume-1) > 1e-9 {
+			t.Fatal("piecewise vertical translation preserves unit volume", p, e)
+		}
+		agreement, e := out.ValidateEdgeAgreement(ctx, edgecheck.Options{})
+		if e != nil || !agreement.Complete {
+			t.Fatal("continuous original multispan coedge agreement", agreement, e)
+		}
+		if cut == .75 {
+			options := ExactSplineSewOptions{MultiSpan: true, MaxDiscoveryWork: report.DiscoveryWork, MaxPairTests: report.PairTests}
+			if _, _, e := SewExactSplineSubdivisions(ctx, vertices, edges, faces, options); e != nil {
+				t.Fatal("reported discovery and pair budgets suffice", e)
+			}
+			options.MaxDiscoveryWork--
+			if s, report, e := SewExactSplineSubdivisions(ctx, vertices, edges, faces, options); !errors.Is(e, geom.ErrConvergence) ||
+				len(s.faces) != 0 || len(report.Segments) != 0 {
+				t.Fatal("one-short multispan discovery budget must fail atomically", e)
+			}
+		}
+	}
+}
+
+func TestExactMultispanSewRejectsChangedInnerKnot(t *testing.T) {
+	ctx := context.Background()
+	border := func(a, b, c geom.Vec3) splineSewBorder {
+		t.Helper()
+		s, e := geom.NewBSpline(1, []geom.Vec3{a, b, c}, []float64{0, 0, .5, 1, 1}, nil)
+		if e != nil {
+			t.Fatal(e)
+		}
+		x, e := geom.NewExactSplineCurve(s, geom.SurfacePatchOptions{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		return splineSewBorder{curve: x, ends: [2]geom.Vec3{a, c}, preimage: make(map[geom.Vec3]splineSewPreimage), multispan: true,
+			bounds: [3][2]*big.Rat{{big.NewRat(0, 1), big.NewRat(1, 1)}, {big.NewRat(0, 1), big.NewRat(1, 1)}, {big.NewRat(0, 1), big.NewRat(0, 1)}}}
+	}
+	a := border(geom.Vec3{}, geom.Vec3{X: .5, Y: .5}, geom.Vec3{X: 1})
+	for _, height := range []float64{.5, .625} {
+		// The opposing original curve is traversed in the reverse direction.
+		b := border(geom.Vec3{X: .75, Y: .25}, geom.Vec3{X: .5, Y: height}, geom.Vec3{X: .25, Y: .25})
+		d := splineSewDiscovery{ctx: ctx, options: ExactSplineSewOptions{MultiSpan: true, MaxDiscoveryWork: 100000}}
+		span, e := d.overlap(&a, &b)
+		if e != nil || (span[0][0] != nil) != (height == .5) {
+			t.Fatal("certified endpoints cannot mask a changed interior knot", height, span, e)
+		}
+	}
+}

@@ -124,6 +124,8 @@ keeps two distinct original components. Contained Cut keeps the original
 outward stock and the inward cavity shell, with opposite oriented
 crossings at the same contact. Exact crossing polygon shells now reach
 native Common, Fuse and Cut under the original-fragment dispatch option.
+The polygon proof can retain paired junctions on both original source
+edges, including four-germ meetings with exact owner incidence.
 
 Independently authored anisotropic filled and bored NURBS round-trip in
 STEP as individual solids and flat or nested shared-product assemblies.
@@ -2476,6 +2478,10 @@ and both original wall bands retain their full source intervals.
 `SewExactSplineSubdivisions` recovers unique rational endpoint preimages
 on supported single-span spline borders with affine UV coedges. It
 proves equality over the full common interval before subdividing.
+The multispan option compares original knot partitions and can split
+at an existing knot or across it. A source knot reported by two
+incident spans authorizes one preimage only when their exact parameters
+are equal.
 The result retains original supports and exact source parameter ranges.
 
 ### Planar tolerance repair with fixed supports

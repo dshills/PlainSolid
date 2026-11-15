@@ -18,6 +18,9 @@ type ExactSplineSewOptions struct {
 	Sew                            ExactSewOptions
 	Point                          geom.ExactCurveSegmentOptions
 	MaxPairTests, MaxDiscoveryWork int
+	// MultiSpan admits original model borders with interior knots when the
+	// interval endpoints have exact native model-curve parameters.
+	MultiSpan bool
 }
 
 // ExactSplineSewReport includes the polynomial work performed to discover
@@ -33,6 +36,7 @@ type ExactSplineSewReport struct {
 // two shared endpoint pairs using exact normalized rational curves. A shared
 // point or matching endpoints alone cannot authorize a split. The native
 // result retains the original supports and exact normalized source intervals.
+// MultiSpan allows comparisons across different original knot partitions.
 // The new UV and model endpoints must be exactly representable.
 func SewExactSplineSubdivisions(ctx context.Context, vertices []geom.Vec3, edges []parametric.Edge, faces []Face, o ExactSplineSewOptions) (Solid, ExactSplineSewReport, error) {
 	var empty ExactSplineSewReport
@@ -50,7 +54,7 @@ func SewExactSplineSubdivisions(ctx context.Context, vertices []geom.Vec3, edges
 	if err != nil {
 		return Solid{}, empty, err
 	}
-	owners, borders, err := splineSewBorders(ctx, source, settings.Curve)
+	owners, borders, err := splineSewBorders(ctx, source, settings.Curve, o.MultiSpan)
 	if err != nil {
 		return Solid{}, empty, err
 	}
@@ -75,12 +79,13 @@ type splineSewOwner struct {
 }
 
 type splineSewBorder struct {
-	edge     int
-	curve    *geom.ExactSplineCurve
-	reversed bool
-	ends     [2]geom.Vec3
-	bounds   [3][2]*big.Rat
-	preimage map[geom.Vec3]splineSewPreimage
+	edge      int
+	curve     *geom.ExactSplineCurve
+	reversed  bool
+	ends      [2]geom.Vec3
+	bounds    [3][2]*big.Rat
+	preimage  map[geom.Vec3]splineSewPreimage
+	multispan bool
 }
 
 type splineSewPreimage struct {
@@ -88,7 +93,7 @@ type splineSewPreimage struct {
 	unresolved bool
 }
 
-func splineSewBorders(ctx context.Context, s Solid, o geom.SurfacePatchOptions) ([]splineSewOwner, []splineSewBorder, error) {
+func splineSewBorders(ctx context.Context, s Solid, o geom.SurfacePatchOptions, multispan bool) ([]splineSewOwner, []splineSewBorder, error) {
 	owners := make([]splineSewOwner, len(s.edges))
 	for fi, f := range s.faces {
 		for _, loop := range append([][]Use{f.Outer}, f.Holes...) {
@@ -113,13 +118,25 @@ func splineSewBorders(ctx context.Context, s Solid, o geom.SurfacePatchOptions) 
 			return nil, nil, fmt.Errorf("trimmed: spline border %d: %w", i, err)
 		}
 		net, _, err := curve.BezierControlNet(ctx, o)
+		b := splineSewBorder{edge: i, curve: curve, reversed: rev, ends: ends, preimage: make(map[geom.Vec3]splineSewPreimage)}
 		if errors.Is(err, geom.ErrConvergence) {
+			if multispan {
+				box, e := curve.ProjectionBounds()
+				if e != nil {
+					return nil, nil, e
+				}
+				lower, upper := [3]float64{box.Min.X, box.Min.Y, box.Min.Z}, [3]float64{box.Max.X, box.Max.Y, box.Max.Z}
+				for axis := range b.bounds {
+					b.bounds[axis] = [2]*big.Rat{ratInset(lower[axis]), ratInset(upper[axis])}
+				}
+				b.multispan = true
+				borders = append(borders, b)
+			}
 			continue
 		}
 		if err != nil {
 			return nil, nil, err
 		}
-		b := splineSewBorder{edge: i, curve: curve, reversed: rev, ends: ends, preimage: make(map[geom.Vec3]splineSewPreimage)}
 		for _, h := range net.Control {
 			for axis := range b.bounds {
 				x := new(big.Rat).Quo(h[axis], h[3])
@@ -214,15 +231,31 @@ func (d *splineSewDiscovery) overlap(a, b *splineSewBorder) ([2][2]*big.Rat, err
 		return empty, nil
 	}
 	var parts [2]*geom.ExactSplineCurve
+	var reverse [2]bool
+	multi := a.multispan || b.multispan
 	for side, c := range [2]*splineSewBorder{a, b} {
-		left, right := anchors[0][side], anchors[1][side]
+		left, right := c.absolute(anchors[0][side]), c.absolute(anchors[1][side])
 		limit := d.remaining(d.curveOptions.MaxOperations)
 		if limit == 0 {
 			return empty, geom.ErrConvergence
 		}
-		part, err := c.curve.RationalSegment(d.ctx, c.absolute(left), c.absolute(right), geom.TubeAffineLineOptions{
-			MaxOperations: limit, MaxCoefficientBits: d.curveOptions.MaxCoefficientBits, MaxPoles: d.curveOptions.MaxPoles,
-		})
+		var part *geom.ExactSplineCurve
+		var err error
+		if multi {
+			l, le := left.Float64()
+			r, re := right.Float64()
+			if !le || !re {
+				return empty, geom.ErrUnrepresentable
+			}
+			options := d.curveOptions
+			options.MaxOperations = limit
+			reverse[side] = l > r
+			part, err = c.curve.Restrict(min(l, r), max(l, r), options)
+		} else {
+			part, err = c.curve.RationalSegment(d.ctx, left, right, geom.TubeAffineLineOptions{
+				MaxOperations: limit, MaxCoefficientBits: d.curveOptions.MaxCoefficientBits, MaxPoles: d.curveOptions.MaxPoles,
+			})
+		}
 		if err != nil {
 			return empty, err
 		}
@@ -234,7 +267,7 @@ func (d *splineSewDiscovery) overlap(a, b *splineSewBorder) ([2][2]*big.Rat, err
 		return empty, geom.ErrConvergence
 	}
 	check, err := geom.CompareExactCurvesContext(d.ctx, parts[0], parts[1], geom.ExactCurveComparisonOptions{
-		NormalizeDomains: true, MaxOperations: limit, MaxCoefficientBits: d.curveOptions.MaxCoefficientBits,
+		NormalizeDomains: true, ReverseB: reverse[0] != reverse[1], MaxOperations: limit, MaxCoefficientBits: d.curveOptions.MaxCoefficientBits,
 	})
 	if err != nil {
 		return empty, err
@@ -279,12 +312,22 @@ func (d *splineSewDiscovery) atPoint(b *splineSewBorder, p geom.Vec3) (splineSew
 	d.work += proof.Operations
 	result := splineSewPreimage{}
 	switch {
-	case !proof.Complete || len(proof.ConstantSpans) > 0 || len(proof.Roots) > 1:
+	case !proof.Complete || len(proof.ConstantSpans) > 0:
 		result.unresolved = true
-	case len(proof.Roots) == 1:
+	case len(proof.Roots) > 0:
 		if root := proof.Roots[0].Parameter; root != nil {
-			origin, end := b.domain()
-			result.t = new(big.Rat).Quo(new(big.Rat).Sub(root, origin), new(big.Rat).Sub(end, origin))
+			for _, other := range proof.Roots[1:] {
+				// A shared knot is reported by both incident spans.
+				// Distinct exact roots still make the preimage ambiguous.
+				if other.Parameter == nil || root.Cmp(other.Parameter) != 0 {
+					result.unresolved = true
+					break
+				}
+			}
+			if !result.unresolved {
+				origin, end := b.domain()
+				result.t = new(big.Rat).Quo(new(big.Rat).Sub(root, origin), new(big.Rat).Sub(end, origin))
+			}
 		} else {
 			result.unresolved = true
 		}
