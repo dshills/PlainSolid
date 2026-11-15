@@ -305,6 +305,10 @@ func (s mappedChainStepSpline) bezierControls() ([][4]*big.Rat, error) {
 	if len(s.poles) != s.degree+1 {
 		return nil, geom.ErrConvergence
 	}
+	return s.homogeneousControls(), nil
+}
+
+func (s mappedChainStepSpline) homogeneousControls() [][4]*big.Rat {
 	h := make([][4]*big.Rat, len(s.poles))
 	for i, p := range s.poles {
 		h[i] = [4]*big.Rat{new(big.Rat), new(big.Rat), new(big.Rat), s.weights[i]}
@@ -312,7 +316,36 @@ func (s mappedChainStepSpline) bezierControls() ([][4]*big.Rat, error) {
 			h[i][j].Mul(q, s.weights[i])
 		}
 	}
-	return h, nil
+	return h
+}
+
+// The original middle knot has degree multiplicity, so the two stored
+// Bézier nets meet at a single common pole. Keep the original exact ratio.
+func (s mappedChainStepSpline) exactTwoBezier(ctx context.Context, o geom.SurfacePatchOptions) ([2]*geom.ExactSplineCurve, *big.Rat, error) {
+	var pieces [2]*geom.ExactSplineCurve
+	d := s.degree
+	if len(s.poles) != 2*d+1 {
+		return pieces, nil, geom.ErrConvergence
+	}
+	lo, mid, hi := s.knots[0], s.knots[d+1], s.knots[len(s.knots)-1]
+	for _, k := range s.knots[d+1 : 2*d+1] {
+		if k.Cmp(mid) != 0 {
+			return pieces, nil, geom.ErrConvergence
+		}
+	}
+	if lo.Cmp(mid) >= 0 || mid.Cmp(hi) >= 0 {
+		return pieces, nil, geom.ErrConvergence
+	}
+	h := s.homogeneousControls()
+	for i := range pieces {
+		var err error
+		pieces[i], err = geom.NewExactHomogeneousBezier(ctx, h[i*d:i*d+d+1], o)
+		if err != nil {
+			return pieces, nil, err
+		}
+	}
+	join := new(big.Rat).Quo(new(big.Rat).Sub(mid, lo), new(big.Rat).Sub(hi, lo))
+	return pieces, join, nil
 }
 
 func (s mappedChainStepSpline) exactBezier(ctx context.Context, o geom.SurfacePatchOptions) (*geom.ExactSplineCurve, error) {
