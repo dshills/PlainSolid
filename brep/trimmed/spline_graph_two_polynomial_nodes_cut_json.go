@@ -66,19 +66,30 @@ func ReadTwoPolynomialNodeCutJSON(ctx context.Context, r io.Reader, limits JSONL
 }
 
 func writePolynomialNodeComponentsRecipe(ctx context.Context, w io.Writer, kind string, stock [3]*geom.BSplineSurface, axis int, tolerance float64, regions []int, contacts []TwoPolynomialNodeComponentContact) error {
-	if ctx == nil || w == nil || stock[0] == nil {
+	if w == nil {
 		return geom.ErrInvalid
+	}
+	recipe, e := makePolynomialNodeComponentsRecipe(ctx, kind, stock, axis, tolerance, regions, contacts)
+	if e != nil {
+		return e
+	}
+	return writePolynomialGraphRecipe(ctx, w, recipe)
+}
+
+func makePolynomialNodeComponentsRecipe(ctx context.Context, kind string, stock [3]*geom.BSplineSurface, axis int, tolerance float64, regions []int, contacts []TwoPolynomialNodeComponentContact) (polynomialNodeComponentsRecipe, error) {
+	if ctx == nil || stock[0] == nil {
+		return polynomialNodeComponentsRecipe{}, geom.ErrInvalid
 	}
 	sources, e := encodePolynomialGraphSupports(ctx, stock)
 	if e != nil {
-		return e
+		return polynomialNodeComponentsRecipe{}, e
 	}
 	recipe := polynomialNodeComponentsRecipe{Version: 1, Kind: kind, Sources: sources,
 		Axis: &axis, Tolerance: tolerance, Regions: regions}
 	for _, c := range contacts {
 		recipe.Contacts = append(recipe.Contacts, c.recipeContact())
 	}
-	return writePolynomialGraphRecipe(ctx, w, recipe)
+	return recipe, nil
 }
 
 func readPolynomialNodeComponentsRecipe(ctx context.Context, r io.Reader, limits JSONLimits, kind string, nodes int) (polynomialNodeComponentsRecipe, [3]*geom.BSplineSurface, error) {
@@ -86,17 +97,21 @@ func readPolynomialNodeComponentsRecipe(ctx context.Context, r io.Reader, limits
 	if e := readPolynomialGraphRecipe(ctx, r, limits, &recipe); e != nil {
 		return polynomialNodeComponentsRecipe{}, [3]*geom.BSplineSurface{}, e
 	}
+	sources, e := recipe.decodeSupports(ctx, limits, kind, nodes)
+	return recipe, sources, e
+}
+
+func (recipe polynomialNodeComponentsRecipe) decodeSupports(ctx context.Context, limits JSONLimits, kind string, nodes int) ([3]*geom.BSplineSurface, error) {
 	if recipe.Version != 1 || recipe.Kind != kind || len(recipe.Sources) != 3 || recipe.Axis == nil ||
 		len(recipe.Contacts) != nodes || (len(recipe.Regions) != 2 && len(recipe.Regions) != nodes+1) {
-		return polynomialNodeComponentsRecipe{}, [3]*geom.BSplineSurface{}, geom.ErrInvalid
+		return [3]*geom.BSplineSurface{}, geom.ErrInvalid
 	}
 	for _, c := range recipe.Contacts {
 		if len(c.Parameters) != 2 || len(c.Point) != 3 || len(c.Components) != 2 || len(c.Vertices) != 2 {
-			return polynomialNodeComponentsRecipe{}, [3]*geom.BSplineSurface{}, geom.ErrInvalid
+			return [3]*geom.BSplineSurface{}, geom.ErrInvalid
 		}
 	}
-	sources, e := decodePolynomialGraphSupports(ctx, recipe.Sources, limits.MaxControlPoints)
-	return recipe, sources, e
+	return decodePolynomialGraphSupports(ctx, recipe.Sources, limits.MaxControlPoints)
 }
 
 func (recipe polynomialNodeComponentsRecipe) verify(regions []int, contacts []TwoPolynomialNodeComponentContact, components []Solid, limits JSONLimits) error {

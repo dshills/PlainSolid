@@ -84,7 +84,7 @@ func CutSplineGraphThreePolynomialNodeComponents(ctx context.Context, base, a, b
 	if e != nil {
 		return nil, e
 	}
-	material, e := assemblePolynomialNodeCutComponents(ctx, a, b, tolerance, o.Proof, arrangement.Regions[:], arrangement.Nodes[:], arrangement.Vertices[:], xyz[:], loops)
+	material, e := assemblePolynomialNodeCutComponents(ctx, a, b, tolerance, o.Proof, arrangement.Regions[:], arrangement.Nodes[:], arrangement.Vertices[:], xyz[:], loops, nil)
 	if e != nil {
 		return nil, e
 	}
