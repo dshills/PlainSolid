@@ -100,6 +100,7 @@ func TestMappedChainRectangularSTEPThreeSupportKnots(t *testing.T) {
 		}
 	}
 	var replay bytes.Buffer
+	o.AllowIndependentOwnerBases = true
 	if err := WriteMappedChainRectangularShell(ctx, &replay, m.Shell, m.Name, m.LengthUnit, Limits{}, o); err != nil ||
 		!bytes.Equal(raw, replay.Bytes()) {
 		t.Fatal("reopened explicit wire must rewrite byte-identically", err)
@@ -198,6 +199,104 @@ func verifyIndependentlyAuthoredThreeKnots(t *testing.T, ctx context.Context, ra
 	}
 	m.Native = native
 	verifyThreeKnotMaterial(t, ctx, m)
+	transferred := verifyIndependentlyAuthoredThreeKnotExport(t, ctx, m, opened, o)
+	if exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP"); exe != "" {
+		verifyIndependentThreeKnotOCCTTransfer(t, ctx, exe, raw, transferred)
+	}
+}
+
+func verifyIndependentlyAuthoredThreeKnotExport(t *testing.T, ctx context.Context, original MappedChainSTEPModel, shell trimmed.MappedSplineChainShell, o MappedChainShellSTEPOptions) []byte {
+	t.Helper()
+	var encoded bytes.Buffer
+	if err := WriteMappedChainRectangularShell(ctx, &encoded, shell, original.Name, original.LengthUnit, Limits{}, o); err == nil || encoded.Len() != 0 {
+		t.Fatal("per-edge basis export must be explicitly enabled", err)
+	}
+	o.AllowIndependentOwnerBases = true
+	if err := WriteMappedChainRectangularShell(ctx, &encoded, shell, original.Name, original.LengthUnit, Limits{}, o); err != nil {
+		t.Fatal(err)
+	}
+	raw := encoded.Bytes()
+	m, err := ReadMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	verifyThreeKnotMaterial(t, ctx, m)
+	if m.Shell.IndependentOwnerBases() != [2]bool{true, true} || len(m.Chain) != 6 || len(m.Crossings) != 0 || len(m.Planes) != 0 {
+		t.Fatal("strict STEP reopen must retain all independently authored roof coedges")
+	}
+	want, got := original.Native.Solid.Faces(), m.Native.Solid.Faces()
+	f, err := Parse(bytes.NewReader(raw), Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := make(map[int64]bool)
+	for i, cell := range m.Chain {
+		if m.Native.ChainStations[i].Cmp(original.Native.ChainStations[i]) != 0 {
+			t.Fatal("changed normalized source station", i)
+		}
+		model, err := readMappedChainStepSpline(f, cell.ModelCurveID, 3, 16, 17, false)
+		if err != nil || model.knots[0].Cmp(big.NewRat(int64(i), 1)) != 0 ||
+			model.knots[len(model.knots)-1].Cmp(big.NewRat(int64(i+1), 1)) != 0 {
+			t.Fatal("the nondecimal normalized stations require the exact integer STEP scale", i, err)
+		}
+		for owner, use := range cell.Owners {
+			if use.TrimmedCurveID == 0 || seen[use.BasisID] {
+				t.Fatal("each exported coedge must reference its own whole original basis", i, owner)
+			}
+			seen[use.BasisID] = true
+			a := want[owner].Outer[i].Curve.(trimmed.MappedSplineUV)
+			b := got[owner].Outer[i].Curve.(trimmed.MappedSplineUV)
+			p, q := a.Source(), b.Source()
+			if p.Range != q.Range || p.Reversed != q.Reversed || p.ExactEndpoints != q.ExactEndpoints || p.Curve.Degree() != q.Curve.Degree() ||
+				!slices.Equal(p.Curve.Poles(), q.Curve.Poles()) || !slices.Equal(p.Curve.Weights(), q.Curve.Weights()) ||
+				!slices.Equal(p.Curve.Knots(), q.Curve.Knots()) || a.ParameterWeight().Cmp(b.ParameterWeight()) != 0 {
+				t.Fatal("export or strict reopen changed the original source basis, interval, sense or map", i, owner)
+			}
+		}
+	}
+	for owner := range 2 {
+		if !geom.SameSplineSurface(want[owner].Surface.(*geom.BSplineSurface), got[owner].Surface.(*geom.BSplineSurface)) {
+			t.Fatal("the re-export must retain the original multi-span support chart", owner)
+		}
+	}
+	var replay bytes.Buffer
+	if err := WriteMappedChainRectangularShell(ctx, &replay, m.Shell, m.Name, m.LengthUnit, Limits{}, o); err != nil || !bytes.Equal(raw, replay.Bytes()) {
+		t.Fatal("the independent source form must rewrite byte-identically", err)
+	}
+	o.AllowIndependentOwnerBases = false
+	if rejected, err := ReadMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, o); err == nil || len(rejected.Native.ChainEdges) != 0 {
+		t.Fatal("strict read must retain the whole-basis default", err)
+	}
+	return raw
+}
+
+func verifyIndependentThreeKnotOCCTTransfer(t *testing.T, ctx context.Context, exe string, original, exported []byte) {
+	t.Helper()
+	type props struct {
+		Volume, Area  float64
+		Faces, Solids int
+	}
+	var previous props
+	for i, raw := range [][]byte{original, exported} {
+		path := filepath.Join(t.TempDir(), "independent-basis-shell.step")
+		if err := os.WriteFile(path, raw, 0600); err != nil {
+			t.Fatal(err)
+		}
+		data, err := exec.CommandContext(ctx, exe, "read", path).CombinedOutput()
+		if err != nil {
+			t.Fatalf("pinned OCCT readback %d: %v\n%s", i, err, data)
+		}
+		var p props
+		if err := json.Unmarshal(data, &p); err != nil {
+			t.Fatal(err)
+		}
+		if p.Solids != 1 || p.Faces != 7 || math.Abs(p.Volume-mappedChainThreeVolume) > 1e-8 || math.Abs(p.Area-mappedChainThreeArea) > 1e-8 ||
+			i > 0 && (math.Abs(p.Volume-previous.Volume) > 1e-10 || math.Abs(p.Area-previous.Area) > 1e-10) {
+			t.Fatal("pinned OCCT must recover matching original and re-exported material", i, p, previous)
+		}
+		previous = p
+		t.Logf("OCCT readback %d volume %.15g, area %.15g", i, p.Volume, p.Area)
+	}
 }
 
 func TestOCCTMappedChainRectangularThreeSupportKnotsRecorded(t *testing.T) {
@@ -206,6 +305,58 @@ func TestOCCTMappedChainRectangularThreeSupportKnotsRecorded(t *testing.T) {
 		t.Fatal(err)
 	}
 	verifyIndependentlyAuthoredThreeKnots(t, context.Background(), raw)
+}
+
+func TestMappedChainRectangularSTEPRejectsInvalidIndependentBasisGraph(t *testing.T) {
+	ctx := context.Background()
+	raw, err := os.ReadFile("testdata/occt_mapped_chain_three_crossings.step")
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := MappedChainShellSTEPOptions{AllowMultiSpanRoofs: true, AllowTwoInteriorRoofKnots: true, AllowIndependentOwnerBases: true}
+	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b bytes.Buffer
+	if err := WriteMappedChainRectangularShell(ctx, &b, m.Shell, m.Name, m.LengthUnit, Limits{}, o); err != nil {
+		t.Fatal(err)
+	}
+	c, err := ReadMappedChainRectangularShell(ctx, bytes.NewReader(b.Bytes()), Limits{}, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		name string
+		edit func(*File)
+	}{
+		{"noninteger model station with identical geometry", func(f *File) {
+			for i, cell := range c.Chain[:2] {
+				model := f.Entities[cell.ModelCurveID].Records[0]
+				model.Args[7].Items[1-i].Text = "1.5"
+			}
+		}},
+		{"partial raw basis", func(f *File) {
+			trim := f.Entities[c.Chain[0].Owners[0].TrimmedCurveID].Records[0]
+			trim.Args[3].Items[0].Items[0].Text = "0.5"
+		}},
+		{"borrowed owner basis", func(f *File) {
+			trim := f.Entities[c.Chain[0].Owners[0].TrimmedCurveID].Records[0]
+			trim.Args[1].Ref = c.Chain[1].Owners[0].BasisID
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			f, err := Parse(bytes.NewReader(b.Bytes()), Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			test.edit(f)
+			bad, err := ReadMappedChainRectangularShell(ctx, bytes.NewReader(serializeWrappedProofFile(f)), Limits{}, o)
+			if err == nil || len(bad.Chain) != 0 || len(bad.Native.Solid.Edges()) != 0 {
+				t.Fatal("a malformed per-edge basis graph must leave no partial result", err)
+			}
+		})
+	}
 }
 
 func TestOCCTMappedChainRectangularThreeSupportKnotsLive(t *testing.T) {

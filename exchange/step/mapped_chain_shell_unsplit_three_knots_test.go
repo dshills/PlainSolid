@@ -238,6 +238,7 @@ func TestOCCTMappedChainRectangularUnsplitThreeSupportKnotsPreservesEarlierModes
 	_, o := unsplitThreeKnotFixture(t)
 	o.AllowAsynchronousSupportKnots = true
 	o.AllowMixedSupportKnots = true
+	o.AllowIndependentOwnerBases = true
 	for i, path := range []string{unsplitTwoKnotPath, unsplitAsynchronousPath, unsplitMixedKnotPath} {
 		raw, err := os.ReadFile(path)
 		if err != nil {

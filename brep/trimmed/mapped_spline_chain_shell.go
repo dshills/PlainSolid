@@ -152,6 +152,12 @@ type MappedSplineChainShell struct {
 // Topology returns the exact original shell's certified incidence counts.
 func (r MappedSplineChainShell) Topology() MappedChainShellTopology { return r.topology }
 
+// IndependentOwnerBases reports which roofs use a separate original spline
+// for each authored coedge. The order is the source roof order.
+func (r MappedSplineChainShell) IndependentOwnerBases() [2]bool {
+	return [2]bool{r.boundary.sources[0].independent, r.boundary.sources[1].independent}
+}
+
 // CertifyMappedSplineChainShell proves the original UV disks, affine closing
 // supports, continuous agreement of every oriented coedge pair, and closure
 // and connectivity of their source topology. Corner equivalence is inferred
