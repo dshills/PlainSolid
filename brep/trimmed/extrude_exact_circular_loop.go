@@ -36,7 +36,7 @@ type ExactCircularLoopOptions struct {
 // every continuous coedge are certified. The finished closed boundary retains
 // original analytic arcs even when their middle controls cannot fit binary64.
 func ExtrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegment, height float64, o ExactCircularLoopOptions) (Solid, error) {
-	return extrudeExactCircularLoop(ctx, input, [2]float64{min(height, 0), max(height, 0)}, false, o)
+	return extrudeExactCircularLoops(ctx, input, nil, [2]float64{min(height, 0), max(height, 0)}, false, o)
 }
 
 // ExtrudeExactDirectedCircularLoop validates and sweeps a CCW profile whose
@@ -44,54 +44,82 @@ func ExtrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegm
 // Exact endpoint radii and cross products determine the minor-arc direction.
 // Both original model-space cap elevations are retained.
 func ExtrudeExactDirectedCircularLoop(ctx context.Context, input []ExactCircularLoopSegment, zMin, zMax float64, o ExactCircularLoopOptions) (Solid, error) {
-	return extrudeExactCircularLoop(ctx, input, [2]float64{zMin, zMax}, true, o)
+	return extrudeExactCircularLoops(ctx, input, nil, [2]float64{zMin, zMax}, true, o)
 }
 
-func extrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegment, z [2]float64, directed bool, o ExactCircularLoopOptions) (Solid, error) {
+// ExtrudeExactDirectedCircularLoops sweeps a CCW outer wire and clockwise
+// inner wires. Each source segment retains its exact minor-arc or line chart
+// and original cap/side incidence. Inner wires must be strictly separate and
+// contained; nesting and contact between wires are rejected.
+func ExtrudeExactDirectedCircularLoops(ctx context.Context, outer []ExactCircularLoopSegment, holes [][]ExactCircularLoopSegment, zMin, zMax float64, o ExactCircularLoopOptions) (Solid, error) {
+	return extrudeExactCircularLoops(ctx, outer, holes, [2]float64{zMin, zMax}, true, o)
+}
+
+func extrudeExactCircularLoops(ctx context.Context, outer []ExactCircularLoopSegment, holes [][]ExactCircularLoopSegment, z [2]float64, directed bool, o ExactCircularLoopOptions) (Solid, error) {
 	if o.DisplayTolerance == 0 {
 		o.DisplayTolerance = 1e-8
 	}
-	if ctx == nil || len(input) < 3 || len(input) > 64 || !finite(z[0]) || !finite(z[1]) || z[0] >= z[1] || !finite(z[1]-z[0]) ||
+	if ctx == nil || len(outer) < 3 || len(outer) > 64 || len(holes) > 20 || !finite(z[0]) || !finite(z[1]) || z[0] >= z[1] || !finite(z[1]-z[0]) ||
 		!finite(o.DisplayTolerance) || o.DisplayTolerance <= 0 {
 		return Solid{}, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
 		return Solid{}, err
 	}
-	loops := make([][][3]*big.Rat, len(input))
-	box := [2]geom.Vec2{{X: math.Inf(1), Y: math.Inf(1)}, {X: math.Inf(-1), Y: math.Inf(-1)}}
-	for i, segment := range input {
-		if err := ctx.Err(); err != nil {
-			return Solid{}, err
-		}
-		if segment.End != input[(i+1)%len(input)].Start || segment.Start == segment.End ||
-			!uvFinite(segment.Start) || !uvFinite(segment.End) || !uvFinite(segment.Center) || !finite(segment.Radius) || segment.Radius < 0 {
+	rings := append([][]ExactCircularLoopSegment{outer}, holes...)
+	n := len(outer)
+	for _, h := range holes {
+		if len(h) < 3 || len(h) > 64-n {
 			return Solid{}, geom.ErrInvalid
 		}
-		controls, err := exactCircularLoopControls(segment, directed)
-		if err != nil {
-			return Solid{}, err
+		n += len(h)
+	}
+	loops := make([][][3]*big.Rat, 0, n)
+	input := make([]ExactCircularLoopSegment, 0, n)
+	nextIndex, owner := make([]int, 0, n), make([]int, 0, n)
+	emptyBox := [2]geom.Vec2{{X: math.Inf(1), Y: math.Inf(1)}, {X: math.Inf(-1), Y: math.Inf(-1)}}
+	box := emptyBox
+	grow := func(b *[2]geom.Vec2, axis int, lo, hi float64) {
+		if axis == 0 {
+			b[0].X, b[1].X = min(b[0].X, lo), max(b[1].X, hi)
+		} else {
+			b[0].Y, b[1].Y = min(b[0].Y, lo), max(b[1].Y, hi)
 		}
-		loops[i] = controls
-		for _, p := range controls {
-			for axis := 0; axis < 2; axis++ {
-				x, exact := new(big.Rat).Quo(p[axis], p[2]).Float64()
-				if !finite(x) {
-					return Solid{}, geom.ErrUnrepresentable
-				}
-				lo, hi := x, x
-				if !exact {
-					lo, hi = math.Nextafter(x, math.Inf(-1)), math.Nextafter(x, math.Inf(1))
-				}
-				if axis == 0 {
-					box[0].X, box[1].X = min(box[0].X, lo), max(box[1].X, hi)
-				} else {
-					box[0].Y, box[1].Y = min(box[0].Y, lo), max(box[1].Y, hi)
+	}
+	for wire, ring := range rings {
+		base := len(input)
+		for i, segment := range ring {
+			if err := ctx.Err(); err != nil {
+				return Solid{}, err
+			}
+			next := (i + 1) % len(ring)
+			if segment.End != ring[next].Start || segment.Start == segment.End ||
+				!uvFinite(segment.Start) || !uvFinite(segment.End) || !uvFinite(segment.Center) || !finite(segment.Radius) || segment.Radius < 0 {
+				return Solid{}, geom.ErrInvalid
+			}
+			controls, err := exactCircularLoopControls(segment, directed)
+			if err != nil {
+				return Solid{}, err
+			}
+			loops = append(loops, controls)
+			input = append(input, segment)
+			nextIndex = append(nextIndex, base+next)
+			owner = append(owner, wire)
+			for _, p := range controls {
+				for axis := 0; axis < 2; axis++ {
+					x, exact := new(big.Rat).Quo(p[axis], p[2]).Float64()
+					if !finite(x) {
+						return Solid{}, geom.ErrUnrepresentable
+					}
+					lo, hi := x, x
+					if !exact {
+						lo, hi = math.Nextafter(x, math.Inf(-1)), math.Nextafter(x, math.Inf(1))
+					}
+					grow(&box, axis, lo, hi)
 				}
 			}
 		}
 	}
-	n := len(input)
 	faces := make([]Face, n+2)
 	vertices := make([]geom.Vec3, 2*n)
 	for j, h := range z {
@@ -104,6 +132,9 @@ func extrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegm
 			return Solid{}, err
 		}
 		faces[j] = Face{Surface: surface, Reversed: j == 0}
+		if len(holes) > 0 {
+			faces[j].Holes = make([][]Use, len(holes))
+		}
 		for i, edge := range input {
 			vertices[j*n+i] = geom.Vec3{X: edge.Start.X, Y: edge.Start.Y, Z: h}
 		}
@@ -111,7 +142,7 @@ func extrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegm
 	edges := make([]parametric.Edge, 3*n)
 	chart := [4]geom.Vec2{{}, {X: 1}, {X: 1, Y: 1}, {Y: 1}}
 	for i, controls := range loops {
-		next := (i + 1) % n
+		next := nextIndex[i]
 		net := make([][4]*big.Rat, 0, 2*len(controls))
 		for _, h := range controls {
 			for _, level := range z {
@@ -144,33 +175,27 @@ func extrudeExactCircularLoop(ctx context.Context, input []ExactCircularLoopSegm
 			}
 		}
 		for j := range z {
-			faces[j].Outer = append(faces[j].Outer, Use{Edge: j*n + i, UVStart: input[i].Start, UVEnd: input[i].End, Curve: curve})
+			u := Use{Edge: j*n + i, UVStart: input[i].Start, UVEnd: input[i].End, Curve: curve}
+			if wire := owner[i]; wire == 0 {
+				faces[j].Outer = append(faces[j].Outer, u)
+			} else {
+				faces[j].Holes[wire-1] = append(faces[j].Holes[wire-1], u)
+			}
 		}
 	}
-	for i, cap := range faces[:2] {
-		var certificate *trimvalidate.CertifiedLoops
-		var retain **trimvalidate.CertifiedLoops
-		if directed && i == 0 {
-			retain = &certificate
-		}
-		proof, err := proveFaceTrimLoops(ctx, cap, o.Trims, retain, nil, nil)
+	for _, cap := range faces[:2] {
+		proof, err := ValidateFaceTrimLoops(ctx, cap, o.Trims)
 		if err != nil {
 			return Solid{}, err
 		}
+		// The exact cap validator checks each ring's prescribed winding,
+		// independent self-intersection, separation, and strict containment.
 		if proof.Status != trimvalidate.Certified {
-			return Solid{}, fmt.Errorf("trimmed: unresolved exact circular cap loops: %w", geom.ErrConvergence)
-		}
-		if retain != nil {
-			dx := new(big.Rat).Sub(ratInset(box[1].X), ratInset(box[0].X))
-			dy := new(big.Rat).Sub(ratInset(box[1].Y), ratInset(box[0].Y))
-			width := new(big.Rat).Mul(new(big.Rat).Mul(dx, dy), big.NewRat(1, 128))
-			area, err := certificate.BoundSignedArea(ctx, width)
-			if err != nil {
-				return Solid{}, err
+			cause := geom.ErrConvergence
+			if directed && proof.Status == trimvalidate.Invalid {
+				cause = geom.ErrInvalid
 			}
-			if area.Lower.Sign() <= 0 {
-				return Solid{}, fmt.Errorf("trimmed: directed circular profile must have certified positive orientation: %w", geom.ErrInvalid)
-			}
+			return Solid{}, fmt.Errorf("trimmed: unproved circular cap loops (%s): %w", proof.Reason, cause)
 		}
 	}
 	out, err := NewSolidContext(ctx, vertices, edges, faces, o.DisplayTolerance)
