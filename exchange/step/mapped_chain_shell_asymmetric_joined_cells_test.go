@@ -12,11 +12,11 @@ import (
 )
 
 func TestOCCTMappedChainRectangularAsymmetricJoinedIndependentRoofs(t *testing.T) {
-	verifyThreeJoinedRoofSource(t, context.Background(), readInferredSharedMappedChainFixture(t, asymmetricJoinedRoofPath), true)
+	verifyThreeJoinedRoofSource(t, context.Background(), readInferredSharedMappedChainFixture(t, asymmetricJoinedRoofPath), threeJoinedAsymmetric)
 }
 
 func TestOCCTMappedChainRectangularAsymmetricJoinedIndependentRoofsClosedDisplay(t *testing.T) {
-	verifyThreeJoinedRoofDisplay(t, readInferredSharedMappedChainFixture(t, asymmetricJoinedRoofPath))
+	verifyThreeJoinedRoofDisplay(t, readInferredSharedMappedChainFixture(t, asymmetricJoinedRoofPath), 3, .14)
 }
 
 func TestOCCTMappedChainRectangularAsymmetricJoinedIndependentRoofsRejectsMissingJoint(t *testing.T) {
@@ -32,7 +32,7 @@ func rejectAsymmetricJoinedRoofMissingJoint(t *testing.T, ctx context.Context, r
 	if !errors.Is(err, geom.ErrConvergence) || len(got.Native.ChainEdges) != 0 || len(got.SupportJoints) != 0 || len(got.Crossings) != 0 {
 		t.Fatal("the independently moved south support knot must reject atomically", err)
 	}
-	rejectChangedJoinedRationalNativeSupportWithOptions(t, ctx, raw, bad, o, "support knot must belong")
+	rejectChangedJoinedRationalNativeSupportWithOptions(t, ctx, raw, bad, o, false, "support knot must belong")
 }
 
 func TestOCCTMappedChainRectangularAsymmetricJoinedIndependentRoofsRejectsFalseMasks(t *testing.T) {
@@ -79,5 +79,5 @@ func TestOCCTMappedChainRectangularAsymmetricJoinedIndependentRoofsRejectsFalseM
 }
 
 func TestOCCTMappedChainRectangularAsymmetricJoinedIndependentRoofsLive(t *testing.T) {
-	verifyPinnedThreeJoinedRoofs(t, true)
+	verifyPinnedThreeJoinedRoofs(t, threeJoinedAsymmetric)
 }

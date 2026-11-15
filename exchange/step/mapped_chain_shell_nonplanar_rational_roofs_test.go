@@ -88,6 +88,16 @@ func verifyRationalRoofSection(t *testing.T, ctx context.Context, tc rationalRoo
 
 func verifyOriginalRationalRoofSurfaces(t *testing.T, source, strict MappedChainSTEPModel, mirroredSouth bool) {
 	t.Helper()
+	north := []int64{1, 1, 2, 4}
+	south := north
+	if mirroredSouth {
+		south = []int64{4, 2, 1, 1}
+	}
+	verifyOriginalRationalRoofSurfaceProfiles(t, source, strict, north, south)
+}
+
+func verifyOriginalRationalRoofSurfaceProfiles(t *testing.T, source, strict MappedChainSTEPModel, northWeights, southWeights []int64) {
+	t.Helper()
 	a, err := Parse(bytes.NewBufferString(source.OriginalSTEP()), Limits{})
 	if err != nil {
 		t.Fatal(err)
@@ -101,9 +111,9 @@ func verifyOriginalRationalRoofSurfaces(t *testing.T, source, strict MappedChain
 		j := rationalRoofSupportID(t, b, strict.FaceIDs[owner])
 		weights, _ := component(a.Entities[i], "RATIONAL_B_SPLINE_SURFACE")
 		north := source.Shell.IndependentOwnerBases()[owner]
-		profile := [4]int64{1, 1, 2, 4}
-		if mirroredSouth && !north {
-			profile = [4]int64{4, 2, 1, 1}
+		profile := southWeights
+		if north {
+			profile = northWeights
 		}
 		for row, values := range weights.Args[0].Items {
 			for col, value := range values.Items {
@@ -117,19 +127,19 @@ func verifyOriginalRationalRoofSurfaces(t *testing.T, source, strict MappedChain
 				}
 			}
 		}
-		before, err := DecodeBSplineSurface(a, i, 81)
+		before, err := decodeMappedChainStepSurface(a, i, 4)
 		if err != nil {
 			t.Fatal(err)
 		}
-		after, err := DecodeBSplineSurface(b, j, 81)
+		after, err := decodeMappedChainStepSurface(b, j, 4)
 		if err != nil {
 			t.Fatal(err)
 		}
-		want, err := parametric.EncodeSurface(before.Geometry)
+		want, err := parametric.EncodeSurface(before)
 		if err != nil {
 			t.Fatal(err)
 		}
-		got, err := parametric.EncodeSurface(after.Geometry)
+		got, err := parametric.EncodeSurface(after)
 		if err != nil || !bytes.Equal(want, got) {
 			t.Fatal("strict STEP must retain every original rational support coefficient and knot", owner, err)
 		}
