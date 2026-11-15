@@ -41,6 +41,7 @@ type SplineGraphBooleanHistory struct {
 	Parabola                             *geom.SplineGraphParabola
 	PiecewiseParabola                    *geom.PiecewiseSplineGraphParabola
 	Polynomial                           *geom.SplineGraphPolynomialContact
+	FactoredPolynomial                   *geom.SplineGraphFactoredPolynomialContact
 	ContactPartition                     *geom.SplineGraphContactPartition
 	CoincidentFaces                      []int
 	PartitionFaceByCell                  []int // original knot cell to retained top face (envelopes)

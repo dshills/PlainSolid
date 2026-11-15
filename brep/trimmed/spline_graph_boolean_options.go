@@ -24,6 +24,9 @@ type SplineGraphBooleanOptions struct {
 	// Polynomial selects a genuine cubic/quartic original graph.
 	Polynomial     *geom.GraphPointContactOptions
 	PolynomialAxis int
+	// FactoredPolynomial proves a strictly signed nonconstant free-coordinate factor.
+	FactoredPolynomial     *geom.GraphPointContactOptions
+	FactoredPolynomialAxis int
 }
 
 // CombineSplineGraphSolidsWithOptions is the opt-in normal common-base graph
@@ -32,7 +35,7 @@ type SplineGraphBooleanOptions struct {
 // requirements as CombineSplineGraphSolids. These options recognize only
 // their complete original chart domains documented by the geometry APIs.
 func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.BSplineSurface, op parametric.BooleanOp, tolerance float64, o SplineGraphBooleanOptions) (Solid, SplineGraphBooleanHistory, error) {
-	if o.DisjointEllipses == nil && o.ThreeEllipses == nil && o.Parabola == nil && o.PiecewiseParabola == nil && o.Polynomial == nil {
+	if o.DisjointEllipses == nil && o.ThreeEllipses == nil && o.Parabola == nil && o.PiecewiseParabola == nil && o.Polynomial == nil && o.FactoredPolynomial == nil {
 		return CombineSplineGraphSolids(ctx, base, a, b, op, tolerance, o.Section)
 	}
 	fail := func(e error) (Solid, SplineGraphBooleanHistory, error) {
@@ -54,6 +57,9 @@ func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.B
 	if o.Polynomial != nil {
 		selected++
 	}
+	if o.FactoredPolynomial != nil {
+		selected++
+	}
 	if selected > 1 {
 		return fail(geom.ErrInvalid)
 	}
@@ -66,6 +72,13 @@ func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.B
 	patches, e := prepareSharedBaseGraphContact(ctx, base, a, b, o.Section)
 	if e != nil {
 		return fail(e)
+	}
+	if o.FactoredPolynomial != nil {
+		section, e := geom.DiscoverSplineGraphFactoredPolynomialContact(ctx, patches[0], patches[1], o.FactoredPolynomialAxis, *o.FactoredPolynomial)
+		if e != nil {
+			return fail(e)
+		}
+		return assembleFactoredPolynomialGraphContact(ctx, base, a, b, op, tolerance, section, *o.FactoredPolynomial)
 	}
 	if o.Polynomial != nil {
 		section, e := geom.DiscoverSplineGraphPolynomialContact(ctx, patches[0], patches[1], o.PolynomialAxis, *o.Polynomial)
