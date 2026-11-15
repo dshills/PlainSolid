@@ -3,7 +3,7 @@ import type { KernelShape } from "./KernelAdapter";
 import type { NativeStepExport } from "./nativeStep";
 
 export type StepRepairProbeRequest = { source: string; units?: StepSourceUnit } & (
-  { operation: "repair"; otherSource?: string }
+  { operation: "repair"; otherSource?: string; linearDeflection: number }
   | { operation: "reopen"; receipt: { certificate: string; fromWasm: ArrayBuffer } }
 );
 
@@ -98,7 +98,7 @@ async function runProbe(request: StepRepairProbeRequest) {
     if (!certificateFromWire) throw new Error("Missing the native certificate in the Go WASM response");
     const certificateFromWasm = new TextEncoder().encode(certificateFromWire).buffer;
     const millimetres = units === "m" ? 1000 : units === "in" ? 25.4 : 1;
-    const mesh = kernel.tessellate(shape, { linearDeflection: .025 * millimetres, angularDeflection: .2, analyticNormals: true });
+    const mesh = kernel.tessellate(shape, { linearDeflection: request.linearDeflection, angularDeflection: .2, analyticNormals: true });
     const { min, max } = mesh.bounds;
     const margin = 1e-12 * millimetres;
     const positionsInWorldBounds = Array.from(mesh.positions).every((value, i) => value >= min[i % 3] - margin && value <= max[i % 3] + margin);

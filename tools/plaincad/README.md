@@ -82,12 +82,16 @@ The cases cover signed and rationally tilted placements, source proof transport,
 world meshes, and strict canonical STEP reimport and re-export. The source-unit
 cases also qualify model retention and millimetre display for single and
 grouped repairs in metres and inches.
+The case exported by OCCT from millimetres into metres also checks the exact
+planar parameter scales and cylindrical span coefficients in the native
+receipt. Its world mesh uses PlainCAD's ordinary 0.5 mm linear deflection.
 
 Use `--suite development --step-repair-worker-fixture` to run the focused
 Chromium check with the pinned app's Playwright and Vite configuration. The
 disposable app stages a test page and a dedicated module worker that imports
 the concrete adapter. It covers translated single-fillet inputs in all three
-units and tilted grouped inputs in metres and inches. The test compares the
+units, the original millimetre-to-metre OCCT export, and tilted grouped inputs
+in metres and inches. The test compares the
 certificate text with the original bytes returned by Go WASM. A fresh worker
 receives that certificate, derives
 the identical native receipt from its original source, and strictly reopens

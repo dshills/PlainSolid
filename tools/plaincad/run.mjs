@@ -126,7 +126,7 @@ export default defineConfig({ ...base, test: {
     for (const name of ["occt-default-two-fillets-minus-x", "occt-default-tilted-translated-oblique-prism-fillet",
       "occt-both-default-tilted-oblique-prism-fillet", "occt-default-tilted-translated-oblique-prism-fillet-metre",
       "occt-default-tilted-translated-oblique-prism-fillet-inch", "occt-both-default-tilted-oblique-prism-fillet-metre",
-      "occt-both-default-tilted-oblique-prism-fillet-inch"]) {
+      "occt-both-default-tilted-oblique-prism-fillet-inch", "occt-default-tilted-translated-oblique-prism-fillet-converted-metre"]) {
       const source = `exchange/step/testdata/${name}.step`;
       const input = await readFile(join(root, source));
       await writeFile(join(work, directory, `${name}.step`), input, { flag: "wx" });
@@ -183,6 +183,7 @@ async function runSTEPRepairWorkerFixture() {
     "exchange/step/testdata/occt-default-tilted-translated-oblique-prism-fillet-inch.step": "public/plainsolid-step-repair-inch.step",
     "exchange/step/testdata/occt-both-default-tilted-oblique-prism-fillet-metre.step": "public/plainsolid-grouped-step-repair-metre.step",
     "exchange/step/testdata/occt-both-default-tilted-oblique-prism-fillet-inch.step": "public/plainsolid-grouped-step-repair-inch.step",
+    "exchange/step/testdata/occt-default-tilted-translated-oblique-prism-fillet-converted-metre.step": "public/plainsolid-converted-step-repair-metre.step",
   };
   const sourceHashes = {};
   for (const [source, target] of Object.entries(sourceFiles)) {
@@ -206,7 +207,7 @@ async function runSTEPRepairWorkerFixture() {
     report.tests = browserTests(result.suites);
     report.summaries = [{ path, ...result.stats }];
     const count = report.tests.length;
-    report.backendVerified = count > 0 && (grep !== ".*" || count === 5) && report.tests.every(test =>
+    report.backendVerified = count > 0 && (grep !== ".*" || count === 6) && report.tests.every(test =>
       test.status === "expected" && test.results.length === 1 && test.results[0].status === "passed");
   } catch (error) { report.error ??= `Cannot read the STEP repair worker result: ${error}`; }
   report.status = !report.error && report.backendVerified ? "passed" : "failed";

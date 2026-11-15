@@ -9,6 +9,7 @@ const fixtures = [
   { name: "inch", path: "/plainsolid-step-repair-inch.step", units: "in", otherPath: "/plainsolid-step-repair-metre.step", scale: 25.4, metresPerUnit: .0254, grouped: false },
   { name: "grouped metre", path: "/plainsolid-grouped-step-repair-metre.step", units: "m", otherPath: "/plainsolid-grouped-step-repair-inch.step", scale: 1000, metresPerUnit: 1, grouped: true },
   { name: "grouped inch", path: "/plainsolid-grouped-step-repair-inch.step", units: "in", otherPath: "/plainsolid-grouped-step-repair-metre.step", scale: 25.4, metresPerUnit: .0254, grouped: true },
+  { name: "converted metre", path: "/plainsolid-converted-step-repair-metre.step", units: "m", otherPath: "/plainsolid-step-repair-inch.step", scale: 1000, metresPerUnit: 1, grouped: false, converted: true },
 ] as const;
 const sha256 = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
 
@@ -24,7 +25,8 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
     if (/opencascade.*\.(?:wasm|js)/i.test(request.url())) occtRequests.push(request.url());
   });
   await page.goto("/plainsolid-step-repair-worker.html");
-  const result = await page.evaluate(async ({ path, units, otherPath }) => {
+  const linearDeflection = "converted" in fixture ? .5 : .025 * fixture.scale;
+  const result = await page.evaluate(async ({ path, units, otherPath, linearDeflection }) => {
     function ask(request: StepRepairProbeRequest, transfer: ArrayBuffer[] = []): Promise<StepRepairProbeReply> {
       const worker = new Worker("/src/cad/kernel/plainSolidStepRepairProbe.ts", { type: "module" });
       return new Promise((resolve, reject) => {
@@ -41,7 +43,7 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
     }
     const source = await sourceAt(path);
     const otherSource = otherPath ? await sourceAt(otherPath) : undefined;
-    const repair = await ask({ operation: "repair", source, units, otherSource });
+    const repair = await ask({ operation: "repair", source, units, otherSource, linearDeflection });
     if (!repair.ok) throw new Error(repair.error);
     if (!repair.repair || !repair.evidence?.nativeProofJSON) throw new Error("Missing the repaired worker reply");
     const fromWasm = repair.repair.certificateFromWasm;
@@ -71,7 +73,7 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
       canonical: Array.from(new Uint8Array(repair.canonical)),
       canonicalReopened: Array.from(new Uint8Array(strict.canonical)),
     };
-  }, { path: fixture.path, units: fixture.units, otherPath: fixture.otherPath });
+  }, { path: fixture.path, units: fixture.units, otherPath: fixture.otherPath, linearDeflection });
 
   expect(workers).toHaveLength(2);
   expect(wasmLoads.length).toBeGreaterThan(0);
@@ -106,6 +108,22 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
     expect(certificate.Claims.Grouped.FiniteTrims).toHaveLength(groupedOwners.finiteTrims);
     expect(certificate.Claims.Grouped.AxialTrims).toHaveLength(groupedOwners.axialTrims);
   }
+  const convertedOwners = "converted" in fixture ? { finiteLineOwners: 18, cylindricalSpanOwners: 4 } : undefined;
+  if (convertedOwners) {
+    expect(result.repairEvidence.finiteLineOwners).toBe(convertedOwners.finiteLineOwners);
+    expect(result.repairEvidence.repairs).toHaveLength(3);
+    expect(certificate.Claims.FiniteLineOwners).toHaveLength(convertedOwners.finiteLineOwners);
+    for (const owner of certificate.Claims.FiniteLineOwners) expect(owner.PCurveParameterScale).toBe("1/1000");
+    const spans = certificate.Claims.CylindricalSpanOwners;
+    const sweep = "2498091544797/1000000000000";
+    expect(spans).toHaveLength(convertedOwners.cylindricalSpanOwners);
+    expect(spans).toEqual(expect.arrayContaining([
+      { PCurveID: 125, ParameterInterval: ["0", "5000"], UVStart: ["0", "0"], UVDerivative: ["0", "1/1000"] },
+      { PCurveID: 225, ParameterInterval: ["0", "5000"], UVStart: [sweep, "0"], UVDerivative: ["0", "1/1000"] },
+      { PCurveID: 157, ParameterInterval: ["0", sweep], UVStart: ["0", "0"], UVDerivative: ["1", "0"] },
+      { PCurveID: 246, ParameterInterval: ["0", sweep], UVStart: ["0", "5"], UVDerivative: ["1", "0"] },
+    ]));
+  }
 
   expect(result.before).toHaveLength(1);
   const [proof] = result.before;
@@ -136,6 +154,7 @@ for (const fixture of fixtures) test(`PlainSolid module workers preserve the ${f
   await info.attach("step-repair-worker-proof", { contentType: "application/json", body: JSON.stringify({
     sourceSha256: digest, certificateSha256: sha256(certificateBytes), reopenedCertificateSha256: sha256(Buffer.from(result.certificateReopened)),
     canonicalSha256: sha256(canonical), reopenedCanonicalSha256: sha256(canonicalReopened),
-    units: result.initialUnits, unitFailures: result.unitFailures, family, groupedOwners, proof,
+    units: result.initialUnits, unitFailures: result.unitFailures, family, groupedOwners, convertedOwners, proof,
+    linearDeflection, triangles: result.triangles,
   }, null, 2) });
 });

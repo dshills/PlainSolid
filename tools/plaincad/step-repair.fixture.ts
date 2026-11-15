@@ -18,6 +18,7 @@ interface Fixture {
   mmPerUnit?: number;
   metresPerUnit?: number;
   grouped?: true;
+  converted?: true;
 }
 
 const tiltedSingle: Fixture = {
@@ -50,6 +51,7 @@ const fixtures: readonly Fixture[] = [
   { ...tiltedSingle, file: `${tiltedSingle.file}-inch`, units: "in", mmPerUnit: 25.4, metresPerUnit: .0254 },
   { ...tiltedGrouped, file: `${tiltedGrouped.file}-metre`, units: "m", mmPerUnit: 1000, metresPerUnit: 1 },
   { ...tiltedGrouped, file: `${tiltedGrouped.file}-inch`, units: "in", mmPerUnit: 25.4, metresPerUnit: .0254 },
+  { ...tiltedSingle, file: `${tiltedSingle.file}-converted-metre`, units: "m", mmPerUnit: 1000, metresPerUnit: 1, converted: true },
 ];
 
 for (const fixture of fixtures) {
@@ -90,6 +92,20 @@ for (const fixture of fixtures) {
           expect(proof.Claims.Grouped.FiniteTrims).toHaveLength(2);
           expect(proof.Claims.Grouped.AxialTrims).toHaveLength(1);
         }
+        if (fixture.converted) {
+          expect(evidence.repairEvidence.finiteLineOwners).toBe(18);
+          expect(proof.Claims.FiniteLineOwners).toHaveLength(18);
+          for (const owner of proof.Claims.FiniteLineOwners) expect(owner.PCurveParameterScale).toBe("1/1000");
+          const spans = proof.Claims.CylindricalSpanOwners;
+          const sweep = "2498091544797/1000000000000";
+          expect(spans).toHaveLength(4);
+          expect(spans).toEqual(expect.arrayContaining([
+            { PCurveID: 125, ParameterInterval: ["0", "5000"], UVStart: ["0", "0"], UVDerivative: ["0", "1/1000"] },
+            { PCurveID: 225, ParameterInterval: ["0", "5000"], UVStart: [sweep, "0"], UVDerivative: ["0", "1/1000"] },
+            { PCurveID: 157, ParameterInterval: ["0", sweep], UVStart: ["0", "0"], UVDerivative: ["1", "0"] },
+            { PCurveID: 246, ParameterInterval: ["0", sweep], UVStart: ["0", "5"], UVDerivative: ["1", "0"] },
+          ]));
+        }
       } else {
         expect(evidence.nativeProofJSON).toBeUndefined();
       }
@@ -101,7 +117,7 @@ for (const fixture of fixtures) {
       for (const side of ["min", "max"] as const) {
         bounds[side].forEach((value, axis) => expect(value / scale).toBeCloseTo(fixture.bounds[side][axis], 11));
       }
-      const mesh = kernel.tessellate(shape, { linearDeflection: .025 * scale, angularDeflection: .2, analyticNormals: true });
+      const mesh = kernel.tessellate(shape, { linearDeflection: fixture.converted ? .5 : .025 * scale, angularDeflection: .2, analyticNormals: true });
       expect(mesh).toMatchObject({ geometrySource: "plainsolid", kernelOperation: "stepImport", bounds });
       expect(mesh.indices.length).toBeGreaterThan(0);
       expect(mesh.geometryAssertions).toMatchObject({ valid: true, solidCount: 1 });
@@ -120,6 +136,7 @@ for (const fixture of fixtures) {
       expect(exported.before).toEqual([{ ...mesh.geometryAssertions, bounds }]);
       expect(exported.after).toEqual(exported.before);
       const canonical = new TextDecoder().decode(exported.bytes);
+      if (units === "m") expect(canonical).toContain("SI_UNIT($,.METRE.)");
       if (units) expect(() => strictAdapter.importStep!(canonical)).toThrow(/STEP import unit must match/);
       const strict = units ? kernel.importStep(canonical, { units }) : strictAdapter.importStep!(canonical);
       try {
