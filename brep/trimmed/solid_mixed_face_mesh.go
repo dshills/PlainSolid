@@ -10,24 +10,28 @@ import (
 
 // SolidMixedFaceMeshOptions applies face limits once and exact model-edge
 // comparison limits independently to each original coedge (at most256).
-// Higher-degree SplineUV additionally performs one bounded exact restriction
-// and one whole-UV identity check; those proof limits apply separately.
+// Higher-degree SplineUV normalizes exact original restrictions. Redundant-knot
+// proof is limited to eight active spans and 64 source poles/knots; exact
+// descriptor and identity stages retain their separate supplied proof limits.
 type SolidMixedFaceMeshOptions struct {
 	Face           MixedExactMultiSpanMeshOptions
 	ModelAgreement edgecheck.Options
 }
 
 // MixedFaceCoedgeSamples maps one original face/loop/use to its model edge.
-// TrimParameters follow the original pcurve, independent of face reversal.
+// TrimParameters are normalized original coedge parameters, independent of
+// face reversal. AuthoredParameters are exact original SplineUV.Curve parameters
+// after Range and SplineUV.Reversed, or equal TrimParameters for native normalized
+// curves/straight uses. They are independent owned values, not model parameters.
 // ModelParameters are exact values in the stored edge's actual Range, including
 // Use.Reversed. Vertices refer to the final display. FaceReversed records the
 // physical boundary traversal reversal; sample arrays themselves remain in the
 // normalized loop proof order, which may reverse a hole's original traversal.
 type MixedFaceCoedgeSamples struct {
-	Face, Loop, Use, Edge           int
-	FaceReversed, UseReversed       bool
-	TrimParameters, ModelParameters []*big.Rat
-	Vertices                        []int
+	Face, Loop, Use, Edge                               int
+	FaceReversed, UseReversed                           bool
+	TrimParameters, AuthoredParameters, ModelParameters []*big.Rat
+	Vertices                                            []int
 }
 type CertifiedSolidMixedFaceMesh struct {
 	CertifiedMixedExactCurvedMesh
@@ -38,8 +42,9 @@ type CertifiedSolidMixedFaceMesh struct {
 
 // TessellateMixedFaceCertified certifies one stored spline face, preserving its
 // exact represented affine placement and physical orientation. Straight uses,
-// native ExactQuadraticUV/ExactBezierUV, and single-span degree<=4 SplineUV
-// are supported when endpoints and complete model correspondence are proved.
+// native ExactQuadraticUV/ExactBezierUV, and degree<=4 SplineUV with an exact
+// single-Bezier trace are supported when endpoints and complete correspondence
+// are proved. Up to eight original redundant knot spans may be retained.
 // Each complete pcurve/model-edge correspondence is independently proved before
 // meshing. Unsupported periodic/collapsed topology, curves, parameterizations or
 // proof budgets reject atomically. This does not stitch neighboring faces or
@@ -144,6 +149,19 @@ func (s Solid) TessellateMixedFaceCertified(ctx context.Context, face int, o Sol
 		item := MixedFaceCoedgeSamples{Face: face, Loop: sample.Loop, Use: sample.Trim, Edge: u.Edge, FaceReversed: f.Reversed, UseReversed: u.Reversed, Vertices: append([]int(nil), sample.Vertices...)}
 		for _, t := range sample.Parameters {
 			item.TrimParameters = append(item.TrimParameters, new(big.Rat).Set(t))
+			authored := new(big.Rat).Set(t)
+			source := u.Curve
+			if p, ok := source.(*SplineUV); ok && p != nil {
+				source = *p
+			}
+			if q, ok := source.(SplineUV); ok {
+				if q.Reversed {
+					authored.Sub(big.NewRat(1, 1), authored)
+				}
+				authored.Mul(authored, new(big.Rat).Sub(ratInset(q.Range.Max), ratInset(q.Range.Min)))
+				authored.Add(authored, ratInset(q.Range.Min))
+			}
+			item.AuthoredParameters = append(item.AuthoredParameters, authored)
 			q := new(big.Rat).Set(t)
 			if u.Reversed {
 				q.Sub(big.NewRat(1, 1), q)
