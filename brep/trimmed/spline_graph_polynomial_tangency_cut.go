@@ -81,7 +81,7 @@ func CutSplineGraphPolynomialTangencyComponents(ctx context.Context, base, a, b 
 		if e != nil {
 			return nil, e
 		}
-		if e = bindPolynomialTangencyCutLayer(ctx, part, history, [2]*geom.BSplineSurface{a, b}, loop, o.Proof); e != nil {
+		if e = bindPolynomialCutSourceLayer(ctx, part, history, [2]*geom.BSplineSurface{a, b}, loop, o.Proof); e != nil {
 			return nil, fmt.Errorf("trimmed: polynomial tangency Cut sector %d: %w", index, e)
 		}
 		v, e := polynomialCutContactVertex(part, history, prepared.xyz[4])
@@ -99,25 +99,33 @@ func CutSplineGraphPolynomialTangencyComponents(ctx context.Context, base, a, b 
 	return &PolynomialTangencyCut{pointCut: r}, nil
 }
 
-func bindPolynomialTangencyCutLayer(ctx context.Context, part Solid, h OpenSectionHistory, roofs [2]*geom.BSplineSurface, loop []openSectionPiece, proof geom.GraphPointContactOptions) error {
-	if len(h.ContourEdges) != 2 {
-		return geom.ErrConvergence
-	}
+func bindPolynomialCutSourceLayer(ctx context.Context, part Solid, h OpenSectionHistory, roofs [2]*geom.BSplineSurface, loop []openSectionPiece, proof geom.GraphPointContactOptions) error {
 	for i, index := range [2]int{h.SplineFace, h.PlaneFace} {
 		if e := bindPolynomialTangencyFace(part.faces[index], roofs[i], i == 1, loop); e != nil {
 			return e
 		}
 	}
-	for i, id := range h.ContourEdges {
-		p := loop[i]
+	contour := 0
+	for i, p := range loop {
+		if p.side >= 0 {
+			continue
+		}
+		if contour >= len(h.ContourEdges) {
+			return geom.ErrConvergence
+		}
+		id := h.ContourEdges[contour]
 		model, ok := part.edges[id].Curve.(surfaceTrimCurve)
 		if !ok || model.surface != roofs[0] || model.a != p.a || model.b != p.b || !matchesTangencyTrim(model.curve, p.c) ||
 			part.faces[h.SplineFace].Outer[i].Edge != id || part.faces[h.PlaneFace].Outer[i].Edge != id {
 			return geom.ErrConvergence
 		}
+		contour++
 	}
-	// Both cap loops have been bound to the signed source sector. Exact
-	// continuous owner agreement and a connected vertex link complete its
-	// native embedding proof without a generic tangent trim exception.
+	if contour == 0 || contour != len(h.ContourEdges) {
+		return geom.ErrConvergence
+	}
+	// The original signed sector gives the exact positive thickness between
+	// the two cap loops. Continuous owner agreement and the connected
+	// vertex links bind that embedding proof to the published topology.
 	return validatePolynomialCutBoundary(ctx, part, h, proof)
 }

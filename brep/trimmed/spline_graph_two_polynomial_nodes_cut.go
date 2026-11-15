@@ -103,7 +103,7 @@ func CutSplineGraphTwoPolynomialNodeComponents(ctx context.Context, base, a, b *
 	if e != nil {
 		return nil, e
 	}
-	material, e := assemblePolynomialNodeCutComponents(ctx, a, b, tolerance, o.Proof, arrangement.Regions[:], arrangement.Nodes[:], arrangement.Vertices[:], xyz[:], loops[:])
+	material, e := assemblePolynomialNodeCutComponents(ctx, a, b, tolerance, o.Proof, arrangement.Regions[:], arrangement.Nodes[:], arrangement.Vertices[:], xyz[:], loops[:], nil)
 	if e != nil {
 		return nil, e
 	}
@@ -121,7 +121,7 @@ type polynomialNodeCutMaterial struct {
 
 func assemblePolynomialNodeCutComponents(ctx context.Context, a, b *geom.BSplineSurface, tolerance float64, proof geom.GraphPointContactOptions,
 	regions []geom.SplineGraphPolynomialRegion, nodes []geom.SplineGraphPolynomialJunction, vertices []geom.SplineGraphPolynomialVertex, xyz []geom.Vec3,
-	loops [][]openSectionPiece) (polynomialNodeCutMaterial, error) {
+	loops [][]openSectionPiece, bindLayer func(Solid, OpenSectionHistory, []openSectionPiece) error) (polynomialNodeCutMaterial, error) {
 	var material polynomialNodeCutMaterial
 	componentByRegion := make([]int, len(regions))
 	for i, region := range regions {
@@ -169,7 +169,12 @@ func assemblePolynomialNodeCutComponents(ctx context.Context, a, b *geom.BSpline
 		if e != nil {
 			return polynomialNodeCutMaterial{}, e
 		}
-		if e = validatePolynomialCutLayer(ctx, part, history, regions[index].Witness, proof); e != nil {
+		if bindLayer == nil {
+			e = validatePolynomialCutLayer(ctx, part, history, regions[index].Witness, proof)
+		} else {
+			e = bindLayer(part, history, loop)
+		}
+		if e != nil {
 			return polynomialNodeCutMaterial{}, fmt.Errorf("trimmed: polynomial node Cut region %d: %w", index, e)
 		}
 		material.components = append(material.components, part)
