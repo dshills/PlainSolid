@@ -91,15 +91,19 @@ Focused qualification after the paired full run:
   `a89aa08a9e3bb7b6de1d3a839d5287e67c99b12ceda38e19a2bc68baafd31d2e`.
   Durable grouped logs are under `.worktrees/grouped-step-repair-unit-evidence`.
 
-The newer full race archive starts from immutable `d5906fde`; the refreshed
-full ordinary Go and PlainCAD runs use `bafe7e81`, with PlainCAD pinned at
-`efae4d2`. The [completed PlainCAD manifest](evidence/plaincad-main-bafe7e81-2026-11-15.json)
-records 345 development, 66 production, 15 cross-browser, 1,691 ordinary unit
-and four WASM contract passes. All eight stages returned zero; the production
-WASM and the freshly built asset are byte-identical, the driver is pristine,
-and the bundle gate passed. All eight trimmed-solid ordinary Go lanes have
-passed; the ordinary package lane and refreshed full race run are still open.
-Original reports, logs and case inventories are under
+The [refreshed full ordinary Go run](evidence/main-bafe7e81-qualification-2026-11-15.json)
+and [PlainCAD run](evidence/plaincad-main-bafe7e81-2026-11-15.json)
+use immutable `bafe7e81`, with PlainCAD pinned at `efae4d2`. Go accounts
+for all 5,801 top-level cases with no missing or duplicate results: 5,272
+passes and 529 optional skips across 52 tested packages, with four packages
+without tests. Eight trimmed groups account for 1,391 passes and 47 skips.
+The package and trimmed inventories were independently listed and compared
+to their respective lanes. PlainCAD records 345 development, 66 production,
+15 cross-browser, 1,691 ordinary unit and four WASM contract passes. All
+eight app stages returned zero; the production WASM and freshly built asset
+are byte-identical, the driver is pristine, and the bundle gate passed.
+The separately archived `d5906fde` full race remains in progress. Original
+reports, logs and case inventories are under
 `.worktrees/qualification/2026-11-15`.
 
 Focused main verification adds two bounded cases:
@@ -118,6 +122,25 @@ Focused main verification adds two bounded cases:
   authored positive-rational bases and their exact model and chart domains.
   Pinned OCCT independently reads one seven-face body, volume
   `0.93318617483601` and area `6.09166222908489`, from original and output.
+
+- `c8776436`: matching inner and outer planar wires close two opposing
+  square pockets into one shell and one inward void, with exterior volume
+  32, cavity volume -6, and total area 84. An exact centroid in every
+  component of the boundary outside the common face proves no hidden
+  overlap. The `collision`, `csg` and `csg/poly` race suites passed.
+- `7f3cc2a3`: two crossings and one quadratic tangency qualify both native
+  directed Common and Fuse across all 24 cases. The original stored roofs
+  retain six signed regions, 12 section edges and three typed junctions
+  through canonical native reload. Main race passed in 279.553 seconds.
+  On these narrow mixed fixtures the separately authored OCCT probe
+  returned empty output; exact original source integration and independent
+  area samples are the qualification witnesses.
+- `8837b5d1`: the grouped converted-metre author and reread passed the
+  targeted STEP exchange suite under race in 90.518 seconds. An independent
+  OCCT source has eight original cylindrical spans, two rational caps and
+  18 planar owner charts. Correction and canonical readback retain the
+  original metre model and agree with independent OCCT at about
+  `29077978807.11554 mm³`; the `1e-12 m` proof passes and `1e-13 m` fails.
 
 Further main milestones use the same pinned optional OCCT reference:
 

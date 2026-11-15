@@ -4,7 +4,7 @@ The full OCCT replacement is **not complete**. This document distinguishes the
 implemented, tested kernel from the much larger specification. Full replacement
 and general-purpose production use remain unqualified.
 
-The latest paired full runs use kernel `af569683` and PlainCAD `efae4d2`.
+The previous paired full runs used kernel `af569683` and PlainCAD `efae4d2`.
 The [Go run](evidence/main-af569683-qualification-2026-11-15.json)
 accounted for all 5,714 top-level tests: 5,199 passes and 515 explicit
 optional skips across 52 tested packages. All eight trimmed groups
@@ -48,19 +48,25 @@ Node WASM and Chromium qualification in their retained source units.
 The active release gaps include general curved Boolean and blend assembly,
 more complete STEP and IGES, current native race and runtime platform
 qualification, and end-to-end acceptance of the remaining specification.
-The [refreshed PlainCAD run on `bafe7e81`](evidence/plaincad-main-bafe7e81-2026-11-15.json)
+The latest paired runs use kernel `bafe7e81` and PlainCAD `efae4d2`.
+The [ordinary Go run](evidence/main-bafe7e81-qualification-2026-11-15.json)
+accounted for all 5,801 top-level cases, with 5,272 passes and 529 explicit
+optional skips. All 1,438 trimmed cases were accounted for, with 1,391
+passes and 47 optional skips. The [PlainCAD run](evidence/plaincad-main-bafe7e81-2026-11-15.json)
 passed the build, typechecks, bundle budget, 345 development browser cases,
 66 production cases, 15 cross-browser cases, 1,691 ordinary units and four
-WASM contracts. All eight trimmed-solid lanes passed on the same revision;
-the ordinary Go lane and the refreshed full race run on `d5906fde` are
-still running.
+WASM contracts. The refreshed full race run on `d5906fde` is still running.
 
-Complete concave planar face contact now joins two original single-shell
-bodies while preserving the exterior edge and face history. The v7 STEP
-writer also round-trips twelve independently authored per-edge bases with
-their original finite domains, rational weights and owner maps. Immediate
-work includes the mixed native Cut, grouped converted-metre runtime
-qualification, and original planar face joins with inner wires.
+Complete planar face contact now joins original concave single-shell bodies
+with matching inner wires. It preserves exterior face and edge histories and
+can enclose a cavity. The v7 STEP writer round-trips independently authored
+per-edge bases with their finite domains, rational weights and owner maps.
+Native Common and Fuse retain all six signed regions around two crossings
+and one tangency, and reload re-proves the original source geometry.
+The grouped converted-metre exchange passes the independent original and
+canonical OCCT measurements. Immediate work includes transferring original
+face contacts in STEP and IGES, native mixed Cut qualification, and strict
+ownership paths for mixed and unsplit original STEP bases.
 
 The two PlainCAD integration branches are in `main` through implementation
 merge `8f76f16b` and verification merge `012096ee`.
