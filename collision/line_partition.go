@@ -105,15 +105,8 @@ func (l *PointLocator) PartitionRationalLine(ctx context.Context, origin, direct
 	if err := b.tick(len(stations) * bits.Len(uint(len(stations)))); err != nil {
 		return zero, err
 	}
-	sort.Slice(stations, func(i, j int) bool { return stations[i].Cmp(stations[j]) < 0 })
-	count := 0
-	for _, s := range stations {
-		if count == 0 || s.Cmp(stations[count-1]) != 0 {
-			stations[count] = s
-			count++
-		}
-	}
-	stations = stations[:count]
+	stations = uniqueLineParameters(stations)
+	count := len(stations)
 	r := RationalLinePartition{Stations: make([]RationalLineStation, count), Spans: make([]RationalLineSpan, count-1)}
 	for i, at := range stations {
 		which, owners, err := l.classifyLineStation(origin, direction, at, intervals, b)
@@ -136,6 +129,18 @@ func (l *PointLocator) PartitionRationalLine(ctx context.Context, origin, direct
 	}
 	r.Work = b.work
 	return removeInternalLineStations(r), nil
+}
+
+func uniqueLineParameters(parameters []*big.Rat) []*big.Rat {
+	sort.Slice(parameters, func(i, j int) bool { return parameters[i].Cmp(parameters[j]) < 0 })
+	count := 0
+	for _, p := range parameters {
+		if count == 0 || p.Cmp(parameters[count-1]) != 0 {
+			parameters[count] = p
+			count++
+		}
+	}
+	return parameters[:count]
 }
 
 // Remove parameters introduced solely by triangulation of an original face.
