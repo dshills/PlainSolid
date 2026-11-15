@@ -16,11 +16,12 @@
 int main(int argc, char** argv) {
     const std::string_view mode = argc == 2 ? argv[1] : "";
     const bool full = mode == "complete", overlay = mode == "overlay";
-    if (argc != 1 && !full && !overlay) return 1;
+    const bool multiple = mode == "multiple";
+    if (argc != 1 && !full && !overlay && !multiple) return 1;
     const auto cylinder = [](double x, double y, double z, double r, double height) {
         return BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(x,y,z),gp_Dir(0.,0.,1.)),r,height).Shape();
     };
-    const auto stock = BRepPrimAPI_MakeBox(gp_Pnt(0.,0.,-2.),8.,6.,2.).Shape();
+    const auto stock = BRepPrimAPI_MakeBox(gp_Pnt(0.,0.,-2.),multiple ? 12. : 8.,multiple ? 8. : 6.,2.).Shape();
     BRepAlgoAPI_Cut hole(stock,cylinder(1.,1.,-3.,.5,4.));
     BRepAlgoAPI_Cut annulus(cylinder(4.,3.,0.,2.,3.),cylinder(4.,3.,-1.,.5,5.));
     if (!hole.IsDone() || !annulus.IsDone()) return 2;
@@ -41,6 +42,19 @@ int main(int argc, char** argv) {
         if (!a.IsDone() || !b.IsDone()) return 4;
         lower=a.Shape();
         upper=b.Shape();
+    }
+    if (multiple) {
+        BRepAlgoAPI_Cut first(cylinder(3.,4.,0.,1.5,3.), cylinder(3.,4.,-1.,.5,5.));
+        BRepAlgoAPI_Cut second(cylinder(8.,5.,0.,2.,1.), cylinder(8.,5.,-1.,.75,3.));
+        const auto box=BRepPrimAPI_MakeBox(gp_Pnt(6.,3.,-3.),4.,2.,1.).Shape();
+        BRepAlgoAPI_Cut bottom(box,cylinder(8.,4.,-4.,.5,3.));
+        if (!first.IsDone() || !second.IsDone() || !bottom.IsDone()) return 4;
+        BRepAlgoAPI_Fuse both(lower,first.Shape());
+        if (!both.IsDone()) return 4;
+        BRepAlgoAPI_Fuse three(both.Shape(),second.Shape());
+        if (!three.IsDone()) return 4;
+        lower=three.Shape();
+        upper=bottom.Shape();
     }
     BRepAlgoAPI_Fuse joined(lower,upper);
     if (!joined.IsDone() || joined.Shape().IsNull() || !BRepCheck_Analyzer(joined.Shape()).IsValid()) return 3;

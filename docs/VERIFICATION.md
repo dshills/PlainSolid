@@ -122,6 +122,13 @@ extremum. The focused ordinary run passed all five after restoring that
 sampler, including exact cylinder normals at the extrema, closed mesh
 volume and stable canonical STEP. This is a focused correction; the
 failed snapshot is preserved in `.worktrees/qualification/2026-11-15/go-5181d219`.
+The signed-frame native race passed in 293.258 seconds; the targeted
+ordinary run with explicit source normal assertions took 70.077 seconds
+and the actual Node/WASM test on the pinned corrected source took
+175.783 seconds. A combined caller used its ten-minute timeout after the
+rational bridge suite had already passed; the signed-frame suite runs
+separately. The renewed full Go and PlainCAD snapshots use `ab33a412`,
+where vet and the Windows amd64 cross-build also passed.
 
 The [newer PlainCAD run](evidence/plaincad-main-05ce6e82-2026-11-15.json)
 uses immutable `05ce6e82` and PlainCAD `efae4d2`. All eight app stages
@@ -201,6 +208,12 @@ kept its pristine hash. Raw results remain in
   40.684 seconds; the pinned inset controls also passed. The standard
   exported solid carries the common partition; the native receipt keeps
   the independent originals.
+- Three independent curved insets share the two host cap supports while
+  retaining 40 faces, 96 edges, 64 original vertices and three separate
+  exposed floors. Their closed display and owner incidence are verified.
+  Independent OCCT agrees on volume `200+8.6875π` and area `284+20π`.
+  Crossing guests reject before publication; canonical native source
+  reopen rejects an altered guest edge offset and respects input limits.
 - Named document occurrence export, the original editable inset exchange,
   and named circular fillet regeneration passed the main document race
   together in 324.615 seconds. STEP preserved both original source

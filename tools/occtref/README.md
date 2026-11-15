@@ -60,6 +60,8 @@ Its `complete` mode fuses equal cap footprints with two through-holes for
 `TestExactCircularSweepCompleteCapLiveOCCT`.
 Its `overlay` mode measures an independent circular solid with a square
 through-hole for `TestExactCircularSweepCapOverlayLiveOCCT`.
+Its `multiple` mode fuses two hollow bosses on one host cap and a third
+mixed circular and planar boss on the opposite cap.
 
 `circular_sweep_mixed_fillets.cxx` first rounds a stock edge, cuts a
 square and a circular opening, then independently rounds a convex corner

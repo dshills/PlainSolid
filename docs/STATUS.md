@@ -110,6 +110,8 @@ clearance for the complete offset path before returning material. Exact
 curved inset joins keep original host caps, guest walls, and separate
 exposed floors inside through-openings. They qualify compact display, native
 and document replay, and analytic STEP and IGES with supported placements.
+The native multi-inset operation joins independent guests on either cap
+and re-proves native receipts with separate floor and rim ownership.
 Named corner rounds on mixed line-and-arc profiles retain the original arcs,
 shortened straight spans, and independent holes through edits and reopen.
 Rounds at an axis-aligned line meeting an original circle cover internal
@@ -142,14 +144,15 @@ Five separated fillets on an original OCCT tilted pentagonal prism now qualify
 original millimetre, metre and inch STEP with independent antipodal owners.
 Native race on `491b18f1` is running. The newer ordinary run on `5181d219`
 found a missing exact axis extremum in five shaded STEP repair meshes.
-All five now pass the focused ordinary check with the original radial
-normals restored; race and actual WASM checks are continuing.
+All five now pass the focused ordinary, native race and actual Node/WASM
+checks with the original radial normals restored. A new full ordinary Go
+run and full PlainCAD run are progressing on immutable `ab33a412`.
 An independent tilted STEP bore now qualifies strict source authentication
 of both original cap holes and the inward-cylinder seam.
-Vet and Windows amd64 cross-build pass on `12ab5dbf`. The converted five-fillet
+Vet and Windows amd64 cross-build pass on `ab33a412`. The converted five-fillet
 inputs passed the focused native bridge and both actual WASM runtimes, with
 one legacy timing retry recorded. Current work covers analytic cap overlay
-physically different footprints, multiple independent curved insets,
+physically different footprints, analytic multi-inset exchange,
 native tilted bore replay and rational off-seam support charts.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
