@@ -19,8 +19,9 @@ type PiecewiseMappedSplineUV struct {
 	curve   ExactBezierUV
 }
 
-// NewPiecewiseMappedSplineUV requires the whole original clamped source domain,
-// one interior knot of multiplicity degree, exact C0 agreement, and complete
+// NewPiecewiseMappedSplineUV requires an original clamped two-span source,
+// an active range strictly spanning its interior knot of multiplicity degree,
+// exact C0 agreement, and complete
 // mapped identity on both sides of modelStation. Source restrictions/comparisons
 // each retain o's work limits. Candidate extension adds at most200 rational
 // operations with the supplied bit limit (at most16384); native coefficients
@@ -39,11 +40,11 @@ func NewPiecewiseMappedSplineUV(ctx context.Context, source SplineUV, modelStati
 	n := source.Curve.Degree()
 	knots := source.Curve.Knots()
 	lo, hi := source.Curve.Domain()
-	if n < 3 || n > 4 || source.Range != (UVInterval{lo, hi}) || len(source.Curve.Poles()) != 2*n+1 || len(knots) != 3*n+2 {
+	if n < 3 || n > 4 || !finite(source.Range.Min) || !finite(source.Range.Max) || source.Range.Min < lo || source.Range.Max > hi || len(source.Curve.Poles()) != 2*n+1 || len(knots) != 3*n+2 {
 		return zero, geom.ErrConvergence
 	}
 	cut := knots[n+1]
-	if cut <= lo || cut >= hi {
+	if cut <= source.Range.Min || cut >= source.Range.Max {
 		return zero, geom.ErrConvergence
 	}
 	for i, k := range knots {

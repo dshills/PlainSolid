@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"math/big"
 
 	"plainsolid/brep/edgecheck"
@@ -146,12 +147,17 @@ func (s Solid) SplitExactBezierTrimEdge(ctx context.Context, edge int, t *big.Ra
 // evaluations equal their independently proved exact values.
 func (s Solid) MergeExactBezierTrimEdges(ctx context.Context, first, second int, split *big.Rat) (Solid, EdgeMergeHistory, error) {
 	return s.mergeExactTrimEdges(ctx, first, second, split, func(a, b PCurve, t *big.Rat) (PCurve, [2]geom.Vec2, error) {
+		if _, ok := a.(PiecewiseMappedSplineUV); ok {
+			return joinPiecewiseMappedSources(ctx, a, b, t)
+		}
 		if x, ok := a.(MappedSplineUV); ok {
-			y, ok := b.(MappedSplineUV)
-			if !ok {
-				return nil, [2]geom.Vec2{}, geom.ErrInvalid
+			if y, ok := b.(MappedSplineUV); ok {
+				q, ends, e := joinMappedSplineSources(ctx, x, y, t)
+				if e == nil || !errors.Is(e, geom.ErrConvergence) {
+					return q, ends, e
+				}
 			}
-			return joinMappedSplineSources(ctx, x, y, t)
+			return joinPiecewiseMappedSources(ctx, a, b, t)
 		}
 		if x, ok := a.(SplineUV); ok {
 			y, ok := b.(SplineUV)
