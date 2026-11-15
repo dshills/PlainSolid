@@ -12,8 +12,9 @@ import (
 )
 
 // WriteMappedChainRectangularOriginalShell exports the captured STEP graph of
-// a mixed-basis shell with one original shared edge crossing three through six
-// support knots. Both the captured source and the staged canonical graph pass
+// a mixed-basis shell with one original edge crossing three through six
+// support knots or two original edges with separate two-cut repairs. Both
+// the captured source and the staged canonical graph pass
 // the complete proof. The authored model poles, weights, knot values, and
 // directions survive, as do the original pcurve bases and parameter limits.
 // A source-only native shell supplies normalized station evidence. This
@@ -31,8 +32,8 @@ func WriteMappedChainRectangularOriginalShell(ctx context.Context, w io.Writer, 
 	}
 	independent := source.Shell.IndependentOwnerBases()
 	if independent[0] == independent[1] || len(source.Crossings) < 3 || len(source.Crossings) > 6 ||
-		!allMappedChainCrossingsOnOneEdge(source.Crossings) {
-		return fmt.Errorf("original mixed STEP export requires one source edge crossing three through six support knots: %w", geom.ErrConvergence)
+		(!allMappedChainCrossingsOnOneEdge(source.Crossings) && !mappedChainCrossingsOnTwoLocalCells(source.Crossings)) {
+		return fmt.Errorf("original mixed STEP export requires a supported source-edge support-knot partition: %w", geom.ErrConvergence)
 	}
 	file, err := Parse(strings.NewReader(source.original), l)
 	if err != nil {

@@ -63,7 +63,7 @@ func mappedChainSTEPBezierInTraversal(model *geom.ExactSplineCurve, reverse bool
 	return model, nil
 }
 
-func proveMappedChainSTEPTransfer(ctx context.Context, support geom.Surface, source trimmed.SplineUV, edge mappedChainStepEdge, reverse, asynchronous bool, maxInferredSupportKnots int, o geom.SurfacePatchOptions) (trimmed.MappedSplineUV, []*big.Rat, error) {
+func proveMappedChainSTEPTransfer(ctx context.Context, support geom.Surface, source trimmed.SplineUV, edge mappedChainStepEdge, reverse, asynchronous, cellLocal bool, maxInferredSupportKnots int, o geom.SurfacePatchOptions) (trimmed.MappedSplineUV, []*big.Rat, error) {
 	if len(edge.joins) == 0 {
 		model, err := mappedChainSTEPBezierInTraversal(edge.model, reverse, o)
 		if err != nil {
@@ -85,6 +85,9 @@ func proveMappedChainSTEPTransfer(ctx context.Context, support geom.Surface, sou
 	}
 	joins := mappedChainModelJoins(edge.joins, reverse)
 	if len(joins) == 1 {
+		if cellLocal {
+			return trimmed.ProveMappedSplineCellLocalStoredKnotTransfer(ctx, support, source, [2]*geom.ExactSplineCurve(pieces), joins[0], o)
+		}
 		if maxInferredSupportKnots != 0 {
 			return trimmed.ProveMappedSplineSingleStoredKnotTransfer(ctx, support, source, [2]*geom.ExactSplineCurve(pieces), joins[0], maxInferredSupportKnots, o)
 		}

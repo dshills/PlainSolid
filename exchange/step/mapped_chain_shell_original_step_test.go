@@ -88,7 +88,8 @@ func verifyOriginalMappedChainSTEPGraph(t *testing.T, source, strict MappedChain
 	}
 	for i, cut := range source.Crossings {
 		transfer := strict.Crossings[i]
-		if transfer.EdgeID != strict.Chain[0].EdgeID || cut.SourceModelParameter.Cmp(transfer.SourceModelParameter) != 0 || cut.ModelStation.Cmp(transfer.ModelStation) != 0 ||
+		cell := slices.IndexFunc(source.Chain, func(e MappedChainSTEPCell) bool { return e.EdgeID == cut.EdgeID })
+		if cell < 0 || transfer.EdgeID != strict.Chain[cell].EdgeID || cut.SourceModelParameter.Cmp(transfer.SourceModelParameter) != 0 || cut.ModelStation.Cmp(transfer.ModelStation) != 0 ||
 			cut.StoredModelKnot != transfer.StoredModelKnot || cut.OwnersChangingCells != transfer.OwnersChangingCells || cut.NativeEdges != transfer.NativeEdges ||
 			cut.RawParameters[0].Cmp(transfer.RawParameters[0]) != 0 || cut.RawParameters[1].Cmp(transfer.RawParameters[1]) != 0 {
 			t.Fatal("the canonical graph must preserve the three-cut source and native ancestry", i)

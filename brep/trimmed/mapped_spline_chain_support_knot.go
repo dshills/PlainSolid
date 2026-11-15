@@ -24,6 +24,8 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 		maxOwnerKnots, count = 2, 3
 	case mappedChainMultipleKnotsRepair:
 		maxOwnerKnots, count = 4, 6
+	case mappedChainCellLocalKnotsRepair:
+		maxOwnerKnots, count = 3, 4
 	}
 	type station struct {
 		parameter *big.Rat
@@ -49,11 +51,15 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 		if repair == mappedChainMultipleKnotsRepair && len(planes) < 2 {
 			return nil, nil, fmt.Errorf("roof %d requires two through four original support knots: %w", owner, geom.ErrConvergence)
 		}
+		if repair == mappedChainCellLocalKnotsRepair && len(planes) != 3 {
+			return nil, nil, fmt.Errorf("roof %d requires three original support knots: %w", owner, geom.ErrConvergence)
+		}
 		originalKnots += len(planes)
 		if len(planes) == 0 {
 			continue
 		}
 		ownerCrossed := false
+		var localKnots uint8
 		for i := 0; i+1 < len(cuts); i++ {
 			trim, err := chains[owner].cell(cuts[i], cuts[i+1])
 			if err != nil {
@@ -67,13 +73,20 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 				if root == nil {
 					continue
 				}
+				if repair == mappedChainCellLocalKnotsRepair {
+					bit := uint8(1) << axisKnot
+					if localKnots&bit != 0 {
+						return nil, nil, fmt.Errorf("roof %d repeats an original support knot in separate model cells: %w", owner, geom.ErrConvergence)
+					}
+					localKnots |= bit
+				}
 				insert := i + 1
 				if repair == mappedChainAsynchronousKnotsRepair {
 					if ownerCrossed || len(stations) > 0 && stations[0].insert == insert {
 						return nil, nil, fmt.Errorf("asynchronous support crossings require one crossing per roof in distinct common chain cells: %w", geom.ErrConvergence)
 					}
 					ownerCrossed = true
-				} else if len(stations) > 0 && stations[0].insert != insert {
+				} else if repair != mappedChainCellLocalKnotsRepair && len(stations) > 0 && stations[0].insert != insert {
 					return nil, nil, fmt.Errorf("original support crossings span common chain cells: %w", geom.ErrConvergence)
 				}
 				width := new(big.Rat).Sub(cuts[i+1], cuts[i])
@@ -92,6 +105,9 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 				}
 				stations = append(stations, station{parameter: t, insert: insert, owners: mask})
 			}
+		}
+		if repair == mappedChainCellLocalKnotsRepair && localKnots != (uint8(1)<<len(planes))-1 {
+			return nil, nil, fmt.Errorf("roof %d requires one interior event per original support knot: %w", owner, geom.ErrConvergence)
 		}
 	}
 	if repair == mappedChainMultipleKnotsRepair {
@@ -121,6 +137,19 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 		}
 	}
 	slices.SortFunc(stations, func(a, b station) int { return a.parameter.Cmp(b.parameter) })
+	if repair == mappedChainCellLocalKnotsRepair {
+		var exclusive [2]uint8
+		for i := range exclusive {
+			a, b := stations[2*i], stations[2*i+1]
+			if a.insert != b.insert || (a.owners == 3) == (b.owners == 3) {
+				return nil, nil, fmt.Errorf("each original cell requires one shared and one single-owner support event: %w", geom.ErrConvergence)
+			}
+			exclusive[i] = a.owners & b.owners
+		}
+		if stations[0].insert == stations[2].insert || exclusive[0] == exclusive[1] {
+			return nil, nil, fmt.Errorf("support events require distinct original cells and opposite single owners: %w", geom.ErrConvergence)
+		}
+	}
 	repaired := make([]bool, len(cuts)+len(stations))
 	for i, s := range stations {
 		if repair == mappedChainSynchronizedKnotsRepair && s.owners != 3 {

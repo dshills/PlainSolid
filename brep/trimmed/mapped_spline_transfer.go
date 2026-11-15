@@ -359,6 +359,10 @@ func proveMappedSplineSupportKnotsTransfer(ctx context.Context, support geom.Sur
 }
 
 func mappedSplineRequiredSupportRoots(ctx context.Context, raw MappedSplineUV, planes [][4]*big.Rat, o geom.SurfacePatchOptions) ([]*big.Rat, error) {
+	return mappedSplineSupportRoots(ctx, raw, planes, true, o)
+}
+
+func mappedSplineSupportRoots(ctx context.Context, raw MappedSplineUV, planes [][4]*big.Rat, requireEveryKnot bool, o geom.SurfacePatchOptions) ([]*big.Rat, error) {
 	events := geom.ExactCurvePlaneEventOptions{MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits}
 	var roots []*big.Rat
 	for _, plane := range planes {
@@ -367,7 +371,10 @@ func mappedSplineRequiredSupportRoots(ctx context.Context, raw MappedSplineUV, p
 			return nil, err
 		}
 		if root == nil {
-			return nil, fmt.Errorf("original support crossing missing from unsplit coedge: %w", geom.ErrConvergence)
+			if requireEveryKnot {
+				return nil, fmt.Errorf("original support crossing missing from unsplit coedge: %w", geom.ErrConvergence)
+			}
+			continue
 		}
 		roots = append(roots, root)
 	}
