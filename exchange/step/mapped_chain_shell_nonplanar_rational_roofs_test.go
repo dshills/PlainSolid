@@ -27,57 +27,66 @@ const nonplanarRationalRoofVolume = 0.639786408392377
 const nonplanarRationalRoofArea = 4.651450389464032
 const nonplanarRationalRoofOCCTArea = 4.651450379865176
 
+type rationalRoofSectionWitness struct {
+	surface    *geom.BSplineSurface
+	y, z       *big.Rat
+	zControls  [4]*big.Rat
+	transposed bool
+	mirrored   bool
+}
+
 func verifyNonplanarRationalRoofPoints(t *testing.T, ctx context.Context, north, south *geom.BSplineSurface) {
 	t.Helper()
+	verifyRationalRoofSection(t, ctx, rationalRoofSectionWitness{north, big.NewRat(1, 2), big.NewRat(177, 896),
+		[4]*big.Rat{new(big.Rat), big.NewRat(-39, 256), big.NewRat(93, 256), big.NewRat(9, 8)}, false, false})
+	verifyRationalRoofSection(t, ctx, rationalRoofSectionWitness{south, big.NewRat(1, 8), big.NewRat(87, 6656),
+		[4]*big.Rat{new(big.Rat), big.NewRat(-15, 512), big.NewRat(141, 512), big.NewRat(9, 8)}, true, false})
+}
+
+func verifyRationalRoofSection(t *testing.T, ctx context.Context, tc rationalRoofSectionWitness) {
+	t.Helper()
 	x := big.NewRat(3, 8)
-	for _, tc := range []struct {
-		surface    *geom.BSplineSurface
-		y, z       *big.Rat
-		zControls  [4]*big.Rat
-		transposed bool
-	}{
-		{north, big.NewRat(1, 2), big.NewRat(177, 896),
-			[4]*big.Rat{new(big.Rat), big.NewRat(-39, 256), big.NewRat(93, 256), big.NewRat(9, 8)}, false},
-		{south, big.NewRat(1, 8), big.NewRat(87, 6656),
-			[4]*big.Rat{new(big.Rat), big.NewRat(-15, 512), big.NewRat(141, 512), big.NewRat(9, 8)}, true},
-	} {
-		p, err := geom.NewSurfacePatch(tc.surface, geom.SurfacePatchOptions{})
-		if err != nil {
-			t.Fatal(err)
-		}
-		u, v := x, tc.y
-		fixedAxis := 0
-		if tc.transposed {
-			u, v = v, u
-			fixedAxis = 1
-		}
-		section, err := p.IsoCurve(fixedAxis, .375, geom.SurfacePatchOptions{})
-		if err != nil {
-			t.Fatal(err)
-		}
-		net, _, err := section.BezierControlNet(ctx, geom.SurfacePatchOptions{})
-		if err != nil || net.Start != 0 || net.End != .75 || len(net.Control) != 4 {
-			t.Fatal("each original owner has one full exact rational transverse section", err)
-		}
-		yControls := [4]*big.Rat{new(big.Rat), big.NewRat(1, 4), big.NewRat(1, 2), big.NewRat(3, 1)}
-		scale := net.Control[0][3]
-		for i, c := range net.Control {
-			weight := big.NewRat([4]int64{1, 1, 2, 4}[i], 1)
-			want := [4]*big.Rat{new(big.Rat).Mul(x, weight), yControls[i], tc.zControls[i], weight}
-			for axis, value := range want {
-				if c[axis].Cmp(new(big.Rat).Mul(value, scale)) != 0 {
-					t.Fatal("the exact homogeneous transverse section must retain its off-seam rational profile", fixedAxis, i, axis, c[axis])
-				}
+	p, err := geom.NewSurfacePatch(tc.surface, geom.SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, v := x, tc.y
+	fixedAxis := 0
+	if tc.transposed {
+		u, v = v, u
+		fixedAxis = 1
+	}
+	section, err := p.IsoCurve(fixedAxis, .375, geom.SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	net, _, err := section.BezierControlNet(ctx, geom.SurfacePatchOptions{})
+	if err != nil || net.Start != 0 || net.End != .75 || len(net.Control) != 4 {
+		t.Fatal("each original owner has one full exact rational transverse section", err)
+	}
+	yControls := [4]*big.Rat{new(big.Rat), big.NewRat(1, 4), big.NewRat(1, 2), big.NewRat(3, 1)}
+	profile := [4]int64{1, 1, 2, 4}
+	if tc.mirrored {
+		yControls = [4]*big.Rat{new(big.Rat), big.NewRat(1, 1), big.NewRat(1, 2), big.NewRat(3, 4)}
+		profile = [4]int64{4, 2, 1, 1}
+	}
+	scale := new(big.Rat).Quo(net.Control[0][3], big.NewRat(profile[0], 1))
+	for i, c := range net.Control {
+		weight := big.NewRat(profile[i], 1)
+		want := [4]*big.Rat{new(big.Rat).Mul(x, weight), yControls[i], tc.zControls[i], weight}
+		for axis, value := range want {
+			if c[axis].Cmp(new(big.Rat).Mul(value, scale)) != 0 {
+				t.Fatal("the exact homogeneous transverse section must retain its off-seam rational profile", fixedAxis, i, axis, c[axis])
 			}
 		}
-		q, err := p.EvaluateRational(ctx, u, v, geom.SurfacePatchEvaluationOptions{})
-		if err != nil || q.Point[0].Cmp(x) != 0 || q.Point[1].Cmp(tc.y) != 0 || q.Point[2].Cmp(tc.z) != 0 {
-			t.Fatal("each original roof must give its exact rational off-seam height on the affine XY chart", tc.z, q.Point, err)
-		}
+	}
+	q, err := p.EvaluateRational(ctx, u, v, geom.SurfacePatchEvaluationOptions{})
+	if err != nil || q.Point[0].Cmp(x) != 0 || q.Point[1].Cmp(tc.y) != 0 || q.Point[2].Cmp(tc.z) != 0 {
+		t.Fatal("each original roof must give its exact rational off-seam height on the affine XY chart", tc.z, q.Point, err)
 	}
 }
 
-func verifyOriginalRationalRoofSurfaces(t *testing.T, source, strict MappedChainSTEPModel) {
+func verifyOriginalRationalRoofSurfaces(t *testing.T, source, strict MappedChainSTEPModel, mirroredSouth bool) {
 	t.Helper()
 	a, err := Parse(bytes.NewBufferString(source.OriginalSTEP()), Limits{})
 	if err != nil {
@@ -92,13 +101,16 @@ func verifyOriginalRationalRoofSurfaces(t *testing.T, source, strict MappedChain
 		j := rationalRoofSupportID(t, b, strict.FaceIDs[owner])
 		weights, _ := component(a.Entities[i], "RATIONAL_B_SPLINE_SURFACE")
 		north := source.Shell.IndependentOwnerBases()[owner]
+		profile := [4]int64{1, 1, 2, 4}
+		if mirroredSouth && !north {
+			profile = [4]int64{4, 2, 1, 1}
+		}
 		for row, values := range weights.Args[0].Items {
 			for col, value := range values.Items {
 				index := row
 				if north {
 					index = col
 				}
-				profile := [4]int64{1, 1, 2, 4}
 				w, err := affineSplineSourceRat(value)
 				if err != nil || index >= len(profile) || w.Cmp(big.NewRat(profile[index], 1)) != 0 {
 					t.Fatal("the full original weight net must retain the transverse rational profile", owner, row, col, err)
@@ -162,7 +174,11 @@ func TestOCCTMappedChainRectangularNonplanarRationalRoofsRejectsFalseWeight(t *t
 
 func rejectNonplanarFalseRoofWeight(t *testing.T, ctx context.Context, valid, bad []byte) {
 	t.Helper()
-	o := inferredMixedMappedChainOptions()
+	rejectFalseRationalRoofWeight(t, ctx, valid, bad, inferredMixedMappedChainOptions(), 2)
+}
+
+func rejectFalseRationalRoofWeight(t *testing.T, ctx context.Context, valid, bad []byte, o MappedChainShellSTEPOptions, row int) {
+	t.Helper()
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(valid), Limits{}, o)
 	if err != nil {
 		t.Fatal(err)
@@ -185,21 +201,21 @@ func rejectNonplanarFalseRoofWeight(t *testing.T, ctx context.Context, valid, ba
 	if !ok {
 		t.Fatal("the independently authored control must retain the original support entity")
 	}
-	from, err := affineSplineSourceRat(original.Args[0].Items[2].Items[7])
+	from, err := affineSplineSourceRat(original.Args[0].Items[row].Items[7])
 	if err != nil {
 		t.Fatal(err)
 	}
-	to, err := affineSplineSourceRat(changed.Args[0].Items[2].Items[7])
+	to, err := affineSplineSourceRat(changed.Args[0].Items[row].Items[7])
 	if err != nil || from.Cmp(big.NewRat(2, 1)) != 0 || to.Cmp(big.NewRat(262145, 131072)) != 0 {
 		t.Fatal("the source control must alter one exactly represented interior weight", from, to, err)
 	}
-	changed.Args[0].Items[2].Items[7] = original.Args[0].Items[2].Items[7]
+	changed.Args[0].Items[row].Items[7] = original.Args[0].Items[row].Items[7]
 	if !bytes.Equal(serializeWrappedProofFile(a), serializeWrappedProofFile(b)) {
 		t.Fatal("the actual pinned control must differ only at the specified original support weight")
 	}
 	malformed, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(bad), Limits{}, o)
 	if !errors.Is(err, geom.ErrConvergence) || !strings.Contains(err.Error(), fmt.Sprintf("owner #%d", m.FaceIDs[south])) ||
-		len(malformed.Crossings) != 0 || len(malformed.Native.ChainEdges) != 0 {
+		malformed.SupportJoint != nil || len(malformed.Crossings) != 0 || len(malformed.Native.ChainEdges) != 0 {
 		t.Fatal("the false south support weight must reject the original owner proof atomically", err)
 	}
 }
