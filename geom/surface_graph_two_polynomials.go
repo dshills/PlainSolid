@@ -35,7 +35,7 @@ func DiscoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 
 type polynomialGraphContactMode struct {
 	crossings, tangencies, cubicCrossings, quarticTangencies int
-	polynomialHeight                                         bool
+	polynomialHeight, allowQuintic                           bool
 	certify                                                  func(context.Context, *SurfacePatch, SplineGraphTwoPolynomials, []*big.Rat, ParameterRectangle, *polynomialBudget) error
 }
 
@@ -84,9 +84,14 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 		}
 		return d
 	}
+	maxBranchDegree := 4
+	if mode.allowQuintic {
+		maxBranchDegree = 5
+	}
+	maxFreeDegree := 2 * maxBranchDegree
 	coefficients := func(cell *SurfacePatch) (out [3]rationalPolynomial, e error) {
 		for j := range out {
-			out[j] = make(rationalPolynomial, 9)
+			out[j] = make(rationalPolynomial, maxFreeDegree+1)
 			for i := range out[j] {
 				out[j][i] = new(big.Rat)
 			}
@@ -104,7 +109,7 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 				if axis == 1 {
 					u, v = v, u
 				}
-				if u > 8 || v > 2 {
+				if u > maxFreeDegree || v > 2 {
 					return out, ErrConvergence
 				}
 				out[v][u].Set(x)
@@ -140,8 +145,8 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 	if e != nil {
 		return r, e
 	}
-	// Cubic/quartic roots have a discriminant square of degree at most eight.
-	if len(disc) > 9 {
+	// The discriminant is the square of the scaled branch difference.
+	if len(disc) > maxFreeDegree+1 {
 		return r, ErrConvergence
 	}
 	repeatedContacts := mode.tangencies + mode.cubicCrossings + mode.quarticTangencies
@@ -183,7 +188,7 @@ func discoverSplineGraphTwoPolynomials(ctx context.Context, a, b *SurfacePatch, 
 				return r, e
 			}
 		}
-		if len(q) < 4 || len(q) > 5 {
+		if len(q) < 4 || len(q) > maxBranchDegree+1 {
 			return r, ErrConvergence
 		}
 		global, e := composeProjectionPolynomial(q, shift, budget)
