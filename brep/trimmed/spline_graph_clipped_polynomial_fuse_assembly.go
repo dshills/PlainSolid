@@ -10,13 +10,17 @@ import (
 	"plainsolid/geom"
 )
 
-func (b *clippedFuseBuilder) prepareSpans(ctx context.Context, material geom.ClippedSplineGraphPolynomialMaterial) error {
-	for atom, source := range material.Boundaries {
+func (b *clippedStockShellBuilder) prepareSpans(ctx context.Context, atoms []geom.ClippedPolynomialStockBoundary,
+	selectAtom func(int, geom.ClippedPolynomialStockBoundary) (uint8, [2]geom.ClippedPolynomialWall)) error {
+	for atom, source := range atoms {
 		if e := ctx.Err(); e != nil {
 			return e
 		}
-		span := clippedFuseSpan{atom: atom, source: source}
-		owners := clippedFuseSpanOwners(material, source)
+		owners, walls := selectAtom(atom, source)
+		if owners == 0 {
+			continue
+		}
+		span := clippedStockSpan{atom: atom, source: source, walls: walls}
 		var e error
 		for i, v := range source.Points {
 			span.points[i], e = exactGraphPartitionUV(v)
@@ -36,22 +40,17 @@ func (b *clippedFuseBuilder) prepareSpans(ctx context.Context, material geom.Cli
 				}
 			}
 		}
-		var split bool
-		for _, wall := range source.Fuse {
-			if wall.Lower <= geom.ClippedPolynomialBaseHeight {
-				continue
-			}
-			lower, upper := span.traces[wall.Lower-1], span.traces[wall.Upper-1]
-			split = split || lower[0].point == upper[0].point && lower[1].point == upper[1].point
-		}
-		if !split {
+		a, z := span.traces[1], span.traces[2]
+		const bothRoofs = (1 << 1) | (1 << 2)
+		if owners&bothRoofs != bothRoofs || a[0].point != z[0].point || a[1].point != z[1].point {
 			b.spans = append(b.spans, span)
 			continue
 		}
-		// Removing the zero verticals at both ends of a tapered riser
-		// would give its distinct trace curves the same native endpoints.
-		// Split both original chart traces at one exact physical station.
-		middle, e := exactGraphPartitionUV(clippedFuseMidpoint(source.Points))
+		// Two roof curves with identical endpoints need distinct native
+		// edge pairs. In a Cut the taller trace can be an internal cap
+		// seam while the lower trace bounds the exposed wall. Split every
+		// incident trace at the same exact original chart station.
+		middle, e := exactGraphPartitionUV(clippedStockMidpoint(source.Points))
 		if e != nil {
 			return e
 		}
@@ -61,7 +60,7 @@ func (b *clippedFuseBuilder) prepareSpans(ctx context.Context, material geom.Cli
 			if owners&(1<<owner) == 0 {
 				continue
 			}
-			at, e := b.lift(owner, clippedFuseMidpoint(uv), middle)
+			at, e := b.lift(owner, clippedStockMidpoint(uv), middle)
 			if e != nil {
 				return fmt.Errorf("atom %d source %d riser midpoint: %w", atom, owner, e)
 			}
@@ -98,14 +97,14 @@ func clippedFuseRoofOwner(sign int) int {
 	return 1
 }
 
-func clippedFuseMidpoint(points [2][2]*big.Rat) (uv [2]*big.Rat) {
+func clippedStockMidpoint(points [2][2]*big.Rat) (uv [2]*big.Rat) {
 	for i := range uv {
 		uv[i] = new(big.Rat).Quo(new(big.Rat).Add(points[0][i], points[1][i]), big.NewRat(2, 1))
 	}
 	return uv
 }
 
-func (b *clippedFuseBuilder) lift(owner int, uv [2]*big.Rat, xy geom.Vec2) (clippedFuseEndpoint, error) {
+func (b *clippedStockShellBuilder) lift(owner int, uv [2]*big.Rat, xy geom.Vec2) (clippedFuseEndpoint, error) {
 	u, e := exactGraphPartitionUV(uv)
 	if e != nil {
 		return clippedFuseEndpoint{}, e
@@ -120,7 +119,7 @@ func (b *clippedFuseBuilder) lift(owner int, uv [2]*big.Rat, xy geom.Vec2) (clip
 	return clippedFuseEndpoint{u, p}, nil
 }
 
-func (b *clippedFuseBuilder) vertex(p geom.Vec3) int {
+func (b *clippedStockShellBuilder) vertex(p geom.Vec3) int {
 	if id, ok := b.vertexIDs[p]; ok {
 		return id
 	}
@@ -130,7 +129,7 @@ func (b *clippedFuseBuilder) vertex(p geom.Vec3) int {
 	return id
 }
 
-func (b *clippedFuseBuilder) edge(p, q geom.Vec3, curve geom.Curve, length float64) (id int, reversed, added bool) {
+func (b *clippedStockShellBuilder) edge(p, q geom.Vec3, curve geom.Curve, length float64) (id int, reversed, added bool) {
 	i, j := b.vertex(p), b.vertex(q)
 	key := [2]int{min(i, j), max(i, j)}
 	if id, ok := b.edgeIDs[key]; ok {
@@ -142,13 +141,13 @@ func (b *clippedFuseBuilder) edge(p, q geom.Vec3, curve geom.Curve, length float
 	return id, false, true
 }
 
-func (b *clippedFuseBuilder) graphUse(owner int, a, z clippedFuseEndpoint, trim PCurve) (Use, bool) {
+func (b *clippedStockShellBuilder) graphUse(owner int, a, z clippedFuseEndpoint, trim PCurve) (Use, bool) {
 	curve := surfaceTrimCurve{b.sources[owner], a.uv, z.uv, trim}
 	id, rev, added := b.edge(a.point, z.point, curve, 1)
 	return Use{Edge: id, Reversed: rev, UVStart: a.uv, UVEnd: z.uv, Curve: trim}, added
 }
 
-func (b *clippedFuseBuilder) trace(owner int, ref clippedFuseDirectedSpan) Use {
+func (b *clippedStockShellBuilder) trace(owner int, ref clippedStockDirectedSpan) Use {
 	start, end := ref.ends()
 	points := b.spans[ref.id].traces[owner]
 	use, _ := b.graphUse(owner, points[start], points[end], nil)
@@ -157,8 +156,8 @@ func (b *clippedFuseBuilder) trace(owner int, ref clippedFuseDirectedSpan) Use {
 
 // perimeter returns the proved directed span sequence for a tile, an open
 // portion of the overlap perimeter, or the union's outside boundary.
-func (b *clippedFuseBuilder) perimeter(tile, region int, start, end geom.Vec2) ([]clippedFuseDirectedSpan, error) {
-	byStart := make(map[geom.Vec2]clippedFuseDirectedSpan)
+func (b *clippedStockShellBuilder) perimeter(tile, region int, start, end geom.Vec2) ([]clippedStockDirectedSpan, error) {
+	byStart := make(map[geom.Vec2]clippedStockDirectedSpan)
 	for i, span := range b.spans {
 		left, right := span.source.Tiles[0], span.source.Tiles[1]
 		if region >= 0 && span.source.OverlapRegion != region {
@@ -172,7 +171,7 @@ func (b *clippedFuseBuilder) perimeter(tile, region int, start, end geom.Vec2) (
 		default:
 			continue
 		}
-		ref := clippedFuseDirectedSpan{id: i, reverse: reverse}
+		ref := clippedStockDirectedSpan{id: i, reverse: reverse}
 		a, _ := ref.ends()
 		p := span.points[a]
 		if _, ok := byStart[p]; ok {
@@ -192,7 +191,7 @@ func (b *clippedFuseBuilder) perimeter(tile, region int, start, end geom.Vec2) (
 		}
 		end = start
 	}
-	out := make([]clippedFuseDirectedSpan, 0, len(byStart))
+	out := make([]clippedStockDirectedSpan, 0, len(byStart))
 	next := start
 	for len(byStart) > 0 {
 		ref, ok := byStart[next]
@@ -210,42 +209,52 @@ func (b *clippedFuseBuilder) perimeter(tile, region int, start, end geom.Vec2) (
 	return out, nil
 }
 
-func (b *clippedFuseBuilder) cap(owner int, loop []Use, chart graphEnvelopeChart) int {
+func (b *clippedStockShellBuilder) cap(owner int, loop []Use, chart graphEnvelopeChart, bottom bool) int {
 	if chart.reversed {
 		reverseGraphUses(loop)
 	}
 	id := len(b.faces)
-	b.faces = append(b.faces, Face{Surface: b.sources[owner], Outer: loop, Reversed: chart.reversed != (owner == 0)})
+	b.faces = append(b.faces, Face{Surface: b.sources[owner], Outer: loop, Reversed: chart.reversed != bottom})
 	return id
 }
 
-func (b *clippedFuseBuilder) addCaps(material geom.ClippedSplineGraphPolynomialMaterial, uv []geom.Vec2, pieces [2][][]openSectionPiece,
+func (b *clippedStockShellBuilder) graphContourUses(owner int, selected []geom.SplineGraphPolynomialUse, pieces [][]openSectionPiece) ([]Use, []int, error) {
+	var loop []Use
+	var section []int
+	for _, use := range selected {
+		chain := pieces[use.Edge]
+		for j, piece := range chain {
+			if use.Reversed {
+				piece = chain[len(chain)-1-j]
+				piece.a, piece.b, piece.c = piece.b, piece.a, reversePCurve(piece.c)
+			}
+			a, e := b.evaluate(b.sources[owner], openSectionPiece{a: piece.a})
+			if e != nil {
+				return nil, nil, e
+			}
+			z, e := b.evaluate(b.sources[owner], openSectionPiece{a: piece.b})
+			if e != nil {
+				return nil, nil, e
+			}
+			u, added := b.graphUse(owner, clippedFuseEndpoint{piece.a, a}, clippedFuseEndpoint{piece.b, z}, piece.c)
+			if added {
+				section = append(section, u.Edge)
+			}
+			loop = append(loop, u)
+		}
+	}
+	return loop, section, nil
+}
+
+func (b *clippedStockShellBuilder) addCaps(material geom.ClippedSplineGraphPolynomialMaterial, uv []geom.Vec2, pieces [2][][]openSectionPiece,
 	charts [3]graphEnvelopeChart) (faces, owners, section []int, base int, err error) {
 	for i, region := range material.Overlap.Projection.Arrangement.Regions {
 		owner := clippedFuseRoofOwner(region.HeightSide)
-		var loop []Use
-		for _, use := range region.Edges {
-			chain := pieces[owner-1][use.Edge]
-			for j, piece := range chain {
-				if use.Reversed {
-					piece = chain[len(chain)-1-j]
-					piece.a, piece.b, piece.c = piece.b, piece.a, reversePCurve(piece.c)
-				}
-				a, e := b.evaluate(b.sources[owner], openSectionPiece{a: piece.a})
-				if e != nil {
-					return nil, nil, nil, -1, e
-				}
-				z, e := b.evaluate(b.sources[owner], openSectionPiece{a: piece.b})
-				if e != nil {
-					return nil, nil, nil, -1, e
-				}
-				u, added := b.graphUse(owner, clippedFuseEndpoint{piece.a, a}, clippedFuseEndpoint{piece.b, z}, piece.c)
-				if added {
-					section = append(section, u.Edge)
-				}
-				loop = append(loop, u)
-			}
+		loop, newEdges, e := b.graphContourUses(owner, region.Edges, pieces[owner-1])
+		if e != nil {
+			return nil, nil, nil, -1, e
 		}
+		section = append(section, newEdges...)
 		if arc := region.Perimeter; arc != nil {
 			if arc.ParameterDirection != 1 {
 				return nil, nil, nil, -1, geom.ErrConvergence
@@ -258,7 +267,7 @@ func (b *clippedFuseBuilder) addCaps(material geom.ClippedSplineGraphPolynomialM
 				loop = append(loop, b.trace(owner, span))
 			}
 		}
-		faces = append(faces, b.cap(owner, loop, charts[owner]))
+		faces = append(faces, b.cap(owner, loop, charts[owner], false))
 		owners = append(owners, owner-1)
 	}
 	for i, tile := range material.Tiles[1:] {
@@ -275,7 +284,7 @@ func (b *clippedFuseBuilder) addCaps(material geom.ClippedSplineGraphPolynomialM
 		for _, span := range spans {
 			loop = append(loop, b.trace(owner, span))
 		}
-		faces = append(faces, b.cap(owner, loop, charts[owner]))
+		faces = append(faces, b.cap(owner, loop, charts[owner], false))
 		owners = append(owners, owner-1)
 	}
 	spans, e := b.perimeter(-1, -1, geom.Vec2{}, geom.Vec2{})
@@ -289,14 +298,14 @@ func (b *clippedFuseBuilder) addCaps(material geom.ClippedSplineGraphPolynomialM
 	for _, span := range spans {
 		loop = append(loop, b.trace(0, span))
 	}
-	return faces, owners, section, b.cap(0, loop, charts[0]), nil
+	return faces, owners, section, b.cap(0, loop, charts[0], true), nil
 }
 
 // The exterior atlas provides one directed cycle around the union. Check
 // that its axial trim segments form a simple ring and that its positive
 // signed area equals the sum of all disjoint physical stock tiles. The affine
 // original base map carries this exact domain to its unmodified UV chart.
-func (b *clippedFuseBuilder) certifyBaseOutline(spans []clippedFuseDirectedSpan, tiles []geom.ClippedPolynomialStockTile) error {
+func (b *clippedStockShellBuilder) certifyBaseOutline(spans []clippedStockDirectedSpan, tiles []geom.ClippedPolynomialStockTile) error {
 	if len(spans) < 4 {
 		return geom.ErrConvergence
 	}
@@ -343,10 +352,10 @@ func (b *clippedFuseBuilder) certifyBaseOutline(spans []clippedFuseDirectedSpan,
 // addWalls joins every exposed interval to its two original model traces.
 // Every participating station uses the common ordered set of exact heights;
 // a tapered endpoint emits no zero-length edge.
-func (b *clippedFuseBuilder) addWalls(ctx context.Context) ([]ClippedPolynomialFuseWall, error) {
+func (b *clippedStockShellBuilder) addWalls(ctx context.Context) ([]ClippedPolynomialWallBinding, error) {
 	stations := make(map[geom.Vec2][]float64)
 	for _, span := range b.spans {
-		for _, wall := range span.source.Fuse {
+		for _, wall := range span.walls {
 			if wall.Lower == geom.ClippedPolynomialNoHeight {
 				continue
 			}
@@ -363,16 +372,16 @@ func (b *clippedFuseBuilder) addWalls(ctx context.Context) ([]ClippedPolynomialF
 		slices.Sort(heights)
 		stations[p] = slices.Compact(heights)
 	}
-	var out []ClippedPolynomialFuseWall
+	var out []ClippedPolynomialWallBinding
 	for i, span := range b.spans {
 		if e := ctx.Err(); e != nil {
 			return nil, e
 		}
-		for side, wall := range span.source.Fuse {
+		for side, wall := range span.walls {
 			if wall.Lower == geom.ClippedPolynomialNoHeight {
 				continue
 			}
-			ref := clippedFuseDirectedSpan{id: i, reverse: side == 1}
+			ref := clippedStockDirectedSpan{id: i, reverse: side == 1}
 			r, e := b.wall(ref, wall, stations)
 			if e != nil {
 				return nil, e
@@ -383,16 +392,16 @@ func (b *clippedFuseBuilder) addWalls(ctx context.Context) ([]ClippedPolynomialF
 	return out, nil
 }
 
-func (b *clippedFuseBuilder) wall(ref clippedFuseDirectedSpan, interval geom.ClippedPolynomialWall,
-	stations map[geom.Vec2][]float64) (ClippedPolynomialFuseWall, error) {
+func (b *clippedStockShellBuilder) wall(ref clippedStockDirectedSpan, interval geom.ClippedPolynomialWall,
+	stations map[geom.Vec2][]float64) (ClippedPolynomialWallBinding, error) {
 	span := b.spans[ref.id]
 	start, end := ref.ends()
 	p, q := span.points[start], span.points[end]
 	surface, e := newSplineGraphAffineWall(geom.Vec3{X: p.X, Y: p.Y}, geom.Vec3{X: q.X, Y: q.Y})
 	if e != nil {
-		return ClippedPolynomialFuseWall{}, e
+		return ClippedPolynomialWallBinding{}, e
 	}
-	out := ClippedPolynomialFuseWall{Face: len(b.faces), Atom: span.atom, EndingRoofs: span.source.EndingRoofs,
+	out := ClippedPolynomialWallBinding{Face: len(b.faces), Atom: span.atom, EndingRoofs: span.source.EndingRoofs,
 		Low: interval.Lower, High: interval.Upper, Points: [2]geom.Vec2{p, q}}
 	var trace [2]Use
 	var levels [2][2]float64
@@ -405,13 +414,13 @@ func (b *clippedFuseBuilder) wall(ref clippedFuseDirectedSpan, interval geom.Cli
 			Curve: affineGraphWallTrim{wallTrim{surface: b.sources[owner], a: a.uv, b: z.uv, length: 1, start: a.point.Z, end: z.point.Z}}}
 	}
 	if trace[0].Edge == trace[1].Edge {
-		return ClippedPolynomialFuseWall{}, geom.ErrConvergence
+		return ClippedPolynomialWallBinding{}, geom.ErrConvergence
 	}
 	vertical := [2][]Use{}
 	for i, xy := range out.Points {
 		chain, e := b.verticalStation(float64(i), xy, stations[xy], levels[0][i], levels[1][i])
 		if e != nil {
-			return ClippedPolynomialFuseWall{}, e
+			return ClippedPolynomialWallBinding{}, e
 		}
 		vertical[i] = chain
 		for _, use := range chain {
@@ -429,7 +438,7 @@ func (b *clippedFuseBuilder) wall(ref clippedFuseDirectedSpan, interval geom.Cli
 	return out, nil
 }
 
-func (b *clippedFuseBuilder) verticalStation(u float64, xy geom.Vec2, heights []float64, lo, hi float64) ([]Use, error) {
+func (b *clippedStockShellBuilder) verticalStation(u float64, xy geom.Vec2, heights []float64, lo, hi float64) ([]Use, error) {
 	if lo == hi {
 		return nil, nil
 	}

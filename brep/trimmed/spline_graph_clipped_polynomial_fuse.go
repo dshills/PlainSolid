@@ -28,6 +28,9 @@ type ClippedPolynomialFuseWall struct {
 	Stations    [2][]int                          `json:"stations"`
 }
 
+// ClippedPolynomialWallBinding identifies an exposed wall in a clipped shell.
+type ClippedPolynomialWallBinding = ClippedPolynomialFuseWall
+
 // ClippedPolynomialFuse is a source-backed native volume on two unequal
 // projected stocks. Its original base and both roof charts are intact.
 type ClippedPolynomialFuse struct {
@@ -62,9 +65,13 @@ func (r *ClippedPolynomialFuse) Walls() []ClippedPolynomialFuseWall {
 	if r == nil {
 		return nil
 	}
-	out := append([]ClippedPolynomialFuseWall(nil), r.walls...)
+	return cloneClippedPolynomialWallBindings(r.walls)
+}
+
+func cloneClippedPolynomialWallBindings(walls []ClippedPolynomialWallBinding) []ClippedPolynomialWallBinding {
+	out := append([]ClippedPolynomialWallBinding(nil), walls...)
 	for i := range out {
-		for j, station := range r.walls[i].Stations {
+		for j, station := range walls[i].Stations {
 			out[i].Stations[j] = append([]int(nil), station...)
 		}
 	}
@@ -110,11 +117,13 @@ func FuseClippedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BSpline
 	}
 	roofCharts := projectedPolynomialCharts(material.Overlap.Projection)
 	charts := [3]graphEnvelopeChart{baseChart, roofCharts[0], roofCharts[1]}
-	builder := clippedFuseBuilder{
+	builder := clippedStockShellBuilder{
 		sources: sources, evaluate: exactGraphVertexEvaluator(ctx, o.Proof),
 		vertexIDs: make(map[geom.Vec3]int), edgeIDs: make(map[[2]int]int),
 	}
-	if e = builder.prepareSpans(ctx, material); e != nil {
+	if e = builder.prepareSpans(ctx, material.Boundaries, func(_ int, atom geom.ClippedPolynomialStockBoundary) (uint8, [2]geom.ClippedPolynomialWall) {
+		return clippedFuseSpanOwners(material, atom), atom.Fuse
+	}); e != nil {
 		return nil, fmt.Errorf("trimmed: clipped Fuse wall stations: %w", e)
 	}
 	uv, xyz, e := proof.RepresentedVertices()
@@ -186,29 +195,30 @@ type clippedFuseEndpoint struct {
 	point geom.Vec3
 }
 
-type clippedFuseSpan struct {
+type clippedStockSpan struct {
 	atom   int
 	points [2]geom.Vec2
 	traces [3][2]clippedFuseEndpoint
 	source geom.ClippedPolynomialStockBoundary
+	walls  [2]geom.ClippedPolynomialWall
 }
 
-type clippedFuseDirectedSpan struct {
+type clippedStockDirectedSpan struct {
 	id      int
 	reverse bool
 }
 
-func (x clippedFuseDirectedSpan) ends() (int, int) {
+func (x clippedStockDirectedSpan) ends() (int, int) {
 	if x.reverse {
 		return 1, 0
 	}
 	return 0, 1
 }
 
-type clippedFuseBuilder struct {
+type clippedStockShellBuilder struct {
 	sources   [3]*geom.BSplineSurface
 	evaluate  graphVertexEvaluator
-	spans     []clippedFuseSpan
+	spans     []clippedStockSpan
 	vertices  []geom.Vec3
 	edges     []parametric.Edge
 	faces     []Face
