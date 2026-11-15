@@ -114,6 +114,24 @@ support knot vectors and owner spline bases, rebuilding and rewriting the
 paired STEP coedges byte-identically. Pinned OCCT independently opens the
 result as one valid seven-face solid.
 
+### Mixed support crossings in one original cell
+
+`CertifyMappedSplineChainMixedSupportKnotsAgreement` proves one shared
+crossing and one single-owner crossing inside the same original common
+chain cell. One roof has two interior knots and the other has one. The
+version 6 native boundary recipe rederives both transverse crossings from
+the original supports and raw trims. Versions 4 and 5 retain their
+synchronized and distinct-cell asynchronous arrangements.
+
+The mixed fixture crosses both roofs' original support cells at model
+station `1/8`, with raw parameters `41` and `51`. At `3/16` only the
+first roof changes cells, with raw parameters `65` and `43` on the paired
+coedges. Both roofs retain the crease at the shared crossing. The second
+crease changes only one roof's one-sided derivative away from the shared
+trace. The existing canonical STEP path uses `AllowMultiSpanRoofs` and
+`AllowTwoInteriorRoofKnots` for explicit paired coedges. Foreign unsplit
+transfer for the mixed arrangement is outside this path.
+
 ### Asynchronous support crossings
 
 `CertifyMappedSplineChainAsynchronousSupportKnotsAgreement` proves one

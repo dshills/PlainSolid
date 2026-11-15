@@ -21,8 +21,16 @@ func mappedChainAsynchronousHeight(x, y, knot float64) float64 {
 
 func mappedChainAsynchronousSupport(t *testing.T, owner int, knot float64) *geom.BSplineSurface {
 	t.Helper()
-	u, v := []float64{0, knot, 1}, []float64{0, 1}
-	ku, kv := []float64{0, 0, knot, 1, 1}, []float64{0, 0, 1, 1}
+	return mappedChainFixtureKnotSupport(t, owner, []float64{knot}, func(x, y float64) float64 {
+		return mappedChainAsynchronousHeight(x, y, knot)
+	})
+}
+
+func mappedChainFixtureKnotSupport(t *testing.T, owner int, knots []float64, height func(x, y float64) float64) *geom.BSplineSurface {
+	t.Helper()
+	u, v := append([]float64{0}, knots...), []float64{0, 1}
+	u = append(u, 1)
+	ku, kv := append(append([]float64{0}, u...), 1), []float64{0, 0, 1, 1}
 	if owner == 1 {
 		u, v, ku, kv = v, u, kv, ku
 	}
@@ -33,7 +41,7 @@ func mappedChainAsynchronousSupport(t *testing.T, owner int, knot float64) *geom
 			if owner == 1 {
 				x, y = b, a
 			}
-			poles = append(poles, geom.Vec3{X: x, Y: y, Z: mappedChainAsynchronousHeight(x, y, knot)})
+			poles = append(poles, geom.Vec3{X: x, Y: y, Z: height(x, y)})
 		}
 	}
 	surface, err := geom.NewBSplineSurface(1, 1, len(u), len(v), poles, ku, kv, nil)
@@ -54,42 +62,70 @@ func mappedChainAsynchronousFixture(t *testing.T) MappedSplineChainShell {
 	if err != nil {
 		t.Fatal(err)
 	}
+	knots := [2][]float64{{k0}, {k1}}
+	height := func(owner int, x, y float64) float64 {
+		return mappedChainAsynchronousHeight(x, y, knots[owner][0])
+	}
+	return mappedChainLevelTraceFixtureShell(t, boundary, knots, height)
+}
+
+func mappedChainLevelTraceFixtureShell(t *testing.T, boundary MappedSplineChainAgreement, knots [2][]float64, height func(int, float64, float64) float64) MappedSplineChainShell {
+	t.Helper()
 	line := func(a, b geom.Vec2) PCurve { return mappedChainFixtureLine(t, a, b) }
-	roof0 := mappedChainClosing(t)
-	closing := [2][]PCurve{
-		{roof0[0],
-			line(geom.Vec2{X: 1, Y: .75}, geom.Vec2{X: k0, Y: .75}),
-			line(geom.Vec2{X: k0, Y: .75}, geom.Vec2{Y: .75}), roof0[2]},
-		{line(geom.Vec2{X: .25, Y: 1}, geom.Vec2{Y: 1}),
-			line(geom.Vec2{Y: 1}, geom.Vec2{Y: k1}),
-			line(geom.Vec2{Y: k1}, geom.Vec2{}),
-			line(geom.Vec2{}, geom.Vec2{X: .25})},
+	wallHeight := func(owner int, x, y float64) float64 { return (1 + height(owner, x, y)) / 2 }
+	var closing [2][]PCurve
+	var profiles [2][]geom.Vec2
+	for owner, y := range [2]float64{.75, 0} {
+		uv := func(x, y float64) geom.Vec2 {
+			if owner == 0 {
+				return geom.Vec2{X: x, Y: y}
+			}
+			return geom.Vec2{X: y, Y: x}
+		}
+		xs := []float64{1}
+		for i := len(knots[owner]) - 1; i >= 0; i-- {
+			xs = append(xs, knots[owner][i])
+		}
+		xs = append(xs, 0)
+		closing[owner] = append(closing[owner], line(uv(1, .25), uv(1, y)))
+		profiles[owner] = []geom.Vec2{{}, {X: 1}}
+		for i, x := range xs {
+			profiles[owner] = append(profiles[owner], geom.Vec2{X: x, Y: wallHeight(owner, x, y)})
+			if i+1 < len(xs) {
+				closing[owner] = append(closing[owner], line(uv(x, y), uv(xs[i+1], y)))
+			}
+		}
+		closing[owner] = append(closing[owner], line(uv(0, y), uv(0, .25)))
 	}
 	face := func(origin, u, v geom.Vec3, reverse bool, ring ...geom.Vec2) MappedChainPlanarFace {
 		return mappedChainFixturePlanarFace(t, origin, u, v, reverse, ring...)
 	}
 	x, y, z := geom.Vec3{X: 1}, geom.Vec3{Y: 1}, geom.Vec3{Z: 2}
-	north := (1 + mappedChainAsynchronousHeight(1, .75, k0)) / 2
-	south := (1 + mappedChainAsynchronousHeight(1, 0, k1)) / 2
 	planar := []MappedChainPlanarFace{
 		face(geom.Vec3{X: 1, Z: -1}, y, z, false,
-			geom.Vec2{}, geom.Vec2{X: .75}, geom.Vec2{X: .75, Y: north}, geom.Vec2{X: .25, Y: .625}, geom.Vec2{Y: south}),
+			geom.Vec2{}, geom.Vec2{X: .75}, geom.Vec2{X: .75, Y: wallHeight(0, 1, .75)},
+			geom.Vec2{X: .25, Y: wallHeight(0, 1, .25)}, geom.Vec2{Y: wallHeight(1, 1, 0)}),
 		face(geom.Vec3{Z: -1}, y, z, true,
 			geom.Vec2{}, geom.Vec2{X: .75}, geom.Vec2{X: .75, Y: .5}, geom.Vec2{X: .25, Y: .5}, geom.Vec2{Y: .5}),
-		face(geom.Vec3{Y: .75, Z: -1}, x, z, true,
-			geom.Vec2{}, geom.Vec2{X: 1}, geom.Vec2{X: 1, Y: north}, geom.Vec2{X: k0, Y: (1 + .75*k0) / 2}, geom.Vec2{Y: .5}),
-		face(geom.Vec3{Z: -1}, x, z, false,
-			geom.Vec2{}, geom.Vec2{X: 1}, geom.Vec2{X: 1, Y: south}, geom.Vec2{X: k1, Y: .5}, geom.Vec2{Y: .5}),
+		face(geom.Vec3{Y: .75, Z: -1}, x, z, true, profiles[0]...),
+		face(geom.Vec3{Z: -1}, x, z, false, profiles[1]...),
 		face(geom.Vec3{Z: -1}, x, y, true,
 			geom.Vec2{}, geom.Vec2{X: 1}, geom.Vec2{X: 1, Y: .75}, geom.Vec2{Y: .75}),
 	}
-	seams := [][2]MappedChainClosedUse{
-		{{0, 0}, {2, 2}}, {{0, 1}, {4, 2}}, {{0, 2}, {4, 3}}, {{0, 3}, {3, 2}},
-		{{1, 0}, {2, 3}}, {{1, 1}, {5, 2}}, {{1, 2}, {5, 3}}, {{1, 3}, {3, 3}},
-		{{2, 1}, {4, 1}}, {{2, 4}, {5, 1}}, {{3, 1}, {4, 4}}, {{3, 4}, {5, 4}},
-		{{2, 0}, {6, 1}}, {{3, 0}, {6, 3}}, {{4, 0}, {6, 2}}, {{5, 0}, {6, 0}},
+	var seams [][2]MappedChainClosedUse
+	for owner, trims := range closing {
+		seams = append(seams, [2]MappedChainClosedUse{{owner, 0}, {2, 2 + owner}})
+		last := len(trims) - 1
+		for i := 1; i < last; i++ {
+			seams = append(seams, [2]MappedChainClosedUse{{owner, i}, {4 + owner, i + 1}})
+		}
+		seams = append(seams, [2]MappedChainClosedUse{{owner, last}, {3, 2 + owner}})
 	}
-	shell, err := CertifyMappedSplineChainShell(ctx, boundary, closing, [2]bool{false, true}, planar, seams, MappedChainShellProofOptions{})
+	seams = append(seams, [][2]MappedChainClosedUse{
+		{{2, 1}, {4, 1}}, {{2, 4}, {5, 1}}, {{3, 1}, {4, len(profiles[0]) - 1}}, {{3, 4}, {5, len(profiles[1]) - 1}},
+		{{2, 0}, {6, 1}}, {{3, 0}, {6, 3}}, {{4, 0}, {6, 2}}, {{5, 0}, {6, 0}},
+	}...)
+	shell, err := CertifyMappedSplineChainShell(context.Background(), boundary, closing, [2]bool{false, true}, planar, seams, MappedChainShellProofOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

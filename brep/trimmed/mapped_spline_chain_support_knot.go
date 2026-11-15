@@ -16,7 +16,7 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 	events := geom.ExactCurvePlaneEventOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits, MaxSubdivisions: o.MaxDepth}
 	maxOwnerKnots, count := 1, 1
 	switch repair {
-	case mappedChainSynchronizedKnotsRepair:
+	case mappedChainSynchronizedKnotsRepair, mappedChainMixedKnotsRepair:
 		maxOwnerKnots, count = 2, 2
 	case mappedChainAsynchronousKnotsRepair:
 		count = 2
@@ -27,6 +27,7 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 		owners    uint8
 	}
 	var stations []station
+	var originalKnots int
 	for owner, patch := range patches {
 		planes, err := mappedSplineInteriorSupportKnotPlanes(patch, maxOwnerKnots)
 		if err != nil {
@@ -38,6 +39,10 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 		if repair == mappedChainAsynchronousKnotsRepair && len(planes) != 1 {
 			return nil, nil, fmt.Errorf("roof %d requires one original support knot: %w", owner, geom.ErrConvergence)
 		}
+		if repair == mappedChainMixedKnotsRepair && len(planes) == 0 {
+			return nil, nil, fmt.Errorf("mixed repair requires one or two original support knots per roof: %w", geom.ErrConvergence)
+		}
+		originalKnots += len(planes)
 		if len(planes) == 0 {
 			continue
 		}
@@ -84,6 +89,10 @@ func mappedSplineSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChai
 	}
 	if len(stations) != count {
 		return nil, nil, fmt.Errorf("required interior model crossings of original support knots were not proved: %w", geom.ErrConvergence)
+	}
+	if repair == mappedChainMixedKnotsRepair &&
+		(originalKnots != 3 || (stations[0].owners == 3) == (stations[1].owners == 3)) {
+		return nil, nil, fmt.Errorf("mixed repair requires one shared crossing and one single-owner crossing across three original support knots: %w", geom.ErrConvergence)
 	}
 	slices.SortFunc(stations, func(a, b station) int { return a.parameter.Cmp(b.parameter) })
 	repaired := make([]bool, len(cuts)+len(stations))
