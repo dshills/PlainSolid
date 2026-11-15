@@ -6824,3 +6824,81 @@ boundary and face-fill, and spherical offset cases in `geom`,
 `brep/parametric`, and `brep/trimmed`. Three optional live comparisons
 were skipped in that run while the pinned OCCT reference was rebuilding.
 The run log is under `.worktrees/qualification/2026-11-15` in the workspace.
+
+### Additional November 15 focused checks
+
+The rebuilt pinned OCCT reference at `4dbfdcc448c0b3e565488afcd626c84483172db9`
+qualified the spherical cavity, separated sphere, and lens-erosion comparison
+cases under race. Transverse lens erosion keeps the two original sphere supports
+at exact shifted radii and regularizes the point of collapse to empty. Outward
+lens dilation separately checks equal and unequal radii against the analytic
+Steiner formula. It retains the original contact circle and two spherical
+caps joined by a torus belt, with certified display and native reload for the
+represented circular rims in scope.
+
+`f80ee663` passed the 105.624-second focused trimmed race run. Two nonlinear
+roofs, the original affine walls and the floor share one seam ledger. The
+normal 1,742-triangle mesh and the different-budget 2,714-triangle mesh both
+have no nonincident triangle contacts. The tighter owner adds a refinement
+round to the shared seam rather than creating a second model-edge sampling.
+
+`9f8eec67` passed all three native transverse-node tests under race in 40.523
+seconds, including the live OCCT comparison. The eight Common/Fuse cases span
+both graph axes and operand orders. Each preserves four exact paired coedges
+meeting at one original vertex and reloads as one closed Euler-2 shell.
+Changed source trims, nonrepresentable node coordinates, and the point
+contacting Cut remain rejected by this entry point. Pinned OCCT returns two
+solids for the Cut, which needs a separate component contract.
+
+`3eea7df3` and `39f5a619` passed the `heal/...` and `collision` race suites.
+The sewing test reorients one cavity, an island inside it, and a disjoint
+component with inconsistent input face winding; the strict classifier
+validates the result and exact signed shell volumes give material volume 305.
+The short-edge test contracts in both directions on an internal planar seam,
+preserves unit volume and area six, and rechecks complete embedding. It
+rejects a budget one ULP below the required distance, work exhaustion,
+crease contractions, and contractions that erase faces.
+
+The four live STEP repair comparator cases passed under race in 21.078
+seconds, using the rebuilt reference and its standard Part 21 writer.
+
+The PlainCAD bridge imports the five original default OCCT convex-arc
+specimens only when explicitly enabled. It preserves the original signed
+placement and repair proof, prepares a closed mesh, and regenerates a
+canonical file whose normal strict import is byte-stable on export. The
+first implementation's complete native race exceeded its 12-minute budget
+in the translated two-fillet case. After `380f5ed7` replaced the generic
+preview refinement with exact signed-frame profile and sagitta checks, all
+focused main races passed in 165.712 seconds. An isolated Node WASM smoke
+reduced the mesh phase from over 132 seconds to under 40 milliseconds.
+The full focused Go WASM tests on the pinned `f5bfaac2` snapshot passed
+in 72.263 seconds. The earlier launcher attempted to start two WASM runtime
+threads; the staged rerun used one and verified all test assertions.
+
+The complete mapped-shell recipe is 5,675 bytes and stores original source
+data only. A closed-source tessellation is reconstructed after reload;
+malformed loop pairing and an interior control change on the planar floor
+are rejected. The separate continuous embedding certificate rejects a roof
+that crosses the floor while preserving every seam. Its restricted native
+Solid roundtrip matches independently authored pinned OCCT: 7 faces, 17 edges,
+12 vertices, volume 0.890625, area 5.82544462100276 and the centroid. The
+reloaded native material preserves exact rational point locations, seam
+incidence and line crossings. Focused race logs are in the qualification
+directory above.
+
+The native point-contact Cut race on `bd14f09d` passed in 251.371 seconds,
+including independently measured pinned OCCT component volumes within
+`2.8e-11`. Both axis and operand orders return individually embedded positive
+shells, exact node ancestry and a source-only reload certificate. The generic
+collision checker still reports their shared point when the two displays are
+joined without the component contract.
+
+Large lens dilations in `acbcc2b1` retain only the regular outer rolling band
+of the underlying horn or spindle support. The race tests reject reflected
+quartic roots and retain an exact fourth-order meridian endpoint contact.
+Native reload, deflection, conservative bounds, rays and independent parallel
+body volume/area checks pass at the original rim radius and at three times
+that radius. `f5bfaac2` additionally passes exact point classification across
+the original cap/rim joins and on opposite sides separated by one ULP. The
+point proof supports an oblique irrational rim without a native floating
+support. Vet and the Windows amd64 cross-build on the pinned snapshot passed.

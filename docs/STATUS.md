@@ -69,6 +69,34 @@ output from the follow-up Go run on `abb80f9f` is unavailable. Fresh Go
 and PlainCAD runs on `48b0ce58` started on 2026-11-15 with logs under
 `.worktrees/qualification/2026-11-15` in this workspace.
 
+New focused milestones on `main` qualify transverse spherical-lens erosion and
+dilation, a closed display with an exact shared mapped-spline seam, Common and
+Fuse through one original transverse curved node, and two bounded planar
+healing operations. The latter orient nested material/cavity shells after
+exact embedding checks and contract one selected coplanar short edge while
+preserving material and source face indices. Arbitrary short edges, intersecting
+shell repairs, and modification of original curved supports remain open.
+
+The mapped shell now persists its original source recipe, separately proves
+continuous embedding, and converts to a native Solid for the rectangular
+family. Native reload, display, exact rational queries, mass and independent
+OCCT construction pass. The explicit native Cut result preserves two regular
+components and their one exact shared point; the ordinary solid admits no
+unproved touching shells. The opt-in PlainCAD bridge STEP repair and its
+compact signed-frame mesh passed the five-fixture Go race and actual WASM runs.
+The pinned OCCT reference has been rebuilt, and the new live spherical,
+curved-node, mapped-shell, and original STEP repair comparisons passed.
+
+The fresh full Go and PlainCAD runs are still running against `48b0ce58`.
+The Go run has an independently enumerated inventory of 5,646 cases across
+52 tested packages, including 1,398 in five complete trimmed groups. Newer
+changes have focused checks, and `f5bfaac2` also passed `go vet ./...` and a
+Windows amd64 cross-build. The next active work covers multiple transverse
+nodes, mapped shell STEP transfer, tilted fixtures for bounded STEP repair,
+and algebraic line queries for large or nonrepresentable spherical-lens
+offsets. Broader general curved assembly, exchange, and qualification remain
+required by the specification.
+
 Ordered roof Common and matching-footprint Fuse retain genuine original
 spline creases and imprint exact axis-aligned crossings inside original
 knot rectangles. Adjacent cap tiles share the same exact edge. Crossings
