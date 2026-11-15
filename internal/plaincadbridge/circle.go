@@ -1,6 +1,7 @@
 package plaincadbridge
 
 import (
+	"context"
 	"errors"
 	"math"
 	"strconv"
@@ -107,6 +108,9 @@ func (s stored) tessellate(q request) (mesh.Mesh, error) {
 	o, err := tessellationOptions(q)
 	if err != nil {
 		return mesh.Mesh{}, err
+	}
+	if s.rationalStepArc != nil {
+		return s.rationalStepArc.tessellate(context.Background(), o)
 	}
 	if s.tangent != nil {
 		return s.tangent.tessellate(o)

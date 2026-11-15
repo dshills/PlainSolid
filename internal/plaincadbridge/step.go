@@ -27,8 +27,14 @@ func (b *Bridge) importSTEP(source string) (Shape, error) {
 		return Shape{}, &failureError{"LIMIT", "STEP source must contain between 1 byte and 1 MiB"}
 	}
 	r := func() *strings.Reader { return strings.NewReader(source) }
-	// The product identifier is a dispatch hint. The exact reader still
-	// authenticates the complete rooted graph and its original geometry.
+	// The product identifiers are dispatch hints. The readers authenticate
+	// the complete rooted graphs and their original geometry.
+	if strings.Contains(source, "'rational-posed-exact-circular-loop-extrusion'") {
+		ctx := context.Background()
+		if m, e := step.ReadRationalPosedExactCircularLoopExtrusion(ctx, r(), stepLimits()); e == nil {
+			return b.putRationalSTEPArcLoop(ctx, m.Native, m.Descriptor, m.Pose)
+		}
+	}
 	if strings.Contains(source, "'exact-circular-loop-extrusion'") {
 		ctx := context.Background()
 		if m, e := step.ReadExactCircularLoopExtrusion(ctx, r(), stepLimits()); e == nil {
@@ -474,6 +480,9 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	switch {
 	case isPlanar:
 		e = step.Write(&out, step.Model{LengthUnit: .001, Bodies: []step.Body{{Name: "PlainSolid", Solid: planar}}})
+	case s.rationalStepArc != nil:
+		p := s.rationalStepArc
+		e = step.WriteRationalPosedExactCircularLoopExtrusion(context.Background(), &out, p.descriptor, p.pose)
 	case s.tangent != nil:
 		return nil, unsupportedEdge("STEP export requires a manifold boundary. The side-tangent blind bore has a non-manifold contact edge.")
 	case s.cylinder != nil:

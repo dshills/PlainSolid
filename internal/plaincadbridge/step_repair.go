@@ -7,10 +7,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"math/big"
 	"strings"
 
+	rigidplacement "plainsolid/brep/placement"
 	"plainsolid/brep/trimmed"
 	"plainsolid/exchange/step"
+	"plainsolid/geom"
 )
 
 type stepRepairRequest struct {
@@ -19,20 +22,22 @@ type stepRepairRequest struct {
 }
 
 type stepRepairEvidence struct {
-	Family       string                         `json:"family"`
-	SourceSHA256 string                         `json:"sourceSHA256"`
-	LengthUnit   float64                        `json:"lengthUnit"`
-	MaxDistance  float64                        `json:"maxDistance"`
-	Provenance   step.ConvexArcRepairProvenance `json:"provenance"`
-	Repairs      []step.ConvexArcRepairSite     `json:"repairs"`
-	PCurveOwners int                            `json:"pcurveOwners"`
-	RationalCaps int                            `json:"rationalCaps,omitempty"`
+	Family           string                         `json:"family"`
+	SourceSHA256     string                         `json:"sourceSHA256"`
+	LengthUnit       float64                        `json:"lengthUnit"`
+	MaxDistance      float64                        `json:"maxDistance"`
+	Provenance       step.ConvexArcRepairProvenance `json:"provenance"`
+	Repairs          []step.ConvexArcRepairSite     `json:"repairs"`
+	PCurveOwners     int                            `json:"pcurveOwners"`
+	RationalCaps     int                            `json:"rationalCaps,omitempty"`
+	FiniteLineOwners int                            `json:"finiteLineOwners,omitempty"`
+	AxialTrims       int                            `json:"axialTrims,omitempty"`
+	WorldPose        *[3][4]*big.Rat                `json:"worldPose,omitempty"`
 }
 
 type stepRepairMaterial interface {
 	OriginalSTEP() string
 	Solid() trimmed.Solid
-	Descriptor() step.ExactCircularLoopExtrusion
 	Provenance() step.ConvexArcRepairProvenance
 	Repairs() []step.ConvexArcRepairSite
 	PCurves() []step.ConvexArcPCurveAgreement
@@ -61,13 +66,17 @@ func (b *Bridge) importSTEPWithRepair(ctx context.Context, source string, repair
 	if material, err := step.RepairPosedGroupedPCurveOCCTConvexArcExtrusion(ctx, strings.NewReader(source), stepLimits(), options); err == nil {
 		return b.putSTEPRepair(ctx, material, *repair)
 	}
+	if material, err := step.RepairRationalPosedPCurveOCCTConvexArcExtrusion(ctx, strings.NewReader(source), stepLimits(), options); err == nil {
+		return b.putSTEPRepair(ctx, material, *repair)
+	}
+	if material, err := step.RepairRationalPosedGroupedPCurveOCCTConvexArcExtrusion(ctx, strings.NewReader(source), stepLimits(), options); err == nil {
+		return b.putSTEPRepair(ctx, material, *repair)
+	}
 	return Shape{}, unsupportedEdge("STEP source has no qualified default OCCT pcurve repair within maxDistance")
 }
 
 func (b *Bridge) putSTEPRepair(ctx context.Context, material stepRepairMaterial, q stepRepairRequest) (Shape, error) {
-	d := material.Descriptor()
 	evidence := stepRepairEvidence{
-		LengthUnit:   d.LengthUnit,
 		MaxDistance:  float64(q.MaxDistance),
 		Provenance:   material.Provenance(),
 		Repairs:      material.Repairs(),
@@ -76,24 +85,49 @@ func (b *Bridge) putSTEPRepair(ctx context.Context, material stepRepairMaterial,
 	digest := sha256.Sum256([]byte(material.OriginalSTEP()))
 	evidence.SourceSHA256 = hex.EncodeToString(digest[:])
 	var proof bytes.Buffer
+	var d step.ExactCircularLoopExtrusion
+	var pose *rigidplacement.RationalRigid
 	var err error
 	switch m := material.(type) {
 	case step.PCurveRepairedOCCTConvexArcExtrusion:
+		d = m.Descriptor()
 		evidence.Family = "occt-single-pcurve-convex-arc"
 		if q.Native {
 			err = step.WritePCurveRepairedOCCTConvexArcJSON(ctx, &proof, m)
 		}
 	case step.GroupedPCurveRepairedOCCTConvexArcExtrusion:
+		d = m.Descriptor()
 		evidence.Family = "occt-grouped-pcurve-convex-arc"
 		evidence.RationalCaps = len(m.RationalCaps())
 		if q.Native {
 			err = step.WriteGroupedPCurveRepairedOCCTConvexArcJSON(ctx, &proof, m)
 		}
 	case step.PosedGroupedPCurveRepairedOCCTConvexArcExtrusion:
+		d = m.Descriptor()
 		evidence.Family = "occt-posed-grouped-pcurve-convex-arc"
 		evidence.RationalCaps = len(m.RationalCaps())
 		if q.Native {
 			err = step.WritePosedGroupedPCurveRepairedOCCTConvexArcJSON(ctx, &proof, m)
+		}
+	case step.RationalPosedPCurveRepairedOCCTConvexArcExtrusion:
+		d = m.LocalDescriptor()
+		p := m.Pose()
+		pose = &p
+		evidence.Family = "occt-rational-posed-single-pcurve-convex-arc"
+		evidence.FiniteLineOwners = len(m.FiniteLineOwners())
+		if q.Native {
+			err = step.WriteRationalPosedPCurveRepairedOCCTConvexArcJSON(ctx, &proof, m)
+		}
+	case step.RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion:
+		d = m.LocalDescriptor()
+		p := m.Pose()
+		pose = &p
+		evidence.Family = "occt-rational-posed-grouped-pcurve-convex-arc"
+		evidence.RationalCaps = len(m.RationalCaps())
+		evidence.FiniteLineOwners = len(m.FiniteLineOwners())
+		evidence.AxialTrims = len(m.AxialTrims())
+		if q.Native {
+			err = step.WriteRationalPosedGroupedPCurveRepairedOCCTConvexArcJSON(ctx, &proof, m)
 		}
 	default:
 		return Shape{}, errors.New("unrecognized STEP repair material")
@@ -104,7 +138,21 @@ func (b *Bridge) putSTEPRepair(ctx context.Context, material stepRepairMaterial,
 	if proof.Len() > MaxRequestBytes {
 		return Shape{}, &failureError{"LIMIT", "STEP repair native proof exceeds 1 MiB"}
 	}
-	shape, err := b.putExactSTEPArcLoop(ctx, material.Solid(), d)
+	evidence.LengthUnit = d.LengthUnit
+	var shape Shape
+	if pose != nil {
+		var matrix [3][4]*big.Rat
+		matrix, err = pose.Matrix()
+		if err != nil {
+			return Shape{}, err
+		}
+		evidence.WorldPose = &matrix
+		// The rational pose already includes the local descriptor's axial origin.
+		d.Frame, _ = geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+		shape, err = b.putRationalSTEPArcLoop(ctx, material.Solid(), d, *pose)
+	} else {
+		shape, err = b.putExactSTEPArcLoop(ctx, material.Solid(), d)
+	}
 	if err != nil {
 		return Shape{}, err
 	}
