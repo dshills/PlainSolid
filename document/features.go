@@ -43,6 +43,7 @@ const (
 	CylinderBoreFeature          FeatureKind = "cylinder-bore"
 	SideOpenDualDiskCutFeature   FeatureKind = "side-open-dual-disk-cut"
 	PrismFilletFeature           FeatureKind = "prism-corner-fillet"
+	OrthogonalPrismFilletFeature FeatureKind = "orthogonal-prism-corner-fillet"
 	WrappedCylinderFeature       FeatureKind = "wrapped-cylinder"
 	WrappedDraftFeature          FeatureKind = "wrapped-draft"
 	WrappedBoreFeature           FeatureKind = "wrapped-bore"
@@ -66,6 +67,7 @@ const (
 // selects the inward normal of the entry face. A prism corner fillet uses a
 // counterclockwise horizontal Profile and a vertical Offset. Radius rounds
 // every vertical edge, or CornerRadii selects individual edges and radii.
+// An orthogonal prism fillet also accepts reentrant profile corners.
 // Planar protrusion/pocket uses a named box face through Input and EntryRole,
 // an interior world-space Profile and full translation Offset; holes unsupported.
 // PlanarToFace uses Input, EntryRole, Profile, Holes and Direction; its
@@ -269,6 +271,9 @@ func (s State) evaluateFeatures(ctx context.Context, observe *featureFaceObserve
 			case WrappedCylinderFeature, WrappedDraftFeature, WrappedBoreFeature, WrappedStationLoftFeature, WrappedFrustumOffsetFeature, WrappedCylinderFilletFeature, WrappedCylinderOffsetFeature, WrappedStationBoreFeature:
 				uv = true
 				r, e = evaluateWrappedFeature(ctx, result.Trimmed, f)
+			case OrthogonalPrismFilletFeature:
+				uv = true
+				r, e = evaluateOrthogonalPrismFillet(ctx, f)
 			case PrismFilletFeature:
 				uv = true
 				if len(f.Profile) < 3 || len(f.Profile) > 128 || len(f.Holes) != 0 || f.Offset.X != 0 || f.Offset.Y != 0 || f.Offset.Z <= 0 {
