@@ -84,19 +84,21 @@ with a quadratic tangency, with original-source reload. The general
 geometry arrangement proves exact multiplicities through degree five. Five
 transverse crossings qualify source-backed Common, Fuse and both Cut orders.
 The cubic-crossing and quadratic-tangency pair qualifies original-source
-Common and Fuse in both event orders. Geometry discovery also preserves
-independent exact source roof charts, including reversed affine stations.
+Common, Fuse and both Cut orders in both event orders. Native output keeps
+the unmodified independent roof charts, including reversed affine stations.
 Mapped v8 retains four to six exact support cuts in one original cell, including
 the original unsplit author graph with both basis families and raw knots.
 Mapped v9 retains four events in two original cells, five in three cells,
 or three events on either side of a complete original edge with no event.
 It preserves both sides of each joint and the separate stored and inferred
-stations.
+stations. One unsplit authored Bézier now retains two asynchronous inferred
+events or one jointly inferred event with different original owner stations.
 The original and converted metre and inch three-fillet STEP bodies pass
 the native bridge and real Node and Chromium WASM. Four separated fillets
 now qualify exact STEP transfer in the original millimetre charts and real
-PlainCAD worker runtimes; the converted metre version qualifies original
-STEP with separate raw and proved finite axial stations. Native
+PlainCAD worker runtimes in native millimetres and in converted metres and
+inches. The original metre proof keeps separate raw and proved finite axial
+stations; the inch proof retains explicit units and bounded surface laws. Native
 extrusion, canonical STEP and canonical IGES retain directed minor arcs and
 separate curved cap holes. The original two-hole OCCT STEP also reopens from
 a source-backed native receipt. Original IGES preserves 16 transformed arcs
@@ -104,16 +106,18 @@ and 32 explicit cylindrical pcurves with exact chart and endpoint proofs.
 Directed profiles keep stable named walls and rims across edits, placement,
 undo, redo, and reopen. Orthogonal reentrant fillets also regenerate. Exact
 lateral offsets retain line and arc ownership and cap elevations, proving
-clearance for the complete offset path before returning material. An exact
-curved inset join keeps the original host cap, guest walls, and separate
-exposed floors inside through-openings. Its compact mesh shares original rims.
+clearance for the complete offset path before returning material. Exact
+curved inset joins keep original host caps, guest walls, and separate
+exposed floors inside through-openings. They qualify compact display, native
+and document replay, and analytic STEP and IGES with supported placements.
+Complete equal curved caps also join, leaving one common original rim.
 
-Immediate work includes editable lateral offsets, native envelope assembly
-with original owner-specific roof charts, two inferred owner events in one
-unsplit mapped cell, and the converted four-fillet PlainCAD bridge. A newer
-PlainCAD rerun is being staged on `83e18008`. Vet and Windows amd64 cross-build
-also pass on `12ab5dbf`. Wider contact discovery, advanced modeling, exchange
-and native platform gates remain open.
+Immediate work includes different curved cap rim partitions, two independently
+projected original roof charts, two jointly inferred roots in one model cell,
+and five separated original STEP fillets. The fresh full PlainCAD run on
+`83e18008` and native race on `491b18f1` are running. Vet and Windows amd64
+cross-build also pass on `12ab5dbf`. Wider contact discovery, advanced modeling,
+exchange and native platform gates remain open.
 
 The two PlainCAD integration branches are in `main` through implementation
 merge `8f76f16b` and verification merge `012096ee`.

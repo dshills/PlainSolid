@@ -231,6 +231,44 @@ Raw runs, source, and input lists are under
   reject touch and gaps, and match independently authored OCCT material.
   The compact mesh closes with 112 triangles under the bounded display
   test. Native JSON replay preserves the resulting exact cap and floor trims.
+- Curved inset STEP `96598a09` passed its main race in 29.556 seconds, with
+  independent OCCT readback of both cap directions as one 20-face solid.
+  Four prior signed circular writer fixtures were byte-identical. Curved
+  inset IGES `ff9b4dd0` passed its main race in 42.597 seconds and the same
+  independent topology and material checks. Both readers reject a changed
+  original floor sense. The bounded 15-second fuzz campaigns executed 136
+  STEP inputs and 87 IGES inputs without failures.
+- Named document offset and inset joins regenerate original walls, rims,
+  host floors, and deleted guest caps through edits and reopen. The composed
+  placement export `13e3cc22` passed the main race in 43.746 seconds. STEP
+  preserves the feature and assembly pose, and IGES preserves a proper planar
+  rotation and offset cap elevations. Unsupported poses and inexact placement
+  composition produce no output.
+- Independent roof chart envelopes `21e54f8d` and Cut `427496fc` passed
+  main races with original roof, wall and seam owners. The aligned Cut and
+  envelope test passed in 52.914 seconds. Its exact volume integrals cover
+  both Cut orders and remain attached to the separate native components after
+  source reload; existing same-chart recipes were checked byte-for-byte.
+- Two asynchronous inferred roots on one original Bézier `22d763a4` and
+  one shared inferred root `9aef542f` passed their live STEP races in 42.894
+  and 31.363 seconds. Both reject an independently authored redundant stored
+  model knot. Closed displays retain the original stations, and prior native
+  and canonical recipes stayed unchanged.
+- Four-fillet converted metre and inch bridge harnesses passed their latest
+  combined main native race in 65.402 seconds. Pinned scaled inch and metre
+  STEP passed together in 37.411 seconds. The isolated runtime qualification
+  reports 17 typed Node cases and 15 Chromium worker cases. Inch native and
+  worker exact certificate SHA-256 is
+  `857dd1a5b99beb1c75206a9c3e215a94af986a90d70e5f0d4ac4b17039f442c4`.
+  The real unscaled inch file fails exact reconstruction at three original
+  tangent supports, and tighter source budgets reject atomically. Prior
+  receipt and corrected/canonical hashes stayed unchanged.
+- Complete circular cap contact `991dfed0` passed the main race in 19.378
+  seconds, removing both internal caps and retaining the 12 common rim
+  edges, 26 faces, and separate original walls under either input order.
+  Pinned OCCT independently confirms material volume `240−2.5π` and
+  area `236+9π`. A valid source with an alternative circle at the same
+  original endpoints is rejected.
 
 Focused main verification adds two bounded cases:
 
