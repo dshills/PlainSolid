@@ -14,10 +14,10 @@ import (
 	"plainsolid/geom"
 )
 
-func mappedChainCreasedSupport(t *testing.T, swapped bool) *geom.BSplineSurface {
+func mappedChainCreasedSupport(t *testing.T, swapped bool, knot, slope float64) *geom.BSplineSurface {
 	t.Helper()
-	x, y := []float64{0, .5, 1}, []float64{0, 1}
-	ku, kv := []float64{0, 0, .5, 1, 1}, []float64{0, 0, 1, 1}
+	x, y := []float64{0, knot, 1}, []float64{0, 1}
+	ku, kv := []float64{0, 0, knot, 1, 1}, []float64{0, 0, 1, 1}
 	if swapped {
 		x, y, ku, kv = y, x, kv, ku
 	}
@@ -28,7 +28,7 @@ func mappedChainCreasedSupport(t *testing.T, swapped bool) *geom.BSplineSurface 
 			if swapped {
 				a, b = b, a
 			}
-			poles = append(poles, geom.Vec3{X: a, Y: b, Z: a*b + .5*max(0, a-.5)})
+			poles = append(poles, geom.Vec3{X: a, Y: b, Z: a*b + slope*max(0, a-knot)})
 		}
 	}
 	s, err := geom.NewBSplineSurface(1, 1, len(x), len(y), poles, ku, kv, nil)

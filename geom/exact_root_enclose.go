@@ -56,6 +56,56 @@ func (r *ExactAlgebraicRoot) Enclose(ctx context.Context, maxWidth *big.Rat, o E
 	return out, nil
 }
 
+// RecoverRational tries exact rational reconstruction while refining this root.
+// A nil result at the requested search width leaves the root unclassified.
+// Every returned candidate is verified exactly against the original polynomial.
+func (r *ExactAlgebraicRoot) RecoverRational(ctx context.Context, searchWidth *big.Rat, o ExactCurvePlaneEventOptions) (*big.Rat, error) {
+	if ctx == nil || r == nil || r.root == nil || searchWidth == nil || searchWidth.Sign() <= 0 {
+		return nil, ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return nil, e
+	}
+	o, e := graphRootOptions(o)
+	if e != nil {
+		return nil, e
+	}
+	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
+	if e := b.check(searchWidth); e != nil {
+		return nil, e
+	}
+	p := r.root.polynomial
+	for _, x := range p {
+		if e := b.check(x); e != nil {
+			return nil, e
+		}
+	}
+	var result *big.Rat
+	accepted := false
+	_, e = isolatePolynomialRoots(p, r.root.bounds[0], r.root.bounds[1], b, o.MaxSubdivisions, func(lo, hi *big.Rat, _ int) (bool, error) {
+		if e := ctx.Err(); e != nil {
+			return false, e
+		}
+		if accepted {
+			return false, ErrConvergence
+		}
+		candidate, e := recoverRationalPolynomialRoot(p, lo, hi, b)
+		if e != nil {
+			return false, e
+		}
+		result = candidate
+		accepted = result != nil || new(big.Rat).Sub(hi, lo).Cmp(searchWidth) <= 0
+		return accepted, nil
+	})
+	if e != nil {
+		return nil, e
+	}
+	if !accepted {
+		return nil, ErrConvergence
+	}
+	return result, nil
+}
+
 // NewExactRationalRoot constructs an immutable singleton algebraic identity
 // directly, with no text codec or numerical recovery. The input is copied.
 func NewExactRationalRoot(ctx context.Context, value *big.Rat, o ExactCurvePlaneEventOptions) (root *ExactAlgebraicRoot, operations int, err error) {

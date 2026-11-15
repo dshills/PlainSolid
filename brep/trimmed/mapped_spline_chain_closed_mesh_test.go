@@ -22,8 +22,10 @@ func mappedChainClosedFixtureWithKnot(t *testing.T, crease bool) (MappedSplineCh
 	ctx := context.Background()
 	a, ca := mappedChainFixture(t, false)
 	b, cb := mappedChainFixture(t, true)
+	var knot, slope float64
 	if crease {
-		a, b = mappedChainCreasedSupport(t, false), mappedChainCreasedSupport(t, true)
+		knot, slope = .5, .5
+		a, b = mappedChainCreasedSupport(t, false, knot, slope), mappedChainCreasedSupport(t, true, knot, slope)
 	}
 	proof, err := CertifyMappedSplineChainAgreement(ctx, a, ca, b, cb, edgecheck.Options{})
 	if err != nil {
@@ -42,6 +44,12 @@ func mappedChainClosedFixtureWithKnot(t *testing.T, crease bool) (MappedSplineCh
 			t.Fatal("original source lost during reload", owner)
 		}
 	}
+	closing, planar, seams := mappedChainFixtureClosures(t, knot, slope)
+	return loaded, closing, planar, seams
+}
+
+func mappedChainFixtureClosures(t *testing.T, knot, slope float64) ([2][]PCurve, []MappedChainPlanarFace, [][2]MappedChainClosedUse) {
+	t.Helper()
 	line := func(a, b geom.Vec2) PCurve {
 		quadratic, err := NewExactQuadraticUV([3][3]*big.Rat{
 			{ratInset(a.X), ratInset(a.Y), big.NewRat(1, 1)},
@@ -94,19 +102,20 @@ func mappedChainClosedFixtureWithKnot(t *testing.T, crease bool) (MappedSplineCh
 		{{2, 1}, {4, 1}}, {{2, 4}, {5, 1}}, {{3, 1}, {4, 3}}, {{3, 4}, {5, 3}},
 		{{2, 0}, {6, 1}}, {{3, 0}, {6, 3}}, {{4, 0}, {6, 2}}, {{5, 0}, {6, 0}},
 	}
-	if crease {
+	if knot > 0 {
+		east := func(y float64) float64 { return (1 + y + slope*(1-knot)) / 2 }
 		closing[0] = []PCurve{closing[0][0],
-			line(geom.Vec2{X: 1, Y: .75}, geom.Vec2{X: .5, Y: .75}),
-			line(geom.Vec2{X: .5, Y: .75}, geom.Vec2{Y: .75}), closing[0][2]}
+			line(geom.Vec2{X: 1, Y: .75}, geom.Vec2{X: knot, Y: .75}),
+			line(geom.Vec2{X: knot, Y: .75}, geom.Vec2{Y: .75}), closing[0][2]}
 		closing[1] = []PCurve{closing[1][0],
-			line(geom.Vec2{Y: 1}, geom.Vec2{Y: .5}),
-			line(geom.Vec2{Y: .5}, geom.Vec2{}), closing[1][2]}
+			line(geom.Vec2{Y: 1}, geom.Vec2{Y: knot}),
+			line(geom.Vec2{Y: knot}, geom.Vec2{}), closing[1][2]}
 		planar[0] = face(geom.Vec3{X: 1, Z: -1}, yAxis, height, false,
-			geom.Vec2{}, geom.Vec2{X: .75}, geom.Vec2{X: .75, Y: 1}, geom.Vec2{X: .25, Y: .75}, geom.Vec2{Y: .625})
+			geom.Vec2{}, geom.Vec2{X: .75}, geom.Vec2{X: .75, Y: east(.75)}, geom.Vec2{X: .25, Y: east(.25)}, geom.Vec2{Y: east(0)})
 		planar[2] = face(geom.Vec3{Y: .75, Z: -1}, xAxis, height, true,
-			geom.Vec2{}, geom.Vec2{X: 1}, geom.Vec2{X: 1, Y: 1}, geom.Vec2{X: .5, Y: .6875}, geom.Vec2{Y: .5})
+			geom.Vec2{}, geom.Vec2{X: 1}, geom.Vec2{X: 1, Y: east(.75)}, geom.Vec2{X: knot, Y: (1 + .75*knot) / 2}, geom.Vec2{Y: .5})
 		planar[3] = face(geom.Vec3{Z: -1}, xAxis, height, false,
-			geom.Vec2{}, geom.Vec2{X: 1}, geom.Vec2{X: 1, Y: .625}, geom.Vec2{X: .5, Y: .5}, geom.Vec2{Y: .5})
+			geom.Vec2{}, geom.Vec2{X: 1}, geom.Vec2{X: 1, Y: east(0)}, geom.Vec2{X: knot, Y: .5}, geom.Vec2{Y: .5})
 		seams = [][2]MappedChainClosedUse{
 			{{0, 0}, {2, 2}}, {{0, 1}, {4, 2}}, {{0, 2}, {4, 3}}, {{0, 3}, {3, 2}},
 			{{1, 0}, {2, 3}}, {{1, 1}, {5, 2}}, {{1, 2}, {5, 3}}, {{1, 3}, {3, 3}},
@@ -115,7 +124,7 @@ func mappedChainClosedFixtureWithKnot(t *testing.T, crease bool) (MappedSplineCh
 		}
 	}
 
-	return loaded, closing, planar, seams
+	return closing, planar, seams
 }
 
 func TestMappedSplineChainClosedMesh(t *testing.T) {
