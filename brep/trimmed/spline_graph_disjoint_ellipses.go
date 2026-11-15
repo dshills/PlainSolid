@@ -46,9 +46,22 @@ func assembleDisjointEllipseGraphContact(ctx context.Context, base, a, b *geom.B
 	if !section.Complete || section.Domain != (geom.ParameterRectangle{UMax: 1, VMax: 1}) {
 		return fail(geom.ErrConvergence)
 	}
-	outside := openGraphRegion{loop: partitionGraphRectangleLoop(section.Domain), sign: section.Contours[0].OutsideSide}
+	solid, history, e := assembleSeparatedEllipseGraphRegions(ctx, base, a, b, op, tolerance, section.Domain, section.Contours[:], proof)
+	if e != nil {
+		return fail(e)
+	}
+	return solid, DisjointEllipseGraphHistory{Section: section, Material: history}, nil
+}
+
+// Consumes only complete independently re-proved original slab certificates
+// from the private two- and three-loop constructors.
+func assembleSeparatedEllipseGraphRegions(ctx context.Context, base, a, b *geom.BSplineSurface, op parametric.BooleanOp, tolerance float64, domain geom.ParameterRectangle, contours []geom.SplineGraphEllipse, proof geom.GraphPointContactOptions) (Solid, SplineGraphBooleanHistory, error) {
+	fail := func(e error) (Solid, SplineGraphBooleanHistory, error) {
+		return Solid{}, SplineGraphBooleanHistory{}, e
+	}
+	outside := openGraphRegion{loop: partitionGraphRectangleLoop(domain), sign: contours[0].OutsideSide}
 	regions := []openGraphRegion{outside}
-	for _, q := range section.Contours {
+	for _, q := range contours {
 		loop, e := ellipseGraphContactLoop(q.Ellipse)
 		if e != nil {
 			return fail(e)
@@ -79,5 +92,5 @@ func assembleDisjointEllipseGraphContact(ctx context.Context, base, a, b *geom.B
 			return fail(geom.ErrConvergence)
 		}
 	}
-	return solid, DisjointEllipseGraphHistory{Section: section, Material: history}, nil
+	return solid, history, nil
 }

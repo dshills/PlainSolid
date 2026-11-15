@@ -37,6 +37,7 @@ type SplineGraphBooleanHistory struct {
 	QuadraticEllipse                     *geom.SplineGraphQuadraticEllipse
 	RationalEllipseArcs                  *geom.SplineGraphQuadraticEllipseArcs
 	DisjointEllipses                     *geom.DiscoveredSplineGraphDisjointEllipses
+	ThreeEllipses                        *geom.DiscoveredSplineGraphThreeEllipses
 	ContactPartition                     *geom.SplineGraphContactPartition
 	CoincidentFaces                      []int
 	PartitionFaceByCell                  []int // original knot cell to retained top face (envelopes)
