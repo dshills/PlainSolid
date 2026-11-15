@@ -18,6 +18,7 @@ import (
 // retained fragments; TopA/TopB give the first of each, if present.
 type SplineGraphBooleanHistory struct {
 	TwoPolynomials                       *geom.SplineGraphTwoPolynomials
+	PolynomialNode                       *geom.SplineGraphPolynomialNode
 	TopA, TopB, Base                     int
 	FacesA, FacesB                       []int
 	ContourEdges, WallFaces, DomainSides []int

@@ -15,10 +15,15 @@ import (
 
 func twoPolynomialFixture(t *testing.T, axis int) (*geom.BSplineSurface, *geom.BSplineSurface, *geom.BSplineSurface) {
 	t.Helper()
-	base, _, _ := polynomialGraphFixture(t, 3, axis)
-	// A-B=(105/128)(v-f)(v-g), independently authored exact degree-eight tensor.
 	f := []*big.Rat{big.NewRat(1, 4), big.NewRat(3, 8), big.NewRat(-3, 8), big.NewRat(1, 8)}
 	g := []*big.Rat{big.NewRat(5, 8), new(big.Rat), new(big.Rat), new(big.Rat), big.NewRat(1, 8)}
+	return twoPolynomialRoofFixture(t, axis, f, g)
+}
+
+// A-B=(105/128)(v-f)(v-g), independently authored exact degree-eight tensor.
+func twoPolynomialRoofFixture(t *testing.T, axis int, f, g []*big.Rat) (*geom.BSplineSurface, *geom.BSplineSurface, *geom.BSplineSurface) {
+	t.Helper()
+	base, _, _ := polynomialGraphFixture(t, 3, axis)
 	sum, prod := make([]*big.Rat, 9), make([]*big.Rat, 9)
 	for i := range sum {
 		sum[i] = new(big.Rat)
