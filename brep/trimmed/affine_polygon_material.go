@@ -119,8 +119,31 @@ func affinePolygonFragmentInside(b *nativePrismAffineBudget, part *AffineImprint
 // supporting halfspace. Sample-only occupancy, coplanar area, disconnected
 // results and unproved native endpoint representation are never accepted.
 func (r *ConvexAffinePolygonCrossing) Combine(ctx context.Context, op intersect.AffineRingOperation, o ConvexAffinePolygonMaterialOptions) (*ConvexAffinePolygonMaterial, error) {
+	out, selected, o, e := r.selectPolygonMaterial(ctx, op, o)
+	if e != nil {
+		return nil, e
+	}
+	b := &nativePrismAffineBudget{ctx: ctx, max: o.MaxOperations, bits: 16384, work: out.work}
+	solid, _, e := Sew(ctx, selected, o.Sew)
+	if e != nil {
+		return nil, e
+	}
+	if e = affineMaterialVertexLinks(ctx, solid); e != nil {
+		return nil, e
+	}
+	if !affinePolygonConnectedFaces(solid) {
+		return nil, geom.ErrDomain
+	}
+	if e = r.verifyPolygonMaterialSolid(ctx, b, solid, out.FaceSources(), o); e != nil {
+		return nil, e
+	}
+	out.solid = solid
+	out.work = b.work
+	return &ConvexAffinePolygonMaterial{crossing: r, material: out}, nil
+}
+func (r *ConvexAffinePolygonCrossing) selectPolygonMaterial(ctx context.Context, op intersect.AffineRingOperation, o ConvexAffinePolygonMaterialOptions) (*AffineShellMaterial, []SewFace, ConvexAffinePolygonMaterialOptions, error) {
 	if ctx == nil || r == nil || r.source == nil || r.shells[0] == nil || r.shells[1] == nil || (op != intersect.AffineRingIntersection && op != intersect.AffineRingUnion && op != intersect.AffineRingDifference) {
-		return nil, geom.ErrInvalid
+		return nil, nil, o, geom.ErrInvalid
 	}
 	if o.MaxOperations == 0 {
 		o.MaxOperations = 64000000
@@ -129,11 +152,11 @@ func (r *ConvexAffinePolygonCrossing) Combine(ctx context.Context, op intersect.
 		o.MaxFaces = 512
 	}
 	if o.MaxOperations < 1 || o.MaxOperations > 128000000 || o.MaxFaces < 1 || o.MaxFaces > 4096 {
-		return nil, geom.ErrInvalid
+		return nil, nil, o, geom.ErrInvalid
 	}
 	b := &nativePrismAffineBudget{ctx: ctx, max: o.MaxOperations, bits: 16384}
 	if e := r.validateSectionBinding(b); e != nil {
-		return nil, e
+		return nil, nil, o, e
 	}
 	out := &AffineShellMaterial{source: r.source, operation: op, volume: new(big.Rat)}
 	planes := [2][]affineMaterialPlane{}
@@ -161,7 +184,7 @@ func (r *ConvexAffinePolygonCrossing) Combine(ctx context.Context, op intersect.
 			for _, p := range r.points {
 				q, e := inverse(owner, fi, p)
 				if e != nil {
-					return nil, e
+					return nil, nil, o, e
 				}
 				if !q.OnPlane || !q.Inside {
 					continue
@@ -172,12 +195,12 @@ func (r *ConvexAffinePolygonCrossing) Combine(ctx context.Context, op intersect.
 				}
 			}
 			if b.work >= b.max {
-				return nil, geom.ErrConvergence
+				return nil, nil, o, geom.ErrConvergence
 			}
 			cycles := min(o.MaxFaces, 1024)
 			part, e := r.source.fragmentFacePolygonPoints(ctx, owner, fi, AffineImprintFragmentOptions{AuxiliarySubdivision: true, MaxOperations: b.max - b.work, MaxCycles: cycles}, points, true)
 			if e != nil {
-				return nil, fmt.Errorf("polygon crossing fragment %d/%d: %w", owner, fi, e)
+				return nil, nil, o, fmt.Errorf("polygon crossing fragment %d/%d: %w", owner, fi, e)
 			}
 			b.work += part.ExactOperations()
 			out.fragments[owner][fi] = part
@@ -188,17 +211,17 @@ func (r *ConvexAffinePolygonCrossing) Combine(ctx context.Context, op intersect.
 				native, e = part.NativeFaces(ctx, o.Evaluation)
 			}
 			if e != nil {
-				return nil, fmt.Errorf("polygon crossing native %d/%d: %w", owner, fi, e)
+				return nil, nil, o, fmt.Errorf("polygon crossing native %d/%d: %w", owner, fi, e)
 			}
 			for ci, cycle := range part.cycles {
 				f := native[ci]
 				if len(f.Vertices) != 3 {
-					return nil, geom.ErrDomain
+					return nil, nil, o, geom.ErrDomain
 				}
 				originalVolume = b.op('+', originalVolume, affineCapTriangleVolume(b, f))
 				inside, e := affinePolygonFragmentInside(b, part, cycle, f, planes[1-owner])
 				if e != nil {
-					return nil, e
+					return nil, nil, o, e
 				}
 				keep := inside
 				if op == intersect.AffineRingUnion || (op == intersect.AffineRingDifference && owner == 0) {
@@ -210,7 +233,7 @@ func (r *ConvexAffinePolygonCrossing) Combine(ctx context.Context, op intersect.
 					continue
 				}
 				if len(selected) >= o.MaxFaces {
-					return nil, geom.ErrConvergence
+					return nil, nil, o, geom.ErrConvergence
 				}
 				if reverse {
 					f.Face.Reversed = !f.Face.Reversed
@@ -220,30 +243,34 @@ func (r *ConvexAffinePolygonCrossing) Combine(ctx context.Context, op intersect.
 			}
 		}
 		if originalVolume.Cmp(r.shells[owner].volume) != 0 {
-			return nil, geom.ErrDomain
+			return nil, nil, o, geom.ErrDomain
 		}
 	}
 	if b.err != nil {
-		return nil, b.err
+		return nil, nil, o, b.err
 	}
 	if len(selected) == 0 || out.volume.Sign() <= 0 {
-		return nil, geom.ErrDomain
+		return nil, nil, o, geom.ErrDomain
 	}
 	if o.Sew.Tolerance == 0 {
 		o.Sew.Tolerance = max(r.source.sources[0].tolerance, r.source.sources[1].tolerance)
 	}
 	o.Sew.MaxFaces = o.MaxFaces
-	solid, _, e := Sew(ctx, selected, o.Sew)
-	if e != nil {
-		return nil, e
+	out.work = b.work
+	return out, selected, o, nil
+}
+func (r *ConvexAffinePolygonCrossing) verifyPolygonMaterialSolid(ctx context.Context, b *nativePrismAffineBudget, solid Solid, sources []AffineShellMaterialFace, o ConvexAffinePolygonMaterialOptions) error {
+	inverse := func(owner, face int, p [3]*big.Rat) (geom.AffineChartInverse, error) {
+		if b.work >= b.max {
+			return geom.AffineChartInverse{}, geom.ErrConvergence
+		}
+		q, e := r.shells[owner].queries[face].chart.InvertExactContext(ctx, p, geom.AffineChartInverseOptions{MaxOperations: b.max - b.work, MaxCoefficientBits: 16384})
+		b.work += q.ExactOperations
+		return q, e
 	}
-	if e = affineMaterialVertexLinks(ctx, solid); e != nil {
-		return nil, e
+	if len(sources) != len(solid.faces) {
+		return geom.ErrDomain
 	}
-	if !affinePolygonConnectedFaces(solid) {
-		return nil, geom.ErrDomain
-	}
-	sources := out.FaceSources()
 	for fi, f := range solid.faces {
 		ancestry := sources[fi]
 		for _, u := range f.Outer {
@@ -255,7 +282,7 @@ func (r *ConvexAffinePolygonCrossing) Combine(ctx context.Context, op intersect.
 			for k, vi := range []int{a, c} {
 				q, e := inverse(ancestry.Owner, ancestry.Face, affineMaterialXYZ(solid.vertices[vi]))
 				if e != nil {
-					return nil, e
+					return e
 				}
 				uv := u.UVStart
 				if k == 1 {
@@ -265,42 +292,41 @@ func (r *ConvexAffinePolygonCrossing) Combine(ctx context.Context, op intersect.
 				if o.RationalUVEndpoints {
 					curve, ok := u.Curve.(ExactQuadraticUV)
 					if !ok || !curve.rationalEndpoints {
-						return nil, geom.ErrDomain
+						return geom.ErrDomain
 					}
 					ends, display := curve.Endpoints()
 					if display[k] != uv {
-						return nil, geom.ErrDomain
+						return geom.ErrDomain
 					}
 					exact = ends[k]
 				}
 				if !q.OnPlane || !q.Inside || q.U.Cmp(exact[0]) != 0 || q.V.Cmp(exact[1]) != 0 {
-					return nil, geom.ErrDomain
+					return geom.ErrDomain
 				}
 			}
 		}
 	}
 	report, e := solid.ValidateEdgeAgreement(ctx, edgecheck.Options{})
 	if e != nil {
-		return nil, e
+		return e
 	}
 	if !report.Complete {
-		return nil, geom.ErrDomain
+		return geom.ErrDomain
 	}
 	for _, u := range report.Uses {
 		if u.Report.SquaredUpperBound == nil || u.Report.SquaredUpperBound.Sign() != 0 {
-			return nil, geom.ErrDomain
+			return geom.ErrDomain
 		}
 	}
 	if b.err != nil {
-		return nil, b.err
+		return b.err
 	}
 	if e = ctx.Err(); e != nil {
-		return nil, e
+		return e
 	}
-	out.solid = solid
-	out.work = b.work
-	return &ConvexAffinePolygonMaterial{crossing: r, material: out}, nil
+	return nil
 }
+
 func affinePolygonConnectedFaces(s Solid) bool {
 	owners := make([][]int, len(s.edges))
 	for fi, f := range s.faces {
