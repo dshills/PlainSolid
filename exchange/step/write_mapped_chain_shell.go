@@ -42,6 +42,10 @@ type MappedChainShellSTEPOptions struct {
 	// model knot crossed by both owners and one separate cut per owner.
 	// Requires AllowUnsplitSupportKnot and AllowTwoInteriorRoofKnots.
 	AllowThreeSupportKnots bool
+	// AllowIndependentOwnerBases admits an explicit coedge graph with a whole
+	// original spline for each owner of every shared edge, on both roofs. The
+	// model stations use a common integer scale of at most 53 bits in STEP.
+	AllowIndependentOwnerBases bool
 }
 
 // WriteMappedChainRectangularShell writes a single independently certified
@@ -56,11 +60,16 @@ func WriteMappedChainRectangularShell(ctx context.Context, w io.Writer, shell tr
 	if o.Tolerance == 0 {
 		o.Tolerance = 1e-9
 	}
+	bases := shell.IndependentOwnerBases()
+	independent := bases == [2]bool{true, true}
+	if bases[0] != bases[1] || (independent && !o.AllowIndependentOwnerBases) {
+		return fmt.Errorf("mapped STEP owner basis arrangement: %w", geom.ErrConvergence)
+	}
 	native, err := shell.BuildRectangularSolid(ctx, o.Tolerance, o.Geometry)
 	if err != nil {
 		return err
 	}
-	raw, err := encodeMappedChainRectangularShell(ctx, native, name, unit, o.Geometry)
+	raw, err := encodeMappedChainRectangularShell(ctx, native, name, unit, independent, o.Geometry)
 	if err != nil {
 		return err
 	}
@@ -82,11 +91,19 @@ type mappedChainStepOwner struct {
 	use  trimmed.Use
 }
 
-func encodeMappedChainRectangularShell(ctx context.Context, native trimmed.MappedChainRectangularSolid, name string, unit float64, o geom.SurfacePatchOptions) ([]byte, error) {
+func encodeMappedChainRectangularShell(ctx context.Context, native trimmed.MappedChainRectangularSolid, name string, unit float64, independent bool, o geom.SurfacePatchOptions) ([]byte, error) {
 	faces, edges, vertices := native.Solid.Faces(), native.Solid.Edges(), native.Solid.Vertices()
+	stations := native.ChainStations
+	if independent {
+		var err error
+		stations, err = mappedChainSTEPIntegerStations(stations)
+		if err != nil {
+			return nil, err
+		}
+	}
 	mapped := make(map[int][2]*big.Rat, len(native.ChainEdges))
 	for i, id := range native.ChainEdges {
-		mapped[id] = [2]*big.Rat{native.ChainStations[i], native.ChainStations[i+1]}
+		mapped[id] = [2]*big.Rat{stations[i], stations[i+1]}
 	}
 	uses := make([][]mappedChainStepOwner, len(edges))
 	for i, face := range faces {
@@ -98,7 +115,7 @@ func encodeMappedChainRectangularShell(ctx context.Context, native trimmed.Mappe
 	var stageErr error
 	err := writeStandalone(&out, unit, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
 		var root int64
-		root, stageErr = emitMappedChainRectangularShell(ctx, emit, name, faces, vertices, uses, native, mapped, o)
+		root, stageErr = emitMappedChainRectangularShell(ctx, emit, name, faces, vertices, uses, native, mapped, independent, o)
 		if stageErr != nil {
 			return nil
 		}
@@ -113,7 +130,28 @@ func encodeMappedChainRectangularShell(ctx context.Context, native trimmed.Mappe
 	return out.Bytes(), nil
 }
 
-func emitMappedChainRectangularShell(ctx context.Context, emit func(string) int64, name string, faces []trimmed.Face, vertices []geom.Vec3, uses [][]mappedChainStepOwner, native trimmed.MappedChainRectangularSolid, mapped map[int][2]*big.Rat, o geom.SurfacePatchOptions) (int64, error) {
+// An affine change to the model knot domain leaves each exact model net and
+// both independently parameterized pcurves unchanged. A common integer scale
+// retains stations such as 1/6 without a rounded STEP real.
+func mappedChainSTEPIntegerStations(stations []*big.Rat) ([]*big.Rat, error) {
+	scale := big.NewInt(1)
+	for _, station := range stations {
+		d := station.Denom()
+		gcd := new(big.Int).GCD(nil, nil, scale, d)
+		scale.Mul(scale.Quo(scale, gcd), d)
+		if scale.BitLen() > 53 {
+			return nil, geom.ErrUnrepresentable
+		}
+	}
+	factor := new(big.Rat).SetInt(scale)
+	out := make([]*big.Rat, len(stations))
+	for i, station := range stations {
+		out[i] = new(big.Rat).Mul(station, factor)
+	}
+	return out, nil
+}
+
+func emitMappedChainRectangularShell(ctx context.Context, emit func(string) int64, name string, faces []trimmed.Face, vertices []geom.Vec3, uses [][]mappedChainStepOwner, native trimmed.MappedChainRectangularSolid, mapped map[int][2]*big.Rat, independent bool, o geom.SurfacePatchOptions) (int64, error) {
 	surfaces := make([]int64, len(faces))
 	for i, face := range faces {
 		p, ok := face.Surface.(*geom.BSplineSurface)
@@ -165,7 +203,11 @@ func emitMappedChainRectangularShell(ctx context.Context, emit func(string) int6
 		}
 		pc := make([]int64, 2)
 		for j, owner := range owners {
-			curve, err := emitMappedChainStepUse(emit, owner.use, chain, &bases[owner.face])
+			basis := &bases[owner.face]
+			if independent {
+				basis = &mappedChainStepBasis{}
+			}
+			curve, err := emitMappedChainStepUse(emit, owner.use, chain, basis)
 			if err != nil {
 				return 0, fmt.Errorf("mapped STEP owner %d edge %d: %w", owner.face, i, err)
 			}

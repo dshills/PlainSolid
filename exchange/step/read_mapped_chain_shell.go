@@ -83,6 +83,7 @@ type mappedChainStepSource struct {
 // source surface, stored model curve, original pcurve, vertex, and seam before
 // building the independently embedded native material. The two roofs have
 // whole original cubic or quartic bases restricted by parameter-valued trims.
+// The independent-basis opt-in also admits a separate full basis per coedge.
 func ReadMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits, o MappedChainShellSTEPOptions) (MappedChainSTEPModel, error) {
 	return readMappedChainRectangularShell(ctx, r, l, o, false)
 }
@@ -321,7 +322,6 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		planar[i] = trimmed.MappedChainPlanarFace{Surface: f.surface, Outer: make([]trimmed.PCurve, len(f.uses)), Reversed: f.reversed}
 	}
 	var parts [2][]trimmed.MappedSplineUV
-	var basisIDs [2]int64
 	var chain []MappedChainSTEPCell
 	var stations []*big.Rat
 	var crossings []MappedChainSTEPSupportCrossing
@@ -375,10 +375,9 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 				row.Owners[owner] = MappedChainSTEPCoedge{FaceID: g.faces[owner].id, PCurveID: p.id, BasisID: p.curve}
 			} else {
 				basis, span, reversed, err := mappedChainStepRawUse(g.file, p.curve)
-				if err != nil || (basisIDs[owner] != 0 && basis != basisIDs[owner]) {
+				if err != nil {
 					return zero, geom.ErrInvalid
 				}
-				basisIDs[owner] = basis
 				spline, err := g.ownerBasis(basis)
 				if err != nil {
 					return zero, err
@@ -406,8 +405,29 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		crossings = append(crossings, edgeCrossings...)
 		chain = append(chain, row)
 	}
-	if stations[0].Sign() != 0 || stations[len(stations)-1].Cmp(big.NewRat(1, 1)) != 0 ||
-		((!g.foreign || foreignTrimmed) && basisIDs[0] == basisIDs[1]) {
+	independent := g.foreign && !foreignTrimmed
+	if !independent {
+		var err error
+		independent, err = mappedChainSTEPBasisMode(chain, !g.foreign && o.AllowIndependentOwnerBases)
+		if err != nil {
+			return zero, err
+		}
+	}
+	end := stations[len(stations)-1]
+	if stations[0].Sign() != 0 {
+		return zero, geom.ErrInvalid
+	}
+	if independent && !g.foreign {
+		if !end.IsInt() || end.Sign() <= 0 || end.Num().BitLen() > 53 {
+			return zero, geom.ErrInvalid
+		}
+		for i, station := range stations {
+			if !station.IsInt() {
+				return zero, geom.ErrInvalid
+			}
+			stations[i] = new(big.Rat).Quo(station, end)
+		}
+	} else if end.Cmp(big.NewRat(1, 1)) != 0 {
 		return zero, geom.ErrInvalid
 	}
 	var seams [][2]trimmed.MappedChainClosedUse
@@ -446,6 +466,13 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	if len(g.pcurves) != len(g.uses)*2 {
 		return zero, geom.ErrInvalid
 	}
+	if independent && !g.foreign {
+		for basis := range g.bases {
+			if g.curves[basis] {
+				return zero, geom.ErrInvalid
+			}
+		}
+	}
 	for _, face := range g.faces {
 		for i, a := range face.uses {
 			b := face.uses[(i+1)%len(face.uses)]
@@ -463,7 +490,7 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 	}
 	var chains [2]trimmed.MappedSplineChain
 	makeChain := trimmed.NewMappedSplineChain
-	if g.foreign && !foreignTrimmed {
+	if independent {
 		makeChain = trimmed.NewMappedSplineEdgeChain
 	}
 	for i, source := range parts {
@@ -540,6 +567,32 @@ func (g *mappedChainStepSource) prove(ctx context.Context, o MappedChainShellSTE
 		}
 	}
 	return out, nil
+}
+
+func mappedChainSTEPBasisMode(chain []MappedChainSTEPCell, allowIndependent bool) (bool, error) {
+	first := chain[0].Owners
+	whole := first[0].BasisID != first[1].BasisID
+	for _, edge := range chain[1:] {
+		for owner, use := range edge.Owners {
+			whole = whole && use.BasisID == first[owner].BasisID
+		}
+	}
+	if whole {
+		return false, nil
+	}
+	if !allowIndependent {
+		return false, geom.ErrInvalid
+	}
+	seen := make(map[int64]bool, 2*len(chain))
+	for _, edge := range chain {
+		for _, use := range edge.Owners {
+			if seen[use.BasisID] {
+				return false, geom.ErrInvalid
+			}
+			seen[use.BasisID] = true
+		}
+	}
+	return true, nil
 }
 
 func (g *mappedChainStepSource) ownerBasis(id int64) (*geom.BSpline, error) {
