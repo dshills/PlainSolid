@@ -84,6 +84,11 @@ func (r *PolynomialMixedEnvelope) WriteJSON(ctx context.Context, w io.Writer) er
 
 func writePolynomialEnvelopeRecipe(ctx context.Context, w io.Writer, kind string, stock [3]*geom.BSplineSurface, axis int, op parametric.BooleanOp,
 	tolerance float64, ledger polynomialEnvelopeLedger) error {
+	return writePolynomialEnvelopeRecipeWithFootprint(ctx, w, kind, stock, axis, op, tolerance, ledger, nil)
+}
+
+func writePolynomialEnvelopeRecipeWithFootprint(ctx context.Context, w io.Writer, kind string, stock [3]*geom.BSplineSurface,
+	axis int, op parametric.BooleanOp, tolerance float64, ledger polynomialEnvelopeLedger, footprint *ClippedPolynomialFootprint) error {
 	if ctx == nil || w == nil {
 		return geom.ErrInvalid
 	}
@@ -91,9 +96,13 @@ func writePolynomialEnvelopeRecipe(ctx context.Context, w io.Writer, kind string
 	if e != nil {
 		return e
 	}
-	return writePolynomialGraphRecipe(ctx, w, polynomialEnvelopeRecipe{
+	recipe := polynomialEnvelopeRecipe{
 		Version: 1, Kind: kind, Sources: sources, Axis: &axis, Operation: &op, Tolerance: tolerance, Ledger: ledger,
-	})
+	}
+	if footprint != nil {
+		return writePolynomialGraphRecipe(ctx, w, clippedPolynomialCommonRecipe{polynomialEnvelopeRecipe: recipe, Footprint: footprint})
+	}
+	return writePolynomialGraphRecipe(ctx, w, recipe)
 }
 
 // ReadPolynomialMixedEnvelopeJSON re-proves the original crossing, tangency
@@ -118,12 +127,16 @@ func readPolynomialEnvelopeRecipe(ctx context.Context, r io.Reader, limits JSONL
 	if e := readPolynomialGraphRecipe(ctx, r, limits, &recipe); e != nil {
 		return polynomialEnvelopeRecipe{}, [3]*geom.BSplineSurface{}, e
 	}
-	if recipe.Version != 1 || recipe.Kind != kind || len(recipe.Sources) != 3 ||
-		recipe.Axis == nil || recipe.Operation == nil || len(recipe.Ledger.Contacts) != nodes {
+	if !recipe.validHeader(kind, nodes) {
 		return polynomialEnvelopeRecipe{}, [3]*geom.BSplineSurface{}, geom.ErrInvalid
 	}
 	sources, e := decodePolynomialGraphSupports(ctx, recipe.Sources, limits.MaxControlPoints)
 	return recipe, sources, e
+}
+
+func (recipe polynomialEnvelopeRecipe) validHeader(kind string, nodes int) bool {
+	return recipe.Version == 1 && recipe.Kind == kind && len(recipe.Sources) == 3 &&
+		recipe.Axis != nil && recipe.Operation != nil && len(recipe.Ledger.Contacts) == nodes
 }
 
 func (recipe polynomialEnvelopeRecipe) verify(ledger polynomialEnvelopeLedger, solid Solid, limits JSONLimits) error {

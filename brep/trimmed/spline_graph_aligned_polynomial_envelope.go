@@ -16,14 +16,15 @@ const nativeAlignedPolynomialEnvelope = "trimmed-aligned-polynomial-envelope"
 // AlignedPolynomialEnvelope retains an original-source Common or Fuse with
 // an order-three crossing and an order-two tangency in independent charts.
 type AlignedPolynomialEnvelope struct {
-	solid     Solid
-	history   PolynomialCubicCrossingTangencyEnvelopeHistory
-	contacts  [2]PolynomialMixedEnvelopeContact
-	sources   [3]*geom.BSplineSurface
-	axis      int
-	op        parametric.BooleanOp
-	tolerance float64
-	kind      string
+	solid            Solid
+	history          PolynomialCubicCrossingTangencyEnvelopeHistory
+	contacts         [2]PolynomialMixedEnvelopeContact
+	sources          [3]*geom.BSplineSurface
+	axis             int
+	op               parametric.BooleanOp
+	tolerance        float64
+	kind             string
+	clippedFootprint *ClippedPolynomialFootprint
 }
 
 func (r *AlignedPolynomialEnvelope) Boundary() Solid {
@@ -447,7 +448,7 @@ func (r *AlignedPolynomialEnvelope) WriteJSON(ctx context.Context, w io.Writer) 
 	if r == nil || r.sources[0] == nil {
 		return geom.ErrInvalid
 	}
-	return writePolynomialEnvelopeRecipe(ctx, w, r.kind, r.sources, r.axis, r.op, r.tolerance, r.recipeLedger())
+	return writePolynomialEnvelopeRecipeWithFootprint(ctx, w, r.kind, r.sources, r.axis, r.op, r.tolerance, r.recipeLedger(), r.clippedFootprint)
 }
 
 // ReadAlignedPolynomialEnvelopeJSON re-proves the exact chart alignment,
