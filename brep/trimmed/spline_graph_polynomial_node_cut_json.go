@@ -1,0 +1,149 @@
+package trimmed
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"io"
+	"slices"
+
+	"plainsolid/brep/parametric"
+	"plainsolid/geom"
+)
+
+const nativePolynomialNodeCut = "trimmed-polynomial-node-cut-components"
+
+type polynomialNodeCutRecipe struct {
+	Version    int               `json:"version"`
+	Kind       string            `json:"kind"`
+	Sources    []json.RawMessage `json:"sources"`
+	Axis       *int              `json:"freeAxis"`
+	Tolerance  float64           `json:"tolerance"`
+	Parameters []string          `json:"parameters"`
+	Point      []string          `json:"point"`
+	Vertices   []int             `json:"vertices"`
+	Sectors    []int             `json:"sectors"`
+}
+
+// WriteJSON records the three original supports and the contact ledger of a
+// certified native Cut. Component surfaces and trim loops are reconstructed
+// from this source recipe on load.
+func (r *PolynomialNodeCut) WriteJSON(ctx context.Context, w io.Writer) error {
+	if ctx == nil || w == nil || r == nil || r.sources[0] == nil {
+		return geom.ErrInvalid
+	}
+	recipe := polynomialNodeCutRecipe{
+		Version: 1, Kind: nativePolynomialNodeCut, Axis: &r.axis, Tolerance: r.tolerance,
+		Vertices: r.contact.Vertices[:], Sectors: r.contact.Sectors[:],
+	}
+	for _, source := range r.sources {
+		if e := ctx.Err(); e != nil {
+			return e
+		}
+		raw, e := parametric.EncodeSurface(source)
+		if e != nil {
+			return e
+		}
+		recipe.Sources = append(recipe.Sources, raw)
+	}
+	for _, p := range r.contact.Parameters {
+		recipe.Parameters = append(recipe.Parameters, p.RatString())
+	}
+	for _, p := range r.contact.Point {
+		recipe.Point = append(recipe.Point, p.RatString())
+	}
+	raw, e := json.Marshal(recipe)
+	if e != nil {
+		return e
+	}
+	if e := ctx.Err(); e != nil {
+		return e
+	}
+	raw = append(raw, '\n')
+	n, e := w.Write(raw)
+	if e == nil && n != len(raw) {
+		return io.ErrShortWrite
+	}
+	return e
+}
+
+// ReadPolynomialNodeCutJSON rebuilds both original-graph Cut shells and
+// independently re-proves their embeddings and exact shared vertex contact.
+// The recorded point, sectors and local vertex IDs must match the rebuilt cut.
+func ReadPolynomialNodeCutJSON(ctx context.Context, r io.Reader, limits JSONLimits, o PolynomialNodeCutOptions) (*PolynomialNodeCut, error) {
+	if ctx == nil || r == nil || limits.MaxBytes < 0 || limits.MaxBytes > 1<<30 || limits.MaxControlPoints < 0 || limits.MaxEntities < 0 {
+		return nil, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return nil, e
+	}
+	if limits.MaxBytes == 0 {
+		limits.MaxBytes = 32 << 20
+	}
+	if limits.MaxControlPoints == 0 {
+		limits.MaxControlPoints = 4096
+	}
+	raw, e := io.ReadAll(io.LimitReader(r, limits.MaxBytes+1))
+	if e != nil {
+		return nil, e
+	}
+	if int64(len(raw)) > limits.MaxBytes {
+		return nil, geom.ErrConvergence
+	}
+	var recipe polynomialNodeCutRecipe
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.DisallowUnknownFields()
+	if e := d.Decode(&recipe); e != nil {
+		return nil, e
+	}
+	if e := d.Decode(new(any)); e != io.EOF || recipe.Version != 1 || recipe.Kind != nativePolynomialNodeCut ||
+		len(recipe.Sources) != 3 || recipe.Axis == nil || len(recipe.Parameters) != 2 || len(recipe.Point) != 3 ||
+		len(recipe.Vertices) != 2 || len(recipe.Sectors) != 2 {
+		return nil, geom.ErrInvalid
+	}
+	var sources [3]*geom.BSplineSurface
+	for i, encoded := range recipe.Sources {
+		if e := ctx.Err(); e != nil {
+			return nil, e
+		}
+		decoded, e := parametric.DecodeSurface(encoded, limits.MaxControlPoints)
+		if e != nil {
+			return nil, e
+		}
+		var ok bool
+		sources[i], ok = decoded.(*geom.BSplineSurface)
+		if !ok {
+			return nil, geom.ErrInvalid
+		}
+	}
+	out, e := CutSplineGraphPolynomialNodeComponents(ctx, sources[0], sources[1], sources[2], *recipe.Axis, recipe.Tolerance, o)
+	if e != nil {
+		return nil, e
+	}
+	if !slices.Equal(recipe.Vertices, out.contact.Vertices[:]) || !slices.Equal(recipe.Sectors, out.contact.Sectors[:]) {
+		return nil, geom.ErrConvergence
+	}
+	for i, p := range out.contact.Parameters {
+		if recipe.Parameters[i] != p.RatString() {
+			return nil, geom.ErrConvergence
+		}
+	}
+	for i, p := range out.contact.Point {
+		if recipe.Point[i] != p.RatString() {
+			return nil, geom.ErrConvergence
+		}
+	}
+	if limits.MaxEntities > 0 {
+		count := len(sources)
+		for _, part := range out.components {
+			count += len(part.vertices) + len(part.edges) + len(part.faces)
+			for _, face := range part.faces {
+				count += len(face.Outer)
+			}
+		}
+		if count > limits.MaxEntities {
+			return nil, geom.ErrConvergence
+		}
+	}
+	return out, nil
+}
