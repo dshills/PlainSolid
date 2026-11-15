@@ -61,12 +61,12 @@ int main(int argc,char**argv) {
  try {
   if(argc!=4)return 2;
   const std::string mode=argv[3];
-  const bool assembly=mode=="filled-assembly"||mode=="filled-assembly-oblique"||mode=="filled-assembly-negative"||mode=="bore-assembly"||mode=="read-assembly"||mode=="filled-nested-assembly"||mode=="bore-nested-assembly"||mode=="read-nested-assembly";
+  const bool assembly=mode=="filled-assembly"||mode=="filled-assembly-oblique"||mode=="filled-assembly-negative"||mode=="bore-assembly"||mode=="bore-assembly-oblique"||mode=="read-assembly"||mode=="filled-nested-assembly"||mode=="bore-nested-assembly"||mode=="read-nested-assembly";
   const bool reading=mode=="read"||mode=="read-assembly"||mode=="read-nested-assembly";
   const bool nested=mode.find("nested")!=std::string::npos;
   if(mode!="filled"&&mode!="bore"&&!assembly&&!reading)return 2;
   TopoDS_Shape shape;
-  if(!reading){shape=loft();if(mode=="bore"||mode=="bore-assembly"||mode=="bore-nested-assembly")shape=BRepAlgoAPI_Cut(shape,loft(true)).Shape();}
+  if(!reading){shape=loft();if(mode=="bore"||mode=="bore-assembly"||mode=="bore-assembly-oblique"||mode=="bore-nested-assembly")shape=BRepAlgoAPI_Cut(shape,loft(true)).Shape();}
   else if(!assembly){STEPControl_Reader reader;if(reader.ReadFile(argv[1])!=IFSelect_RetDone||reader.TransferRoots()!=1)return 4;shape=reader.OneShape();}
   if(assembly){
    occ::handle<TDocStd_Document> doc=new TDocStd_Document(TCollection_ExtendedString("BinXCAF"));
@@ -76,7 +76,7 @@ int main(int argc,char**argv) {
     TDataStd_Name::Set(part,TCollection_ExtendedString("Original anisotropic product"));TDataStd_Name::Set(root,TCollection_ExtendedString("Repeated anisotropic assembly"));
     auto target=part;
     if(nested){target=shapes->NewShape();TDataStd_Name::Set(target,TCollection_ExtendedString("Shared anisotropic subgroup"));gp_Trsf inner;inner.SetTranslation(gp_Vec(1,2,0));shapes->AddComponent(target,part,TopLoc_Location(inner));}
-    shapes->AddComponent(root,target,TopLoc_Location());gp_Trsf pose;pose.SetValues(0,0,1,10,1,0,0,-2,0,1,0,3);if(mode=="filled-assembly-oblique")pose.SetValues(.6,-.8,0,10,.8,.6,0,-2,0,0,1,3);if(mode=="filled-assembly-negative")pose.SetValues(-1,0,0,10,0,1,0,-2,0,0,-1,3);shapes->AddComponent(root,target,TopLoc_Location(pose));shapes->UpdateAssemblies();
+    shapes->AddComponent(root,target,TopLoc_Location());gp_Trsf pose;pose.SetValues(0,0,1,10,1,0,0,-2,0,1,0,3);if(mode=="filled-assembly-oblique"||mode=="bore-assembly-oblique")pose.SetValues(.6,-.8,0,10,.8,.6,0,-2,0,0,1,3);if(mode=="filled-assembly-negative")pose.SetValues(-1,0,0,10,0,1,0,-2,0,0,-1,3);shapes->AddComponent(root,target,TopLoc_Location(pose));shapes->UpdateAssemblies();
     STEPCAFControl_Writer writer;DESTEP_Parameters params;params.WriteSchema=DESTEP_Parameters::WriteMode_StepSchema_AP242DIS;
     if(!writer.Transfer(doc,params)||writer.Write(argv[1])!=IFSelect_RetDone)return 5;
    }else{STEPCAFControl_Reader reader;if(reader.ReadFile(argv[1])!=IFSelect_RetDone||!reader.Transfer(doc))return 4;}

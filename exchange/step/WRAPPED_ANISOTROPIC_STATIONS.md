@@ -221,4 +221,34 @@ area and centroid. Tests distinguish exact rational evaluation from refused
 binary64 conversion, mutate nonorthogonal and rounded direction ratios, reject
 material/frame dependency sharing and nonneutral child frames, and check
 source limits, cancellation, tags, support/native/provenance corruption and
-immutable matrix copies. The through-bore rational route is not included yet.
+immutable matrix copies. The through-bore rational route uses the separate API below.
+
+### Rational flat through-bore occurrences
+
+`ReadRationalWrappedAnisotropicStationBoreAssembly` separately admits the
+already-qualified anisotropic through-bore material under the same exact
+rational flat occurrence rules. The filled route still rejects bore material;
+the signed-coordinate bore reader still rejects the oblique frame. The local
+proof preserves original inward/outward bands, shared station rims, original
+cap and vertex identities, and the actual annular closed material.
+
+The corresponding `Source` writer re-proves the original standard graph.
+`Write/ReadRationalWrappedAnisotropicStationBoreAssemblyJSON` use distinct
+version-one tag `plainsolid-step-rational-anisotropic-station-bore-assembly`.
+They retain both original weighted support families, top-level material names
+and units, original source roles and exact occurrence matrices, and compare
+all supplied claims with one complete original-source reproof. Neither stored
+native material nor a pose edit overrides that proof. Bounds and atomic
+failure follow the filled rational format.
+
+The independent XCAF `bore-assembly-oblique` mode constructs the original
+material with OCCT's cut operation, then creates shared identity and exact
+3:4:5-frame occurrences. The retained AP242 source has 450 records. Original
+and native-envelope re-export independently retain two solids, two shells and
+shared local identity; their aggregate volume, area and centroid agree. Native
+validation additionally checks two inward and two outward bands, exact shared
+station rims, two annular cap wires and Euler characteristic zero. Negative
+checks cover missing source faces, wrong coordinates/frames, altered inner rim
+IDs and weights, forged source roles/poses, limits, cancellation and cross-mode
+rejection. No arbitrary rational frame normalization, nested rational graph,
+mixed units or approximate circular substitution is admitted.
