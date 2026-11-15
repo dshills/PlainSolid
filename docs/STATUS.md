@@ -4,6 +4,25 @@ The full OCCT replacement is **not complete**. This document distinguishes the
 implemented, tested kernel from the much larger specification. Full replacement
 and general-purpose production use remain unqualified.
 
+The latest paired full runs use kernel `af569683` and PlainCAD `efae4d2`.
+The [Go run](evidence/main-af569683-qualification-2026-11-15.json)
+accounted for all 5,714 top-level tests: 5,199 passes and 515 explicit
+optional skips across 52 tested packages. All eight trimmed groups
+finished, with 1,371 passes and 46 skips. Four packages have no tests.
+`go vet ./...` and a Windows amd64 cross-build passed separately.
+The [PlainCAD run](evidence/plaincad-main-af569683-2026-11-15.json)
+passed 345 development, 66 production, 15 cross-browser, 1,691 unit and
+four WASM contract cases. The build, typechecks and bundle budget passed,
+the Playwright driver is pristine, and the production WASM matches the
+built asset. Later commits have focused differential and race checks.
+
+The active release gaps include general curved Boolean and blend assembly,
+more complete STEP and IGES, current native race and runtime platform
+qualification, and end-to-end acceptance of the remaining specification.
+Immediate work is advancing exact three-crossing Cut contact graphs,
+multiple original support-knot splits, source-unit STEP transfer through
+the PlainCAD bridge, and stricter planar source-support authentication.
+
 The two PlainCAD integration branches are in `main` through implementation
 merge `8f76f16b` and verification merge `012096ee`.
 The [full ordinary Go run](evidence/main-6c4ab7c4-qualification-2026-11-14.json)

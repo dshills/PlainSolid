@@ -1,5 +1,32 @@
 # Verification record
 
+## Full Go and PlainCAD rerun (2026-11-15)
+
+The [pinned Go report](evidence/main-af569683-qualification-2026-11-15.json)
+reconciles all 5,714 independently listed cases on `af569683` with zero
+failures: 5,199 passes and 515 explicit optional skips. The eight timed
+trimmed groups account for 1,417 cases, with 1,371 passes and 46 skips.
+Four of the 56 packages have no tests. The logs, per-group input lists,
+inventory, scheduler record and exit codes are preserved in the workspace
+qualification archive. A separate `go vet ./...` and Windows amd64
+cross-build succeeded on the same pinned source.
+
+The [pinned PlainCAD report](evidence/plaincad-main-af569683-2026-11-15.json)
+reconciles all eight gates on that kernel and PlainCAD `efae4d2`. There
+were 345 passing development, 66 production, 15 cross-browser, 1,691
+ordinary unit and four WASM contract cases, with no unexpected results,
+skips or flaky cases. Both documented test fixture corrections were
+applied to the isolated app copy. The Playwright capture driver matches
+its pristine hash and the production WASM matches the build byte for byte.
+
+Separate exact STEP repair checks ran the five signed and three tilted
+source fixtures through the Go bridge under the native race detector
+and in a pinned `GOOS=js GOARCH=wasm` build with a single Go scheduler
+thread. The concrete TypeScript adapter passed three actual WASM tests.
+A real Chromium module worker returned the same typed certificate as the
+raw Go dispatcher and a second worker strictly reopened and re-exported it.
+The focused logs are in `.worktrees/qualification/2026-11-15`.
+
 ## Full baseline and recent exact modeling qualification (2026-11-14)
 
 The [normal Go record](evidence/main-6c4ab7c4-qualification-2026-11-14.json)
