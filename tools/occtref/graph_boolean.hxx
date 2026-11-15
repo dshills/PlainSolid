@@ -162,7 +162,7 @@ static void ellipticalGraphBooleanRecords(std::ostream& out) {
   ellipticalGraphRecord(out,"ellipse-difference",BRepAlgoAPI_Cut(a,b).Shape());
 }
 
-static void tangentSplineShellRecords(std::ostream& out, bool quartic = false, bool separable = false, bool closedContact = false) {
+static void tangentSplineShellRecords(std::ostream& out, bool quartic = false, bool separable = false, bool closedContact = false, bool containedContact = false) {
   BRepBuilderAPI_Sewing sewing(1e-9);
   const double sq[3]{.25,-.25,.25};
   const double q2[5]{3,0,-1,0,3}, q4[5]{1,-1,1,-1,1};
@@ -199,6 +199,17 @@ static void tangentSplineShellRecords(std::ostream& out, bool quartic = false, b
   auto tool = BRepBuilderAPI_MakeSolid(TopoDS::Shell(ex.Current())).Solid();
   ex.Next();
   if (ex.More() || !BRepCheck_Analyzer(tool).IsValid()) throw std::runtime_error("invalid tangent roof");
+  if (containedContact) {
+    const auto outer = BRepPrimAPI_MakeBox(gp_Pnt(-.125,-.125,-2),1.25,1.25,2).Shape();
+    BRepAlgoAPI_Common common(outer,tool);
+    BRepAlgoAPI_Fuse fuse(outer,tool);
+    BRepAlgoAPI_Cut cut(tool,outer);
+    if (!common.IsDone() || !fuse.IsDone() || !cut.IsDone() || TopExp_Explorer(cut.Shape(),TopAbs_SOLID).More())
+      throw std::runtime_error("invalid contained tangent material");
+    record(out,"contained-tangent-common",common.Shape(),1e-11);
+    record(out,"contained-tangent-fuse",fuse.Shape(),1e-11);
+    return;
+  }
   const auto stock = BRepPrimAPI_MakeBox(1,1,1).Shape();
   auto common = BRepAlgoAPI_Common(stock,tool);
   if (!common.IsDone() || TopExp_Explorer(common.Shape(),TopAbs_SOLID).More())

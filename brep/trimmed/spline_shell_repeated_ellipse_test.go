@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"math"
 	"math/big"
 	"os"
@@ -47,6 +48,40 @@ func TestOCCTExternallyTangentSplineShellEllipse(t *testing.T) {
 		if math.Abs(x-.5) > 1e-10 {
 			t.Fatal("independent retained material centroid", p)
 		}
+	}
+}
+
+func TestOCCTInternallyTangentSplineShellEllipse(t *testing.T) {
+	oracle := os.Getenv("PLAINSOLID_OCCT_CONTAINED_ELLIPSE")
+	if oracle == "" {
+		t.Skip("set PLAINSOLID_OCCT_CONTAINED_ELLIPSE to the independent author")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+	path := filepath.Join(t.TempDir(), "contained-ellipse-contact.json")
+	if logs, e := exec.CommandContext(ctx, oracle, path, "contained-ellipse-tangent-shells").CombinedOutput(); e != nil {
+		t.Fatalf("independent OCCT contained ellipse: %v %s", e, logs)
+	}
+	r, e := os.Open(path)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer r.Close()
+	decoder := json.NewDecoder(r)
+	for _, want := range []struct {
+		name   string
+		volume float64
+	}{{"contained-tangent-common", 20227.0 / 20480}, {"contained-tangent-fuse", 25.0 / 8}} {
+		var q struct {
+			Name   string
+			Volume float64
+		}
+		if e := decoder.Decode(&q); e != nil || q.Name != want.name || math.Abs(q.Volume-want.volume) > 1e-9 {
+			t.Fatal("independent analytic volume and OCCT result", q, want, e)
+		}
+	}
+	if e := decoder.Decode(new(any)); e != io.EOF {
+		t.Fatal("unexpected reference records", e)
 	}
 }
 
@@ -109,5 +144,44 @@ func TestExternallyTangentSplineShellEllipse(t *testing.T) {
 		Center: [2]*big.Rat{big.NewRat(1, 2), big.NewRat(1, 2)}, RadiusSquared: [2]*big.Rat{big.NewRat(1, 16), big.NewRat(1, 25)}}}
 	if x, _, p, e := CombineExternallyTangentSplineShellEllipse(ctx, stock, tool, parametric.Intersection, wrong); e == nil || len(x.faces) != 0 || p.Contact.Proven {
 		t.Fatal("incorrect ellipse must not yield material proof", e)
+	}
+}
+
+func TestInternallyTangentSplineShellEllipse(t *testing.T) {
+	ctx := context.Background()
+	outer, _ := makeOpenSplineBox(t, [3]float64{-.125, -.125, -2}, [3]float64{1.125, 1.125, 0}, 0)
+	inner := quarticRoofSolid(t, 1.0/16, 1.0/16)
+	for outerIndex, sources := range [2][2]Solid{{outer, inner}, {inner, outer}} {
+		ids := [2]int{5, 1}
+		if outerIndex == 1 {
+			ids = [2]int{1, 5}
+		}
+		o := SplineShellRepeatedEllipseOptions{Faces: ids}
+		for _, operation := range []parametric.BooleanOp{parametric.Intersection, parametric.Union, parametric.Difference} {
+			result, h, p, e := CombineInternallyTangentSplineShellEllipse(ctx, sources[0], sources[1], operation, o)
+			if operation == parametric.Difference && outerIndex == 0 {
+				if !errors.Is(e, geom.ErrConvergence) || len(result.faces) != 0 || p.Contact.Proven {
+					t.Fatal("internally touching cavity does not have a single manifold boundary", e)
+				}
+				continue
+			}
+			if e != nil || p.Enclosing != outerIndex || !p.Contact.Proven || p.SeparatedPairs != 35 || h.Method != "contained-repeated-ellipse-tangency" {
+				t.Fatal("complete original pair proof and nesting", outerIndex, operation, p.Enclosing, p.SeparatedPairs, e)
+			}
+			if operation == parametric.Difference {
+				if len(result.faces) != 0 {
+					t.Fatal("enclosing cutter removes all inner material")
+				}
+				continue
+			}
+			owner := outerIndex
+			if operation == parametric.Intersection {
+				owner = 1 - outerIndex
+			}
+			faceSources := [2][][]int{h.FacesA, h.FacesB}
+			if len(result.faces) != len(sources[owner].faces) || result.faces[0].Surface != sources[owner].faces[0].Surface || len(faceSources[owner][0]) != 1 || len(faceSources[1-owner][0]) != 0 {
+				t.Fatal("regularized result must retain the identified original shell", outerIndex, operation, h.FacesA, h.FacesB)
+			}
+		}
 	}
 }
