@@ -37,27 +37,36 @@ func (d *exactBezierSurfaceData) UnmarshalJSON(raw []byte) error {
 		return geom.ErrInvalid
 	}
 	count := (head.DegreeU + 1) * (head.DegreeV + 1)
-	rows := json.NewDecoder(bytes.NewReader(head.Controls))
+	controls, e := decodeExactSurfaceControls(head.Controls, count)
+	if e != nil {
+		return e
+	}
+	*d = exactBezierSurfaceData{Version: head.Version, DegreeU: head.DegreeU, DegreeV: head.DegreeV, Domain: head.Domain, Controls: controls}
+	return nil
+}
+
+func decodeExactSurfaceControls(raw []byte, count int) ([][4]string, error) {
+	rows := json.NewDecoder(bytes.NewReader(raw))
 	token, e := rows.Token()
 	if e != nil || token != json.Delim('[') {
-		return geom.ErrInvalid
+		return nil, geom.ErrInvalid
 	}
 	controls := make([][4]string, 0, count)
 	for rows.More() {
 		if len(controls) >= count {
-			return geom.ErrInvalid
+			return nil, geom.ErrInvalid
 		}
 		var row []string
 		if e := rows.Decode(&row); e != nil {
-			return e
+			return nil, e
 		}
 		if len(row) != 4 {
-			return geom.ErrInvalid
+			return nil, geom.ErrInvalid
 		}
 		var h [4]string
 		for j, s := range row {
 			if len(s) > exactSurfaceMaxBits+3 {
-				return geom.ErrConvergence
+				return nil, geom.ErrConvergence
 			}
 			h[j] = s
 		}
@@ -65,14 +74,13 @@ func (d *exactBezierSurfaceData) UnmarshalJSON(raw []byte) error {
 	}
 	token, e = rows.Token()
 	if e != nil || token != json.Delim(']') || len(controls) != count {
-		return geom.ErrInvalid
+		return nil, geom.ErrInvalid
 	}
 	var extra any
 	if e := rows.Decode(&extra); e != io.EOF {
-		return geom.ErrInvalid
+		return nil, geom.ErrInvalid
 	}
-	*d = exactBezierSurfaceData{Version: head.Version, DegreeU: head.DegreeU, DegreeV: head.DegreeV, Domain: head.Domain, Controls: controls}
-	return nil
+	return controls, nil
 }
 
 func encodeExactBezierSurface(s *geom.ExactBezierSurface) (*exactBezierSurfaceData, error) {
@@ -118,5 +126,6 @@ func (d *exactBezierSurfaceData) decodeExact(budget *int) (geom.Surface, error) 
 func validExactSurfaceEnvelope(d surfaceData) bool {
 	d.Kind = ""
 	d.ExactBezier = nil
+	d.ExactTensor = nil
 	return reflect.ValueOf(d).IsZero()
 }

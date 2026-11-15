@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"testing"
 
@@ -12,6 +13,11 @@ import (
 )
 
 func TestTrimmedTubeKnotSectionNative(t *testing.T) {
+	t.Run("represented spline", func(t *testing.T) { testTrimmedTubeKnotSectionNative(t, false) })
+	t.Run("exact tensor", func(t *testing.T) { testTrimmedTubeKnotSectionNative(t, true) })
+}
+
+func testTrimmedTubeKnotSectionNative(t *testing.T, useTensor bool) {
 	ctx := context.Background()
 	k, u := []float64{0, 0, .5, 1, 1}, []float64{0, 0, 2, 2}
 	var points [2][]geom.Vec3
@@ -21,9 +27,26 @@ func TestTrimmedTubeKnotSectionNative(t *testing.T) {
 			points[1] = append(points[1], geom.Vec3{X: x, Y: y, Z: y - []float64{0, .5, 1.5}[i]})
 		}
 	}
-	var surfaces [2]*geom.BSplineSurface
+	var surfaces [2]geom.Surface
 	var p [2]*geom.SurfacePatch
 	for i := range surfaces {
+		if i == 1 && useTensor {
+			r := geom.ExactTensorSurfaceRecipe{Version: 1, DegreeU: 1, DegreeV: 1, CountU: 3, CountV: 2, KnotsU: k, KnotsV: u,
+				Controls: [][4]string{{"0", "0", "-1/3", "1"}, {"0", "2", "5/3", "1"}, {"1/2", "0", "-1/2", "1"}, {"1/2", "2", "3/2", "1"}, {"1", "0", "-4/3", "1"}, {"1", "2", "2/3", "1"}}}
+			var e error
+			p[i], e = geom.ImportExactTensorSurfaceRecipe(ctx, r, geom.SurfacePatchOptions{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			if _, e = p[i].ToBSplineSurface(); !errors.Is(e, geom.ErrUnrepresentable) {
+				t.Fatal("fixture original cannot be a float B-spline", e)
+			}
+			surfaces[i], e = geom.NewExactTensorSurface(ctx, p[i], geom.SurfacePatchOptions{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			continue
+		}
 		s, e := geom.NewBSplineSurface(1, 1, 3, 2, points[i], k, u, nil)
 		if e != nil {
 			t.Fatal(e)
@@ -82,6 +105,38 @@ func TestTrimmedTubeKnotSectionNative(t *testing.T) {
 		p, e := r.PartitionBothFacesByTubeRun(ctx, 0, 0, AlgebraicTubeFacePartitionOptions{})
 		if e != nil || len(p.Faces[0].Cut) != 2 || p.Faces[0].Cut[0].EndPoint != p.Faces[0].Cut[1].StartPoint {
 			t.Fatalf("knot identity lost: %v", e)
+		}
+		if useTensor {
+			if _, ok := p.Faces[1].SourceSurface.(*geom.ExactTensorSurface); !ok || p.Faces[1].Support != nil {
+				t.Fatalf("lost original tensor chart: %T", p.Faces[1].SourceSurface)
+			}
+			cuts := p.Faces[0].Cut
+			heights := [3]int64{15, 16, 21}
+			mid, _, e := geom.NewExactRationalRoot(ctx, big.NewRat(1, 2), geom.ExactCurvePlaneEventOptions{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			direction, e := cuts[0].FreeStart.Compare(ctx, mid, geom.ExactCurvePlaneEventOptions{})
+			if e != nil || !direction.Proven || direction.Order == 0 {
+				t.Fatal("knot must be interior to the directed run", direction, e)
+			}
+			if direction.Order > 0 {
+				heights[0], heights[2] = heights[2], heights[0]
+			}
+			for i, knot := range []*geom.ExactComposedCurveEvent{cuts[0].StartPoint, cuts[0].EndPoint, cuts[1].EndPoint} {
+				root, _, e := knot.CoordinateRoot(ctx, 1, geom.ExactCurvePlaneEventOptions{})
+				if e != nil {
+					t.Fatal(i, e)
+				}
+				want, _, e := geom.NewExactRationalRoot(ctx, big.NewRat(heights[i], 32), geom.ExactCurvePlaneEventOptions{})
+				if e != nil {
+					t.Fatal(e)
+				}
+				q, e := want.Compare(ctx, root, geom.ExactCurvePlaneEventOptions{})
+				if e != nil || !q.Proven || q.Order != 0 {
+					t.Fatal("exact piecewise original section", i, q, e)
+				}
+			}
 		}
 	}
 	check(r)

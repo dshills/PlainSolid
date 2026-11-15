@@ -222,6 +222,9 @@ func sameTrimmedSectionChart(a, b geom.Surface) bool {
 	case *geom.ExactBezierSurface:
 		t, ok := b.(*geom.ExactBezierSurface)
 		return ok && s.ExactPatch() != nil && s.ExactPatch() == t.ExactPatch()
+	case *geom.ExactTensorSurface:
+		t, ok := b.(*geom.ExactTensorSurface)
+		return ok && s.ExactPatch() != nil && s.ExactPatch() == t.ExactPatch()
 	default:
 		return false
 	}

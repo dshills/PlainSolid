@@ -42,6 +42,7 @@ type surfaceData struct {
 	TorusOuterWall   *torusCylinderOuterWallData `json:",omitempty"`
 	TorusCylinder    *torusCylinderChartData     `json:",omitempty"`
 	ExactBezier      *exactBezierSurfaceData     `json:",omitempty"`
+	ExactTensor      *exactTensorSurfaceData     `json:",omitempty"`
 	ObliqueSplit     *obliqueSplitData           `json:",omitempty"`
 	SplitCylinderCut *splitCylinderCutData       `json:",omitempty"`
 	UnequalUnion     *unequalUnionData           `json:",omitempty"`
@@ -328,6 +329,12 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 			return surfaceData{}, e
 		}
 		return surfaceData{Kind: "exact-bezier-surface", ExactBezier: d}, nil
+	case *geom.ExactTensorSurface:
+		d, e := encodeExactTensorSurface(x)
+		if e != nil {
+			return surfaceData{}, e
+		}
+		return surfaceData{Kind: "exact-tensor-surface", ExactTensor: d}, nil
 	case *geom.BSplineSurface:
 		d := x.Data()
 		maxWeight := 0.
@@ -359,14 +366,17 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 }
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
-	if (d.Kind == "exact-bezier-surface") != (d.ExactBezier != nil) {
+	if (d.Kind == "exact-bezier-surface") != (d.ExactBezier != nil) || (d.Kind == "exact-tensor-surface") != (d.ExactTensor != nil) {
 		return nil, geom.ErrInvalid
 	}
-	if d.ExactBezier != nil {
+	if d.ExactBezier != nil || d.ExactTensor != nil {
 		if !validExactSurfaceEnvelope(d) {
 			return nil, geom.ErrInvalid
 		}
-		return d.ExactBezier.decodeExact(budget)
+		if d.ExactBezier != nil {
+			return d.ExactBezier.decodeExact(budget)
+		}
+		return d.ExactTensor.decodeExact(budget)
 	}
 
 	if (d.Kind == "oblique-split-cylinder-cut") != (d.ObliqueSplit != nil) {

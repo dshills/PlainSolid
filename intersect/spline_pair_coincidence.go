@@ -136,6 +136,8 @@ func exactSplineSupport(surface geom.Surface, o geom.SurfacePatchOptions) (*geom
 			return nil, geom.ErrInvalid
 		}
 		patch, e = s.ExactPatch().WithLimits(o)
+	case *geom.ExactTensorSurface:
+		patch, e = s.ExactPatch().WithLimits(o)
 	default:
 		return nil, geom.ErrInvalid
 	}
@@ -179,6 +181,9 @@ func permuteSplineSupport(surface geom.Surface, order [3]int, o geom.SurfacePatc
 	p, e = p.Transformed(m)
 	if e != nil {
 		return nil, e
+	}
+	if _, ok := base.(*geom.ExactTensorSurface); ok {
+		return geom.NewExactTensorSurface(context.Background(), p, o)
 	}
 	return geom.NewExactBezierSurface(p)
 }

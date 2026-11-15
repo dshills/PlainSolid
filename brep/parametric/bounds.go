@@ -497,7 +497,9 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 		// control hull. The fallback is conservative, just less tight.
 		return geom.Bounds(a.Data().Poles)
 	case *geom.ExactBezierSurface:
-		return exactBezierSurfaceBounds(a, geom.Identity(), u, v)
+		return exactPatchSurfaceBounds(a.ExactPatch(), geom.Identity(), u, v)
+	case *geom.ExactTensorSurface:
+		return exactPatchSurfaceBounds(a.ExactPatch(), geom.Identity(), u, v)
 	case *geom.WrappedSurfacePatch:
 		if a == nil || a.FundamentalPatch() == nil {
 			return geom.Box{}, geom.ErrInvalid
@@ -516,8 +518,11 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 		}
 		return p.Bounds()
 	case mappedSurface:
-		if exact, ok := a.surface.(*geom.ExactBezierSurface); ok {
-			return exactBezierSurfaceBounds(exact, a.transform, u, v)
+		switch exact := a.surface.(type) {
+		case *geom.ExactBezierSurface:
+			return exactPatchSurfaceBounds(exact.ExactPatch(), a.transform, u, v)
+		case *geom.ExactTensorSurface:
+			return exactPatchSurfaceBounds(exact.ExactPatch(), a.transform, u, v)
 		}
 		b, e := surfaceBounds(a.surface, u, v)
 		if e != nil {
@@ -538,11 +543,11 @@ func surfaceBounds(s geom.Surface, u, v Interval) (geom.Box, error) {
 	return geom.Bounds(corners)
 }
 
-func exactBezierSurfaceBounds(s *geom.ExactBezierSurface, placement geom.Affine, u, v Interval) (geom.Box, error) {
-	if s == nil || s.ExactPatch() == nil {
+func exactPatchSurfaceBounds(p *geom.SurfacePatch, placement geom.Affine, u, v Interval) (geom.Box, error) {
+	if p == nil {
 		return geom.Box{}, geom.ErrInvalid
 	}
-	p, e := s.ExactPatch().Trim(geom.ParameterRectangle{UMin: u.Min, UMax: u.Max, VMin: v.Min, VMax: v.Max})
+	p, e := p.Trim(geom.ParameterRectangle{UMin: u.Min, UMax: u.Max, VMin: v.Min, VMax: v.Max})
 	if e != nil {
 		return geom.Box{}, e
 	}
