@@ -19,6 +19,19 @@ type CertifiedPolygonPatchMesh struct {
 	VertexUV     []geom.Vec2
 	Loops        [][]int
 	OriginalFace int
+	// Uses records exact original straight-UV traversal parameters for stored
+	// faces only. It does not certify correspondence to stored model edges.
+	Uses []PolygonFaceUseSamples
+}
+
+// PolygonFaceUseSamples preserves original UV coedge lineage independently
+// of face orientation. Vertices index the final display; Parameters are exact
+// original normalized UV-use parameters. No model-edge parameter is inferred.
+type PolygonFaceUseSamples struct {
+	Face, Loop, Use, Edge int
+	FaceReversed          bool
+	Vertices              []int
+	Parameters            []*big.Rat
 }
 
 // TessellatePolygonPatchCertified validates straight polygonal UV trims with
@@ -220,6 +233,8 @@ func (s Solid) tessellatePolygonFaceCertified(ctx context.Context, face int, o C
 		p, e = geom.NewSurfacePatch(v, geom.SurfacePatchOptions{})
 	case *geom.WrappedSurfacePatch:
 		p = v.FundamentalPatch()
+	case *geom.ExactBezierSurface, *geom.ExactTensorSurface:
+		p, e = exactSplineSupportPatch(base, geom.SurfacePatchOptions{})
 	default:
 		return empty, geom.ErrConvergence
 	}
@@ -248,6 +263,10 @@ func (s Solid) tessellatePolygonFaceCertified(ctx context.Context, face int, o C
 		return empty, e
 	}
 	result.OriginalFace = face
+	result.Uses, e = polygonOriginalUseSamples(ctx, f, face, result)
+	if e != nil {
+		return empty, e
+	}
 	if f.Reversed {
 		for i := range result.Mesh.Triangles {
 			t := &result.Mesh.Triangles[i]
