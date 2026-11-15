@@ -111,7 +111,13 @@ func (s Solid) TessellateMixedFaceCertified(ctx context.Context, face int, o Sol
 					return empty, e
 				}
 				if affine {
-					proofUse.Curve = nil
+					// A stored polynomial model still owns its full parameter
+					// trace. Do not discard the normalized use descriptor just
+					// because its image also happens to be a straight segment.
+					model, composed := edge.Curve.(surfaceTrimCurve)
+					if !composed || model.curve == nil {
+						proofUse.Curve = nil
+					}
 				}
 			}
 			proven := sameSplineTrim(edge, f.Surface, proofUse) || mixedFaceAffineRangeIdentity(edge, f.Surface, proofUse)

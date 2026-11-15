@@ -10,7 +10,12 @@ import (
 	"testing"
 )
 
-func TestStoredMixedCurvedWeightedSharedDomains(t *testing.T) {
+func storedMixedCurvedWeightedFixture(t *testing.T) (Solid, int) {
+	return storedMixedCurvedFixture(t, true)
+}
+
+func storedMixedCurvedFixture(t *testing.T, rationalSpeed bool) (Solid, int) {
+	t.Helper()
 	ctx := context.Background()
 	stock, _ := polynomialClipStock(t)
 	tool, _ := makeOpenSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{3, 3, 3. / 16}, 0)
@@ -35,7 +40,10 @@ func TestStoredMixedCurvedWeightedSharedDomains(t *testing.T) {
 			if reverse {
 				power = len(h) - 1 - i
 			}
-			factor := big.NewRat(int64(1<<power), 1)
+			factor := big.NewRat(1, 1)
+			if rationalSpeed {
+				factor = big.NewRat(int64(1<<power), 1)
+			}
 			for k := 0; k < 3; k++ {
 				h[i][k] = new(big.Rat).Mul(h[i][k], factor)
 			}
@@ -45,6 +53,32 @@ func TestStoredMixedCurvedWeightedSharedDomains(t *testing.T) {
 	for _, id := range cut.SectionEdges {
 		if m, ok := edges[id].Curve.(surfaceTrimCurve); ok && m.curve != nil {
 			if q, ok := m.curve.(SplineUV); ok && q.Curve.Degree() == 4 {
+				patch, err := exactSplineSupportPatch(m.surface, geom.SurfacePatchOptions{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				curve, err := mixedStoredUseCurveContext(ctx, Use{Curve: m.curve}, geom.SurfacePatchOptions{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				var points [3][3]*big.Rat
+				for i, tt := range []*big.Rat{new(big.Rat), big.NewRat(1, 2), big.NewRat(1, 1)} {
+					uv, err := mixedExactEvaluate(curve, tt)
+					if err != nil {
+						t.Fatal(err)
+					}
+					point, err := patch.EvaluateRational(ctx, uv[0], uv[1], geom.SurfacePatchEvaluationOptions{})
+					if err != nil {
+						t.Fatal(err)
+					}
+					points[i] = point.Point
+				}
+				a, b, c := points[0], points[1], points[2]
+				left := new(big.Rat).Mul(new(big.Rat).Sub(b[0], a[0]), new(big.Rat).Sub(c[1], a[1]))
+				right := new(big.Rat).Mul(new(big.Rat).Sub(b[1], a[1]), new(big.Rat).Sub(c[0], a[0]))
+				if left.Cmp(right) == 0 {
+					continue
+				}
 				chosen = id
 				m.curve, e = NewExactBezierUV(weighted(m.curve, false))
 				if e != nil {
@@ -132,6 +166,13 @@ func TestStoredMixedCurvedWeightedSharedDomains(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	return s, chosen
+}
+
+func TestStoredMixedCurvedWeightedSharedDomains(t *testing.T) {
+	ctx := context.Background()
+	s, chosen := storedMixedCurvedWeightedFixture(t)
+	var e error
 	for fi, f := range s.faces {
 		for ui, u := range f.Outer {
 			if u.Edge != chosen {

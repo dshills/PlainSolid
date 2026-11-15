@@ -27,8 +27,9 @@ func polynomialTrimDescriptor(ctx context.Context, c PCurve, reverse bool, o geo
 			return nil, geom.ErrConvergence
 		}
 		// Restrict the original authored domain before normalizing. A single
-		// exact Bezier cell is required; endpoints alone never establish identity.
-		exact, orientation, e := coincidentUseCurve(ctx, Use{Curve: q}, o)
+		// exact Bezier trace is required, with every redundant knot proved;
+		// endpoints alone never establish identity.
+		exact, e := polynomialTrimBezierDescriptor(ctx, q, o)
 		if e != nil {
 			return nil, e
 		}
@@ -44,7 +45,7 @@ func polynomialTrimDescriptor(ctx context.Context, c PCurve, reverse bool, o geo
 				return nil, geom.ErrConvergence
 			}
 		}
-		return exact.Reparameterize(0, 1, orientation != reverse, o)
+		return exact.Reparameterize(0, 1, reverse, o)
 	default:
 		return nil, geom.ErrConvergence
 	}
@@ -55,7 +56,13 @@ func comparePolynomialTrimUse(ctx context.Context, model parametric.Edge, surfac
 		return false, nil
 	}
 	limits := geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits}
-	a, e := polynomialTrimDescriptor(ctx, m.curve, false, limits)
+	var a *geom.ExactSplineCurve
+	var e error
+	if m.curve == nil {
+		a, _, e = coincidentUseCurve(ctx, Use{UVStart: m.a, UVEnd: m.b}, limits)
+	} else {
+		a, e = polynomialTrimDescriptor(ctx, m.curve, false, limits)
+	}
 	if e != nil {
 		return false, e
 	}

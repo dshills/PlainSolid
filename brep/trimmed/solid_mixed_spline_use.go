@@ -13,7 +13,7 @@ func mixedStoredHigherSplineUV(ctx context.Context, q SplineUV, o geom.SurfacePa
 	if q.Curve == nil || q.Curve.Degree() < 3 || q.Curve.Degree() > 4 {
 		return nil, geom.ErrConvergence
 	}
-	c, reverse, e := coincidentUseCurve(ctx, Use{Curve: q}, o)
+	c, e := polynomialTrimBezierDescriptor(ctx, q, o)
 	if e != nil {
 		return nil, e
 	}
@@ -30,9 +30,6 @@ func mixedStoredHigherSplineUV(ctx context.Context, q SplineUV, o geom.SurfacePa
 			return nil, geom.ErrDomain
 		}
 		j := i
-		if reverse {
-			j = len(h) - 1 - i
-		}
 		h[j] = [3]*big.Rat{new(big.Rat).Set(p[0]), new(big.Rat).Set(p[1]), new(big.Rat).Set(p[3])}
 	}
 	qout, e := NewExactBezierUV(h)
