@@ -14,10 +14,15 @@ import (
 	"plainsolid/geom"
 )
 
-func mappedChainCreasedSupport(t *testing.T, swapped bool, knot, slope float64) *geom.BSplineSurface {
+func mappedChainCreasedSupport(t *testing.T, swapped bool, knot, slope float64, extra ...[2]float64) *geom.BSplineSurface {
 	t.Helper()
-	x, y := []float64{0, knot, 1}, []float64{0, 1}
-	ku, kv := []float64{0, 0, knot, 1, 1}, []float64{0, 0, 1, 1}
+	x, y := []float64{0, knot}, []float64{0, 1}
+	for _, crease := range extra {
+		x = append(x, crease[0])
+	}
+	x = append(x, 1)
+	ku := append(append([]float64{0}, x...), 1)
+	kv := []float64{0, 0, 1, 1}
 	if swapped {
 		x, y, ku, kv = y, x, kv, ku
 	}
@@ -28,7 +33,7 @@ func mappedChainCreasedSupport(t *testing.T, swapped bool, knot, slope float64) 
 			if swapped {
 				a, b = b, a
 			}
-			poles = append(poles, geom.Vec3{X: a, Y: b, Z: a*b + slope*max(0, a-knot)})
+			poles = append(poles, geom.Vec3{X: a, Y: b, Z: mappedChainCreasedHeight(a, b, knot, slope, extra)})
 		}
 	}
 	s, err := geom.NewBSplineSurface(1, 1, len(x), len(y), poles, ku, kv, nil)
@@ -36,6 +41,14 @@ func mappedChainCreasedSupport(t *testing.T, swapped bool, knot, slope float64) 
 		t.Fatal(err)
 	}
 	return s
+}
+
+func mappedChainCreasedHeight(x, y, knot, slope float64, extra [][2]float64) float64 {
+	z := x*y + slope*max(0, x-knot)
+	for _, crease := range extra {
+		z += crease[1] * max(0, x-crease[0])
+	}
+	return z
 }
 
 func TestMappedSplineChainCreasedRoof(t *testing.T) {

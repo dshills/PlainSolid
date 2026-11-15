@@ -97,7 +97,7 @@ func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 	if ctx == nil || r == nil {
 		return zero, geom.ErrInvalid
 	}
-	if foreign && o.AllowUnsplitSupportKnot && !o.AllowMultiSpanRoofs {
+	if !o.AllowMultiSpanRoofs && (o.AllowTwoInteriorRoofKnots || foreign && o.AllowUnsplitSupportKnot) {
 		return zero, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -125,7 +125,14 @@ func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 	if err != nil {
 		return zero, err
 	}
-	source, err := openMappedChainSTEPSource(f, l, foreign, o.AllowMultiSpanRoofs)
+	maxRoofKnots := 0
+	if o.AllowMultiSpanRoofs {
+		maxRoofKnots = 1
+	}
+	if o.AllowTwoInteriorRoofKnots {
+		maxRoofKnots = 2
+	}
+	source, err := openMappedChainSTEPSource(f, l, foreign, maxRoofKnots)
 	if err != nil {
 		return zero, err
 	}
@@ -145,7 +152,7 @@ func readMappedChainRectangularShell(ctx context.Context, r io.Reader, l Limits,
 	return out, nil
 }
 
-func openMappedChainSTEPSource(f *File, l Limits, foreign, allowMultiSpan bool) (mappedChainStepSource, error) {
+func openMappedChainSTEPSource(f *File, l Limits, foreign bool, maxRoofKnots int) (mappedChainStepSource, error) {
 	var zero mappedChainStepSource
 	var rid int64
 	for _, id := range f.Order {
@@ -210,7 +217,7 @@ func openMappedChainSTEPSource(f *File, l Limits, foreign, allowMultiSpan bool) 
 	supports := make(map[int64]bool)
 	used := 0
 	for _, id := range fids {
-		face, err := parseMappedChainStepFace(f, id, foreign, allowMultiSpan)
+		face, err := parseMappedChainStepFace(f, id, foreign, maxRoofKnots)
 		if err != nil {
 			return zero, fmt.Errorf("mapped STEP face #%d: %w", id, err)
 		}

@@ -48,7 +48,7 @@ func mappedChainClosedFixtureWithKnot(t *testing.T, crease bool) (MappedSplineCh
 	return loaded, closing, planar, seams
 }
 
-func mappedChainFixtureClosures(t *testing.T, knot, slope float64) ([2][]PCurve, []MappedChainPlanarFace, [][2]MappedChainClosedUse) {
+func mappedChainFixtureClosures(t *testing.T, knot, slope float64, extra ...[2]float64) ([2][]PCurve, []MappedChainPlanarFace, [][2]MappedChainClosedUse) {
 	t.Helper()
 	line := func(a, b geom.Vec2) PCurve {
 		quadratic, err := NewExactQuadraticUV([3][3]*big.Rat{
@@ -103,25 +103,45 @@ func mappedChainFixtureClosures(t *testing.T, knot, slope float64) ([2][]PCurve,
 		{{2, 0}, {6, 1}}, {{3, 0}, {6, 3}}, {{4, 0}, {6, 2}}, {{5, 0}, {6, 0}},
 	}
 	if knot > 0 {
-		east := func(y float64) float64 { return (1 + y + slope*(1-knot)) / 2 }
-		closing[0] = []PCurve{closing[0][0],
-			line(geom.Vec2{X: 1, Y: .75}, geom.Vec2{X: knot, Y: .75}),
-			line(geom.Vec2{X: knot, Y: .75}, geom.Vec2{Y: .75}), closing[0][2]}
-		closing[1] = []PCurve{closing[1][0],
-			line(geom.Vec2{Y: 1}, geom.Vec2{Y: knot}),
-			line(geom.Vec2{Y: knot}, geom.Vec2{}), closing[1][2]}
-		planar[0] = face(geom.Vec3{X: 1, Z: -1}, yAxis, height, false,
-			geom.Vec2{}, geom.Vec2{X: .75}, geom.Vec2{X: .75, Y: east(.75)}, geom.Vec2{X: .25, Y: east(.25)}, geom.Vec2{Y: east(0)})
-		planar[2] = face(geom.Vec3{Y: .75, Z: -1}, xAxis, height, true,
-			geom.Vec2{}, geom.Vec2{X: 1}, geom.Vec2{X: 1, Y: east(.75)}, geom.Vec2{X: knot, Y: (1 + .75*knot) / 2}, geom.Vec2{Y: .5})
-		planar[3] = face(geom.Vec3{Z: -1}, xAxis, height, false,
-			geom.Vec2{}, geom.Vec2{X: 1}, geom.Vec2{X: 1, Y: east(0)}, geom.Vec2{X: knot, Y: .5}, geom.Vec2{Y: .5})
-		seams = [][2]MappedChainClosedUse{
-			{{0, 0}, {2, 2}}, {{0, 1}, {4, 2}}, {{0, 2}, {4, 3}}, {{0, 3}, {3, 2}},
-			{{1, 0}, {2, 3}}, {{1, 1}, {5, 2}}, {{1, 2}, {5, 3}}, {{1, 3}, {3, 3}},
-			{{2, 1}, {4, 1}}, {{2, 4}, {5, 1}}, {{3, 1}, {4, 4}}, {{3, 4}, {5, 4}},
-			{{2, 0}, {6, 1}}, {{3, 0}, {6, 3}}, {{4, 0}, {6, 2}}, {{5, 0}, {6, 0}},
+		wallUV := func(x, y float64) geom.Vec2 {
+			return geom.Vec2{X: x, Y: (1 + mappedChainCreasedHeight(x, y, knot, slope, extra)) / 2}
 		}
+		xs := []float64{1}
+		for i := len(extra) - 1; i >= 0; i-- {
+			xs = append(xs, extra[i][0])
+		}
+		xs = append(xs, knot, 0)
+		ends := [2]PCurve{closing[0][2], closing[1][2]}
+		closing[0], closing[1] = closing[0][:1:1], closing[1][:1:1]
+		north, south := []geom.Vec2{{}, {X: 1}}, []geom.Vec2{{}, {X: 1}}
+		for i, x := range xs {
+			north, south = append(north, wallUV(x, .75)), append(south, wallUV(x, 0))
+			if i+1 < len(xs) {
+				next := xs[i+1]
+				closing[0] = append(closing[0], line(geom.Vec2{X: x, Y: .75}, geom.Vec2{X: next, Y: .75}))
+				closing[1] = append(closing[1], line(geom.Vec2{Y: x}, geom.Vec2{Y: next}))
+			}
+		}
+		for i := range closing {
+			closing[i] = append(closing[i], ends[i])
+		}
+		planar[0] = face(geom.Vec3{X: 1, Z: -1}, yAxis, height, false,
+			geom.Vec2{}, geom.Vec2{X: .75}, geom.Vec2{X: .75, Y: wallUV(1, .75).Y}, geom.Vec2{X: .25, Y: wallUV(1, .25).Y}, geom.Vec2{Y: wallUV(1, 0).Y})
+		planar[2] = face(geom.Vec3{Y: .75, Z: -1}, xAxis, height, true, north...)
+		planar[3] = face(geom.Vec3{Z: -1}, xAxis, height, false, south...)
+		seams = nil
+		for owner := range 2 {
+			seams = append(seams, [2]MappedChainClosedUse{{owner, 0}, {2, 2 + owner}})
+			for i := 1; i < len(xs); i++ {
+				seams = append(seams, [2]MappedChainClosedUse{{owner, i}, {4 + owner, i + 1}})
+			}
+			seams = append(seams, [2]MappedChainClosedUse{{owner, len(xs)}, {3, 2 + owner}})
+		}
+		last := len(xs) + 1
+		seams = append(seams, [][2]MappedChainClosedUse{
+			{{2, 1}, {4, 1}}, {{2, 4}, {5, 1}}, {{3, 1}, {4, last}}, {{3, 4}, {5, last}},
+			{{2, 0}, {6, 1}}, {{3, 0}, {6, 3}}, {{4, 0}, {6, 2}}, {{5, 0}, {6, 0}},
+		}...)
 	}
 
 	return closing, planar, seams

@@ -33,7 +33,7 @@ func TestMappedSplineChainSupportKnotRebuild(t *testing.T) {
 		t.Helper()
 		cuts, points := p.ModelCuts(), p.ModelPoints()
 		if len(cuts) != 5 || cuts[1].Cmp(wantStation) != 0 || cuts[2].Cmp(big.NewRat(1, 4)) != 0 ||
-			cuts[3].Cmp(big.NewRat(1, 2)) != 0 || !p.splitSupportKnot {
+			cuts[3].Cmp(big.NewRat(1, 2)) != 0 || p.splitSupportKnots != 1 {
 			t.Fatal("expected one new exact station inside the authored partition", cuts)
 		}
 		for i, coord := range points[1] {
