@@ -48,8 +48,9 @@ type SplineFacePointResult struct {
 }
 
 // LocateOnSplineFace proves model point membership on a clamped spline or
-// exact Bézier face. Affine charts are inverted exactly. Other charts require a proved
-// projection-injective chart and a matching exact rational UV candidate.
+// exact Bézier face. Affine charts and affine graph projections are inverted
+// exactly. Other charts require a proved projection-injective chart and a
+// matching exact rational UV candidate.
 // The input may have arbitrary supported trim topology and affine placement.
 func (s Solid) LocateOnSplineFace(ctx context.Context, face int, point geom.Vec3, o SplineFacePointOptions) (SplineFacePointResult, error) {
 	if !point.IsFinite() {
@@ -91,6 +92,7 @@ func (s Solid) LocateRationalOnSplineFace(ctx context.Context, face int, query [
 		d.VMin, d.VMax = max(d.VMin, full.VMin), min(d.VMax, full.VMax)
 		patch, e = patch.Trim(d)
 	}
+	localPatch := patch
 	if e == nil && placement != geom.Identity() {
 		patch, e = patch.Transformed(placement)
 	}
@@ -144,6 +146,24 @@ func (s Solid) LocateRationalOnSplineFace(ctx context.Context, face int, query [
 				return r, e
 			}
 		}
+		if r.UV[0] == nil && o.Triangular == nil && len(o.UV) == 0 && o.Injectivity == (geom.SurfaceInjectivityOptions{}) {
+			if placement != geom.Identity() {
+				local, e := placement.InvertRationalPoint(ctx, query, geom.AffineChartInverseOptions{
+					MaxOperations: o.Patch.MaxOperations, MaxCoefficientBits: o.Patch.MaxCoefficientBits,
+				})
+				if e != nil {
+					return r, e
+				}
+				if e := locateAffineGraphFacePoint(ctx, localPatch, local, o.Patch, &r); e != nil || r.Location == SplineFacePointOutside {
+					return r, e
+				}
+			}
+			if r.UV[0] == nil {
+				if e := locateAffineGraphFacePoint(ctx, patch, query, o.Patch, &r); e != nil || r.Location == SplineFacePointOutside {
+					return r, e
+				}
+			}
+		}
 		if r.UV[0] == nil {
 			if e := locateCandidateFacePoint(ctx, patch, base, placement, query, o, &r); e != nil || r.Location == SplineFacePointOutside {
 				return r, e
@@ -166,6 +186,50 @@ func (s Solid) LocateRationalOnSplineFace(ctx context.Context, face int, query [
 		return r, geom.ErrConvergence
 	}
 	return r, nil
+}
+
+func locateAffineGraphFacePoint(ctx context.Context, patch *geom.SurfacePatch, query [3]*big.Rat,
+	o geom.SurfacePatchOptions, r *SplineFacePointResult) error {
+	if o.MaxOperations == 0 {
+		o.MaxOperations = 1000000
+	}
+	for _, axes := range [3][2]int{{0, 1}, {0, 2}, {1, 2}} {
+		graph, used, e := geom.NewAffineProjectedGraphWithWork(ctx, patch, axes, o)
+		o.MaxOperations -= used
+		if e != nil && !errors.Is(e, geom.ErrConvergence) && !errors.Is(e, geom.ErrDegenerate) &&
+			!errors.Is(e, geom.ErrDomain) && !errors.Is(e, geom.ErrUnrepresentable) {
+			return e
+		}
+		if o.MaxOperations < 1 {
+			return geom.ErrConvergence
+		}
+		if e != nil {
+			continue
+		}
+		limits := geom.SurfacePatchEvaluationOptions{MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits}
+		point, e := graph.InvertRational(ctx, [2]*big.Rat{query[axes[0]], query[axes[1]]}, limits)
+		if e != nil {
+			return e
+		}
+		if !point.Inside {
+			r.Location = SplineFacePointOutside
+			return nil
+		}
+		limits.MaxOperations -= point.Operations
+		if limits.MaxOperations < 1 {
+			return geom.ErrConvergence
+		}
+		jet, e := graph.EvaluateRational(ctx, point.UV, limits)
+		if e != nil {
+			return e
+		}
+		r.UV = point.UV
+		if !exactPointCoordinatesEqual(jet.Point, query) {
+			r.Location = SplineFacePointOutside
+		}
+		return nil
+	}
+	return nil
 }
 
 func classifyAlgebraicFacePoint(ctx context.Context, f Face, inverse geom.TriangularSurfaceInverse,

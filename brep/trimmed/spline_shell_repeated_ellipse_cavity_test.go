@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"math"
+	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -75,6 +76,11 @@ func TestTangentEllipseCavityCut(t *testing.T) {
 	}
 	s, h, p, e := CutInternallyTangentSplineShellEllipseCavity(ctx, outer, inner, o)
 	expect(s, h, p, e)
+	pose := geom.Affine{{0, 0, 1, 4}, {1, 0, 0, -2}, {0, 1, 0, 3}}
+	placed, e := s.TransformedContext(ctx, pose)
+	if e != nil {
+		t.Fatal(e)
+	}
 	for _, q := range []struct {
 		point geom.Vec3
 		want  parametric.Location
@@ -86,6 +92,28 @@ func TestTangentEllipseCavityCut(t *testing.T) {
 	} {
 		if result, e := s.LocateSplineMaterialPoint(ctx, q.point, SplineShellBooleanOptions{}); e != nil || result != q.want {
 			t.Fatal("exact explicit spline material classification", q, result, e)
+		}
+		if result, e := placed.LocateSplineMaterialPoint(ctx, pose.Apply(q.point), SplineShellBooleanOptions{}); e != nil || result != q.want {
+			t.Fatal("placed original spline classification in an independent projection", q, result, e)
+		}
+	}
+	// The second placement puts the nonaffine height in every world
+	// coordinate. Both cases must recover exact original UV from model XYZ.
+	oblique := geom.Affine{{1, .25, .5, 2}, {.5, 1, .25, -3}, {.25, .5, 1, 4}}
+	for _, m := range []geom.Affine{pose, oblique} {
+		face := s.faces[7]
+		face.Surface = parametric.MapSurface(face.Surface, m)
+		posedFace := Solid{faces: []Face{face}}
+		p0 := m.Apply(geom.Vec3{X: .5, Y: .5, Z: -9.0 / 4096})
+		query := [3]*big.Rat{ratInset(p0.X), ratInset(p0.Y), ratInset(p0.Z)}
+		hit, e := posedFace.LocateRationalOnSplineFace(ctx, 0, query, SplineFacePointOptions{})
+		if e != nil || hit.Location != SplineFacePointInterior || hit.UV[0].Cmp(big.NewRat(1, 2)) != 0 || hit.UV[1].Cmp(big.NewRat(1, 2)) != 0 {
+			t.Fatal("exact inverse on the placed original curved cavity face", hit, e)
+		}
+		query[0].Add(query[0], big.NewRat(1, 1<<60))
+		hit, e = posedFace.LocateRationalOnSplineFace(ctx, 0, query, SplineFacePointOptions{})
+		if e != nil || hit.Location != SplineFacePointOutside {
+			t.Fatal("original face must exclude a sub-binary model offset", hit, e)
 		}
 	}
 	bounded := SplineShellBooleanOptions{Ray: SplineRayOptions{MaxFaces: 11}}
