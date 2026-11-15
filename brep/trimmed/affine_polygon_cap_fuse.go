@@ -62,7 +62,7 @@ func (r *ConvexAffinePolygonCapUnion) OriginalContact() *ConvexAffinePolygonCapC
 	return r.contact
 }
 func (r *ConvexAffinePolygonCapUnion) ExactVolume() *big.Rat {
-	if r == nil {
+	if r == nil || r.volume == nil {
 		return nil
 	}
 	return new(big.Rat).Set(r.volume)
@@ -74,7 +74,7 @@ func (r *ConvexAffinePolygonCapUnion) ExactOperations() int {
 	return r.work
 }
 func (r *ConvexAffinePolygonCapUnion) RemovedCapUVArea() [2]*big.Rat {
-	if r == nil {
+	if r == nil || r.removed[0] == nil || r.removed[1] == nil {
 		return [2]*big.Rat{}
 	}
 	return [2]*big.Rat{new(big.Rat).Set(r.removed[0]), new(big.Rat).Set(r.removed[1])}
@@ -140,7 +140,7 @@ func affinePolygonClip(b *nativePrismAffineBudget, p, polygon [][2]*big.Rat) [][
 // are original. Nonlossless model endpoints or unresolved topology reject
 // atomically; RationalUVEndpoints explicitly enables exact nonbinary UV recipes.
 func (r *ConvexAffinePolygonCapContact) Fuse(ctx context.Context, o ConvexAffinePolygonCapFuseOptions) (*ConvexAffinePolygonCapUnion, error) {
-	if r == nil || ctx == nil {
+	if r == nil || ctx == nil || r.contact == nil || r.shells[0] == nil || r.shells[1] == nil {
 		return nil, geom.ErrInvalid
 	}
 	if o.MaxOperations == 0 {

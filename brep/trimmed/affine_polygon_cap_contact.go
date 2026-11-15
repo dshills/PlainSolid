@@ -40,7 +40,7 @@ func (r *ConvexAffinePolygonCapContact) OriginalFaces() [2]int {
 	return r.faces
 }
 func (r *ConvexAffinePolygonCapContact) OriginalShell(owner int) (*ConvexAffinePolygonShell, error) {
-	if r == nil || owner < 0 || owner > 1 {
+	if r == nil || owner < 0 || owner > 1 || r.shells[owner] == nil {
 		return nil, geom.ErrInvalid
 	}
 	return r.shells[owner], nil
@@ -49,7 +49,7 @@ func (r *ConvexAffinePolygonCapContact) OriginalShell(owner int) (*ConvexAffineP
 // SupportingPlane returns N·P+D=0, oriented outward from original owner zero.
 func (r *ConvexAffinePolygonCapContact) SupportingPlane() [4]*big.Rat {
 	p := [4]*big.Rat{}
-	if r != nil {
+	if r != nil && r.contact != nil {
 		for i := range p {
 			p[i] = new(big.Rat).Set(r.plane[i])
 		}
@@ -57,7 +57,7 @@ func (r *ConvexAffinePolygonCapContact) SupportingPlane() [4]*big.Rat {
 	return p
 }
 func (r *ConvexAffinePolygonCapContact) ExactCommonVolume() *big.Rat {
-	if r == nil {
+	if r == nil || r.contact == nil {
 		return nil
 	}
 	return new(big.Rat)

@@ -31,7 +31,7 @@ type ConvexAffinePolygonShell struct {
 }
 
 func (r *ConvexAffinePolygonShell) ExactVolume() *big.Rat {
-	if r == nil {
+	if r == nil || r.volume == nil {
 		return nil
 	}
 	return new(big.Rat).Set(r.volume)
