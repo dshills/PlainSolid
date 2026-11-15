@@ -22,18 +22,28 @@ func TestRationalWorldSTEPRepairBridge(t *testing.T) {
 		volume, area float64
 		caps, sites  int
 		axial        int
+		owners       int
 	}{
 		{"occt-default-tilted-oblique-prism-fillet", "occt-rational-posed-single-pcurve-convex-arc",
-			Bounds{vector{0, 0, -2.7}, vector{6.025, 3, 3}}, 29.145041881053842, 66.186284791166074, 0, 3, 0},
+			Bounds{vector{0, 0, -2.7}, vector{6.025, 3, 3}}, 29.145041881053842, 66.186284791166074, 0, 3, 0, 24},
 		{"occt-default-tilted-translated-oblique-prism-fillet", "occt-rational-posed-single-pcurve-convex-arc",
-			Bounds{vector{1, 0, -.7}, vector{7.025, 3, 5}}, 29.145041881053842, 66.186284791166074, 0, 3, 0},
+			Bounds{vector{1, 0, -.7}, vector{7.025, 3, 5}}, 29.145041881053842, 66.186284791166074, 0, 3, 0, 24},
 		{"occt-both-default-tilted-oblique-prism-fillet", "occt-rational-posed-grouped-pcurve-convex-arc",
-			Bounds{vector{0, 0, -2.7}, vector{6.025, 3, 3}}, 29.077978807115539, 65.622954970084379, 2, 8, 1},
+			Bounds{vector{0, 0, -2.7}, vector{6.025, 3, 3}}, 29.077978807115539, 65.622954970084379, 2, 8, 1, 28},
+		{"occt-three-default-tilted-oblique-prism-fillet", "occt-rational-posed-grouped-pcurve-convex-arc",
+			Bounds{vector{0, 0, -2.7}, vector{6.025, 2.84375, 3}}, 28.968988172080639, 64.184278587623695, 2, 10, 2, 34},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
 			b := New()
 			source := stepRepairFixture(t, tc.file)
 			rejectGroup(t, b, map[string]any{"op": "importStep", "source": source})
+			three := tc.owners == 34
+			linearDeflection := .025
+			if three {
+				linearDeflection = .5
+				rejectGroup(t, b, map[string]any{"op": "importStep", "source": source,
+					"stepRepair": map[string]any{"maxDistance": 1e-13, "native": true}})
+			}
 			result := shape(t, b, map[string]any{
 				"op": "importStep", "source": source, "stepRepair": map[string]any{"maxDistance": 1e-12, "native": true},
 			})
@@ -42,12 +52,8 @@ func TestRationalWorldSTEPRepairBridge(t *testing.T) {
 				t.Fatal("import did not retain an independently placed product-local solid")
 			}
 			evidence := result.RepairEvidence
-			owners := 24
-			if tc.caps != 0 {
-				owners = 28
-			}
 			if evidence == nil || evidence.Family != tc.family || evidence.WorldPose == nil || result.NativeProof == nil ||
-				evidence.PCurveOwners != owners || evidence.RationalCaps != tc.caps || evidence.AxialTrims != tc.axial ||
+				evidence.PCurveOwners != tc.owners || evidence.RationalCaps != tc.caps || evidence.AxialTrims != tc.axial ||
 				len(evidence.Repairs) != tc.sites || evidence.FiniteLineOwners != 8 {
 				t.Fatal("missing rational source evidence")
 			}
@@ -71,6 +77,17 @@ func TestRationalWorldSTEPRepairBridge(t *testing.T) {
 				if e != nil {
 					t.Fatal(e)
 				}
+				if three {
+					var ids []int64
+					for _, owner := range m.PCurves() {
+						if owner.Kind == "phase-cylinder-circle" && owner.DistanceSquaredUpper.Sign() > 0 {
+							ids = append(ids, owner.PCurveID)
+						}
+					}
+					if !reflect.DeepEqual(ids, []int64{210, 425}) || len(m.AxialTrims()) != 2 || len(m.FiniteTrims()) != 2 {
+						t.Fatal("native receipt lost a three-fillet owner proof", ids)
+					}
+				}
 				reloadedSource = m.OriginalSTEP()
 				proofPose, err = m.Pose().Matrix()
 			}
@@ -90,7 +107,7 @@ func TestRationalWorldSTEPRepairBridge(t *testing.T) {
 
 			var display Mesh
 			if err = json.Unmarshal(invoke(t, b, map[string]any{
-				"op": "mesh", "handle": result.Handle, "linearDeflection": .025, "angularDeflection": .2, "analyticNormals": true,
+				"op": "mesh", "handle": result.Handle, "linearDeflection": linearDeflection, "angularDeflection": .2, "analyticNormals": true,
 			}), &display); err != nil {
 				t.Fatal(err)
 			}
