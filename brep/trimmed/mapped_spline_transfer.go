@@ -284,6 +284,14 @@ func ProveMappedSplineBezierSupportPartition(ctx context.Context, support geom.S
 	return proveMappedSplineBezierPartition(ctx, support, mapped, model, stations[:], o)
 }
 
+// ProveMappedSplineBezierThreeSupportPartition proves all four exact
+// restrictions of one mapped owner against a single original model Bézier.
+// The three strictly ordered model stations may be the union of both owners'
+// support events. The original raw map stays fixed across every restriction.
+func ProveMappedSplineBezierThreeSupportPartition(ctx context.Context, support geom.Surface, mapped MappedSplineUV, model *geom.ExactSplineCurve, stations [3]*big.Rat, o geom.SurfacePatchOptions) error {
+	return proveMappedSplineBezierPartition(ctx, support, mapped, model, stations[:], o)
+}
+
 func proveMappedSplineBezierPartition(ctx context.Context, support geom.Surface, mapped MappedSplineUV, model *geom.ExactSplineCurve, stations []*big.Rat, o geom.SurfacePatchOptions) error {
 	if ctx == nil || support == nil || mapped.weight == nil || model == nil {
 		return geom.ErrInvalid

@@ -13,7 +13,7 @@ import (
 
 func TestMappedChainSupportKnotNativeRecordCompatibilityV8(t *testing.T) {
 	ctx := context.Background()
-	// Native and canonical STEP bytes from the earlier inferred v3 and the v7 through v10 proofs,
+	// Native and canonical STEP bytes from the earlier inferred v3/v4 and the v7 through v10 proofs,
 	// captured before their support-cut bounds or cell scopes were extended.
 	for _, tc := range []struct {
 		path, nativeSHA256, stepSHA256 string
@@ -37,6 +37,8 @@ func TestMappedChainSupportKnotNativeRecordCompatibilityV8(t *testing.T) {
 			"e8b8a4648dfaeaa820dbfc6a250947f3387c1c913cf4e4bfb6bf2d297e56de38", sameCellAsynchronousOptions()},
 		{inferredSharedMappedChainPath, "c2f34ccab09964dbc1b32661ecdc25a24ad21d6a65742e0bc6c868725db222e5",
 			"1b02f5358b051bdd8c4900bf171acefd5dec395eafbfc0eb146ab9ff64e8bb0f", inferredSharedMappedChainOptions()},
+		{inferredSharedPairMappedChainPath, "75dc81e678a1dd71d09dca4541f33f5492a1d670eff27a04ce51947c59d72662",
+			"de6c246e34b515a006535c12f0c436bde6a66f553164aea874c2d1cd99969fd5", inferredSharedMappedChainOptions()},
 	} {
 		raw, err := os.ReadFile(tc.path)
 		if err != nil {
@@ -49,6 +51,7 @@ func TestMappedChainSupportKnotNativeRecordCompatibilityV8(t *testing.T) {
 		tc.options.AllowSeparatedSupportKnotCells = true
 		tc.options.AllowSameCellAsynchronousSupportKnots = true
 		tc.options.AllowInferredSharedSupportKnot = true
+		tc.options.AllowThreeSupportKnots = true
 		m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, tc.options)
 		if err != nil {
 			t.Fatal(tc.path, err)

@@ -506,12 +506,12 @@ int main(int argc, char** argv) {
     const bool sameCellAsynchronous = mode == "write-same-cell-asynchronous" || mode == "write-same-cell-redundant-knot";
     const bool sharedInferred = mode == "write-shared-inferred-knot" || mode == "write-shared-inferred-redundant-knot";
     const bool sharedPair = mode == "write-shared-inferred-knot-pair" || mode == "write-shared-inferred-pair-redundant-knot";
-    const bool offsetPair = mode == "write-shared-inferred-offset-pair";
+    const bool offsetPair = mode == "write-shared-inferred-offset-pair" || mode == "write-mixed-inferred-redundant-knot";
     const auto inferred = offsetPair ? InferredSupportEvents::offsetPair : sharedPair ? InferredSupportEvents::sharedPair
       : sharedInferred ? InferredSupportEvents::shared
       : sameCellAsynchronous ? InferredSupportEvents::asynchronous : InferredSupportEvents::none;
     const bool noModelKnot = mode == "write-same-cell-asynchronous" || mode == "write-shared-inferred-knot"
-      || mode == "write-shared-inferred-knot-pair" || offsetPair;
+      || mode == "write-shared-inferred-knot-pair" || mode == "write-shared-inferred-offset-pair";
     const int storedCells = mode == "write-three-support-cells" ? 3 : mode == "write-two-support-cells" ? 2
       : noModelKnot ? 0 : 1;
     const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells", inferred};
