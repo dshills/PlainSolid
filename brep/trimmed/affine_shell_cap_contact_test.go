@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"testing"
 	"time"
@@ -231,14 +232,14 @@ func TestOCCTAffinePartialCap(t *testing.T) {
 			t.Fatal(e)
 		}
 		a, b := affineCapAbuttingFixtureShape(t, .5, false, diamond)
-		r, e := CertifyAffineShellCapContact(ctx, a, b, [2]int{5, 4}, AffineShellCapContactOptions{})
+		_, history, e := CombineSplineShells(ctx, a, b, parametric.Union, SplineShellCombineOptions{AffineCap: &AffineShellCapNativeOptions{}})
 		if e != nil {
 			t.Fatal(e)
 		}
-		f, e := r.Fuse(ctx, AffineShellCapFuseOptions{})
-		if e != nil {
-			t.Fatal(e)
+		if history.AffineCap == nil || history.AffineCap.CompleteFacePairs() != 36 || history.AffineCapUnion == nil {
+			t.Fatal("unproved normal route")
 		}
+		r, f := history.AffineCap.Contact(), history.AffineCapUnion
 		v, _ := f.ExactVolume().Float64()
 		_, sq, _, e := r.Contact().CoplanarArea()
 		if e != nil {

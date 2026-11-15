@@ -18,7 +18,7 @@ type AffineShellCapContactOptions struct {
 
 // AffineShellCapContact binds a positive-area coplanar interface to two complete
 // original convex affine shells in strictly opposite supporting halfspaces.
-// Their three-dimensional Common is exactly empty; Contact retains its original
+// Their regularized three-dimensional Common is empty; Contact retains its original
 // chart-coordinate area and boundary ownership instead of inventing a solid.
 type AffineShellCapContact struct {
 	sources [2]Solid
