@@ -40,6 +40,7 @@ type SplineGraphBooleanHistory struct {
 	ThreeEllipses                        *geom.DiscoveredSplineGraphThreeEllipses
 	Parabola                             *geom.SplineGraphParabola
 	PiecewiseParabola                    *geom.PiecewiseSplineGraphParabola
+	PiecewisePolynomial                  *geom.PiecewiseSplineGraphPolynomial
 	Polynomial                           *geom.SplineGraphPolynomialContact
 	FactoredPolynomial                   *geom.SplineGraphFactoredPolynomialContact
 	BivariatePolynomial                  *geom.SplineGraphBivariatePolynomialContact

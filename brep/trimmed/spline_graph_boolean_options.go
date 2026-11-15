@@ -21,6 +21,8 @@ type SplineGraphBooleanOptions struct {
 	ParabolaAxis int
 	// PiecewiseParabola retains every original free-axis knot slab and exact join.
 	PiecewiseParabola *geom.PiecewiseParabolaOptions
+	// PiecewisePolynomial retains cubic/quartic slabs with one explicit complete proof mode.
+	PiecewisePolynomial *geom.PiecewisePolynomialOptions
 	// Polynomial selects a genuine cubic/quartic original graph.
 	Polynomial     *geom.GraphPointContactOptions
 	PolynomialAxis int
@@ -38,7 +40,7 @@ type SplineGraphBooleanOptions struct {
 // requirements as CombineSplineGraphSolids. These options recognize only
 // their complete original chart domains documented by the geometry APIs.
 func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.BSplineSurface, op parametric.BooleanOp, tolerance float64, o SplineGraphBooleanOptions) (Solid, SplineGraphBooleanHistory, error) {
-	if o.DisjointEllipses == nil && o.ThreeEllipses == nil && o.Parabola == nil && o.PiecewiseParabola == nil && o.Polynomial == nil && o.FactoredPolynomial == nil && o.BivariatePolynomial == nil {
+	if o.DisjointEllipses == nil && o.ThreeEllipses == nil && o.Parabola == nil && o.PiecewiseParabola == nil && o.Polynomial == nil && o.FactoredPolynomial == nil && o.BivariatePolynomial == nil && o.PiecewisePolynomial == nil {
 		return CombineSplineGraphSolids(ctx, base, a, b, op, tolerance, o.Section)
 	}
 	fail := func(e error) (Solid, SplineGraphBooleanHistory, error) {
@@ -66,6 +68,9 @@ func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.B
 	if o.BivariatePolynomial != nil {
 		selected++
 	}
+	if o.PiecewisePolynomial != nil {
+		selected++
+	}
 	if selected > 1 {
 		return fail(geom.ErrInvalid)
 	}
@@ -78,6 +83,13 @@ func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.B
 	patches, e := prepareSharedBaseGraphContact(ctx, base, a, b, o.Section)
 	if e != nil {
 		return fail(e)
+	}
+	if o.PiecewisePolynomial != nil {
+		section, e := geom.DiscoverPiecewiseSplineGraphPolynomial(ctx, patches[0], patches[1], *o.PiecewisePolynomial)
+		if e != nil {
+			return fail(e)
+		}
+		return assemblePiecewisePolynomialGraphContact(ctx, base, a, b, op, tolerance, section, o.PiecewisePolynomial.Proof)
 	}
 	if o.BivariatePolynomial != nil {
 		section, e := geom.DiscoverSplineGraphBivariatePolynomialContact(ctx, patches[0], patches[1], o.BivariatePolynomialAxis, *o.BivariatePolynomial)
