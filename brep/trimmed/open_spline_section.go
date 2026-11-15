@@ -410,6 +410,11 @@ type wallTrim struct {
 	length, height, start, end float64
 }
 
+// affineGraphWallTrim evaluates height on the original roof isocurve.
+// Its horizontal station is in model wall coordinates, with a separately
+// certified affine projection from the roof's own UV.
+type affineGraphWallTrim struct{ wallTrim }
+
 func (w wallTrim) EvalUV(t float64) (geom.Vec2, error) {
 	if !finite(t) || t < 0 || t > 1 {
 		return geom.Vec2{}, geom.ErrDomain
