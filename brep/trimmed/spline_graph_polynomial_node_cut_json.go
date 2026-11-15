@@ -37,7 +37,7 @@ func (r *PolynomialNodeCut) WriteJSON(ctx context.Context, w io.Writer) error {
 		Vertices: r.contact.Vertices[:], Sectors: r.contact.Sectors[:],
 	}
 	var e error
-	recipe.Sources, e = encodePolynomialCutSupports(ctx, r.sources)
+	recipe.Sources, e = encodePolynomialGraphSupports(ctx, r.sources)
 	if e != nil {
 		return e
 	}
@@ -47,7 +47,7 @@ func (r *PolynomialNodeCut) WriteJSON(ctx context.Context, w io.Writer) error {
 	for _, p := range r.contact.Point {
 		recipe.Point = append(recipe.Point, p.RatString())
 	}
-	return writePolynomialCutRecipe(ctx, w, recipe)
+	return writePolynomialGraphRecipe(ctx, w, recipe)
 }
 
 // ReadPolynomialNodeCutJSON rebuilds both original-graph Cut shells and
@@ -55,7 +55,7 @@ func (r *PolynomialNodeCut) WriteJSON(ctx context.Context, w io.Writer) error {
 // The recorded point, sectors and local vertex IDs must match the rebuilt cut.
 func ReadPolynomialNodeCutJSON(ctx context.Context, r io.Reader, limits JSONLimits, o PolynomialNodeCutOptions) (*PolynomialNodeCut, error) {
 	var recipe polynomialNodeCutRecipe
-	if e := readPolynomialCutRecipe(ctx, r, limits, &recipe); e != nil {
+	if e := readPolynomialGraphRecipe(ctx, r, limits, &recipe); e != nil {
 		return nil, e
 	}
 	if recipe.Version != 1 || recipe.Kind != nativePolynomialNodeCut ||
@@ -63,7 +63,7 @@ func ReadPolynomialNodeCutJSON(ctx context.Context, r io.Reader, limits JSONLimi
 		len(recipe.Vertices) != 2 || len(recipe.Sectors) != 2 {
 		return nil, geom.ErrInvalid
 	}
-	sources, e := decodePolynomialCutSupports(ctx, recipe.Sources, limits.MaxControlPoints)
+	sources, e := decodePolynomialGraphSupports(ctx, recipe.Sources, limits.MaxControlPoints)
 	if e != nil {
 		return nil, e
 	}
@@ -84,13 +84,13 @@ func ReadPolynomialNodeCutJSON(ctx context.Context, r io.Reader, limits JSONLimi
 			return nil, geom.ErrConvergence
 		}
 	}
-	if limits.MaxEntities > 0 && polynomialCutEntityCount(out.components[:]) > limits.MaxEntities {
+	if limits.MaxEntities > 0 && polynomialGraphEntityCount(out.components[:]) > limits.MaxEntities {
 		return nil, geom.ErrConvergence
 	}
 	return out, nil
 }
 
-func encodePolynomialCutSupports(ctx context.Context, sources [3]*geom.BSplineSurface) ([]json.RawMessage, error) {
+func encodePolynomialGraphSupports(ctx context.Context, sources [3]*geom.BSplineSurface) ([]json.RawMessage, error) {
 	var result []json.RawMessage
 	for _, source := range sources {
 		if e := ctx.Err(); e != nil {
@@ -105,7 +105,7 @@ func encodePolynomialCutSupports(ctx context.Context, sources [3]*geom.BSplineSu
 	return result, nil
 }
 
-func decodePolynomialCutSupports(ctx context.Context, encoded []json.RawMessage, maxControls int) ([3]*geom.BSplineSurface, error) {
+func decodePolynomialGraphSupports(ctx context.Context, encoded []json.RawMessage, maxControls int) ([3]*geom.BSplineSurface, error) {
 	var sources [3]*geom.BSplineSurface
 	if maxControls == 0 {
 		maxControls = 4096
@@ -127,7 +127,7 @@ func decodePolynomialCutSupports(ctx context.Context, encoded []json.RawMessage,
 	return sources, nil
 }
 
-func writePolynomialCutRecipe(ctx context.Context, w io.Writer, recipe any) error {
+func writePolynomialGraphRecipe(ctx context.Context, w io.Writer, recipe any) error {
 	raw, e := json.Marshal(recipe)
 	if e != nil {
 		return e
@@ -143,7 +143,7 @@ func writePolynomialCutRecipe(ctx context.Context, w io.Writer, recipe any) erro
 	return e
 }
 
-func readPolynomialCutRecipe(ctx context.Context, r io.Reader, limits JSONLimits, recipe any) error {
+func readPolynomialGraphRecipe(ctx context.Context, r io.Reader, limits JSONLimits, recipe any) error {
 	if ctx == nil || r == nil || limits.MaxBytes < 0 || limits.MaxBytes > 1<<30 || limits.MaxControlPoints < 0 || limits.MaxEntities < 0 {
 		return geom.ErrInvalid
 	}
@@ -171,7 +171,7 @@ func readPolynomialCutRecipe(ctx context.Context, r io.Reader, limits JSONLimits
 	return nil
 }
 
-func polynomialCutEntityCount(parts []Solid) int {
+func polynomialGraphEntityCount(parts []Solid) int {
 	count := 3 // original base and two tops
 	for _, part := range parts {
 		count += len(part.vertices) + len(part.edges) + len(part.faces)
