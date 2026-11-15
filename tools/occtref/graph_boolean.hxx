@@ -163,7 +163,7 @@ static void ellipticalGraphBooleanRecords(std::ostream& out) {
 }
 
 static void tangentSplineShellRecords(std::ostream& out, bool quartic = false, bool separable = false, bool closedContact = false,
-                                      bool containedContact = false, bool rotatedContact = false) {
+                                      bool containedContact = false, bool rotatedContact = false, bool recordComponents = false) {
   BRepBuilderAPI_Sewing sewing(1e-9);
   const double sq[3]{.25,-.25,.25};
   const double q2[5]{3,0,-1,0,3}, q4[5]{1,-1,1,-1,1};
@@ -224,6 +224,14 @@ static void tangentSplineShellRecords(std::ostream& out, bool quartic = false, b
   if (!common.IsDone() || TopExp_Explorer(common.Shape(),TopAbs_SOLID).More())
     throw std::runtime_error("tangency produced common material");
   record(out,closedContact ? "repeated-ellipse-stock-cut" : "isolated-tangent-stock-cut",BRepAlgoAPI_Cut(stock,tool).Shape(),1e-11);
+  if (recordComponents) {
+    BRepAlgoAPI_Fuse fuse(stock,tool);
+    if (!fuse.IsDone()) throw std::runtime_error("exterior tangent Fuse failed");
+    int count = 0;
+    for (TopExp_Explorer ex(fuse.Shape(),TopAbs_SOLID); ex.More(); ex.Next()) ++count;
+    if (count != 2) throw std::runtime_error("exterior tangent Fuse did not retain two material solids");
+    record(out,"repeated-ellipse-fused-components",fuse.Shape(),1e-11);
+  }
 }
 
 static void multipleKnotTangentSplineShellRecords(std::ostream& out, bool splitStock = false) {

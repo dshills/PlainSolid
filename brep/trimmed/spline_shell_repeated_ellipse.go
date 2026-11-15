@@ -156,7 +156,7 @@ func combineTangentSplineShellEllipse(ctx context.Context, solids [2]Solid, all 
 	}
 	internal := outward[0] == outward[1]
 	if (relation != discoverTangentEllipseRelation && (relation == containedTangentEllipse) != internal) ||
-		(operation == parametric.Union && !internal) || limit().MaxOperations < 1 {
+		limit().MaxOperations < 1 {
 		return out, history, proof, geom.ErrConvergence
 	}
 	align := func() (*geom.AffineXYChartAlignment, error) {
@@ -262,6 +262,10 @@ func combineTangentSplineShellEllipse(ctx context.Context, solids [2]Solid, all 
 	if !internal {
 		if e := proveExternalSplineShellWitnesses(ctx, solids, all, o.Shells); e != nil {
 			return out, history, proof, e
+		}
+		if operation == parametric.Union {
+			out, history, err = assembleTangentEllipseComponents(ctx, a, b)
+			return out, history, proof, err
 		}
 		out, history = isolatedGraphTouchResult(a, b, operation)
 		history.Method = "repeated-ellipse-tangency"

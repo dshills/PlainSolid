@@ -54,7 +54,8 @@ type SplineShellCombineOptions struct {
 	OrderedRoofCut *SplineShellRoofOptions
 	// ClosedEllipseTangency tries exact closed double-ellipse discovery when
 	// just one original face pair remains after separation. Its work limit
-	// is shared across projections. Unsupported contacts continue dispatch.
+	// is shared across projections. Exterior Fuse can return both contacting
+	// material shells. Unsupported contacts continue dispatch.
 	ClosedEllipseTangency *geom.GraphPointContactOptions
 	// VerticalQuadraticWarp optionally proposes a common vertical warp
 	// z <- z + k*(x-y)^2 of affine spline charts. Exact unwarping and
