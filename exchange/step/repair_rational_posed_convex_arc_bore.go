@@ -50,6 +50,13 @@ func (m RationalPosedConvexArcThroughBore) Pose() rigid.RationalRigid  { return 
 func (m RationalPosedConvexArcThroughBore) ExteriorRepairs() []ConvexArcRepairSite {
 	return m.outer.Repairs()
 }
+func (m RationalPosedConvexArcThroughBore) LocalDescriptor() ExactCircularLoopExtrusion {
+	return m.outer.LocalDescriptor()
+}
+func (m RationalPosedConvexArcThroughBore) LocalHole() trimmed.ExtrusionCircle { return m.hole }
+func (m RationalPosedConvexArcThroughBore) ExteriorProof() RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion {
+	return m.outer
+}
 
 // Native reconstructs a product-local solid with both holes in the shared
 // cap trims. Pose maps that material into the original world coordinates.

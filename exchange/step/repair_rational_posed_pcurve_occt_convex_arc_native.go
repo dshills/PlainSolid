@@ -152,7 +152,10 @@ func writeRationalPosedPCurveRepairJSON[M rationalPosedPCurveRepairMaterial](ctx
 	if !bytes.Equal(claim, want) {
 		return geom.ErrInvalid
 	}
-	q := rationalPosedPCurveRepairEnvelope{Format: format, Version: 1, Source: source, MaxDistance: distance, Claims: claim}
+	return writeRationalPosedRepairEnvelope(ctx, w, rationalPosedPCurveRepairEnvelope{Format: format, Version: 1, Source: source, MaxDistance: distance, Claims: claim})
+}
+
+func writeRationalPosedRepairEnvelope(ctx context.Context, w io.Writer, q rationalPosedPCurveRepairEnvelope) error {
 	raw, e := json.Marshal(q)
 	if e != nil {
 		return e
@@ -205,8 +208,8 @@ func readRationalPosedPCurveRepairEnvelope(raw []byte) (rationalPosedPCurveRepai
 	return q, nil
 }
 
-func readRationalPosedPCurveRepairJSON[M rationalPosedPCurveRepairMaterial](ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits, format string, reconstruct rationalPosedPCurveSourceReader[M]) (M, error) {
-	var zero M
+func readRationalPosedRepairEnvelope(ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits, format string) (rationalPosedPCurveRepairEnvelope, error) {
+	var zero rationalPosedPCurveRepairEnvelope
 	if ctx == nil || r == nil {
 		return zero, geom.ErrInvalid
 	}
@@ -230,6 +233,15 @@ func readRationalPosedPCurveRepairJSON[M rationalPosedPCurveRepairMaterial](ctx 
 	if e != nil || q.Format != format || q.Version != 1 || len(q.Source) == 0 || len(q.Source) > 1<<20 ||
 		!finiteNumber(q.MaxDistance) || q.MaxDistance <= 0 {
 		return zero, geom.ErrInvalid
+	}
+	return q, nil
+}
+
+func readRationalPosedPCurveRepairJSON[M rationalPosedPCurveRepairMaterial](ctx context.Context, r io.Reader, l IndependentMaterialJSONLimits, format string, reconstruct rationalPosedPCurveSourceReader[M]) (M, error) {
+	var zero M
+	q, e := readRationalPosedRepairEnvelope(ctx, r, l, format)
+	if e != nil {
+		return zero, e
 	}
 	m, e := reconstruct(ctx, bytes.NewReader(q.Source), l.Source, ConvexArcRepairOptions{MaxDistance: q.MaxDistance})
 	if e != nil {
