@@ -42,6 +42,10 @@ func readConeSupportRecords(r io.Reader, l Limits, lens, cylinders, planes, sphe
 	return readPlacedTopologyRecords(r, l, lens, cylinders, planes, spheres, tori, cones, false)
 }
 func readPlacedTopologyRecords(r io.Reader, l Limits, lens, cylinders, planes, spheres, tori, cones, placed bool, circularMode ...bool) (topologySource, error) {
+	return readTopologyRecordsWithPlanarShells(r, l, lens, cylinders, planes, spheres, tori, cones, placed, false, circularMode...)
+}
+
+func readTopologyRecordsWithPlanarShells(r io.Reader, l Limits, lens, cylinders, planes, spheres, tori, cones, placed, planarShells bool, circularMode ...bool) (topologySource, error) {
 	l, e := l.defaults()
 	if e != nil {
 		return topologySource{}, e
@@ -166,6 +170,14 @@ func readPlacedTopologyRecords(r io.Reader, l Limits, lens, cylinders, planes, s
 		if ellipseConic {
 			supported = kind == 104 || kind == 124 || ellipseRing && kind == 102 || ellipseTabulated && kind == 122 || ellipseDisk && (kind == 144 || kind == 142 || kind == 190 || kind == 116 || kind == 123) || ellipsePrism && (kind == 110 || kind == 116 || kind == 123 || kind == 122 || kind == 190 || kind == 186 || kind == 502 || kind == 504 || kind == 508 || kind == 510 || kind == 514)
 		}
+		if planarShells {
+			switch kind {
+			case 110, 116, 123, 186, 190, 502, 504, 508, 510, 514:
+				supported = true
+			default:
+				supported = false
+			}
+		}
 		if !supported {
 			return topologySource{}, fmt.Errorf("iges: unsupported topology entity %d", kind)
 		}
@@ -178,7 +190,7 @@ func readPlacedTopologyRecords(r io.Reader, l Limits, lens, cylinders, planes, s
 				return topologySource{}, errors.New("iges: directory structure/view/status unsupported")
 			}
 		}
-		if !(ellipseDisk && kind == 142 && first[8] == 10500) && first[8] != 0 && first[8] != 10000 && !(kind == 504 && first[8] == 10001) && !((cylinders || planes || spheres || tori || cones || ellipseDisk) && ((kind == 116 && first[8] == 10400) || (kind == 123 && first[8] == 10200))) {
+		if !(ellipseDisk && kind == 142 && first[8] == 10500) && first[8] != 0 && first[8] != 10000 && !(kind == 504 && first[8] == 10001) && !((cylinders || planes || spheres || tori || cones || ellipseDisk || planarShells) && ((kind == 116 && first[8] == 10400) || (kind == 123 && first[8] == 10200))) {
 			return topologySource{}, errors.New("iges: unsupported directory status")
 		}
 		if first[8] == 10000 || first[8] == 10500 {
@@ -203,7 +215,8 @@ func readPlacedTopologyRecords(r io.Reader, l Limits, lens, cylinders, planes, s
 		if e != nil {
 			return topologySource{}, e
 		}
-		if (first[6] != 0 && !(placed && (sphericalMaterial && kind == 196 || toroidalMaterial && kind == 198 || placedCone && kind == 194 || ellipseConic && kind == 104 || ellipsePrism && (kind == 110 || kind == 190) || kind == 126 || kind == 128 || circular && (kind == 100 || kind == 110 || kind == 190 || kind == 192)))) || second[8] < 0 || second[8] > 99999999 || (kind >= 500 && kind != 514 && second[4] != 1) || (kind == 514 && ((!lens && second[4] != 2) || (lens && second[4] != 1))) || (kind < 500 && second[4] != 0 && !((ellipseConic && kind == 104 || cylinders && kind == 192 || (planes || ellipseDisk || ellipsePrism) && kind == 190 || (spheres || sphericalMaterial) && kind == 196 || (tori || toroidalMaterial) && kind == 198 || cones && kind == 194 || conicalMaterial && kind == 194 || circular && (kind == 190 || kind == 192)) && second[4] == 1)) || ((ellipseConic && kind == 104 || cylinders && kind == 192 || (planes || ellipseDisk || ellipsePrism) && kind == 190 || (spheres || sphericalMaterial) && kind == 196 || (tori || toroidalMaterial) && kind == 198 || cones && kind == 194 || conicalMaterial && kind == 194 || circular && (kind == 190 || kind == 192)) && second[4] != 1) {
+		formOne := ellipseConic && kind == 104 || cylinders && kind == 192 || (planes || ellipseDisk || ellipsePrism || planarShells) && kind == 190 || (spheres || sphericalMaterial) && kind == 196 || (tori || toroidalMaterial) && kind == 198 || cones && kind == 194 || conicalMaterial && kind == 194 || circular && (kind == 190 || kind == 192)
+		if (first[6] != 0 && !(placed && (sphericalMaterial && kind == 196 || toroidalMaterial && kind == 198 || placedCone && kind == 194 || ellipseConic && kind == 104 || ellipsePrism && (kind == 110 || kind == 190) || kind == 126 || kind == 128 || circular && (kind == 100 || kind == 110 || kind == 190 || kind == 192)))) || second[8] < 0 || second[8] > 99999999 || (kind >= 500 && kind != 514 && second[4] != 1) || (kind == 514 && ((!lens && second[4] != 2) || (lens && second[4] != 1))) || (kind < 500 && second[4] != 0 && (!formOne || second[4] != 1)) || (formOne && second[4] != 1) {
 			return topologySource{}, errors.New("iges: unsupported topology placement/form")
 		}
 		doc.entities = append(doc.entities, topologyRecord{id: i + 1, kind: kind, transform: first[6], values: values, label: strings.TrimSpace(c[56:64]), subscript: second[8]})

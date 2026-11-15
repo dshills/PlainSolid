@@ -1,0 +1,169 @@
+package iges
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"io"
+	"math/big"
+	"reflect"
+
+	"plainsolid/brep"
+	"plainsolid/geom"
+)
+
+func igesPlanarFromVec(v geom.Vec3) igesPlanarVec {
+	return igesPlanarVec{new(big.Rat).SetFloat64(v.X), new(big.Rat).SetFloat64(v.Y), new(big.Rat).SetFloat64(v.Z)}
+}
+
+func (p igesPlanarVec) text() []string {
+	s := make([]string, len(p))
+	for i, q := range p {
+		if q.IsInt() {
+			s[i] = q.Num().String() + "."
+		} else {
+			// Coordinate and direction arithmetic here uses only dyadic
+			// inputs. Their exact decimal expansions terminate.
+			s[i] = q.FloatString(q.Denom().BitLen() - 1)
+		}
+	}
+	return s
+}
+
+func (p igesPlanarVec) scaledDirection() igesPlanarVec {
+	var scale int
+	have := false
+	for _, q := range p {
+		e := q.Num().BitLen() - q.Denom().BitLen()
+		if q.Sign() != 0 && (!have || e > scale) {
+			scale, have = e, true
+		}
+	}
+	factor := big.NewRat(1, 1)
+	if scale >= 0 {
+		factor.SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), uint(scale)))
+	} else {
+		factor.SetInt(new(big.Int).Lsh(big.NewInt(1), uint(-scale)))
+	}
+	var result igesPlanarVec
+	for i := range result {
+		result[i] = new(big.Rat).Mul(p[i], factor)
+	}
+	return result
+}
+
+// WritePlanarSolid emits a standard model-only type 186 B-rep with original
+// vertices, exact planar supports, and explicit outer and inner wires. The
+// supported topology is the same as ReadPlanarSolid. The generated IGES is
+// re-read and checked for unchanged topology before any bytes are written.
+func WritePlanarSolid(ctx context.Context, w io.Writer, s brep.Solid, unit float64, o PlanarSolidOptions) error {
+	if ctx == nil || w == nil {
+		return geom.ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := s.Validate(); err != nil {
+		return err
+	}
+	if s.Topology().Shells != 1 {
+		return igesPlanarFailure(0, "one connected shell is required")
+	}
+	opt, err := o.Limits.defaults()
+	if err != nil {
+		return err
+	}
+	v, e, f := s.Vertices(), s.Edges(), s.Faces()
+	entityCount := 4 + len(e) + 6*len(f)
+	for _, face := range f {
+		entityCount += len(face.Holes)
+	}
+	if entityCount > opt.MaxEntities {
+		return igesPlanarFailure(0, "output entity limit exceeded")
+	}
+	// The shared fixed-record writer uses one ordinary geometry entity to
+	// generate the Global section; this datum is not emitted as a directory entry.
+	a := topologyAuthor{geometry: Model{Entities: []Entity{{Point: &geom.Vec3{}}}}}
+	points := make([]igesPlanarVec, len(v))
+	vp := []string{"502", fmt.Sprint(len(v))}
+	for i, p := range v {
+		points[i] = igesPlanarFromVec(p)
+		vp = append(vp, points[i].text()...)
+	}
+	vid := a.add(502, 1, joinTopologyValues(vp))
+	ev := []int{504, len(e)}
+	for _, edge := range e {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		data := append([]string{"110"}, points[edge.Start].text()...)
+		data = append(data, points[edge.End].text()...)
+		line := a.add(110, 0, joinTopologyValues(data))
+		ev = append(ev, line, vid, edge.Start+1, vid, edge.End+1)
+	}
+	eid := a.add(504, 1, topologyNumbers(ev...))
+	sv := []int{514, len(f)}
+	startVertex := func(u brep.EdgeUse) int {
+		edge := e[u.Edge]
+		if u.Reversed {
+			return edge.End
+		}
+		return edge.Start
+	}
+	for _, face := range f {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		outer := face.Boundary
+		p := points[startVertex(outer[0])]
+		x := points[startVertex(outer[1])].sub(p)
+		z := igesPlanarFromVec(geom.Vec3{})
+		for i := 1; i+1 < len(outer); i++ {
+			a := points[startVertex(outer[i])].sub(p)
+			b := points[startVertex(outer[i+1])].sub(p)
+			n := a.cross(b)
+			for j := range z {
+				z[j].Add(z[j], n[j])
+			}
+		}
+		pi := a.add(116, 0, joinTopologyValues(append(append([]string{"116"}, p.text()...), "0")))
+		zi := a.add(123, 0, joinTopologyValues(append([]string{"123"}, z.scaledDirection().text()...)))
+		xi := a.add(123, 0, joinTopologyValues(append([]string{"123"}, x.scaledDirection().text()...)))
+		plane := a.add(190, 1, topologyNumbers(190, pi, zi, xi))
+		fv := []int{510, plane, 1 + len(face.Holes), 1}
+		for _, loop := range append([][]brep.EdgeUse{outer}, face.Holes...) {
+			lv := []int{508, len(loop)}
+			for _, use := range loop {
+				sense := 1
+				if use.Reversed {
+					sense = 0
+				}
+				lv = append(lv, 0, eid, use.Edge+1, sense, 0)
+			}
+			fv = append(fv, a.add(508, 1, topologyNumbers(lv...)))
+		}
+		sv = append(sv, a.add(510, 1, topologyNumbers(fv...)), 1)
+	}
+	shell := a.add(514, 1, topologyNumbers(sv...))
+	a.add(186, 0, topologyNumbers(186, shell, 1, 0))
+	raw, err := a.file(unit)
+	if err != nil {
+		return err
+	}
+	reopen, err := ReadPlanarSolid(ctx, bytes.NewReader(raw), o)
+	if err != nil {
+		return fmt.Errorf("iges planar solid readback: %w", err)
+	}
+	if reopen.LengthUnit != unit || !reflect.DeepEqual(reopen.Solid.Vertices(), v) ||
+		!reflect.DeepEqual(reopen.Solid.Edges(), e) || !reflect.DeepEqual(reopen.Solid.Faces(), f) {
+		return igesPlanarFailure(0, "reopen changed original planar topology or units")
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	n, err := w.Write(raw)
+	if err == nil && n != len(raw) {
+		err = io.ErrShortWrite
+	}
+	return err
+}

@@ -94,6 +94,21 @@ Mutations leave its material unchanged under ordinary floating-point import
 but fail the exact proof if a pcurve misses its model line or if an identical
 plane entity is substituted for the actual incident owner.
 
+### Planar IGES with a through-hole
+
+The independent author uses two polygon wires and extrudes the resulting
+concave face with an inner loop, then transfers the solid as IGES B-rep.
+The read mode checks the independently authored file and the PlainSolid
+export for valid topology and compares surface area, volume and centroid.
+
+```sh
+c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" -L"$OCCT_LIB" -Wl,-rpath,"$OCCT_LIB" \
+  tools/occtref/author_iges_vendor_planar_prism.cxx -o /tmp/occt-planar-iges \
+  -lTKDEIGES -lTKXSBase -lTKPrim -lTKTopAlgo -lTKGeomAlgo -lTKBRep -lTKGeomBase -lTKG3d -lTKG2d -lTKMath -lTKernel
+PLAINSOLID_OCCT_PLANAR_PRISM_IGES=/tmp/occt-planar-iges \
+  go test -race ./exchange/iges -run '^TestPlanarSolidIGES'
+```
+
 ### Tangent polynomial-roof diagnostic
 
 The `tangent` mode builds the same two original mixed-degree roof stocks as
