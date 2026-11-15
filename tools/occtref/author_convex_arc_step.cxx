@@ -38,12 +38,12 @@
 #include <iomanip>
 #include <string>
 
-static int convertedUnitWitness(const char* path, double modelSpeed, double ownerScale) {
+static int convertedUnitWitness(const char* path, double modelSpeed, double ownerScale, bool grouped = false) {
  STEPControl_Reader reader;
  if (reader.ReadFile(path) != IFSelect_RetDone) return 6;
  const auto model = reader.StepModel();
- int planeLines=0, planeCircles=0, cylinderLines=0, cylinderCircles=0;
- double maxDistance=0, withoutMap=0;
+ int planeLines=0, planeCircles=0, cylinderLines=0, cylinderCircles=0, rationalCaps=0;
+ double maxDistance=0, withoutMap=0, maxCapDistance=0;
  for (int i=1; i<=model->NbEntities(); ++i) {
   const auto edge = Handle(StepShape_EdgeCurve)::DownCast(model->Value(i));
   if (edge.IsNull()) continue;
@@ -94,9 +94,25 @@ static int convertedUnitWitness(const char* path, double modelSpeed, double owne
      ++planeLines;
      ownerParameter *= ownerScale;
      withoutMap = std::max(withoutMap, point.Distance(lift(parameter)));
-    } else {
-     if (Handle(StepGeom_Circle)::DownCast(geometry).IsNull()) return 9;
+    } else if (!Handle(StepGeom_Circle)::DownCast(geometry).IsNull()) {
      ++planeCircles;
+    } else {
+     if (!grouped || Handle(StepGeom_BSplineCurve)::DownCast(geometry).IsNull()) return 9;
+     const auto frame = circle->Position();
+     const auto angle = [&](double t) {
+      const auto ray = gp_Vec(frame.Location(), lift(t));
+      return std::atan2(ray.Dot(gp_Vec(frame.YDirection())), ray.Dot(gp_Vec(frame.XDirection())));
+     };
+     double lo=uv->FirstParameter(), hi=lo+(uv->LastParameter()-lo)/3;
+     if (angle(lo) >= parameter || angle(hi) <= parameter) return 9;
+     for (int k=0; k<60; ++k) {
+      const double mid=(lo+hi)/2;
+      if (angle(mid)<parameter) lo=mid;
+      else hi=mid;
+     }
+     ownerParameter=(lo+hi)/2;
+     maxCapDistance=std::max(maxCapDistance, point.Distance(lift(ownerParameter)));
+     ++rationalCaps;
     }
    } else {
     if (Handle(StepGeom_CylindricalSurface)::DownCast(pc->BasisSurface()).IsNull() ||
@@ -109,13 +125,17 @@ static int convertedUnitWitness(const char* path, double modelSpeed, double owne
  }
  std::cout << std::setprecision(17) << "{\"PlaneLines\":" << planeLines << ",\"PlaneCircles\":" << planeCircles
            << ",\"CylinderLines\":" << cylinderLines << ",\"CylinderCircles\":" << cylinderCircles
-           << ",\"MaxSourceDistance\":" << maxDistance << ",\"WithoutPlanarMap\":" << withoutMap << "}\n";
- return planeLines==18 && planeCircles==2 && cylinderLines==2 && cylinderCircles==2 ? 0 : 9;
+           << ",\"MaxSourceDistance\":" << maxDistance << ",\"WithoutPlanarMap\":" << withoutMap;
+ if (grouped) std::cout << ",\"RationalCaps\":" << rationalCaps << ",\"MaxCapDistance\":" << maxCapDistance;
+ std::cout << "}\n";
+ return planeLines==18 && planeCircles==2 && cylinderLines==(grouped ? 4 : 2) &&
+        cylinderCircles==(grouped ? 4 : 2) && rationalCaps==(grouped ? 2 : 0) ? 0 : 9;
 }
 
 int main(int argc,char**argv){if(argc!=3)return 2;TopoDS_Shape shape;
 if(std::string(argv[1])=="converted-metre-witness") return convertedUnitWitness(argv[2], .001, .001);
 if(std::string(argv[1])=="converted-inch-witness") return convertedUnitWitness(argv[2], 3.937007874016E-02, 5.0/127.0);
+if(std::string(argv[1])=="grouped-converted-metre-witness") return convertedUnitWitness(argv[2], .001, .001, true);
 if(std::string(argv[1])=="cap-trim") {
  STEPControl_Reader reader;if(reader.ReadFile(argv[2])!=IFSelect_RetDone)return 6;auto model=reader.StepModel();int count=0;double minStation=10,maxStation=0,maxEndpoint=0;
  for(int i=1;i<=model->NbEntities();++i){auto edge=Handle(StepShape_EdgeCurve)::DownCast(model->Value(i));if(edge.IsNull())continue;auto sc=Handle(StepGeom_SurfaceCurve)::DownCast(edge->EdgeGeometry());if(sc.IsNull())continue;auto circleSource=Handle(StepGeom_Circle)::DownCast(sc->Curve3d());if(circleSource.IsNull())continue;auto circle=StepToGeom::MakeCircle(circleSource);for(int j=1;j<=sc->NbAssociatedGeometry();++j){auto pc=sc->AssociatedGeometryValue(j).Pcurve();if(pc.IsNull()||Handle(StepGeom_Plane)::DownCast(pc->BasisSurface()).IsNull())continue;auto bs=Handle(StepGeom_BSplineCurve)::DownCast(pc->ReferenceToCurve()->ItemsValue(1));if(bs.IsNull())continue;auto uv=StepToGeom::MakeCurve2d(bs);auto surf=StepToGeom::MakeSurface(pc->BasisSurface());auto point=[&](double t){auto p=uv->Value(t);return surf->Value(p.X(),p.Y());};double lo=uv->FirstParameter(),hi=lo+(uv->LastParameter()-lo)/3;auto axis=circle->Position().XDirection();for(int k=0;k<60;++k){double mid=(lo+hi)/2;double x=gp_Vec(circle->Location(),point(mid)).Dot(gp_Vec(axis));if(x>0)lo=mid;else hi=mid;}double station=(lo+hi)/2;minStation=std::min(minStation,station);maxStation=std::max(maxStation,station);
@@ -128,9 +148,10 @@ if(std::string(argv[1])=="cap-witness") {
  std::cout<<std::setprecision(17)<<"{\"Caps\":"<<count<<",\"MinSquared\":"<<minSquared<<",\"MaxSquared\":"<<maxSquared<<"}\n";return count==2?0:10;
 }
 const std::string mode = argv[1];
+const bool groupedConvertedMetre = mode == "write-both-default-tilted-converted-metre";
 const bool groupedTilted = mode == "write-both-default-tilted" || mode == "write-both-default-tilted-metre" ||
-                           mode == "write-both-default-tilted-inch";
-const bool convertedMetre = mode == "write-default-tilted-translated-converted-metre";
+                           mode == "write-both-default-tilted-inch" || groupedConvertedMetre;
+const bool convertedMetre = mode == "write-default-tilted-translated-converted-metre" || groupedConvertedMetre;
 const bool convertedInch = mode == "write-default-tilted-translated-converted-inch" ||
                            mode == "write-default-tilted-translated-converted-inch-unscaled";
 const bool metre = mode == "write-default-tilted-translated-metre" || mode == "write-both-default-tilted-metre" || convertedMetre;

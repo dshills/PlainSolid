@@ -3,6 +3,7 @@ package step
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"math/big"
 	"plainsolid/geom"
@@ -31,6 +32,7 @@ type GroupedRationalCapEvidence struct {
 type GroupedPCurveEvidence struct {
 	modelRepair      RepairedOCCTConvexArcExtrusion
 	finiteLineOwners []FiniteConvexArcLineOwner
+	cylinderSpans    []ConvexArcCylinderSpanOwner
 	Caps             []GroupedRationalCapEvidence
 	OtherOwners      []ConvexArcPCurveAgreement
 	Reversals        []ConvexArcRepairReversal
@@ -300,10 +302,10 @@ func InspectGroupedConvexArcPCurves(ctx context.Context, r io.Reader, l Limits, 
 	if e != nil {
 		return zero, e
 	}
-	return proveGroupedConvexArcOwners(ctx, f, fixed, owners, m, o.MaxDistance, false)
+	return proveGroupedConvexArcOwners(ctx, f, fixed, owners, m, o.MaxDistance, false, nil)
 }
 
-func proveGroupedConvexArcOwners(ctx context.Context, f, fixed *File, owners []ConvexArcPCurveAgreement, m RepairedOCCTConvexArcExtrusion, distance float64, allowFiniteLines bool) (GroupedPCurveEvidence, error) {
+func proveGroupedConvexArcOwners(ctx context.Context, f, fixed *File, owners []ConvexArcPCurveAgreement, m RepairedOCCTConvexArcExtrusion, distance float64, allowFiniteLines bool, conversion *convertedConvexArcLength) (GroupedPCurveEvidence, error) {
 	var zero GroupedPCurveEvidence
 	out := GroupedPCurveEvidence{modelRepair: m, Reversals: m.Reversals(), Repairs: m.Repairs()}
 	tol := new(big.Rat).SetFloat64(distance)
@@ -330,15 +332,39 @@ func proveGroupedConvexArcOwners(ctx context.Context, f, fixed *File, owners []C
 		var e error
 		q.Kind, q.DistanceSquaredUpper, e = boundGroupedSimplePCurve(f, fixed, model, q.GeometryID, q.SupportID)
 		if e != nil && allowFiniteLines {
-			var interval FiniteConvexArcLineOwner
-			interval, q.DistanceSquaredUpper, e = boundFiniteConvexArcLineOwner(f, fixed, q, model, tol)
-			if e == nil {
-				q.Kind = "finite-plane-line"
-				out.finiteLineOwners = append(out.finiteLineOwners, interval)
+			var trim *ConvexArcAxialTrimRepair
+			if conversion != nil {
+				for i := range m.axialTrims {
+					if m.axialTrims[i].EdgeID == q.EdgeID {
+						trim = &m.axialTrims[i]
+						break
+					}
+				}
+			}
+			if conversion != nil && f.Entities[q.GeometryID].Records[0].Type == "B_SPLINE_CURVE_WITH_KNOTS" {
+				var reversal *ConvexArcRepairReversal
+				for i := range out.Reversals {
+					if out.Reversals[i].EdgeID == q.EdgeID {
+						reversal = &out.Reversals[i]
+						break
+					}
+				}
+				var span ConvexArcCylinderSpanOwner
+				span, q.Kind, q.DistanceSquaredUpper, e = boundConvertedConvexArcCylinderSpan(f, fixed, q, model, tol, conversion, trim, reversal)
+				if e == nil {
+					out.cylinderSpans = append(out.cylinderSpans, span)
+				}
+			} else {
+				var interval FiniteConvexArcLineOwner
+				interval, q.DistanceSquaredUpper, e = boundMappedConvexArcLineOwner(f, fixed, q, model, tol, conversion, trim)
+				if e == nil {
+					q.Kind = "finite-plane-line"
+					out.finiteLineOwners = append(out.finiteLineOwners, interval)
+				}
 			}
 		}
 		if e != nil || q.DistanceSquaredUpper.Cmp(tol) > 0 {
-			return zero, geom.ErrDomain
+			return zero, fmt.Errorf("source pcurve #%d: %w", q.PCurveID, geom.ErrDomain)
 		}
 		out.OtherOwners = append(out.OtherOwners, q)
 	}

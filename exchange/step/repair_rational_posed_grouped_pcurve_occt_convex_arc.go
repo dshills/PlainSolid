@@ -60,6 +60,12 @@ func (m RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion) PCurves() []Co
 func (m RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion) FiniteLineOwners() []FiniteConvexArcLineOwner {
 	return copyFiniteConvexArcLineOwners(m.base.finite.FullDomain.finiteLineOwners)
 }
+
+// CylindricalSpanOwners returns the original finite spline chart laws and
+// any affine parameter map needed after an independently proved axial trim.
+func (m RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion) CylindricalSpanOwners() []ConvexArcCylinderSpanOwner {
+	return copyConvexArcCylinderSpanOwners(m.base.finite.FullDomain.cylinderSpans)
+}
 func (m RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion) AxialTrims() []ConvexArcAxialTrimRepair {
 	out := make([]ConvexArcAxialTrimRepair, len(m.base.material.axialTrims))
 	for i, q := range m.base.material.axialTrims {
@@ -84,7 +90,7 @@ func RepairRationalPosedGroupedPCurveOCCTConvexArcExtrusion(ctx context.Context,
 	if e != nil {
 		return zero, e
 	}
-	full, e := proveGroupedConvexArcOwners(ctx, src.local, src.corrected, src.owners, src.material, o.MaxDistance, true)
+	full, e := proveGroupedConvexArcOwners(ctx, src.local, src.corrected, src.owners, src.material, o.MaxDistance, true, src.conversion)
 	if e != nil {
 		return zero, fmt.Errorf("rational pose owners: %w", e)
 	}
