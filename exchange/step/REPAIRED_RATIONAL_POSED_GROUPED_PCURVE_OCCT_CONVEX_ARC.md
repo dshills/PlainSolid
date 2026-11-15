@@ -1,7 +1,7 @@
-# Rationally posed default OCCT two-fillet STEP repair
+# Rationally posed default OCCT grouped-fillet STEP repair
 
 `RepairRationalPosedGroupedPCurveOCCTConvexArcExtrusion` authenticates a
-complete two-fillet STEP source under an exactly orthonormal rational
+complete supported grouped-fillet STEP source under an exactly orthonormal rational
 rotation. The model circle supplies the reference direction and the original
 cylinder supplies the positive axial direction. The original root, model
 topology, exclusive owner graph and UV records are authenticated. As in the
@@ -212,4 +212,90 @@ also reject.
 ```sh
 PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
   go test ./exchange/step -run '^TestRepairThreeConvexArc' -count=1
+```
+
+## Three-fillet millimetre model converted to metre STEP
+
+The pinned `write-three-default-tilted-converted-metre` mode scales that
+millimetre-native model by 1000 before writing. The 508-entity AP214 source
+keeps the three fillets, exact tilted placement and original metre unit.
+Its 36 owners include 18 planar LINE maps `t → t/1000`, four planar
+CIRCLEs, 12 clamped cylindrical degree-one splines and two rational caps.
+Both original axial edges `#276` and `#449` require directed finite maps
+from their corrected intervals into the authored intervals. The two
+original rational caps retain their finite root and reversed-cylinder
+proofs, including both authored owner orders.
+
+The two oblique cylindrical charts `#207` and `#416` have knots
+`[2.498091544797,4.712388980385]` and UV law
+`(u,v) = (t - 2.498091544797, h)` at `h = 0` and `h = 5`.
+The model circle angles at the original and repaired vertices are each
+enclosed within `1e-12` radian of the corresponding knot by exact rational
+sine and cosine bounds. The independently ordered circle angles and spline
+knots are paired by normalized travel. Each source evaluation stays inside
+the original knots and the angular discrepancy from the same-parameter
+phase proof is bounded by `1e-12` radian across the entire span. The
+resulting lift-distance bound is below `2.7e-13` metre for each shifted
+chart. The receipt records the original spline coefficients and both
+model-angle enclosures and recomputes them on reproof.
+
+The original requires explicit repair at `1e-12` metre and rejects
+`1e-13` metre. Strict canonical reopen preserves the source unit, pose and
+native solid and re-exports identical bytes. Pinned OCCT independently
+checks the source owners and measures the shifted charts at six stations
+with a maximum distance of `2.85e-14` metre. It reads the original,
+corrected and canonical worlds as one eight-face solid, with canonical
+volume `28968988172.080647` mm³, area `64184278.587623693` mm² and
+centroid `(2765.4896548128527, 1020.1651571311468, 479.34712691619546)` mm.
+
+```sh
+PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
+  go test ./exchange/step -run '^TestRepairThreeConvertedMetreConvexArc' -count=1
+```
+
+## Three-fillet millimetre model converted to inch STEP
+
+The pinned `write-three-default-tilted-converted-inch` mode scales the
+millimetre-native model by 127 before transfer. The 511-entity STEP keeps
+the exact `127/5` millimetre inch factor, world rotation and three circular
+supports, with a 25-inch height. All 18 original planar LINE owners retain
+`t → 5t/127`. The six axial splines retain knots `[0,635]` and
+`dv/dt = 5/127`, with the authored rounded model LINE speed
+`3.937007874016E-02` proved separately. Edges `#276` and `#449` keep
+their directed unequal-trim maps. The corrected start stations are
+`1/984251968504000000000000000` and
+`-1/196850393700800000000000000`, respectively, with original start
+stations of zero.
+
+The oblique cylindrical owners retain the same original knots and exact
+model-angle brackets as the metre original, with constant axial positions
+0 and 25 inches. The whole-span normalized lift bound is below
+`1.35e-12` inch for each of those owners. Pinned OCCT samples six
+stations on the shifted charts with a maximum distance of
+`1.43e-13` inch. Both finite rational cap proofs retain their original
+paired cylinder owners, and the independent endpoint witness measures a
+maximum cap distance of `2.78e-13` inch. The source passes at `1e-11`
+inch and rejects `1e-12` inch, an inexact inch factor, changed model LINE
+speed, and altered shifted knots even when their UV slope is unchanged.
+
+The source-only receipt re-proves the original bytes and exact owner
+charts. The strict canonical inch reopen preserves the native solid and
+produces the same export bytes. Pinned OCCT reads the original, corrected
+and canonical models as one eight-face solid. It measures canonical
+volume `59339582.898891054` mm³, area `1035228.2293397824` mm², and
+centroid `(351.21718616123235, 129.56097495565567, 60.877085118356803)` mm.
+
+In the separate 523-entity `write-three-default-tilted-converted-inch-unscaled`
+original the unit conversion rounds three tangent support pairs. The
+orthogonal source cylinder axes and side-plane normals already have exact
+unit length. Their exact plane-distance-minus-radius gaps are
+`1/5000000000000000`, `147/625000000000000` and
+`471/1250000000000000` inch on edges `#281`, `#335` and `#488`,
+respectively. OCCT transfers the file within its tolerance. The PlainSolid
+repair requires exact tangency of the original supporting surfaces and
+rejects this model before publishing material.
+
+```sh
+PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL=/path/to/author-convex-arc-step \
+  go test ./exchange/step -run '^TestRepairThreeConvertedInchConvexArc' -count=1
 ```

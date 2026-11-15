@@ -91,12 +91,12 @@ static int shiftedCylinderWitness(const char* path) {
  return owners == 2 ? 0 : 9;
 }
 
-static int convertedUnitWitness(const char* path, double modelSpeed, double ownerScale, bool grouped = false) {
+static int convertedUnitWitness(const char* path, double modelSpeed, double ownerScale, int fillets = 1) {
  STEPControl_Reader reader;
  if (reader.ReadFile(path) != IFSelect_RetDone) return 6;
  const auto model = reader.StepModel();
- int planeLines=0, planeCircles=0, cylinderLines=0, cylinderCircles=0, rationalCaps=0;
- double maxDistance=0, withoutMap=0, maxCapDistance=0;
+ int planeLines=0, planeCircles=0, cylinderLines=0, cylinderCircles=0, rationalCaps=0, shifted=0;
+ double maxDistance=0, withoutMap=0, maxCapDistance=0, maxShiftedDistance=0;
  for (int i=1; i<=model->NbEntities(); ++i) {
   const auto edge = Handle(StepShape_EdgeCurve)::DownCast(model->Value(i));
   if (edge.IsNull()) continue;
@@ -113,7 +113,7 @@ static int convertedUnitWitness(const char* path, double modelSpeed, double owne
   const auto b = StepToGeom::MakeCartesianPoint(Handle(StepGeom_CartesianPoint)::DownCast(end->VertexGeometry()));
   if (a.IsNull() || b.IsNull()) return 9;
   double speed = 1;
-  double parameter;
+  double parameter, angleStart=0, angleEnd=0;
   if (!line.IsNull()) {
    if (stepLine.IsNull() || stepLine->Dir().IsNull()) return 9;
    speed = stepLine->Dir()->Magnitude();
@@ -127,7 +127,10 @@ static int convertedUnitWitness(const char* path, double modelSpeed, double owne
     const auto ray = gp_Vec(chart.Location(), point);
     return std::atan2(ray.Dot(gp_Vec(chart.YDirection())), ray.Dot(gp_Vec(chart.XDirection())));
    };
-   parameter = (angle(a->Pnt()) + angle(b->Pnt())) / 2;
+   angleStart=angle(a->Pnt());
+   angleEnd=angle(b->Pnt());
+   if (angleEnd<angleStart) angleEnd+=2*std::acos(-1.0);
+   parameter=(angleStart+angleEnd)/2;
   }
   const auto point = curve->Value(parameter * speed);
   for (int j=1; j<=sc->NbAssociatedGeometry(); ++j) {
@@ -150,7 +153,7 @@ static int convertedUnitWitness(const char* path, double modelSpeed, double owne
     } else if (!Handle(StepGeom_Circle)::DownCast(geometry).IsNull()) {
      ++planeCircles;
     } else {
-     if (!grouped || Handle(StepGeom_BSplineCurve)::DownCast(geometry).IsNull()) return 9;
+     if (fillets==1 || Handle(StepGeom_BSplineCurve)::DownCast(geometry).IsNull()) return 9;
      const auto frame = circle->Position();
      const auto angle = [&](double t) {
       const auto ray = gp_Vec(frame.Location(), lift(t));
@@ -170,8 +173,19 @@ static int convertedUnitWitness(const char* path, double modelSpeed, double owne
    } else {
     if (Handle(StepGeom_CylindricalSurface)::DownCast(pc->BasisSurface()).IsNull() ||
         Handle(StepGeom_BSplineCurve)::DownCast(geometry).IsNull()) return 9;
-    if (line.IsNull()) ++cylinderCircles;
-    else ++cylinderLines;
+    if (line.IsNull()) {
+     ++cylinderCircles;
+     if (uv->FirstParameter()>0) {
+      ++shifted;
+      const double first=uv->FirstParameter(), last=uv->LastParameter();
+      for (double fraction : {0.0, .5, 1.0}) {
+       const auto onCircle=circle->Value(angleStart+fraction*(angleEnd-angleStart));
+       maxShiftedDistance=std::max(maxShiftedDistance,onCircle.Distance(lift(first+fraction*(last-first))));
+      }
+      maxDistance=std::max(maxDistance,maxShiftedDistance);
+      continue;
+     }
+    } else ++cylinderLines;
    }
    maxDistance = std::max(maxDistance, point.Distance(lift(ownerParameter)));
   }
@@ -179,17 +193,22 @@ static int convertedUnitWitness(const char* path, double modelSpeed, double owne
  std::cout << std::setprecision(17) << "{\"PlaneLines\":" << planeLines << ",\"PlaneCircles\":" << planeCircles
            << ",\"CylinderLines\":" << cylinderLines << ",\"CylinderCircles\":" << cylinderCircles
            << ",\"MaxSourceDistance\":" << maxDistance << ",\"WithoutPlanarMap\":" << withoutMap;
- if (grouped) std::cout << ",\"RationalCaps\":" << rationalCaps << ",\"MaxCapDistance\":" << maxCapDistance;
+ if (fillets>1) std::cout << ",\"RationalCaps\":" << rationalCaps << ",\"MaxCapDistance\":" << maxCapDistance;
+ if (fillets==3) std::cout << ",\"ShiftedCylinderCircles\":" << shifted << ",\"ShiftedSamples\":" << 3*shifted
+                           << ",\"MaxShiftedDistance\":" << maxShiftedDistance;
  std::cout << "}\n";
- return planeLines==18 && planeCircles==2 && cylinderLines==(grouped ? 4 : 2) &&
-        cylinderCircles==(grouped ? 4 : 2) && rationalCaps==(grouped ? 2 : 0) ? 0 : 9;
+ const int expectedCaps=fillets>1 ? 2 : 0;
+ return planeLines==18 && planeCircles==2*fillets-expectedCaps && cylinderLines==2*fillets &&
+        cylinderCircles==2*fillets && rationalCaps==expectedCaps && shifted==(fillets==3 ? 2 : 0) ? 0 : 9;
 }
 
 int main(int argc,char**argv){if(argc!=3)return 2;TopoDS_Shape shape;
 if(std::string(argv[1])=="converted-metre-witness") return convertedUnitWitness(argv[2], .001, .001);
 if(std::string(argv[1])=="converted-inch-witness") return convertedUnitWitness(argv[2], 3.937007874016E-02, 5.0/127.0);
-if(std::string(argv[1])=="grouped-converted-metre-witness") return convertedUnitWitness(argv[2], .001, .001, true);
-if(std::string(argv[1])=="grouped-converted-inch-witness") return convertedUnitWitness(argv[2], 3.937007874016E-02, 5.0/127.0, true);
+if(std::string(argv[1])=="grouped-converted-metre-witness") return convertedUnitWitness(argv[2], .001, .001, 2);
+if(std::string(argv[1])=="grouped-converted-inch-witness") return convertedUnitWitness(argv[2], 3.937007874016E-02, 5.0/127.0, 2);
+if(std::string(argv[1])=="three-converted-metre-witness") return convertedUnitWitness(argv[2], .001, .001, 3);
+if(std::string(argv[1])=="three-converted-inch-witness") return convertedUnitWitness(argv[2], 3.937007874016E-02, 5.0/127.0, 3);
 if(std::string(argv[1])=="shifted-cylinder-witness") return shiftedCylinderWitness(argv[2]);
 if(std::string(argv[1])=="cap-trim") {
  STEPControl_Reader reader;if(reader.ReadFile(argv[2])!=IFSelect_RetDone)return 6;auto model=reader.StepModel();int count=0;double minStation=10,maxStation=0,maxEndpoint=0;
@@ -204,15 +223,19 @@ if(std::string(argv[1])=="cap-witness") {
 }
 const std::string mode = argv[1];
 const bool threeNonDyadic = mode == "write-three-default-tilted-nondyadic";
-const bool three = mode == "write-three-default" || mode == "write-three-default-tilted" || threeNonDyadic;
+const bool threeConvertedMetre = mode == "write-three-default-tilted-converted-metre";
+const bool threeConvertedInch = mode == "write-three-default-tilted-converted-inch" ||
+                                mode == "write-three-default-tilted-converted-inch-unscaled";
+const bool three = mode == "write-three-default" || mode == "write-three-default-tilted" || threeNonDyadic ||
+                   threeConvertedMetre || threeConvertedInch;
 const bool groupedConvertedMetre = mode == "write-both-default-tilted-converted-metre";
 const bool groupedConvertedInch = mode == "write-both-default-tilted-converted-inch" ||
                                  mode == "write-both-default-tilted-converted-inch-unscaled";
 const bool groupedTilted = mode == "write-both-default-tilted" || mode == "write-both-default-tilted-metre" ||
                            mode == "write-both-default-tilted-inch" || groupedConvertedMetre || groupedConvertedInch;
-const bool convertedMetre = mode == "write-default-tilted-translated-converted-metre" || groupedConvertedMetre;
+const bool convertedMetre = mode == "write-default-tilted-translated-converted-metre" || groupedConvertedMetre || threeConvertedMetre;
 const bool convertedInch = mode == "write-default-tilted-translated-converted-inch" ||
-                           mode == "write-default-tilted-translated-converted-inch-unscaled" || groupedConvertedInch;
+                           mode == "write-default-tilted-translated-converted-inch-unscaled" || groupedConvertedInch || threeConvertedInch;
 const bool metre = mode == "write-default-tilted-translated-metre" || mode == "write-both-default-tilted-metre" || convertedMetre;
 const bool inch = mode == "write-default-tilted-translated-inch" || mode == "write-both-default-tilted-inch" || convertedInch;
 const bool tiltedDefault = mode == "write-default-tilted" || mode == "write-default-tilted-translated" ||
@@ -240,7 +263,7 @@ if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || 
   } else if (mode == "write-minus-x" || mode == "write-both-default-minus-x") {
    pose.SetValues(0,0,-1,2, -1,0,0,-3, 0,1,0,0);
   } else if (tiltedDefault) {
-   const bool translated = !groupedTilted && (mode == "write-default-tilted-translated" || metre || inch);
+   const bool translated = !groupedTilted && !three && (mode == "write-default-tilted-translated" || metre || inch);
    pose.SetValues(.6,0,.8,translated ? 1 : 0, 0,1,0,0, -.8,0,.6,translated ? 2 : 0);
   } else {
    pose.SetTranslation(gp_Vec(2,0,3));
@@ -253,7 +276,9 @@ if(mode=="write" || mode=="write-x" || std::string(argv[1])=="write-minus-x" || 
    // Author in millimetres and let STEPControl convert the model and charts.
    // 127 mm is exactly five inches, so scaled dyadic model coordinates
    // retain terminating inch decimals even though the LINE speed does not.
-   if (mode != "write-default-tilted-translated-converted-inch-unscaled" && mode != "write-both-default-tilted-converted-inch-unscaled") {
+   if (mode != "write-default-tilted-translated-converted-inch-unscaled" &&
+       mode != "write-both-default-tilted-converted-inch-unscaled" &&
+       mode != "write-three-default-tilted-converted-inch-unscaled") {
     gp_Trsf scale;
     scale.SetScale(gp_Pnt(0,0,0), convertedMetre ? 1000.0 : 127.0);
     shape = BRepBuilderAPI_Transform(shape,scale,true).Shape();

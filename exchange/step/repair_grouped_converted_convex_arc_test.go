@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"os"
 	"os/exec"
@@ -11,6 +12,8 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+
+	"plainsolid/geom"
 )
 
 type groupedConvertedFixture struct {
@@ -254,17 +257,24 @@ func TestRepairGroupedConvertedInchConvexArcRejectsRoundedSupports(t *testing.T)
 
 func checkGroupedUnscaledInchSupports(t *testing.T, raw []byte) {
 	t.Helper()
+	checkUnscaledInchSupports(t, raw, []roundedInchSupport{
+		{247, 401, 252, "1/5000000000000000"},
+		{301, 428, 306, "147/625000000000000"},
+	})
+}
+
+type roundedInchSupport struct {
+	cylinder, plane, edge int64
+	gap                   string
+}
+
+func checkUnscaledInchSupports(t *testing.T, raw []byte, pairs []roundedInchSupport) {
+	t.Helper()
 	source, err := Parse(bytes.NewReader(raw), Limits{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, pair := range []struct {
-		cylinder, plane, edge int64
-		gap                   string
-	}{
-		{247, 401, 252, "1/5000000000000000"},
-		{301, 428, 306, "147/625000000000000"},
-	} {
+	for _, pair := range pairs {
 		cylinder, err := occtLoopReadFace(source, pair.cylinder)
 		if err != nil || cylinder.kind != "CYLINDRICAL_SURFACE" || !convexUVUnit(cylinder.z[:]) {
 			t.Fatal("missing original cylindrical support", pair.cylinder, err)
@@ -288,7 +298,7 @@ func checkGroupedUnscaledInchSupports(t *testing.T, raw []byte) {
 		}
 	}
 	m, err := RepairRationalPosedGroupedPCurveOCCTConvexArcExtrusion(context.Background(), bytes.NewReader(raw), Limits{}, ConvexArcRepairOptions{MaxDistance: 1e-9})
-	if err == nil || m.OriginalSTEP() != "" {
+	if !errors.Is(err, geom.ErrDomain) || m.OriginalSTEP() != "" {
 		t.Fatal("rounded support pairs yielded repaired material", err)
 	}
 }

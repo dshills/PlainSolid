@@ -351,7 +351,7 @@ func proveGroupedConvexArcOwners(ctx context.Context, f, fixed *File, owners []C
 					}
 				}
 				var span ConvexArcCylinderSpanOwner
-				span, q.Kind, q.DistanceSquaredUpper, e = boundConvertedConvexArcCylinderSpan(f, fixed, q, model, tol, conversion, trim, reversal)
+				span, q.Kind, q.DistanceSquaredUpper, e = boundConvertedConvexArcCylinderSpan(f, fixed, q, model, tol, conversion, trim, reversal, segments == 6)
 				if e == nil {
 					out.cylinderSpans = append(out.cylinderSpans, span)
 				}
