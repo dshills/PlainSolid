@@ -45,11 +45,13 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 		{"converted-grouped-inch", "occt-both-default-tilted-oblique-prism-fillet-converted-inch", stepInch, .0254, 25.4, true},
 		{"converted-three-metre", "occt-three-default-tilted-oblique-prism-fillet-converted-metre", stepMetre, 1, 1000, true},
 		{"converted-three-inch", "occt-three-default-tilted-oblique-prism-fillet-converted-inch", stepInch, .0254, 25.4, true},
+		{"converted-four-metre", "occt-four-default-tilted-trapezoidal-prism-fillet-converted-metre", stepMetre, 1, 1000, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			source := stepRepairFixture(t, tc.file)
 			converted := strings.HasPrefix(tc.name, "converted-")
 			three := strings.HasPrefix(tc.name, "converted-three-")
+			four := strings.HasPrefix(tc.name, "converted-four-")
 			convertedInch := converted && tc.unit == stepInch
 			maxDistance, millimetresPerBase := 1e-12, tc.mmPerUnit
 			if convertedInch {
@@ -108,12 +110,17 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 				if three {
 					owners, repairs, axialTrims = 34, 10, 2
 				}
+				if four {
+					finiteOwners, owners, repairs, axialTrims = 24, 46, 10, 2
+				}
 				if e != nil || evidence.Family != "occt-rational-posed-grouped-pcurve-convex-arc" || len(evidence.Repairs) != repairs ||
 					evidence.PCurveOwners != owners || evidence.FiniteLineOwners != finiteOwners || evidence.RationalCaps != 2 || evidence.AxialTrims != axialTrims ||
 					len(m.PCurves()) != owners || len(m.FiniteLineOwners()) != finiteOwners || len(m.FiniteTrims()) != 2 || len(m.AxialTrims()) != axialTrims {
 					t.Fatal("grouped bridge receipt lost original finite owner evidence", e)
 				}
-				if three {
+				if four {
+					checkFourConvertedMetreBridgeReceipt(t, m)
+				} else if three {
 					checkThreeConvertedBridgeReceipt(t, tc.unit, m)
 				} else if converted {
 					checkGroupedConvertedBridgeReceipt(t, tc.unit, m)
@@ -124,6 +131,10 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 				if three {
 					bounds.Max[1] = 2.84375
 					volume, area = 28.968988172080639, 64.184278587623695
+				}
+				if four {
+					bounds = Bounds{Min: vector{0, 0, -1.6}, Max: vector{5.2, 2.84375, 3}}
+					volume, area = 22.155304183748054, 51.012178844414059
 				}
 				x, z = new(big.Rat), new(big.Rat)
 			} else {
@@ -240,6 +251,51 @@ func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
 	}
 	if len(handles) > 1 {
 		rejectGroup(t, b, map[string]any{"op": "exportStep", "stepUnits": stepMetre, "handles": handles})
+	}
+}
+
+func checkFourConvertedMetreBridgeReceipt(t *testing.T, m step.RationalPosedGroupedPCurveRepairedOCCTConvexArcExtrusion) {
+	t.Helper()
+	for _, owner := range m.FiniteLineOwners() {
+		if owner.PCurveParameterScale == nil || owner.PCurveParameterScale.RatString() != "1/1000" {
+			t.Fatal("lost original planar metre parameter scale", owner.PCurveID)
+		}
+	}
+	spans, trims, caps := m.CylindricalSpanOwners(), m.AxialTrims(), m.FiniteTrims()
+	if len(spans) != 16 || trims[0].EdgeID != 332 || trims[1].EdgeID != 551 {
+		t.Fatal("lost converted cylinder span or axial trim evidence")
+	}
+	var shifted []int64
+	var clipped step.ConvexArcCylinderSpanOwner
+	for _, span := range spans {
+		if span.ModelAngleBounds != nil {
+			shifted = append(shifted, span.PCurveID)
+		}
+		if span.ClippedOwnerParameters != nil {
+			if clipped.PCurveID != 0 {
+				t.Fatal("unexpected extra clipped spline owner", span.PCurveID)
+			}
+			clipped = span
+		}
+	}
+	if !reflect.DeepEqual(shifted, []int64{207, 263, 472, 518}) || clipped.PCurveID != 564 ||
+		clipped.ParameterInterval[0].Sign() != 0 || clipped.ParameterInterval[1].RatString() != "5000" ||
+		clipped.ClippedOwnerParameters[0].Sign() != 0 || clipped.ClippedOwnerParameters[1].RatString() != "5000" ||
+		clipped.UVDerivative[1].RatString() != "1/1000" || clipped.RepairedToOwner == nil {
+		t.Fatal("lost original shifted charts or the bounded finite spline interval", shifted, clipped.PCurveID)
+	}
+	trim := trims[1]
+	const excess = "1/25000000000000000000000000"
+	const projectedEnd = "125000000000000000000000000001/25000000000000000000000000"
+	if trim.OriginalParameters[0].Sign() != 0 || trim.OriginalParameters[1].RatString() != projectedEnd ||
+		trim.RepairedParameters[0].RatString() != excess || trim.RepairedParameters[1].RatString() != projectedEnd ||
+		clipped.RepairedToOwner[0].RatString() != "-"+excess || clipped.RepairedToOwner[1].RatString() != "1" {
+		t.Fatal("bridge receipt changed projected, repaired or clipped axial stations", trim.EdgeID)
+	}
+	for i, cap := range caps {
+		if cap.CapOwner.PCurveID != [2]int64{310, 367}[i] || cap.CylinderOwner.PCurveID != [2]int64{321, 361}[i] || cap.EndStation == nil {
+			t.Fatal("lost the original rational cap pairing", cap.CapOwner.PCurveID)
+		}
 	}
 }
 

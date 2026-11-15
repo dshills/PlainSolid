@@ -101,6 +101,11 @@ The native millimetre four-fillet trapezoid verifies all four original
 phase-shifted owners, both directed axial trims and both finite rational
 cap pairs. The ordinary 0.5 mm world mesh and strict canonical round trip
 use the existing opt-in request and the original millimetre context.
+Its OCCT-converted metre counterpart retains the 16 original finite
+cylindrical spans and both unequal axial trims. The certificate includes
+the original projected stations, repaired stations and clipped owner
+interval separately. The fixture uses a `1e-12` metre repair budget and
+rejects `1e-13` metre before publishing material.
 
 Use `--suite development --step-repair-worker-fixture` to run the focused
 Chromium check with the pinned app's Playwright and Vite configuration. The
@@ -108,7 +113,7 @@ disposable app stages a test page and a dedicated module worker that imports
 the concrete adapter. It covers translated single-fillet inputs in all three
 units and tilted grouped inputs in metres and inches. Both include the
 corresponding original converted OCCT exports. The suite also covers the
-tilted three-fillet sources and the native millimetre four-fillet trapezoid.
+tilted three-fillet sources and both qualified four-fillet units.
 It compares the certificate text with the original bytes returned by Go
 WASM. A fresh worker receives that certificate, derives the identical
 native receipt from its source, and strictly reopens and re-exports
