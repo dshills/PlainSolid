@@ -29,11 +29,15 @@ type polynomialNodeCutRecipe struct {
 // certified native Cut. Component surfaces and trim loops are reconstructed
 // from this source recipe on load.
 func (r *PolynomialNodeCut) WriteJSON(ctx context.Context, w io.Writer) error {
+	return writePolynomialPointCutJSON(ctx, w, r, nativePolynomialNodeCut)
+}
+
+func writePolynomialPointCutJSON(ctx context.Context, w io.Writer, r *PolynomialNodeCut, kind string) error {
 	if ctx == nil || w == nil || r == nil || r.sources[0] == nil {
 		return geom.ErrInvalid
 	}
 	recipe := polynomialNodeCutRecipe{
-		Version: 1, Kind: nativePolynomialNodeCut, Axis: &r.axis, Tolerance: r.tolerance,
+		Version: 1, Kind: kind, Axis: &r.axis, Tolerance: r.tolerance,
 		Vertices: r.contact.Vertices[:], Sectors: r.contact.Sectors[:],
 	}
 	var e error
@@ -54,16 +58,7 @@ func (r *PolynomialNodeCut) WriteJSON(ctx context.Context, w io.Writer) error {
 // independently re-proves their embeddings and exact shared vertex contact.
 // The recorded point, sectors and local vertex IDs must match the rebuilt cut.
 func ReadPolynomialNodeCutJSON(ctx context.Context, r io.Reader, limits JSONLimits, o PolynomialNodeCutOptions) (*PolynomialNodeCut, error) {
-	var recipe polynomialNodeCutRecipe
-	if e := readPolynomialGraphRecipe(ctx, r, limits, &recipe); e != nil {
-		return nil, e
-	}
-	if recipe.Version != 1 || recipe.Kind != nativePolynomialNodeCut ||
-		len(recipe.Sources) != 3 || recipe.Axis == nil || len(recipe.Parameters) != 2 || len(recipe.Point) != 3 ||
-		len(recipe.Vertices) != 2 || len(recipe.Sectors) != 2 {
-		return nil, geom.ErrInvalid
-	}
-	sources, e := decodePolynomialGraphSupports(ctx, recipe.Sources, limits.MaxControlPoints)
+	recipe, sources, e := readPolynomialPointCutRecipe(ctx, r, limits, nativePolynomialNodeCut)
 	if e != nil {
 		return nil, e
 	}
@@ -71,23 +66,44 @@ func ReadPolynomialNodeCutJSON(ctx context.Context, r io.Reader, limits JSONLimi
 	if e != nil {
 		return nil, e
 	}
+	if e = bindPolynomialPointCutRecipe(out, recipe, limits); e != nil {
+		return nil, e
+	}
+	return out, nil
+}
+
+func readPolynomialPointCutRecipe(ctx context.Context, r io.Reader, limits JSONLimits, kind string) (polynomialNodeCutRecipe, [3]*geom.BSplineSurface, error) {
+	var recipe polynomialNodeCutRecipe
+	if e := readPolynomialGraphRecipe(ctx, r, limits, &recipe); e != nil {
+		return recipe, [3]*geom.BSplineSurface{}, e
+	}
+	if recipe.Version != 1 || recipe.Kind != kind ||
+		len(recipe.Sources) != 3 || recipe.Axis == nil || len(recipe.Parameters) != 2 || len(recipe.Point) != 3 ||
+		len(recipe.Vertices) != 2 || len(recipe.Sectors) != 2 {
+		return recipe, [3]*geom.BSplineSurface{}, geom.ErrInvalid
+	}
+	sources, e := decodePolynomialGraphSupports(ctx, recipe.Sources, limits.MaxControlPoints)
+	return recipe, sources, e
+}
+
+func bindPolynomialPointCutRecipe(out *PolynomialNodeCut, recipe polynomialNodeCutRecipe, limits JSONLimits) error {
 	if !slices.Equal(recipe.Vertices, out.contact.Vertices[:]) || !slices.Equal(recipe.Sectors, out.contact.Sectors[:]) {
-		return nil, geom.ErrConvergence
+		return geom.ErrConvergence
 	}
 	for i, p := range out.contact.Parameters {
 		if recipe.Parameters[i] != p.RatString() {
-			return nil, geom.ErrConvergence
+			return geom.ErrConvergence
 		}
 	}
 	for i, p := range out.contact.Point {
 		if recipe.Point[i] != p.RatString() {
-			return nil, geom.ErrConvergence
+			return geom.ErrConvergence
 		}
 	}
 	if limits.MaxEntities > 0 && polynomialGraphEntityCount(out.components[:]) > limits.MaxEntities {
-		return nil, geom.ErrConvergence
+		return geom.ErrConvergence
 	}
-	return out, nil
+	return nil
 }
 
 func encodePolynomialGraphSupports(ctx context.Context, sources [3]*geom.BSplineSurface) ([]json.RawMessage, error) {

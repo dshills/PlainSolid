@@ -53,6 +53,26 @@ PLAINSOLID_OCCT_NATIVE_PRISM_BOOLEAN=/tmp/occt-prism \
   go test -race -v ./brep/trimmed -run '^TestNativePrismBooleanAgainstOCCT$'
 ```
 
+### Tangent polynomial-roof diagnostic
+
+The `tangent` mode builds the same two original mixed-degree roof stocks as
+the native tangency tests. The cubic and quartic contact branches differ by
+`(2u-1)^2(1+u²)/64` and meet at `u=1/2`.
+
+```sh
+sh tools/occtref/build_two_polynomial_roofs.sh "$OCCT_INCLUDE" "$OCCT_LIB" /tmp/occt-polynomial-roofs
+/tmp/occt-polynomial-roofs tangent
+go test -race -v ./brep/trimmed -run '^TestNativePolynomialTangency'
+```
+
+On the pinned revision, the unrestricted Common and Fuse calls return empty
+shapes in both chart axes and operand orders. Cut returns one solid with the
+volume of its first operand, about `3.092384338` or `3.00390625`. The exact
+analytic Cut totals are about `0.088478377` and `2.8838436e-7`, each divided
+into two layers with one shared point. The Go tests check each analytical
+component volume, original coedge agreement and the exact contact ledger
+after native reload.
+
 Run all optional exchange checks with:
 
 ```sh
