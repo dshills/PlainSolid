@@ -99,7 +99,7 @@ func TestMappedChainRectangularSTEPMixedSupportKnots(t *testing.T) {
 
 func TestMappedChainSupportKnotNativeRecordCompatibility(t *testing.T) {
 	ctx := context.Background()
-	for _, name := range []string{"mapped_chain_two_crossings_source.json", "mapped_chain_asynchronous_crossings_source.json"} {
+	for _, name := range []string{"mapped_chain_two_crossings_source.json", "mapped_chain_asynchronous_crossings_source.json", "mapped_chain_mixed_crossings_source.json"} {
 		raw, err := os.ReadFile(filepath.Join("testdata", name))
 		if err != nil {
 			t.Fatal(err)
@@ -110,7 +110,7 @@ func TestMappedChainSupportKnotNativeRecordCompatibility(t *testing.T) {
 		}
 		var replay bytes.Buffer
 		if err := shell.WriteJSON(ctx, &replay, trimmed.MappedChainShellNativeOptions{}); err != nil || !bytes.Equal(raw, replay.Bytes()) {
-			t.Fatal("existing synchronized and asynchronous boundary records must remain byte-identical", name, err)
+			t.Fatal("existing synchronized, asynchronous, and mixed boundary records must remain byte-identical", name, err)
 		}
 	}
 }

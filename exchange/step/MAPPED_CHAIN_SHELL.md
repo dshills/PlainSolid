@@ -131,6 +131,31 @@ crease changes only one roof's one-sided derivative away from the shared
 trace. The existing canonical STEP path uses `AllowMultiSpanRoofs` and
 `AllowTwoInteriorRoofKnots` for explicit paired coedges.
 
+### Three support crossings in one original cell
+
+`CertifyMappedSplineChainThreeSupportKnotsAgreement` proves three
+transverse stations in one original common chain cell. Both roofs have
+exactly two original support knots. At one station both owners change
+cells, and at each of the other stations only one changes cells. Version
+7 of the native boundary recipe rederives all three cuts from the source
+supports and raw trims. Versions 4 through 6 retain their existing
+arrangements and byte representations.
+
+The three-cut fixture has stations `1/16`, `1/8`, and `3/16`, with raw
+parameter pairs `(93,443)`, `(197,387)`, and `(317,283)`. The canonical
+explicit STEP path uses `AllowMultiSpanRoofs` and
+`AllowTwoInteriorRoofKnots` and retains all original raw restrictions.
+Pinned OCCT independently opens the explicit output as one valid solid.
+
+The pinned author mode `write-three-knots` constructs both original
+support charts and the six shared model edges independently in OCCT.
+It supplies exact affine model lifts of the source UV curves, with extra
+decimal precision for the dyadic coordinates. The recorded AP242 file
+imports through the bounded foreign reader with explicit coedges. Its
+individual source pcurve bases survive a native recipe round trip.
+Set `PLAINSOLID_OCCT_MAPPED_CHAIN_THREE_AUTHOR` to the pinned author
+built with absolute include and library paths for live qualification.
+
 ### Asynchronous support crossings
 
 `CertifyMappedSplineChainAsynchronousSupportKnotsAgreement` proves one

@@ -15,10 +15,15 @@
 #ifdef PLAINSOLID_AUTHORED_STEP
 #include <STEPControl_Writer.hxx>
 #include <Interface_Static.hxx>
+#include <StepData_Protocol.hxx>
+#include <StepData_StepModel.hxx>
+#include <StepData_StepWriter.hxx>
+#include <fstream>
 #endif
 #include <Geom2d_BezierCurve.hxx>
 #include <Geom2d_BSplineCurve.hxx>
 #include <Geom_Plane.hxx>
+#include <Geom_BezierCurve.hxx>
 #include <Geom_BezierSurface.hxx>
 #include <Geom_BSplineSurface.hxx>
 #include <Geom_BSplineCurve.hxx>
@@ -57,12 +62,22 @@ static std::array<Cubic, 2> split(const Cubic& p) {
   return {Cubic{p[0], a, d, m}, Cubic{m, e, c, p[3]}};
 }
 
-static double roofHeight(double x, double y, bool crease) {
+static std::vector<double> threeRoofKnots(bool south) {
+  return south ? std::vector<double>{0., 29. / 256, 369. / 2048, 1.}
+               : std::vector<double>{0., 107. / 2048, 29. / 256, 1.};
+}
+
+static double roofHeight(double x, double y, bool crease, bool three = false, bool south = false) {
+  if (three) {
+    const double separate = south ? 369. / 2048 : 107. / 2048;
+    return x * y + .125 * std::max(0., x - 29. / 256) + .125 * (y - .25) * std::max(0., x - separate);
+  }
   return x * y + (crease ? .5 * std::max(0., x - .5) : 0.);
 }
 
-static TopoDS_Face roof(bool south, int rotate = 0, bool crease = false) {
-  const std::vector<double> x = crease ? std::vector<double>{0., .5, 1.} : std::vector<double>{0., 1.};
+static TopoDS_Face roof(bool south, int rotate = 0, bool crease = false, bool three = false) {
+  const std::vector<double> x = three ? threeRoofKnots(south)
+    : crease ? std::vector<double>{0., .5, 1.} : std::vector<double>{0., 1.};
   const std::vector<double> y{0., 1.};
   const auto& u = south ? y : x;
   const auto& v = south ? x : y;
@@ -71,11 +86,11 @@ static TopoDS_Face roof(bool south, int rotate = 0, bool crease = false) {
     for (int j = 0; j < poles.UpperCol(); ++j) {
       const double a = south ? v[j] : u[i];
       const double b = south ? u[i] : v[j];
-      poles.SetValue(i + 1, j + 1, gp_Pnt(a, b, roofHeight(a, b, crease)));
+      poles.SetValue(i + 1, j + 1, gp_Pnt(a, b, roofHeight(a, b, crease, three, south)));
     }
   }
   occ::handle<Geom_Surface> support;
-  if (crease) {
+  if (crease || three) {
     NCollection_Array1<double> ku(1, static_cast<int>(u.size())), kv(1, static_cast<int>(v.size()));
     NCollection_Array1<int> mu(1, ku.Upper()), mv(1, kv.Upper());
     for (int i = 1; i <= ku.Upper(); ++i) {
@@ -99,7 +114,25 @@ static TopoDS_Face roof(bool south, int rotate = 0, bool crease = false) {
     }
     occ::handle<Geom2d_BezierCurve> curve = new Geom2d_BezierCurve(net);
     BRepBuilderAPI_MakeEdge edge(curve, support);
-    if (!edge.IsDone() || !BRepLib::BuildCurve3d(edge.Edge(), 1e-11)) {
+    if (!edge.IsDone()) {
+      throw std::runtime_error("could not lift the independent source edge");
+    }
+    if (three) {
+      // Each trace has one fixed chart coordinate and lies within one original
+      // support cell. Its model controls are the exact affine lifts of its UV
+      // controls in that cell.
+      NCollection_Array1<gp_Pnt> model(1, net.Upper());
+      for (int i = 1; i <= model.Upper(); ++i) {
+        const auto& p = points[i - 1];
+        model.SetValue(i, gp_Pnt(p.X(), p.Y(), roofHeight(p.X(), p.Y(), crease, three, south)));
+      }
+      BRep_Builder builder;
+      occ::handle<Geom_BezierCurve> lifted = new Geom_BezierCurve(model);
+      builder.UpdateEdge(edge.Edge(), lifted, 1e-11);
+      builder.Range(edge.Edge(), 0., 1., true);
+      builder.SameRange(edge.Edge(), true);
+      builder.SameParameter(edge.Edge(), true);
+    } else if (!BRepLib::BuildCurve3d(edge.Edge(), 1e-11)) {
       throw std::runtime_error("could not lift the independent source edge");
     }
     wire.Add(edge.Edge());
@@ -107,20 +140,26 @@ static TopoDS_Face roof(bool south, int rotate = 0, bool crease = false) {
       throw std::runtime_error("could not join the independent roof wire");
     }
   };
-  const Cubic a{gp_Pnt2d(0, .25), gp_Pnt2d(.125, .125), gp_Pnt2d(.375, .125), gp_Pnt2d(.5, .25)};
-  const Cubic b{gp_Pnt2d(.5, .25), gp_Pnt2d(.625, .5), gp_Pnt2d(.875, .5), gp_Pnt2d(1, .25)};
+  const Cubic a{gp_Pnt2d(0, .25), gp_Pnt2d(.125, three ? .25 : .125), gp_Pnt2d(.375, three ? .25 : .125), gp_Pnt2d(.5, .25)};
+  const Cubic b{gp_Pnt2d(.5, .25), gp_Pnt2d(.625, three ? .25 : .5), gp_Pnt2d(.875, three ? .25 : .5), gp_Pnt2d(1, .25)};
   const auto ab = split(a);
   std::vector<std::vector<gp_Pnt2d>> traces;
-  for (const auto& p : {ab[0], ab[1], b}) {
-    traces.emplace_back(p.begin(), p.end());
+  if (three) {
+    const auto quarters = split(ab[0]);
+    const auto left = split(quarters[0]);
+    const auto right = split(quarters[1]);
+    for (const auto& p : {left[0], left[1], right[0], right[1], ab[1], b}) {
+      traces.emplace_back(p.begin(), p.end());
+    }
+  } else {
+    for (const auto& p : {ab[0], ab[1], b}) {
+      traces.emplace_back(p.begin(), p.end());
+    }
   }
   const double outer = south ? 0 : .75;
   traces.push_back({gp_Pnt2d(1, .25), gp_Pnt2d(1, outer)});
-  if (crease) {
-    traces.push_back({gp_Pnt2d(1, outer), gp_Pnt2d(.5, outer)});
-    traces.push_back({gp_Pnt2d(.5, outer), gp_Pnt2d(0, outer)});
-  } else {
-    traces.push_back({gp_Pnt2d(1, outer), gp_Pnt2d(0, outer)});
+  for (int i = static_cast<int>(x.size()) - 1; i > 0; --i) {
+    traces.push_back({gp_Pnt2d(x[i], outer), gp_Pnt2d(x[i - 1], outer)});
   }
   traces.push_back({gp_Pnt2d(0, outer), gp_Pnt2d(0, .25)});
   std::rotate(traces.begin(), traces.begin() + rotate, traces.end());
@@ -208,7 +247,8 @@ static void setOriginalPlaneCurves(const TopoDS_Solid& solid) {
 int main(int argc, char** argv) {
   try {
     const std::string mode = argc > 1 ? argv[1] : "";
-    const bool authoredPlanes = mode == "write-knot";
+    const bool three = mode == "write-three-knots";
+    const bool authoredPlanes = mode == "write-knot" || three;
     const bool crease = authoredPlanes || mode == "write-knot-default-planes";
     auto frame = [&](const gp_Pnt& origin, const gp_Dir& normal, const gp_Dir& u) -> std::optional<gp_Ax3> {
       if (!authoredPlanes) {
@@ -218,17 +258,23 @@ int main(int argc, char** argv) {
     };
     const bool reordered = mode == "write-reordered" || crease;
     auto side = [&](double y, bool reverse) {
-      std::vector<gp_Pnt> points{{0, y, -1}, {1, y, -1}, {1, y, roofHeight(1, y, crease)}};
-      if (crease) {
+      const bool south = y == 0.;
+      std::vector<gp_Pnt> points{{0, y, -1}, {1, y, -1}, {1, y, roofHeight(1, y, crease, three, south)}};
+      if (three) {
+        const auto xs = threeRoofKnots(south);
+        for (int i = static_cast<int>(xs.size()) - 2; i > 0; --i) {
+          points.emplace_back(xs[i], y, roofHeight(xs[i], y, crease, true, south));
+        }
+      } else if (crease) {
         points.emplace_back(.5, y, roofHeight(.5, y, true));
       }
       points.emplace_back(0, y, 0);
       return planar(points, reverse, frame({0, y, 0}, {0, -1, 0}, {0, 0, -1}));
     };
     const std::array<TopoDS_Face, 7> source{
-      roof(false, reordered ? 4 : 0, crease),
-      roof(true, reordered ? 5 : 0, crease),
-      planar({{1, 0, -1}, {1, .75, -1}, {1, .75, roofHeight(1, .75, crease)}, {1, .25, roofHeight(1, .25, crease)}, {1, 0, roofHeight(1, 0, crease)}}, false,
+      roof(false, reordered ? 4 : 0, crease, three),
+      roof(true, reordered ? 5 : 0, crease, three),
+      planar({{1, 0, -1}, {1, .75, -1}, {1, .75, roofHeight(1, .75, crease, three)}, {1, .25, roofHeight(1, .25, crease, three)}, {1, 0, roofHeight(1, 0, crease, three, true)}}, false,
              frame({1, 0, 0}, {1, 0, 0}, {0, 0, 1})),
       planar({{0, 0, -1}, {0, .75, -1}, {0, .75, 0}, {0, .25, 0}, {0, 0, 0}}, true,
              frame({0, 0, 0}, {1, 0, 0}, {0, 0, 1})),
@@ -263,8 +309,25 @@ int main(int argc, char** argv) {
       STEPControl_Writer writer;
       Interface_Static::SetIVal("write.surfacecurve.mode", 1);
       Interface_Static::SetCVal("write.step.schema", "AP242DIS");
-      if (writer.Transfer(solid, STEPControl_ManifoldSolidBrep) != IFSelect_RetDone ||
-          writer.Write(argv[2]) != IFSelect_RetDone) {
+      if (writer.Transfer(solid, STEPControl_ManifoldSolidBrep) != IFSelect_RetDone) {
+        throw std::runtime_error("independent STEP writer failed");
+      }
+      if (three) {
+        // The authored geometric coefficients are dyadic with at most 18
+        // fractional decimal digits. Retain every one in the pinned writer.
+        auto model = writer.Model();
+        auto protocol = occ::down_cast<StepData_Protocol>(model->Protocol());
+        if (protocol.IsNull()) {
+          throw std::runtime_error("independent STEP model has no protocol");
+        }
+        StepData_StepWriter exactWriter(model);
+        exactWriter.FloatWriter().SetFormat("%.18f", true);
+        exactWriter.SendModel(protocol);
+        std::ofstream output(argv[2]);
+        if (!output || !exactWriter.Print(output)) {
+          throw std::runtime_error("independent exact STEP writer failed");
+        }
+      } else if (writer.Write(argv[2]) != IFSelect_RetDone) {
         throw std::runtime_error("independent STEP writer failed");
       }
       return 0;

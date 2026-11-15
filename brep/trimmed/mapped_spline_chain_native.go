@@ -39,7 +39,7 @@ type MappedChainNativeOptions struct {
 // per-cell correspondence are re-proved before any bytes are written. This is
 // a standalone boundary format. Version 2 retains independently authored
 // whole coedge bases in addition to version 1's whole owner spline.
-// Versions 3 through 6 rederive the original support-knot repairs.
+// Versions 3 through 7 rederive the original support-knot repairs.
 func (r MappedSplineChainAgreement) WriteJSON(ctx context.Context, w io.Writer, o MappedChainNativeOptions) error {
 	if ctx == nil || w == nil || len(r.cuts) < 2 {
 		return geom.ErrInvalid
@@ -160,7 +160,7 @@ func ReadMappedSplineChainBoundaryJSON(ctx context.Context, r io.Reader, o Mappe
 	if e = decoder.Decode(&extra); e != io.EOF {
 		return zero, geom.ErrInvalid
 	}
-	if record.Version < 1 || record.Version > 6 || record.Kind != "mapped-spline-chain-boundary" || len(record.Owners) != 2 {
+	if record.Version < 1 || record.Version > 7 || record.Kind != "mapped-spline-chain-boundary" || len(record.Owners) != 2 {
 		return zero, geom.ErrInvalid
 	}
 	var chains [2]MappedSplineChain
