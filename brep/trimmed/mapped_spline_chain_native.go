@@ -105,9 +105,9 @@ func mappedChainNativeMax(n int64) (int64, error) {
 
 // ReadMappedSplineChainBoundaryJSON reconstructs the immutable original-span
 // proof and shared exact model positions. All source ranges, maps, C0 joins and
-// complete original support compositions are revalidated. No display or cached
-// proof payload is accepted. The result's certified polyline method is available
-// after load; native face fill/sewing remains deliberately unsupported.
+// complete original support compositions are revalidated. The result can
+// supply certified polylines or face fills. ReadMappedSplineChainShellJSON
+// loads complete original closing faces and seam incidence separately.
 func ReadMappedSplineChainBoundaryJSON(ctx context.Context, r io.Reader, o MappedChainNativeOptions) (MappedSplineChainAgreement, error) {
 	var zero MappedSplineChainAgreement
 	if ctx == nil || r == nil {

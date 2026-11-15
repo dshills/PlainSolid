@@ -81,9 +81,7 @@ type mappedChainClosedFaceMesh struct {
 // certified seam incidence and returns no partial shell on any failure.
 func (r MappedSplineChainAgreement) TessellateClosedCertified(ctx context.Context, closing [2][]PCurve, reversed [2]bool, planar []MappedChainPlanarFace, seams [][2]MappedChainClosedUse, o MappedChainClosedMeshOptions) (CertifiedMappedChainClosedMesh, error) {
 	var zero CertifiedMappedChainClosedMesh
-	if ctx == nil || len(r.cuts) < 2 || reversed[0] == reversed[1] ||
-		len(planar) == 0 || len(planar) > 14 || len(seams) > 64 ||
-		o.Collision.MaxPairs < 0 || o.Collision.MaxContacts < 0 {
+	if ctx == nil || o.Collision.MaxPairs < 0 || o.Collision.MaxContacts < 0 {
 		return zero, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -98,86 +96,25 @@ func (r MappedSplineChainAgreement) TessellateClosedCertified(ctx context.Contex
 	if o.MaxTriangles < 1 || o.MaxTriangles > collision.MaxTriangles || o.MaxRounds < 1 || o.MaxRounds > 8 {
 		return zero, geom.ErrInvalid
 	}
-	faceCount := 2 + len(planar)
+	source, err := r.mappedChainClosingSource(closing, reversed, planar, seams)
+	if err != nil {
+		return zero, err
+	}
+	faceCount := len(source.trims)
 	if o.MaxTriangles < faceCount {
 		return zero, geom.ErrConvergence
 	}
-	trims := make([][]PCurve, faceCount)
-	surfaces := make([]geom.Surface, faceCount)
+	for _, face := range o.Curved {
+		if face.Face.Cuts != nil {
+			return zero, geom.ErrInvalid
+		}
+	}
+	if err := source.proveSeams(ctx, seams, o.ClosingProof); err != nil {
+		return zero, err
+	}
 	faces := make([]mappedChainClosedFaceMesh, faceCount)
-	for owner := range closing {
-		if len(closing[owner]) < 1 || len(closing[owner]) > 16 || o.Curved[owner].Face.Cuts != nil {
-			return zero, geom.ErrInvalid
-		}
-		trims[owner], surfaces[owner], faces[owner].reversed = closing[owner], r.supports[owner], reversed[owner]
-	}
-	for i, p := range planar {
-		if len(p.Outer) < 2 || len(p.Outer) > 16 {
-			return zero, geom.ErrInvalid
-		}
-		trims[i+2], surfaces[i+2], faces[i+2].reversed = p.Outer, p.Surface, p.Reversed
-	}
-
-	used := make([][]bool, faceCount)
-	adjacent := make([][]int, faceCount)
-	adjacent[0], adjacent[1] = []int{1}, []int{0}
-	for f, loop := range trims {
-		used[f] = make([]bool, len(loop))
-	}
-	for _, seam := range seams {
-		a, b := seam[0].Face, seam[1].Face
-		if a == b {
-			return zero, geom.ErrInvalid
-		}
-		for _, u := range seam {
-			if u.Face < 0 || u.Face >= faceCount || u.Trim < 0 || u.Trim >= len(trims[u.Face]) || used[u.Face][u.Trim] {
-				return zero, geom.ErrInvalid
-			}
-			used[u.Face][u.Trim] = true
-		}
-		adjacent[a] = append(adjacent[a], b)
-		adjacent[b] = append(adjacent[b], a)
-	}
-	for _, loop := range used {
-		for _, paired := range loop {
-			if !paired {
-				return zero, geom.ErrInvalid
-			}
-		}
-	}
-	connected := make([]bool, faceCount)
-	connected[0] = true
-	queue := []int{0}
-	for i := 0; i < len(queue); i++ {
-		for _, f := range adjacent[queue[i]] {
-			if !connected[f] {
-				connected[f] = true
-				queue = append(queue, f)
-			}
-		}
-	}
-	if len(queue) != faceCount {
-		return zero, geom.ErrConvergence
-	}
-
-	limits := geom.SurfacePatchOptions{MaxOperations: o.ClosingProof.MaxWork, MaxCoefficientBits: o.ClosingProof.MaxBits}
-	for i, seam := range seams {
-		a, b := seam[0], seam[1]
-		da, err := polynomialTrimDescriptor(ctx, trims[a.Face][a.Trim], false, limits)
-		if err != nil {
-			return zero, fmt.Errorf("closing seam %d: %w", i, err)
-		}
-		db, err := polynomialTrimDescriptor(ctx, trims[b.Face][b.Trim], faces[a.Face].reversed == faces[b.Face].reversed, limits)
-		if err != nil {
-			return zero, fmt.Errorf("closing seam %d: %w", i, err)
-		}
-		equal, err := compareTrimCompositionsOnPlacedSplineSupports(ctx, surfaces[a.Face], da, surfaces[b.Face], db, o.ClosingProof)
-		if err != nil {
-			return zero, fmt.Errorf("closing seam %d agreement: %w", i, err)
-		}
-		if !equal {
-			return zero, fmt.Errorf("closing seam %d agreement: %w", i, geom.ErrConvergence)
-		}
+	for i, reversed := range source.reversed {
+		faces[i].reversed = reversed
 	}
 
 	boundary, err := r.TessellateCertified(ctx, o.Boundary)
@@ -276,17 +213,7 @@ func stitchMappedChainClosed(ctx context.Context, out CertifiedMappedChainClosed
 		triangles += len(f.mesh.Triangles)
 		offsets[i+1] = offsets[i] + len(f.mesh.Vertices)
 	}
-	parent := make([]int, offsets[len(faces)])
-	for i := range parent {
-		parent[i] = i
-	}
-	root := func(i int) int {
-		for parent[i] != i {
-			parent[i] = parent[parent[i]]
-			i = parent[i]
-		}
-		return i
-	}
+	weld := newExactVertexWeld(offsets[len(faces)])
 	share := func(a, idA, b, idB int) error {
 		if faces[a].mesh.Vertices[idA] != faces[b].mesh.Vertices[idB] {
 			return geom.ErrUnrepresentable
@@ -296,7 +223,7 @@ func stitchMappedChainClosed(ctx context.Context, out CertifiedMappedChainClosed
 				return geom.ErrConvergence
 			}
 		}
-		parent[root(offsets[b]+idB)] = root(offsets[a] + idA)
+		weld.join(offsets[a]+idA, offsets[b]+idB)
 		return nil
 	}
 
@@ -338,7 +265,7 @@ func stitchMappedChainClosed(ctx context.Context, out CertifiedMappedChainClosed
 		}
 		ids := make([]int, len(f.mesh.Vertices))
 		for j, p := range f.mesh.Vertices {
-			representative := root(offsets[i] + j)
+			representative := weld.root(offsets[i] + j)
 			id, ok := global[representative]
 			if !ok {
 				if _, exists := positions[p]; exists {

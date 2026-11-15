@@ -125,49 +125,13 @@ func tessellateMixedExactAffineRegionCuts(ctx context.Context, p *geom.SurfacePa
 	if e != nil {
 		return empty, e
 	}
-	d := p.Domain()
-	domain, e := newFaceDomainBudget(o.DomainSubdivisions, o.DomainDepth)
+	proof, domainSubdivisions, e := proveMixedExactTrimLoops(ctx, p.Domain(), input, o.DomainSubdivisions, o.DomainDepth, o.Topology)
 	if e != nil {
 		return empty, e
 	}
-	bounds := [2][2]*big.Rat{{ratInset(d.UMin), ratInset(d.UMax)}, {ratInset(d.VMin), ratInset(d.VMax)}}
-	source := make([]trimvalidate.Loop, len(input))
 	owned := make([][]PCurve, len(input))
 	for li, loop := range input {
-		source[li] = make(trimvalidate.Loop, len(loop))
 		owned[li] = append([]PCurve(nil), loop...)
-		for j, c := range loop {
-			h, e := mixedExactControls(c)
-			if e != nil {
-				return empty, e
-			}
-			outside := false
-			for _, q := range h {
-				if q[0] == nil || q[1] == nil || q[2] == nil || q[2].Sign() <= 0 {
-					return empty, geom.ErrInvalid
-				}
-				u, v := new(big.Rat).Quo(q[0], q[2]), new(big.Rat).Quo(q[1], q[2])
-				if u.Cmp(ratInset(d.UMin)) < 0 || u.Cmp(ratInset(d.UMax)) > 0 || v.Cmp(ratInset(d.VMin)) < 0 || v.Cmp(ratInset(d.VMax)) > 0 {
-					outside = true
-				}
-			}
-			if outside {
-				if e := domain.prove(ctx, h, bounds, 16384); e != nil {
-					return empty, e
-				}
-			}
-			source[li][j], e = trimvalidate.ExactBezier(h)
-			if e != nil {
-				return empty, e
-			}
-		}
-	}
-	proof, e := trimvalidate.ValidateLoops(ctx, source[0], source[1:], o.Topology)
-	if e != nil {
-		return empty, e
-	}
-	if proof.Status != trimvalidate.Certified {
-		return empty, geom.ErrConvergence
 	}
 	region := AffineQuadraticTrimRegionArea{FillSquaredDistance: new(big.Rat), PolygonUVArea: new(big.Rat), SourceProof: proof}
 	var samples []MixedExactTrimSamples
@@ -340,7 +304,7 @@ func tessellateMixedExactAffineRegionCuts(ctx context.Context, p *geom.SurfacePa
 			samples[i].Vertices[j] = ids[id]
 		}
 	}
-	return CertifiedMixedExactAffineMesh{DomainSubdivisions: domain.used, CertifiedAffineQuadraticTrimMesh: filled, Source: owned, Samples: samples, SourceProof: proof, PolygonProof: polygonProof}, nil
+	return CertifiedMixedExactAffineMesh{DomainSubdivisions: domainSubdivisions, CertifiedAffineQuadraticTrimMesh: filled, Source: owned, Samples: samples, SourceProof: proof, PolygonProof: polygonProof}, nil
 }
 func mixedExactControls(c PCurve) ([][3]*big.Rat, error) {
 	switch q := c.(type) {
@@ -380,4 +344,51 @@ func mixedExactCells(ctx context.Context, p *geom.SurfacePatch, c PCurve, o geom
 		return q.ModelCurveCells(ctx, p, o)
 	}
 	return geom.SurfaceCurveCompositionCells{}, geom.ErrInvalid
+}
+
+// proveMixedExactTrimLoops validates the original chart domain and Jordan loops
+// without constructing a chord polygon or evaluating any display samples.
+func proveMixedExactTrimLoops(ctx context.Context, d geom.ParameterRectangle, input [][]PCurve, maxSubdivisions, maxDepth int, topology trimvalidate.Options) (trimvalidate.Report, int, error) {
+	domain, e := newFaceDomainBudget(maxSubdivisions, maxDepth)
+	if e != nil {
+		return trimvalidate.Report{}, 0, e
+	}
+	bounds := [2][2]*big.Rat{{ratInset(d.UMin), ratInset(d.UMax)}, {ratInset(d.VMin), ratInset(d.VMax)}}
+	source := make([]trimvalidate.Loop, len(input))
+	for li, loop := range input {
+		source[li] = make(trimvalidate.Loop, len(loop))
+		for j, c := range loop {
+			h, e := mixedExactControls(c)
+			if e != nil {
+				return trimvalidate.Report{}, 0, e
+			}
+			outside := false
+			for _, q := range h {
+				if q[0] == nil || q[1] == nil || q[2] == nil || q[2].Sign() <= 0 {
+					return trimvalidate.Report{}, 0, geom.ErrInvalid
+				}
+				u, v := new(big.Rat).Quo(q[0], q[2]), new(big.Rat).Quo(q[1], q[2])
+				if u.Cmp(bounds[0][0]) < 0 || u.Cmp(bounds[0][1]) > 0 || v.Cmp(bounds[1][0]) < 0 || v.Cmp(bounds[1][1]) > 0 {
+					outside = true
+				}
+			}
+			if outside {
+				if e := domain.prove(ctx, h, bounds, 16384); e != nil {
+					return trimvalidate.Report{}, 0, e
+				}
+			}
+			source[li][j], e = trimvalidate.ExactBezier(h)
+			if e != nil {
+				return trimvalidate.Report{}, 0, e
+			}
+		}
+	}
+	proof, e := trimvalidate.ValidateLoops(ctx, source[0], source[1:], topology)
+	if e != nil {
+		return trimvalidate.Report{}, 0, e
+	}
+	if proof.Status != trimvalidate.Certified {
+		return trimvalidate.Report{}, 0, geom.ErrConvergence
+	}
+	return proof, domain.used, nil
 }

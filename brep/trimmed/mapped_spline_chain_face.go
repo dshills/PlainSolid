@@ -74,30 +74,22 @@ func (r MappedSplineChainAgreement) tessellateFaceWithBoundary(ctx context.Conte
 	if o.Face.Cuts != nil {
 		return zero, geom.ErrInvalid
 	}
-	var outer []PCurve
-	var cuts [][]*big.Rat
-	for i := 0; i+1 < len(r.cuts); i++ {
-		q, e := r.sources[owner].cell(r.cuts[i], r.cuts[i+1])
-		if e != nil {
-			return zero, e
-		}
-		outer = append(outer, q)
-		var local []*big.Rat
-		width := new(big.Rat).Sub(r.cuts[i+1], r.cuts[i])
-		for _, v := range boundary.Vertices {
-			t := v.ModelParameter
-			if t.Cmp(r.cuts[i]) >= 0 && t.Cmp(r.cuts[i+1]) <= 0 {
-				local = append(local, new(big.Rat).Quo(new(big.Rat).Sub(t, r.cuts[i]), width))
+	outer, e := r.mappedChainOwnerOuter(owner, closing)
+	if e != nil {
+		return zero, e
+	}
+	cuts := prescribed
+	if cuts == nil {
+		cuts = make([][]*big.Rat, len(outer))
+		for i := 0; i+1 < len(r.cuts); i++ {
+			width := new(big.Rat).Sub(r.cuts[i+1], r.cuts[i])
+			for _, v := range boundary.Vertices {
+				t := v.ModelParameter
+				if t.Cmp(r.cuts[i]) >= 0 && t.Cmp(r.cuts[i+1]) <= 0 {
+					cuts[i] = append(cuts[i], new(big.Rat).Quo(new(big.Rat).Sub(t, r.cuts[i]), width))
+				}
 			}
 		}
-		cuts = append(cuts, local)
-	}
-	outer = append(outer, closing...)
-	for range closing {
-		cuts = append(cuts, nil)
-	}
-	if prescribed != nil {
-		cuts = prescribed
 	}
 	o.Face.Cuts = [][][]*big.Rat{cuts}
 	p, e := exactSplineSupportPatch(r.supports[owner], o.Face.Boundary.Composition.SurfacePatchOptions)
@@ -152,4 +144,16 @@ func (r MappedSplineChainAgreement) tessellateFaceWithBoundary(ctx context.Conte
 		}
 	}
 	return out, nil
+}
+
+func (r MappedSplineChainAgreement) mappedChainOwnerOuter(owner int, closing []PCurve) ([]PCurve, error) {
+	outer := make([]PCurve, 0, len(r.cuts)-1+len(closing))
+	for i := 0; i+1 < len(r.cuts); i++ {
+		q, err := r.sources[owner].cell(r.cuts[i], r.cuts[i+1])
+		if err != nil {
+			return nil, err
+		}
+		outer = append(outer, q)
+	}
+	return append(outer, closing...), nil
 }
