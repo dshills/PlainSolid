@@ -12,6 +12,10 @@ func writeStandalone(w io.Writer, unit float64, setKind, repKind string, geometr
 }
 
 func writeStandaloneWithUncertainty(w io.Writer, unit, uncertainty float64, setKind, repKind string, geometry func(func(string) int64) []int64) error {
+	return writeStandaloneWithUnit(w, unit, uncertainty, setKind, repKind, geometry, emitLengthUnit)
+}
+
+func writeStandaloneWithUnit(w io.Writer, unit, uncertainty float64, setKind, repKind string, geometry func(func(string) int64) []int64, emitUnit func(func(string) int64, float64) int64) error {
 	if !validLengthUnit(unit) {
 		return errors.New("step: invalid length unit")
 	}
@@ -25,7 +29,7 @@ func writeStandaloneWithUncertainty(w io.Writer, unit, uncertainty float64, setK
 	next := int64(1)
 	emit := func(s string) int64 { id := next; next++; line("#%d=%s;", id, s); return id }
 	line("ISO-10303-21;\nHEADER;\nFILE_DESCRIPTION(('PlainSolid geometry'),'2;1');\nFILE_NAME('geometry.step','1970-01-01T00:00:00',(''),(''),'PlainSolid','PlainSolid','');\nFILE_SCHEMA(('CONFIG_CONTROL_DESIGN'));\nENDSEC;\nDATA;")
-	length := emitLengthUnit(emit, unit)
+	length := emitUnit(emit, unit)
 	angle := emit("(NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.))")
 	solidAngle := emit("(NAMED_UNIT(*) SI_UNIT($,.STERADIAN.) SOLID_ANGLE_UNIT())")
 	unitContext := fmt.Sprintf("GLOBAL_UNIT_ASSIGNED_CONTEXT((#%d,#%d,#%d))", length, angle, solidAngle)

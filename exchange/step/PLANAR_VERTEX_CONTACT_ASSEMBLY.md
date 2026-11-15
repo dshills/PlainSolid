@@ -2,11 +2,18 @@
 
 `ReadVertexContactAssembly` and `WriteVertexContactAssembly` preserve
 separately indexed planar bodies and report their exact geometric
-vertex contacts. A regular advance-face file uses explicit straight model
+vertex contacts. A regular advanced-face file uses explicit straight model
 lines and planes. If the original edges carry parameter curves, both
 distinct incident owner charts must lift their directed lines exactly.
 Vertices must be exactly representable; two different source
 coordinates cannot be turned into a contact by rounding.
+
+The exact import checks source dimensional exponents and physical
+conversion factors before comparing body coordinates. SI prefixes, inch
+and foot use their exact defined ratios; other metre-per-unit values
+must be exactly representable. The writer preserves the same ratios
+when it composes an advanced cavity representation. Distinct conversion
+decimals that happen to round to the same binary64 value are rejected.
 
 `Proof.AllowCavities` admits standard advanced `BREP_WITH_VOIDS`
 bodies with an outward closed exterior and directly enclosed closed

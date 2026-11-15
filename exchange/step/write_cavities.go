@@ -106,7 +106,11 @@ func writePlanarCavitySTEPGraph(w io.Writer, flat Model, recipes []planarCavityS
 	if offset != len(ids) {
 		return errors.New("step: unclaimed composed planar shell records")
 	}
-	return writeStandalone(w, flat.LengthUnit, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
+	emitUnit := emitLengthUnit
+	if exact {
+		emitUnit = emitExactPlanarLengthUnit
+	}
+	return writeStandaloneWithUnit(w, flat.LengthUnit, 0, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
 		copied := map[int64]int64{}
 		var copyEntity func(int64) int64
 		var walk func(Value)
@@ -137,5 +141,5 @@ func writePlanarCavitySTEPGraph(w io.Writer, flat Model, recipes []planarCavityS
 			result = append(result, copyEntity(root.Ref))
 		}
 		return result
-	})
+	}, emitUnit)
 }

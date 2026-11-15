@@ -53,6 +53,15 @@ func TestPlanarVertexContactAssemblySTEPConcaveVoid(t *testing.T) {
 		t.Fatal("canonical STEP lost the standard void wrapper")
 	}
 	checkExactSTEPVoidSource(t, canonical.Bytes())
+	m.LengthUnit = .0254
+	var inch bytes.Buffer
+	if _, err := WriteVertexContactAssembly(ctx, &inch, m, o); err != nil || !bytes.Contains(inch.Bytes(), []byte("LENGTH_MEASURE(0.0254)")) {
+		t.Fatalf("exact composed cavity lost its physical inch declaration: %v", err)
+	}
+	if s, p, err := ReadVertexContactAssembly(ctx, bytes.NewReader(inch.Bytes()), o); err != nil || s.LengthUnit != .0254 || p.SignedVolume.RatString() != "441" {
+		t.Fatalf("inch cavity did not strictly reopen in original units: %v", err)
+	}
+	m.LengthUnit = .001
 	for _, change := range [][2][]byte{
 		{[]byte("#231 = ORIENTED_CLOSED_SHELL('',*,#232,.F.);"), []byte("#231 = ORIENTED_CLOSED_SHELL('',*,#232,.T.);")},
 		{[]byte("#231 = ORIENTED_CLOSED_SHELL('',*,#232,.F.);"), []byte("#231 = ORIENTED_CLOSED_SHELL('',*,#16,.F.);")},

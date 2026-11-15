@@ -87,6 +87,10 @@ func component(e Entity, name string) (Record, bool) {
 	return Record{}, false
 }
 func contextUnits(f *File, id int64) (float64, error) {
+	return contextUnitsWithExactPlanar(f, id, false)
+}
+
+func contextUnitsWithExactPlanar(f *File, id int64, exact bool) (float64, error) {
 	e, ok := f.Entities[id]
 	if !ok {
 		return 0, errors.New("step: missing context")
@@ -105,6 +109,12 @@ func contextUnits(f *File, id int64) (float64, error) {
 	dim, err := numeric(g.Args[0])
 	if err != nil || dim != 3 {
 		return 0, errors.New("step: only three-dimensional contexts supported")
+	}
+	if exact {
+		d, err := exactVertexContactPointNumber(g.Args[0])
+		if err != nil || d != 3 {
+			return 0, errors.New("step: exact planar context dimension must equal three")
+		}
 	}
 	r, ok := component(e, "REPRESENTATION_CONTEXT")
 	if !ok || len(r.Args) != 2 || r.Args[0].Kind != String || r.Args[1].Kind != String {
@@ -128,7 +138,7 @@ func contextUnits(f *File, id int64) (float64, error) {
 		if len(lengthRecord.Args) != 0 || unit != 0 {
 			return 0, errors.New("step: invalid or multiple length units")
 		}
-		unit, err = lengthUnit(f, id)
+		unit, err = lengthUnitWithExactPlanar(f, id, exact)
 		if err != nil {
 			return 0, err
 		}
@@ -199,7 +209,7 @@ func readPlanarModel(r io.Reader, l Limits, exactSupports, allowCavities bool) (
 		if e != nil {
 			return Model{}, e
 		}
-		unit, e := contextUnits(f, ctx)
+		unit, e := contextUnitsWithExactPlanar(f, ctx, exactSupports)
 		if e != nil {
 			return Model{}, e
 		}

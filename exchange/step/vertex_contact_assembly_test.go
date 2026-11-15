@@ -271,3 +271,40 @@ func TestPlanarVertexContactAssemblySTEPRejectsNearDeclaredSupports(t *testing.T
 		})
 	}
 }
+
+func TestPlanarVertexContactAssemblySTEPExactPhysicalUnits(t *testing.T) {
+	ctx := context.Background()
+	m := vertexContactSTEPFixture(t)
+	o := VertexContactSTEPOptions{}
+	for _, unit := range []float64{.0254, .3048, math.Nextafter(.1, 1)} {
+		m.LengthUnit = unit
+		var out bytes.Buffer
+		if _, err := WriteVertexContactAssembly(ctx, &out, m, o); err != nil {
+			t.Fatalf("exact unit %.17g writer: %v", unit, err)
+		}
+		r, p, err := ReadVertexContactAssembly(ctx, bytes.NewReader(out.Bytes()), o)
+		if err != nil || r.LengthUnit != unit || len(p.Contacts) != 1 {
+			t.Fatalf("exact unit %.17g changed physical context or contact: %v", unit, err)
+		}
+		if unit != .0254 {
+			continue
+		}
+		for _, c := range [][2]string{
+			{"LENGTH_MEASURE(0.0254)", "LENGTH_MEASURE(0.0254000000000000001)"},
+			{"DIMENSIONAL_EXPONENTS(1.,0.,0.,0.,0.,0.,0.)", "DIMENSIONAL_EXPONENTS(1.00000000000000001,0.,0.,0.,0.,0.,0.)"},
+			{"GEOMETRIC_REPRESENTATION_CONTEXT(3)", "GEOMETRIC_REPRESENTATION_CONTEXT(3.00000000000000001)"},
+		} {
+			mutant := bytes.Replace(out.Bytes(), []byte(c[0]), []byte(c[1]), 1)
+			if bytes.Equal(mutant, out.Bytes()) {
+				t.Fatalf("exact STEP writer lost expected declaration %q", c[0])
+			}
+			if legacy, err := Read(bytes.NewReader(mutant), Limits{}); err != nil || legacy.LengthUnit != unit {
+				t.Fatalf("mutation must be indistinguishable to ordinary numeric import: %v", err)
+			}
+			b, p, err := ReadVertexContactAssembly(ctx, bytes.NewReader(mutant), o)
+			if err == nil || len(b.Bodies) != 0 || p.SignedVolume != nil {
+				t.Fatalf("rounded physical context yielded an exact contact assembly: %q: %v", c[1], err)
+			}
+		}
+	}
+}

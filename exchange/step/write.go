@@ -98,8 +98,10 @@ func writePlanarModel(w io.Writer, m Model, advanced, exactSupports bool) error 
 		}
 	}
 	pointNumber := real
+	emitUnit := emitLengthUnit
 	if exactSupports {
 		pointNumber = exactVertexContactPointText
+		emitUnit = emitExactPlanarLengthUnit
 	}
 	floatDirection := func(d geom.Vec3) string {
 		return real(d.X) + "," + real(d.Y) + "," + real(d.Z)
@@ -114,7 +116,7 @@ func writePlanarModel(w io.Writer, m Model, advanced, exactSupports bool) error 
 	next := int64(1)
 	emit := func(s string) int64 { id := next; next++; line("#%d=%s;", id, s); return id }
 	line("ISO-10303-21;\nHEADER;\nFILE_DESCRIPTION(('PlainSolid faceted B-rep'),'2;1');\nFILE_NAME('model.step','1970-01-01T00:00:00',(''),(''),'PlainSolid','PlainSolid','');\nFILE_SCHEMA(('CONFIG_CONTROL_DESIGN'));\nENDSEC;\nDATA;")
-	length := emitLengthUnit(emit, m.LengthUnit)
+	length := emitUnit(emit, m.LengthUnit)
 	angle := emit("(NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.))")
 	solidAngle := emit("(NAMED_UNIT(*) SI_UNIT($,.STERADIAN.) SOLID_ANGLE_UNIT())")
 	uncertainty := emit(fmt.Sprintf("UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(1.E-7),#%d,'distance_accuracy_value','')", length))
