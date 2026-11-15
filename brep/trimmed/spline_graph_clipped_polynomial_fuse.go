@@ -177,6 +177,7 @@ func FuseClippedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BSpline
 		}
 	}
 	ledger := makePolynomialEnvelopeLedger(chains, binding.vertices, []int{binding.midpoints[1], binding.midpoints[4]}, faceIDs, ownerIDs, baseID, contacts[:])
+	solid.clippedFuseAxis = axis + 1
 	return &ClippedPolynomialFuse{solid: solid, sources: sources, axis: axis, tolerance: tolerance, ledger: ledger, walls: walls,
 		footprints: material.Footprints, volume: material.Fuse}, nil
 }
