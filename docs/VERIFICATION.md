@@ -199,6 +199,13 @@ kept its pristine hash. Raw results remain in
   measured volume changes of `-1.19703047079247` and `+0.817619549959659`.
   The exact tangent solver rejects irrational coordinates instead of
   fitting a nearby round.
+- Two incident original arcs now retain both exact tangent points and both
+  finite source maps through the rounded sweep. Pinned adaptive OCCT
+  integration agrees within `1e-9` on the signed volume and area changes for
+  both internal/internal and internal/external support contact. Default
+  nonadaptive OCCT integration was off by `2.2e-6` for volume; no Go
+  tolerance was widened. The focused fillet and editable document races
+  passed in 47.832 and 59.198 seconds.
 - Nonunit Cut and prior native Boolean cases passed the main trimmed race
   in 284.486 seconds. Both Cut orders retain the original sloping base and
   both independent roof owners. Independent physical integration agrees

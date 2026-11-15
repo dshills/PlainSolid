@@ -28,7 +28,7 @@ func mixedFilletLineArc(in, out trimmed.ExactCircularLoopSegment, radius float64
 	if in.Radius > 0 {
 		line, arc, lineFirst = out, in, false
 	}
-	dir, _, lineOK := mixedFilletAxis(line)
+	dir, lineOK := mixedFilletAxis(line)
 	if !lineOK || arc.Radius <= 0 {
 		return zero, fmt.Errorf("%w: expected an axis-aligned line and circular arc", ErrInvalid)
 	}
@@ -108,12 +108,7 @@ func mixedFilletLineArc(in, out trimmed.ExactCircularLoopSegment, radius float64
 		if chosen.radius > 0 {
 			return zero, fmt.Errorf("%w: ambiguous finite line-arc tangent branches", ErrRadius)
 		}
-		// From the arc tangent point, every point of the removed minor
-		// subarc is within its corner chord. The exact 1-norm bounds the
-		// chord, and convexity of the disk covers the removed line.
-		w := mixedFilletPoint(at, v)
-		reach := qa(r, qa(new(big.Rat).Abs(w[0]), new(big.Rat).Abs(w[1])))
-		chosen = mixedCornerRound{incoming: left, outgoing: right, center: o, radius: radius, reach: reach}
+		chosen = mixedCornerRound{incoming: left, outgoing: right, center: o, radius: radius, reach2: circularFilletReach2(o, at, r)}
 	}
 	if unrepresented {
 		return zero, geom.ErrUnrepresentable
@@ -122,4 +117,17 @@ func mixedFilletLineArc(in, out trimmed.ExactCircularLoopSegment, radius float64
 		return zero, ErrRadius
 	}
 	return chosen, nil
+}
+
+// The solved center lies on the same radial ray as each exact tangent
+// point. Its distance to that original circle increases monotonically with
+// the angle from the tangent on each removed minor arc. The corner and the
+// tangent points are therefore the farthest candidates; convexity covers
+// any removed straight segment.
+func circularFilletReach2(center, corner geom.Vec2, radius q) q {
+	r2, d2 := qm(radius, radius), squaredDistance(center, corner)
+	if d2.Cmp(r2) > 0 {
+		return d2
+	}
+	return r2
 }

@@ -23,23 +23,40 @@
 #include <vector>
 
 int main(int argc, char** argv) {
-    if (argc != 2 || (std::string_view(argv[1]) != "internal" && std::string_view(argv[1]) != "external"))
-        return 1;
-    const bool internal = std::string_view(argv[1]) == "internal";
-    const gp_Pnt corner(internal ? 6. : -4., 0., 0.);
-    const gp_Pnt end(internal ? 0. : 5., internal ? 18. : 3., 0.);
-    const gp_Pnt center(0., internal ? 8. : 3., 0.);
-    std::vector<gp_Pnt> rest = internal ? std::vector<gp_Pnt>{{-12., 18., 0.}, {-12., 0., 0.}} :
-                                         std::vector<gp_Pnt>{{5., 16., 0.}, {-20., 16., 0.}, {-20., 0., 0.}};
-    const Handle(Geom_Circle) circle = new Geom_Circle(gp_Ax2(center, gp_Dir(0., 0., 1.)), internal ? 10. : 5.);
+    if (argc != 2) return 1;
+    const std::string_view mode(argv[1]);
+    const bool internal = mode == "internal", mixed = mode == "mixed-arc-pair";
+    const bool pair = mode == "arc-pair" || mixed;
+    if (!internal && !pair && mode != "external") return 1;
+    gp_Pnt initial, corner, end;
+    std::vector<gp_Pnt> rest;
     BRepBuilderAPI_MakeWire wire;
-    wire.Add(BRepBuilderAPI_MakeEdge(circle, corner, end));
+    auto addArc = [&](const gp_Pnt& a, const gp_Pnt& b, const gp_Pnt& c, double radius, double sense) {
+        const Handle(Geom_Circle) circle = new Geom_Circle(gp_Ax2(c, gp_Dir(0., 0., sense)), radius);
+        wire.Add(BRepBuilderAPI_MakeEdge(circle, a, b));
+    };
+    if (pair) {
+        initial = mixed ? gp_Pnt(-1.25, -6.25, 0.) : gp_Pnt(-1.5, -6.5, 0.);
+        corner = mixed ? gp_Pnt(3.75, 3.75, 0.) : gp_Pnt(4.5, 2.5, 0.);
+        end = mixed ? gp_Pnt(2.5, 5., 0.) : gp_Pnt(-1.5, 5.5, 0.);
+        rest = mixed ? std::vector<gp_Pnt>{{2.5, 10., 0.}, {-12., 10., 0.}, {-12., -6.25, 0.}} :
+                       std::vector<gp_Pnt>{{-12., 5.5, 0.}, {-12., -6.5, 0.}};
+        addArc(initial, corner, gp_Pnt(initial.X(), 0., 0.), -initial.Y(), 1.);
+        addArc(corner, end, mixed ? gp_Pnt(3.75, 5., 0.) : gp_Pnt(-1.5, -2., 0.),
+               mixed ? 1.25 : 7.5, mixed ? -1. : 1.);
+    } else {
+        initial = corner = gp_Pnt(internal ? 6. : -4., 0., 0.);
+        end = gp_Pnt(internal ? 0. : 5., internal ? 18. : 3., 0.);
+        rest = internal ? std::vector<gp_Pnt>{{-12., 18., 0.}, {-12., 0., 0.}} :
+                          std::vector<gp_Pnt>{{5., 16., 0.}, {-20., 16., 0.}, {-20., 0., 0.}};
+        addArc(corner, end, gp_Pnt(0., internal ? 8. : 3., 0.), internal ? 10. : 5., 1.);
+    }
     gp_Pnt from = end;
     for (const auto& to : rest) {
         wire.Add(BRepBuilderAPI_MakeEdge(from, to));
         from = to;
     }
-    wire.Add(BRepBuilderAPI_MakeEdge(from, corner));
+    wire.Add(BRepBuilderAPI_MakeEdge(from, initial));
     if (!wire.IsDone()) return 2;
     BRepBuilderAPI_MakeFace face(wire.Wire());
     if (!face.IsDone()) return 2;
@@ -55,7 +72,8 @@ int main(int argc, char** argv) {
         if (first.IsNull() || last.IsNull()) continue;
         const auto p = BRep_Tool::Pnt(first), q = BRep_Tool::Pnt(last);
         if (std::abs(p.Z()-q.Z()) > 1. &&
-            std::hypot(p.X()-corner.X(), p.Y()) < 1e-8 && std::hypot(q.X()-corner.X(), q.Y()) < 1e-8) {
+            std::hypot(p.X()-corner.X(), p.Y()-corner.Y()) < 1e-8 &&
+            std::hypot(q.X()-corner.X(), q.Y()-corner.Y()) < 1e-8) {
             fillet.Add(5., edge);
             found = true;
             break;
@@ -65,10 +83,10 @@ int main(int argc, char** argv) {
     fillet.Build();
     if (!fillet.IsDone() || !BRepCheck_Analyzer(fillet.Shape()).IsValid()) return 5;
     GProp_GProps v0, v1, a0, a1;
-    BRepGProp::VolumeProperties(stock, v0);
-    BRepGProp::VolumeProperties(fillet.Shape(), v1);
-    BRepGProp::SurfaceProperties(stock, a0);
-    BRepGProp::SurfaceProperties(fillet.Shape(), a1);
+    BRepGProp::VolumeProperties(stock, v0, 1e-12);
+    BRepGProp::VolumeProperties(fillet.Shape(), v1, 1e-12);
+    BRepGProp::SurfaceProperties(stock, a0, 1e-12);
+    BRepGProp::SurfaceProperties(fillet.Shape(), a1, 1e-12);
     std::cout << std::setprecision(17) << "{\"volumeChange\":" << v1.Mass()-v0.Mass()
               << ",\"areaChange\":" << a1.Mass()-a0.Mass() << "}\n";
 }

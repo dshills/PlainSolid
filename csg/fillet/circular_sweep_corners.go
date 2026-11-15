@@ -45,18 +45,18 @@ type CircularSweepCornerResult struct {
 type mixedCornerRound struct {
 	incoming, outgoing, center geom.Vec2
 	radius                     float64
-	reach                      q
+	reach2                     q
 }
 
-func mixedFilletAxis(curve trimmed.ExactCircularLoopSegment) (orthogonalDirection, q, bool) {
+func mixedFilletAxis(curve trimmed.ExactCircularLoopSegment) (orthogonalDirection, bool) {
 	if curve.Radius != 0 {
-		return orthogonalDirection{}, nil, false
+		return orthogonalDirection{}, false
 	}
 	x, y := qs(num(curve.End.X), num(curve.Start.X)), qs(num(curve.End.Y), num(curve.Start.Y))
 	if (x.Sign() == 0) == (y.Sign() == 0) {
-		return orthogonalDirection{}, nil, false
+		return orthogonalDirection{}, false
 	}
-	return orthogonalDirection{int64(x.Sign()), int64(y.Sign())}, new(big.Rat).Abs(qa(x, y)), true
+	return orthogonalDirection{int64(x.Sign()), int64(y.Sign())}, true
 }
 
 func mixedFilletPoint(a, b geom.Vec2) [2]q {
@@ -65,8 +65,7 @@ func mixedFilletPoint(a, b geom.Vec2) [2]q {
 func mixedFilletDot(a, b [2]q) q   { return qa(qm(a[0], b[0]), qm(a[1], b[1])) }
 func mixedFilletCross(a, b [2]q) q { return qs(qm(a[0], b[1]), qm(a[1], b[0])) }
 
-func mixedFilletDiskClear(center geom.Vec2, r q, s trimmed.ExactCircularLoopSegment) bool {
-	r2 := qm(r, r)
+func mixedFilletDiskClear(center geom.Vec2, r2 q, s trimmed.ExactCircularLoopSegment) bool {
 	if squaredDistance(center, s.Start).Cmp(r2) <= 0 || squaredDistance(center, s.End).Cmp(r2) <= 0 {
 		return false
 	}
@@ -83,18 +82,25 @@ func mixedFilletDiskClear(center geom.Vec2, r q, s trimmed.ExactCircularLoopSegm
 	r0 := num(s.Radius)
 	d := mixedFilletPoint(center, s.Center)
 	D := mixedFilletDot(d, d)
-	sum, diff := qa(r, r0), qs(r0, r)
-	if D.Cmp(qm(sum, sum)) > 0 || diff.Sign() > 0 && D.Cmp(qm(diff, diff)) < 0 {
+	r02 := qm(r0, r0)
+	// |sqrt(D)-r0|² > r2, compared exactly without extracting roots.
+	gap := qs(qa(D, r02), r2)
+	if gap.Sign() > 0 && qm(gap, gap).Cmp(qm(big.NewRat(4, 1), qm(D, r02))) > 0 {
 		return true
 	}
 	if D.Sign() == 0 {
-		return r0.Cmp(r) > 0
+		return r02.Cmp(r2) > 0
 	}
 	// Endpoints are already clear. The only possible interior minimum
 	// is the support-circle point on the ray towards the disk center.
 	a, b := mixedFilletPoint(s.Start, s.Center), mixedFilletPoint(s.End, s.Center)
 	orientation := mixedFilletCross(a, b).Sign()
 	return mixedFilletCross(a, d).Sign()*orientation < 0 || mixedFilletCross(d, b).Sign()*orientation < 0
+}
+
+func mixedFilletDisksSeparated(distance2, r2, s2 q) bool {
+	gap := qs(qs(distance2, r2), s2)
+	return gap.Sign() > 0 && qm(gap, gap).Cmp(qm(big.NewRat(4, 1), qm(r2, s2))) > 0
 }
 
 func mixedFilletTangent(c geom.Vec2, prev, next orthogonalDirection, r float64) (mixedCornerRound, error) {
@@ -112,12 +118,12 @@ func mixedFilletTangent(c geom.Vec2, prev, next orthogonalDirection, r float64) 
 		return mixedCornerRound{}, geom.ErrUnrepresentable
 	}
 	// The disk with twice the radius also contains the original sharp corner.
-	return mixedCornerRound{incoming: in, outgoing: out, center: center, radius: r, reach: qm(rad, big.NewRat(2, 1))}, nil
+	return mixedCornerRound{incoming: in, outgoing: out, center: center, radius: r, reach2: qm(qm(rad, rad), big.NewRat(4, 1))}, nil
 }
 
-// CircularSweepCorners rounds selected orthogonal line junctions or an
-// axis-aligned line meeting a circular arc on an already curved model-Z
-// sweep. A line-arc round requires exactly representable tangent points and
+// CircularSweepCorners rounds selected orthogonal line junctions, an
+// axis-aligned line meeting a circular arc, or two circular arcs, on a model-Z
+// sweep. A curved round requires exactly representable tangent points and
 // center. All arcs and holes retain their original supports. Every corner
 // influence region is separated from all nonincident spans and other rounds.
 func CircularSweepCorners(ctx context.Context, source trimmed.ExactCircularSweep, selection []CircularSweepCorner, o OrthogonalPrismOptions) (CircularSweepCornerResult, error) {
@@ -164,14 +170,18 @@ func CircularSweepCorners(ctx context.Context, source trimmed.ExactCircularSweep
 		}
 		ring := rings[s.Ring]
 		prev := (s.Corner + len(ring) - 1) % len(ring)
-		da, _, a := mixedFilletAxis(ring[prev])
-		db, _, b := mixedFilletAxis(ring[s.Corner])
+		in, out := ring[prev], ring[s.Corner]
+		da, a := mixedFilletAxis(in)
+		db, b := mixedFilletAxis(out)
 		var round mixedCornerRound
 		var err error
-		if a && b {
-			round, err = mixedFilletTangent(ring[s.Corner].Start, da, db, s.Radius)
-		} else {
-			round, err = mixedFilletLineArc(ring[prev], ring[s.Corner], s.Radius)
+		switch {
+		case a && b:
+			round, err = mixedFilletTangent(out.Start, da, db, s.Radius)
+		case in.Radius > 0 && out.Radius > 0:
+			round, err = mixedFilletArcPair(in, out, s.Radius)
+		default:
+			round, err = mixedFilletLineArc(in, out, s.Radius)
 		}
 		if err != nil {
 			return zero, err
@@ -184,7 +194,7 @@ func CircularSweepCorners(ctx context.Context, source trimmed.ExactCircularSweep
 				if err := tick(); err != nil {
 					return zero, err
 				}
-				if !mixedFilletDiskClear(round.center, round.reach, edge) {
+				if !mixedFilletDiskClear(round.center, round.reach2, edge) {
 					return zero, fmt.Errorf("%w: fillet influence at ring %d corner %d reaches original ring %d span %d", ErrRadius, s.Ring, s.Corner, i, j)
 				}
 			}
@@ -193,8 +203,7 @@ func CircularSweepCorners(ctx context.Context, source trimmed.ExactCircularSweep
 			if err := tick(); err != nil {
 				return zero, err
 			}
-			r := qa(round.reach, other.reach)
-			if squaredDistance(round.center, other.center).Cmp(qm(r, r)) <= 0 {
+			if !mixedFilletDisksSeparated(squaredDistance(round.center, other.center), round.reach2, other.reach2) {
 				return zero, fmt.Errorf("%w: selected fillet influence regions meet", ErrRadius)
 			}
 		}

@@ -114,6 +114,8 @@ Named corner rounds on mixed line-and-arc profiles retain the original arcs,
 shortened straight spans, and independent holes through edits and reopen.
 Rounds at an axis-aligned line meeting an original circle cover internal
 and external tangency, keeping the shortened circle's exact parameter map.
+Two incident original arcs can also be rounded in the represented domain,
+with separate parameter maps even when the arcs turn in different directions.
 Complete equal curved caps also join, leaving one common original rim.
 Different original rim partitions are now refined to exactly shared stations;
 native and document replay re-prove the two directed source parameter maps.
@@ -130,7 +132,7 @@ Five separated fillets on an original OCCT tilted pentagonal prism now qualify
 original millimetre STEP with both independent antipodal owners. The native
 race on `491b18f1` and ordinary Go on `5181d219` are still running. Vet and
 Windows amd64 cross-build pass on `12ab5dbf`. Current work covers tangent
-rounds between original arcs, oblique physical roof charts,
+rounds on oblique line profiles, oblique physical roof charts,
 non-dyadic rational mapped model parameters and converted
 five-fillet STEP originals. Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
