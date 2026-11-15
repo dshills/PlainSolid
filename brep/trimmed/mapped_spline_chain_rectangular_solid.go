@@ -11,12 +11,14 @@ import (
 
 // MappedChainRectangularSolid is an opt-in material construction. ChainEdges
 // follows the common original model-station order, and ClosingEdges follows the
-// declared closing seams. The native solid's face order preserves source IDs.
+// declared closing seams. ChainStations gives the original global parameter
+// range of each chain edge. The native solid's face order preserves source IDs.
 type MappedChainRectangularSolid struct {
-	Solid        Solid
-	ChainEdges   []int
-	ClosingEdges []int
-	Embedding    MappedChainRectangularEmbedding
+	Solid         Solid
+	ChainEdges    []int
+	ChainStations []*big.Rat
+	ClosingEdges  []int
+	Embedding     MappedChainRectangularEmbedding
 }
 
 // BuildRectangularSolid proves continuous source embedding before creating a
@@ -115,7 +117,7 @@ func (r MappedSplineChainShell) BuildRectangularSolid(ctx context.Context, toler
 	if err = validateNativeExactQuadratics(ctx, solid); err != nil {
 		return zero, fmt.Errorf("native mapped chain solid: %w", err)
 	}
-	out := MappedChainRectangularSolid{Solid: solid, Embedding: embedding}
+	out := MappedChainRectangularSolid{Solid: solid, Embedding: embedding, ChainStations: r.boundary.ModelCuts()}
 	for i := range edges {
 		if i < nCells {
 			out.ChainEdges = append(out.ChainEdges, i)
