@@ -135,6 +135,8 @@ original roof charts. Common, Fuse and both Cut orders also qualify a
 translated nonunit axis-aligned footprint with a sloping original base.
 Common, Fuse and both Cut orders also preserve both original roof and wall
 trims over a nonorthogonal parallelogram with a sloping original base.
+Native Common also covers proved partial and nested axis-aligned footprint
+overlaps, retaining the original roofs and the owning walls.
 Independently authored unsplit STEP Béziers, including a spatially
 nonplanar cubic, keep three inferred events with mixed joint and independent
 support ownership. The independently authored rational cubic keeps exact
@@ -148,12 +150,13 @@ All five now pass the focused ordinary, native race and actual Node/WASM
 checks with the original radial normals restored. A new full ordinary Go
 run and full PlainCAD run are progressing on immutable `ab33a412`.
 An independent tilted STEP bore now qualifies strict source authentication
-of both original cap holes and the inward-cylinder seam.
+of both original cap holes and the inward-cylinder seam, exact native
+material, and strict canonical STEP reopen.
 Vet and Windows amd64 cross-build pass on `ab33a412`. The converted five-fillet
 inputs passed the focused native bridge and both actual WASM runtimes, with
 one legacy timing retry recorded. Current work covers analytic cap overlay
-physically different footprints, analytic multi-inset exchange,
-native tilted bore replay and rational off-seam support charts.
+physical complement regions, analytic multi-inset exchange, the tilted
+bore PlainCAD route and rational off-seam support charts.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
 

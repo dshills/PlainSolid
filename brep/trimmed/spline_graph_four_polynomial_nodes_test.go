@@ -117,17 +117,19 @@ func polynomialPairSourceEnvelopeAreaOnVectors(fuse bool, stations []float64, br
 		interior := func(v float64) float64 { return value(u, v, !fuse) }
 		return integrate(0, lo, exterior) + integrate(lo, hi, interior) + integrate(hi, 1, exterior)
 	}
-	area := areaScale(base[1], base[2])
+	uMin, uMax := stations[0], stations[len(stations)-1]
+	area := areaScale(base[1], base[2]) * (uMax - uMin)
 	for i := range stations[:len(stations)-1] {
 		area += integrate(stations[i], stations[i+1], func(u float64) float64 { return fiber(u, roofJacobian) })
 	}
 	// Each wall is a vertical fiber over an original domain side.
-	for _, edge := range []float64{0, 1} {
-		thickness := func(u, v float64, raised bool) float64 {
-			return roofHeight(u, v, raised) - (base[0] + base[1]*u + base[2]*v)
-		}
-		area += freeLength * integrate(0, 1, func(u float64) float64 { return thickness(u, edge, fuse) })
-		area += dependentLength * fiber(edge, thickness)
+	thickness := func(u, v float64, raised bool) float64 {
+		return roofHeight(u, v, raised) - (base[0] + base[1]*u + base[2]*v)
+	}
+	for i, uEdge := range [2]float64{uMin, uMax} {
+		vEdge := float64(i)
+		area += freeLength * integrate(uMin, uMax, func(u float64) float64 { return thickness(u, vEdge, fuse) })
+		area += dependentLength * fiber(uEdge, thickness)
 	}
 	return area
 }

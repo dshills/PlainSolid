@@ -302,7 +302,20 @@ kept its pristine hash. Raw results remain in
   solid with volume `28.096231102869` and area `73.084237522361`.
   The focused main race passed in 16.957 seconds, including the original
   blind control and edited owner rejection. The source proof alone does
-  not widen the default STEP reader.
+  not widen the default STEP reader. Exact native reconstruction and
+  strict canonical reopen passed the broader main race in 98.134 seconds,
+  including preserved exterior-only paths. Canonical OCCT readback retains
+  one 11-face solid with four inward bore patches and matching volume,
+  area and centroid. Altered cap winding, borrowed loops and missing or
+  reversed bore walls reject.
+- Native Common on distinct partially overlapping or nested axis-aligned
+  footprints retains the exact original roof charts, the original sloping
+  base and the source ownership of all clipped walls. One-axis and two-axis
+  physical volumes are independently `493395797792490953145/41216943789694779392`
+  and `370046848335928793529/41216943789694779392`. Main exact clipping
+  and trimmed races passed in 14.903 and 169.686 seconds; 60 previous
+  recipe digests matched in isolation. Face-touch-only footprints,
+  gaps, nonbinary owner bounds and edited original extents reject.
 
 - Quintic native Common/Fuse and Cut with three transverse crossings and a
   quadratic tangency, plus exact curved inner wires, passed a combined main
