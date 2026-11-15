@@ -22,6 +22,9 @@ type ConvexArcCylinderSpanOwner struct {
 	// RepairedToOwner is [offset, scale] for the finite affine map from
 	// repaired model parameter to original spline parameter, when needed.
 	RepairedToOwner *[2]*big.Rat `json:",omitempty"`
+	// ClippedOwnerParameters are the actual directed stations after bounding
+	// an original model projection that falls outside the authored knots.
+	ClippedOwnerParameters *[2]*big.Rat `json:",omitempty"`
 	// ModelAngleBounds encloses the two directed model angles independently.
 	// When present, normalized travel pairs the model arc with the full knots.
 	ModelAngleBounds *[2][2]*big.Rat `json:",omitempty"`
@@ -41,6 +44,9 @@ func copyConvexArcCylinderSpanOwners(spans []ConvexArcCylinderSpanOwner) []Conve
 		}
 		if mapping := out[i].RepairedToOwner; mapping != nil {
 			out[i].RepairedToOwner = &[2]*big.Rat{new(big.Rat).Set(mapping[0]), new(big.Rat).Set(mapping[1])}
+		}
+		if clipped := out[i].ClippedOwnerParameters; clipped != nil {
+			out[i].ClippedOwnerParameters = &[2]*big.Rat{new(big.Rat).Set(clipped[0]), new(big.Rat).Set(clipped[1])}
 		}
 		if bounds := out[i].ModelAngleBounds; bounds != nil {
 			out[i].ModelAngleBounds = new([2][2]*big.Rat)
@@ -103,7 +109,7 @@ func readConvexArcCylinderSpan(f *File, q ConvexArcPCurveAgreement) (ConvexArcCy
 	return out, nil
 }
 
-func boundConvertedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurveAgreement, model int64, tolSquared *big.Rat, conversion *convertedConvexArcLength, trim *ConvexArcAxialTrimRepair, reversal *ConvexArcRepairReversal, allowShifted bool) (ConvexArcCylinderSpanOwner, string, *big.Rat, error) {
+func boundConvertedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurveAgreement, model int64, tolSquared *big.Rat, conversion *convertedConvexArcLength, trim *ConvexArcAxialTrimRepair, reversal *ConvexArcRepairReversal, segments int) (ConvexArcCylinderSpanOwner, string, *big.Rat, error) {
 	var zero ConvexArcCylinderSpanOwner
 	span, err := readConvexArcCylinderSpan(src, q)
 	if err != nil {
@@ -133,10 +139,26 @@ func boundConvertedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurve
 			return zero, "", nil, geom.ErrDomain
 		}
 		original, repaired := intervals[0], intervals[1]
-		for _, t := range original {
-			if t.Cmp(span.ParameterInterval[0]) < 0 || t.Cmp(span.ParameterInterval[1]) > 0 {
+		owner := original
+		clipped := false
+		for i, t := range original {
+			switch {
+			case t.Cmp(span.ParameterInterval[0]) < 0:
+				owner[i] = span.ParameterInterval[0]
+			case t.Cmp(span.ParameterInterval[1]) > 0:
+				owner[i] = span.ParameterInterval[1]
+			default:
+				continue
+			}
+			excess := new(big.Rat).Sub(t, owner[i])
+			excess.Mul(excess, conversion.modelSpeed)
+			if segments != 8 || trim == nil || excess.Mul(excess, excess).Cmp(tolSquared) > 0 {
 				return zero, "", nil, geom.ErrDomain
 			}
+			clipped = true
+		}
+		if owner[1].Cmp(owner[0]) != original[1].Cmp(original[0]) {
+			return zero, "", nil, geom.ErrDomain
 		}
 		for i := range d {
 			if d[i].Cmp(new(big.Rat).Mul(z[i], conversion.modelSpeed)) != 0 {
@@ -144,34 +166,53 @@ func boundConvertedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurve
 			}
 		}
 		if trim != nil {
-			// Map corresponding endpoints, preserving direction and staying
-			// inside the authored spline knots even if a repaired end moved.
-			scale := new(big.Rat).Quo(new(big.Rat).Sub(original[1], original[0]), new(big.Rat).Sub(repaired[1], repaired[0]))
-			offset := new(big.Rat).Sub(original[0], new(big.Rat).Mul(scale, repaired[0]))
+			// Map corresponding endpoints, preserving direction inside the
+			// authored knots. The trim retains the original LINE stations.
+			scale := new(big.Rat).Quo(new(big.Rat).Sub(owner[1], owner[0]), new(big.Rat).Sub(repaired[1], repaired[0]))
+			offset := new(big.Rat).Sub(owner[0], new(big.Rat).Mul(scale, repaired[0]))
 			span.RepairedToOwner = &[2]*big.Rat{offset, scale}
 		}
+		var originalPoint []*big.Rat
+		if clipped {
+			span.ClippedOwnerParameters = &owner
+			originalPoint, _, err = convexUVLine(src, model, 3)
+			if err != nil {
+				return zero, "", nil, err
+			}
+		}
 		// With constant u, the difference between the traversed spline and
-		// repaired line is affine. Its squared norm is bounded at endpoints.
+		// either LINE is affine. Its squared norm is bounded at endpoints.
 		upper := new(big.Rat)
-		for i, t := range original {
+		for i, t := range owner {
 			v := new(big.Rat).Add(uv[1], new(big.Rat).Mul(slope[1], t))
-			v.Sub(v, new(big.Rat).Mul(conversion.modelSpeed, repaired[i]))
-			bound, err := boundConvexArcCylinderLine(o, x, y, z, p, radius, uv[0], v)
+			repairedV := new(big.Rat).Sub(v, new(big.Rat).Mul(conversion.modelSpeed, repaired[i]))
+			bound, err := boundConvexArcCylinderLine(o, x, y, z, p, radius, uv[0], repairedV)
 			if err != nil {
 				return zero, "", nil, err
 			}
 			if bound.Cmp(upper) > 0 {
 				upper = bound
 			}
+			if clipped {
+				originalV := new(big.Rat).Sub(v, new(big.Rat).Mul(conversion.modelSpeed, original[i]))
+				bound, err = boundConvexArcCylinderLine(o, x, y, z, [3]*big.Rat(originalPoint), radius, uv[0], originalV)
+				if err != nil {
+					return zero, "", nil, err
+				}
+				if bound.Cmp(upper) > 0 {
+					upper = bound
+				}
+			}
 		}
 		return span, "finite-cylinder-line", upper, nil
 	case "CIRCLE":
+		allowQuarter := segments == 8
 		mo, mx, my, mz, err := convexUVFrame(src, curve[0].Args[1].Ref)
 		increment, kind := big.NewRat(1, 1), "finite-cylinder-circle"
 		if reversal != nil {
 			increment, kind = big.NewRat(-1, 1), "finite-reversed-cylinder-circle"
 		}
-		if err != nil || uv[0].Sign() != 0 || slope[0].Cmp(increment) != 0 || slope[1].Sign() != 0 {
+		if err != nil || slope[1].Sign() != 0 {
 			return zero, "", nil, geom.ErrDomain
 		}
 		r, err := liftSourceRat(curve[0].Args[2])
@@ -184,12 +225,12 @@ func boundConvertedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurve
 		}
 		delta := occtLoopSub(center, mo)
 		if span.ParameterInterval[0].Sign() != 0 {
-			if !allowShifted || reversal != nil || !convexUVSame(z, mz) {
+			if (segments != 6 && !allowQuarter) || reversal != nil || !convexUVSame(z, mz) {
 				return zero, "", nil, geom.ErrDomain
 			}
-			return boundShiftedConvexArcCylinderSpan(src, corrected, q, model, span, delta, x, y, mo, mx, my, mz, radius, tolSquared)
+			return boundShiftedConvexArcCylinderSpan(src, corrected, q, model, span, delta, x, y, mo, mx, my, mz, radius, tolSquared, allowQuarter)
 		}
-		if !convexUVSame(x, mx) {
+		if uv[0].Sign() != 0 || slope[0].Cmp(increment) != 0 || !convexUVSame(x, mx) {
 			return zero, "", nil, geom.ErrDomain
 		}
 		for i := range y {
@@ -197,7 +238,7 @@ func boundConvertedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurve
 				return zero, "", nil, geom.ErrDomain
 			}
 		}
-		if err := coverConvexArcMinorCircleSpan(src, corrected, q, model, mo, mx, my, mz, span.ParameterInterval[1], tolSquared, reversal); err != nil {
+		if err := coverConvexArcMinorCircleSpan(src, corrected, q, model, mo, mx, my, mz, span.ParameterInterval[1], tolSquared, reversal, allowQuarter); err != nil {
 			return zero, "", nil, err
 		}
 		return span, kind, occtLoopDot(delta, delta), nil
@@ -210,18 +251,43 @@ func boundConvertedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurve
 // the same normalized arc fraction. A rational enclosure proves that the
 // two parameters differ by at most angularError throughout both intervals.
 func boundShiftedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurveAgreement, model int64, span ConvexArcCylinderSpanOwner,
-	delta, x, y, origin, mx, my, mz [3]*big.Rat, radius, tolSquared *big.Rat) (ConvexArcCylinderSpanOwner, string, *big.Rat, error) {
+	delta, x, y, origin, mx, my, mz [3]*big.Rat, radius, tolSquared *big.Rat, allowQuarter bool) (ConvexArcCylinderSpanOwner, string, *big.Rat, error) {
 	var zero ConvexArcCylinderSpanOwner
 	angularError := big.NewRat(1, 1000000000000)
+	lo, hi := span.ParameterInterval[0], span.ParameterInterval[1]
+	u, speed := span.UVStart[0], span.UVDerivative[0]
+	one := big.NewRat(1, 1)
+	if speed.Sign() <= 0 || (!allowQuarter && (u.Sign() != 0 || speed.Cmp(one) != 0)) {
+		return zero, "", nil, geom.ErrDomain
+	}
+	// The authored linear UV chart can differ from u=t-lo. Its maximum
+	// angular deviation from that law occurs at one of the authored knots.
+	width := new(big.Rat).Sub(hi, lo)
+	startError := new(big.Rat).Abs(u)
+	endError := new(big.Rat).Sub(speed, one)
+	endError.Mul(endError, width).Add(endError, u).Abs(endError)
+	uvError := startError
+	if endError.Cmp(startError) > 0 {
+		uvError = endError
+	}
+	if uvError.Cmp(angularError) > 0 {
+		return zero, "", nil, geom.ErrDomain
+	}
+
+	// The original unwrapped span starts at a quadrant II ray or at
+	// the positive sine axis. The directed ends are in their next branch.
+	minimum := [2]int64{2, 4}
+	raySigns := [2][2]int{{-1, 1}, {0, -1}}
+	if allowQuarter && lo.Cmp(big.NewRat(2, 1)) < 0 {
+		minimum = [2]int64{1, 2}
+		raySigns = [2][2]int{{0, 1}, {-1, 1}}
+	}
 	var bounds [2][2]*big.Rat
 	type trig struct{ sine, cosine, remainder *big.Rat }
 	var enclosures [2][2]trig
 	for i, knot := range span.ParameterInterval {
 		interval := [2]*big.Rat{new(big.Rat).Sub(knot, angularError), new(big.Rat).Add(knot, angularError)}
-		// The start bracket is in quadrant II. The end bracket surrounds
-		// the negative sine axis. This fixes the unwrapped angular branch.
-		minimum := int64(2 + 2*i)
-		if interval[0].Cmp(big.NewRat(minimum, 1)) < 0 || interval[1].Cmp(big.NewRat(minimum+1, 1)) > 0 {
+		if interval[0].Cmp(big.NewRat(minimum[i], 1)) < 0 || interval[1].Cmp(big.NewRat(minimum[i]+1, 1)) > 0 {
 			return zero, "", nil, geom.ErrDomain
 		}
 		bounds[i] = interval
@@ -262,7 +328,7 @@ func boundShiftedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurveAg
 			if axial.Sign() != 0 && (f == corrected || axial.Mul(axial, axial).Cmp(tolSquared) > 0) {
 				return zero, "", nil, geom.ErrDomain
 			}
-			if (i == 0 && (a.Sign() >= 0 || b.Sign() <= 0)) || (i == 1 && (a.Sign() != 0 || b.Sign() >= 0)) {
+			if [2]int{a.Sign(), b.Sign()} != raySigns[i] {
 				return zero, "", nil, geom.ErrDomain
 			}
 			for j, enclosure := range enclosures[i] {
@@ -283,10 +349,10 @@ func boundShiftedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurveAg
 	if err != nil {
 		return zero, "", nil, err
 	}
-	// In the orthonormal cylinder frame, the phase drift from normalized
-	// travel moves the lift by at most radius times angularError. Combine
+	// In the orthonormal cylinder frame, normalized travel and the authored
+	// coefficients move the lift by at most radius times both errors. Combine
 	// with the same-parameter phase bound using (a+b)^2 <= 2*(a^2+b^2).
-	drift := new(big.Rat).Mul(radius, angularError)
+	drift := new(big.Rat).Mul(radius, new(big.Rat).Add(angularError, uvError))
 	bound.Add(bound, new(big.Rat).Mul(drift, drift)).Mul(bound, big.NewRat(2, 1))
 	span.ModelAngleBounds = &bounds
 	return span, "finite-phase-cylinder-circle", bound, nil
@@ -295,13 +361,16 @@ func boundShiftedConvexArcCylinderSpan(src, corrected *File, q ConvexArcPCurveAg
 // Use the original axis to order the endpoint rays, accounting for a proved
 // circle reversal in the repaired edge. The cross product against the
 // knot-angle ray proves containment without a rounded inverse trigonometric
-// evaluation for either the ordinary minor sweep or the reversed quarter.
-func coverConvexArcMinorCircleSpan(src, corrected *File, q ConvexArcPCurveAgreement, model int64, o, x, y, z [3]*big.Rat, end, tolSquared *big.Rat, reversal *ConvexArcRepairReversal) error {
+// evaluation for the qualified minor and quarter sweeps.
+func coverConvexArcMinorCircleSpan(src, corrected *File, q ConvexArcPCurveAgreement, model int64, o, x, y, z [3]*big.Rat, end, tolSquared *big.Rat, reversal *ConvexArcRepairReversal, allowQuarter bool) error {
 	minimum, maximum := big.NewRat(2, 1), big.NewRat(3, 1)
 	if reversal != nil {
 		if reversal.EdgeID != q.EdgeID || reversal.CircleID != model {
 			return geom.ErrDomain
 		}
+	}
+	quarter := reversal != nil || (allowQuarter && end.Cmp(minimum) < 0)
+	if quarter {
 		minimum, maximum = big.NewRat(1, 1), big.NewRat(2, 1)
 	}
 	if end.Cmp(minimum) < 0 || end.Cmp(maximum) > 0 {
@@ -354,7 +423,7 @@ func coverConvexArcMinorCircleSpan(src, corrected *File, q ConvexArcPCurveAgreem
 				}
 				continue
 			}
-			if b.Sign() <= 0 || (reversal == nil && a.Sign() >= 0) || (reversal != nil && a.Sign() != 0) {
+			if b.Sign() <= 0 || (quarter && a.Sign() != 0) || (!quarter && a.Sign() >= 0) {
 				return geom.ErrDomain
 			}
 			cross := new(big.Rat).Sub(new(big.Rat).Mul(a, sine[0]), new(big.Rat).Mul(b, cosine[0]))
