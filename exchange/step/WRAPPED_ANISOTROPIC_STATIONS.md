@@ -252,3 +252,40 @@ checks cover missing source faces, wrong coordinates/frames, altered inner rim
 IDs and weights, forged source roles/poses, limits, cancellation and cross-mode
 rejection. No arbitrary rational frame normalization, nested rational graph,
 mixed units or approximate circular substitution is admitted.
+
+### Generated AP242 rational occurrences
+
+`WriteRationalWrappedAnisotropicStationAssembly` and the separate bore writer
+accept two explicit product definitions (geometry-free root and one original
+local material) plus two to sixteen `RationalAnisotropicAssemblyInstance` uses.
+Each use supplies its identifier, name, parent/child identifiers, rational
+origin and X/Z direction ratios. Inputs are copied. All raw and normalized
+components must have terminating decimals and at most 256 numerator/denominator
+bits. Exact perpendicularity and rational normalization are mandatory; the
+right-handed Y direction is derived exactly. Thus raw `(3,4,0)` is admissible,
+while `(1,1,0)` has irrational normalization and `(5,12,0)` has nonterminating
+normalized coefficients and both reject. A translation of 1/3 also rejects.
+
+The writer first stages the existing original-support material and standard
+shared-product graph at neutral placements. It then writes each verified pose
+into standard `AXIS2_PLACEMENT_3D` / `ITEM_DEFINED_TRANSFORMATION` occurrence
+records and emits the explicit AP242 protocol/application/schema declaration.
+The entire generated file is read by the corresponding strict rational reader,
+and every resulting matrix is compared exactly with the caller's copied pose,
+before output. Local geometry is shared, not baked; this is a bounded AP242
+authoring subset, not arbitrary schema support. The original-source APIs and
+existing signed writers remain unchanged. Generated files can use the existing
+rational native envelopes for full source-bound persistence.
+
+The pinned independent XCAF reader now reports actual component matrices as
+well as shared identity and material measures. Tests qualify both filled and
+through-bore generated output at the original 3:4:5 poses and at a new caller
+translation, checking actual matrices, two solids/two shells, shared identity,
+area, volume and the predicted centroid shift. Global OCCT spline quadrature
+shows approximately 2.1e-7 volume variation under the tested rigid translation;
+the comparison uses a 1e-6 absolute volume allowance (1e-7 area/centroid), while
+all source/pose/material acceptance remains exact. Negative tests cover nil,
+over-budget, nonterminating, irrational or nonorthogonal ratios, duplicate or
+foreign occurrence IDs, cancellation and atomic pre-output failure. Canonical
+bytes are stable under equivalent raw direction scales, and caller rationals
+remain unchanged.

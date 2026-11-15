@@ -1,5 +1,6 @@
 // Independent anisotropic weighted original supports and topology; no Go geometry input.
 #include <Geom_BSplineSurface.hxx>
+#include <vector>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepBuilderAPI_MakeSolid.hxx>
@@ -65,7 +66,7 @@ int main(int argc,char**argv) {
   const bool reading=mode=="read"||mode=="read-assembly"||mode=="read-nested-assembly";
   const bool nested=mode.find("nested")!=std::string::npos;
   if(mode!="filled"&&mode!="bore"&&!assembly&&!reading)return 2;
-  TopoDS_Shape shape;
+  TopoDS_Shape shape;std::vector<gp_Trsf> placements;
   if(!reading){shape=loft();if(mode=="bore"||mode=="bore-assembly"||mode=="bore-assembly-oblique"||mode=="bore-nested-assembly")shape=BRepAlgoAPI_Cut(shape,loft(true)).Shape();}
   else if(!assembly){STEPControl_Reader reader;if(reader.ReadFile(argv[1])!=IFSelect_RetDone||reader.TransferRoots()!=1)return 4;shape=reader.OneShape();}
   if(assembly){
@@ -83,6 +84,7 @@ int main(int argc,char**argv) {
    NCollection_Sequence<TDF_Label> roots,uses;shapes->GetFreeShapes(roots);if(roots.Length()!=1)return 6;
    shapes->GetComponents(roots.Value(1),uses,false);if(uses.Length()!=2)return 6;TDF_Label first;
    for(int i=1;i<=2;i++){TDF_Label part;if(!shapes->GetReferredShape(uses.Value(i),part))return 6;if(i==1)first=part;else if(first!=part)return 6;}
+   for(int i=1;i<=2;i++)placements.push_back(shapes->GetLocation(uses.Value(i)).Transformation());
    if(nested){NCollection_Sequence<TDF_Label> inner;shapes->GetComponents(first,inner,false);if(inner.Length()!=1)return 6;TDF_Label leaf;if(!shapes->GetReferredShape(inner.Value(1),leaf)||leaf==first)return 6;}
    shape=shapes->GetShape(roots.Value(1));
   }
@@ -91,7 +93,7 @@ int main(int argc,char**argv) {
   if(solids!=(assembly?2:1)||shells!=solids)throw std::runtime_error("unexpected component count");
   if(!reading&&!assembly){STEPControl_Writer writer;if(writer.Transfer(shape,STEPControl_AsIs)!=IFSelect_RetDone||writer.Write(argv[1])!=IFSelect_RetDone)throw std::runtime_error("STEP export failed");}
   GProp_GProps volume,area;BRepGProp::VolumeProperties(shape,volume,1e-12);BRepGProp::SurfaceProperties(shape,area,1e-12);
-  auto c=volume.CentreOfMass();std::ofstream out(argv[2]);out<<std::setprecision(17)<<"{\"Volume\":"<<volume.Mass()<<",\"Area\":"<<area.Mass()<<",\"Centroid\":["<<c.X()<<","<<c.Y()<<","<<c.Z()<<"],\"Solids\":"<<solids<<",\"Shells\":"<<shells<<",\"Shared\":"<<(assembly?"true":"false")<<"}\n";
+  auto c=volume.CentreOfMass();std::ofstream out(argv[2]);out<<std::setprecision(17)<<"{\"Volume\":"<<volume.Mass()<<",\"Area\":"<<area.Mass()<<",\"Centroid\":["<<c.X()<<","<<c.Y()<<","<<c.Z()<<"],\"Solids\":"<<solids<<",\"Shells\":"<<shells<<",\"Shared\":"<<(assembly?"true":"false")<<",\"Placements\":[";for(size_t k=0;k<placements.size();k++){if(k)out<<",";out<<"[";for(int i=1;i<=3;i++){if(i>1)out<<",";out<<"[";for(int j=1;j<=4;j++){if(j>1)out<<",";out<<placements[k].Value(i,j);}out<<"]";}out<<"]";}out<<"]}\n";
   return out?0:3;
  }catch(const std::exception&e){std::cerr<<e.what()<<"\n";return 1;}
 }
