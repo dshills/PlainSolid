@@ -29,19 +29,31 @@ type ExactCircularLoopExtrusion struct {
 // rational-spline controls are invented. Only source scalars within the bounded
 // exact-decimal domain and exactly representable posed vertices are accepted.
 func WriteExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCircularLoopExtrusion) error {
+	return writeExactCircularLoopExtrusion(ctx, w, d, nil)
+}
+
+func writeExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCircularLoopExtrusion, hole *trimmed.ExtrusionCircle) error {
 	if ctx == nil || w == nil || !utf8.ValidString(d.Name) || len(d.Name) > 4096 || !planarSplineRigid(frameTransform(d.Frame)) {
 		return geom.ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
 		return e
 	}
-	solid, e := trimmed.ExtrudeExactCircularLoop(ctx, d.Segments, d.Height, trimmed.ExactCircularLoopOptions{})
+	var solid trimmed.Solid
+	var e error
+	borePatches := 0
+	if hole == nil {
+		solid, e = trimmed.ExtrudeExactCircularLoop(ctx, d.Segments, d.Height, trimmed.ExactCircularLoopOptions{})
+	} else {
+		borePatches = 4
+		solid, e = trimmed.ExtrudeExactCircularLoopWithThroughHole(ctx, d.Segments, *hole, d.Height, trimmed.ExactCircularLoopOptions{})
+	}
 	if e != nil {
 		return e
 	}
 	vertices, edges, faces := solid.Vertices(), solid.Edges(), solid.Faces()
 	n := len(d.Segments)
-	if len(vertices) != 2*n || len(edges) != 3*n || len(faces) != n+2 {
+	if len(vertices) != 2*(n+borePatches) || len(edges) != 3*(n+borePatches) || len(faces) != n+borePatches+2 {
 		return geom.ErrInvalid
 	}
 	world := make([]geom.Vec3, len(vertices))
@@ -94,7 +106,7 @@ func WriteExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCi
 		}
 		axis := vec(geom.Vec3{Z: 1})
 		ref := vec(geom.Vec3{X: 1})
-		surfaces := make([]int64, n+2)
+		surfaces := make([]int64, n+borePatches+2)
 		for j := 0; j < 2; j++ {
 			surfaces[j] = emit(fmt.Sprintf("PLANE('',#%d)", place(geom.Vec3{Z: vertices[j*n].Z}, axis, ref)))
 		}
@@ -109,6 +121,10 @@ func WriteExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCi
 				surfaces[2+i] = emit(fmt.Sprintf("PLANE('',#%d)", place(geom.Vec3{X: s.Start.X, Y: s.Start.Y}, normal, t)))
 			}
 		}
+		for i := 0; i < borePatches; i++ {
+			surfaces[n+2+i] = emit(fmt.Sprintf("CYLINDRICAL_SURFACE('',#%d,%s)",
+				place(geom.Vec3{X: hole.Center.X, Y: hole.Center.Y}, axis, ref), number(sideRat(hole.Radius))))
+		}
 		vids := make([]int64, len(vertices))
 		for i, p := range world {
 			vids[i] = emit(fmt.Sprintf("VERTEX_POINT('',#%d)", point(p)))
@@ -116,9 +132,17 @@ func WriteExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCi
 		eids := make([]int64, len(edges))
 		for i, edge := range edges {
 			var model int64
-			if i < 2*n && d.Segments[i%n].Radius > 0 {
+			var center geom.Vec2
+			var radius float64
+			switch {
+			case i < 2*n:
 				s := d.Segments[i%n]
-				model = emit(fmt.Sprintf("CIRCLE('',#%d,%s)", place(geom.Vec3{X: s.Center.X, Y: s.Center.Y, Z: vertices[edge.Start].Z}, axis, ref), number(sideRat(s.Radius))))
+				center, radius = s.Center, s.Radius
+			case i >= 3*n && i < 3*n+2*borePatches:
+				center, radius = hole.Center, hole.Radius
+			}
+			if radius > 0 {
+				model = emit(fmt.Sprintf("CIRCLE('',#%d,%s)", place(geom.Vec3{X: center.X, Y: center.Y, Z: vertices[edge.Start].Z}, axis, ref), number(sideRat(radius))))
 			} else {
 				a, b := vec(world[edge.Start]), vec(world[edge.End])
 				var direction [3]*big.Rat
@@ -132,13 +156,20 @@ func WriteExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCi
 		}
 		fids := make([]int64, len(faces))
 		for i, f := range faces {
-			uses := make([]int64, len(f.Outer))
-			for j, u := range f.Outer {
-				uses[j] = emit(fmt.Sprintf("ORIENTED_EDGE('',*,*,#%d,%s)", eids[u.Edge], sideDiskBool(!u.Reversed)))
+			winding := sideDiskBool(!f.Reversed)
+			bound := func(kind string, trim []trimmed.Use) int64 {
+				uses := make([]int64, len(trim))
+				for j, u := range trim {
+					uses[j] = emit(fmt.Sprintf("ORIENTED_EDGE('',*,*,#%d,%s)", eids[u.Edge], sideDiskBool(!u.Reversed)))
+				}
+				loop := emit("EDGE_LOOP(''," + references(uses) + ")")
+				return emit(fmt.Sprintf("%s('',#%d,%s)", kind, loop, winding))
 			}
-			loop := emit("EDGE_LOOP(''," + references(uses) + ")")
-			bound := emit(fmt.Sprintf("FACE_OUTER_BOUND('',#%d,%s)", loop, sideDiskBool(!f.Reversed)))
-			fids[i] = emit(fmt.Sprintf("ADVANCED_FACE('',(#%d),#%d,%s)", bound, surfaces[i], sideDiskBool(!f.Reversed)))
+			bounds := []int64{bound("FACE_OUTER_BOUND", f.Outer)}
+			for _, trim := range f.Holes {
+				bounds = append(bounds, bound("FACE_BOUND", trim))
+			}
+			fids[i] = emit(fmt.Sprintf("ADVANCED_FACE('',%s,#%d,%s)", references(bounds), surfaces[i], winding))
 		}
 		shell := emit("CLOSED_SHELL(''," + references(fids) + ")")
 		return []int64{emit(fmt.Sprintf("MANIFOLD_SOLID_BREP(%s,#%d)", quote(d.Name), shell))}
@@ -156,7 +187,11 @@ func WriteExactCircularLoopExtrusion(ctx context.Context, w io.Writer, d ExactCi
 	if bytes.Count(staged.Bytes(), marker) != 1 {
 		return geom.ErrInvalid
 	}
-	raw := bytes.Replace(staged.Bytes(), marker, []byte("PRODUCT('exact-circular-loop-extrusion',"+quote(d.Name)+",'',"), 1)
+	product := localExactCircularLoopProduct
+	if hole != nil {
+		product = localExactCircularLoopThroughHoleProduct
+	}
+	raw := bytes.Replace(staged.Bytes(), marker, []byte("PRODUCT("+quote(product)+","+quote(d.Name)+",'',"), 1)
 	if _, e = Parse(bytes.NewReader(raw), Limits{MaxBytes: 1 << 20, MaxEntities: 4096, MaxValues: 65536, MaxDepth: 16}); e != nil {
 		return e
 	}
