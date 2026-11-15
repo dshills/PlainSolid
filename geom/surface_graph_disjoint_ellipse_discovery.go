@@ -7,22 +7,26 @@ import (
 )
 
 // DisjointEllipseDiscoveryOptions bounds a complete two-loop search on original
-// U knot separators. MaxSeparators defaults to 8, at most 64. Work and certified
+// U or V knot separators. MaxSeparators defaults to 8, at most 64. Work and certified
 // cell visits include failed candidates, discovery and final independent reproof.
 type DisjointEllipseDiscoveryOptions struct {
 	GraphPointContactOptions
 	MaxSeparators int
+	PartitionAxis int // 0 (default) uses original selected-axis knots; 1 uses original V knots.
 }
 
 type DiscoveredSplineGraphDisjointEllipses struct {
+	PartitionAxis int
+	Separator     float64
+
 	Complete                          bool
 	Section                           SplineGraphDisjointEllipses
-	SplitU                            float64
+	SplitU                            float64 // Legacy U-only separator; zero for V partitions.
 	TestedSeparators, ExactOperations int
 }
 
 // DiscoverSplineGraphDisjointEllipses discovers exactly two separated closed
-// contours without caller hints. Candidates are exclusively original U knots;
+// contours without caller hints. Candidates are exclusively original selected-axis knots;
 // every accepted candidate covers both complete closed original slabs. Failure
 // is unresolved, never absence. No finite sampling infers additional contours.
 func DiscoverSplineGraphDisjointEllipses(ctx context.Context, a, b *SurfacePatch, o DisjointEllipseDiscoveryOptions) (r DiscoveredSplineGraphDisjointEllipses, err error) {
@@ -52,7 +56,7 @@ func DiscoverSplineGraphDisjointEllipses(ctx context.Context, a, b *SurfacePatch
 	if o.MaxSeparators == 0 {
 		o.MaxSeparators = 8
 	}
-	if o.MaxOperations < 1 || o.MaxCells < 1 || o.MaxCoefficientBits < 64 || o.MaxDepth < 0 || o.MaxSeparators < 1 || o.MaxSeparators > 64 {
+	if o.MaxOperations < 1 || o.MaxCells < 1 || o.MaxCoefficientBits < 64 || o.MaxDepth < 0 || o.PartitionAxis < 0 || o.PartitionAxis > 1 || o.MaxSeparators < 1 || o.MaxSeparators > 64 {
 		return r, ErrInvalid
 	}
 	d := a.Domain()
@@ -73,9 +77,12 @@ func DiscoverSplineGraphDisjointEllipses(ctx context.Context, a, b *SurfacePatch
 	}
 	unique := map[float64]bool{}
 	for _, p := range sources {
-		knots, _ := p.KnotBreaks()
+		knots, vKnots := p.KnotBreaks()
+		if o.PartitionAxis == 1 {
+			knots = vKnots
+		}
 		for _, k := range knots {
-			if k > d.UMin && k < d.UMax {
+			if k > [2]float64{d.UMin, d.VMin}[o.PartitionAxis] && k < [2]float64{d.UMax, d.VMax}[o.PartitionAxis] {
 				unique[k] = true
 			}
 		}
@@ -98,10 +105,18 @@ func DiscoverSplineGraphDisjointEllipses(ctx context.Context, a, b *SurfacePatch
 		valid := true
 		for side := 0; side < 2; side++ {
 			slab := d
-			if side == 0 {
-				slab.UMax = split
+			if o.PartitionAxis == 0 {
+				if side == 0 {
+					slab.UMax = split
+				} else {
+					slab.UMin = split
+				}
 			} else {
-				slab.UMin = split
+				if side == 0 {
+					slab.VMax = split
+				} else {
+					slab.VMin = split
+				}
 			}
 			var patches [2]*SurfacePatch
 			for owner, p := range sources {
@@ -146,7 +161,7 @@ func DiscoverSplineGraphDisjointEllipses(ctx context.Context, a, b *SurfacePatch
 		proof := o.GraphPointContactOptions
 		proof.MaxOperations -= used
 		proof.MaxCells -= cells
-		section, e := CertifySplineGraphDisjointEllipses(ctx, sources[0], sources[1], split, hints, proof)
+		section, e := CertifySplineGraphDisjointEllipsesOnAxis(ctx, sources[0], sources[1], o.PartitionAxis, split, hints, proof)
 		used += section.ExactOperations
 		for _, q := range section.Contours {
 			cells += len(q.CertifiedCells)
@@ -162,7 +177,11 @@ func DiscoverSplineGraphDisjointEllipses(ctx context.Context, a, b *SurfacePatch
 		}
 		r.Complete = true
 		r.Section = section
-		r.SplitU = split
+		r.PartitionAxis = o.PartitionAxis
+		r.Separator = split
+		if o.PartitionAxis == 0 {
+			r.SplitU = split
+		}
 		return r, nil
 	}
 	return r, ErrConvergence

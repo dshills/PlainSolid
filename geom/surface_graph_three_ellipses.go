@@ -10,6 +10,7 @@ import "context"
 // constructors, which independently reconstruct the proof.
 type SplineGraphThreeEllipses struct {
 	Complete        bool
+	PartitionAxis   int // 0 is original U; 1 is original V.
 	Domain          ParameterRectangle
 	Contours        [3]SplineGraphEllipse
 	ExactOperations int
@@ -20,6 +21,12 @@ type SplineGraphThreeEllipses struct {
 // parameters. All quotient signs must agree outside their respective contours.
 // All restriction and contact work is charged cumulatively; failure is atomic.
 func CertifySplineGraphThreeEllipses(ctx context.Context, a, c *SurfacePatch, splitU [2]float64, hints [3]GraphEllipseHint, o GraphPointContactOptions) (r SplineGraphThreeEllipses, err error) {
+	return CertifySplineGraphThreeEllipsesOnAxis(ctx, a, c, 0, splitU, hints, o)
+}
+
+// CertifySplineGraphThreeEllipsesOnAxis proves the same complete original coverage along
+// axis 0 (U) or 1 (V), without transposing or replacing either original chart.
+func CertifySplineGraphThreeEllipsesOnAxis(ctx context.Context, a, c *SurfacePatch, axis int, splitU [2]float64, hints [3]GraphEllipseHint, o GraphPointContactOptions) (r SplineGraphThreeEllipses, err error) {
 	used := 0
 	defer func() {
 		if err != nil {
@@ -27,7 +34,7 @@ func CertifySplineGraphThreeEllipses(ctx context.Context, a, c *SurfacePatch, sp
 		}
 		r.ExactOperations = used
 	}()
-	if ctx == nil || a == nil || c == nil {
+	if ctx == nil || a == nil || c == nil || axis < 0 || axis > 1 {
 		return r, ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
@@ -46,7 +53,7 @@ func CertifySplineGraphThreeEllipses(ctx context.Context, a, c *SurfacePatch, sp
 		return r, ErrInvalid
 	}
 	d := a.Domain()
-	if !d.Valid() || d != c.Domain() || !(splitU[0] > d.UMin && splitU[0] < splitU[1] && splitU[1] < d.UMax) {
+	if !d.Valid() || d != c.Domain() || !(splitU[0] > [2]float64{d.UMin, d.VMin}[axis] && splitU[0] < splitU[1] && splitU[1] < [2]float64{d.UMax, d.VMax}[axis]) {
 		return r, ErrInvalid
 	}
 	var originals [2]*SurfacePatch
@@ -64,11 +71,20 @@ func CertifySplineGraphThreeEllipses(ctx context.Context, a, c *SurfacePatch, sp
 	cells := 0
 	for i := 0; i < 3; i++ {
 		slab := d
-		if i > 0 {
-			slab.UMin = splitU[i-1]
-		}
-		if i < 2 {
-			slab.UMax = splitU[i]
+		if axis == 0 {
+			if i > 0 {
+				slab.UMin = splitU[i-1]
+			}
+			if i < 2 {
+				slab.UMax = splitU[i]
+			}
+		} else {
+			if i > 0 {
+				slab.VMin = splitU[i-1]
+			}
+			if i < 2 {
+				slab.VMax = splitU[i]
+			}
 		}
 		var p [2]*SurfacePatch
 		for j, original := range originals {
@@ -107,6 +123,7 @@ func CertifySplineGraphThreeEllipses(ctx context.Context, a, c *SurfacePatch, sp
 			return r, ErrConvergence
 		}
 	}
+	r.PartitionAxis = axis
 	r.Complete = true
 	r.Domain = d
 	return r, nil

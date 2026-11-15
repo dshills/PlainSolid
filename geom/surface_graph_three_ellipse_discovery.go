@@ -7,24 +7,28 @@ import (
 )
 
 // ThreeEllipseDiscoveryOptions bounds a complete three-loop search on original
-// U knot separators. MaxSeparators defaults to 8, at most 16. Work and certified
+// U or V knot separators. MaxSeparators defaults to 8, at most 16. Work and certified
 // cell visits include failed candidates, discovery and final independent reproof.
 type ThreeEllipseDiscoveryOptions struct {
 	GraphPointContactOptions
 	MaxSeparators int
+	PartitionAxis int // 0 (default) uses original selected-axis knots; 1 uses original V knots.
 }
 
 // DiscoveredSplineGraphThreeEllipses reports an atomic complete original-domain
 // certificate and deterministic search work; no partial contour list is published.
 type DiscoveredSplineGraphThreeEllipses struct {
+	PartitionAxis int
+	Separators    [2]float64
+
 	Complete                          bool
 	Section                           SplineGraphThreeEllipses
-	SplitU                            [2]float64
+	SplitU                            [2]float64 // Legacy U-only separator; zero for V partitions.
 	TestedPartitions, ExactOperations int
 }
 
 // DiscoverSplineGraphThreeEllipses discovers exactly three separated closed
-// contours without caller hints. Candidates are exclusively original U knots;
+// contours without caller hints. Candidates are exclusively original selected-axis knots;
 // every accepted candidate covers all three complete closed original slabs. Failure
 // is unresolved, never absence. No finite sampling infers additional contours.
 func DiscoverSplineGraphThreeEllipses(ctx context.Context, a, b *SurfacePatch, o ThreeEllipseDiscoveryOptions) (r DiscoveredSplineGraphThreeEllipses, err error) {
@@ -54,7 +58,7 @@ func DiscoverSplineGraphThreeEllipses(ctx context.Context, a, b *SurfacePatch, o
 	if o.MaxSeparators == 0 {
 		o.MaxSeparators = 8
 	}
-	if o.MaxOperations < 1 || o.MaxCells < 1 || o.MaxCoefficientBits < 64 || o.MaxDepth < 0 || o.MaxSeparators < 1 || o.MaxSeparators > 16 {
+	if o.MaxOperations < 1 || o.MaxCells < 1 || o.MaxCoefficientBits < 64 || o.MaxDepth < 0 || o.PartitionAxis < 0 || o.PartitionAxis > 1 || o.MaxSeparators < 1 || o.MaxSeparators > 16 {
 		return r, ErrInvalid
 	}
 	d := a.Domain()
@@ -75,9 +79,12 @@ func DiscoverSplineGraphThreeEllipses(ctx context.Context, a, b *SurfacePatch, o
 	}
 	unique := map[float64]bool{}
 	for _, p := range sources {
-		knots, _ := p.KnotBreaks()
+		knots, vKnots := p.KnotBreaks()
+		if o.PartitionAxis == 1 {
+			knots = vKnots
+		}
 		for _, k := range knots {
-			if k > d.UMin && k < d.UMax {
+			if k > [2]float64{d.UMin, d.VMin}[o.PartitionAxis] && k < [2]float64{d.UMax, d.VMax}[o.PartitionAxis] {
 				unique[k] = true
 			}
 		}
@@ -102,11 +109,20 @@ func DiscoverSplineGraphThreeEllipses(ctx context.Context, a, b *SurfacePatch, o
 			valid := true
 			for side := 0; side < 3; side++ {
 				slab := d
-				if side > 0 {
-					slab.UMin = split[side-1]
-				}
-				if side < 2 {
-					slab.UMax = split[side]
+				if o.PartitionAxis == 0 {
+					if side > 0 {
+						slab.UMin = split[side-1]
+					}
+					if side < 2 {
+						slab.UMax = split[side]
+					}
+				} else {
+					if side > 0 {
+						slab.VMin = split[side-1]
+					}
+					if side < 2 {
+						slab.VMax = split[side]
+					}
 				}
 				var patches [2]*SurfacePatch
 				for owner, p := range sources {
@@ -151,7 +167,7 @@ func DiscoverSplineGraphThreeEllipses(ctx context.Context, a, b *SurfacePatch, o
 			proof := o.GraphPointContactOptions
 			proof.MaxOperations -= used
 			proof.MaxCells -= cells
-			section, e := CertifySplineGraphThreeEllipses(ctx, sources[0], sources[1], split, hints, proof)
+			section, e := CertifySplineGraphThreeEllipsesOnAxis(ctx, sources[0], sources[1], o.PartitionAxis, split, hints, proof)
 			used += section.ExactOperations
 			for _, q := range section.Contours {
 				cells += len(q.CertifiedCells)
@@ -167,7 +183,11 @@ func DiscoverSplineGraphThreeEllipses(ctx context.Context, a, b *SurfacePatch, o
 			}
 			r.Complete = true
 			r.Section = section
-			r.SplitU = split
+			r.PartitionAxis = o.PartitionAxis
+			r.Separators = split
+			if o.PartitionAxis == 0 {
+				r.SplitU = split
+			}
 			return r, nil
 		}
 	}

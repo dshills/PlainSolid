@@ -21,7 +21,7 @@ type SplineGraphBooleanOptions struct {
 // Boolean entry. It requires no caller separator, ellipse or material labels.
 // Original supports must satisfy the same strict identity-XY and positive-base
 // requirements as CombineSplineGraphSolids. These options recognize only
-// their complete original-U-knot partition domains documented by the geometry APIs.
+// their complete original U- or V-knot partition domains documented by the geometry APIs.
 func CombineSplineGraphSolidsWithOptions(ctx context.Context, base, a, b *geom.BSplineSurface, op parametric.BooleanOp, tolerance float64, o SplineGraphBooleanOptions) (Solid, SplineGraphBooleanHistory, error) {
 	if o.DisjointEllipses == nil && o.ThreeEllipses == nil {
 		return CombineSplineGraphSolids(ctx, base, a, b, op, tolerance, o.Section)

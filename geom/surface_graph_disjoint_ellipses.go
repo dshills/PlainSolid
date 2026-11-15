@@ -10,6 +10,7 @@ import "context"
 // constructors, which independently reconstruct the proof.
 type SplineGraphDisjointEllipses struct {
 	Complete        bool
+	PartitionAxis   int // 0 is original U; 1 is original V.
 	Domain          ParameterRectangle
 	Contours        [2]SplineGraphEllipse
 	ExactOperations int
@@ -20,6 +21,12 @@ type SplineGraphDisjointEllipses struct {
 // parameter. Both quotient signs must agree outside their respective contours.
 // All restriction and contact work is charged cumulatively; failure is atomic.
 func CertifySplineGraphDisjointEllipses(ctx context.Context, a, c *SurfacePatch, splitU float64, hints [2]GraphEllipseHint, o GraphPointContactOptions) (r SplineGraphDisjointEllipses, err error) {
+	return CertifySplineGraphDisjointEllipsesOnAxis(ctx, a, c, 0, splitU, hints, o)
+}
+
+// CertifySplineGraphDisjointEllipsesOnAxis proves the same complete original coverage along
+// axis 0 (U) or 1 (V), without transposing or replacing either original chart.
+func CertifySplineGraphDisjointEllipsesOnAxis(ctx context.Context, a, c *SurfacePatch, axis int, splitU float64, hints [2]GraphEllipseHint, o GraphPointContactOptions) (r SplineGraphDisjointEllipses, err error) {
 	used := 0
 	defer func() {
 		if err != nil {
@@ -27,7 +34,7 @@ func CertifySplineGraphDisjointEllipses(ctx context.Context, a, c *SurfacePatch,
 		}
 		r.ExactOperations = used
 	}()
-	if ctx == nil || a == nil || c == nil {
+	if ctx == nil || a == nil || c == nil || axis < 0 || axis > 1 {
 		return r, ErrInvalid
 	}
 	if e := ctx.Err(); e != nil {
@@ -46,7 +53,7 @@ func CertifySplineGraphDisjointEllipses(ctx context.Context, a, c *SurfacePatch,
 		return r, ErrInvalid
 	}
 	d := a.Domain()
-	if !d.Valid() || d != c.Domain() || !(splitU > d.UMin && splitU < d.UMax) {
+	if !d.Valid() || d != c.Domain() || !(splitU > [2]float64{d.UMin, d.VMin}[axis] && splitU < [2]float64{d.UMax, d.VMax}[axis]) {
 		return r, ErrInvalid
 	}
 	var originals [2]*SurfacePatch
@@ -64,10 +71,18 @@ func CertifySplineGraphDisjointEllipses(ctx context.Context, a, c *SurfacePatch,
 	cells := 0
 	for i := 0; i < 2; i++ {
 		slab := d
-		if i == 0 {
-			slab.UMax = splitU
+		if axis == 0 {
+			if i == 0 {
+				slab.UMax = splitU
+			} else {
+				slab.UMin = splitU
+			}
 		} else {
-			slab.UMin = splitU
+			if i == 0 {
+				slab.VMax = splitU
+			} else {
+				slab.VMin = splitU
+			}
 		}
 		var p [2]*SurfacePatch
 		for j, original := range originals {
@@ -104,6 +119,7 @@ func CertifySplineGraphDisjointEllipses(ctx context.Context, a, c *SurfacePatch,
 	if r.Contours[0].OutsideSide != r.Contours[1].OutsideSide || r.Contours[0].InsideSide != r.Contours[1].InsideSide {
 		return r, ErrConvergence
 	}
+	r.PartitionAxis = axis
 	r.Complete = true
 	r.Domain = d
 	return r, nil
