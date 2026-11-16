@@ -25,8 +25,18 @@ func CutWrappedEccentricCircularStationLofts(ctx context.Context, outer, inner S
 }
 
 func cutProvedEccentricCircularStationLofts(ctx context.Context, outer, inner Solid, a, b WrappedStationLoftProof, o geom.SurfacePatchOptions) (Solid, WrappedStationBooleanHistory, error) {
+	if err := proveEccentricCircularStationNesting(ctx, a, b); err != nil {
+		return Solid{}, WrappedStationBooleanHistory{}, err
+	}
+	return joinWrappedStationLoftBore(ctx, outer, inner, a, b, o)
+}
+
+// Both input chains have already authenticated consecutive affine circular
+// bands. Checking the stations of either chain covers all endpoints of the
+// merged partition, so every intervening radius difference is affine.
+func proveEccentricCircularStationNesting(ctx context.Context, a, b WrappedStationLoftProof) error {
 	if a.Heights[0].Cmp(b.Heights[0]) != 0 || a.Heights[len(a.Heights)-1].Cmp(b.Heights[len(b.Heights)-1]) != 0 {
-		return Solid{}, WrappedStationBooleanHistory{}, geom.ErrDomain
+		return geom.ErrDomain
 	}
 	dx := new(big.Rat).Sub(a.Center[0], b.Center[0])
 	dy := new(big.Rat).Sub(a.Center[1], b.Center[1])
@@ -34,18 +44,18 @@ func cutProvedEccentricCircularStationLofts(ctx context.Context, outer, inner So
 	for _, stations := range [][]*big.Rat{a.Heights, b.Heights} {
 		for _, z := range stations {
 			if err := ctx.Err(); err != nil {
-				return Solid{}, WrappedStationBooleanHistory{}, err
+				return err
 			}
 			// Both authenticated station lofts cover this common height.
 			r, _ := wrappedStationRadiusAt(a, z)
 			q, _ := wrappedStationRadiusAt(b, z)
 			gap := new(big.Rat).Sub(r, q)
 			if gap.Sign() <= 0 || gap.Mul(gap, gap).Cmp(distance2) <= 0 {
-				return Solid{}, WrappedStationBooleanHistory{}, geom.ErrDomain
+				return geom.ErrDomain
 			}
 		}
 	}
-	return joinWrappedStationLoftBore(ctx, outer, inner, a, b, o)
+	return nil
 }
 
 // ValidateWrappedEccentricCircularStationBore recovers both original axes

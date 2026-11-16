@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math/big"
+	"sort"
 
 	"plainsolid/brep"
 	"plainsolid/brep/parametric"
@@ -13,31 +14,44 @@ import (
 
 const maxCircularAnnularSeedLevel = 5 // eight original arcs, at most 256 vertices
 
-// Re-prove the full original rational rings before using any sampled seed.
-func certifyCircularAnnularSeedCap(ctx context.Context, f Face) (bool, error) {
-	if _, ok := f.Surface.(geom.PlaneSurface); !ok || len(f.Outer) != 4 ||
-		len(f.Holes) != 1 || len(f.Holes[0]) != 4 {
-		return false, nil
+type circularSeedCap struct {
+	height  *big.Rat
+	centers [2][2]*big.Rat
+	radii   [2]*big.Rat
+}
+
+// Re-prove the full original rational rings in their canonical model XY
+// planes before using any sampled seed.
+func certifyCircularAnnularSeedCap(ctx context.Context, f Face) (circularSeedCap, bool, error) {
+	plane, ok := f.Surface.(geom.PlaneSurface)
+	if !ok || len(f.Outer) != 4 || len(f.Holes) != 1 || len(f.Holes[0]) != 4 {
+		return circularSeedCap{}, false, nil
 	}
-	a, outer, ok := exactSeedCircle(f.Outer)
-	if !ok {
-		return false, nil
+	frame := plane.Frame()
+	location := frame.Origin()
+	if !location.IsFinite() || location.X != 0 || location.Y != 0 ||
+		frame.XAxis() != (geom.Vec3{X: 1}) || frame.YAxis() != (geom.Vec3{Y: 1}) {
+		return circularSeedCap{}, false, nil
 	}
-	b, inner, ok := exactSeedCircle(f.Holes[0])
-	if !ok {
-		return false, nil
+	cap := circularSeedCap{height: ratInset(location.Z)}
+	for i, loop := range [2][]Use{f.Outer, f.Holes[0]} {
+		cap.centers[i], cap.radii[i], ok = exactSeedCircle(loop)
+		if !ok {
+			return circularSeedCap{}, false, nil
+		}
 	}
-	dx, dy := new(big.Rat).Sub(a[0], b[0]), new(big.Rat).Sub(a[1], b[1])
+	dx := new(big.Rat).Sub(cap.centers[0][0], cap.centers[1][0])
+	dy := new(big.Rat).Sub(cap.centers[0][1], cap.centers[1][1])
 	separation2 := new(big.Rat).Add(dx.Mul(dx, dx), dy.Mul(dy, dy))
-	gap := new(big.Rat).Sub(outer, inner)
+	gap := new(big.Rat).Sub(cap.radii[0], cap.radii[1])
 	if gap.Sign() <= 0 || gap.Mul(gap, gap).Cmp(separation2) <= 0 {
-		return false, nil
+		return circularSeedCap{}, false, nil
 	}
 	proof, err := ValidateFaceTrimLoops(ctx, f, trimvalidate.Options{})
 	if err != nil {
-		return false, err
+		return circularSeedCap{}, false, err
 	}
-	return proof.Status == trimvalidate.Certified, nil
+	return cap, proof.Status == trimvalidate.Certified, nil
 }
 
 // Search only the already authenticated annular cap's represented polygons.
@@ -139,21 +153,30 @@ func seedArcOnCircle(arc trimvalidate.Segment, center [2]*big.Rat, radius2 *big.
 	return true
 }
 
-// The sampled fallback is restricted to two circular annuli and a bounded
-// collection of authenticated rectangular circular-frustum wall charts.
+// The sampled fallback resolves two cap-complete, strictly nested circular
+// wall chains. The test is based on each original band, so it does not
+// recurse through a solid construction or infer nesting from the end caps.
 func supportsCircularAnnularSeedShell(ctx context.Context, faces []Face) (bool, error) {
 	if len(faces) < 4 || len(faces) > 18 {
 		return false, nil
 	}
-	caps := 0
+	var caps [2]circularSeedCap
+	var bands [2][]geom.WrappedFrustumEmbedding
 	for _, f := range faces {
 		switch w := f.Surface.(type) {
 		case geom.PlaneSurface:
-			ok, err := certifyCircularAnnularSeedCap(ctx, f)
+			end := 1
+			if f.Reversed {
+				end = 0
+			}
+			if caps[end].height != nil {
+				return false, nil
+			}
+			cap, ok, err := certifyCircularAnnularSeedCap(ctx, f)
 			if err != nil || !ok {
 				return false, err
 			}
-			caps++
+			caps[end] = cap
 		case *geom.WrappedSurfacePatch:
 			if len(f.Outer) != 10 {
 				return false, nil
@@ -165,11 +188,59 @@ func supportsCircularAnnularSeedShell(ctx context.Context, faces []Face) (bool, 
 			if err != nil || !p.Circular {
 				return false, err
 			}
+			side := 0
+			if f.Reversed {
+				side = 1
+			}
+			bands[side] = append(bands[side], p)
 		default:
 			return false, nil
 		}
 	}
-	return caps == 2, nil
+	if caps[0].height == nil || caps[1].height == nil {
+		return false, nil
+	}
+	var chains [2]WrappedStationLoftProof
+	for side, input := range bands {
+		chain, ok := circularSeedWallChain(input)
+		if !ok {
+			return false, geom.ErrConvergence
+		}
+		for end, station := range [2]int{0, len(chain.Heights) - 1} {
+			cap := caps[end]
+			if chain.Center[0].Cmp(cap.centers[side][0]) != 0 || chain.Center[1].Cmp(cap.centers[side][1]) != 0 ||
+				chain.Heights[station].Cmp(cap.height) != 0 || chain.Radii[station].Cmp(cap.radii[side]) != 0 {
+				return false, geom.ErrConvergence
+			}
+		}
+		chains[side] = chain
+	}
+	if err := proveEccentricCircularStationNesting(ctx, chains[0], chains[1]); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func circularSeedWallChain(bands []geom.WrappedFrustumEmbedding) (WrappedStationLoftProof, bool) {
+	if len(bands) == 0 {
+		return WrappedStationLoftProof{}, false
+	}
+	sort.Slice(bands, func(i, j int) bool { return bands[i].LowerZ.Cmp(bands[j].LowerZ) < 0 })
+	first := bands[0]
+	out := WrappedStationLoftProof{
+		Center:  [2]*big.Rat{first.CenterX, first.CenterY},
+		Heights: []*big.Rat{first.LowerZ},
+		Radii:   []*big.Rat{first.LowerRadius},
+	}
+	for i, b := range bands {
+		if b.CenterX.Cmp(out.Center[0]) != 0 || b.CenterY.Cmp(out.Center[1]) != 0 ||
+			b.LowerZ.Cmp(out.Heights[i]) != 0 || b.LowerRadius.Cmp(out.Radii[i]) != 0 {
+			return WrappedStationLoftProof{}, false
+		}
+		out.Heights = append(out.Heights, b.UpperZ)
+		out.Radii = append(out.Radii, b.UpperRadius)
+	}
+	return out, true
 }
 
 func (s Solid) annularRimEdges() []bool {

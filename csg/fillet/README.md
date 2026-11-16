@@ -153,9 +153,10 @@ The original centers, cap heights and wall laws outside the runouts survive.
 Both cap trims and every model/coedge pair are independently re-proved.
 The original and resulting cap annuli must admit the native trim triangulation.
 If the original four-point chord polygons cannot be nested, the circular
-annular seed search first proves both original rational ring equations,
-their strict nesting and all original model/coedge laws. It searches up to
-32 dyadic samples per original quarter arc and preserves the native
+annular seed search proves both original rational ring equations, binds
+two continuous circular wall chains to them and verifies strict nesting at
+every station of both chains. The original model/coedge laws must agree.
+It searches up to 32 dyadic samples per original quarter arc and preserves the native
 vertices, curves and cap trims. The same model edge samples feed the cap
 and wrapped wall displays. Signed integration over the original chord
 rings and curve corrections gives native mass independently of the display.
