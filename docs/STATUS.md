@@ -3224,6 +3224,10 @@ corrected and native bytes. The stock conical source stays outside strict
 import. PlainCAD now offers the explicit source repair and receipt, with
 certified angular display and corrected STEP export. The focused native
 bridge and both typed Chromium workflows passed.
+The independently authored rounded IGES for the same conical solid now
+has an explicit Go repair and source receipt. It preserves exact source
+vertices, the seam and directed loop ownership. Strict import still
+requires an exact carrier.
 
 ### Periodic spline geometry
 

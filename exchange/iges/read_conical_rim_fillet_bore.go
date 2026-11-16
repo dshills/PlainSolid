@@ -63,51 +63,37 @@ func ReadConicalRimFilletBore(ctx context.Context, r io.Reader, l Limits, o geom
 	if err := ctx.Err(); err != nil {
 		return empty, err
 	}
-	l, err := l.defaults()
+	l, err := conicalRimFilletBoreIGESLimits(l)
 	if err != nil {
 		return empty, err
-	}
-	l.MaxBytes, l.MaxRecords = min(l.MaxBytes, 128<<10), min(l.MaxRecords, 1024)
-	l.MaxEntities, l.MaxValues = min(l.MaxEntities, 128), min(l.MaxValues, 4096)
-	if l.MaxControlPoints < 18 {
-		return empty, geom.ErrConvergence
 	}
 	doc, err := readTopologyRecordPolicyWithDirectory(r, l, true, false, false, false, false, false, true, false, false, conicalRimBoreDirectory)
 	if err != nil {
 		return empty, err
 	}
-	p := igesBoreRimSource{records: make(map[int]topologyRecord, len(doc.entities)), claimed: make(map[int]bool)}
-	var group, root int
-	for _, rec := range doc.entities {
-		p.records[rec.id] = rec
-		switch rec.kind {
-		case 402:
-			if group != 0 {
-				return empty, errIGESConicalRimFilletBore
-			}
-			group = rec.id
-		case 186:
-			if root != 0 {
-				return empty, errIGESConicalRimFilletBore
-			}
-			root = rec.id
-		}
+	return decodeConicalRimFilletBoreIGES(ctx, doc, o)
+}
+
+func conicalRimFilletBoreIGESLimits(l Limits) (Limits, error) {
+	l, err := l.defaults()
+	if err != nil {
+		return l, err
 	}
-	if group != 0 {
-		rec, err := p.topology(group, 402)
-		if err != nil || len(rec) != 3 || rec[1] != 1 || rec[2] != root {
-			return empty, errIGESConicalRimFilletBore
-		}
+	l.MaxBytes, l.MaxRecords = min(l.MaxBytes, 128<<10), min(l.MaxRecords, 1024)
+	l.MaxEntities, l.MaxValues = min(l.MaxEntities, 128), min(l.MaxValues, 4096)
+	if l.MaxControlPoints < 18 {
+		return l, geom.ErrConvergence
 	}
-	body, err := p.topology(root, 186)
-	if err != nil || len(body) != 4 || body[2] != 1 || body[3] != 0 || p.records[root].boreGroupMember != (group != 0) {
-		return empty, errIGESConicalRimFilletBore
+	return l, nil
+}
+
+func decodeConicalRimFilletBoreIGES(ctx context.Context, doc topologySource, o geom.SurfacePatchOptions) (ConicalRimFilletBoreIGES, error) {
+	var empty ConicalRimFilletBoreIGES
+	p, group, root, shellID, faceList, err := conicalRimFilletBoreIGESGraph(doc)
+	if err != nil {
+		return empty, err
 	}
-	shell, err := p.topology(body[1], 514)
-	if err != nil || len(shell) != 14 || shell[1] != 6 {
-		return empty, errIGESConicalRimFilletBore
-	}
-	faces, err := readConicalRimFilletBoreIGESFaces(&p, shell[2:])
+	faces, err := readConicalRimFilletBoreIGESFaces(&p, faceList)
 	if err != nil {
 		return empty, err
 	}
@@ -136,10 +122,45 @@ func ReadConicalRimFilletBore(ctx context.Context, r io.Reader, l Limits, o geom
 	}
 	return ConicalRimFilletBoreIGES{
 		Solid: native.Solid, display: native.Display, LengthUnit: doc.unit, source: doc.bytes,
-		SourceGroupID: group, SourceSolidID: root, SourceShellID: body[1], SourceEdgeListID: p.edges, SourceVertexListID: p.vertices,
+		SourceGroupID: group, SourceSolidID: root, SourceShellID: shellID, SourceEdgeListID: p.edges, SourceVertexListID: p.vertices,
 		NativeFaceSourceIDs: mapped, NativeCurveSourceIDs: boundary.curves,
 		NativeEdgeSourceIndices: boundary.edges, NativeVertexSourceIndices: boundary.vertices,
 	}, nil
+}
+
+func conicalRimFilletBoreIGESGraph(doc topologySource) (igesBoreRimSource, int, int, int, []int, error) {
+	p := igesBoreRimSource{records: make(map[int]topologyRecord, len(doc.entities)), claimed: make(map[int]bool)}
+	var group, root int
+	for _, rec := range doc.entities {
+		p.records[rec.id] = rec
+		switch rec.kind {
+		case 402:
+			if group != 0 {
+				return p, 0, 0, 0, nil, errIGESConicalRimFilletBore
+			}
+			group = rec.id
+		case 186:
+			if root != 0 {
+				return p, 0, 0, 0, nil, errIGESConicalRimFilletBore
+			}
+			root = rec.id
+		}
+	}
+	if group != 0 {
+		rec, err := p.topology(group, 402)
+		if err != nil || len(rec) != 3 || rec[1] != 1 || rec[2] != root {
+			return p, 0, 0, 0, nil, errIGESConicalRimFilletBore
+		}
+	}
+	body, err := p.topology(root, 186)
+	if err != nil || len(body) != 4 || body[2] != 1 || body[3] != 0 || p.records[root].boreGroupMember != (group != 0) {
+		return p, 0, 0, 0, nil, errIGESConicalRimFilletBore
+	}
+	shell, err := p.topology(body[1], 514)
+	if err != nil || len(shell) != 14 || shell[1] != 6 {
+		return p, 0, 0, 0, nil, errIGESConicalRimFilletBore
+	}
+	return p, group, root, body[1], shell[2:], nil
 }
 
 func conicalRimBoreDirectory(first, second [9]int) bool {

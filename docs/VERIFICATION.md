@@ -18,6 +18,15 @@ same 10,496-triangle signed display as the already exact source. The
 source audit matched 2,918 kernel files, 849 PlainCAD files and all four
 supplementary fixture inputs to the pinned revisions.
 
+The [explicit rounded conical IGES repair](evidence/conical-rim-fillet-default-iges-repair-2026-11-15.json)
+proves the finite cone displacement at `1.98504099270350e-11` mm and the
+affine corrections for the finite meridians. The original seam and all
+directed loop uses stay in place. A `3e-11` mm budget succeeds and
+`1e-11` mm refuses. The native bytes match both exact independent
+formats. The pinned main strict, repair and receipt race passed in
+90.147 seconds; the focused main affine matrix fuzz run exercised 97,117
+inputs without failure.
+
 The nested conical AP242 document passed its focused main race in 42.320
 seconds. Two exact local assets supply six leaf paths and fourteen
 original face labels. Moving one group moves only its descendants and

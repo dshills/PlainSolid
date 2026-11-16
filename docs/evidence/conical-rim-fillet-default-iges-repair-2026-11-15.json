@@ -1,0 +1,260 @@
+{
+  "milestone": "Opt-in source repair of independently authored OCCT default type 194 conical double rim fillets with eccentric bore",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "plainSolidRevision": "0eee491b07a1a017675075fa225786c681bf4312",
+  "affineMatrixFuzzRevision": "95c6a81a01b63cbf288dc1e681bd768b3cf6f645",
+  "testFilter": "ConicalRimFilletBoreIGES|ConicalRimFilletBorePinnedIGESAuthor",
+  "environment": {
+    "PLAINSOLID_OCCT_CONICAL_RIM_BORE_IGES_AUTHOR": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/conical-rim-fillet-step-import/pinned-iges-author",
+    "PLAINSOLID_OCCT_CONICAL_RIM_BORE_IGES_READER": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/conical-rim-fillet-step-import/pinned-step-iges-reader"
+  },
+  "fuzzCommand": "go test ./exchange/iges -run '^$' -fuzz '^FuzzRepairConicalRimFilletBoreIGES$' -fuzztime=8s -parallel=1",
+  "affineMatrixFuzzCommand": "go test ./exchange/iges -run '^$' -fuzz '^FuzzConicalRimFilletBoreIGESArcMatrix$' -fuzztime=7s -parallel=1",
+  "affineMatrixFuzzExecutions": 56912,
+  "liveTests": {
+    "live.log": "16.789s",
+    "live-race.log": "98.317s",
+    "fuzz.log": "9.245s",
+    "fuzz-affine-matrix.log": "8.226s",
+    "fuzz-affine-matrix-race.log": "1.203s"
+  },
+  "sourceUnit": "mm",
+  "sourceDistanceBudget": 3e-11,
+  "rejectedSourceDistanceBudget": 1e-11,
+  "originalType194AngleDegrees": "53.130102354",
+  "correctedExactSlope": "4/3",
+  "coneOriginalRimStations": [
+    "3/16",
+    "21/8"
+  ],
+  "finiteConeDisplacementUpperBoundMillimetresApproximation": "1.9850409927035025293348671E-11",
+  "seamCurveID": 21,
+  "type124ArcOccurrenceMillimetreBounds": {
+    "27": "1.27675647829E-15",
+    "31": "9.15933995295E-16",
+    "35": "5.2041704278125E-17",
+    "39": "8.5348395016125E-16",
+    "43": "1.0408340855625E-16",
+    "47": "1.1518563880225E-15"
+  },
+  "type198PhaseMillimetreBounds": {
+    "61": "1.915134717435E-15",
+    "73": "2.72004641027E-15"
+  },
+  "originalNativeFaceIDs": [
+    7,
+    59,
+    83,
+    71,
+    97,
+    111
+  ],
+  "originalNativeEdgeListID": 19,
+  "originalNativeVertexListID": 23,
+  "originalIGESReopen": {
+    "volume": 2282.401400977317,
+    "area": 1182.644097639854,
+    "vertices": [
+      [
+        8.25,
+        2,
+        0.1875
+      ],
+      [
+        11.5,
+        2,
+        2.625
+      ],
+      [
+        7.6875,
+        2,
+        0
+      ],
+      [
+        10.375,
+        2,
+        6
+      ],
+      [
+        2.5,
+        4,
+        0
+      ],
+      [
+        2.5,
+        4,
+        6
+      ]
+    ],
+    "edges": [
+      6,
+      2,
+      2
+    ],
+    "faces": [
+      [
+        4,
+        0,
+        2,
+        0.1875000000006806,
+        8.24999999999949,
+        2.6250000000095284,
+        11.499999999992854,
+        0.9272952179988898
+      ],
+      [
+        2,
+        0,
+        2,
+        0.9375,
+        7.6875,
+        0.9375,
+        0,
+        0.1875000000000001
+      ],
+      [
+        2,
+        0,
+        2,
+        4.125,
+        10.375,
+        1.875,
+        2.625,
+        6
+      ],
+      [
+        0,
+        0,
+        2
+      ],
+      [
+        0,
+        6,
+        2
+      ],
+      [
+        1,
+        1.5,
+        4,
+        1,
+        0,
+        6
+      ]
+    ]
+  },
+  "independentExactCarrierIGESReopen": {
+    "volume": 2282.401400701125,
+    "area": 1182.6440978536923,
+    "vertices": [
+      [
+        8.25,
+        2,
+        0.1875
+      ],
+      [
+        11.5,
+        2,
+        2.625
+      ],
+      [
+        7.6875,
+        2,
+        0
+      ],
+      [
+        10.375,
+        2,
+        6
+      ],
+      [
+        2.5,
+        4,
+        0
+      ],
+      [
+        2.5,
+        4,
+        6
+      ]
+    ],
+    "edges": [
+      6,
+      2,
+      2
+    ],
+    "faces": [
+      [
+        3,
+        0,
+        2,
+        0.1875,
+        8.25,
+        2.625,
+        11.5
+      ],
+      [
+        2,
+        0,
+        2,
+        0.9375,
+        7.6875,
+        0.9375,
+        0,
+        0.1875000000000001
+      ],
+      [
+        2,
+        0,
+        2,
+        4.125,
+        10.375,
+        1.875,
+        2.625,
+        6
+      ],
+      [
+        0,
+        0,
+        2
+      ],
+      [
+        0,
+        6,
+        2
+      ],
+      [
+        1,
+        1.5,
+        4,
+        1,
+        0,
+        6
+      ]
+    ]
+  },
+  "repairedNative": {
+    "volume": 2282.4014009763837,
+    "area": 1182.6440976399483
+  },
+  "nativeMatchesIndependentExactCarriersSHA256": "df411bbb977e59552daf4bb7620ea2ff5a7263ef87be0c5248daa075ef058dec",
+  "originalFixtureSHA256": {
+    "occt-conical-double-rim-eccentric-bore-rounded.igs": "3846b19784ebc5fdee5ec4cd0e1c28859bb2ccb6ac127930c55f88e32915abfb",
+    "occt-conical-double-rim-eccentric-bore-exact.igs": "b714b2d6e1eea036bc32f351e88783b9b362f91a9059c2b90fd77f16ca5662f6"
+  },
+  "artifactSHA256": {
+    "source-receipt.json": "c5dccba2ac26b52d9e7216bf14fd8826027f9208b9f9a1e387f547c9775e6263",
+    "proof-ledger.json": "141fca26182618a88a1700380763fd2092afe9aea9e5ad0cd5e73a24e3ee1b28",
+    "repair-conical-rim-fillet-iges.patch": "86380cc38a522baa4ee524339d0ea04b8e54dbd3abd256b22fc276acaf5c3f92",
+    "fuzz-conical-rim-fillet-iges.patch": "9ecc65f708b0a298135d86493c164f1b8515f941d03dab990c69662372240a00",
+    "pinned-original-reopen.log": "b087f017c19dcfc6a13cd2f86afe1201851d9feab78d0fce557bcfe17495f3ac",
+    "pinned-exact-carrier-reopen.log": "41ece76497f367625a13a3da5d6c0cc9b25647b4067b944239ecd2b2e529f9ca"
+  },
+  "mainIntegration": {
+    "focusedRaceSeconds": 90.148,
+    "affineMatrixFuzzExecutions": 97117,
+    "logs": {
+      ".worktrees/qualification/2026-11-15/repaired-conical-iges-main-race.jsonl": "d9ca49e7a381db13d20764bb01465301f893f02c965c8550316cc9accc08cf25",
+      ".worktrees/qualification/2026-11-15/repaired-conical-iges-main-fuzz-retake.log": "77e6c6b57ac74c2aa087acba8574bbd1c1cfeec61781da6bff565a66339e89fd"
+    }
+  }
+}
