@@ -40,7 +40,9 @@ func ReadClippedPolynomialFuseJSON(ctx context.Context, r io.Reader, limits JSON
 	if e := readPolynomialGraphRecipe(ctx, r, limits, &recipe); e != nil {
 		return nil, e
 	}
-	if (!recipe.validHeader(nativeClippedPolynomialFuse, 2) && !recipe.validHeader(nativeClippedPolynomialFuse, 3)) ||
+	if (!recipe.validHeader(nativeClippedPolynomialFuse, 2) &&
+		!recipe.validHeader(nativeClippedPolynomialFuse, 3) &&
+		!recipe.validHeader(nativeClippedPolynomialFuse, 4)) ||
 		*recipe.Operation != parametric.Union ||
 		!recipe.Footprints[0].Valid() || !recipe.Footprints[1].Valid() || len(recipe.Walls) == 0 || recipe.Volume == "" {
 		return nil, geom.ErrInvalid
