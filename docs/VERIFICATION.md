@@ -104,6 +104,13 @@ the shared core definition. A `3e-12` mm budget passes pinned XCAF
 readback; `2.8e-12` mm refuses. The older two-level carrier and
 receipt remain byte-identical. The main pinned repair, replay and
 strict regressions passed in 347.846 seconds.
+The [depth-three editable document](evidence/depth-three-ap242-dag-document-2026-11-15.json)
+materializes twelve nodes with two local native solids. It preserves
+original source pose labels while one parent moves independently.
+Conflicting edits to a reused relationship publish no STEP bytes.
+Corrected rounded receipt replay recreates the original document bytes
+and strict export retains its current edits. The main import, writeback
+and rounded replay races passed in 370.033, 243.963 and 285.416 seconds.
 
 The [full orthogonal volume offset](evidence/orthogonal-volume-offset-2026-11-15.json)
 matched independently constructed pinned OCCT references for four

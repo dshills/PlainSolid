@@ -36,7 +36,9 @@ occurrence paths at different depths.
 The STEP writer applies names and exact relative translations to the
 original shared relationships and re-proves all retained paths.
 Rounded versions of the deeper graph also have explicit repair, strict
-corrected export and an original-source receipt.
+corrected export and an original-source receipt. Strict and explicitly
+repaired depth-three inputs support editable native documents and
+relationship writeback, with a conflict check for expanded shared uses.
 
 The previous paired full runs used kernel `af569683` and PlainCAD `efae4d2`.
 The [Go run](evidence/main-af569683-qualification-2026-11-15.json)

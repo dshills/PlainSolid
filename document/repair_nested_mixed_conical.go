@@ -53,6 +53,20 @@ func materializeRepairedMixedConicalDocument(ctx context.Context, m step.Repaire
 	if err != nil {
 		return zero, err
 	}
+	d, err = conicalDocumentWithRepairProvenance(ctx, d, m, historyLimit)
+	if err != nil {
+		return zero, err
+	}
+	return RepairedNestedMixedConicalDocument{Document: d, Repair: m}, nil
+}
+
+type conicalDocumentRepairSource interface {
+	OriginalSTEP() string
+	CorrectedModelSTEP() string
+	PartRepairs() [2]step.NestedMixedConicalAP242PartRepair
+}
+
+func conicalDocumentWithRepairProvenance(ctx context.Context, d *Document, m conicalDocumentRepairSource, historyLimit int) (*Document, error) {
 	s, _ := d.Snapshot()
 	str := func(x string) Attribute { return Attribute{Kind: "string", Text: x} }
 	digest := func(x string) Attribute {
@@ -66,7 +80,7 @@ func materializeRepairedMixedConicalDocument(ctx context.Context, m step.Repaire
 		key := fmt.Sprintf("source:step-product-%d", p.DefinitionID)
 		label, ok := s.Labels[key]
 		if !ok {
-			return zero, geom.ErrUnrepresentable
+			return nil, geom.ErrUnrepresentable
 		}
 		label.Attributes["step.source.local-original-sha256"] = str(p.LocalSourceSHA256)
 		label.Attributes["step.source.local-corrected-sha256"] = str(p.LocalCorrectedSHA256)
@@ -75,11 +89,7 @@ func materializeRepairedMixedConicalDocument(ctx context.Context, m step.Repaire
 		s.Labels[key] = label
 	}
 	if err := ctx.Err(); err != nil {
-		return zero, err
+		return nil, err
 	}
-	d, err = New(s, historyLimit)
-	if err != nil {
-		return zero, err
-	}
-	return RepairedNestedMixedConicalDocument{Document: d, Repair: m}, nil
+	return New(s, historyLimit)
 }
