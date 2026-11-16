@@ -356,6 +356,8 @@ the original signed material and classifies the isolated point in
 exactly one reopened face interior without placing a seam there.
 Native Cut retains the separate regular cap on all four exit sides.
 The reverse order is refused because it pinches at the isolated point.
+The dedicated Cut preview refines until exact represented volume and
+collision checks pass.
 Curved trim quadrature splits at the certified rational source knots.
 [Creased cuspidal transfer](evidence/cuspidal-creased-neutral-2026-11-15.json)
 now qualifies both orders of Common, Fuse and Cut in STEP and IGES,

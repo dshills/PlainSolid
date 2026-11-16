@@ -263,7 +263,11 @@ cap on any original stock side. Its exact source volume is
 `4703/1614807040`; doubling the original height difference doubles
 that result. The exterior order is refused at the isolated pinch, and
 native replay re-proves the original coedges and turns. The generic
-coarse preview closes but materially understates the volume.
+coarse preview closes but materially understates the volume. The
+dedicated volume check now refines the same coarse request to 24
+closed triangles, with 0.585522% error against the exact source
+integral and no unintended contacts. Replay preserves the mesh bytes.
+Truncated work returns no partial mesh. Focused main race: 1.739 seconds.
 
 The native shared-crease follow-up retains the two original cusp roof
 charts, one closed Euler-2 shell and byte-identical native replay for all
