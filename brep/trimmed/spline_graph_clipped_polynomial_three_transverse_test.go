@@ -109,21 +109,7 @@ func checkThreeTransverseClippedMaterial(t *testing.T, r *ClippedPolynomialFuse,
 
 func checkThreeTransverseClippedComponents(t *testing.T, proof geom.ClippedSplineGraphPolynomialCut, layout, axis, order int) {
 	t.Helper()
-	const middleA = "243157/314460325543936"
-	const middleB = "423509/314460325543936"
-	const first = "225573097/20125460834811904"
-	raised := [3][2][]string{
-		{{"5737617562351083/2251799813685248"}, {"5691438073984491/2251799813685248"}},
-		{{"333607143847125/157230162771968", "39283284031701/157230162771968"},
-			{"336831590544597/157230162771968", "39283284031701/157230162771968"}},
-		{{"8204666900439531/2251799813685248"}, {"8204666900439531/2251799813685248"}},
-	}[layout][axis]
-	between := [3][2][]string{
-		{{first, middleA, middleB, "616853251433007029/322007373356990464"}, {first, middleA, middleB, "623456918269429685/322007373356990464"}},
-		{{"147258197/314460325543936", middleA, middleB, "1004254165/314460325543936", "15861/8192"},
-			{"147258197/314460325543936", middleA, middleB, "1004254165/314460325543936", "15693/8192"}},
-		{{first, middleA, middleB, "1005056365857966005/322007373356990464"}, {first, middleA, middleB, "1005056365857966005/322007373356990464"}},
-	}[layout][axis]
+	raised, between := threeTransverseClippedComponentVolumes(layout, axis)
 	for side, want := range [2][]string{raised, between} {
 		result := proof.Orders[(side+order)%2]
 		if len(result.Components) != len(want) || len(result.Contacts) != 3 {
@@ -147,6 +133,25 @@ func checkThreeTransverseClippedComponents(t *testing.T, proof geom.ClippedSplin
 			}
 		}
 	}
+}
+
+func threeTransverseClippedComponentVolumes(layout, axis int) (raised, between []string) {
+	const middleA = "243157/314460325543936"
+	const middleB = "423509/314460325543936"
+	const first = "225573097/20125460834811904"
+	raised = [3][2][]string{
+		{{"5737617562351083/2251799813685248"}, {"5691438073984491/2251799813685248"}},
+		{{"333607143847125/157230162771968", "39283284031701/157230162771968"},
+			{"336831590544597/157230162771968", "39283284031701/157230162771968"}},
+		{{"8204666900439531/2251799813685248"}, {"8204666900439531/2251799813685248"}},
+	}[layout][axis]
+	between = [3][2][]string{
+		{{first, middleA, middleB, "616853251433007029/322007373356990464"}, {first, middleA, middleB, "623456918269429685/322007373356990464"}},
+		{{"147258197/314460325543936", middleA, middleB, "1004254165/314460325543936", "15861/8192"},
+			{"147258197/314460325543936", middleA, middleB, "1004254165/314460325543936", "15693/8192"}},
+		{{first, middleA, middleB, "1005056365857966005/322007373356990464"}, {first, middleA, middleB, "1005056365857966005/322007373356990464"}},
+	}[layout][axis]
+	return raised, between
 }
 
 func checkThreeTransverseClippedFuseLedger(t *testing.T, r *ClippedPolynomialFuse, layout, axis int) {
