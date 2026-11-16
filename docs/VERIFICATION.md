@@ -59,6 +59,11 @@ Both a parabolic cylinder and its rotated signed-axis chart certify the
 full injective offset at positive and negative displacements. The
 focal line stays unresolved at the critical displacement, and a
 projection that drops an entire tangent direction cannot certify.
+The full edge normal offset seam race passed in 8.588 seconds. Two
+rational paraboloid charts with opposite station order and a different
+homogeneous scale prove the same oriented unit normals along their whole
+nonlinear edge. A changed station correspondence, a crease, reversed
+normal orientation and an interior even-root singularity each refuse.
 The exact convex-hull separation race passed in geometry and intersection
 (25.901 and 1.207 seconds). A weighted curved pair separated on an exact
 new support direction, with the gap independently projected from the

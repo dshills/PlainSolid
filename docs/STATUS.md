@@ -35,6 +35,9 @@ directed rational coordinate bounds, even for irrational unit normals.
 A single smooth rational patch can also prove its normal offset remains
 one-to-one through two signed model axes at each fixed displacement.
 That proof does not cover a neighboring face or the swept volume.
+For two smooth rational patches, an exact seam check now proves when
+one shared original edge has identical outward unit normals everywhere.
+The matched offset edge then remains continuous for a common distance.
 Full-domain curved pair isolation can also use a bounded exact control-hull
 support search. It can prove separation when the world axes and original
 center normals leave overlapping projections, and retains pairs it cannot
