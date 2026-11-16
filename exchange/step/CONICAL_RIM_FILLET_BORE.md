@@ -36,13 +36,18 @@ orientation even when paired with exact geometry. Pinned OCCT reads
 the exact carrier with positive signed volume and retains all six
 original vertices and both cap holes.
 
+The returned material exposes `TessellateCertified`. It reuses
+the authenticated stock, fillet radii and bore from the original graph.
+The mesh certificate covers both deflection directions and records the
+original native owner of every triangle.
+
 ```sh
 c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" tools/occtref/author_step_conical_rim_fillet_bore.cxx \
   -L"$OCCT_LIB" -Wl,-rpath,"$OCCT_LIB" -lTKDESTEP -lTKXSBase -lTKFillet -lTKBool \
   -lTKPrim -lTKBO -lTKBRep -lTKTopAlgo -lTKGeomBase -lTKGeomAlgo -lTKG3d -lTKG2d -lTKMath -lTKernel \
   -o "$PWD/author-step-conical-rim-fillet-bore"
 c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" tools/occtref/read_step_conical_rim_fillet_bore.cxx \
-  -L"$OCCT_LIB" -Wl,-rpath,"$OCCT_LIB" -lTKDESTEP -lTKXSBase -lTKBRep -lTKTopAlgo \
+  -L"$OCCT_LIB" -Wl,-rpath,"$OCCT_LIB" -lTKDESTEP -lTKDEIGES -lTKXSBase -lTKBRep -lTKTopAlgo \
   -lTKGeomBase -lTKGeomAlgo -lTKG3d -lTKG2d -lTKMath -lTKernel \
   -o "$PWD/read-step-conical-rim-fillet-bore"
 PLAINSOLID_OCCT_CONICAL_RIM_BORE_STEP_AUTHOR="$PWD/author-step-conical-rim-fillet-bore" \

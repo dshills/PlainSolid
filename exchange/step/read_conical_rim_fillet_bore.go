@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
+
+	"plainsolid/exchange/internal/conicalfillet"
 
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
@@ -23,6 +24,13 @@ type ConicalRimFilletBoreSTEP struct {
 	SourceBodyID, SourceShellID              int64
 	NativeFaceSourceIDs, NativeEdgeSourceIDs []int64
 	NativeVertexSourceIDs                    []int64
+	display                                  conicalfillet.DisplayRecipe
+}
+
+// TessellateCertified uses the authenticated rolling and bore inputs to
+// construct a closed mesh with a certified two-sided deflection bound.
+func (m ConicalRimFilletBoreSTEP) TessellateCertified(ctx context.Context, o trimmed.CertifiedWrappedFrustumMeshOptions) (trimmed.CertifiedFilletedFrustumBoreMesh, error) {
+	return m.display.TessellateCertified(ctx, o)
 }
 
 var errConicalRimFilletBoreSTEP = errors.New("step: unsupported exact conical rim fillet with eccentric bore")
@@ -89,20 +97,21 @@ func ReadConicalRimFilletBore(ctx context.Context, r io.Reader, l Limits, o geom
 	if err != nil {
 		return empty, err
 	}
-	native, err := buildConicalRimFilletBoreSTEP(ctx, faces, o)
+	native, err := conicalfillet.Reconstruct(ctx, faces.sourceGeometry(), o)
 	if err != nil {
 		return empty, err
 	}
-	g, owners, err := bindConicalRimFilletBoreFaces(faces, native)
-	if err != nil {
-		return empty, fmt.Errorf("step: bind conical rim supports: %w", err)
+	owners := make([]boreRimSTEPFace, len(native.Graph.Faces))
+	owners[native.Cone], owners[native.Bore] = faces.cone.boreRimSTEPFace, faces.bore
+	for end := range 2 {
+		owners[native.Caps[end]], owners[native.Blends[end]] = faces.caps[end], faces.toroid[end]
 	}
-	faceIDs, edgeIDs, vertexIDs, err := proveConicalRimFilletBoreSTEP(ctx, f, g, owners)
+	faceIDs, edgeIDs, vertexIDs, err := proveConicalRimFilletBoreSTEP(ctx, f, native.Graph, owners)
 	if err != nil {
 		return empty, fmt.Errorf("step: verify conical rim incidence: %w", err)
 	}
 	return ConicalRimFilletBoreSTEP{
-		Name: name, LengthUnit: unit, Solid: native.Solid, Source: f, SourceBodyID: bodyID, SourceShellID: shellID,
+		Name: name, LengthUnit: unit, Solid: native.Solid, display: native.Display, Source: f, SourceBodyID: bodyID, SourceShellID: shellID,
 		NativeFaceSourceIDs: faceIDs, NativeEdgeSourceIDs: edgeIDs, NativeVertexSourceIDs: vertexIDs,
 	}, nil
 }
@@ -217,44 +226,15 @@ func addConicalRimFilletBoreAnalyticFace(f *File, r Record, face boreRimSTEPFace
 	return nil
 }
 
-func buildConicalRimFilletBoreSTEP(ctx context.Context, f conicalRimFilletBoreFaces,
-	o geom.SurfacePatchOptions) (trimmed.WrappedFilletedFrustumBoreSet, error) {
-	var out trimmed.WrappedFilletedFrustumBoreSet
-	stock := f.cone.center
-	if stock.X == f.bore.center.X && stock.Y == f.bore.center.Y {
-		return out, errConicalRimFilletBoreSTEP
+func (f conicalRimFilletBoreFaces) sourceGeometry() conicalfillet.Source {
+	s := conicalfillet.Source{
+		ConeCenter: geom.Vec2{X: f.cone.center.X, Y: f.cone.center.Y}, ConeStations: f.cone.station,
+		BoreCenter: geom.Vec2{X: f.bore.center.X, Y: f.bore.center.Y}, BoreRadius: f.bore.major,
 	}
-	lower, upper := f.cone.station[0], f.cone.station[1]
-	z0, z1 := f.caps[0].center.Z, f.caps[1].center.Z
-	if z0 >= lower.Z || z1 <= upper.Z {
-		return out, errConicalRimFilletBoreSTEP
+	for end := range 2 {
+		s.CapZ[end] = f.caps[end].center.Z
+		t := f.toroid[end]
+		s.Toroids[end] = conicalfillet.Toroid{Center: t.center, Major: t.major, Minor: t.minor}
 	}
-	diff := func(a, b float64) *big.Rat { return new(big.Rat).Sub(sideRat(a), sideRat(b)) }
-	slope := new(big.Rat).Quo(diff(upper.Radius, lower.Radius), diff(upper.Z, lower.Z))
-	extension := func(z float64) *big.Rat {
-		return new(big.Rat).Add(sideRat(lower.Radius), new(big.Rat).Mul(slope, diff(z, lower.Z)))
-	}
-	r0, err := geom.RepresentedExactScalar(extension(z0))
-	if err != nil || r0 <= 0 {
-		return out, errConicalRimFilletBoreSTEP
-	}
-	height, err := geom.RepresentedExactScalar(diff(z1, z0))
-	if err != nil {
-		return out, err
-	}
-	base, err := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{X: stock.X, Y: stock.Y, Z: z0}, r0, height, o)
-	if err != nil {
-		return out, err
-	}
-	wall, _, err := geom.DraftWrappedFrustumExact(ctx, base, new(big.Rat), new(big.Rat).Sub(extension(z1), sideRat(r0)), o)
-	if err != nil {
-		return out, err
-	}
-	frustum, _, err := trimmed.NewWrappedFrustum(ctx, wall, 1e-9, o)
-	if err != nil {
-		return out, err
-	}
-	center := geom.Vec2{X: f.bore.center.X, Y: f.bore.center.Y}
-	return trimmed.FilletAndBoreWrappedFrustumSet(ctx, frustum, f.toroid[0].minor, f.toroid[1].minor,
-		[]trimmed.FilletedFrustumBoreCut{{Center: center, Radius: f.bore.major}}, o)
+	return s
 }
