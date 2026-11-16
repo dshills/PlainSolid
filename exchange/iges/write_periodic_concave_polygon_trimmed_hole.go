@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/big"
 	"reflect"
 	"strings"
 
@@ -55,18 +56,29 @@ func WritePeriodicConcavePolygonTrimmedFaceWithHole(ctx context.Context, w io.Wr
 }
 
 func checkPeriodicConcaveHoleTransfer(face PeriodicConcavePolygonTrimmedFaceWithHole) error {
-	wires, err := periodicRoundedAffineWires(face.KnotOwners, [][]PeriodicTrimEdge{face.Edges, face.Hole.Edges})
+	_, err := provePeriodicRoundedConcaveHoles(face.PeriodicConcavePolygonTrimmedFace, []PeriodicConvexPolygonTrimLoop{face.Hole})
+	return err
+}
+
+func provePeriodicRoundedConcaveHoles(outer PeriodicConcavePolygonTrimmedFace, holes []PeriodicConvexPolygonTrimLoop) ([][][2]*big.Rat, error) {
+	edges := [][]PeriodicTrimEdge{outer.Edges}
+	for _, hole := range holes {
+		edges = append(edges, hole.Edges)
+	}
+	wires, err := periodicRoundedAffineWires(outer.KnotOwners, edges)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if err := checkPeriodicConcaveRoundedOuter(face.Edges, wires[0]); err != nil {
-		return err
+	if err := checkPeriodicConcaveRoundedOuter(outer.Edges, wires[0]); err != nil {
+		return nil, err
 	}
-	if !periodicUVStrictlyConvex(wires[1], -1) {
-		return fmt.Errorf("iges: concave trim hole loses its original winding or convexity in binary64 transfer: %w", geom.ErrUnrepresentable)
+	for _, hole := range wires[1:] {
+		if !periodicUVStrictlyConvex(hole, -1) {
+			return nil, fmt.Errorf("iges: concave trim hole loses its original winding or convexity in binary64 transfer: %w", geom.ErrUnrepresentable)
+		}
+		if err := provePeriodicConcaveHoleContainment(wires[0], hole); err != nil {
+			return nil, fmt.Errorf("iges: concave trim hole loses strict containment in binary64 transfer: %w", err)
+		}
 	}
-	if err := provePeriodicConcaveHoleContainment(wires[0], wires[1]); err != nil {
-		return fmt.Errorf("iges: concave trim hole loses strict containment in binary64 transfer: %w", err)
-	}
-	return nil
+	return wires[1:], nil
 }

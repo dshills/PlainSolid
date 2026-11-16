@@ -37,17 +37,26 @@ func provePeriodicConcavePolygonTrimmedFaceWithHole(ctx context.Context, source 
 	if err != nil {
 		return zero, err
 	}
-	hole, _, err := provePeriodicConvexInnerWire(ctx, source.graph, outer.Patch, outer.Bounds, source.holes[0], source.remaining)
+	hole, _, err := provePeriodicConcaveHole(ctx, source.graph, outer, source.holes[0], source.remaining)
 	if err != nil {
 		return zero, err
-	}
-	if err := provePeriodicConcaveHoleContainment(periodicAffineWireVertices(outer.Edges), periodicAffineWireVertices(hole.Edges)); err != nil {
-		return zero, fmt.Errorf("iges: concave trim hole #%d: %w", hole.ContourID, err)
 	}
 	if len(source.graph.claimed) != len(source.graph.records) {
 		return zero, geom.ErrUnrepresentable
 	}
 	return PeriodicConcavePolygonTrimmedFaceWithHole{PeriodicConcavePolygonTrimmedFace: outer, Hole: hole}, nil
+}
+
+func provePeriodicConcaveHole(ctx context.Context, graph periodicTrimGraph, outer PeriodicConcavePolygonTrimmedFace,
+	owner periodicTrimLoopSource, remaining int) (PeriodicConvexPolygonTrimLoop, int, error) {
+	hole, remaining, err := provePeriodicConvexInnerWire(ctx, graph, outer.Patch, outer.Bounds, owner, remaining)
+	if err != nil {
+		return PeriodicConvexPolygonTrimLoop{}, 0, err
+	}
+	if err := provePeriodicConcaveHoleContainment(periodicAffineWireVertices(outer.Edges), periodicAffineWireVertices(hole.Edges)); err != nil {
+		return PeriodicConvexPolygonTrimLoop{}, 0, fmt.Errorf("iges: concave trim hole #%d: %w", hole.ContourID, err)
+	}
+	return hole, remaining, nil
 }
 
 func provePeriodicConcaveHoleContainment(outer, inner [][2]*big.Rat) error {

@@ -512,7 +512,9 @@ static bool writeExactConcavePolygon(const char* path, std::string_view mode)
 
     using Contours = NCollection_HArray1<occ::handle<IGESGeom_CurveOnSurface>>;
     occ::handle<Contours> inner;
-    if (mode == "write-exact-concave-polygon-hole" || mode == "write-exact-concave-polygon-hole-notch" ||
+    const bool twoHoles = mode == "write-exact-concave-polygon-two-holes" || mode == "write-exact-concave-polygon-two-holes-touching" ||
+                          mode == "write-exact-concave-polygon-two-holes-overlap" || mode == "write-exact-concave-polygon-two-holes-notch";
+    if (twoHoles || mode == "write-exact-concave-polygon-hole" || mode == "write-exact-concave-polygon-hole-notch" ||
         mode == "write-exact-concave-polygon-hole-crossing" || mode == "write-exact-concave-polygon-hole-touching") {
         const auto uv = [](int u, int v) { return gp_XY(u/16.,v/16.); };
         std::array<gp_XY,3> hole{uv(23,36),uv(24,40),uv(25,37)};
@@ -523,8 +525,19 @@ static bool writeExactConcavePolygon(const char* path, std::string_view mode)
         } else if (mode == "write-exact-concave-polygon-hole-touching") {
             hole = {uv(24,25),uv(24,31),uv(25,28)};
         }
-        inner = new Contours(1,1);
+        inner = new Contours(1,twoHoles ? 2 : 1);
         inner->SetValue(1,exactContour(native,support,hole,160));
+        if (twoHoles) {
+            std::array<gp_XY,3> other{uv(23,36),uv(25,37),uv(24,35)};
+            if (mode == "write-exact-concave-polygon-two-holes-notch") {
+                other = {uv(26,27),uv(26,30),uv(27,29)};
+            } else {
+                const double shift = mode == "write-exact-concave-polygon-two-holes-touching" ? 0. :
+                                     (mode == "write-exact-concave-polygon-two-holes-overlap" ? 1. : -1.) / 32.;
+                for (auto& point : other) point.SetY(point.Y()+shift);
+            }
+            inner->SetValue(2,exactContour(native,support,other,176));
+        }
     }
     occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
     face->Init(support,1,exactContour(native,support,corners,144),inner);
@@ -577,7 +590,9 @@ int main(int argc,char** argv)
         if (mode == "write-exact-concave-polygon" || mode == "write-exact-concave-polygon-crossing" ||
             mode == "write-exact-concave-polygon-touching" || mode == "write-exact-concave-polygon-clockwise" ||
             mode == "write-exact-concave-polygon-hole" || mode == "write-exact-concave-polygon-hole-notch" ||
-            mode == "write-exact-concave-polygon-hole-crossing" || mode == "write-exact-concave-polygon-hole-touching") {
+            mode == "write-exact-concave-polygon-hole-crossing" || mode == "write-exact-concave-polygon-hole-touching" ||
+            mode == "write-exact-concave-polygon-two-holes" || mode == "write-exact-concave-polygon-two-holes-touching" ||
+            mode == "write-exact-concave-polygon-two-holes-overlap" || mode == "write-exact-concave-polygon-two-holes-notch") {
             return writeExactConcavePolygon(argv[2],mode) ? 0 : 8;
         }
         if (mode == "write" || mode == "write-seam") {
