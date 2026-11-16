@@ -129,12 +129,19 @@ func DiscoverSplineGraphParabolaCircle(ctx context.Context, a, c *SurfacePatch, 
 
 func parabolaCirclePowerColumns(diff *SurfacePatch, freeAxis int, b *polynomialBudget) ([4]rationalPolynomial, error) {
 	var out [4]rationalPolynomial
+	columns, err := graphMixedPowerColumns(diff, freeAxis, 4, 3, b)
+	copy(out[:], columns)
+	return out, err
+}
+
+func graphMixedPowerColumns(diff *SurfacePatch, freeAxis, freeDegree, dependentDegree int, b *polynomialBudget) ([]rationalPolynomial, error) {
 	cols, err := graphNumeratorPowerColumns(diff, b)
 	if err != nil {
-		return out, err
+		return nil, err
 	}
+	out := make([]rationalPolynomial, dependentDegree+1)
 	for j := range out {
-		out[j] = make(rationalPolynomial, 5)
+		out[j] = make(rationalPolynomial, freeDegree+1)
 		for i := range out[j] {
 			out[j][i] = new(big.Rat)
 		}
@@ -148,8 +155,8 @@ func parabolaCirclePowerColumns(diff *SurfacePatch, freeAxis int, b *polynomialB
 			if freeAxis == 1 {
 				x, y = j, i
 			}
-			if x > 4 || y > 3 {
-				return out, ErrConvergence
+			if x > freeDegree || y > dependentDegree {
+				return nil, ErrConvergence
 			}
 			out[y][x].Set(coefficient)
 		}

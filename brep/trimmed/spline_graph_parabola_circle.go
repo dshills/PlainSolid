@@ -95,59 +95,14 @@ func CombineParabolaCircleSplineGraphs(ctx context.Context, base, a, b *geom.BSp
 }
 
 func parabolaCircleGraphRegions(proof *geom.SplineGraphParabolaCircle) (out [3]openGraphRegion, err error) {
-	var controls [3][3]*big.Rat
-	for i, c := range proof.ParabolaControls {
-		controls[i] = [3]*big.Rat{c[0], c[1], big.NewRat(1, 1)}
-	}
-	geometry, err := newExactQuadraticUV(controls, false)
+	open, err := parabolaOpenGraphRegions(proof.ParabolaControls, proof.FreeAxis)
 	if err != nil {
 		return out, err
 	}
-	start, err := exactGraphPartitionUV(proof.ParabolaControls[0])
+	copy(out[:2], open[:])
+	circle, reversed, err := exactGraphCircleRings(proof.CircleCenter, proof.RadiusSquared)
 	if err != nil {
 		return out, err
-	}
-	end, err := exactGraphPartitionUV(proof.ParabolaControls[2])
-	if err != nil {
-		return out, err
-	}
-	forward := openSectionPiece{a: start, b: end, c: geometry, side: -1}
-	backward := openSectionPiece{a: end, b: start, c: reversePCurve(geometry), side: -1}
-	zero, br, tr, tl := geom.Vec2{}, geom.Vec2{X: 1}, geom.Vec2{X: 1, Y: 1}, geom.Vec2{Y: 1}
-	if proof.FreeAxis == 0 {
-		out[0].loop = []openSectionPiece{{a: zero, b: br, side: 0}, {a: br, b: end, side: 1}, backward, {a: start, b: zero, side: 3}}
-		out[1].loop = []openSectionPiece{forward, {a: end, b: tr, side: 1}, {a: tr, b: tl, side: 2}, {a: tl, b: start, side: 3}}
-	} else {
-		out[0].loop = []openSectionPiece{{a: zero, b: start, side: 0}, forward, {a: end, b: tl, side: 2}, {a: tl, b: zero, side: 3}}
-		out[1].loop = []openSectionPiece{{a: start, b: br, side: 0}, {a: br, b: tr, side: 1}, {a: tr, b: end, side: 2}, backward}
-	}
-	circle, err := ellipseGraphContactLoop(geom.GraphEllipseHint{Center: proof.CircleCenter,
-		RadiusSquared: [2]*big.Rat{proof.RadiusSquared, proof.RadiusSquared}})
-	if err != nil {
-		return out, err
-	}
-	reversed := make([]openSectionPiece, len(circle))
-	for i, piece := range circle {
-		// Keep the exact homogeneous quarter-arc controls in the native
-		// trim type used by source-backed analytic exchange.
-		spline, ok := piece.c.(SplineUV)
-		if !ok || spline.Curve == nil || spline.Curve.Degree() != 2 || spline.Range != (UVInterval{Max: 1}) {
-			return out, geom.ErrConvergence
-		}
-		poles, weights := spline.Curve.Poles(), spline.Curve.Weights()
-		if len(poles) != 3 || len(weights) != 3 {
-			return out, geom.ErrConvergence
-		}
-		for j, point := range poles {
-			w := ratInset(weights[j])
-			controls[j] = [3]*big.Rat{new(big.Rat).Mul(ratInset(point.X), w), new(big.Rat).Mul(ratInset(point.Y), w), w}
-		}
-		arc, err := newExactQuadraticUV(controls, false)
-		if err != nil {
-			return out, err
-		}
-		circle[i].c = arc
-		reversed[len(circle)-1-i] = openSectionPiece{a: piece.b, b: piece.a, c: reversePCurve(arc), side: -1}
 	}
 	enclosing := 0
 	if proof.CircleAbove {
@@ -159,6 +114,69 @@ func parabolaCircleGraphRegions(proof *geom.SplineGraphParabolaCircle) (out [3]o
 		out[i].sign = sign
 	}
 	return out, nil
+}
+
+func parabolaOpenGraphRegions(parabola [3][2]*big.Rat, freeAxis int) (out [2]openGraphRegion, err error) {
+	var controls [3][3]*big.Rat
+	for i, c := range parabola {
+		controls[i] = [3]*big.Rat{c[0], c[1], big.NewRat(1, 1)}
+	}
+	geometry, err := newExactQuadraticUV(controls, false)
+	if err != nil {
+		return out, err
+	}
+	start, err := exactGraphPartitionUV(parabola[0])
+	if err != nil {
+		return out, err
+	}
+	end, err := exactGraphPartitionUV(parabola[2])
+	if err != nil {
+		return out, err
+	}
+	forward := openSectionPiece{a: start, b: end, c: geometry, side: -1}
+	backward := openSectionPiece{a: end, b: start, c: reversePCurve(geometry), side: -1}
+	zero, br, tr, tl := geom.Vec2{}, geom.Vec2{X: 1}, geom.Vec2{X: 1, Y: 1}, geom.Vec2{Y: 1}
+	if freeAxis == 0 {
+		out[0].loop = []openSectionPiece{{a: zero, b: br, side: 0}, {a: br, b: end, side: 1}, backward, {a: start, b: zero, side: 3}}
+		out[1].loop = []openSectionPiece{forward, {a: end, b: tr, side: 1}, {a: tr, b: tl, side: 2}, {a: tl, b: start, side: 3}}
+	} else {
+		out[0].loop = []openSectionPiece{{a: zero, b: start, side: 0}, forward, {a: end, b: tl, side: 2}, {a: tl, b: zero, side: 3}}
+		out[1].loop = []openSectionPiece{{a: start, b: br, side: 0}, {a: br, b: tr, side: 1}, {a: tr, b: end, side: 2}, backward}
+	}
+	return out, nil
+}
+
+func exactGraphCircleRings(center [2]*big.Rat, radiusSquared *big.Rat) (outer, inner []openSectionPiece, err error) {
+	var controls [3][3]*big.Rat
+	circle, err := ellipseGraphContactLoop(geom.GraphEllipseHint{Center: center,
+		RadiusSquared: [2]*big.Rat{radiusSquared, radiusSquared}})
+	if err != nil {
+		return nil, nil, err
+	}
+	reversed := make([]openSectionPiece, len(circle))
+	for i, piece := range circle {
+		// Keep the exact homogeneous quarter-arc controls in the native
+		// trim type used by source-backed analytic exchange.
+		spline, ok := piece.c.(SplineUV)
+		if !ok || spline.Curve == nil || spline.Curve.Degree() != 2 || spline.Range != (UVInterval{Max: 1}) {
+			return nil, nil, geom.ErrConvergence
+		}
+		poles, weights := spline.Curve.Poles(), spline.Curve.Weights()
+		if len(poles) != 3 || len(weights) != 3 {
+			return nil, nil, geom.ErrConvergence
+		}
+		for j, point := range poles {
+			w := ratInset(weights[j])
+			controls[j] = [3]*big.Rat{new(big.Rat).Mul(ratInset(point.X), w), new(big.Rat).Mul(ratInset(point.Y), w), w}
+		}
+		arc, err := newExactQuadraticUV(controls, false)
+		if err != nil {
+			return nil, nil, err
+		}
+		circle[i].c = arc
+		reversed[len(circle)-1-i] = openSectionPiece{a: piece.b, b: piece.a, c: reversePCurve(arc), side: -1}
+	}
+	return circle, reversed, nil
 }
 
 func bindParabolaCircleGraphEnvelope(ctx context.Context, s Solid, assembly SplineGraphBooleanHistory, proof *geom.SplineGraphParabolaCircle,
@@ -196,37 +214,43 @@ func bindParabolaCircleGraphEnvelope(ctx context.Context, s Solid, assembly Spli
 			return ParabolaCircleGraphHistory{}, geom.ErrConvergence
 		}
 	}
-	// Each contact model edge has exactly the two opposing original roof
-	// uses in the expected outer ring or hole.
-	find := func(uses []Use, edge int) (Use, bool) {
+	if !opposedGraphContourUses(s.faces[0].Outer, s.faces[1].Outer, h.ParabolaEdge) {
+		return ParabolaCircleGraphHistory{}, geom.ErrConvergence
+	}
+	for _, edge := range h.CircleEdges {
+		if !opposedGraphContourUses(s.faces[enclosing].Holes[0], s.faces[2].Outer, edge) {
+			return ParabolaCircleGraphHistory{}, geom.ErrConvergence
+		}
+	}
+	if err := validateGraphEnvelopeSplineTrims(ctx, s.faces[:h.Base+1]); err != nil {
+		return ParabolaCircleGraphHistory{}, err
+	}
+	return h, nil
+}
+
+func opposedGraphContourUses(a, b []Use, edge int) bool {
+	find := func(uses []Use) (Use, bool) {
 		i := slices.IndexFunc(uses, func(u Use) bool { return u.Edge == edge })
 		if i < 0 {
 			return Use{}, false
 		}
 		return uses[i], true
 	}
-	opposed := func(a, b []Use, edge int) bool {
-		first, okA := find(a, edge)
-		second, okB := find(b, edge)
-		return okA && okB && first.Reversed != second.Reversed &&
-			first.UVStart == second.UVEnd && first.UVEnd == second.UVStart
-	}
-	if !opposed(s.faces[0].Outer, s.faces[1].Outer, h.ParabolaEdge) {
-		return ParabolaCircleGraphHistory{}, geom.ErrConvergence
-	}
-	for _, edge := range h.CircleEdges {
-		if !opposed(s.faces[enclosing].Holes[0], s.faces[2].Outer, edge) {
-			return ParabolaCircleGraphHistory{}, geom.ErrConvergence
-		}
-	}
-	for _, face := range s.faces[:h.Base+1] {
+	first, okA := find(a)
+	second, okB := find(b)
+	return okA && okB && first.Reversed != second.Reversed &&
+		first.UVStart == second.UVEnd && first.UVEnd == second.UVStart
+}
+
+func validateGraphEnvelopeSplineTrims(ctx context.Context, faces []Face) error {
+	for _, face := range faces {
 		proved, err := ValidateFaceTrimLoops(ctx, face, trimvalidate.Options{})
 		if err != nil {
-			return ParabolaCircleGraphHistory{}, err
+			return err
 		}
 		if proved.Status != trimvalidate.Certified {
-			return ParabolaCircleGraphHistory{}, geom.ErrConvergence
+			return geom.ErrConvergence
 		}
 	}
-	return h, nil
+	return nil
 }

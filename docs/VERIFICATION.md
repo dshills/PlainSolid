@@ -406,6 +406,16 @@ curves and source vertices. All 12 previous native recipes keep
 their bytes. Short component or control budgets return no bytes.
 Main's sealed native and live exchange race passed in 42.764 and
 45.462 seconds respectively.
+The two-circle source proof recovers both circles from the original
+degree-eight residual with one common dependent center. Each envelope
+keeps 11 faces, 27 edges, 20 vertices and two roof inner wires. Cut
+keeps two disjoint positive lenses and their separate cap; the reverse
+Cut keeps a genus-two layer with 5 faces, 17 edges, 14 vertices and
+four roof inner wires. Both source orders, both axes and a circle-below
+control pass independent strip and disk volume integrals. A second
+irrational native radius, incomplete coefficients or a forged lens
+order return no partial material. Main's sealed one- and two-circle
+native race passed in 411.825 seconds.
 
 A separate isolated real double-point proof passes with and without a
 disjoint regular branch, including source order swaps and rotated

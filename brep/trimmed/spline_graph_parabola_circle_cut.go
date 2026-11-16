@@ -11,7 +11,8 @@ import (
 
 // ParabolaCircleCutComponentHistory identifies one strict positive region
 // and its original roof and wall boundaries. Region is 0 below the
-// parabola, 1 above it, or 2 inside the circle. Indices are component-local.
+// parabola, 1 above it, and 2 onward inside each ordered circle. Indices
+// are component-local.
 type ParabolaCircleCutComponentHistory struct {
 	Region       int
 	RoofFaces    [2]int // original minuend and subtrahend
@@ -44,7 +45,11 @@ func (r *ParabolaCircleGraphCut) History() []ParabolaCircleCutComponentHistory {
 	if r == nil {
 		return nil
 	}
-	out := slices.Clone(r.history)
+	return cloneParabolaCircleCutHistory(r.history)
+}
+
+func cloneParabolaCircleCutHistory(h []ParabolaCircleCutComponentHistory) []ParabolaCircleCutComponentHistory {
+	out := slices.Clone(h)
 	for i := range out {
 		out[i].CircleEdges = slices.Clone(out[i].CircleEdges)
 		out[i].WallFaces = slices.Clone(out[i].WallFaces)
@@ -89,7 +94,7 @@ func CutParabolaCircleSplineGraphs(ctx context.Context, base, a, b *geom.BSpline
 		if err := validateExactGraphPartitionEdges(ctx, part, o.Proof); err != nil {
 			return nil, err
 		}
-		h, err := bindParabolaCircleCutComponent(ctx, part, assembly, walls, i, len(region.holes) == 1)
+		h, err := bindParabolaCircleCutComponent(ctx, part, assembly, walls, i, len(region.holes))
 		if err != nil {
 			return nil, err
 		}
@@ -113,15 +118,15 @@ func CutParabolaCircleSplineGraphs(ctx context.Context, base, a, b *geom.BSpline
 }
 
 func bindParabolaCircleCutComponent(ctx context.Context, part Solid, base OpenSectionHistory,
-	roofs [2]*geom.BSplineSurface, region int, hole bool) (ParabolaCircleCutComponentHistory, error) {
+	roofs [2]*geom.BSplineSurface, region, holes int) (ParabolaCircleCutComponentHistory, error) {
 	var h ParabolaCircleCutComponentHistory
 	topo := part.Topology()
 	// Vertices, edges, faces, inner wires, Euler characteristic.
 	want, sectionEdges, wallCount := [5]int{6, 9, 5, 0, 2}, 1, 3
-	if region == 2 {
+	if region >= 2 {
 		want, sectionEdges, wallCount = [5]int{4, 4, 2, 0, 2}, 4, 0
-	} else if hole {
-		want, sectionEdges = [5]int{10, 13, 5, 2, 0}, 5
+	} else if holes > 0 {
+		want, sectionEdges = [5]int{6 + 4*holes, 9 + 4*holes, 5, 2 * holes, 2 - 2*holes}, 1+4*holes
 	}
 	actual := [5]int{topo.Vertices, topo.Edges, topo.Faces, topo.InnerWires, topo.EulerCharacteristic}
 	if len(topo.Shells) != 1 || topo.CollapsedEdges != 0 || actual != want ||
@@ -131,7 +136,7 @@ func bindParabolaCircleCutComponent(ctx context.Context, part Solid, base OpenSe
 	h = ParabolaCircleCutComponentHistory{Region: region, RoofFaces: [2]int{base.SplineFace, base.PlaneFace},
 		ParabolaEdge: -1, WallFaces: base.WallFaces, DomainSides: base.DomainSides}
 	circle := base.ContourEdges
-	if region != 2 {
+	if region < 2 {
 		h.ParabolaEdge = circle[0]
 		circle = circle[1:]
 	}
@@ -147,11 +152,11 @@ func bindParabolaCircleCutComponent(ctx context.Context, part Solid, base OpenSe
 		if h.ParabolaEdge >= 0 && !check(f.Outer, h.ParabolaEdge) {
 			return h, geom.ErrConvergence
 		}
-		ring := f.Outer
-		if hole {
-			ring = f.Holes[0]
-		}
-		for _, edge := range h.CircleEdges {
+		for index, edge := range h.CircleEdges {
+			ring := f.Outer
+			if holes > 0 {
+				ring = f.Holes[index/4]
+			}
 			if !check(ring, edge) {
 				return h, geom.ErrConvergence
 			}

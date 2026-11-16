@@ -440,6 +440,11 @@ through-hole shell. Both source orders replay. Independent neutral
 exchange reopens the [exact mixed parabola/circle result](evidence/parabola-circle-neutral-2026-11-15.json)
 with the original indexed positions, both conic trims and separately
 positive signed material for every component.
+Native Common, Fuse and both Cut orders also support two disjoint
+circles on one side of the same open parabola. One Cut keeps the cap
+and two separately positive lenses. The other keeps a single shell
+with two through holes. Independent neutral qualification is running
+for this degree-eight source family.
 Full ordinary Go and PlainCAD on `a3b7548d` have passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,
