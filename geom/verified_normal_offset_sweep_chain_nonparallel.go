@@ -72,19 +72,36 @@ func NewVerifiedNonparallelNormalOffsetSweepChain(ctx context.Context, ab, bc *V
 		return nil, r, ErrDomain
 	}
 	separator = copySweepChainSeparator(separator)
+	options.Patch = limits
+	ends, gap, err := verifySweepChainEndSeparation(ctx, [2]*VerifiedNormalOffsetSweep{ab.sweeps[0], bc.sweeps[1]}, separator, options, b)
+	if err != nil {
+		return nil, r, err
+	}
+	ownedSeparator := copySweepChainSeparator(separator)
+	r.Complete, r.Separator, r.Gap = true, &ownedSeparator, gap
+	r.EndRanges = [2]ExactParameterInterval{copySweepInterval(ends[0]), copySweepInterval(ends[1])}
+	return &VerifiedNormalOffsetSweepChain{
+		sweeps:       [3]*VerifiedNormalOffsetSweep{ab.sweeps[0], ab.sweeps[1], bc.sweeps[1]},
+		pairs:        [2]*VerifiedNormalOffsetSweepPair{ab, bc},
+		endSeparator: &separator,
+	}, r, nil
+}
+
+func verifySweepChainEndSeparation(ctx context.Context, sweeps [2]*VerifiedNormalOffsetSweep,
+	separator VerifiedNormalOffsetSweepChainSeparator, options NormalOffsetCoverageOptions,
+	b *polynomialBudget) (ends [2]exactInterval, gap *big.Rat, err error) {
+	a := boundedRatArithmetic{b: b}
 	oneNorm := new(big.Rat)
 	for _, q := range separator.Covector {
 		oneNorm = a.add(oneNorm, new(big.Rat).Abs(q))
 	}
 	if a.err != nil {
-		return nil, r, a.err
+		return ends, nil, a.err
 	}
-	var ends [2]exactInterval
-	for i, sweep := range [2]*VerifiedNormalOffsetSweep{ab.sweeps[0], bc.sweeps[1]} {
-		options.Patch = limits
-		options.Patch.MaxOperations -= b.operations
+	for i, sweep := range sweeps {
+		options.Patch.MaxOperations = b.maxOperations - b.operations
 		if options.Patch.MaxOperations <= 0 {
-			return nil, r, ErrConvergence
+			return ends, nil, ErrConvergence
 		}
 		coverage, err := sweep.source.certifyNormalOffsetCells(ctx, sweep.upper, options,
 			func(ctx context.Context, patch *SurfacePatch, upper *big.Rat, work *polynomialBudget) (bool, error) {
@@ -114,27 +131,20 @@ func NewVerifiedNonparallelNormalOffsetSweepChain(ctx context.Context, ab, bc *V
 			})
 		b.operations += coverage.ExactOperations
 		if err != nil {
-			return nil, r, err
+			return ends, nil, err
 		}
 		if !coverage.Complete {
-			return nil, r, ErrConvergence
+			return ends, nil, ErrConvergence
 		}
 	}
-	gap := a.sub(ends[1].lo, ends[0].hi)
+	gap = a.sub(ends[1].lo, ends[0].hi)
 	if a.err != nil {
-		return nil, r, a.err
+		return ends, nil, a.err
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, r, err
+		return ends, nil, err
 	}
-	ownedSeparator := copySweepChainSeparator(separator)
-	r.Complete, r.Separator, r.Gap = true, &ownedSeparator, gap
-	r.EndRanges = [2]ExactParameterInterval{copySweepInterval(ends[0]), copySweepInterval(ends[1])}
-	return &VerifiedNormalOffsetSweepChain{
-		sweeps:       [3]*VerifiedNormalOffsetSweep{ab.sweeps[0], ab.sweeps[1], bc.sweeps[1]},
-		pairs:        [2]*VerifiedNormalOffsetSweepPair{ab, bc},
-		endSeparator: &separator,
-	}, r, nil
+	return ends, gap, nil
 }
 
 func copySweepChainSeparator(s VerifiedNormalOffsetSweepChainSeparator) VerifiedNormalOffsetSweepChainSeparator {
