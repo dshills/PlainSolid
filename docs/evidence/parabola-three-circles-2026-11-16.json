@@ -43,5 +43,22 @@
     "max_independent_volume_absolute_error": 2.33e-16,
     "max_independent_centroid_absolute_error": 3.2553e-13,
     "native_receipts_sha256": "bb86b82c7ef1f34a367066315078eafe0d24bff8a128b1e6668c9efc4a367137"
+  },
+  "neutral_step_and_iges": {
+    "isolated_revision": "45b5a3c323ca3c3d1b0d81540eb7d6f27ef46bb3",
+    "patch_sha256": "4f7166a4eff7d1382b1bb8ffce207068dbe51f1528754d10bc5c33b73ff6318b",
+    "main_base": "d42af917",
+    "main_log": "parabola-three-circles-neutral-main-pinned.jsonl",
+    "main_log_sha256": "117e7ee002fff58f111671ba888fcb22acc7ab5f5e490efa776fb272939ffec8",
+    "seconds": 623.305,
+    "named_passes": ["TestParabolaThreeCirclesEnvelopeExchange", "TestParabolaThreeCirclesCutExchange"],
+    "pinned_occt_revision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+    "files": 48,
+    "positive_bodies": 88,
+    "per_file": {"directed_coedges": 38, "crossing_rays": 32, "isolated_jet_occurrences": 16},
+    "max_independent_relative_volume_error": {"envelope": 4.57e-16, "cut": 1.83e-12},
+    "independent_volume_reference_sha256": "613da0628bad6be146907b4aecefad054a44544bc699a991b14cc39fa5f27d87",
+    "unchanged_prior_receipt_count": 12,
+    "prior_receipts_sha256": "7b76e549830dbd37a29597c162a31c8e8a42ff11c4600c3c1504ebfdd5b9c9a9"
   }
 }

@@ -168,6 +168,11 @@ The three-circle native Cut audit passes eight main axis, side and order
 cases and all 28 positive original components. Independent signed volumes
 and centroids agree; the compact recipe reproves each contact, raw owner
 and component incidence. Prior two-crossing Cut recipes retain their bytes.
+The [three-circle neutral audit](evidence/parabola-three-circles-2026-11-16.json)
+passes 48 STEP/IGES files with 88 independently reopened positive bodies.
+Pinned readers retain 38 directed original coedges, 32 crossing rays,
+16 isolated jets and the original roof nets. The prior 12 transfer
+digests match.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same
