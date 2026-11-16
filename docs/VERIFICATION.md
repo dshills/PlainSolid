@@ -611,6 +611,11 @@ and matches both pinned and macOS architecture readbacks. A notch
 and a boundary contact refuse. A third fixture has all three hole
 vertices inside, but one chord crosses the notch twice; the complete
 edge proof refuses it. Twenty-nine earlier carriers match.
+Two holes qualify independently on the concave face. Both have
+winding-one witnesses and overlapping axis-aligned boxes, with exact
+separation 1/16 along 2V-U. Eleven original model coedges survive both
+readers. Mutual edge contact, overlap and a notch hole all refuse.
+Native and amd64 bytes agree, and 30 earlier carriers match.
 The [valid periodic seam trim](evidence/iges-periodic-seam-trimmed-2026-11-16.json)
 passes independently authored type 144, the pinned reopen and main race.
 The reader retains six original directed pairs, distinct seam stations,

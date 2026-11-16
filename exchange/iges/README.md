@@ -206,6 +206,17 @@ contours and their strict containment after binary64 conversion.
 Pinned OCCT reopens the original and canonical carriers with all eight
 directed pairs and unchanged parameter ranges.
 
+`ReadPeriodicConcavePolygonTrimmedFaceWithHoles` admits two such
+clockwise convex holes in their original order. It proves containment
+in the concave domain for each hole and uses exact projections onto
+both holes' edge normals to certify a positive separating gap.
+`WritePeriodicConcavePolygonTrimmedFaceWithHoles` rechecks winding,
+containment and separation after binary64 conversion. Pinned OCCT preserves the
+independent pentagon and two triangular holes, including all eleven
+directed pairs. Their bounding boxes overlap in both UV axes. The
+strict reader refuses mutual contact, overlap and a second hole in the
+notch.
+
 `ReadPeriodicTrimmedFaceWithHoles` admits one or two explicit rectangular
 inner type-142 contours in the same original knot cell as the outer loop.
 Each inner contour owns four directed type-110 UV lines and four complete
