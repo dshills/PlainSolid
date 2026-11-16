@@ -184,6 +184,12 @@ Strict import refuses the independently overlapping original and an
 independent source whose rounded model coefficient disagrees with its UV
 owner even though OCCT transfers it.
 
+`WritePeriodicSeamTrimmedFaceWithMixedHoles` preserves the proved order
+and all sixteen pairs, including the original seam split and each model
+interval. It replays the source proof, verifies the spacing of distinct
+stations across both inner loops and the outer boundary, and strictly
+reopens the canonical output before writing.
+
 `WritePeriodicSeamTrimmedFace` emits a canonical carrier for an original
 face proved by `ReadPeriodicSeamTrimmedFace`. It replays the source proof
 and strictly reopens the complete output before writing to the stream.

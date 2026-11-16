@@ -82,32 +82,8 @@ func TestWritePeriodicSeamTrimmedFaceWithHoleReject(t *testing.T) {
 
 	// Z is exactly V in the independent reference support. Move the inner
 	// lower station and its model controls together, retaining exact pairing.
-	const lower = "1.00000000000000001"
-	narrow := raw
-	for _, e := range read(raw).Hole.Edges {
-		narrow = editPeriodicTrimWriterSource(t, narrow, e.UVSourceID, func(values []string) []string {
-			for _, i := range [2]int{2, 5} {
-				if values[i] == "1.5" {
-					values[i] = lower
-				}
-			}
-			return values
-		})
-		narrow = editPeriodicTrimWriterSource(t, narrow, e.ModelSourceID, func(values []string) []string {
-			degree, err := intValue(parameter{text: values[2]})
-			if err != nil {
-				t.Fatal(err)
-			}
-			poles := degree + 1
-			for i := range poles {
-				z := 7 + 3*poles + 3*i + 2
-				if values[z] == "1.5" {
-					values[z] = lower
-				}
-			}
-			return values
-		})
-	}
+	original := read(raw)
+	narrow := movePeriodicFixtureVStation(t, raw, original.Hole.Edges[:], "1.5", "1.00000000000000001")
 	refuse(read(narrow), "distinct periodic trim stations collapse in binary64 transfer")
 
 	cancelled, cancel := context.WithCancel(ctx)
@@ -120,6 +96,35 @@ func TestWritePeriodicSeamTrimmedFaceWithHoleReject(t *testing.T) {
 	if err := WritePeriodicSeamTrimmedFaceWithHole(ctx, periodicTrimShortWriter{}, face); !errors.Is(err, io.ErrShortWrite) {
 		t.Fatal("short write reported as success", err)
 	}
+}
+
+func movePeriodicFixtureVStation(t *testing.T, raw []byte, edges []PeriodicTrimEdge, original, corrected string) []byte {
+	t.Helper()
+	for _, e := range edges {
+		raw = editPeriodicTrimWriterSource(t, raw, e.UVSourceID, func(values []string) []string {
+			for _, i := range [2]int{2, 5} {
+				if values[i] == original {
+					values[i] = corrected
+				}
+			}
+			return values
+		})
+		raw = editPeriodicTrimWriterSource(t, raw, e.ModelSourceID, func(values []string) []string {
+			degree, err := intValue(parameter{text: values[2]})
+			if err != nil {
+				t.Fatal(err)
+			}
+			poles := degree + 1
+			for i := range poles {
+				z := 7 + 3*poles + 3*i + 2
+				if values[z] == original {
+					values[z] = corrected
+				}
+			}
+			return values
+		})
+	}
+	return raw
 }
 
 func TestWritePeriodicSeamTrimmedFaceWithHolePinnedOCCT(t *testing.T) {
