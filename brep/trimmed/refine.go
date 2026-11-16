@@ -272,7 +272,7 @@ func (s Solid) sampledSeeds(ctx context.Context, level int, m *mesh.Mesh, bounda
 	n := 1 << level
 	var rim []bool
 	if s.sampledAnnularCaps {
-		rim = s.annularRimEdges()
+		rim = s.sampledAnnularEdges()
 	}
 	out := make([][]samples, len(s.faces))
 	for fi, f := range s.faces {
@@ -370,7 +370,23 @@ func (s Solid) sampledSeeds(ctx context.Context, level int, m *mesh.Mesh, bounda
 				return nil, geom.ErrConvergence
 			}
 			wallOutline = append(wallOutline[start:], wallOutline[:start]...)
-			triangles, e = compactAxialTriangles(wallOutline)
+			if _, blend := circularBoreBlendEnd(wall, f); blend {
+				surface := numericalWrappedSupport(f.Surface)
+				triangles, e = sampledBoreFilletGrid(wall.Domain(), wallOutline, func(p geom.Vec2) error {
+					if err := ctx.Err(); err != nil {
+						return err
+					}
+					q, err := surface.Eval(p.X, p.Y)
+					if err != nil || !q.IsFinite() {
+						return geom.ErrInvalid
+					}
+					indices[p] = len(m.Vertices)
+					m.Vertices = append(m.Vertices, q)
+					return nil
+				})
+			} else {
+				triangles, e = compactAxialTriangles(wallOutline)
+			}
 			structured = true
 		} else {
 			triangles, structured, e = sampledCylinderGrid(ctx, f, n, rings, indices, m)
@@ -396,6 +412,35 @@ func (s Solid) sampledSeeds(ctx context.Context, level int, m *mesh.Mesh, bounda
 		}
 	}
 	return out, nil
+}
+
+// The two four-edge toroid rims and the two uses of its shared curved seam
+// already have model samples. Treat each rim as one grid side and keep those
+// samples as the perimeter of the existing tensor grid.
+func sampledBoreFilletGrid(d geom.ParameterRectangle, outline [][]geom.Vec2, vertex func(geom.Vec2) error) ([][3]geom.Vec2, error) {
+	var sides [4][]geom.Vec2
+	for _, edge := range outline {
+		p, q := edge[0], edge[len(edge)-1]
+		side := 3
+		switch {
+		case p.Y == q.Y && p.Y == d.VMin:
+			side = 0
+		case p.X == q.X && p.X == d.UMax:
+			side = 1
+		case p.Y == q.Y && p.Y == d.VMax:
+			side = 2
+		}
+		if len(sides[side]) > 0 {
+			sides[side] = sides[side][:len(sides[side])-1]
+		}
+		sides[side] = append(sides[side], edge...)
+	}
+	for _, side := range sides {
+		if len(side) < 2 {
+			return nil, geom.ErrConvergence
+		}
+	}
+	return compactTorusGrid(sides[:], vertex)
 }
 
 func check(s geom.Surface, tri samples, p [3]geom.Vec3, deflection, angle float64, poles ...[3]bool) error {
