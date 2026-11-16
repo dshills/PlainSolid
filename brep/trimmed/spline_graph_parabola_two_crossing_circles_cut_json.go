@@ -57,25 +57,29 @@ func crossingCircleCutLayerLedger(region int, roofFaces, parabolaEdges, walls, s
 func crossingCircleCutContactLedger(items [][2]ParabolaTwoCrossingCirclesCutContact) [][]parabolaCrossingCirclesCutRecipeContact {
 	var contacts [][]parabolaCrossingCirclesCutRecipeContact
 	for _, circle := range items {
-		var entries []parabolaCrossingCirclesCutRecipeContact
-		for _, contact := range circle {
-			entry := parabolaCrossingCirclesCutRecipeContact{
-				Components: contact.Components[:],
-				parabolaCircleCrossingsCutRecipeContact: parabolaCircleCrossingsCutRecipeContact{
-					Vertices: contact.Vertices[:], Rays: [][]int{contact.Rays[0][:], contact.Rays[1][:]},
-				},
-			}
-			for _, q := range contact.Parameters {
-				entry.Parameters = append(entry.Parameters, q.RatString())
-			}
-			for _, q := range contact.Point {
-				entry.Point = append(entry.Point, q.RatString())
-			}
-			entries = append(entries, entry)
-		}
-		contacts = append(contacts, entries)
+		contacts = append(contacts, crossingCircleCutContactRecipeEntries(circle[:]))
 	}
 	return contacts
+}
+
+func crossingCircleCutContactRecipeEntries(items []ParabolaTwoCrossingCirclesCutContact) []parabolaCrossingCirclesCutRecipeContact {
+	var entries []parabolaCrossingCirclesCutRecipeContact
+	for _, contact := range items {
+		entry := parabolaCrossingCirclesCutRecipeContact{
+			Components: contact.Components[:],
+			parabolaCircleCrossingsCutRecipeContact: parabolaCircleCrossingsCutRecipeContact{
+				Vertices: contact.Vertices[:], Rays: [][]int{contact.Rays[0][:], contact.Rays[1][:]},
+			},
+		}
+		for _, q := range contact.Parameters {
+			entry.Parameters = append(entry.Parameters, q.RatString())
+		}
+		for _, q := range contact.Point {
+			entry.Point = append(entry.Point, q.RatString())
+		}
+		entries = append(entries, entry)
+	}
+	return entries
 }
 
 // WriteJSON records the original stocks, all three ordered components and

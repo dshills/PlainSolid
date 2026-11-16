@@ -84,15 +84,20 @@ func cloneTwoCrossingCircleCutContacts(out [2][2]ParabolaTwoCrossingCirclesCutCo
 
 func cloneCrossingCircleCutContacts(out [][2]ParabolaTwoCrossingCirclesCutContact) {
 	for i := range out {
-		for j := range out[i] {
-			for k, q := range out[i][j].Parameters {
-				out[i][j].Parameters[k] = new(big.Rat).Set(q)
-			}
-			for k, q := range out[i][j].Point {
-				out[i][j].Point[k] = new(big.Rat).Set(q)
-			}
+		for j, contact := range out[i] {
+			out[i][j] = cloneCrossingCircleCutContact(contact)
 		}
 	}
+}
+
+func cloneCrossingCircleCutContact(contact ParabolaTwoCrossingCirclesCutContact) ParabolaTwoCrossingCirclesCutContact {
+	for i, q := range contact.Parameters {
+		contact.Parameters[i] = new(big.Rat).Set(q)
+	}
+	for i, q := range contact.Point {
+		contact.Point[i] = new(big.Rat).Set(q)
+	}
+	return contact
 }
 
 // CutParabolaTwoCrossingCirclesSplineGraphs builds the original ordered
@@ -265,45 +270,63 @@ func bindTwoCrossingCircleCutContacts(p parabolaTwoCrossingCirclesPartition, com
 
 func bindCrossingCircleCutContacts(nodes [][2]geom.ParabolaCircleCrossing, rays [][2][4]int, components []Solid,
 	regions []int, assembly []OpenSectionHistory, edges [][]int, out [][2]ParabolaTwoCrossingCirclesCutContact) error {
-	material := polynomialNodeCutMaterial{components: components}
-	used := make([][]int, len(components))
+	binding := crossingCircleCutBinding{
+		material: polynomialNodeCutMaterial{components: components}, regions: regions, assembly: assembly,
+		edges: edges, used: make([][]int, len(components)),
+	}
 	for i, junctions := range nodes {
 		for j, node := range junctions {
-			contact := ParabolaTwoCrossingCirclesCutContact{Parameters: node.Parameters, Point: node.Point, Components: [2]int{0, i + 1}}
-			var sectors [2]int
-			for k, part := range contact.Components {
-				region := regions[part]
-				sector := slices.Index(node.SectorRegions[:], region)
-				if sector < 0 {
-					return geom.ErrConvergence
-				}
-				sectors[k] = sector
-				body := components[part]
-				v, err := exactParabolaCircleCrossingVertex(body, node.Point)
-				if err != nil {
-					return err
-				}
-				index, err := polynomialCutContactVertex(body, assembly[part], body.vertices[v])
-				if err != nil || index != v || slices.Contains(used[part], v) {
-					return geom.ErrConvergence
-				}
-				used[part] = append(used[part], v)
-				contact.Vertices[k] = v
-				for l, ray := range [2]int{sector, (sector + 1) % 4} {
-					id := edges[part][rays[i][j][ray]]
-					if id < 0 || !matchesParabolaCircleCrossingRay(body, id, v, node.Rays[ray]) {
-						return geom.ErrConvergence
-					}
-					contact.Rays[k][l] = id
-				}
-			}
-			if (sectors[0]+2)%4 != sectors[1] {
-				return geom.ErrConvergence
+			contact, err := binding.contact(node, rays[i][j], [2]int{0, i + 1})
+			if err != nil {
+				return err
 			}
 			out[i][j] = contact
-			material.contacts = append(material.contacts, TwoPolynomialNodeComponentContact{Parameters: node.Parameters, Point: node.Point,
-				Components: contact.Components, Vertices: contact.Vertices})
 		}
 	}
-	return material.validateContactIdentities()
+	return binding.material.validateContactIdentities()
+}
+
+type crossingCircleCutBinding struct {
+	material polynomialNodeCutMaterial
+	regions  []int
+	assembly []OpenSectionHistory
+	edges    [][]int
+	used     [][]int
+}
+
+func (b *crossingCircleCutBinding) contact(node geom.ParabolaCircleCrossing, rays [4]int, pair [2]int) (ParabolaTwoCrossingCirclesCutContact, error) {
+	contact := ParabolaTwoCrossingCirclesCutContact{Parameters: node.Parameters, Point: node.Point, Components: pair}
+	var sectors [2]int
+	for k, part := range contact.Components {
+		region := b.regions[part]
+		sector := slices.Index(node.SectorRegions[:], region)
+		if sector < 0 {
+			return ParabolaTwoCrossingCirclesCutContact{}, geom.ErrConvergence
+		}
+		sectors[k] = sector
+		body := b.material.components[part]
+		v, err := exactParabolaCircleCrossingVertex(body, node.Point)
+		if err != nil {
+			return ParabolaTwoCrossingCirclesCutContact{}, err
+		}
+		index, err := polynomialCutContactVertex(body, b.assembly[part], body.vertices[v])
+		if err != nil || index != v || slices.Contains(b.used[part], v) {
+			return ParabolaTwoCrossingCirclesCutContact{}, geom.ErrConvergence
+		}
+		b.used[part] = append(b.used[part], v)
+		contact.Vertices[k] = v
+		for l, ray := range [2]int{sector, (sector + 1) % 4} {
+			id := b.edges[part][rays[ray]]
+			if id < 0 || !matchesParabolaCircleCrossingRay(body, id, v, node.Rays[ray]) {
+				return ParabolaTwoCrossingCirclesCutContact{}, geom.ErrConvergence
+			}
+			contact.Rays[k][l] = id
+		}
+	}
+	if (sectors[0]+2)%4 != sectors[1] {
+		return ParabolaTwoCrossingCirclesCutContact{}, geom.ErrConvergence
+	}
+	b.material.contacts = append(b.material.contacts, TwoPolynomialNodeComponentContact{Parameters: node.Parameters, Point: node.Point,
+		Components: contact.Components, Vertices: contact.Vertices})
+	return contact, nil
 }
