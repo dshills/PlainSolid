@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "contributorRevision": "6174d805",
+  "integratedMainRaceSeconds": 18.87,
+  "positiveSeparateComponentVolumes": [
+    "1/100925440",
+    "4619/100925440"
+  ],
+  "totalExactVolume": "3/65536",
+  "declaredOriginalContactCount": 1,
+  "reverseOrderRefusal": "exterior component has two disconnected local vertex links",
+  "display": {
+    "coarseTriangleCounts": [
+      48,
+      24
+    ],
+    "closedAndOnlyOriginalContact": true,
+    "coarseVolumeErrorPercent": [
+      -20.6,
+      13.8
+    ],
+    "tighterDeflection": 0.001,
+    "tighterVolumeErrorPercent": [
+      -5.69,
+      0.25
+    ]
+  },
+  "artifacts": [
+    {
+      "file": "nodal-complete-native-family-main-race.jsonl",
+      "bytes": 10715,
+      "sha256": "f20e221966ddae1f7edfef60f82c8d2226655ec278a87bec74e1959ba7122dc0"
+    },
+    {
+      "file": "nodal-cubic-cut-evidence/nodal-cut-interior.json",
+      "bytes": 1465,
+      "sha256": "37104163ffe7938f85a8a373800c75517c8afd78a450b840838309be10b069a7"
+    },
+    {
+      "file": "nodal-cubic-cut-evidence/display-accuracy.jsonl",
+      "bytes": 3714,
+      "sha256": "e67c69f5c12504009ee4193adfd313d003f1e996d5b6975581f15ec302e68274"
+    },
+    {
+      "file": "nodal-cubic-cut-evidence/nodal-cubic-cut.patch",
+      "bytes": 26894,
+      "sha256": "0258007cd6eeb5103be8fccc7e1121e79040fe10d74ed02aafd3e83ea7c5ff13"
+    }
+  ]
+}

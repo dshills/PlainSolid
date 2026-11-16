@@ -176,17 +176,7 @@ func bindNodalCubicRays(s Solid, p *geom.NodalCubicSection, bind polynomialNodeB
 		if trim.surface == roofs[1] {
 			owner = 1
 		}
-		controls := trim.curve.(ExactBezierUV).HomogeneousControls()
-		near, next := controls[0], controls[1]
-		if edge.End == node {
-			near, next = controls[len(controls)-1], controls[len(controls)-2]
-		}
-		// Weights are one on every polynomial restriction. A positive
-		// collinear endpoint derivative identifies the exact outgoing germ.
-		dx, dy := new(big.Rat).Sub(next[0], near[0]), new(big.Rat).Sub(next[1], near[1])
-		u, v := ray.UV[owner][0], ray.UV[owner][1]
-		if new(big.Rat).Mul(dx, v).Cmp(new(big.Rat).Mul(dy, u)) != 0 ||
-			new(big.Rat).Add(new(big.Rat).Mul(dx, u), new(big.Rat).Mul(dy, v)).Sign() <= 0 {
+		if !nodalCubicRayMatches(trim.curve.(ExactBezierUV), edge.End == node, ray.UV[owner]) {
 			return geom.ErrConvergence
 		}
 	}
@@ -196,6 +186,19 @@ func bindNodalCubicRays(s Solid, p *geom.NodalCubicSection, bind polynomialNodeB
 		}
 	}
 	return nil
+}
+
+func nodalCubicRayMatches(curve ExactBezierUV, atEnd bool, uv [2]*big.Rat) bool {
+	controls := curve.HomogeneousControls()
+	near, next := controls[0], controls[1]
+	if atEnd {
+		near, next = controls[len(controls)-1], controls[len(controls)-2]
+	}
+	// All weights are one. A positive collinear endpoint derivative
+	// identifies the exact outgoing germ in the original owner chart.
+	dx, dy := new(big.Rat).Sub(next[0], near[0]), new(big.Rat).Sub(next[1], near[1])
+	return new(big.Rat).Mul(dx, uv[1]).Cmp(new(big.Rat).Mul(dy, uv[0])) == 0 &&
+		new(big.Rat).Add(new(big.Rat).Mul(dx, uv[0]), new(big.Rat).Mul(dy, uv[1])).Sign() > 0
 }
 
 func nodalCubicIncidentFaces(s Solid, id int) []int {
