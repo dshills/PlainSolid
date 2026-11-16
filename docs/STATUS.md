@@ -32,6 +32,10 @@ Cut retains two original point contacts with separate local vertices
 and either a holed exterior shell or a third strictly disjoint lens.
 These mixed-circle results now have exact STEP and IGES export that
 preserves both original crossing links and the separated disk or hole.
+The source proof also covers two disjoint circles that each cross the
+original parabola twice. It reports four exact directed junctions and
+six signed regions, including a source case with coincident free-coordinate
+projections. Native coverage is qualified separately.
 These osculation cases also support exact analytic STEP and IGES
 output with the original owner winding, contact jets and separate Cut
 components. General curved exchange remains open.

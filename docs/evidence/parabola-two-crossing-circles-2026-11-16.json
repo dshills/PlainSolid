@@ -1,0 +1,21 @@
+{
+  "agent_commit": "e8c54579b8ff952ae432605c29401c462c7b671e",
+  "source_junctions": 4,
+  "signed_regions": 6,
+  "independent_factor_quotients": "staggered\n roots 7/32 9/32 quotient 863/256 -6 4 whole-domain minimum 287/256\n roots 23/32 25/32 quotient 351/256 -2 4 whole-domain minimum 287/256\n open-arc station gap 7/16\ncoincident projections\n roots 1/4 37/100 quotient 11725/2304 -2375/288 625/144 whole-domain minimum 75/64\n roots 1/8 7/40 quotient 56555/9216 -925/96 625/144 whole-domain minimum 2585/3072\n open-arc station gap 3/40\n",
+  "digests": {
+    "parabola-two-crossing-circles-geometry-main-race.jsonl": "19513f343fe86c7bcff4280cf1aae9978ccf7fc37f29d608b5c67fccb561e555",
+    "geometry-quotients.txt": "482706fbe96c40bac932d8ad440eb3cf2f83cb2dc0518a778d53f5bdc7102d28",
+    "geometry-quotients.py": "b2e59c91e5e3dff76af0bd0f45dbdbe2099a673a87ac59f45a0fd41d15f1a869",
+    "parabola-two-crossing-circles-geometry.patch": "f890a64c2dd8f8dda3844b2f6ce0092a3b7969628e8c60361bf5d2825e06dd82"
+  },
+  "main_race_passes": [
+    "TestParabolaMixedCirclesSource",
+    "TestParabolaMixedCirclesSourceRefusals",
+    "TestParabolaTwoCrossingCirclesSource",
+    "TestParabolaTwoCrossingCirclesSourceRefusals"
+  ],
+  "main_race_seconds": [
+    11.59
+  ]
+}

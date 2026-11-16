@@ -51,21 +51,7 @@ func separatedParabolaCircleRegion(p rationalPolynomial, minimum, maximum *big.R
 		}
 	}
 
-	offset := clonePolynomial(p)
-	offset[0].Sub(offset[0], y)
-	if err := b.check(offset[0]); err != nil {
-		return 0, err
-	}
-	vertical, err := polynomialProduct(offset, offset, b)
-	if err != nil {
-		return 0, err
-	}
-	horizontal := rationalPolynomial{
-		new(big.Rat).Sub(new(big.Rat).Mul(x, x), radiusSquared),
-		new(big.Rat).Mul(big.NewRat(-2, 1), x),
-		one,
-	}
-	quartic, err := graphPolynomialSum(vertical, horizontal, 1, b)
+	quartic, err := parabolaCircleRestriction(p, center, radiusSquared, b)
 	if err != nil {
 		return 0, err
 	}
@@ -92,6 +78,8 @@ func separatedParabolaCircleRegion(p rationalPolynomial, minimum, maximum *big.R
 
 	// Positivity everywhere excludes the closed disk from the parabola.
 	// The connected disk therefore has the same side as its exact center.
+	offset := clonePolynomial(p)
+	offset[0].Sub(offset[0], y)
 	centerGap, err := polynomialValue(offset, x, b)
 	if err != nil {
 		return 0, err
@@ -104,4 +92,26 @@ func separatedParabolaCircleRegion(p rationalPolynomial, minimum, maximum *big.R
 	default:
 		return 0, ErrConvergence
 	}
+}
+
+// parabolaCircleRestriction substitutes the full power polynomial of the
+// original parabola into the circle equation.
+func parabolaCircleRestriction(p rationalPolynomial, center [2]*big.Rat,
+	radiusSquared *big.Rat, b *polynomialBudget) (rationalPolynomial, error) {
+	x, y := center[0], center[1]
+	offset := clonePolynomial(p)
+	offset[0].Sub(offset[0], y)
+	if err := b.check(offset[0]); err != nil {
+		return nil, err
+	}
+	vertical, err := polynomialProduct(offset, offset, b)
+	if err != nil {
+		return nil, err
+	}
+	horizontal := rationalPolynomial{
+		new(big.Rat).Sub(new(big.Rat).Mul(x, x), radiusSquared),
+		new(big.Rat).Mul(big.NewRat(-2, 1), x),
+		big.NewRat(1, 1),
+	}
+	return graphPolynomialSum(vertical, horizontal, 1, b)
 }

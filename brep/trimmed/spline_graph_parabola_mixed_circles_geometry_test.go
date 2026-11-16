@@ -23,8 +23,17 @@ func parabolaMixedCirclesStock(t *testing.T, axis int, circles [2]twoCircleStock
 	t.Helper()
 	// Author a tensor spline from 1225/8192*(v-3/8-(u-1/2)²/8)*Q0*Q1.
 	// 1225 cancels the odd factors of both degree-eight Bernstein bases.
-	power := map[[2]int]*big.Rat{{0, 1}: big.NewRat(1225, 8192), {0, 0}: big.NewRat(-15925, 262144),
-		{1, 0}: big.NewRat(1225, 65536), {2, 0}: big.NewRat(-1225, 65536)}
+	return parabolaCircleProductStock(t, axis, circles, [3]*big.Rat{big.NewRat(13, 32), big.NewRat(-1, 8), big.NewRat(1, 8)},
+		big.NewRat(1225, 8192), perturb)
+}
+
+func parabolaCircleProductStock(t *testing.T, axis int, circles [2]twoCircleStockProbe, parabola [3]*big.Rat,
+	scale *big.Rat, perturb bool) [3]*geom.BSplineSurface {
+	t.Helper()
+	power := map[[2]int]*big.Rat{{0, 1}: scale}
+	for i, coefficient := range parabola {
+		power[[2]int{i, 0}] = new(big.Rat).Mul(new(big.Rat).Neg(scale), coefficient)
+	}
 	for _, disc := range circles {
 		constant := new(big.Rat).Add(new(big.Rat).Mul(disc.x, disc.x), new(big.Rat).Mul(disc.y, disc.y))
 		constant.Sub(constant, disc.radiusSquared)

@@ -43,6 +43,12 @@ preserve original nested and separate material, 1,056 opposed coedges,
 both crossing and isolated source jets, and 19,440 roof-pole occurrences.
 The largest signed-volume difference from the exact integrals is
 `4.44e-16`. Main race and 276 prior neutral digests pass.
+The [four-junction source proof](evidence/parabola-two-crossing-circles-2026-11-16.json)
+passed both axes and operand orders, with staggered and exactly
+coincident free-coordinate disk projections. Independent rational
+division proves positive remaining whole-stock factors. The source race
+also covers the previous mixed arrangement and explicit refusal of
+altered coefficients, extra roots, tangency and overlapping disks.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same
