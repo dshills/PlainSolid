@@ -50,6 +50,27 @@
       "area": 3.02e-11
     },
     "prior_native_receipts_unchanged": 18,
-    "negative_original_station": "7/24"
+    "negative_original_station": "7/24",
+    "isolated_race_log": "native-envelope-race.log",
+    "isolated_race_sha256": "d4dee4eb31032d0a5845aebc759ad488798f73d259bd0df35d51e32497cb5ae7",
+    "isolated_race_seconds": 920.787
+  },
+  "native_cut": {
+    "isolated_revision": "b77b22b57821fad62b0c4dba04b7e204236e18d1",
+    "patch_sha256": "34f507bddf0b7fa13b67e87fdc48e5599af2e3d64724df7db33ed34ca03908c4",
+    "main_base": "6baf96c6",
+    "main_log": "parabola-three-crossing-cut-main.jsonl",
+    "main_log_sha256": "bf3a1d08eb16c3bc1e3cb12839cbc18455b4e124d58e42e83c73031b29892b9b",
+    "main_with_predecessor_regressions_seconds": 447.473,
+    "isolated_seconds": 90.527,
+    "variant_count": 8,
+    "positive_components": 32,
+    "components_per_result": 4,
+    "exact_original_contacts_per_result": 6,
+    "smallest_qualified_volume": 5.36840516e-08,
+    "maximum_absolute_volume_error": 4.44e-16,
+    "maximum_centroid_error": 1.11e-12,
+    "canonical_replays": 4,
+    "prior_cut_receipts_unchanged": 8
   }
 }

@@ -108,7 +108,7 @@ func checkTwoCrossingCirclesCutReplay(t *testing.T, r *ParabolaTwoCrossingCircle
 	if !negative {
 		return
 	}
-	var recipe parabolaTwoCrossingCirclesCutRecipe
+	var recipe parabolaCrossingCirclesCutRecipe
 	if err := json.Unmarshal(raw.Bytes(), &recipe); err != nil {
 		t.Fatal(err)
 	}

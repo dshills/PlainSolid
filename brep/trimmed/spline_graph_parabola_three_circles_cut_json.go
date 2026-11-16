@@ -12,14 +12,14 @@ import (
 const nativeParabolaThreeCirclesCut = "trimmed-spline-graph-parabola-three-circles-cut"
 
 type parabolaThreeCirclesCutRecipe struct {
-	Version     int                                            `json:"version"`
-	Kind        string                                         `json:"kind"`
-	Sources     []json.RawMessage                              `json:"sources"`
-	Axis        *int                                           `json:"freeAxis"`
-	Tolerance   float64                                        `json:"tolerance"`
-	Arrangement *parabolaThreeCirclesCutRecipeArrangement      `json:"arrangement"`
-	Components  []parabolaThreeCirclesCutRecipeLayer           `json:"components"`
-	Contacts    [][]parabolaTwoCrossingCirclesCutRecipeContact `json:"contacts"`
+	Version     int                                         `json:"version"`
+	Kind        string                                      `json:"kind"`
+	Sources     []json.RawMessage                           `json:"sources"`
+	Axis        *int                                        `json:"freeAxis"`
+	Tolerance   float64                                     `json:"tolerance"`
+	Arrangement *parabolaThreeCirclesCutRecipeArrangement   `json:"arrangement"`
+	Components  []parabolaThreeCirclesCutRecipeLayer        `json:"components"`
+	Contacts    [][]parabolaCrossingCirclesCutRecipeContact `json:"contacts"`
 }
 
 type parabolaThreeCirclesCutRecipeArrangement struct {
@@ -29,24 +29,24 @@ type parabolaThreeCirclesCutRecipeArrangement struct {
 }
 
 type parabolaThreeCirclesCutRecipeLayer struct {
-	parabolaTwoCrossingCirclesCutRecipeLayer
+	parabolaCrossingCirclesCutRecipeLayer
 	SeparatedEdges    []int `json:"separatedEdges"`
 	SeparatedVertices []int `json:"separatedVertices"`
 }
 
 func threeCirclesCutRecipeLedger(r *ParabolaThreeCirclesCut) (*parabolaThreeCirclesCutRecipeArrangement,
-	[]parabolaThreeCirclesCutRecipeLayer, [][]parabolaTwoCrossingCirclesCutRecipeContact) {
+	[]parabolaThreeCirclesCutRecipeLayer, [][]parabolaCrossingCirclesCutRecipeContact) {
 	a := r.arrangement
 	arrangement := &parabolaThreeCirclesCutRecipeArrangement{CrossingCircles: a.CrossingCircles[:],
 		SeparatedCircle: &a.SeparatedCircle, SeparatedRegion: &a.SeparatedRegion}
 	layers := make([]parabolaThreeCirclesCutRecipeLayer, 0, len(r.history))
 	for _, h := range r.history {
 		layers = append(layers, parabolaThreeCirclesCutRecipeLayer{
-			parabolaTwoCrossingCirclesCutRecipeLayer: twoCrossingCircleCutLayerLedger(h.ParabolaTwoCrossingCirclesCutHistory),
-			SeparatedEdges:                           h.SeparatedEdges[:], SeparatedVertices: h.SeparatedVertices[:],
+			parabolaCrossingCirclesCutRecipeLayer: twoCrossingCircleCutLayerLedger(h.ParabolaTwoCrossingCirclesCutHistory),
+			SeparatedEdges:                        h.SeparatedEdges[:], SeparatedVertices: h.SeparatedVertices[:],
 		})
 	}
-	return arrangement, layers, twoCrossingCircleCutContactLedger(r.contacts)
+	return arrangement, layers, crossingCircleCutContactLedger(r.contacts[:])
 }
 
 // WriteJSON retains the original ordered stocks, full curve ownership,

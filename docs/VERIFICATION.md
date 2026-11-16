@@ -193,6 +193,11 @@ The same audit now covers 16 native Common and Fuse cases: all 15 faces,
 material and physical areas follow independent original source integrals.
 The exact nonbinary junction at 7/24 refuses native vertices, and recipe
 replay verifies original owners without changing 18 predecessor receipts.
+Both native Cut orders pass eight controls, preserving 32 positive
+components and all six original point contacts per case. Independent
+signed-region volume and centroid agree down to the smallest positive
+component (about 5.37e-8). Four canonical replays pass, a forged contact
+refuses, and eight prior Cut recipes retain their bytes.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same
