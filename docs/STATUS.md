@@ -189,6 +189,8 @@ All four fragments share one analytic seam and retain the original edge
 ranges. The same split now propagates to neighboring spline coedges and
 rebuilds both original closed shells with unchanged material. General
 material assembly remains open.
+Native JSON preserves these imprinted shells, including the shared exact
+Bézier model curves, original weights, trims and parameter ranges.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

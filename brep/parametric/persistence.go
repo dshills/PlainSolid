@@ -910,10 +910,17 @@ type curveData struct {
 	Start, Period     float64                  `json:",omitempty"`
 	Seam              *geom.ClosedCurveOptions `json:",omitempty"`
 	ExactPeriodic     *exactPeriodicSplineData `json:",omitempty"`
+	ExactBezier       *exactBezierCurveData    `json:",omitempty"`
 }
 
 func encodeCurve(c geom.Curve) (*curveData, error) {
 	switch x := c.(type) {
+	case *geom.ExactSplineCurve:
+		q, err := encodeExactBezierCurve(x)
+		if err != nil {
+			return nil, err
+		}
+		return &curveData{Kind: "exact-bezier-curve", ExactBezier: q}, nil
 	case SteinmetzSeam:
 		if !x.valid() {
 			return nil, geom.ErrInvalid
@@ -999,6 +1006,15 @@ func (d *curveData) decode(budget *int) (geom.Curve, error) {
 	}
 	if (d.Kind == "exact-periodic-spline") != (d.ExactPeriodic != nil) {
 		return nil, geom.ErrInvalid
+	}
+	if (d.Kind == "exact-bezier-curve") != (d.ExactBezier != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if x := d.ExactBezier; x != nil {
+		if !validExactBezierCurveEnvelope(*d) {
+			return nil, geom.ErrInvalid
+		}
+		return x.decode(budget)
 	}
 	if x := d.ExactPeriodic; x != nil {
 		if x.V != nil || !validExactPeriodicCurveEnvelope(*d) {

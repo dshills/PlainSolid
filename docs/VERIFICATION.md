@@ -59,6 +59,11 @@ closed shell has `7F/15E/10V`, all original edge clocks and two exact
 inserted border stations. Independent unit volume and centroid agree.
 Continuous exact checking rejects a perturbed pcurve with matching
 terminals; the original sewing regressions pass.
+The [imprinted shell persistence audit](evidence/projective-surface-graph-overlap-2026-11-16.json)
+passes byte-identical save and reopen for both shells, preserving
+topology and independent volume. The exact model codec separately
+retains nonbinary homogeneous controls and the original `[-2,3]` clock;
+noncanonical coefficients, zero weights and short control limits refuse.
 The [ordinary exact spline jet audit](evidence/exact-spline-rational-evaluation-2026-11-16.json)
 passes a nonbinary station, a right-hand interior derivative and a
 left-hand final derivative. Its outward boxes and short work refusal
