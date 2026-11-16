@@ -67,7 +67,6 @@ func triangulateCertifiedAffineTrimRegion(ctx context.Context, region AffineQuad
 
 func triangulateCertifiedAffineTrimRegionBounded(ctx context.Context, region AffineQuadraticTrimRegionArea, holes, maximum, boundaryLimit, workLimit int) (CertifiedAffineQuadraticTrimMesh, error) {
 	empty := CertifiedAffineQuadraticTrimMesh{}
-	o := AffineQuadraticTrimMeshOptions{MaxTriangles: maximum}
 	if boundaryLimit == 0 {
 		boundaryLimit = brep.MaxHoledFaceVertices
 	}
@@ -81,7 +80,7 @@ func triangulateCertifiedAffineTrimRegionBounded(ctx context.Context, region Aff
 	for _, loop := range region.Loops {
 		count += len(loop.Boundary.Points)
 	}
-	if count > boundaryLimit || count+2*holes-2 > o.MaxTriangles {
+	if count > boundaryLimit || count+2*holes-2 > maximum {
 		return empty, geom.ErrConvergence
 	}
 	result := CertifiedAffineQuadraticTrimMesh{Region: region, DisplaySquaredDistance: new(big.Rat)}
@@ -126,29 +125,42 @@ func triangulateCertifiedAffineTrimRegionBounded(ctx context.Context, region Aff
 		result.BoundaryLoops = append(result.BoundaryLoops, boundary)
 		proposedLoops = append(proposedLoops, proposal)
 	}
-	var proposed [][3]geom.Vec2
 	if count <= brep.MaxHoledFaceVertices {
-		var e error
-		proposed, e = triangulateUV(proposedLoops)
-		if e != nil {
-			return empty, e
-		}
-	} else {
-		exact, _, e := exactHoledFootprintTriangulation(ctx, result.ExactUV, result.BoundaryLoops, workLimit)
-		if e != nil {
-			return empty, e
-		}
-		for _, tri := range exact {
-			var q [3]geom.Vec2
-			for j, id := range tri {
-				x, _ := result.ExactUV[id][0].Float64()
-				y, _ := result.ExactUV[id][1].Float64()
-				q[j] = geom.Vec2{X: x, Y: y}
+		proposed, err := triangulateUVBounded(ctx, proposedLoops, brep.MaxHoledFaceVertices)
+		if err == nil {
+			triangles := make([][3]int, len(proposed))
+			for i, tri := range proposed {
+				for j, uv := range tri {
+					id, ok := ids[uv]
+					if !ok {
+						id = -1
+					}
+					triangles[i][j] = id
+				}
 			}
-			proposed = append(proposed, q)
+			certified, err := certifyAffineTrimTriangles(ctx, result, triangles, maximum)
+			if err == nil {
+				return certified, nil
+			}
+		}
+		if err := ctx.Err(); err != nil {
+			return empty, err
 		}
 	}
-	if len(proposed) > o.MaxTriangles {
+	// Rounded UV vertices can give a nonzero apparent turn on a rational
+	// straight boundary. Retry on the original rational polygon and verify
+	// the same exact boundary, area and represented display invariants.
+	exact, _, err := exactHoledFootprintTriangulation(ctx, result.ExactUV, result.BoundaryLoops, workLimit)
+	if err != nil {
+		return empty, err
+	}
+	return certifyAffineTrimTriangles(ctx, result, exact, maximum)
+}
+
+func certifyAffineTrimTriangles(ctx context.Context, result CertifiedAffineQuadraticTrimMesh, triangles [][3]int, maximum int) (CertifiedAffineQuadraticTrimMesh, error) {
+	empty := CertifiedAffineQuadraticTrimMesh{}
+	region := result.Region
+	if len(triangles) > maximum {
 		return empty, geom.ErrConvergence
 	}
 	type edge [2]int
@@ -167,17 +179,14 @@ func triangulateCertifiedAffineTrimRegionBounded(ctx context.Context, region Aff
 	}
 	actual, incidence := map[edge]int{}, map[edge]int{}
 	area := new(big.Rat)
-	for _, tri := range proposed {
+	for _, t := range triangles {
 		if e := ctx.Err(); e != nil {
 			return empty, e
 		}
-		var t [3]int
-		for j, uv := range tri {
-			id, ok := ids[uv]
-			if !ok {
+		for _, id := range t {
+			if id < 0 || id >= len(result.ExactUV) {
 				return empty, geom.ErrConvergence
 			}
-			t[j] = id
 		}
 		a, b, c := result.ExactUV[t[0]], result.ExactUV[t[1]], result.ExactUV[t[2]]
 		determinant := new(big.Rat).Sub(new(big.Rat).Mul(new(big.Rat).Sub(b[0], a[0]), new(big.Rat).Sub(c[1], a[1])), new(big.Rat).Mul(new(big.Rat).Sub(b[1], a[1]), new(big.Rat).Sub(c[0], a[0])))

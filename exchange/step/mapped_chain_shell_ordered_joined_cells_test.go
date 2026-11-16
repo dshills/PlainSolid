@@ -271,6 +271,22 @@ func TestOCCTMappedChainRectangularOrderedJoinedRoofs(t *testing.T) {
 	verifyOrderedJoinedSource(t, context.Background(), readInferredSharedMappedChainFixture(t, orderedJoinedRoofPath))
 }
 
+func TestOCCTMappedChainRectangularOrderedJoinedRoofsClosedDisplay(t *testing.T) {
+	ctx := context.Background()
+	raw := readInferredSharedMappedChainFixture(t, orderedJoinedRoofPath)
+	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, orderedJoinedRoofOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	fill := nonplanarInferredDisplayOptions()
+	fill.Span.MaxDegree = 4
+	fill.MaxResidualOperations = 512 << 20
+	fill.Face.BoundaryModelBudget = .065
+	fill.Face.Interior.Deflection = .36
+	fill.Face.Interior.MaxSubdivisions = 64
+	verifyJoinedClosedDisplay(t, ctx, m, fill)
+}
+
 func TestOCCTMappedChainRectangularOrderedJoinedRoofsRejectsMovedJoint(t *testing.T) {
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, orderedJoinedRoofPath)
