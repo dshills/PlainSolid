@@ -28,9 +28,10 @@ caller inspect the exact cycle and amount of work used.
 Exact periodic tensor surfaces now also expose both pure second partials
 and the mixed partial in physical units, retaining the same original knot
 owners as first-order evaluation.
-These exact second derivatives now support a local focal point check for
-a signed normal offset. A whole-face offset still needs a coverage and
-self-intersection proof.
+Exact second derivatives now support a focal point check for a signed
+normal offset. The bounded coverage proof partitions a spline patch,
+retains its original knot boundaries, and exposes unresolved cells.
+Constructing a whole-face offset still needs seam and collision proofs.
 The nested conical AP242 reader now materializes an editable document with
 two shared local solids, six leaf occurrences, original face labels, and
 exact original local and world pose labels. Native save/load preserves

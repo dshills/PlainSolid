@@ -35,6 +35,12 @@ race in 8.135 seconds. It separates rational offsets that round to the
 same float64 on opposite sides of an irrational focal distance, detects
 an exact focal endpoint, and refuses a segment through two focal
 distances even when its end differential has a positive determinant.
+The whole-patch normal offset coverage race passed in 7.601 seconds. The
+certified cells cover the parabolic cylinder at displacement `0.49`;
+at and above the first focal distance `0.5` the focal line remains
+unresolved. A nonconstant-weight planar chart and two original knot pieces
+also qualify. The exact UV cover remains intact when work, cell or pole
+limits are exhausted.
 
 The [transversal parabola/circle neutral exchange milestone](evidence/parabola-circle-crossings-neutral-2026-11-16.json)
 passed its pinned main race in 33.929 seconds. The 24 STEP and IGES outputs
