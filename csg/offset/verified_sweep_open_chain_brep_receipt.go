@@ -20,7 +20,7 @@ const (
 )
 
 // VerifiedSweepOpenChainBRepReceiptOptions bounds each original sweep
-// and join proof, the shared nonadjacent chain proof and native validation.
+// and join proof, the shared chain or elbow proof and native validation.
 // The coverage patch limits also bound exact chart import and planar promotion.
 type VerifiedSweepOpenChainBRepReceiptOptions struct {
 	Coverage   geom.NormalOffsetCoverageOptions
@@ -79,6 +79,10 @@ func WriteVerifiedSweepOpenChainBRepReceipt(ctx context.Context, w io.Writer, re
 	if err != nil {
 		return err
 	}
+	return writeSweepBRepReceiptBytes(ctx, w, raw)
+}
+
+func writeSweepBRepReceiptBytes(ctx context.Context, w io.Writer, raw []byte) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -97,38 +101,15 @@ func WriteVerifiedSweepOpenChainBRepReceipt(ctx context.Context, w io.Writer, re
 func ReadVerifiedSweepOpenChainBRepReceipt(ctx context.Context, r io.Reader,
 	o VerifiedSweepOpenChainBRepReceiptOptions) (VerifiedSweepOpenChainBRep, error) {
 	var empty VerifiedSweepOpenChainBRep
-	if ctx == nil || r == nil {
-		return empty, geom.ErrInvalid
-	}
-	if err := ctx.Err(); err != nil {
-		return empty, err
-	}
-	raw, err := io.ReadAll(io.LimitReader(r, sweepBRepReceiptMaxBytes+1))
+	var receipt sweepBRepReceipt
+	compact, err := decodeSweepBRepReceipt(ctx, r, &receipt)
 	if err != nil {
 		return empty, err
 	}
-	if len(raw) > sweepBRepReceiptMaxBytes {
-		return empty, ErrLimit
-	}
-	if err := ctx.Err(); err != nil {
-		return empty, err
-	}
-	var compact bytes.Buffer
-	if err := json.Compact(&compact, raw); err != nil {
-		return empty, fmt.Errorf("offset: invalid sweep B-rep receipt: %w", err)
-	}
-	var receipt sweepBRepReceipt
-	decoder := json.NewDecoder(bytes.NewReader(compact.Bytes()))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&receipt); err != nil {
-		return empty, fmt.Errorf("offset: invalid sweep B-rep receipt: %w", err)
-	}
 	n := len(receipt.Charts)
-	b := receipt.Boundary
 	if receipt.Kind != sweepBRepReceiptKind || receipt.Version != 1 || n < 2 || n > 8 ||
 		len(receipt.Joins) != n-1 || len(receipt.Separators) != (n-1)*(n-2)/2 ||
-		len(b.Vertices) != 4*(n+1) || len(b.VertexSources) != len(b.Vertices) ||
-		len(b.Edges) != 8*n+4 || len(b.Faces) != 4*n+2 || len(b.FaceSources) != len(b.Faces) {
+		!receipt.Boundary.hasCounts(n) {
 		return empty, geom.ErrInvalid
 	}
 	chain, err := receipt.reprove(ctx, o.Coverage)
@@ -144,73 +125,133 @@ func ReadVerifiedSweepOpenChainBRepReceipt(ctx context.Context, r io.Reader,
 	if err != nil {
 		return empty, err
 	}
-	if !bytes.Equal(bytes.TrimSpace(canonical), compact.Bytes()) {
-		return empty, fmt.Errorf("offset: sweep B-rep receipt differs from exact replay: %w", geom.ErrDomain)
-	}
-	if err := ctx.Err(); err != nil {
+	if err := matchSweepBRepReceipt(ctx, canonical, compact); err != nil {
 		return empty, err
 	}
 	return result, nil
 }
 
+func (b sweepBRepReceiptBoundary) hasCounts(n int) bool {
+	return len(b.Vertices) == 4*(n+1) && len(b.VertexSources) == len(b.Vertices) &&
+		len(b.Edges) == 8*n+4 && len(b.Faces) == 4*n+2 && len(b.FaceSources) == len(b.Faces)
+}
+
+func decodeSweepBRepReceipt(ctx context.Context, r io.Reader, dst any) ([]byte, error) {
+	if ctx == nil || r == nil {
+		return nil, geom.ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	raw, err := io.ReadAll(io.LimitReader(r, sweepBRepReceiptMaxBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(raw) > sweepBRepReceiptMaxBytes {
+		return nil, ErrLimit
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, raw); err != nil {
+		return nil, fmt.Errorf("offset: invalid sweep B-rep receipt: %w", err)
+	}
+	decoder := json.NewDecoder(bytes.NewReader(compact.Bytes()))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(dst); err != nil {
+		return nil, fmt.Errorf("offset: invalid sweep B-rep receipt: %w", err)
+	}
+	return compact.Bytes(), nil
+}
+
+func matchSweepBRepReceipt(ctx context.Context, canonical, compact []byte) error {
+	if !bytes.Equal(bytes.TrimSpace(canonical), compact) {
+		return fmt.Errorf("offset: sweep B-rep receipt differs from exact replay: %w", geom.ErrDomain)
+	}
+	return ctx.Err()
+}
+
 func encodeSweepBRepReceipt(ctx context.Context, result VerifiedSweepOpenChainBRep) ([]byte, error) {
-	tooLong := false
-	ratText := func(q *big.Rat) string {
-		text := q.RatString()
-		tooLong = tooLong || len(text) > sweepBRepReceiptMaxRatText
-		return text
-	}
+	var encoder sweepBRepReceiptEncoder
 	chain := result.original
-	sweeps, joins, separators := chain.Sweeps(), chain.Joins(), chain.NonadjacentSeparators()
-	receipt := sweepBRepReceipt{Kind: sweepBRepReceiptKind, Version: 1,
-		Charts: make([]sweepBRepReceiptChart, len(sweeps)), Joins: make([]sweepBRepReceiptJoin, len(joins)),
-		Separators: make([]sweepBRepReceiptSeparator, len(separators)),
-		Boundary: sweepBRepReceiptBoundary{
-			Vertices: result.solid.Vertices(), Edges: result.solid.Edges(), Faces: result.solid.Faces(),
-			FaceSources: result.faceSource, VertexSources: result.vertices, ExactVolume: ratText(result.volume),
-		},
+	charts, joins, err := encoder.source(ctx, chain.Sweeps(), chain.Joins())
+	if err != nil {
+		return nil, err
 	}
+	separators := chain.NonadjacentSeparators()
+	receipt := sweepBRepReceipt{Kind: sweepBRepReceiptKind, Version: 1,
+		Charts: charts, Joins: joins,
+		Separators: make([]sweepBRepReceiptSeparator, len(separators)),
+		Boundary:   encoder.boundary(result.sweepPlanarBRepBoundary),
+	}
+	for i, entry := range separators {
+		s := entry.Separator
+		receipt.Separators[i] = sweepBRepReceiptSeparator{
+			Owners: entry.Owners, Coordinate: encoder.ratText(s.Coordinate),
+			Covector: [3]string{encoder.ratText(s.Covector[0]), encoder.ratText(s.Covector[1]), encoder.ratText(s.Covector[2])},
+		}
+	}
+	return encoder.marshal(receipt)
+}
+
+type sweepBRepReceiptEncoder struct{ tooLong bool }
+
+func (e *sweepBRepReceiptEncoder) ratText(q *big.Rat) string {
+	text := q.RatString()
+	e.tooLong = e.tooLong || len(text) > sweepBRepReceiptMaxRatText
+	return text
+}
+
+func (e *sweepBRepReceiptEncoder) source(ctx context.Context, sweeps []*geom.VerifiedNormalOffsetSweep,
+	joins []geom.VerifiedNormalOffsetSweepChainJoin) ([]sweepBRepReceiptChart, []sweepBRepReceiptJoin, error) {
+	charts := make([]sweepBRepReceiptChart, len(sweeps))
+	walls := make([]sweepBRepReceiptJoin, len(joins))
 	for i, sweep := range sweeps {
 		if err := ctx.Err(); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		chart, projection := sweep.OriginalSource()
 		source, err := chart.ExportExactBezierRecipe()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		_, layer := sweep.Domain()
-		receipt.Charts[i] = sweepBRepReceiptChart{
-			Source: source, Displacement: [2]string{ratText(layer.Lower), ratText(layer.Upper)}, Projection: projection,
+		charts[i] = sweepBRepReceiptChart{
+			Source: source, Displacement: [2]string{e.ratText(layer.Lower), e.ratText(layer.Upper)}, Projection: projection,
 		}
 	}
 	for i, joined := range joins {
 		j := joined.Original
 		r := sweepBRepReceiptJoin{
 			Owners: joined.Owners, Edges: j.Edges, ReverseB: j.ReverseB, Axis: j.Axis,
-			AInteriorSign: j.AInteriorSign, Coordinate: ratText(joined.Coordinate),
+			AInteriorSign: j.AInteriorSign, Coordinate: e.ratText(joined.Coordinate),
 		}
 		if j.BStationRatio != nil {
-			r.BStationRatio = ratText(j.BStationRatio)
+			r.BStationRatio = e.ratText(j.BStationRatio)
 		}
 		if j.Covector != nil {
 			r.Covector = new([3]string)
 			for axis, q := range j.Covector {
 				if q != nil {
-					r.Covector[axis] = ratText(q)
+					r.Covector[axis] = e.ratText(q)
 				}
 			}
 		}
-		receipt.Joins[i] = r
+		walls[i] = r
 	}
-	for i, entry := range separators {
-		s := entry.Separator
-		receipt.Separators[i] = sweepBRepReceiptSeparator{
-			Owners: entry.Owners, Coordinate: ratText(s.Coordinate),
-			Covector: [3]string{ratText(s.Covector[0]), ratText(s.Covector[1]), ratText(s.Covector[2])},
-		}
+	return charts, walls, nil
+}
+
+func (e *sweepBRepReceiptEncoder) boundary(r sweepPlanarBRepBoundary) sweepBRepReceiptBoundary {
+	return sweepBRepReceiptBoundary{
+		Vertices: r.solid.Vertices(), Edges: r.solid.Edges(), Faces: r.solid.Faces(),
+		FaceSources: r.faceSource, VertexSources: r.vertices, ExactVolume: e.ratText(r.volume),
 	}
-	if tooLong {
+}
+
+func (e *sweepBRepReceiptEncoder) marshal(receipt any) ([]byte, error) {
+	if e.tooLong {
 		return nil, ErrLimit
 	}
 	raw, err := json.Marshal(receipt)
@@ -224,8 +265,30 @@ func encodeSweepBRepReceipt(ctx context.Context, result VerifiedSweepOpenChainBR
 }
 
 func (r sweepBRepReceipt) reprove(ctx context.Context, o geom.NormalOffsetCoverageOptions) (*geom.VerifiedNormalOffsetSweepOpenChain, error) {
-	sweeps := make([]*geom.VerifiedNormalOffsetSweep, len(r.Charts))
-	for i, c := range r.Charts {
+	pairs, err := reproveSweepBRepReceiptJoins(ctx, r.Charts, r.Joins, o)
+	if err != nil {
+		return nil, err
+	}
+	separators := make([]geom.VerifiedNormalOffsetSweepNonadjacentSeparator, len(r.Separators))
+	for i, s := range r.Separators {
+		q, err := sweepBRepReceiptRationals([]string{s.Covector[0], s.Covector[1], s.Covector[2], s.Coordinate}, false)
+		if err != nil {
+			return nil, err
+		}
+		separators[i] = geom.VerifiedNormalOffsetSweepNonadjacentSeparator{
+			Owners: s.Owners, Separator: geom.VerifiedNormalOffsetSweepChainSeparator{
+				Covector: [3]*big.Rat{q[0], q[1], q[2]}, Coordinate: q[3],
+			},
+		}
+	}
+	chain, _, err := geom.NewVerifiedNormalOffsetSweepOpenChain(ctx, pairs, separators, o)
+	return chain, err
+}
+
+func reproveSweepBRepReceiptJoins(ctx context.Context, charts []sweepBRepReceiptChart, walls []sweepBRepReceiptJoin,
+	o geom.NormalOffsetCoverageOptions) ([]*geom.VerifiedNormalOffsetSweepPair, error) {
+	sweeps := make([]*geom.VerifiedNormalOffsetSweep, len(charts))
+	for i, c := range charts {
 		if c.Source.DegreeU != 1 || c.Source.DegreeV != 1 {
 			return nil, geom.ErrDomain
 		}
@@ -242,8 +305,8 @@ func (r sweepBRepReceipt) reprove(ctx context.Context, o geom.NormalOffsetCovera
 			return nil, fmt.Errorf("offset: sweep receipt original sweep %d: %w", i, err)
 		}
 	}
-	pairs := make([]*geom.VerifiedNormalOffsetSweepPair, len(r.Joins))
-	for i, r := range r.Joins {
+	pairs := make([]*geom.VerifiedNormalOffsetSweepPair, len(walls))
+	for i, r := range walls {
 		if r.Owners != [2]int{i, i + 1} {
 			return nil, geom.ErrInvalid
 		}
@@ -267,20 +330,7 @@ func (r sweepBRepReceipt) reprove(ctx context.Context, o geom.NormalOffsetCovera
 			return nil, fmt.Errorf("offset: sweep receipt original join %d: %w", i, err)
 		}
 	}
-	separators := make([]geom.VerifiedNormalOffsetSweepNonadjacentSeparator, len(r.Separators))
-	for i, s := range r.Separators {
-		q, err := sweepBRepReceiptRationals([]string{s.Covector[0], s.Covector[1], s.Covector[2], s.Coordinate}, false)
-		if err != nil {
-			return nil, err
-		}
-		separators[i] = geom.VerifiedNormalOffsetSweepNonadjacentSeparator{
-			Owners: s.Owners, Separator: geom.VerifiedNormalOffsetSweepChainSeparator{
-				Covector: [3]*big.Rat{q[0], q[1], q[2]}, Coordinate: q[3],
-			},
-		}
-	}
-	chain, _, err := geom.NewVerifiedNormalOffsetSweepOpenChain(ctx, pairs, separators, o)
-	return chain, err
+	return pairs, nil
 }
 
 func sweepBRepReceiptRationals(texts []string, optional bool) ([]*big.Rat, error) {
