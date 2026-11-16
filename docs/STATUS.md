@@ -183,7 +183,9 @@ pcurves with the same clock. Native face splitting is the next step.
 For a single supported open arc with terminals on two different original
 sides of each face, native imprinting now yields two fragments per owner.
 All four fragments share one analytic seam and retain the original edge
-ranges. Shell propagation and general material assembly remain open.
+ranges. The same split now propagates to neighboring spline coedges and
+rebuilds both original closed shells with unchanged material. General
+material assembly remains open.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

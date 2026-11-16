@@ -54,6 +54,11 @@ splits both original wires into valid fragments, with one shared analytic
 edge, opposing directions and all original boundary ranges covered.
 The reversed/swapped chart retains the nonlinear exact station `1/3`.
 Short work and a terminal inside the other face publish no fragment.
+The same audit passes propagation to adjacent spline coedges. Each
+closed shell has `7F/15E/10V`, all original edge clocks and two exact
+inserted border stations. Independent unit volume and centroid agree.
+Continuous exact checking rejects a perturbed pcurve with matching
+terminals; the original sewing regressions pass.
 The [ordinary exact spline jet audit](evidence/exact-spline-rational-evaluation-2026-11-16.json)
 passes a nonbinary station, a right-hand interior derivative and a
 left-hand final derivative. Its outward boxes and short work refusal

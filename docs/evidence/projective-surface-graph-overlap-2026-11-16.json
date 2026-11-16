@@ -426,5 +426,17 @@
     "original_splits_per_owner": 2,
     "shared_exact_model_midpoint": ["1/2", "1/2", "1/4"],
     "fractional_original_B_midpoint": ["1/3", "1/2"]
+  },
+  "closed_shell_imprint": {
+    "main_base": "d42af917",
+    "log": "projective-split-shell-main-race-3.jsonl",
+    "sha256": "50e0998e9790a7e9a2b479d07a1e6391447bc04ec56f5e42283aea871e2d1cb0",
+    "main_pass": "TestImprintProjectiveSplineShellFacesPropagatesOriginalCuts",
+    "initial_unresolved_coedge_comparison_sha256": "1bb51bd3cc5269451abca5b83693ef2b7ede08bc3910f624b31f7c8e908d815f",
+    "result_topology_each": {"faces": 7, "edges": 15, "vertices": 10},
+    "full_original_model_edges_each": 12,
+    "propagated_stations_each": 2,
+    "independent_volume_and_centroid": {"volume": "1", "centroid": ["1/2", "1/2", "3/4"]},
+    "controls": ["continuous pcurve interior perturbation", "failed exact sewing leaves no shell prefix"]
   }
 }
