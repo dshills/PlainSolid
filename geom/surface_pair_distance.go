@@ -26,6 +26,15 @@ type SurfacePairDistanceBounds struct {
 	HasWitness, Complete                   bool
 	VisitedPairs, ExactOperations          int
 }
+
+// RationalSurfacePairDistanceBounds also retains the unrounded global
+// squared distance interval and both exact model sample points. Lower is
+// available after the first cell bound, and Upper after the first witness.
+type RationalSurfacePairDistanceBounds struct {
+	SurfacePairDistanceBounds
+	Squared            ExactParameterInterval
+	WitnessA, WitnessB [3]*big.Rat
+}
 type surfacePairDistanceNode struct {
 	a, c  *SurfacePatch
 	lower *big.Rat
@@ -145,6 +154,24 @@ func BoundSurfacePairDistanceContext(ctx context.Context, a, c *SurfacePatch, o 
 }
 
 func boundSurfacePairDistanceContext(ctx context.Context, a, c *SurfacePatch, o SurfacePairDistanceOptions, curveA, curveC bool) (result SurfacePairDistanceBounds, err error) {
+	r, err := boundSurfacePairDistanceRational(ctx, a, c, nil, o, curveA, curveC)
+	return r.SurfacePairDistanceBounds, err
+}
+
+// BoundSurfacePairDistanceRational uses exact control hulls and retains exact
+// bounds even when the squared distance underflows in float64. The positive
+// squaredTolerance replaces the float tolerance in options. On exhaustion,
+// the returned enclosure and sample witnesses remain valid when available.
+func BoundSurfacePairDistanceRational(ctx context.Context, a, c *SurfacePatch, squaredTolerance *big.Rat,
+	o SurfacePairDistanceOptions) (RationalSurfacePairDistanceBounds, error) {
+	if squaredTolerance == nil || squaredTolerance.Sign() <= 0 {
+		return RationalSurfacePairDistanceBounds{SurfacePairDistanceBounds: SurfacePairDistanceBounds{SquaredDistanceMax: math.Inf(1)}}, ErrInvalid
+	}
+	return boundSurfacePairDistanceRational(ctx, a, c, squaredTolerance, o, false, false)
+}
+
+func boundSurfacePairDistanceRational(ctx context.Context, a, c *SurfacePatch, tolerance *big.Rat, o SurfacePairDistanceOptions,
+	curveA, curveC bool) (result RationalSurfacePairDistanceBounds, err error) {
 	result.SquaredDistanceMax = math.Inf(1)
 	if ctx == nil {
 		return result, ErrInvalid
@@ -155,7 +182,8 @@ func boundSurfacePairDistanceContext(ctx context.Context, a, c *SurfacePatch, o 
 	if a == nil || c == nil || len(a.net) == 0 || len(c.net) == 0 {
 		return result, ErrInvalid
 	}
-	if o.SquaredTolerance == 0 {
+	exactHull := tolerance != nil
+	if !exactHull && o.SquaredTolerance == 0 {
 		o.SquaredTolerance = 1e-6
 	}
 	if o.MaxDepth == 0 {
@@ -173,17 +201,30 @@ func boundSurfacePairDistanceContext(ctx context.Context, a, c *SurfacePatch, o 
 	if o.MaxCoefficientBits == 0 {
 		o.MaxCoefficientBits = 16384
 	}
-	if !finite(o.SquaredTolerance) || o.SquaredTolerance <= 0 || o.MaxDepth < 1 || o.MaxDepth > 128 || o.MaxPairs < 1 || o.MaxQueuedPoles < 8 || o.MaxOperations < 1 || o.MaxCoefficientBits < 64 {
+	if (!exactHull && (!finite(o.SquaredTolerance) || o.SquaredTolerance <= 0)) || o.MaxDepth < 1 || o.MaxDepth > 128 ||
+		o.MaxPairs < 1 || o.MaxQueuedPoles < 8 || o.MaxOperations < 1 || o.MaxCoefficientBits < 64 {
 		return result, ErrInvalid
 	}
 	result.SquaredDistanceMax = math.Inf(1)
 	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	defer func() { result.ExactOperations = b.operations }()
-	lower, e := surfacePairDistanceLower(a, c, b)
+	lowerBound := surfacePairDistanceLower
+	if exactHull {
+		lowerBound = exactSurfacePairDistanceLower
+		if err := b.check(tolerance); err != nil {
+			return result, err
+		}
+	} else {
+		tolerance = new(big.Rat).SetFloat64(o.SquaredTolerance)
+	}
+	lower, e := lowerBound(a, c, b)
 	if e != nil {
 		return result, e
 	}
 	result.SquaredDistanceMin = rationalFloatBound(lower, true)
+	if exactHull {
+		result.Squared.Lower = lower
+	}
 	if e := ctx.Err(); e != nil {
 		return result, e
 	}
@@ -213,6 +254,10 @@ func boundSurfacePairDistanceContext(ctx context.Context, a, c *SurfacePatch, o 
 					result.UVA, result.UVB = x.uv, y.uv
 					result.PointA, result.PointB = x.box, y.box
 					result.SquaredDistanceMax = rationalFloatBound(upper, false)
+					if exactHull {
+						result.Squared.Upper = upper
+						result.WitnessA, result.WitnessB = x.point, y.point
+					}
 				}
 			}
 		}
@@ -224,7 +269,6 @@ func boundSurfacePairDistanceContext(ctx context.Context, a, c *SurfacePatch, o 
 	queue := &surfacePairDistanceHeap{{a, c, lower, 0}}
 	heap.Init(queue)
 	queued := len(a.net) + len(c.net)
-	tolerance := new(big.Rat).SetFloat64(o.SquaredTolerance)
 	var terminal *big.Rat
 	minimum := func() *big.Rat {
 		v := upper
@@ -237,8 +281,12 @@ func boundSurfacePairDistanceContext(ctx context.Context, a, c *SurfacePatch, o 
 		return v
 	}
 	finish := func() {
-		result.SquaredDistanceMin = rationalFloatBound(minimum(), true)
+		lower := minimum()
+		result.SquaredDistanceMin = rationalFloatBound(lower, true)
 		result.SquaredDistanceMax = rationalFloatBound(upper, false)
+		if exactHull {
+			result.Squared = ExactParameterInterval{Lower: new(big.Rat).Set(lower), Upper: new(big.Rat).Set(upper)}
+		}
 	}
 	if queued > o.MaxQueuedPoles {
 		finish()
@@ -324,7 +372,7 @@ func boundSurfacePairDistanceContext(ctx context.Context, a, c *SurfacePatch, o 
 		needed := 0
 		for i := range children {
 			needed += len(children[i].a.net) + len(children[i].c.net)
-			children[i].lower, e = surfacePairDistanceLower(children[i].a, children[i].c, b)
+			children[i].lower, e = lowerBound(children[i].a, children[i].c, b)
 			if e != nil {
 				restore()
 				return result, e
@@ -391,6 +439,69 @@ func surfacePairDistanceLower(a, c *SurfacePatch, b *polynomialBudget) (*big.Rat
 		if projected.Cmp(lower) > 0 {
 			lower = projected
 		}
+	}
+	return lower, nil
+}
+
+func exactSurfacePairDistanceLower(a, c *SurfacePatch, b *polynomialBudget) (*big.Rat, error) {
+	axisRange := func(p *SurfacePatch, axis int) (exactInterval, error) {
+		var out exactFractionRange
+		var numerator, denominator big.Int
+		for _, h := range p.net {
+			numerator.Mul(h[axis].Num(), h[3].Denom())
+			denominator.Mul(h[axis].Denom(), h[3].Num())
+			if err := out.extend(&numerator, &denominator, b); err != nil {
+				return exactInterval{}, err
+			}
+		}
+		return out.interval(), nil
+	}
+	gapBetween := func(x, y exactInterval) *big.Rat {
+		if x.hi.Cmp(y.lo) < 0 {
+			return new(big.Rat).Sub(y.lo, x.hi)
+		}
+		if y.hi.Cmp(x.lo) < 0 {
+			return new(big.Rat).Sub(x.lo, y.hi)
+		}
+		return new(big.Rat)
+	}
+	calc := boundedRatArithmetic{b: b}
+	lower, norm := new(big.Rat), new(big.Rat)
+	var direction [3]*big.Rat
+	for axis := range direction {
+		pa, err := axisRange(a, axis)
+		if err != nil {
+			return nil, err
+		}
+		pc, err := axisRange(c, axis)
+		if err != nil {
+			return nil, err
+		}
+		gap := gapBetween(pa, pc)
+		lower = calc.add(lower, calc.mul(gap, gap))
+		// The difference of the exact hull centers, scaled by two,
+		// preserves even a sub-ULP separation in an oblique direction.
+		direction[axis] = calc.sub(calc.add(pc.lo, pc.hi), calc.add(pa.lo, pa.hi))
+		norm = calc.add(norm, calc.mul(direction[axis], direction[axis]))
+	}
+	if calc.err != nil || norm.Sign() == 0 {
+		return lower, calc.err
+	}
+	pa, err := exactProjectionHull(a, Vec3{}, direction, b)
+	if err != nil {
+		return nil, err
+	}
+	pc, err := exactProjectionHull(c, Vec3{}, direction, b)
+	if err != nil {
+		return nil, err
+	}
+	gap := gapBetween(pa, pc)
+	projected := calc.quo(calc.mul(gap, gap), norm)
+	if calc.err != nil {
+		return nil, calc.err
+	}
+	if projected.Cmp(lower) > 0 {
+		return projected, nil
 	}
 	return lower, nil
 }

@@ -74,6 +74,13 @@ charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They
 return the finite center witness and exact squared distance of four even
 though subtracting the parameter endpoints in float64 overflows.
 
+[Exact surface pair distance](evidence/surface-pair-exact-distance-2026-11-16.json)
+passed both orders of an oblique original offset of `2^-700` in two
+coordinate components. The exact squared distance `2^-1399` is
+certified in one cell with both original witnesses. A contact remains
+zero, and a short search supplies valid partial bounds and a matching
+exact sample rather than claiming completion.
+
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips
 among 6,460 inventoried cases. All 53 tested packages passed; eight have

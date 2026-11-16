@@ -41,6 +41,9 @@ when a boundary point or an exhausted work budget prevents a proof.
 It also integrates analytic volume by enclosing the original UV density
 and exactly integrating its displacement polynomial. The result retains
 a valid coarse interval when refinement exhausts its budget.
+An exact surface-pair distance query retains both rational model sample
+points and the squared distance enclosure below float64 range, including
+when an oblique gap is invisible in the outward axis boxes.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows
