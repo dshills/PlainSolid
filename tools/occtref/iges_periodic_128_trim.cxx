@@ -449,6 +449,48 @@ static bool writeExactConvexAffine(const char* path, std::string_view mode)
     return writer.AddEntity(face) && writer.Write(path);
 }
 
+static bool writeExactConvexPolygon(const char* path, std::string_view mode)
+{
+    // A power-of-two model scale keeps the native dyadic cubic poles
+    // exact across the pinned writer's finite decimal formatting.
+    const auto native = periodicSupport();
+    const double scale = 65536.;
+    for (int u = 1; u <= native->NbUPoles(); ++u) {
+        const auto p = native->Pole(u,1);
+        native->SetPole(u,1,gp_Pnt(3*scale*p.X(),3*scale*p.Y(),0.));
+        native->SetPole(u,2,gp_Pnt(6*scale*p.X(),6*scale*p.Y(),12*scale));
+    }
+    const auto support = exactCarrier(native,1.25,1.75,1.,3.);
+    const std::array<gp_XY,3> triangle{gp_XY(1.25,1),gp_XY(1.75,1.25),gp_XY(1.5,3)};
+    std::array<gp_XY,5> pentagon{gp_XY(1.5,1),gp_XY(1.75,1.75),gp_XY(1.6875,2.5),gp_XY(1.5,3),gp_XY(1.25,2)};
+    if (mode == "write-exact-convex-polygon-collinear") {
+        pentagon = {gp_XY(1.5,1),gp_XY(1.625,1.5),gp_XY(1.75,2),gp_XY(1.5,3),gp_XY(1.25,2)};
+    }
+    const std::array<gp_XY,3> triHole{gp_XY(1.5,1.75),gp_XY(1.4375,2.1875),gp_XY(1.5625,2.25)};
+    const std::array<gp_XY,5> pentaHole{gp_XY(1.5,1.625),gp_XY(1.4375,1.75),gp_XY(1.46875,2.125),
+                                       gp_XY(1.53125,2.125),gp_XY(1.5625,1.8125)};
+    using Contours = NCollection_HArray1<occ::handle<IGESGeom_CurveOnSurface>>;
+    occ::handle<Contours> inner;
+    occ::handle<IGESGeom_CurveOnSurface> outer;
+    if (mode == "write-exact-convex-polygon-pentagon-triangle" || mode == "write-exact-convex-polygon-collinear") {
+        outer = exactContour(native,support,pentagon,112);
+        inner = new Contours(1,1);
+        inner->SetValue(1,exactContour(native,support,triHole,128));
+    } else {
+        outer = exactContour(native,support,triangle,112);
+        if (mode == "write-exact-convex-polygon-triangle-pentagon") {
+            inner = new Contours(1,1);
+            inner->SetValue(1,exactContour(native,support,pentaHole,128));
+        }
+    }
+    occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
+    face->Init(support,1,outer,inner);
+    const auto reference = BRepBuilderAPI_MakeFace(native,1.25,1.75,1.,3.,1e-9).Face();
+    if (reference.IsNull() || !report(reference)) return false;
+    IGESControl_Writer writer("MM",0);
+    return writer.AddEntity(face) && writer.Write(path);
+}
+
 int main(int argc,char** argv)
 {
     if (argc != 3) return 2;
@@ -484,6 +526,10 @@ int main(int argc,char** argv)
             mode == "write-exact-convex-affine-two-holes" || mode == "write-exact-convex-affine-two-holes-touching" ||
             mode == "write-exact-convex-affine-two-holes-overlap") {
             return writeExactConvexAffine(argv[2],mode) ? 0 : 8;
+        }
+        if (mode == "write-exact-convex-polygon-triangle" || mode == "write-exact-convex-polygon-triangle-pentagon" ||
+            mode == "write-exact-convex-polygon-pentagon-triangle" || mode == "write-exact-convex-polygon-collinear") {
+            return writeExactConvexPolygon(argv[2],mode) ? 0 : 8;
         }
         if (mode == "write" || mode == "write-seam") {
             const TopoDS_Face face = original(mode == "write-seam");

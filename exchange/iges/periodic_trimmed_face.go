@@ -136,9 +136,15 @@ func readPeriodicTrimSourceForAxes(ctx context.Context, r io.Reader, l Limits, e
 	if err != nil {
 		return zero, err
 	}
+	variableEdges := edgeCount == 0
 	owners := 5 + 2*edgeCount
 	var layout []int
-	if len(holeLayouts) != 0 {
+	if variableEdges {
+		owners = len(doc.entities)
+		if owners > 5+2*maxPeriodicConvexPolygonEdges+maxPeriodicConvexPolygonHoles*(3+2*maxPeriodicConvexPolygonEdges) {
+			return zero, fmt.Errorf("iges: convex polygon trim exceeds its source owner bound: %w", geom.ErrUnrepresentable)
+		}
+	} else if len(holeLayouts) != 0 {
 		for _, candidate := range holeLayouts {
 			n := owners
 			for _, edges := range candidate {
@@ -169,6 +175,16 @@ func readPeriodicTrimSourceForAxes(ctx context.Context, r io.Reader, l Limits, e
 			m.FaceID = q.id
 		}
 	}
+	if variableEdges {
+		rec := g.records[m.FaceID]
+		if len(rec.values) < 4 {
+			return zero, geom.ErrUnrepresentable
+		}
+		holeCount, err = intValue(rec.values[3])
+		if err != nil || holeCount < 0 || holeCount > maxPeriodicConvexPolygonHoles {
+			return zero, fmt.Errorf("iges: invalid convex polygon trim hole count: %w", geom.ErrUnrepresentable)
+		}
+	}
 	face, err := g.links(m.FaceID, 144, 5+holeCount)
 	if err != nil {
 		return zero, err
@@ -183,16 +199,23 @@ func readPeriodicTrimSourceForAxes(ctx context.Context, r io.Reader, l Limits, e
 	}
 	m.UVCompositeID, m.ModelCompositeID = outer.uvID, outer.modelID
 	holes := make([]periodicTrimLoopSource, holeCount)
+	actualOwners := 5 + 2*len(outer.uv)
 	for i, id := range face[5:] {
 		holes[i], err = readPeriodicTrimLoop(g, m.SupportID, id, 0)
 		if err != nil {
 			return zero, err
 		}
-		owner := slices.Index(layout, len(holes[i].uv))
-		if owner < 0 {
-			return zero, fmt.Errorf("iges: wrong periodic trim edge count on hole #%d: %w", id, geom.ErrUnrepresentable)
+		actualOwners += 3 + 2*len(holes[i].uv)
+		if !variableEdges {
+			owner := slices.Index(layout, len(holes[i].uv))
+			if owner < 0 {
+				return zero, fmt.Errorf("iges: wrong periodic trim edge count on hole #%d: %w", id, geom.ErrUnrepresentable)
+			}
+			layout = slices.Delete(layout, owner, owner+1)
 		}
-		layout = slices.Delete(layout, owner, owner+1)
+	}
+	if variableEdges && actualOwners != owners {
+		return zero, fmt.Errorf("iges: unowned or missing convex polygon trim records: %w", geom.ErrUnrepresentable)
 	}
 
 	rec, err := g.take(m.SupportID, 128)
@@ -262,7 +285,7 @@ func readPeriodicTrimComposite(g periodicTrimGraph, id, edges int) ([]int, error
 		return nil, geom.ErrUnrepresentable
 	}
 	n, err := intValue(r.values[1])
-	if err != nil || edges != 0 && n != edges || edges == 0 && n != 4 && n != 6 {
+	if err != nil || edges != 0 && n != edges || edges == 0 && (n < 3 || n > maxPeriodicConvexPolygonEdges) {
 		return nil, fmt.Errorf("iges: wrong periodic trim edge count on composite #%d: %w", id, geom.ErrUnrepresentable)
 	}
 	values, err := periodicTrimLinkValues(r, 2+n)

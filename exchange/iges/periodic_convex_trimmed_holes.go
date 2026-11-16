@@ -41,7 +41,7 @@ func provePeriodicConvexTrimmedFaceWithHoles(ctx context.Context, source periodi
 			return zero, err
 		}
 	}
-	if !periodicConvexWiresStrictlyDisjoint(periodicAffineWireVertices(holes[0].Edges), periodicAffineWireVertices(holes[1].Edges)) {
+	if !periodicConvexWiresStrictlyDisjoint(periodicAffineWireVertices(holes[0].Edges[:]), periodicAffineWireVertices(holes[1].Edges[:])) {
 		return zero, fmt.Errorf("iges: convex trim holes #%d and #%d overlap or meet: %w", holes[0].ContourID, holes[1].ContourID, geom.ErrUnrepresentable)
 	}
 	if len(source.graph.claimed) != len(source.graph.records) {
@@ -52,8 +52,8 @@ func provePeriodicConvexTrimmedFaceWithHoles(ctx context.Context, source periodi
 
 // Normals to the sides of both convex polygons supply the separating
 // axes. Strictly disjoint projected intervals exclude all shared points.
-func periodicConvexWiresStrictlyDisjoint(a, b [4][2]*big.Rat) bool {
-	for _, wire := range [2][4][2]*big.Rat{a, b} {
+func periodicConvexWiresStrictlyDisjoint(a, b [][2]*big.Rat) bool {
+	for _, wire := range [2][][2]*big.Rat{a, b} {
 		for i, p := range wire {
 			q := wire[(i+1)%len(wire)]
 			normal := [2]*big.Rat{new(big.Rat).Sub(p[1], q[1]), new(big.Rat).Sub(q[0], p[0])}
@@ -66,7 +66,7 @@ func periodicConvexWiresStrictlyDisjoint(a, b [4][2]*big.Rat) bool {
 	return false
 }
 
-func periodicUVProjection(vertices [4][2]*big.Rat, normal [2]*big.Rat) geom.ExactParameterInterval {
+func periodicUVProjection(vertices [][2]*big.Rat, normal [2]*big.Rat) geom.ExactParameterInterval {
 	var bounds geom.ExactParameterInterval
 	for i, p := range vertices {
 		station := new(big.Rat).Add(new(big.Rat).Mul(p[0], normal[0]), new(big.Rat).Mul(p[1], normal[1]))

@@ -53,9 +53,20 @@ func provePeriodicConvexTrimmedFaceWithHole(ctx context.Context, source periodic
 
 func provePeriodicConvexHole(ctx context.Context, graph periodicTrimGraph, outer PeriodicConvexTrimmedFace,
 	owner periodicTrimLoopSource, remaining int) (PeriodicConvexTrimHole, int, error) {
-	var zero PeriodicConvexTrimHole
-	var uv [4]periodicTrimUVEdge
-	bounds, err := readPeriodicTrimUVEdges(graph, owner.uv, uv[:])
+	loop, remaining, err := provePeriodicConvexInnerGeometry(ctx, graph, outer.Patch, outer.Bounds, outer.Edges[:], owner, remaining)
+	if err != nil {
+		return PeriodicConvexTrimHole{}, 0, err
+	}
+	return PeriodicConvexTrimHole{ContourID: loop.ContourID, UVCompositeID: loop.UVCompositeID, ModelCompositeID: loop.ModelCompositeID,
+		Bounds: loop.Bounds, Edges: [4]PeriodicTrimEdge(loop.Edges)}, remaining, nil
+}
+
+func provePeriodicConvexInnerGeometry(ctx context.Context, graph periodicTrimGraph, patch *geom.SurfacePatch,
+	outerBounds [2]geom.ExactParameterInterval, outer []PeriodicTrimEdge,
+	owner periodicTrimLoopSource, remaining int) (PeriodicConvexPolygonTrimLoop, int, error) {
+	var zero PeriodicConvexPolygonTrimLoop
+	uv := make([]periodicTrimUVEdge, len(owner.uv))
+	bounds, err := readPeriodicTrimUVEdges(graph, owner.uv, uv)
 	if err != nil {
 		return zero, 0, err
 	}
@@ -63,26 +74,26 @@ func provePeriodicConvexHole(ctx context.Context, graph periodicTrimGraph, outer
 	if err != nil {
 		return zero, 0, fmt.Errorf("iges: convex trim hole #%d: %w", owner.contourID, err)
 	}
-	edges, remaining, err := provePeriodicAffineEdges(ctx, graph, uv, owner.model, outer.Patch, outer.Bounds, remaining)
+	edges, remaining, err := provePeriodicAffineEdges(ctx, graph, uv, owner.model, patch, outerBounds, remaining)
 	if err != nil {
 		return zero, 0, fmt.Errorf("iges: convex trim hole #%d: %w", owner.contourID, err)
 	}
-	if !periodicUVStrictlyContains(periodicAffineWireVertices(outer.Edges), inner) {
+	if !periodicUVStrictlyContains(periodicAffineWireVertices(outer), inner) {
 		return zero, 0, fmt.Errorf("iges: convex trim hole #%d is not strictly contained in its outer loop: %w", owner.contourID, geom.ErrUnrepresentable)
 	}
-	return PeriodicConvexTrimHole{ContourID: owner.contourID, UVCompositeID: owner.uvID, ModelCompositeID: owner.modelID,
+	return PeriodicConvexPolygonTrimLoop{ContourID: owner.contourID, UVCompositeID: owner.uvID, ModelCompositeID: owner.modelID,
 		Bounds: bounds, Edges: edges}, remaining, nil
 }
 
-func periodicAffineWireVertices(wire [4]PeriodicTrimEdge) [4][2]*big.Rat {
-	var points [4][2]*big.Rat
+func periodicAffineWireVertices(wire []PeriodicTrimEdge) [][2]*big.Rat {
+	points := make([][2]*big.Rat, len(wire))
 	for i, edge := range wire {
 		points[i] = edge.UVStart
 	}
 	return points
 }
 
-func periodicUVStrictlyContains(outer, inner [4][2]*big.Rat) bool {
+func periodicUVStrictlyContains(outer, inner [][2]*big.Rat) bool {
 	for i, a := range outer {
 		b := outer[(i+1)%len(outer)]
 		for _, q := range inner {

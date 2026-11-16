@@ -168,6 +168,21 @@ rechecks separation after binary64 conversion. The independent pinned
 fixture retains all twelve directed pairs. The strict reader refuses
 two independent controls with a shared edge and with crossing holes.
 
+`ReadPeriodicConvexPolygonTrimmedFace` admits three to eight affine
+edges per contour, with one counterclockwise outer loop and up to two
+clockwise holes. The loops share the same certified original knot cell.
+The reader follows each contour's original composites to determine its
+edge count and proves each full model curve against its directed UV line.
+It checks strict turns, containment and hole separation exactly.
+`WritePeriodicConvexPolygonTrimmedFace` replays these proofs and preserves
+the original contour order, directory IDs and model ranges. Directory
+records follow the ordinary consecutive odd owner numbering and may
+place the face and support in either order. Canonical emission requires
+terminating decimals of at most 63 characters and checks that convexity,
+clearance and separation survive binary64 transfer. Pinned OCCT reopens
+the independently authored triangle, triangle with a pentagonal hole and
+pentagon with a triangular hole with matching directed pairs and jets.
+
 `ReadPeriodicTrimmedFaceWithHoles` admits one or two explicit rectangular
 inner type-142 contours in the same original knot cell as the outer loop.
 Each inner contour owns four directed type-110 UV lines and four complete

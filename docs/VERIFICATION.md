@@ -542,6 +542,11 @@ coedges. Their axis-aligned boxes overlap, but the exact separation
 along v-4u is 1/2. A shared edge, crossing, or a gap that disappears
 in binary64 refuses. Both pinned reports and macOS architecture
 exports match; the full IGES suite and 24 prior outputs pass.
+Variable convex polygon sizes qualify original outer/inner edge counts
+3, 3/5 and 5/3. The mixed graphs have the same total entity count, yet
+retain their independently linked owner ranges and loop roles. Three
+pinned reports and both canonical macOS architectures agree, and 25
+old bytes match. A collinear turn and a changed cubic control refuse.
 The [valid periodic seam trim](evidence/iges-periodic-seam-trimmed-2026-11-16.json)
 passes independently authored type 144, the pinned reopen and main race.
 The reader retains six original directed pairs, distinct seam stations,

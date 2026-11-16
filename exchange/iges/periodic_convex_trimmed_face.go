@@ -43,38 +43,48 @@ func provePeriodicConvexTrimmedFace(ctx context.Context, source periodicTrimSour
 }
 
 func provePeriodicConvexOuter(ctx context.Context, source *periodicTrimSource) (PeriodicConvexTrimmedFace, error) {
-	var zero PeriodicConvexTrimmedFace
+	m, edges, err := provePeriodicConvexOuterGeometry(ctx, source)
+	if err != nil {
+		return PeriodicConvexTrimmedFace{}, err
+	}
+	m.Edges = [4]PeriodicTrimEdge(edges)
+	return PeriodicConvexTrimmedFace(m), nil
+}
+
+func provePeriodicConvexOuterGeometry(ctx context.Context, source *periodicTrimSource) (PeriodicTrimmedFace, []PeriodicTrimEdge, error) {
+	var zero PeriodicTrimmedFace
 	m := source.face
 	cell, err := m.proveOriginalKnotCell(ctx)
 	if err != nil {
-		return zero, err
+		return zero, nil, err
 	}
-	var uv [4]periodicTrimUVEdge
-	bounds, err := readPeriodicTrimUVEdges(source.graph, source.uv, uv[:])
+	uv := make([]periodicTrimUVEdge, len(source.uv))
+	bounds, err := readPeriodicTrimUVEdges(source.graph, source.uv, uv)
 	if err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	for axis, interval := range bounds {
 		if interval.Lower.Cmp(m.Bounds[axis].Lower) != 0 || interval.Upper.Cmp(m.Bounds[axis].Upper) != 0 {
-			return zero, fmt.Errorf("iges: convex trim bounds disagree with the original type-128 bounds: %w", geom.ErrUnrepresentable)
+			return zero, nil, fmt.Errorf("iges: convex trim bounds disagree with the original type-128 bounds: %w", geom.ErrUnrepresentable)
 		}
 	}
 
 	if _, err := provePeriodicConvexLoop(uv, 1); err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	if err := m.proveInjectivePatch(ctx, cell); err != nil {
-		return zero, err
+		return zero, nil, err
 	}
-	m.Edges, source.remaining, err = provePeriodicAffineEdges(ctx, source.graph, uv, source.model, m.Patch, bounds, source.remaining)
+	edges, remaining, err := provePeriodicAffineEdges(ctx, source.graph, uv, source.model, m.Patch, bounds, source.remaining)
 	if err != nil {
-		return zero, err
+		return zero, nil, err
 	}
-	return PeriodicConvexTrimmedFace(m), nil
+	source.remaining = remaining
+	return m, edges, nil
 }
 
-func provePeriodicConvexLoop(uv [4]periodicTrimUVEdge, winding int) ([4][2]*big.Rat, error) {
-	var points [4][2]*big.Rat
+func provePeriodicConvexLoop(uv []periodicTrimUVEdge, winding int) ([][2]*big.Rat, error) {
+	points := make([][2]*big.Rat, len(uv))
 	diagonal := false
 	for i, edge := range uv {
 		next := uv[(i+1)%len(uv)]
@@ -97,9 +107,9 @@ func provePeriodicConvexLoop(uv [4]periodicTrimUVEdge, winding int) ([4][2]*big.
 	return points, nil
 }
 
-func provePeriodicAffineEdges(ctx context.Context, graph periodicTrimGraph, uv [4]periodicTrimUVEdge,
-	model []int, patch *geom.SurfacePatch, bounds [2]geom.ExactParameterInterval, remaining int) ([4]PeriodicTrimEdge, int, error) {
-	var zero, pairs [4]PeriodicTrimEdge
+func provePeriodicAffineEdges(ctx context.Context, graph periodicTrimGraph, uv []periodicTrimUVEdge,
+	model []int, patch *geom.SurfacePatch, bounds [2]geom.ExactParameterInterval, remaining int) ([]PeriodicTrimEdge, int, error) {
+	pairs := make([]PeriodicTrimEdge, len(uv))
 	var width [2]*big.Rat
 	for i, interval := range bounds {
 		width[i] = new(big.Rat).Sub(interval.Upper, interval.Lower)
@@ -115,15 +125,15 @@ func provePeriodicAffineEdges(ctx context.Context, graph periodicTrimGraph, uv [
 		}
 		line, err := geom.NewExactHomogeneousBezier(ctx, controls[:], options)
 		if err != nil {
-			return zero, 0, err
+			return nil, 0, err
 		}
 		expected, err := patch.ComposeParameterCurve(ctx, line, options)
 		if err != nil {
-			return zero, 0, fmt.Errorf("iges: periodic affine composition for UV line #%d: %w", edge.id, err)
+			return nil, 0, fmt.Errorf("iges: periodic affine composition for UV line #%d: %w", edge.id, err)
 		}
 		pair, used, err := provePeriodicTrimEdge(ctx, graph, edge.id, model[i], edge.start, edge.end, expected, remaining)
 		if err != nil {
-			return zero, 0, err
+			return nil, 0, err
 		}
 		remaining -= used
 		pairs[i] = pair
@@ -131,7 +141,7 @@ func provePeriodicAffineEdges(ctx context.Context, graph periodicTrimGraph, uv [
 	return pairs, remaining, nil
 }
 
-func periodicUVStrictlyConvex(points [4][2]*big.Rat, winding int) bool {
+func periodicUVStrictlyConvex(points [][2]*big.Rat, winding int) bool {
 	for i, a := range points {
 		b := points[(i+1)%len(points)]
 		// Every nonincident vertex lies strictly on the interior side of

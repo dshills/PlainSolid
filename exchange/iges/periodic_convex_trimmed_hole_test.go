@@ -150,7 +150,7 @@ func TestPeriodicConvexTransferRejectsRoundedContainment(t *testing.T) {
 	outer := [4][2]*big.Rat{{q(1, 1), q(1, 1)}, {q(5, 1), q(5, 1)}, {q(4, 1), q(7, 1)}, {q(0, 1), q(3, 1)}}
 	almost := new(big.Rat).Add(q(2, 1), q(1, 100000000000000000))
 	inner := [4][2]*big.Rat{{q(2, 1), almost}, {q(3, 2), q(7, 2)}, {q(5, 2), q(9, 2)}, {q(7, 2), q(4, 1)}}
-	if !periodicUVStrictlyConvex(outer, 1) || !periodicUVStrictlyConvex(inner, -1) || !periodicUVStrictlyContains(outer, inner) {
+	if !periodicUVStrictlyConvex(outer[:], 1) || !periodicUVStrictlyConvex(inner[:], -1) || !periodicUVStrictlyContains(outer[:], inner[:]) {
 		t.Fatal("precision control must have exact opposite winding and strict positive clearance")
 	}
 	var f PeriodicConvexTrimmedFace

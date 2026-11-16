@@ -88,5 +88,41 @@
       "exact intersection",
       "binary64 rounding closes exact positive gap"
     ]
+  },
+  "variable_convex_edge_counts": {
+    "main_base": "5365843a",
+    "isolated_revision": "8a81ffea875873e8ea2fd7e16dca6b92ba539636",
+    "patch_sha256": "414bb025401a3ecb5ab20ab43435da8b340c3605e8579f10d7b6bfa3b12cb045",
+    "source_qualification_sha256": "f73b0df072e7f8c80cbd2dc4511525501cdeedcecef2c4653412315124712c49",
+    "main_race_log": "iges-periodic-convex-polygons-main-race.jsonl",
+    "main_race_sha256": "a4778eed96c542452553e05326358d0060ab18e19757dd5e918caba487031af6",
+    "main_race_seconds": 8.364,
+    "isolated_full_iges_seconds": 112.098,
+    "qualified_loop_edge_limit": [
+      3,
+      8
+    ],
+    "qualified_inner_loop_limit": 2,
+    "independent_directed_loop_counts": [
+      [
+        3
+      ],
+      [
+        3,
+        5
+      ],
+      [
+        5,
+        3
+      ]
+    ],
+    "unchanged_prior_files": 25,
+    "exact_pinned_reports": 3,
+    "binary_architecture_carrier_byte_pairs": 3,
+    "remaining_carrier_limits": [
+      "consecutive odd Directory owner IDs",
+      "terminating decimal scalar of at most 63 characters",
+      "binary64 native separation"
+    ]
   }
 }

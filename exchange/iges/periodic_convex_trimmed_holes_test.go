@@ -44,8 +44,8 @@ func TestReadPeriodicConvexTrimmedFaceWithHoles(t *testing.T) {
 		}
 	}
 	normal := [2]*big.Rat{big.NewRat(-4, 1), big.NewRat(1, 1)}
-	first := periodicUVProjection(periodicAffineWireVertices(a.Edges), normal)
-	second := periodicUVProjection(periodicAffineWireVertices(b.Edges), normal)
+	first := periodicUVProjection(periodicAffineWireVertices(a.Edges[:]), normal)
+	second := periodicUVProjection(periodicAffineWireVertices(b.Edges[:]), normal)
 	if first.Lower.Cmp(big.NewRat(-15, 4)) != 0 || first.Upper.Cmp(big.NewRat(-13, 4)) != 0 ||
 		second.Lower.Cmp(big.NewRat(-19, 4)) != 0 || second.Upper.Cmp(big.NewRat(-17, 4)) != 0 ||
 		new(big.Rat).Sub(first.Lower, second.Upper).Cmp(big.NewRat(1, 2)) != 0 {
@@ -158,7 +158,7 @@ func TestPeriodicConvexTransferRejectsRoundedHoleSeparation(t *testing.T) {
 		{Domain: geom.ExactParameterInterval{Lower: q(1, 1), Upper: q(2, 1)}},
 		{Domain: geom.ExactParameterInterval{Lower: q(0, 1), Upper: q(4, 1)}},
 	}
-	o, a, b := periodicAffineWireVertices(f.Edges), periodicAffineWireVertices(holes[0].Edges), periodicAffineWireVertices(holes[1].Edges)
+	o, a, b := periodicAffineWireVertices(f.Edges[:]), periodicAffineWireVertices(holes[0].Edges[:]), periodicAffineWireVertices(holes[1].Edges[:])
 	if !periodicUVStrictlyContains(o, a) || !periodicUVStrictlyContains(o, b) || !periodicConvexWiresStrictlyDisjoint(a, b) {
 		t.Fatal("precision control must have exact contained holes and a positive diagonal gap")
 	}

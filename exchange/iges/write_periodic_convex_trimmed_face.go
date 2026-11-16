@@ -56,13 +56,18 @@ func WritePeriodicConvexTrimmedFace(ctx context.Context, w io.Writer, face Perio
 }
 
 func checkPeriodicConvexTransfer(f PeriodicConvexTrimmedFace, holes ...PeriodicConvexTrimHole) error {
-	boxes := [][2]geom.ExactParameterInterval{{f.KnotOwners[0].Domain, f.KnotOwners[1].Domain}}
-	wires := [][4]PeriodicTrimEdge{f.Edges}
+	wires := [][]PeriodicTrimEdge{f.Edges[:]}
 	for _, hole := range holes {
-		wires = append(wires, hole.Edges)
+		wires = append(wires, hole.Edges[:])
 	}
-	points := make([][4][2]*big.Rat, len(wires))
+	return checkPeriodicConvexWireTransfer(f.KnotOwners, wires)
+}
+
+func checkPeriodicConvexWireTransfer(knots [2]geom.ExactSurfaceKnotSpan, wires [][]PeriodicTrimEdge) error {
+	boxes := [][2]geom.ExactParameterInterval{{knots[0].Domain, knots[1].Domain}}
+	points := make([][][2]*big.Rat, len(wires))
 	for index, wire := range wires {
+		points[index] = make([][2]*big.Rat, len(wire))
 		for i, edge := range wire {
 			var station [2]geom.ExactParameterInterval
 			for axis, q := range edge.UVStart {
@@ -90,7 +95,7 @@ func checkPeriodicConvexTransfer(f PeriodicConvexTrimmedFace, holes ...PeriodicC
 			return fmt.Errorf("iges: convex trim hole loses strict containment in binary64 transfer: %w", geom.ErrUnrepresentable)
 		}
 	}
-	if len(holes) == 2 && !periodicConvexWiresStrictlyDisjoint(points[1], points[2]) {
+	if len(points) == 3 && !periodicConvexWiresStrictlyDisjoint(points[1], points[2]) {
 		return fmt.Errorf("iges: convex trim holes lose strict separation in binary64 transfer: %w", geom.ErrUnrepresentable)
 	}
 	return nil

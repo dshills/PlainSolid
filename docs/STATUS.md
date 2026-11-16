@@ -24,6 +24,9 @@ coedges and their cubic composition. Up to two strictly contained
 convex inner affine loops now qualify on the same periodic cell.
 An exact separating direction also admits disjoint holes whose UV
 bounding rectangles overlap.
+Exact convex outer and inner loops now admit three to eight original
+affine edges, including independently checked triangle and pentagon
+combinations, with the same strict model pairing and winding rules.
 The [full native macOS race on `ab33a412`](evidence/native-main-ab33a412-race-2026-11-15.json)
 passed 5,557 cases with 580 explicit optional skips.
 The [native Linux ARM64 run](evidence/native-linux-7569bd36-qualification-2026-11-15.json)

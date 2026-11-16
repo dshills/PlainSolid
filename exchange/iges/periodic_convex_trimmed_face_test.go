@@ -154,7 +154,7 @@ func TestPeriodicConvexTransferRejectsRoundedTurn(t *testing.T) {
 	q := func(n int64) *big.Rat { return big.NewRat(n, 1) }
 	almost := new(big.Rat).Add(q(3), big.NewRat(1, 100000000000000000))
 	points := [4][2]*big.Rat{{q(1), q(1)}, {q(2), q(2)}, {q(3), almost}, {q(1), q(4)}}
-	if !periodicUVStrictlyConvex(points, 1) {
+	if !periodicUVStrictlyConvex(points[:], 1) {
 		t.Fatal("precision control must have strict exact turns")
 	}
 	var f PeriodicConvexTrimmedFace
