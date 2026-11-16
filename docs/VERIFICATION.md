@@ -259,6 +259,11 @@ passes independent cubic root identities, a weighted cubic profile with
 a degree-seven equation, an exact cap overlap with an irrational profile
 station, and a separate miss. Bounds may stay coarse after exact
 membership is proved. Main race and five earlier line receipts pass.
+The [joined sweep line audit](evidence/verified-normal-offset-sweep-joined-line-2026-11-16.json)
+proves exact pair and chain line spans across omitted walls, including
+reversal, true gaps, shared outer edge ownership and placed rational or
+algebraic rulings. Unproved owner results publish no interval prefix.
+Main race, original package suites and five single-owner receipts pass.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They
