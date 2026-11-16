@@ -1,0 +1,280 @@
+{
+  "scope": "Exact analytic STEP and IGES of the original nonapex parabola-circle tangency",
+  "native_prerequisite": "039903c0e3420a8a287dd27dd683d840dea4c2cf",
+  "commit": "90a988f0495f572f508038a018caefee0de75ba5",
+  "patch": {
+    "path": "parabola-circle-oblique-tangency-neutral.patch",
+    "sha256": "5a0ec3c9ee8aef884b3588928b2d5410d7e10b8da5962817fd9057dc9a2aa304"
+  },
+  "native_qualification": {
+    "path": "qualification.json",
+    "sha256": "02eee5a33abc0cbf3abf76a54fb90af51be1feaa1d7bbd8459b4015920802aa7"
+  },
+  "neutral_files": [
+    {
+      "path": "neutral/common-axis-0-side-0-order-0.igs",
+      "sha256": "0ea2b00dd2a6be0b79edcb3f4591a1a0a0f1a6bad19102a3dff3b1290f9fcb3e"
+    },
+    {
+      "path": "neutral/common-axis-0-side-0-order-0.step",
+      "sha256": "f482091614e53b79e3133def1638754edc6933a9f227f597652e3aade0b57c18"
+    },
+    {
+      "path": "neutral/common-axis-0-side-0-order-1.igs",
+      "sha256": "0ea2b00dd2a6be0b79edcb3f4591a1a0a0f1a6bad19102a3dff3b1290f9fcb3e"
+    },
+    {
+      "path": "neutral/common-axis-0-side-0-order-1.step",
+      "sha256": "95cafef0a7d0811aeea6de9d95ab737e529b969b34c125165c964fcb44f88ded"
+    },
+    {
+      "path": "neutral/common-axis-0-side-1-order-0.igs",
+      "sha256": "5093b0bae24ecaa70daf139a8009dfa99c7304253a47389d9fd1a6272b752ff2"
+    },
+    {
+      "path": "neutral/common-axis-0-side-1-order-0.step",
+      "sha256": "ab8b5c2e834f28539230c10e7223e022049f3d806526b55f60850464e9504de0"
+    },
+    {
+      "path": "neutral/common-axis-0-side-1-order-1.igs",
+      "sha256": "5093b0bae24ecaa70daf139a8009dfa99c7304253a47389d9fd1a6272b752ff2"
+    },
+    {
+      "path": "neutral/common-axis-0-side-1-order-1.step",
+      "sha256": "cc2ff6055f1c84316cc5d44bbcffa55793f3699ee369ecce77b8ce054fdf5fe7"
+    },
+    {
+      "path": "neutral/common-axis-1-side-0-order-0.igs",
+      "sha256": "177bc965c978fd2588f30b195e9a0d613f8153f4878eb6394a44b6a29cb42c5a"
+    },
+    {
+      "path": "neutral/common-axis-1-side-0-order-0.step",
+      "sha256": "25f63460d441a1e654c22a30b4b9df0b948fbe11de217433ccad2cdd9a5cda57"
+    },
+    {
+      "path": "neutral/common-axis-1-side-0-order-1.igs",
+      "sha256": "177bc965c978fd2588f30b195e9a0d613f8153f4878eb6394a44b6a29cb42c5a"
+    },
+    {
+      "path": "neutral/common-axis-1-side-0-order-1.step",
+      "sha256": "3582acd77f765fbe8fd845ff8411952df40f8968671ba9fe513d626e111dbf61"
+    },
+    {
+      "path": "neutral/common-axis-1-side-1-order-0.igs",
+      "sha256": "d1b83aa181bfbec4c16abaf020a51e4c49bb254ed07fd5bf6c76332be124b8d2"
+    },
+    {
+      "path": "neutral/common-axis-1-side-1-order-0.step",
+      "sha256": "f6fde976b2ada1ed8da709c751f7bc382de4913037adfc86a10a06d7b078b677"
+    },
+    {
+      "path": "neutral/common-axis-1-side-1-order-1.igs",
+      "sha256": "d1b83aa181bfbec4c16abaf020a51e4c49bb254ed07fd5bf6c76332be124b8d2"
+    },
+    {
+      "path": "neutral/common-axis-1-side-1-order-1.step",
+      "sha256": "eb3fe63afbe75f884518ce337d8d2a62edddcb749421fbcf99b8e6ada3e4f84d"
+    },
+    {
+      "path": "neutral/cut-axis-0-side-0-order-1.igs",
+      "sha256": "1dcc8150a0d7e02174b7002f46b1d8ce22694579b21c3e029aaf4ff194b288a1"
+    },
+    {
+      "path": "neutral/cut-axis-0-side-0-order-1.step",
+      "sha256": "7af1e77f446a93dae62d47dbdffc92eb9934bf9e04522c66ac25b2f23e1eef79"
+    },
+    {
+      "path": "neutral/cut-axis-0-side-1-order-0.igs",
+      "sha256": "988130e8a386cbf7f15bf080e897fa11190943e6236a0a1cfbbd31bd62431e14"
+    },
+    {
+      "path": "neutral/cut-axis-0-side-1-order-0.step",
+      "sha256": "c05b277852f092119cdada71ab392d28099ebf03a2aa3ce6922fed280bd35ff5"
+    },
+    {
+      "path": "neutral/cut-axis-1-side-0-order-1.igs",
+      "sha256": "774ec2e858a1f41eb00dbb7ea473c32c8fcaaad026c6557c3c04aa747f9870c6"
+    },
+    {
+      "path": "neutral/cut-axis-1-side-0-order-1.step",
+      "sha256": "852fd21250caa93003e7b64064ccdfd3ef68bb1fece7caff9129c39aa2287b0f"
+    },
+    {
+      "path": "neutral/cut-axis-1-side-1-order-0.igs",
+      "sha256": "a7f6b293c7f5cd1b72184da7537f1c3397aa6a6683a6370cc680e26c46005f1f"
+    },
+    {
+      "path": "neutral/cut-axis-1-side-1-order-0.step",
+      "sha256": "bbe338b7d88726128ad61aeea7c1ccfca007514a067f3b86d6abf07d8349bf35"
+    },
+    {
+      "path": "neutral/fuse-axis-0-side-0-order-0.igs",
+      "sha256": "5231e2919078f1799aede0a4703948857047fb949802afd965c9a70f1d9caa65"
+    },
+    {
+      "path": "neutral/fuse-axis-0-side-0-order-0.step",
+      "sha256": "3f7a63b39099a8147c92dc481cf532e45a419cefc14230e2be49a12e930d53c5"
+    },
+    {
+      "path": "neutral/fuse-axis-0-side-0-order-1.igs",
+      "sha256": "5231e2919078f1799aede0a4703948857047fb949802afd965c9a70f1d9caa65"
+    },
+    {
+      "path": "neutral/fuse-axis-0-side-0-order-1.step",
+      "sha256": "34175d8c8cd59a3cbdea79b68aab21fc3ca5f6476c065e4baac1131fe6c82dd1"
+    },
+    {
+      "path": "neutral/fuse-axis-0-side-1-order-0.igs",
+      "sha256": "cdca5560ec543f41804fda38d2da9fd054ab2fc0d7d1b91911b0ad8d48b4e8d1"
+    },
+    {
+      "path": "neutral/fuse-axis-0-side-1-order-0.step",
+      "sha256": "1918146f37f5540eab10f0d5f86cd0d815c601a6669b66ee90325b3050dccf2d"
+    },
+    {
+      "path": "neutral/fuse-axis-0-side-1-order-1.igs",
+      "sha256": "cdca5560ec543f41804fda38d2da9fd054ab2fc0d7d1b91911b0ad8d48b4e8d1"
+    },
+    {
+      "path": "neutral/fuse-axis-0-side-1-order-1.step",
+      "sha256": "403715a773ea1e75aa4a6c2a1e142b5ab94e8989acd29163f331cca28939d7d9"
+    },
+    {
+      "path": "neutral/fuse-axis-1-side-0-order-0.igs",
+      "sha256": "cf84d83c500dff4fbf7d8204f0f91bb8c65490e7ad40853f5bdd10ffede25949"
+    },
+    {
+      "path": "neutral/fuse-axis-1-side-0-order-0.step",
+      "sha256": "7fd7241308f4ac3c4b6ee4657cdd378e50eec00afd48400562c569cf8ac7f746"
+    },
+    {
+      "path": "neutral/fuse-axis-1-side-0-order-1.igs",
+      "sha256": "cf84d83c500dff4fbf7d8204f0f91bb8c65490e7ad40853f5bdd10ffede25949"
+    },
+    {
+      "path": "neutral/fuse-axis-1-side-0-order-1.step",
+      "sha256": "2f01b3d11e428b7bba861d6dcc325c9f0227c4f5527706e2a5e8f6f7a52db4a6"
+    },
+    {
+      "path": "neutral/fuse-axis-1-side-1-order-0.igs",
+      "sha256": "feb27840a5295b7b3493829a2251ea8250a88f3b1c105be10825145cbb2e166d"
+    },
+    {
+      "path": "neutral/fuse-axis-1-side-1-order-0.step",
+      "sha256": "d9aab8cbbd927a54bc89d877f0fb1309441b79008a24548e7c4fc823b69206cc"
+    },
+    {
+      "path": "neutral/fuse-axis-1-side-1-order-1.igs",
+      "sha256": "feb27840a5295b7b3493829a2251ea8250a88f3b1c105be10825145cbb2e166d"
+    },
+    {
+      "path": "neutral/fuse-axis-1-side-1-order-1.step",
+      "sha256": "6c3feb291c3d71659a58eb349c77b5b2eef40a9bdea87bf026967a244d32f349"
+    }
+  ],
+  "positive_one_shell_solids": 48,
+  "envelopes": 32,
+  "two_shell_cut_files": 8,
+  "exact_separately_indexed_contact_per_grouped_cut": [
+    0.5,
+    0.5,
+    2
+  ],
+  "opposed_original_conic_uses": 480,
+  "directed_contact_jet_uses": 320,
+  "original_bridge_uses": 64,
+  "maximum_absolute_original_signed_volume_error": 4.440892098500626e-16,
+  "maximum_relative_original_signed_volume_error": 5.773473026312665e-14,
+  "independently_authored_lens_maximum_volume_difference": 2.6046263128069735e-19,
+  "independently_authored_lens_maximum_area_difference": 2.7755575615628914e-17,
+  "previous_apex_neutral_files_byte_identical": 40,
+  "measurements": [
+    {
+      "path": "neutral-mass.tsv",
+      "sha256": "bcd8ab3ffd9fc757fa962733ce01038d31c65b20e9c5f87758a4a76fa3e54904"
+    },
+    {
+      "path": "neutral-contact-coedges.tsv",
+      "sha256": "c0d21171326eebee6b1aa3f515fcb61f046d7d6582ee6f8134229696bb9f8245"
+    },
+    {
+      "path": "neutral-vs-authored-lenses.tsv",
+      "sha256": "ba97a6d1ea485c33ae9d2a6b5038a8ea3d0dec7a3ea9e80f1bb1d268f23222fc"
+    },
+    {
+      "path": "prior-apex-neutral-sha256.tsv",
+      "sha256": "9cc85ac7fe0f31893c7042c36ccdadae76459f4827e9f1b697230897999f6d79"
+    },
+    {
+      "path": "neutral-readback-status.tsv",
+      "sha256": "fcfa92750af7d82ee17c0a831abe3e82632666f2c44792cf1550c8fdaaae98ca"
+    },
+    {
+      "path": "exact-volume.py",
+      "sha256": "2d781140fa5598c196c218eb5b36aed048d1cab5f572c98fa98738a5f2c6f8e5"
+    },
+    {
+      "path": "direct-occt-vs-exact.tsv",
+      "sha256": "27673fe77ca7463eede5c82c8343c62811bd2da4a44afe0398cf146ff29f46b3"
+    }
+  ],
+  "occt": {
+    "version": "8.1.0",
+    "source_commit": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+    "source_archive": {
+      "path": "../../reference/occt-4dbfdcc.tar.gz",
+      "sha256": "32b1e918a697a0398e8ce623099af2c1d62cdeda2b2eefa86f07c0aee9d4aaf7"
+    },
+    "independent_contact_reader_source": {
+      "path": "neutral-oblique-audit.cxx",
+      "sha256": "95036acb14452c1dbb4bb9e12525d7de59f8d03017c51a169ce3921cdfa218a7"
+    },
+    "readers_and_pin_checksums": {
+      "path": "neutral-reader-sha256.txt",
+      "sha256": "1ec6a741a4ed1a416e184c5bde484bf1864ffdb41366b9fb6c97a55f960aca65"
+    }
+  },
+  "go_qualification": {
+    "focused_combined_apex_and_oblique_exchange_race": {
+      "path": "neutral-pinned-final-race.log",
+      "sha256": "d4b68affb7dd73b65cb4af660d95146e19856baa2c74fe4687591eb3e4e8e6d7"
+    },
+    "focused_go_reported_seconds": 63.769,
+    "exact_bridge_representation_race": {
+      "path": "neutral-bridge-test.log",
+      "sha256": "4ef1cf4525113faf454706b44595abef04bd9f0d7243b6a9b800b975ebe20e79"
+    },
+    "vet": "go vet ./exchange ./exchange/step ./exchange/iges ./exchange/internal/parabolacircle",
+    "zero_output_incomplete_bridge_proof": true,
+    "zero_output_aggregate_cut_limits": true
+  },
+  "main_integration": {
+    "neutral": {
+      "log": "circle-oblique-tangency-neutral-main-race.jsonl",
+      "sha256": "1504ed41ca3fe750e9ab1967c758700b7b3a09aa112f665f574c641cf895a76b",
+      "elapsed_seconds": {
+        "plainsolid/exchange": 61.779,
+        "plainsolid/exchange/step": 1.453,
+        "plainsolid/exchange/iges": 1.215
+      },
+      "required_passes": {
+        "TestParabolaCircleObliqueTangencyEnvelopeExchange": 17.24,
+        "TestParabolaCircleObliqueTangencyCutExchange": 15.69,
+        "TestParabolaCircleApexTangencyEnvelopeExchange": 15.49,
+        "TestParabolaCircleApexTangencyCutExchange": 12.19
+      },
+      "live_readbacks": 48
+    },
+    "bridge": {
+      "log": "circle-oblique-neutral-bridge-main-race.jsonl",
+      "sha256": "193320b8ccbf5e21cf89ea569fc843f0eefe88386b599754322162d02eeed4ee",
+      "elapsed_seconds": {
+        "plainsolid/exchange/internal/parabolacircle": 1.104
+      },
+      "required_passes": {
+        "TestPrepareNormalBridge": 0
+      },
+      "live_readbacks": 0
+    }
+  }
+}

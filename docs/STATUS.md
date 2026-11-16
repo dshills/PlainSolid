@@ -140,6 +140,8 @@ A sole nonapex circle tangency with nonzero original slope now also has
 exact native material. Common and Fuse require the original normal
 bridge to enter the interior of a stock side. Admitted two-shell Cuts
 retain one original point; pinched reverse orientations refuse.
+The admitted nonapex results also transfer through exact STEP and IGES,
+including the exact degree-five form of the original varying-roof bridge.
 Certified display of the separated two-circle Cuts now accepts proper
 rational similarities. The proof uses the original world coedge owners
 and reports distance in physical units after rotation and scaling.

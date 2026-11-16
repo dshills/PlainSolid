@@ -206,6 +206,13 @@ the 24 primary positive bodies agree with independent exact volumes
 within `2.22e-16`. Pinned OCCT separately authored positive lenses agree
 within `1.34e-19`; its direct Cut counts disagree in all four cases.
 All 20 prior apex native and 40 neutral files are byte identical.
+The [nonapex neutral exchange milestone](evidence/parabola-circle-oblique-tangency-neutral-2026-11-16.json)
+passed a 61.779-second pinned main race including the earlier apex
+controls. The independently audited 40 STEP and IGES files keep 48
+positive shells, 320 directed original jets, and 64 normal bridge
+uses. Cut keeps one point with separate local IDs. A 1.104-second main
+bridge race verifies exact equivalence of the degree-five curve and
+unchanged original p-curves. Prior apex digests remain byte identical.
 
 The [proper-similarity display milestone](evidence/parabola-circle-proper-similarity-2026-11-16.json)
 passed its main focused race in 322.877 seconds. Eight components from four
