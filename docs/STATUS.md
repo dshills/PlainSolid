@@ -36,6 +36,9 @@ identities. Closed multi-chart sweeps and general offset joins remain open.
 The analytic single-sweep volume can also certify exact point membership
 and bound its unique original inverse. Queries retain possible cells
 when a boundary point or an exhausted work budget prevents a proof.
+It also integrates analytic volume by enclosing the original UV density
+and exactly integrating its displacement polynomial. The result retains
+a valid coarse interval when refinement exhausts its budget.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

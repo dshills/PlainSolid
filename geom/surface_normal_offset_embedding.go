@@ -73,6 +73,7 @@ type offsetCellJacobian struct {
 	point, normal            [3]exactInterval
 	normalDot                [2]exactInterval
 	length, length2, length3 exactInterval
+	scale                    *big.Rat
 }
 
 func offsetCellJacobianBounds(ctx context.Context, p *SurfacePatch, b *polynomialBudget) (*offsetCellJacobian, error) {
@@ -128,7 +129,7 @@ func offsetCellJacobianBounds(ctx context.Context, p *SurfacePatch, b *polynomia
 	}
 	return &offsetCellJacobian{arithmetic: a, tangent: [2][3]exactInterval{u, v}, point: jet[0][0], normal: n,
 		normalPartials: [2][3]exactInterval{nu, nv}, normalDot: [2]exactInterval{nuDot, nvDot},
-		length: length, length2: length2, length3: length3}, nil
+		length: length, length2: length2, length3: length3, scale: scale}, nil
 }
 
 func (d *offsetCellJacobian) normalDerivative(i, parameter int) exactInterval {

@@ -55,6 +55,13 @@ and a point with an irrational source unit normal. The directed inverse
 enclosures contain the exact expected parameters. Cancellation and
 short work/partition limits retain the unexcluded original cells.
 
+[Analytic normal sweep volume](evidence/verified-normal-sweep-volume-2026-11-16.json)
+passed the exact nonbinary rational slab, two closed-form parabolic
+strips with opposite Jacobian signs, and a doubly curved rational sphere
+sector with a separate rational alternating-series volume enclosure.
+The sphere exercises the quadratic displacement term. Short work retains
+the coarser valid bound, and no display mesh enters the integration.
+
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips
 among 6,460 inventoried cases. All 53 tested packages passed; eight have

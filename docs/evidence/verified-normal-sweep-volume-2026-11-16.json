@@ -1,0 +1,31 @@
+{
+  "scope": "analytic positive volume of one globally verified normal offset sweep",
+  "main_base": "d5d58aa9",
+  "environment": "Go native Darwin arm64 race",
+  "log": "normal-sweep-volume-main-race-2.jsonl",
+  "sha256": "3d96823b457ec8ab534a21a3f782381bf674c13b325e5c4fd673894f3f9d8789",
+  "passed": [
+    "TestVerifiedNormalOffsetSweepFaceBoundsOutwardPlanes",
+    "TestVerifiedNormalOffsetSweepWallBoundsIncludeDisplacementDerivative",
+    "TestVerifiedNormalOffsetSweepLayerNormalsWithNegativeChartOrientation",
+    "TestVerifiedNormalOffsetSweepLocatesExactPlanarPoint",
+    "TestVerifiedNormalOffsetSweepLocatesCurvedPoint",
+    "TestVerifiedNormalOffsetSweepRetainsSixOriginalBoundaryFaces",
+    "TestVerifiedNormalOffsetSweepEnclosesCompleteRationalSubvolume",
+    "TestVerifiedNormalOffsetSweepVolumeExactSlab",
+    "TestVerifiedNormalOffsetSweepVolumeParabolicStrip/ordinary",
+    "TestVerifiedNormalOffsetSweepVolumeParabolicStrip/negative_Jacobian",
+    "TestVerifiedNormalOffsetSweepVolumeParabolicStrip",
+    "TestVerifiedNormalOffsetSweepVolumeSphericalSector"
+  ],
+  "result_lines": [
+    "verified_normal_offset_sweep_volume_test.go:64: volume 0.07453980439008528 enclosed by [0.07318973541259766,0.0760202407836914] after 111 cells",
+    "verified_normal_offset_sweep_volume_test.go:64: volume 0.0031087548698428826 enclosed by [0.0030581653118133545,0.0031554698944091797] after 15 cells",
+    "verified_normal_offset_sweep_volume_test.go:133: volume 0.02946895144457974 enclosed by [0.02919510006904602,0.029750481247901917] after 1793 cells"
+  ],
+  "exact_slab_volume": "26/7",
+  "sphere_reference": "Independent alternating rational series with exact monomial integration and exact radial factor 91/192",
+  "package_seconds": [
+    25.177
+  ]
+}
