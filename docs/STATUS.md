@@ -147,6 +147,8 @@ three original seam maps.
 The analytic chain now supports two through eight owners, certifying
 every adjacent wall and independently separating every nonadjacent
 pair. It retains original face owners for area, moments and distance.
+The same owner range has certified closed indexed display, including
+nonbinary original seam stations and continuous outward facet normals.
 The joined boundary can also measure certified analytic areas on its
 retained original affine and circular faces. Exact shared walls cancel
 before integration and the result preserves each original owner and side.

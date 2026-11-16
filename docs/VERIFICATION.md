@@ -470,6 +470,11 @@ The bounded open-chain audit proves six independent separations and
 6/5 and area 74/5. Eight charts prove all 21 nonadjacent pairs. Missing
 separators and actual nonadjacent contact refuse; 55 earlier receipts
 match and regression packages and race checks pass.
+Bounded display of two through eight charts also passes. The
+five-chart control preserves all four original fractional seams and
+exact volume 41/32 in both distance-and-angle grids, including a
+0.04-radian certificate. Point and face coverage, closure, outward
+winding and 12 legacy outputs are independently checked.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They

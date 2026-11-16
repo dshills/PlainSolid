@@ -135,5 +135,48 @@
       "nonadjacent swept edge contact",
       "short shared cell or work budgets"
     ]
+  },
+  "bounded_open_chain_display": {
+    "main_base": "56bb034d",
+    "isolated_revision": "cca32ca852f9c81d7942e69d18a4ceb0cfc350cc",
+    "patch_sha256": "6b702fbe810f1da6f52b61ed47a922f69163cbe553b61fba06eaa01ee446eeed",
+    "main_race_log": "normal-sweep-open-chain-mesh-main-race.jsonl",
+    "main_race_sha256": "e1bde8788e4382320c9e9715e972add02c0256fd39b709c742fc5741cb74468a",
+    "main_race_seconds": 25.18,
+    "isolated_broad_race_seconds": 100.695,
+    "isolated_packages_seconds": {
+      "geom": 83.443,
+      "mesh": 6.878,
+      "csg/offset": 55.84
+    },
+    "qualified_owner_range": [
+      2,
+      8
+    ],
+    "independent_five_chart_volume": "41/32",
+    "original_wall_clock_ratios": [
+      "3/2",
+      "15/8",
+      "35/24",
+      "21/16"
+    ],
+    "retained_face_counts_at_owner_limits": [
+      10,
+      34
+    ],
+    "five_chart_stitched_mesh": {
+      "vertices": 2946,
+      "triangles": 5888,
+      "seam_perimeter_vertices": 36,
+      "distance_limit": 0.8,
+      "angle_limit_radians": 0.15
+    },
+    "tight_angle_squared_distance_bound": 0.009151952235,
+    "tight_angle_limit_radians": 0.04,
+    "tight_angle_mesh": [
+      11778,
+      23552
+    ],
+    "old_display_receipts_unchanged": 12
   }
 }

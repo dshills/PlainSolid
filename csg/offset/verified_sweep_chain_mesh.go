@@ -29,14 +29,15 @@ type CertifiedVerifiedSweepChainMesh struct {
 }
 
 type verifiedSweepChainUVStations interface {
-	[3][2][]*big.Rat | [4][2][]*big.Rat
+	[3][2][]*big.Rat | [4][2][]*big.Rat | [][2][]*big.Rat
 }
 
 type verifiedSweepChainVertexStations interface {
-	[3]VerifiedSweepPairMeshStation | [4]VerifiedSweepPairMeshStation
+	[3]VerifiedSweepPairMeshStation | [4]VerifiedSweepPairMeshStation | []VerifiedSweepPairMeshStation
 }
 
-// Both public results keep their original fixed-width station layout.
+// Each public result keeps its own station layout while sharing the
+// same refinement, source proofs and indexed collision check.
 type verifiedSweepChainMesh[UV verifiedSweepChainUVStations, Vertex verifiedSweepChainVertexStations] struct {
 	Mesh                      mesh.Mesh
 	UVStations                UV
@@ -177,10 +178,22 @@ func sampleVerifiedSweepChainMesh[UV verifiedSweepChainUVStations, Vertex verifi
 		out: verifiedSweepChainMesh[UV, Vertex]{
 			Mesh:                 mesh.Mesh{Vertices: make([]geom.Vec3, 0, vertexCount), Triangles: make([][3]int, 0, count)},
 			DisplacementStations: grids[0].stations[2],
-			VertexStations:       make([]Vertex, 0, vertexCount),
+			VertexStations:       make([]Vertex, vertexCount),
 			OriginalFace:         make([]VerifiedSweepPairMeshFace, 0, count),
 			DistanceUpperSquared: new(big.Rat),
 		},
+	}
+	if dynamic, ok := any(&builder.out.UVStations).(*[][2][]*big.Rat); ok {
+		*dynamic = make([][2][]*big.Rat, len(sweeps))
+	}
+	if dynamic, ok := any(builder.out.VertexStations).([][]VerifiedSweepPairMeshStation); ok {
+		// Give the original owner rows independent spans of one ledger.
+		width := len(sweeps)
+		stations := make([]VerifiedSweepPairMeshStation, vertexCount*width)
+		for i := range dynamic {
+			lo, hi := i*width, (i+1)*width
+			dynamic[i] = stations[lo:hi:hi]
+		}
 	}
 	for i, join := range joins {
 		builder.seams[i] = makeVerifiedSweepPairSeamGrid(join.Original, n)
@@ -238,8 +251,11 @@ func (b *verifiedSweepChainMeshBuilder[UV, Vertex]) vertex(ctx context.Context, 
 		return 0, exact, err
 	}
 	id := len(b.out.Mesh.Vertices)
+	if id >= len(b.out.VertexStations) {
+		return 0, exact, geom.ErrConvergence
+	}
 	b.ids[owner][station] = id
-	var original Vertex
+	original := b.out.VertexStations[id]
 	original[owner] = VerifiedSweepPairMeshStation{Index: station, Present: true}
 	for i, seam := range b.seams {
 		local := owner - i
@@ -253,7 +269,7 @@ func (b *verifiedSweepChainMeshBuilder[UV, Vertex]) vertex(ctx context.Context, 
 			break
 		}
 	}
-	b.out.VertexStations = append(b.out.VertexStations, original)
+	b.out.VertexStations[id] = original
 	b.out.Mesh.Vertices = append(b.out.Mesh.Vertices, point)
 	b.represented = append(b.represented, exact)
 	return id, exact, nil
