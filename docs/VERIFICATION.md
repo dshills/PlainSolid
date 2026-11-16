@@ -68,6 +68,13 @@ registered node pairs, and bounded signed volumes, distance and angles.
 Exact cross-component checks refuse an unregistered intersection. The
 reverse axis-zero cap needs an explicit 1.25 million self-candidate limit.
 All 34 previous distance, turn and facet output digests match.
+The [native local separation milestone](evidence/parabola-circle-local-separation-native-2026-11-16.json)
+passed a 515.792-second focused race on main. Both axes and operand
+orders produce 16 positive bodies across 12 cases, including the
+`2.6129628716e-10` reverse Cut lens. Independent original-support OCCT
+lenses corroborate the source integrals; direct Booleans retained the
+required counts in four of 12 cases. All 60 previous native recipes
+reproduce byte for byte. Tangency, crossings and changed owners refuse.
 
 The [proper-similarity display milestone](evidence/parabola-circle-proper-similarity-2026-11-16.json)
 passed its main focused race in 322.877 seconds. Eight components from four

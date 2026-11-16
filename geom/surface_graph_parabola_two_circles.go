@@ -31,7 +31,8 @@ type SplineGraphParabolaTwoCircles struct {
 // common original unit-domain residual cell (tensor degree at most eight).
 // Each circle must lie strictly inside the square and strictly on one side
 // of the parabola. The circles must be mutually separated. Their centers
-// and radii may vary independently.
+// and radii may vary independently. Exact local root counts can separate a
+// circle whose dependent extent overlaps the parabola's global range.
 // Positivity of the original homogeneous denominator retains the signs.
 // No factor, endpoint or contact proposal is supplied by the caller.
 func DiscoverSplineGraphParabolaTwoCircles(ctx context.Context, a, c *SurfacePatch, freeAxis int,
@@ -197,22 +198,12 @@ func bindSeparatedParabolaCircles(out *SplineGraphParabolaTwoCircles, p rational
 		return regions, ErrConvergence
 	}
 	for i, circle := range out.Circles {
-		x, y := circle.Center[0], circle.Center[1]
-		gap := new(big.Rat).Sub(minimum, y)
-		if y.Cmp(maximum) > 0 {
-			regions[i] = 1
-			gap.Sub(y, maximum)
+		region, err := separatedParabolaCircleRegion(p, minimum, maximum, circle.Center, circle.RadiusSquared, b)
+		if err != nil {
+			return regions, err
 		}
-		for _, distance := range []*big.Rat{x, y, new(big.Rat).Sub(one, x), new(big.Rat).Sub(one, y), gap} {
-			square := new(big.Rat).Mul(distance, distance)
-			if err := b.check(square); err != nil {
-				return regions, err
-			}
-			if distance.Sign() <= 0 || square.Cmp(circle.RadiusSquared) <= 0 {
-				return regions, ErrConvergence
-			}
-		}
-		out.Circles[i].Center[out.FreeAxis] = x
+		regions[i] = region
+		out.Circles[i].Center[out.FreeAxis] = circle.Center[0]
 		out.Circles[i].Center[1-out.FreeAxis] = circle.Center[1]
 	}
 	return regions, nil

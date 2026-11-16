@@ -25,8 +25,8 @@ type SplineGraphParabolaCircle struct {
 // DiscoverSplineGraphParabolaCircle recovers the full homogeneous difference
 // K*(y-p(x))*((x-cx)^2+(y-cy)^2-r²), with x on freeAxis. It checks all power
 // coefficients of one original unit-domain residual cell and proves strict
-// circle containment and separation from the entire open parabola by rational
-// bounds. Both curves are simple and the parabola is transverse to the stock
+// circle containment and separation by rational bounds or an exact local
+// root count. Both curves are simple and the parabola is transverse to the stock
 // sides at its two exits. A second residual cell is currently unsupported.
 func DiscoverSplineGraphParabolaCircle(ctx context.Context, a, c *SurfacePatch, freeAxis int,
 	o GraphPointContactOptions) (*SplineGraphParabolaCircle, error) {
@@ -89,25 +89,12 @@ func DiscoverSplineGraphParabolaCircle(ctx context.Context, a, c *SurfacePatch, 
 			maximum = x
 		}
 	}
-	above := new(big.Rat).Sub(center[1], maximum)
-	below := new(big.Rat).Sub(minimum, center[1])
-	out.CircleAbove = above.Sign() > 0
-	gap := below
-	if out.CircleAbove {
-		out.RegionSides[2] = -sign
-		gap = above
+	region, err := separatedParabolaCircleRegion(p, minimum, maximum, center, radiusSquared, b)
+	if err != nil {
+		return nil, err
 	}
-	// Each distance to an enclosing side and the separation to the
-	// parabola's entire convex hull must exceed the circular radius.
-	for _, d := range []*big.Rat{center[0], center[1], new(big.Rat).Sub(one, center[0]), new(big.Rat).Sub(one, center[1]), gap} {
-		square := new(big.Rat).Mul(d, d)
-		if err := b.check(square); err != nil {
-			return nil, err
-		}
-		if d.Sign() <= 0 || square.Cmp(radiusSquared) <= 0 {
-			return nil, ErrConvergence
-		}
-	}
+	out.CircleAbove = region == 1
+	out.RegionSides[2] = -out.RegionSides[region]
 	remaining := b.maxOperations - b.operations
 	if remaining < 1 {
 		return nil, ErrConvergence

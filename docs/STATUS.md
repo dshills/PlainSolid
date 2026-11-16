@@ -68,6 +68,10 @@ shells separate and retains the two original contact pairs.
 That native Cut also has a certified closed mesh for both operands and
 axes. Each component keeps its own vertex identities; the complete
 assembly proves exactly the two original paired point contacts.
+The strict separation proof for parabola and circle no longer requires
+globally disjoint ordinate ranges. It certifies the original quartic over
+the local circle projection, so overlapping ranges can still support
+exact native Common, Fuse and Cut.
 Certified display of the separated two-circle Cuts now accepts proper
 rational similarities. The proof uses the original world coedge owners
 and reports distance in physical units after rotation and scaling.

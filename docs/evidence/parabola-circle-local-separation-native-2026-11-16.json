@@ -1,0 +1,141 @@
+{
+  "geometry": {
+    "commit": "8ecad6e4bd1278245044e6689e3db39b761e8304",
+    "patch": {
+      "path": "parabola-circle-local-separation-geometry.patch",
+      "sha256": "e0c8d7f4b6c07b25bf86f0d51f82fd48f6021eb1a40d95dd499735e684889648"
+    },
+    "race": {
+      "path": "geometry-race.log",
+      "sha256": "68fef25c5fd1f8cc44c901a9d15d5c45f998d17e795f596f490c3f4e4fe8e605",
+      "seconds": 2.994
+    }
+  },
+  "native": {
+    "commit": "04126ff84ba68104c55b4a48ec971f816d2ca164",
+    "patch": {
+      "path": "parabola-circle-local-separation-native.patch",
+      "sha256": "a956da93eb3e833241eb66556d3063a30813da505a4680393b7f493ba49d4c44"
+    },
+    "race": {
+      "path": "native-race.log",
+      "sha256": "766dc21337a23b4629c0f9e57b6ab08621383b6ae65770549be5ffc8333ba60f",
+      "seconds": 463.743
+    }
+  },
+  "reference_integral": {
+    "path": "exact-volume.py",
+    "sha256": "3700f11b2e83e5b2d012c076fcf5547fcf6b76bd5b877d3c9b5fa42f16fa0090"
+  },
+  "native_fixtures": [
+    {
+      "path": "source/common-axis-0-order-0.json",
+      "sha256": "3043749959775aba7a76bcee1981cb43801f9778dcaef02db4da16821257e74a"
+    },
+    {
+      "path": "source/common-axis-0-order-1.json",
+      "sha256": "e5b8fbc643b08508b955f6171620f83175cb54b34293a94c93195aa74de49384"
+    },
+    {
+      "path": "source/common-axis-1-order-0.json",
+      "sha256": "d609847946c233e9ec67bf4f7e791aa5d0ef417b6ff9ffeff3d5ef7bdff5188d"
+    },
+    {
+      "path": "source/common-axis-1-order-1.json",
+      "sha256": "f837acb78f8d82afddc0ecafec4134e8fd40b414ada732eaa0e448ae42ec4e95"
+    },
+    {
+      "path": "source/cut-axis-0-order-0.json",
+      "sha256": "1790cf7d4c4480771eeb6e030c7a44f8aff3ddae620955b95aff5f29f49ce6cc"
+    },
+    {
+      "path": "source/cut-axis-0-order-1.json",
+      "sha256": "f7bceb336484eca5874279b41f88c20e6a6c5b8be8c4d79c066a1b8d731b3740"
+    },
+    {
+      "path": "source/cut-axis-1-order-0.json",
+      "sha256": "0fd6a0bb4d46ceaf8e0a121c5bd8fa0c21b6b95b07012350ed1fb66eba2e9737"
+    },
+    {
+      "path": "source/cut-axis-1-order-1.json",
+      "sha256": "299eba56bdaf7665ef8c8b2332bb964245fe9a053e74d407ac6b6e088ffb7c59"
+    },
+    {
+      "path": "source/fuse-axis-0-order-0.json",
+      "sha256": "5cb47cd4b2bf03ddd2ec041d95524bba25604762a8b08aa9b60cd012b85509c4"
+    },
+    {
+      "path": "source/fuse-axis-0-order-1.json",
+      "sha256": "e2184d967178cb9dca6b253ec93aa4d6b2d1f02669519d2d0fb01809050ce9bf"
+    },
+    {
+      "path": "source/fuse-axis-1-order-0.json",
+      "sha256": "f01f8c8d3cb336c42ebec50c1b86b29ce9ab2c1e9dc1ac4b4abe69c538160c54"
+    },
+    {
+      "path": "source/fuse-axis-1-order-1.json",
+      "sha256": "b974c5fe7dd65ac69b7225df0878f9c5d14194702698a9be04dc17788defc838"
+    }
+  ],
+  "native_results": {
+    "axis_and_operand_matrix_cases": 12,
+    "positive_closed_shells": 16,
+    "maximum_absolute_volume_difference": 3.774758283725532e-15,
+    "maximum_relative_volume_difference": 3.9836134475088484e-12,
+    "measures": {
+      "path": "native-volumes.tsv",
+      "sha256": "ba2eeaf74304cd4369081f7898e2a8386590d919ffa2255ed731efddea065e5c"
+    },
+    "previous_identical_recipes": 60,
+    "byte_comparison": {
+      "path": "legacy-native-sha256.tsv",
+      "sha256": "b7c4045b9dfe58eba7bfdefe154de78d00467fd80cf5df32cfa97e1a8256a8c8"
+    }
+  },
+  "pinned_occt": {
+    "version": "8.1.0",
+    "commit": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+    "direct_diagnostic": {
+      "cases": 12,
+      "expected_material_component_count": 4,
+      "results": {
+        "path": "direct-occt-vs-exact.tsv",
+        "sha256": "d96f37451208cf1c49706b6e2efac3cec1f23f3cc67bfd5cc6f80c3bcfc8c8cd"
+      },
+      "source_original_stock_author": {
+        "path": "direct-occt-boolean.cxx",
+        "sha256": "16d087aa30918b49bf732499c8b3962511d29d625fb2d4d3b19b99d819b780f1"
+      }
+    },
+    "explicit_original_support_lenses": {
+      "cases": 4,
+      "maximum_absolute_volume_difference": 1.772317180456117e-20,
+      "maximum_relative_volume_difference": 1.9009319022365534e-11,
+      "results": {
+        "path": "authored-lenses-vs-exact.tsv",
+        "sha256": "0a6674f755914b5fac05c1a7fe0e3c17b681d3a6462b03a4436e689f1a63004a"
+      },
+      "source_explicit_lens_author": {
+        "path": "explicit-occt-local-lenses.cxx",
+        "sha256": "9c327cfa49bb4b549b4e83bedfa2c02d63aa8ce2247c3d2bb8eac175f9ef884b"
+      }
+    }
+  },
+  "main_integration": {
+    "log": "parabola-local-separation-focused-main-race.jsonl",
+    "sha256": "255d03bdc6802ac5ae315bd79632fedbc81a2c1d63d0381c7375d7e0c8b8e77b",
+    "package_seconds": 515.792,
+    "named_passes": {
+      "TestParabolaCircleLocalSeparationGeometry": 0.37,
+      "TestParabolaCircleLocalSeparationRefusals": 0.11,
+      "TestNativeParabolaCircleLocalSeparationEnvelopes": 216.59,
+      "TestNativeParabolaCircleLocalSeparationCuts": 297.28
+    }
+  },
+  "initial_broader_run_timeout": {
+    "log": "parabola-local-separation-main-race.jsonl",
+    "sha256": "37ff7d186de6173a78a592f2e625e9edd08a907681f98faa655ad751f14a7fad",
+    "limit": "default 10m",
+    "result": "focused run passed with explicit 40m package limit"
+  }
+}
