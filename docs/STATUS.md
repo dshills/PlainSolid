@@ -458,6 +458,10 @@ and two separately positive lenses. The other keeps a single shell
 with two through holes. Exact STEP and IGES now reproduce the
 [original two-circle results](evidence/parabola-two-circles-neutral-2026-11-15.json),
 including both separate lenses and the reverse through-hole layer.
+The exact source proof also accepts independently placed centers on
+the same side of the parabola, even when their free-coordinate
+projections overlap. Native envelopes and Cuts retain both circle
+owners. The independently placed STEP and IGES controls are under review.
 Full ordinary Go and PlainCAD on `a3b7548d` have passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,

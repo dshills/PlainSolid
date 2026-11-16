@@ -1,0 +1,132 @@
+{
+  "schema": 1,
+  "scope": "Original parabola and two interior circles with independent centers",
+  "geometryRevision": "6346361084bdfe217c89c500d609c5e27d86c289",
+  "nativeRevision": "5a0da198c3eb9c69afde235292e5ff3164a8ec0e",
+  "geometryRace": {
+    "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-evidence/geometry-race.log",
+    "sha256": "417205b2a264b04dd613735147cd81354c9454fe32dafd3eec04140ecd6b613d",
+    "packageSeconds": 2.341
+  },
+  "nativeRace": {
+    "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-evidence/native-race.log",
+    "sha256": "4e1faf17f91d02234e8af51a1d19d54c2fd0ec74c3289321a0073a42f6aa47b0",
+    "packageSeconds": 308.06
+  },
+  "exactIntegrals": {
+    "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-evidence/exact-volume.py",
+    "sha256": "99b313d7ed22d80a59207c0e633976e8ece1a53418a44fa336b8b57d1c943f66"
+  },
+  "priorNativeRecipesIdentical": 18,
+  "priorNeutralFilesIdentical": 36,
+  "nativeFixtureReceipts": [
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-evidence/source/common-axis-0-order-0.json",
+      "sha256": "8ac9102385162aa14a16f1519ce95c887a5e5f431833f993c0c3445b2479d90a"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-evidence/source/common-axis-0-order-1.json",
+      "sha256": "4e02069ca8cc4e90397dc4fec3c715b3f15b97843112d8ed8de401b47aeeec8f"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-evidence/source/common-axis-1-order-0.json",
+      "sha256": "5d01ab6a1f3a868def4b394a2dad9f2f991c2a571962c6998d6372792a3107fa"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-evidence/source/common-axis-1-order-1.json",
+      "sha256": "6c4c79eefb48398adb344d4421a34cfb759f051b7da06cfde64a28a7747df263"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-evidence/source/cut-axis-0-order-0.json",
+      "sha256": "954d9eaee817e2cdd8ccdbc863526d1d59d0e3391463c3782b5185ea3040a45d"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-evidence/source/cut-axis-0-order-1.json",
+      "sha256": "07822847d0158a8e3fb9449475436ae4568f494e7f6673f458856a0f428a35f5"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-evidence/source/cut-axis-1-order-0.json",
+      "sha256": "82d1e96436f545052220ee82aada25f9da904ffa78e1a48d25c9cb90b8c4e08d"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-evidence/source/cut-axis-1-order-1.json",
+      "sha256": "c3a1ae14fc5d4f1a6f24e6ce8bb5e16ac55d7e0ffe9195eb78ec0fe255edfe85"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-evidence/source/fuse-axis-0-order-0.json",
+      "sha256": "ea36653f8afe4701a73051576f8ebfd71ece399e234dacfcc08fbf4a2fda17d4"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-evidence/source/fuse-axis-0-order-1.json",
+      "sha256": "2b0dd8ed073d46f8fad33023fca01ca45aa91dc0f7714b048a214172b5a4f87a"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-evidence/source/fuse-axis-1-order-0.json",
+      "sha256": "1ba29f54a3cab09c71c6753f14619b7c2002acd7967ca16b3df79bd6e802b5c9"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-evidence/source/fuse-axis-1-order-1.json",
+      "sha256": "60852b887c303e8965267b2306bec65fab481c85fd39ef2d6d5a9352137c3c83"
+    }
+  ],
+  "mainIntegration": {
+    "parabola-offset-circles-main-race.jsonl": {
+      "elapsedSeconds": 625.027,
+      "sha256": "d7fffa6e7acfb0054eb90686f9c53fc36864cb30dba8443877fa7d19c9fcd37e",
+      "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-main-race.jsonl",
+      "cases": [
+        "TestNativeParabolaOffsetCirclesEnvelopes/0/0/1",
+        "TestNativeParabolaOffsetCirclesEnvelopes/0/0/0",
+        "TestNativeParabolaOffsetCirclesEnvelopes/0/1/1",
+        "TestNativeParabolaOffsetCirclesEnvelopes/0/1/0",
+        "TestNativeParabolaOffsetCirclesEnvelopes/1/0/1",
+        "TestNativeParabolaOffsetCirclesEnvelopes/1/0/0",
+        "TestNativeParabolaOffsetCirclesEnvelopes/1/1/1",
+        "TestNativeParabolaOffsetCirclesEnvelopes/1/1/0",
+        "TestNativeParabolaOffsetCirclesEnvelopes",
+        "TestNativeParabolaOffsetCirclesCuts/0/0",
+        "TestNativeParabolaOffsetCirclesCuts/0/1",
+        "TestNativeParabolaOffsetCirclesCuts/1/0",
+        "TestNativeParabolaOffsetCirclesCuts/1/1",
+        "TestNativeParabolaOffsetCirclesCuts",
+        "TestParabolaOffsetCirclesSourceDiscovery",
+        "TestParabolaTwoCirclesSourceDiscovery",
+        "TestParabolaTwoCirclesSourceRefusals/changed_coefficient",
+        "TestParabolaTwoCirclesSourceRefusals/wrong_free_axis",
+        "TestParabolaTwoCirclesSourceRefusals/low_work_budget",
+        "TestParabolaTwoCirclesSourceRefusals/touching_circles",
+        "TestParabolaTwoCirclesSourceRefusals/nested_circles",
+        "TestParabolaTwoCirclesSourceRefusals/overlapping_offset_circles",
+        "TestParabolaTwoCirclesSourceRefusals/tangent_offset_circles",
+        "TestParabolaTwoCirclesSourceRefusals/opposite_sides_of_the_parabola",
+        "TestParabolaTwoCirclesSourceRefusals/intersecting_parabola",
+        "TestParabolaTwoCirclesSourceRefusals/stock-tangent_circle",
+        "TestParabolaTwoCirclesSourceRefusals",
+        "TestNativeParabolaTwoCirclesGraphEnvelope/0/0/1",
+        "TestNativeParabolaTwoCirclesGraphEnvelope/0/0/0",
+        "TestNativeParabolaTwoCirclesGraphEnvelope/0/1/1",
+        "TestNativeParabolaTwoCirclesGraphEnvelope/0/1/0",
+        "TestNativeParabolaTwoCirclesGraphEnvelope/1/0/1",
+        "TestNativeParabolaTwoCirclesGraphEnvelope/1/0/0",
+        "TestNativeParabolaTwoCirclesGraphEnvelope/1/1/1",
+        "TestNativeParabolaTwoCirclesGraphEnvelope/1/1/0",
+        "TestNativeParabolaTwoCirclesGraphEnvelope",
+        "TestNativeParabolaTwoCirclesGraphCut/0/0",
+        "TestNativeParabolaTwoCirclesGraphCut/0/1",
+        "TestNativeParabolaTwoCirclesGraphCut/1/0",
+        "TestNativeParabolaTwoCirclesGraphCut/1/1",
+        "TestNativeParabolaTwoCirclesGraphCut",
+        "TestNativeLowerParabolaTwoCirclesGraphRegions",
+        "TestParabolaTwoCirclesGraphAtomicRefusals"
+      ]
+    },
+    "parabola-offset-circles-stacked-main-race.jsonl": {
+      "elapsedSeconds": 7.874,
+      "sha256": "5cba94834595e58fcbe1bcd58c28cdec622ae5d29b54b110de67d79460272451",
+      "path": ".worktrees/qualification/2026-11-15/parabola-offset-circles-stacked-main-race.jsonl",
+      "cases": [
+        "TestNativeStackedParabolaCirclesCutOwnerOrder"
+      ]
+    }
+  }
+}

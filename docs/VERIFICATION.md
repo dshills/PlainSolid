@@ -478,6 +478,15 @@ operated on the original stock independently. All 36 earlier
 single-circle neutral files retained their bytes. The complete main
 paired-format race, including earlier controls, passed in 896.359 seconds.
 
+The [independent-circle native proof](evidence/parabola-offset-circles-native-2026-11-15.json)
+recovers both original centers, checks every quartic coefficient, and
+uses exact Euclidean separation when the free projections overlap.
+Both axes and operand orders retain independent owners, two positive
+lenses with their cap, and the reverse genus-two layer. A stacked
+center test also checks deterministic edge ownership. The new and
+previous native races passed in 625.027 and 7.874 seconds. The earlier
+18 native recipes and 36 neutral files retain their bytes.
+
 A separate isolated real double-point proof passes with and without a
 disjoint regular branch, including source order swaps and rotated
 projection axes. The original surface tangents agree at the isolated
