@@ -21,6 +21,9 @@ type interiorSample struct {
 }
 
 func (s Solid) refine(ctx context.Context, level int, deflection, angle float64) (mesh.Mesh, error) {
+	if s.sampledAnnularCaps {
+		return s.refineFrom(ctx, level, level, deflection, angle)
+	}
 	m, e := s.refineFrom(ctx, level, 0, deflection, angle)
 	if e != errTrimFold {
 		return m, e
@@ -267,11 +270,19 @@ func appendFixedBoundary(dst []samples, t samples, p [3]geom.Vec2, id [3]int, sp
 // can fold when a valid curve bulges outside that triangle.
 func (s Solid) sampledSeeds(ctx context.Context, level int, m *mesh.Mesh, boundary map[sharedSample]int) ([][]samples, error) {
 	n := 1 << level
+	var rim []bool
+	if s.sampledAnnularCaps {
+		rim = s.annularRimEdges()
+	}
 	out := make([][]samples, len(s.faces))
 	for fi, f := range s.faces {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
+		wall, wrapped := f.Surface.(*geom.WrappedSurfacePatch)
+		wrapped = wrapped && rim != nil
+		var wallOutline [][]geom.Vec2
+		start := -1
 		loops := append([][]Use{f.Outer}, f.Holes...)
 		rings := make([][]geom.Vec3, len(loops))
 		indices := map[geom.Vec2]int{}
@@ -281,19 +292,34 @@ func (s Solid) sampledSeeds(ctx context.Context, level int, m *mesh.Mesh, bounda
 		}
 		sides := map[[2]geom.Vec2]sampledSide{}
 		for ri, loop := range loops {
-			if len(indices)+n*len(loop) > brep.MaxHoledFaceVertices {
+			if rim == nil && len(indices)+n*len(loop) > brep.MaxHoledFaceVertices {
 				return nil, parametric.ErrBudget
 			}
 			for _, u := range loop {
+				splits := n
+				if rim != nil && !rim[u.Edge] {
+					splits = 1
+				}
+				if rim != nil && !wrapped && len(indices)+splits > brep.MaxHoledFaceVertices {
+					return nil, parametric.ErrBudget
+				}
 				edge := s.edges[u.Edge]
 				p := u.UVStart
-				for j := range n {
-					t, end := float64(j)/float64(n), float64(j+1)/float64(n)
+				var outline []geom.Vec2
+				if wrapped {
+					outline = []geom.Vec2{p}
+					d := wall.Domain()
+					if p == (geom.Vec2{X: d.UMin, Y: d.VMin}) && u.UVEnd.Y == d.VMin {
+						start = len(wallOutline)
+					}
+				}
+				for j := range splits {
+					t, end := float64(j)/float64(splits), float64(j+1)/float64(splits)
 					q, e := u.uv(end)
 					if e != nil {
 						return nil, e
 					}
-					if j == n-1 {
+					if j == splits-1 {
 						q = u.UVEnd
 					}
 					if u.Reversed {
@@ -326,11 +352,29 @@ func (s Solid) sampledSeeds(ctx context.Context, level int, m *mesh.Mesh, bounda
 					indices[p] = id
 					sides[[2]geom.Vec2{p, q}] = sampledSide{trimSide{u.Edge, u}, t, end}
 					rings[ri] = append(rings[ri], geom.Vec3{X: p.X, Y: p.Y})
+					if wrapped {
+						outline = append(outline, q)
+					}
 					p = q
+				}
+				if wrapped {
+					wallOutline = append(wallOutline, outline)
 				}
 			}
 		}
-		triangles, structured, e := sampledCylinderGrid(ctx, f, n, rings, indices, m)
+		var triangles [][3]geom.Vec2
+		var structured bool
+		var e error
+		if wrapped {
+			if start < 0 {
+				return nil, geom.ErrConvergence
+			}
+			wallOutline = append(wallOutline[start:], wallOutline[:start]...)
+			triangles, e = compactAxialTriangles(wallOutline)
+			structured = true
+		} else {
+			triangles, structured, e = sampledCylinderGrid(ctx, f, n, rings, indices, m)
+		}
 		if e != nil {
 			return nil, e
 		}

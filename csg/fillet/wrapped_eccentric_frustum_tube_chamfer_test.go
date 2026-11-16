@@ -15,13 +15,23 @@ import (
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
+	"plainsolid/collision"
 	"plainsolid/geom"
 )
 
 func TestEccentricAnnularFrustumFourRimChamfers(t *testing.T) {
+	checkEccentricAnnularFrustumFourRimChamfers(t, geom.Vec2{X: 2.5}, nil)
+}
+
+func TestDiagonalEccentricAnnularFrustumFourRimChamfers(t *testing.T) {
+	checkEccentricAnnularFrustumFourRimChamfers(t, geom.Vec2{X: 1.5, Y: 2}, []string{"diagonal"})
+}
+
+func checkEccentricAnnularFrustumFourRimChamfers(t *testing.T, center geom.Vec2, oracleArgs []string) {
+	t.Helper()
 	ctx := context.Background()
 	opts := geom.SurfacePatchOptions{}
-	source := eccentricChamferFixture(t, ctx)
+	source := eccentricChamferFixture(t, ctx, center)
 	before, err := source.ValidateCanonicalWrappedFrustumBore(ctx, opts)
 	if err != nil || !before.Complete || before.Kind != "tube" {
 		t.Fatalf("original four-face frustum tube: %v", err)
@@ -45,7 +55,7 @@ func TestEccentricAnnularFrustumFourRimChamfers(t *testing.T) {
 	if err != nil || !proof.Complete {
 		t.Fatalf("independently restored eccentric station bore: %v", err)
 	}
-	checkEccentricRimChamferStations(t, proof)
+	checkEccentricRimChamferStations(t, proof, center)
 	if proof.Caps != result.Caps || !slices.Equal(proof.OuterWalls, result.Walls[0]) || !slices.Equal(proof.InnerWalls, result.Walls[1]) {
 		t.Fatalf("original result face IDs changed during reproof: %+v", proof)
 	}
@@ -94,7 +104,7 @@ func TestEccentricAnnularFrustumFourRimChamfers(t *testing.T) {
 	}
 	t.Logf("native four-rim chamfer: %d faces, volume %.16g, area %.16g", top.Faces, mass.Volume, mass.Area)
 	if oracle := os.Getenv("PLAINSOLID_OCCT_ECCENTRIC_RIM_CHAMFERS"); oracle != "" {
-		checkOCCTEccentricRimChamfers(t, ctx, oracle, mass.Volume, mass.Area)
+		checkOCCTEccentricRimChamfers(t, ctx, oracle, oracleArgs, center, mass.Volume, mass.Area)
 	}
 	var data bytes.Buffer
 	if err := trimmed.WriteJSON(&data, result.Solid); err != nil {
@@ -108,15 +118,44 @@ func TestEccentricAnnularFrustumFourRimChamfers(t *testing.T) {
 	if err != nil || !reloaded.Complete {
 		t.Fatalf("station proof after native replay: %v", err)
 	}
-	checkEccentricRimChamferStations(t, reloaded)
+	checkEccentricRimChamferStations(t, reloaded, center)
 	if other, err := loaded.ValidateWrappedCircularStationBore(ctx, opts); err == nil || other.Complete {
 		t.Fatal("the coaxial validator must not admit the eccentric bore")
+	}
+	if len(oracleArgs) != 0 {
+		checkDiagonalEccentricChamferDisplay(t, ctx, source)
+		checkDiagonalEccentricChamferDisplay(t, ctx, loaded)
+	}
+}
+
+func checkDiagonalEccentricChamferDisplay(t *testing.T, ctx context.Context, solid trimmed.Solid) {
+	t.Helper()
+	o := parametric.TessellationOptions{Deflection: .05, Angle: .15, MaxSubdivisions: 32, MaxTriangles: 20000}
+	m, err := solid.Tessellate(ctx, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.ValidateSolid(); err != nil {
+		t.Fatal(err)
+	}
+	original := solid.Vertices()
+	if len(m.Vertices) < len(original) || !slices.Equal(original, m.Vertices[:len(original)]) {
+		t.Fatal("display changed the original topology vertices")
+	}
+	report, err := collision.SelfIntersectionsBVHContext(ctx, m, collision.Options{})
+	if err != nil || !report.Complete || len(report.Contacts) != 0 {
+		t.Fatalf("display self-intersection proof: %+v %v", report, err)
+	}
+	t.Logf("closed diagonal %d-face body: %d triangles, zero self-intersections", len(solid.Faces()), len(m.Triangles))
+	o.MaxTriangles = len(m.Triangles) - 1
+	if out, err := solid.Tessellate(ctx, o); !errors.Is(err, parametric.ErrBudget) || len(out.Triangles) != 0 {
+		t.Fatalf("display triangle limit yielded partial mesh: %v", err)
 	}
 }
 
 func TestEccentricAnnularFrustumChamferRejectsWallContact(t *testing.T) {
 	ctx := context.Background()
-	source := eccentricChamferFixture(t, ctx)
+	source := eccentricChamferFixture(t, ctx, geom.Vec2{X: 2.5})
 	selection := CircularTubeChamfers{Outer: [2]CircularRimChamfer{{.25, 2}, {}}, Inner: [2]CircularRimChamfer{{.1875, 1}, {}}}
 	for _, radial := range []float64{.3125, .375} {
 		selection.Outer[0].Radial = radial
@@ -136,7 +175,7 @@ func TestEccentricAnnularFrustumChamferRejectsWallContact(t *testing.T) {
 	}
 }
 
-func eccentricChamferFixture(t *testing.T, ctx context.Context) trimmed.Solid {
+func eccentricChamferFixture(t *testing.T, ctx context.Context, center geom.Vec2) trimmed.Solid {
 	t.Helper()
 	opts := geom.SurfacePatchOptions{}
 	wall := func(center geom.Vec3, lower, upper float64) *geom.WrappedSurfacePatch {
@@ -152,7 +191,7 @@ func eccentricChamferFixture(t *testing.T, ctx context.Context) trimmed.Solid {
 		return support
 	}
 	outer := wall(geom.Vec3{Z: 2}, 5, 7)
-	inner := wall(geom.Vec3{X: 2.5, Z: 2}, 2, 3)
+	inner := wall(geom.Vec3{X: center.X, Y: center.Y, Z: 2}, 2, 3)
 	source, _, err := trimmed.NewWrappedEccentricCircularFrustumBore(ctx, outer, inner, 1e-9, opts)
 	if err != nil {
 		t.Fatal(err)
@@ -160,11 +199,11 @@ func eccentricChamferFixture(t *testing.T, ctx context.Context) trimmed.Solid {
 	return source
 }
 
-func checkEccentricRimChamferStations(t *testing.T, proof trimmed.WrappedStationBoreProof) {
+func checkEccentricRimChamferStations(t *testing.T, proof trimmed.WrappedStationBoreProof, center geom.Vec2) {
 	t.Helper()
 	heights := [...]float64{2, 3, 4, 8, 9, 10}
 	radii := [2][6]float64{{4.75, 5.125, 5.5, 6.5, 6.75, 6.5}, {2.1875, 2.125, 2.25, 2.75, 3.0625, 3.375}}
-	centers := [2][2]float64{{0, 0}, {2.5, 0}}
+	centers := [2][2]float64{{0, 0}, {center.X, center.Y}}
 	for side, p := range [2]trimmed.WrappedStationLoftProof{proof.Outer, proof.Inner} {
 		if !p.Complete || len(p.Heights) != len(heights) || len(p.Radii) != len(heights) {
 			t.Fatalf("wall %d lost an original or split station", side)
@@ -196,9 +235,9 @@ func eccentricRimChamferMeasures() (volume, area float64) {
 	return volume, area
 }
 
-func checkOCCTEccentricRimChamfers(t *testing.T, ctx context.Context, oracle string, volume, area float64) {
+func checkOCCTEccentricRimChamfers(t *testing.T, ctx context.Context, oracle string, args []string, axis geom.Vec2, volume, area float64) {
 	t.Helper()
-	raw, err := exec.CommandContext(ctx, oracle).CombinedOutput()
+	raw, err := exec.CommandContext(ctx, oracle, args...).CombinedOutput()
 	var result struct {
 		Solids, Faces int
 		Volume, Area  float64
@@ -212,7 +251,7 @@ func checkOCCTEccentricRimChamfers(t *testing.T, ctx context.Context, oracle str
 	}
 	expected := [][4]float64{
 		{0, 0, 2, 4.75}, {0, 0, 4, 5.5}, {0, 0, 9, 6.75}, {0, 0, 10, 6.5},
-		{2.5, 0, 2, 2.1875}, {2.5, 0, 3, 2.125}, {2.5, 0, 8, 2.75}, {2.5, 0, 10, 3.375},
+		{axis.X, axis.Y, 2, 2.1875}, {axis.X, axis.Y, 3, 2.125}, {axis.X, axis.Y, 8, 2.75}, {axis.X, axis.Y, 10, 3.375},
 	}
 	if len(result.Rims) != len(expected) {
 		t.Fatalf("OCCT changed one of the eight expected cap/shoulder rims: %v", result.Rims)

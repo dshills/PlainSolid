@@ -1,0 +1,180 @@
+{
+  "validatedFinalRevision": "0d3a761b559bbea721c7e55a85762c38934ffdcd",
+  "initialSeedRevision": "20f39d6c1251237174fee83d2f8c89be228a3916",
+  "baselineRevision": "9b0d029e4078441a73fdebd02fc2dbd433de9fed",
+  "baseIntegratedOnMain": "b600bde2",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "pinnedOracleSource": {
+    "file": "eccentric_frustum_tube_chamfers.cxx",
+    "sha256": "5e6def23cb7e6d2a4e93e8ef72a62f66965384db75ed5f57c31e75ee81ec6870"
+  },
+  "pinnedOracleArtifact": {
+    "file": "occt_eccentric_rim_chamfers",
+    "sha256": "fac76d63fb1addf2ca299247fd5207806c9638bef4f9b85f41bc205a09e93716"
+  },
+  "stageOneOriginalWallContactReproducer": {
+    "file": "interior-crossing-before.log",
+    "sha256": "058fcf639599f3f350dd47b9d655fb8abfbe0e3a8912e10028948889fbe79fd6"
+  },
+  "occt": {
+    "Solids": 1,
+    "Faces": 8,
+    "Volume": 726.9882656101975,
+    "Area": 593.897326906695,
+    "Rims": [
+      [
+        0,
+        0,
+        4,
+        5.5
+      ],
+      [
+        0,
+        0,
+        9,
+        6.75
+      ],
+      [
+        0,
+        0,
+        2,
+        4.75
+      ],
+      [
+        0,
+        0,
+        10,
+        6.5
+      ],
+      [
+        1.5,
+        2,
+        2,
+        2.1875
+      ],
+      [
+        1.5,
+        2,
+        10,
+        3.375
+      ],
+      [
+        1.5,
+        2,
+        3,
+        2.125
+      ],
+      [
+        1.5,
+        2,
+        8,
+        2.75
+      ]
+    ]
+  },
+  "closedMeshQualification": {
+    "deflection": 0.05,
+    "angleRadians": 0.15,
+    "maxSubdivisions": 32,
+    "triangleLimit": 20000,
+    "sourceTriangles": 1024,
+    "chamferTriangles": 1536,
+    "independentlyProvedSelfIntersections": 0
+  },
+  "legacyByteIdentical": {
+    "native": [
+      {
+        "baseline": "legacy-before-0.0-0.json",
+        "corrected": "legacy-final-0.0-0.json",
+        "sha256": "54560b29acc191eb87c572a3a4d49fc884e86ca45e4e5429c84436818423690e"
+      },
+      {
+        "baseline": "legacy-before-0.0-1.json",
+        "corrected": "legacy-final-0.0-1.json",
+        "sha256": "cb05223da16a08b1052dbbed0c33a6e8358c5d3c7d616ecaebf69bd94e64efd4"
+      },
+      {
+        "baseline": "legacy-before-2.5-0.json",
+        "corrected": "legacy-final-2.5-0.json",
+        "sha256": "583a840267d6bb834d1b204a7667ae154fef736dc94e37229a3bd11a5e197b76"
+      },
+      {
+        "baseline": "legacy-before-2.5-1.json",
+        "corrected": "legacy-final-2.5-1.json",
+        "sha256": "37a0531f699cfb48f1d42c6b3deb7b8e3820f644e1781915480bb288ec7a5254"
+      }
+    ],
+    "display": [
+      {
+        "baseline": "legacy-mesh-before-0.0-0.json",
+        "corrected": "legacy-mesh-final-0.0-0.json",
+        "sha256": "c831b731656b1fbc12d813cc0941cc05837517426d6dddf0c09f32db8cfc3aae"
+      },
+      {
+        "baseline": "legacy-mesh-before-0.0-1.json",
+        "corrected": "legacy-mesh-final-0.0-1.json",
+        "sha256": "06ed7ba541b57fc871ceceef57dac31bb0a578ecd98999e31045d1e8b9163b08"
+      },
+      {
+        "baseline": "legacy-mesh-before-2.5-0.json",
+        "corrected": "legacy-mesh-final-2.5-0.json",
+        "sha256": "6e91219c2d46465f3b283ff59d8c42df0a91b85f7483d21438a461b757fbca31"
+      },
+      {
+        "baseline": "legacy-mesh-before-2.5-1.json",
+        "corrected": "legacy-mesh-final-2.5-1.json",
+        "sha256": "9deeb442ebee21de927b959e41b7776414d3d2f12a72f788cace2c846ddcbdaa"
+      }
+    ]
+  },
+  "tests": {
+    "focused-snapshot.jsonl": {
+      "file": "focused-snapshot.jsonl",
+      "sha256": "121c54327a3ee688f5b03ded76bbc92fd4b26955d891c2e50ab298092d7dfc1a",
+      "passedPackages": {
+        "plainsolid/brep/trimmed": 1.592,
+        "plainsolid/csg/fillet": 26.362
+      },
+      "complete": true
+    },
+    "focused-final-race.jsonl": {
+      "file": "focused-final-race.jsonl",
+      "sha256": "c2d3c49c59f1460391e9b1d45bd8bf1c763cccb47e3e6abf37a99a7c80d50feb",
+      "passedPackages": {
+        "plainsolid/brep/trimmed": 9.534,
+        "plainsolid/csg/fillet": 131.298
+      },
+      "complete": true
+    },
+    "nesting-focused-live.jsonl": {
+      "file": "nesting-focused-live.jsonl",
+      "sha256": "43c8c8512d11ecfd34aeec34855b90c3b0512dcad1dd54a26d38e7f3e4e41695",
+      "passedPackages": {
+        "plainsolid/brep/trimmed": 2.594,
+        "plainsolid/csg/fillet": 16.077
+      },
+      "complete": true
+    },
+    "nesting-focused-race.jsonl": {
+      "file": "nesting-focused-race.jsonl",
+      "passedPackages": {
+        "plainsolid/brep/trimmed": 15.323,
+        "plainsolid/csg/fillet": 93.198
+      },
+      "complete": true,
+      "sha256": "6014f050adf255a8baa8d07d8fd10a3ce6ccaa44b7e80dc24b8aa3d1b4a29f37"
+    }
+  },
+  "completeBinaryDiff": {
+    "file": "eccentric-annular-complete-stack.diff",
+    "sha256": "707475617611b25fe74b8d7d54176cb7029adda4acb105cb4be2c8510e1da8e8"
+  },
+  "integratedMainLiveRace": {
+    "file": "eccentric-annular-nesting-main-live-race.jsonl",
+    "sha256": "0892be685191204b490835d984f27904331b904ab29c8ff31604842ffcdee5aa",
+    "elapsedSeconds": {
+      "plainsolid/csg/fillet": 100.582,
+      "plainsolid/brep/trimmed": 15.957
+    }
+  }
+}

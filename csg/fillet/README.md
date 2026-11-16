@@ -152,6 +152,14 @@ so this proves strict nesting throughout with no axis-length rounding.
 The original centers, cap heights and wall laws outside the runouts survive.
 Both cap trims and every model/coedge pair are independently re-proved.
 The original and resulting cap annuli must admit the native trim triangulation.
+If the original four-point chord polygons cannot be nested, the circular
+annular seed search proves both original rational ring equations, binds
+two continuous circular wall chains to them and verifies strict nesting at
+every station of both chains. The original model/coedge laws must agree.
+It searches up to 32 dyadic samples per original quarter arc and preserves the native
+vertices, curves and cap trims. The same model edge samples feed the cap
+and wrapped wall displays. Signed integration over the original chord
+rings and curve corrections gives native mass independently of the display.
 `ValidateWrappedEccentricCircularStationBore` authenticates the same geometry
 after native reload. The existing coaxial entry point retains its scope.
 
@@ -166,7 +174,9 @@ and an interior tangency on an independent station grid both fail atomically.
 Build the independent chamfer author against pinned OCCT revision
 `4dbfdcc448c0b3e565488afcd626c84483172db9` to reproduce the comparison. It
 builds the eccentric tube from two cones and chamfers all four rims with
-`BRepFilletAPI_MakeChamfer`, using each conical wall's slant metric.
+`BRepFilletAPI_MakeChamfer`, using each conical wall's slant metric. The `diagonal` command-line argument
+selects the independently authored inner center (1.5, 2), which has the same
+axis separation and reproduces the native cap seed fallback.
 
 ```sh
 c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" -L"$OCCT_LIB" -Wl,-rpath,"$OCCT_LIB" \

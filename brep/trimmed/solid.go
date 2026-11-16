@@ -8,6 +8,7 @@ import (
 	"math"
 
 	"plainsolid/brep"
+	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"plainsolid/mesh"
@@ -43,14 +44,15 @@ type Face struct {
 // sides are permitted. A collapsed edge has equal ends, nil model curve,
 // and exactly one face use.
 type Solid struct {
-	vertices        []geom.Vec3
-	edges           []parametric.Edge
-	faces           []Face
-	tolerance       float64
-	seeds           [][]seed
-	minimumLevel    int
-	splitSeeds      []bool
-	clippedFuseAxis int // 0 for ordinary shells, 1 or 2 for an original-source clipped Fuse
+	vertices           []geom.Vec3
+	edges              []parametric.Edge
+	faces              []Face
+	tolerance          float64
+	seeds              [][]seed
+	minimumLevel       int
+	sampledAnnularCaps bool
+	splitSeeds         []bool
+	clippedFuseAxis    int // 0 for ordinary shells, 1 or 2 for an original-source clipped Fuse
 }
 type seed struct {
 	uv  [3]geom.Vec2
@@ -296,7 +298,25 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 		}
 		triangles, err := triangulateUV(rings)
 		if err != nil {
-			return Solid{}, fmt.Errorf("trimmed: face %d domain: %w", fi, err)
+			if len(f.Holes) != 1 {
+				return Solid{}, fmt.Errorf("trimmed: face %d domain: %w", fi, err)
+			}
+			if !s.sampledAnnularCaps {
+				ok, shapeErr := supportsCircularAnnularSeedShell(ctx, faces)
+				if shapeErr != nil {
+					return Solid{}, shapeErr
+				}
+				if !ok {
+					return Solid{}, fmt.Errorf("trimmed: face %d domain: %w", fi, err)
+				}
+			}
+			level, seedErr := circularAnnularSeedLevel(ctx, f)
+			if seedErr != nil {
+				return Solid{}, fmt.Errorf("trimmed: face %d annular seed: %w", fi, seedErr)
+			}
+			triangles = nil // Mass integration uses the signed original chord rings.
+			s.sampledAnnularCaps = true
+			s.minimumLevel = max(s.minimumLevel, level)
 		}
 		var faceSeeds []seed
 		for _, tri := range triangles {
@@ -362,6 +382,20 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 			}
 		} else if n != 2 || sign[i] != 0 {
 			return Solid{}, fmt.Errorf("trimmed: edge %d needs two opposite uses", i)
+		}
+	}
+	if s.sampledAnnularCaps {
+		agreement, err := s.ValidateEdgeAgreement(ctx, edgecheck.Options{})
+		if err != nil {
+			return Solid{}, err
+		}
+		if !agreement.Complete {
+			return Solid{}, geom.ErrConvergence
+		}
+		for _, u := range agreement.Uses {
+			if u.Report.SquaredUpperBound == nil || u.Report.SquaredUpperBound.Sign() != 0 {
+				return Solid{}, geom.ErrConvergence
+			}
 		}
 	}
 	if validateDisplay {
@@ -462,6 +496,9 @@ func (s Solid) tessellateWithTrimMemo(ctx context.Context, o parametric.Tessella
 		return mesh.Mesh{}, err
 	}
 	s = s.withTessellationTrimMemo(memo)
+	if s.sampledAnnularCaps {
+		return s.tessellateCircularAnnularSeeds(ctx, o)
+	}
 	if s.clippedFuseAxis != 0 && !o.AnalyticBound {
 		m, err := s.tessellateClippedPolynomial(ctx, s.clippedFuseAxis-1, o)
 		if err != parametric.ErrBudget && err != errTrimFold {
