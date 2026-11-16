@@ -8,19 +8,24 @@ import (
 // VerifiedNormalOffsetSweepJoin describes a join of two original boundary
 // edges with equal signed displacement limits. ReverseB and BStationRatio
 // specify the normalized free-parameter map as in SurfaceNormalOffsetSeamOptions.
-// Axis selects a Cartesian separating coordinate. AInteriorSign is -1 or
-// +1 depending on which open halfspace contains the rest of A.
+// Axis selects a Cartesian separating coordinate when Covector is omitted.
+// An explicit Covector selects an exact linear projection instead. Nil
+// components count as zero, and an explicit zero covector is invalid.
+// AInteriorSign is -1 or +1 depending on which open halfspace contains
+// the rest of A.
 type VerifiedNormalOffsetSweepJoin struct {
 	Edges         [2]SurfaceEdge
 	ReverseB      bool
 	BStationRatio *big.Rat
 	Axis          int
 	AInteriorSign int
+	Covector      *[3]*big.Rat `json:",omitempty"`
 }
 
 // VerifiedNormalOffsetSweepJoinProof records the exact original seam and
-// the two full-displacement halfspace tests. Coordinate is published only
-// when the join is complete.
+// the two full-displacement halfspace tests. Coordinate is the constant
+// of the plane in the selected coordinate or the original covector scale.
+// It is published only when the join is complete.
 type VerifiedNormalOffsetSweepJoinProof struct {
 	Complete        bool
 	Seam            SurfaceNormalOffsetSeam
@@ -45,10 +50,11 @@ type VerifiedNormalOffsetSweepBoundaryFace struct {
 }
 
 // NewVerifiedNormalOffsetSweepPair proves a bounded two-chart join with a
-// single Cartesian separating plane. The exact seam certificate equates the
-// original points and the oriented source normals at every matched station,
-// hence the whole wall at every signed displacement. The shared source edge
-// has constant separating coordinate and zero normal component on that axis.
+// single exact separating plane. The seam certificate equates the original
+// points and the oriented source normals at every matched station, hence the
+// whole wall at every signed displacement. The shared source edge has
+// constant projection onto the specified plane covector, and the source
+// normal is orthogonal to that covector along the edge.
 // Each remaining point of each sweep is in its designated open halfspace,
 // as proved by strict transverse derivative bounds at both displacement
 // limits. These derivatives are affine in displacement. Strict separation
@@ -60,9 +66,11 @@ type VerifiedNormalOffsetSweepBoundaryFace struct {
 func NewVerifiedNormalOffsetSweepPair(ctx context.Context, a, b *VerifiedNormalOffsetSweep,
 	join VerifiedNormalOffsetSweepJoin, o NormalOffsetCoverageOptions) (_ *VerifiedNormalOffsetSweepPair,
 	r VerifiedNormalOffsetSweepJoinProof, err error) {
+	oblique := join.Covector != nil
 	if ctx == nil || a == nil || b == nil || a.orientation == 0 || b.orientation == 0 ||
 		join.Edges[0] > SurfaceEdgeVMax || join.Edges[1] > SurfaceEdgeVMax ||
-		join.Axis < 0 || join.Axis > 2 || (join.AInteriorSign != -1 && join.AInteriorSign != 1) ||
+		(!oblique && (join.Axis < 0 || join.Axis > 2)) || (oblique && !nonzeroSweepSeparatorCovector(*join.Covector)) ||
+		(join.AInteriorSign != -1 && join.AInteriorSign != 1) ||
 		(join.BStationRatio != nil && join.BStationRatio.Sign() <= 0) ||
 		o.MaxDepth < 0 || o.MaxDepth > 64 || o.MaxCells < 0 || o.MaxCells > 1<<18 {
 		return nil, r, ErrInvalid
@@ -95,7 +103,7 @@ func NewVerifiedNormalOffsetSweepPair(ctx context.Context, a, b *VerifiedNormalO
 		return nil, r, ErrConvergence
 	}
 	budget := &polynomialBudget{maxOperations: limits.MaxOperations - r.ExactOperations, maxBits: limits.MaxCoefficientBits}
-	c, err := sweepSeparatorCoordinate(ctx, a.source, join.Edges[0], join.Axis, budget)
+	c, err := sweepSeparatorCoordinate(ctx, a.source, join.Edges[0], join.Axis, join.Covector, budget)
 	r.ExactOperations += budget.operations
 	if err != nil {
 		return nil, r, err
@@ -119,7 +127,7 @@ func NewVerifiedNormalOffsetSweepPair(ctx context.Context, a, b *VerifiedNormalO
 		o.Patch.MaxOperations -= r.ExactOperations
 		proof, err := sweep.source.certifyNormalOffsetCells(ctx, sweep.upper, o,
 			func(ctx context.Context, cell *SurfacePatch, upper *big.Rat, budget *polynomialBudget) (bool, error) {
-				return sweepSeparatorCell(ctx, cell, sweep.lower, upper, join.Axis, fixed, sign*increasingInward, budget)
+				return sweepSeparatorCell(ctx, cell, sweep.lower, upper, join.Axis, join.Covector, fixed, sign*increasingInward, budget)
 			})
 		r.ExactOperations += proof.ExactOperations
 		if err != nil {
@@ -137,24 +145,34 @@ func NewVerifiedNormalOffsetSweepPair(ctx context.Context, a, b *VerifiedNormalO
 	if err := ctx.Err(); err != nil {
 		return nil, r, err
 	}
-	if join.BStationRatio != nil {
-		join.BStationRatio = new(big.Rat).Set(join.BStationRatio)
-	}
+	join = join.copyExact()
 	r.Complete, r.Coordinate = true, new(big.Rat).Set(c)
 	return &VerifiedNormalOffsetSweepPair{sweeps: sweeps, join: join, coordinate: c}, r, nil
 }
 
-// Join returns the retained original station map and the exact value of
-// the selected separating coordinate. Rational values are caller-owned.
+// Join returns the retained original station map, exact separating
+// projection and constant of the plane. Rational values are caller-owned.
 func (p *VerifiedNormalOffsetSweepPair) Join() (VerifiedNormalOffsetSweepJoin, *big.Rat) {
 	if p == nil || p.coordinate == nil {
 		return VerifiedNormalOffsetSweepJoin{}, nil
 	}
-	join := p.join
+	return p.join.copyExact(), new(big.Rat).Set(p.coordinate)
+}
+
+func (join VerifiedNormalOffsetSweepJoin) copyExact() VerifiedNormalOffsetSweepJoin {
 	if join.BStationRatio != nil {
 		join.BStationRatio = new(big.Rat).Set(join.BStationRatio)
 	}
-	return join, new(big.Rat).Set(p.coordinate)
+	if join.Covector != nil {
+		covector := *join.Covector
+		for i, q := range covector {
+			if q != nil {
+				covector[i] = new(big.Rat).Set(q)
+			}
+		}
+		join.Covector = &covector
+	}
+	return join
 }
 
 // Boundary returns the ten retained outer analytic faces in owner and side
@@ -177,13 +195,28 @@ func (p *VerifiedNormalOffsetSweepPair) Boundary() []VerifiedNormalOffsetSweepBo
 }
 
 func sweepSeparatorCoordinate(ctx context.Context, source *SurfacePatch, edge SurfaceEdge,
-	axis int, budget *polynomialBudget) (*big.Rat, error) {
+	axis int, covector *[3]*big.Rat, budget *polynomialBudget) (*big.Rat, error) {
+	oblique := covector != nil
+	if oblique {
+		if err := checkSweepSeparatorCovector(*covector, budget); err != nil {
+			return nil, err
+		}
+	}
 	jet, err := offsetEdgePowers(ctx, source, edge, false, nil, budget)
 	if err != nil {
 		return nil, err
 	}
 	zero := new(big.Rat)
-	first, err := polynomialValue(jet[0][axis], zero, budget)
+	var projection rationalPolynomial
+	if oblique {
+		projection, err = sweepSeparatorPolynomial([3]rationalPolynomial(jet[0][:3]), *covector, budget)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		projection = jet[0][axis]
+	}
+	first, err := polynomialValue(projection, zero, budget)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +228,7 @@ func sweepSeparatorCoordinate(ctx context.Context, source *SurfacePatch, edge Su
 	if err := budget.check(c); err != nil {
 		return nil, err
 	}
-	diff, err := offsetPolynomialDet(jet[0][axis], jet[0][3], rationalPolynomial{c}, rationalPolynomial{big.NewRat(1, 1)}, budget)
+	diff, err := offsetPolynomialDet(projection, jet[0][3], rationalPolynomial{c}, rationalPolynomial{big.NewRat(1, 1)}, budget)
 	if err != nil {
 		return nil, err
 	}
@@ -206,14 +239,22 @@ func sweepSeparatorCoordinate(ctx context.Context, source *SurfacePatch, edge Su
 	if err != nil {
 		return nil, err
 	}
-	if len(normal[axis]) != 0 {
+	if oblique {
+		projection, err = sweepSeparatorPolynomial(normal, *covector, budget)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		projection = normal[axis]
+	}
+	if len(projection) != 0 {
 		return nil, ErrDomain
 	}
 	return c, nil
 }
 
 func sweepSeparatorCell(ctx context.Context, p *SurfacePatch, lower, upper *big.Rat,
-	axis, fixed, sign int, budget *polynomialBudget) (bool, error) {
+	axis int, covector *[3]*big.Rat, fixed, sign int, budget *polynomialBudget) (bool, error) {
 	if err := budget.check(lower); err != nil {
 		return false, err
 	}
@@ -222,9 +263,14 @@ func sweepSeparatorCell(ctx context.Context, p *SurfacePatch, lower, upper *big.
 		return false, err
 	}
 	a := &d.arithmetic
-	normalDerivative := d.normalDerivative(axis, fixed)
+	var tangent, normalDerivative exactInterval
+	if covector == nil {
+		tangent, normalDerivative = d.tangent[fixed][axis], d.normalDerivative(axis, fixed)
+	} else {
+		tangent, normalDerivative = sweepSeparatorProjectedDifferential(d, fixed, *covector)
+	}
 	for _, t := range []*big.Rat{lower, upper} {
-		derivative := a.add(d.tangent[fixed][axis], a.mul(exactInterval{t, t}, normalDerivative))
+		derivative := a.add(tangent, a.mul(exactInterval{t, t}, normalDerivative))
 		if a.err != nil {
 			return false, a.err
 		}
