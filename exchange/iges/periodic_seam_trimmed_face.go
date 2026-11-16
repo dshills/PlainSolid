@@ -48,7 +48,7 @@ func (f PeriodicSeamTrimmedFace) OriginalIGES() string { return f.original }
 // one fixed projection must prove injectivity over the lifted rectangle.
 func ReadPeriodicSeamTrimmedFace(ctx context.Context, r io.Reader, l Limits) (PeriodicSeamTrimmedFace, error) {
 	var zero PeriodicSeamTrimmedFace
-	source, err := readPeriodicTrimSourceForAxes(ctx, r, l, 6, true)
+	source, err := readPeriodicTrimSourceForAxes(ctx, r, l, 6, periodicTrimSingleAxis)
 	if err != nil {
 		return zero, err
 	}
