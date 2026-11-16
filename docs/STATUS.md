@@ -32,6 +32,8 @@ Exact second derivatives now support a focal point check for a signed
 normal offset. The bounded coverage proof partitions a spline patch,
 retains its original knot boundaries, and exposes unresolved cells.
 Constructing a whole-face offset still needs seam and collision proofs.
+Exact source jets can also evaluate a signed normal offset point with
+directed rational coordinate bounds, even for irrational unit normals.
 Full-domain curved pair isolation can also use a bounded exact control-hull
 support search. It can prove separation when the world axes and original
 center normals leave overlapping projections, and retains pairs it cannot

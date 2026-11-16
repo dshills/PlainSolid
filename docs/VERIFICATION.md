@@ -41,6 +41,11 @@ at and above the first focal distance `0.5` the focal line remains
 unresolved. A nonconstant-weight planar chart and two original knot pieces
 also qualify. The exact UV cover remains intact when work, cell or pole
 limits are exhausted.
+The rational offset point evaluation race passed in 6.420 seconds. It
+encloses the independently derived irrational parabola normal, tightens
+the result as requested precision rises, and retains an exact planar
+offset even with a nonzero tangent cross product that underflows
+float64. Singular inputs and insufficient work do not publish a point.
 The exact convex-hull separation race passed in geometry and intersection
 (25.901 and 1.207 seconds). A weighted curved pair separated on an exact
 new support direction, with the gap independently projected from the
