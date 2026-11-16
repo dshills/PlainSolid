@@ -1,0 +1,142 @@
+{
+  "plainSolidRevision": "9b0d029e4078441a73fdebd02fc2dbd433de9fed",
+  "sameProductionPreviouslyTested": "ad7da515806c7ae8adb344f2ddcfc611c582ce29",
+  "base": "90fbc8930f158e0d01f3f9d207381ce41b869c0a",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "occtFixtureAuthorSource": {
+    "file": "eccentric_frustum_tube_chamfers.cxx",
+    "sha256": "e91e5e3d11250842ac4184e8840217abf5afbb023c3900514c4e1480d555d854"
+  },
+  "occtFixtureAuthorBinary": {
+    "file": "occt_eccentric_rim_chamfers",
+    "sha256": "42d6819703b56704da0076d41dd86dfd967a8f337a3cea4af612a4dc9f4f5dcd"
+  },
+  "occt": {
+    "Solids": 1,
+    "Faces": 8,
+    "Volume": 726.9882656101972,
+    "Area": 593.897326906695,
+    "Rims": [
+      [
+        0,
+        0,
+        4,
+        5.5
+      ],
+      [
+        0,
+        0,
+        9,
+        6.75
+      ],
+      [
+        0,
+        0,
+        2,
+        4.75
+      ],
+      [
+        0,
+        0,
+        10,
+        6.5
+      ],
+      [
+        2.5,
+        0,
+        2,
+        2.1875
+      ],
+      [
+        2.5,
+        0,
+        10,
+        3.375
+      ],
+      [
+        2.5,
+        0,
+        3,
+        2.125
+      ],
+      [
+        2.5,
+        0,
+        8,
+        2.75
+      ]
+    ]
+  },
+  "occtMeasuresLog": {
+    "file": "occt-result.json",
+    "sha256": "60228c009375faa782686258b080095c391ae8615950f1c601a8f291094d0df3"
+  },
+  "capHeights": [
+    2,
+    10
+  ],
+  "sourceOuterRadii": [
+    5,
+    7
+  ],
+  "sourceInnerRadii": [
+    2,
+    3
+  ],
+  "nativeBevels": {
+    "outer": [
+      [
+        0.25,
+        2
+      ],
+      [
+        0.5,
+        1
+      ]
+    ],
+    "inner": [
+      [
+        0.1875,
+        1
+      ],
+      [
+        0.375,
+        2
+      ]
+    ]
+  },
+  "nativeOutputFaces": 12,
+  "scopeControl": "With the same axis offset magnitude, a source at diagonal inner center (1.5,2) is independently valid in OCCT and the pre-existing native cap seed rejects it before chamfering.",
+  "diagonalInitialOracle": {
+    "file": "occt-initial-offset.json",
+    "sha256": "0e6dce8043797861be43975ec5c360d284eedb726b495c7e5510cc70e73886c4"
+  },
+  "diagonalInitialNative": {
+    "file": "initial-cap-seed-control.log",
+    "sha256": "638ddc0bcb4f570355c42ddd5ea74aa3efc5b23ddf399edbe4af54c0dfc3d68e"
+  },
+  "focusedLive": {
+    "file": "focused-final-live.log",
+    "sha256": "cf6be18dce3f5fdc87f163ff75200ecac7c2aba2ae9283a15d28bfcb798d1292"
+  },
+  "focusedLiveRace": {
+    "file": "focused-live-race.jsonl",
+    "sha256": "aca7be995e9cc67507edbd645036b02f1a63149fc3fc8ee43b6a05e4abd20dbd",
+    "packageSeconds": {
+      "plainsolid/brep/trimmed": 7.942,
+      "plainsolid/csg/fillet": 83.948
+    }
+  },
+  "patch": {
+    "file": "eccentric-rim-chamfer.patch",
+    "sha256": "3bf39f5c868b2ee37beaa8f67acd0e5c4f2a4015abee6eefb96d334d648b2d54"
+  },
+  "integratedMainLive": {
+    "file": "advanced-eccentric-chamfer-main-correct-live.jsonl",
+    "sha256": "a4128c11027217790bc645f2a2b03633b00dcab265ea3d1a4e0dc2a1056eb0dd",
+    "elapsedSeconds": {
+      "plainsolid/csg/fillet": 7.023,
+      "plainsolid/brep/trimmed": 1.126
+    }
+  }
+}

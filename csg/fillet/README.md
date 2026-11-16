@@ -143,3 +143,37 @@ of all runout heights, and the same exact native station-bore construction
 retains cap/wall ancestry and circular bases. This accepts rational slopes
 without requiring rational unit-normal lengths. Eccentric axes remain outside
 this API; all original cylinder tube behavior is unchanged.
+
+`ChamferWrappedEccentricFrustumTubeRims` also accepts a complete circular
+through-bore on a distinct parallel axis. For positive outer-minus-inner
+radius difference `g`, it requires `g*g > dx*dx+dy*dy` at both caps and
+every shoulder. The gap is affine between consecutive authored heights,
+so this proves strict nesting throughout with no axis-length rounding.
+The original centers, cap heights and wall laws outside the runouts survive.
+Both cap trims and every model/coedge pair are independently re-proved.
+The original and resulting cap annuli must admit the native trim triangulation.
+`ValidateWrappedEccentricCircularStationBore` authenticates the same geometry
+after native reload. The existing coaxial entry point retains its scope.
+
+The eccentric fixture has outer radii 5 and 7, inner radii 2 and 3, common
+cap heights 2 and 10 and original axes at (0, 0) and (2.5, 0). Four independent
+rim chamfers produce eight cap/shoulder circles on those original axes.
+The native history separates the four bevels and the original cap and wall
+owners, including support bands subdivided at a shoulder on the opposite wall.
+Native and independent OCCT volume and area agree. The exact cap tangency
+and an interior tangency on an independent station grid both fail atomically.
+
+Build the independent chamfer author against pinned OCCT revision
+`4dbfdcc448c0b3e565488afcd626c84483172db9` to reproduce the comparison. It
+builds the eccentric tube from two cones and chamfers all four rims with
+`BRepFilletAPI_MakeChamfer`, using each conical wall's slant metric.
+
+```sh
+c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" -L"$OCCT_LIB" -Wl,-rpath,"$OCCT_LIB" \
+  tools/occtref/eccentric_frustum_tube_chamfers.cxx -o /tmp/plainsolid-eccentric-rim-chamfers \
+  -lTKFillet -lTKBO -lTKPrim -lTKTopAlgo -lTKBRep -lTKGeomBase -lTKG3d -lTKMath -lTKernel
+
+PLAINSOLID_OCCT_ECCENTRIC_RIM_CHAMFERS=/tmp/plainsolid-eccentric-rim-chamfers \
+  go test -race ./csg/fillet ./brep/trimmed \
+  -run '(EccentricAnnularFrustum|EccentricCircularStationBore)' -count=1 -v
+```
