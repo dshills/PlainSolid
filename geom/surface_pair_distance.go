@@ -64,7 +64,7 @@ type exactDistanceWitness struct {
 
 func patchDistanceWitnesses(p *SurfacePatch, b *polynomialBudget) ([]exactDistanceWitness, error) {
 	d := p.Domain()
-	uv := Vec2{d.UMin + (d.UMax-d.UMin)/2, d.VMin + (d.VMax-d.VMin)/2}
+	uv := Vec2{parameterMidpoint(d.UMin, d.UMax), parameterMidpoint(d.VMin, d.VMax)}
 	current := p
 	for {
 		t, u, knot := patchSplitChoice(current)
@@ -280,7 +280,7 @@ func boundSurfacePairDistanceContext(ctx context.Context, a, c *SurfacePatch, o 
 			da := n.a.Domain()
 			ta, ka = internalPatchKnot(n.a.knotsU, n.a.degreeU, n.a.countU)
 			if !ka {
-				ta = da.UMin + (da.UMax-da.UMin)/2
+				ta = parameterMidpoint(da.UMin, da.UMax)
 			}
 		}
 		if curveC {
@@ -288,7 +288,7 @@ func boundSurfacePairDistanceContext(ctx context.Context, a, c *SurfacePatch, o 
 			dc := n.c.Domain()
 			tc, kc = internalPatchKnot(n.c.knotsU, n.c.degreeU, n.c.countU)
 			if !kc {
-				tc = dc.UMin + (dc.UMax-dc.UMin)/2
+				tc = parameterMidpoint(dc.UMin, dc.UMax)
 			}
 		}
 		widthA, widthC := patchParameterWidth(n.a), patchParameterWidth(n.c)

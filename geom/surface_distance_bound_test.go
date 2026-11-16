@@ -37,6 +37,34 @@ func TestSurfaceDistanceBoundsPreservedAtLimit(t *testing.T) {
 	}
 }
 
+func TestDistanceBoundsHugeFiniteChartWidths(t *testing.T) {
+	ctx := context.Background()
+	chart := func(z float64) *SurfacePatch {
+		t.Helper()
+		p := arcTestPatch(t, func(u, v float64) Vec3 { return Vec3{u, v, z} })
+		recipe, err := p.ExportExactBezierRecipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		recipe.Domain = ParameterRectangle{-math.MaxFloat64, math.MaxFloat64, -math.MaxFloat64, math.MaxFloat64}
+		p, err = ImportExactBezierSurfaceRecipe(ctx, recipe, SurfacePatchOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	a, b := chart(0), chart(2)
+	point, err := BoundPointSurfaceDistance(Vec3{.5, .5, 2}, a, SurfaceDistanceOptions{})
+	if err != nil || !point.Complete || point.SquaredDistanceMin != 4 || point.SquaredDistanceMax != 4 || point.UpperUV != (Vec2{}) {
+		t.Fatal("point query lost the finite center station or exact distance", point, err)
+	}
+	pair, err := BoundSurfacePairDistance(a, b, SurfacePairDistanceOptions{})
+	if err != nil || !pair.Complete || !pair.HasWitness || pair.SquaredDistanceMin != 4 || pair.SquaredDistanceMax != 4 ||
+		pair.UVA != (Vec2{}) || pair.UVB != (Vec2{}) {
+		t.Fatal("pair query lost the finite center stations or exact distance", pair, err)
+	}
+}
+
 func TestExactRationalSurfaceDistanceUnrounded(t *testing.T) {
 	ctx := context.Background()
 	p := arcTestPatch(t, func(u, v float64) Vec3 { return Vec3{u, v, 0} })

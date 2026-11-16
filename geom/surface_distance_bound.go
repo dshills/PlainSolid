@@ -70,7 +70,7 @@ func exactRationalPointBoxDistance(query [3]*big.Rat, box Box, b *polynomialBudg
 }
 func distancePatchSample(p *SurfacePatch, query [3]*big.Rat, b *polynomialBudget) (value *big.Rat, uv Vec2, box Box, exact [3]*big.Rat, err error) {
 	d := p.Domain()
-	uv = Vec2{d.UMin + (d.UMax-d.UMin)/2, d.VMin + (d.VMax-d.VMin)/2}
+	uv = Vec2{parameterMidpoint(d.UMin, d.UMax), parameterMidpoint(d.VMin, d.VMax)}
 	current := p
 	for {
 		t, u, knot := patchSplitChoice(current)
@@ -314,7 +314,7 @@ func boundPointSurfaceDistanceRational(ctx context.Context, query [3]*big.Rat, p
 			if knot, ok := internalPatchKnot(n.patch.knotsU, n.patch.degreeU, n.patch.countU); ok {
 				t = knot
 			} else {
-				t = d.UMin + (d.UMax-d.UMin)/2
+				t = parameterMidpoint(d.UMin, d.UMax)
 			}
 		}
 		if n.depth >= o.MaxDepth || (u && (t == d.UMin || t == d.UMax)) || (!u && (t == d.VMin || t == d.VMax)) {
