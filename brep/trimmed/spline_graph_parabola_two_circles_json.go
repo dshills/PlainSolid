@@ -26,19 +26,24 @@ type parabolaTwoCirclesEnvelopeRecipe struct {
 }
 
 type parabolaTwoCirclesEnvelopeLedger struct {
-	Base          int     `json:"base"`
-	RoofFaces     []int   `json:"roofFaces"`
-	RoofOwners    []int   `json:"roofOwners"`
-	EnclosingRoof *int    `json:"enclosingRoof"`
-	ParabolaEdge  *int    `json:"parabolaEdge"`
-	CircleEdges   [][]int `json:"circleEdges"`
-	WallFaces     []int   `json:"wallFaces"`
+	Base                 int     `json:"base"`
+	RoofFaces            []int   `json:"roofFaces"`
+	RoofOwners           []int   `json:"roofOwners"`
+	EnclosingRoof        *int    `json:"enclosingRoof"`
+	CircleEnclosingRoofs []int   `json:"circleEnclosingRoofs,omitempty"`
+	ParabolaEdge         *int    `json:"parabolaEdge"`
+	CircleEdges          [][]int `json:"circleEdges"`
+	WallFaces            []int   `json:"wallFaces"`
 }
 
 func parabolaTwoCirclesRecipeLedger(h ParabolaTwoCirclesGraphHistory) *parabolaTwoCirclesEnvelopeLedger {
-	return &parabolaTwoCirclesEnvelopeLedger{Base: h.Base, RoofFaces: h.RoofFaces[:], RoofOwners: h.RoofOwners[:],
+	out := &parabolaTwoCirclesEnvelopeLedger{Base: h.Base, RoofFaces: h.RoofFaces[:], RoofOwners: h.RoofOwners[:],
 		EnclosingRoof: &h.EnclosingRoof, ParabolaEdge: &h.ParabolaEdge, CircleEdges: [][]int{h.CircleEdges[0][:], h.CircleEdges[1][:]},
 		WallFaces: h.WallFaces[:]}
+	if h.EnclosingRoof < 0 {
+		out.CircleEnclosingRoofs = h.CircleEnclosingRoofs[:]
+	}
+	return out
 }
 
 // WriteJSON stores the unchanged source supports and both circle coedge rings.
@@ -108,7 +113,7 @@ func ReadParabolaTwoCirclesGraphCutJSON(ctx context.Context, in io.Reader, limit
 		return nil, err
 	}
 	if recipe.Version != 1 || recipe.Kind != nativeParabolaTwoCirclesCut || len(recipe.Sources) != 3 ||
-		recipe.Axis == nil || (len(recipe.Ledger) != 1 && len(recipe.Ledger) != 3) {
+		recipe.Axis == nil || len(recipe.Ledger) < 1 || len(recipe.Ledger) > 3 {
 		return nil, geom.ErrInvalid
 	}
 	stock, err := decodePolynomialGraphSupports(ctx, recipe.Sources, limits.MaxControlPoints)

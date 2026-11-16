@@ -36,12 +36,12 @@ func (r *ParabolaTwoCirclesGraphCut) History() []ParabolaCircleCutComponentHisto
 }
 
 // CutParabolaTwoCirclesSplineGraphs subtracts B from A using their complete
-// original parabola and two circles. The result consists of a cap and two
-// separate lenses or a single positive layer with two through holes.
+// original parabola and two circles. The positive open region yields a
+// wall layer with its proved holes. Each positive disk yields a separate lens.
 func CutParabolaTwoCirclesSplineGraphs(ctx context.Context, base, a, b *geom.BSplineSurface, freeAxis int,
 	tolerance float64, o ParabolaCircleGraphOptions) (*ParabolaTwoCirclesGraphCut, error) {
 	stock := [3]*geom.BSplineSurface{base, a, b}
-	regions, enclosing, err := prepareParabolaTwoCirclesGraphRegions(ctx, stock, freeAxis, tolerance, o)
+	regions, _, err := prepareParabolaTwoCirclesGraphRegions(ctx, stock, freeAxis, tolerance, o)
 	if err != nil {
 		return nil, err
 	}
@@ -69,11 +69,14 @@ func CutParabolaTwoCirclesSplineGraphs(ctx context.Context, base, a, b *geom.BSp
 		result.components = append(result.components, part)
 		result.history = append(result.history, h)
 	}
-	// The closed components of the first case are positively separated
-	// by the exact footprint gaps; no artificial seams or shared vertices.
-	want := 3
-	if regions[enclosing].sign > 0 {
-		want = 1
+	// There is one positive open region. Each positive disk lies on
+	// the opposite open side, separated from the wall layer. The circles
+	// are also strictly separated from one another.
+	want := 1
+	for _, region := range regions[2:] {
+		if region.sign > 0 {
+			want++
+		}
 	}
 	if len(result.components) != want {
 		return nil, geom.ErrConvergence

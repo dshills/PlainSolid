@@ -13,13 +13,14 @@ type GraphContactCircle struct {
 
 // SplineGraphParabolaTwoCircles proves the complete zero set of two original
 // graphs. Circle centers are ordered by free coordinate and then by dependent
-// coordinate. Both circles lie on the same side of the regular wall-to-wall parabola. RegionSides gives A-minus-B
-// for the lower open side, upper open side, and both interiors in circle order.
+// coordinate. RegionSides gives A-minus-B for the lower and upper open sides,
+// followed by both interiors in circle order.
 type SplineGraphParabolaTwoCircles struct {
 	FreeAxis         int
 	ParabolaControls [3][2]*big.Rat
 	Circles          [2]GraphContactCircle
-	CirclesAbove     bool
+	CirclesAbove     bool   // Both circles lie above the parabola.
+	CircleRegions    [2]int // Enclosing open region for each circle, 0 below or 1 above.
 	RegionSides      [4]int
 	Graph            SurfaceInjectivity
 	ExactOperations  int
@@ -28,8 +29,9 @@ type SplineGraphParabolaTwoCircles struct {
 // DiscoverSplineGraphParabolaTwoCircles recovers a complete factorization
 // K*(y-p(x))*((x-c0)^2+(y-d0)^2-r0²)*((x-c1)^2+(y-d1)^2-r1²) on one
 // common original unit-domain residual cell (tensor degree at most eight).
-// Both circles must be strictly interior, mutually separated, and on the
-// same side of the parabola. Their centers and radii may vary independently.
+// Each circle must lie strictly inside the square and strictly on one side
+// of the parabola. The circles must be mutually separated. Their centers
+// and radii may vary independently.
 // Positivity of the original homogeneous denominator retains the signs.
 // No factor, endpoint or contact proposal is supplied by the caller.
 func DiscoverSplineGraphParabolaTwoCircles(ctx context.Context, a, c *SurfacePatch, freeAxis int,
@@ -64,13 +66,14 @@ func DiscoverSplineGraphParabolaTwoCircles(ctx context.Context, a, c *SurfacePat
 	if err != nil {
 		return nil, err
 	}
-	out := &SplineGraphParabolaTwoCircles{FreeAxis: freeAxis, Circles: circles, RegionSides: [4]int{-sign, sign, sign, sign}}
-	out.CirclesAbove, err = bindSeparatedParabolaCircles(out, parabola, b)
+	out := &SplineGraphParabolaTwoCircles{FreeAxis: freeAxis, Circles: circles, RegionSides: [4]int{-sign, sign}}
+	out.CircleRegions, err = bindSeparatedParabolaCircles(out, parabola, b)
 	if err != nil {
 		return nil, err
 	}
-	if out.CirclesAbove {
-		out.RegionSides[2], out.RegionSides[3] = -sign, -sign
+	out.CirclesAbove = out.CircleRegions == [2]int{1, 1}
+	for i, side := range out.CircleRegions {
+		out.RegionSides[2+i] = -out.RegionSides[side]
 	}
 	remaining := b.maxOperations - b.operations
 	if remaining < 1 {
@@ -149,7 +152,8 @@ func factorParabolaTwoCircles(law []rationalPolynomial, b *polynomialBudget) (
 	return
 }
 
-func bindSeparatedParabolaCircles(out *SplineGraphParabolaTwoCircles, p rationalPolynomial, b *polynomialBudget) (bool, error) {
+func bindSeparatedParabolaCircles(out *SplineGraphParabolaTwoCircles, p rationalPolynomial, b *polynomialBudget) ([2]int, error) {
+	var regions [2]int
 	one := big.NewRat(1, 1)
 	controls := [3]*big.Rat{
 		p[0],
@@ -159,10 +163,10 @@ func bindSeparatedParabolaCircles(out *SplineGraphParabolaTwoCircles, p rational
 	minimum, maximum := controls[0], controls[0]
 	for i, q := range controls {
 		if err := b.check(q); err != nil {
-			return false, err
+			return regions, err
 		}
 		if q.Sign() <= 0 || q.Cmp(one) >= 0 {
-			return false, ErrConvergence
+			return regions, ErrConvergence
 		}
 		out.ParabolaControls[i][out.FreeAxis] = big.NewRat(int64(i), 2)
 		out.ParabolaControls[i][1-out.FreeAxis] = q
@@ -184,32 +188,32 @@ func bindSeparatedParabolaCircles(out *SplineGraphParabolaTwoCircles, p rational
 	cross := new(big.Rat).Mul(big.NewRat(4, 1), new(big.Rat).Mul(first.RadiusSquared, second.RadiusSquared))
 	square := new(big.Rat).Mul(margin, margin)
 	if err := b.check(square); err != nil {
-		return false, err
+		return regions, err
 	}
 	if err := b.check(cross); err != nil {
-		return false, err
+		return regions, err
 	}
 	if margin.Sign() <= 0 || square.Cmp(cross) <= 0 {
-		return false, ErrConvergence
+		return regions, ErrConvergence
 	}
-	above := first.Center[1].Cmp(maximum) > 0
 	for i, circle := range out.Circles {
 		x, y := circle.Center[0], circle.Center[1]
 		gap := new(big.Rat).Sub(minimum, y)
-		if above {
+		if y.Cmp(maximum) > 0 {
+			regions[i] = 1
 			gap.Sub(y, maximum)
 		}
 		for _, distance := range []*big.Rat{x, y, new(big.Rat).Sub(one, x), new(big.Rat).Sub(one, y), gap} {
 			square := new(big.Rat).Mul(distance, distance)
 			if err := b.check(square); err != nil {
-				return false, err
+				return regions, err
 			}
 			if distance.Sign() <= 0 || square.Cmp(circle.RadiusSquared) <= 0 {
-				return false, ErrConvergence
+				return regions, ErrConvergence
 			}
 		}
 		out.Circles[i].Center[out.FreeAxis] = x
 		out.Circles[i].Center[1-out.FreeAxis] = circle.Center[1]
 	}
-	return above, nil
+	return regions, nil
 }
