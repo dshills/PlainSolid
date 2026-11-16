@@ -10,21 +10,26 @@ import (
 )
 
 type mappedSplineJoinedSupportPartition struct {
-	cuts         []*big.Rat
-	inserted     []bool
-	jointChanges [][2]bool
+	cuts     []*big.Rat
+	inserted []bool
+	events   []MappedSplineChainSupportEvent
 }
 
 func mappedSplineJoinedSupportKnotCuts(ctx context.Context, chains [2]MappedSplineChain, patches [2]*geom.SurfacePatch, cuts []*big.Rat, repair mappedChainKnotRepair, o edgecheck.Options) (mappedSplineJoinedSupportPartition, error) {
 	var zero mappedSplineJoinedSupportPartition
 	asymmetric := repair == mappedChainAsymmetricJoinedKnotsRepair
+	ordered := repair == mappedChainOrderedJoinedKnotsRepair
 	cells := len(cuts) - 1
-	if cells < 2 || cells > 3 || asymmetric && cells != 3 {
+	if ordered {
+		if cells < 4 || cells > MaxJoinedMappedSplineCells {
+			return zero, geom.ErrConvergence
+		}
+	} else if cells < 2 || cells > 3 || asymmetric && cells != 3 {
 		return zero, geom.ErrConvergence
 	}
 	limits := geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits}
 	events := geom.ExactCurvePlaneEventOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits, MaxSubdivisions: o.MaxDepth}
-	var interior [3]*big.Rat
+	interior := make([]MappedSplineChainSupportEvent, cells)
 	var interiorOwners [2]bool
 	var ownerKnots [2]int
 	jointChanges := make([][2]bool, cells-1)
@@ -72,19 +77,20 @@ func mappedSplineJoinedSupportKnotCuts(ctx context.Context, chains [2]MappedSpli
 					return zero, fmt.Errorf("roof %d requires one transverse support line at original joint %d: %w", owner, i, geom.ErrConvergence)
 				}
 				jointChanges[i][owner] = true
-			case count == 1 && hits[0].EndpointMask() == 0 && interior[i] == nil:
+			case count == 1 && hits[0].EndpointMask() == 0 && interior[i].ModelStation == nil:
 				root, err := recoverMappedSplineSupportKnotRoot(ctx, hits[0], events)
 				if err != nil {
 					return zero, err
 				}
 				width := new(big.Rat).Sub(cuts[i+1], cuts[i])
-				interior[i] = new(big.Rat).Add(cuts[i], new(big.Rat).Mul(width, root))
+				interior[i].ModelStation = new(big.Rat).Add(cuts[i], new(big.Rat).Mul(width, root))
+				interior[i].OwnersChangingCells[owner] = true
 				interiorOwners[owner] = true
 			default:
 				return zero, fmt.Errorf("roof %d support knot must belong to one original cell or joint: %w", owner, geom.ErrConvergence)
 			}
 		}
-		if !asymmetric {
+		if !asymmetric && !ordered {
 			for i, changed := range jointChanges {
 				if !changed[owner] {
 					return zero, fmt.Errorf("roof %d did not cross support at original joint %d: %w", owner, i, geom.ErrConvergence)
@@ -93,7 +99,16 @@ func mappedSplineJoinedSupportKnotCuts(ctx context.Context, chains [2]MappedSpli
 		}
 	}
 	minKnots, maxKnots := min(ownerKnots[0], ownerKnots[1]), max(ownerKnots[0], ownerKnots[1])
-	if asymmetric {
+	if ordered {
+		if interiorOwners != [2]bool{true, true} {
+			return zero, fmt.Errorf("ordered joined cells require interior events from both roofs: %w", geom.ErrConvergence)
+		}
+		for i, changes := range jointChanges {
+			if changes == [2]bool{} {
+				return zero, fmt.Errorf("original joint %d has no transverse support change: %w", i, geom.ErrConvergence)
+			}
+		}
+	} else if asymmetric {
 		shared := [2]bool{true, true}
 		first, second := jointChanges[0], jointChanges[1]
 		if minKnots != 2 || maxKnots != 4 || interiorOwners != shared || !(first == shared && second[0] != second[1] || second == shared && first[0] != first[1]) {
@@ -103,14 +118,21 @@ func mappedSplineJoinedSupportKnotCuts(ctx context.Context, chains [2]MappedSpli
 		return zero, fmt.Errorf("each roof must contribute its own interior event and cross every original joint: %w", geom.ErrConvergence)
 	}
 	out, repaired := make([]*big.Rat, 2*cells+1), make([]bool, 2*cells+1)
-	for i, station := range interior[:cells] {
-		if station == nil {
+	eventsInOrder := make([]MappedSplineChainSupportEvent, 2*cells-1)
+	for i, event := range interior {
+		if event.ModelStation == nil {
 			return zero, fmt.Errorf("original cell %d is missing its owner-side interior crossing: %w", i, geom.ErrConvergence)
 		}
-		out[2*i], out[2*i+1], repaired[2*i+1] = cuts[i], station, true
+		out[2*i], out[2*i+1], repaired[2*i+1] = cuts[i], event.ModelStation, true
+		eventsInOrder[2*i] = event
+		if i < len(jointChanges) {
+			eventsInOrder[2*i+1] = MappedSplineChainSupportEvent{
+				ModelStation: cuts[i+1], OwnersChangingCells: jointChanges[i], OriginalJoint: true,
+			}
+		}
 	}
 	out[2*cells] = cuts[cells]
-	return mappedSplineJoinedSupportPartition{cuts: out, inserted: repaired, jointChanges: jointChanges}, nil
+	return mappedSplineJoinedSupportPartition{cuts: out, inserted: repaired, events: eventsInOrder}, nil
 }
 
 func mappedSplineRawPlaneSign(p geom.Vec2, plane [4]*big.Rat) int {

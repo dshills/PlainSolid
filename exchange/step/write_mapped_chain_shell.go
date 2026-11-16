@@ -89,6 +89,11 @@ type MappedChainShellSTEPOptions struct {
 	// on an original pair of roofs with two and four support knots.
 	// Requires AllowJoinedSupportKnotCells.
 	AllowThreeJoinedSupportKnotCells bool
+	// AllowOrderedJoinedSupportKnotCells admits four through seven original
+	// model Béziers with one owner-only cut per cell and a transverse support
+	// change on at least one roof at every retained original joint.
+	// Requires AllowJoinedSupportKnotCells.
+	AllowOrderedJoinedSupportKnotCells bool
 	// AllowIndependentOwnerBases admits an explicit coedge graph with a whole
 	// original spline for each owner of every shared edge, on both roofs. The
 	// model stations use a common integer scale of at most 53 bits in STEP.

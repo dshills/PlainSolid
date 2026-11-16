@@ -50,33 +50,38 @@ func verifyKinkedJoinedRoofs(t *testing.T, ctx context.Context, native trimmed.M
 		if j == 0 {
 			verifyMappedRoofSlopeJump(t, ctx, roof, 0, .375, tc.y, big.NewRat(-45, 1408))
 		}
-		// The incoming and outgoing children use different original model
-		// curves. For each owner, take the exact lift on its own support
-		// patch and compare the Cartesian endpoint tangent directions.
-		for side, want := range [2][2]*big.Rat{{big.NewRat(1, 2), big.NewRat(5, 8)}, {big.NewRat(-1, 2), big.NewRat(1, 4)}} {
-			lift, err := trimmed.ExactTrimModelBezier(ctx, roof, face.Outer[3+side].Curve, false, geom.SurfacePatchOptions{})
-			if err != nil {
-				t.Fatal(err)
-			}
-			net, _, err := lift.BezierControlNet(ctx, geom.SurfacePatchOptions{})
-			if err != nil || len(net.Control) < 2 {
-				t.Fatal("each one-sided lift must be an exact original restriction", tc.face, side, err)
-			}
-			a, b := net.Control[0], net.Control[1]
-			if side == 0 {
-				a, b = net.Control[len(net.Control)-2], net.Control[len(net.Control)-1]
-			}
-			difference := func(axis int) *big.Rat {
-				return new(big.Rat).Sub(new(big.Rat).Quo(b[axis], b[3]), new(big.Rat).Quo(a[axis], a[3]))
-			}
-			dx := difference(0)
-			if dx.Sign() <= 0 {
-				t.Fatal("both original paths must advance along the shell seam", tc.face, side)
-			}
-			for axis, slope := range want {
-				if got := new(big.Rat).Quo(difference(axis+1), dx); got.Cmp(slope) != 0 {
-					t.Fatal("the exact lift must retain the distinct sided tangent at the unilateral joint", tc.face, side, axis, got)
-				}
+		verifyJoinedOneSidedTangents(t, ctx, face, 3, [2][2]*big.Rat{
+			{big.NewRat(1, 2), big.NewRat(5, 8)}, {big.NewRat(-1, 2), big.NewRat(1, 4)},
+		})
+	}
+}
+
+// Check both endpoint tangents of the original lifted paths in this chart.
+func verifyJoinedOneSidedTangents(t *testing.T, ctx context.Context, face trimmed.Face, incoming int, expected [2][2]*big.Rat) {
+	t.Helper()
+	for side, want := range expected {
+		lift, err := trimmed.ExactTrimModelBezier(ctx, face.Surface, face.Outer[incoming+side].Curve, false, geom.SurfacePatchOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		net, _, err := lift.BezierControlNet(ctx, geom.SurfacePatchOptions{})
+		if err != nil || len(net.Control) < 2 {
+			t.Fatal("each one-sided lift must be an exact original restriction", incoming, side, err)
+		}
+		a, b := net.Control[0], net.Control[1]
+		if side == 0 {
+			a, b = net.Control[len(net.Control)-2], net.Control[len(net.Control)-1]
+		}
+		difference := func(axis int) *big.Rat {
+			return new(big.Rat).Sub(new(big.Rat).Quo(b[axis], b[3]), new(big.Rat).Quo(a[axis], a[3]))
+		}
+		dx := difference(0)
+		if dx.Sign() <= 0 {
+			t.Fatal("both original paths must advance along the shell seam", incoming, side)
+		}
+		for axis, slope := range want {
+			if got := new(big.Rat).Quo(difference(axis+1), dx); got.Cmp(slope) != 0 {
+				t.Fatal("the exact lift must retain the distinct sided tangent at the unilateral joint", incoming, side, axis, got)
 			}
 		}
 	}

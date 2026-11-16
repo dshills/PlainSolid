@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"slices"
 
 	"plainsolid/brep/edgecheck"
 	"plainsolid/geom"
@@ -195,18 +194,18 @@ func (c MappedSplineChain) cellParameters(a, b *big.Rat) (int, *big.Rat, *big.Ra
 // it is not an embedding, closed shell, native persistence or face-fill proof.
 // Source ownership is the ordered pair of immutable input chains/supports.
 type MappedSplineChainAgreement struct {
-	cuts         []*big.Rat
-	points       [][3]*big.Rat
-	sources      [2]MappedSplineChain
-	supports     [2]geom.Surface
-	knotRepair   mappedChainKnotRepair
-	knotCutCount int
-	jointChanges [][2]bool
+	cuts                []*big.Rat
+	points              [][3]*big.Rat
+	sources             [2]MappedSplineChain
+	supports            [2]geom.Surface
+	knotRepair          mappedChainKnotRepair
+	knotCutCount        int
+	joinedSupportEvents []MappedSplineChainSupportEvent
 }
 
 type mappedChainKnotRepair uint8
 
-// Nonzero identifiers map to native boundary recipe versions 3 through 12.
+// Nonzero identifiers map to native boundary recipe versions 3 through 13.
 const (
 	mappedChainNoKnotRepair mappedChainKnotRepair = iota
 	mappedChainSingleKnotRepair
@@ -219,13 +218,42 @@ const (
 	mappedChainSameCellAsynchronousKnotsRepair
 	mappedChainJoinedKnotsRepair
 	mappedChainAsymmetricJoinedKnotsRepair
+	mappedChainOrderedJoinedKnotsRepair
 )
 
+// MaxJoinedMappedSplineCells bounds the ordered joined proof to fourteen
+// rebuilt cells, within the exact chain certificate's fifteen-cell limit.
+const MaxJoinedMappedSplineCells = 7
+
+// MappedSplineChainSupportEvent identifies a proved original support change.
+// A joint is a retained original coedge endpoint. An interior event creates
+// a paired subdivision. Owner indices follow the ordered source roofs.
+type MappedSplineChainSupportEvent struct {
+	ModelStation        *big.Rat
+	OwnersChangingCells [2]bool
+	OriginalJoint       bool
+}
+
+// JoinedSupportEvents returns a detached record in model traversal order.
+func (r MappedSplineChainAgreement) JoinedSupportEvents() []MappedSplineChainSupportEvent {
+	var out []MappedSplineChainSupportEvent
+	for _, event := range r.joinedSupportEvents {
+		event.ModelStation = new(big.Rat).Set(event.ModelStation)
+		out = append(out, event)
+	}
+	return out
+}
+
 // OriginalJointSupportChanges reports the proved original joint masks in
-// traversal order. Each bit reports whether that source roof changes its
-// support cell there. The joined support proofs populate this record.
+// traversal order. The joined support proofs populate this record.
 func (r MappedSplineChainAgreement) OriginalJointSupportChanges() [][2]bool {
-	return slices.Clone(r.jointChanges)
+	var out [][2]bool
+	for _, event := range r.joinedSupportEvents {
+		if event.OriginalJoint {
+			out = append(out, event.OwnersChangingCells)
+		}
+	}
+	return out
 }
 
 func (r MappedSplineChainAgreement) ModelCuts() []*big.Rat {
@@ -376,6 +404,15 @@ func CertifyMappedSplineChainAsymmetricJoinedSupportKnotsAgreement(ctx context.C
 	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainAsymmetricJoinedKnotsRepair)
 }
 
+// CertifyMappedSplineChainOrderedJoinedSupportKnotsAgreement proves four to
+// seven common original model cells. Every cell has one owner-only interior
+// event, each roof contributes interior events, and every original joint
+// has a transverse event from one or both roofs. Every authored support
+// knot must belong to exactly one event of the ordered original chain.
+func CertifyMappedSplineChainOrderedJoinedSupportKnotsAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options) (MappedSplineChainAgreement, error) {
+	return certifyMappedSplineChainAgreement(ctx, a, ca, b, cb, o, mappedChainOrderedJoinedKnotsRepair)
+}
+
 func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca MappedSplineChain, b geom.Surface, cb MappedSplineChain, o edgecheck.Options, repair mappedChainKnotRepair) (MappedSplineChainAgreement, error) {
 	var zero MappedSplineChainAgreement
 	if ctx == nil || len(ca.parts) < 2 || len(cb.parts) < 2 {
@@ -418,12 +455,12 @@ func certifyMappedSplineChainAgreement(ctx context.Context, a geom.Surface, ca M
 		originalCount := len(cuts)
 		patches := [2]*geom.SurfacePatch{pa, pb}
 		switch repair {
-		case mappedChainJoinedKnotsRepair, mappedChainAsymmetricJoinedKnotsRepair:
+		case mappedChainJoinedKnotsRepair, mappedChainAsymmetricJoinedKnotsRepair, mappedChainOrderedJoinedKnotsRepair:
 			partition, err := mappedSplineJoinedSupportKnotCuts(ctx, out.sources, patches, cuts, repair, o)
 			if err != nil {
 				return zero, err
 			}
-			cuts, repairedCuts, out.jointChanges = partition.cuts, partition.inserted, partition.jointChanges
+			cuts, repairedCuts, out.joinedSupportEvents = partition.cuts, partition.inserted, partition.events
 		default:
 			cuts, repairedCuts, e = mappedSplineSupportKnotCuts(ctx, out.sources, patches, cuts, repair, o)
 			if e != nil {
