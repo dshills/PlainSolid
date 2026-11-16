@@ -21,12 +21,12 @@ func certifyParabolaCircleFacetNormals(ctx context.Context, s Solid, h ParabolaC
 	heights [2]parabolaCircleMeshHeight, uv [][2]*big.Rat, footprint [][3]int, display CertifiedParabolaTwoCirclesComponentMesh,
 	placement *parabolaCircleDisplayPlacement, pad, limit *big.Rat) (*big.Rat, error) {
 	// Use the exact inverse chart of the represented world points. A proper
-	// signed-axis isometry preserves normal angles and oriented cofactors.
+	// similarity preserves normal angles and scales each cofactor uniformly.
 	points := make([]exactBoundVector, len(display.Mesh.Vertices))
 	for i, p := range display.Mesh.Vertices {
 		q := exactBoundPoint(p)
 		if placement != nil {
-			q = parabolaCircleRigidPoint(placement.chart.inverse, q)
+			q = parabolaCircleApplyRational(placement.chart.inverse, q)
 		}
 		points[i] = q
 	}

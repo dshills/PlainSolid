@@ -135,6 +135,9 @@ func exactFloatMix(a, b, t float64) (float64, bool) {
 }
 
 func compareSplineEdgeUse(ctx context.Context, model parametric.Edge, surface geom.Surface, use Use, o edgecheck.Options) (bool, error) {
+	if wall, ok := surface.(parabolaCircleSimilarityWall); ok && use.Curve == nil {
+		return wall.agreesLine(ctx, model, use, o)
+	}
 	if use.Curve != nil {
 		switch use.Curve.(type) {
 		case SplineUV, ExactQuadraticUV, ExactBezierUV, MappedSplineUV, PiecewiseMappedSplineUV, MultiSpanMappedSplineUV:

@@ -87,10 +87,12 @@ func parabolaTwoCirclesLiftFootprint(ctx context.Context, s Solid, h ParabolaCir
 			if err != nil {
 				return empty, err
 			}
-			if side == 0 {
-				represented[i] = [2]*big.Rat{back[0], back[1]}
-			} else if back[0].Cmp(represented[i][0]) != 0 || back[1].Cmp(represented[i][1]) != 0 {
-				return empty, geom.ErrConvergence
+			if !placement.scaled() {
+				if side == 0 {
+					represented[i] = [2]*big.Rat{back[0], back[1]}
+				} else if back[0].Cmp(represented[i][0]) != 0 || back[1].Cmp(represented[i][1]) != 0 {
+					return empty, geom.ErrConvergence
+				}
 			}
 			levels[side] = back[2]
 			ids[i][side] = len(display.Mesh.Vertices)
@@ -102,6 +104,12 @@ func parabolaTwoCirclesLiftFootprint(ctx context.Context, s Solid, h ParabolaCir
 			if errorSum.Cmp(rounding) > 0 {
 				rounding.Set(errorSum)
 			}
+		}
+		if placement.scaled() {
+			// Oblique world rounding can shift the two projected vertices
+			// differently. Only the unrounded graph has a common footprint.
+			// The exact represented world volume is checked independently.
+			represented[i], levels = q, [2]*big.Rat{high, low}
 		}
 		gaps[i] = new(big.Rat).Sub(levels[0], levels[1])
 		if !shared && gaps[i].Sign() <= 0 {
