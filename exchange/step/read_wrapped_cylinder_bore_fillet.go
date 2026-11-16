@@ -108,6 +108,10 @@ func ReadWrappedCylinderBoreRimFillet(ctx context.Context, r io.Reader, l Limits
 }
 
 func boreRimSTEPBody(f *File, rep int64, items []int64) (int64, error) {
+	return modelOnlyCircularSTEPBody(f, rep, items, nil)
+}
+
+func modelOnlyCircularSTEPBody(f *File, rep int64, items []int64, extraTypes map[string]bool) (int64, error) {
 	var body, datum int64
 	for _, id := range items {
 		if _, err := simple(f, id, "MANIFOLD_SOLID_BREP", 2); err == nil && body == 0 {
@@ -168,7 +172,7 @@ func boreRimSTEPBody(f *File, rep int64, items []int64) (int64, error) {
 					}
 					continue
 				}
-				if independentShareable(f.Entities[id]) {
+				if independentShareable(f.Entities[id]) || (extraTypes[r.Type] && len(r.Args) > 0 && r.Args[0].Kind == String) {
 					continue
 				}
 			} else {

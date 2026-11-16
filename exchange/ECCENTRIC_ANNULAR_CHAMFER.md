@@ -24,8 +24,27 @@ of the IGES supports and checks the resulting poles, weights and knots.
 The OCCT author's model-only cone literals for the central outer slope
 are `0.244978663127` radians in STEP and `14.036243468` degrees in IGES.
 Exact sine and cosine enclosures show that neither has tangent `1/4`,
-which the original shoulder circles require. A strict independent import
-would require source supports that encode the same slope exactly.
+which the original shoulder circles require. The strict reader requires source supports that encode the slope exactly.
+
+`step.ReadEccentricAnnularChamfer` accepts an independently authored
+model-only AP214 body with six bounded revolution supports. The pinned
+`eccentric_annular_chamfer_exact_step.cxx` author runs
+`BRepFilletAPI_MakeChamfer` and transfers the result through
+`STEPControl_Writer`. It selects exact two-pole degree-one generator and
+seam representations in the writer's STEP model before serialization.
+The original axes, face senses, vertices, circle curves, paired seam uses,
+and annular wires come from the OCCT-translated body. The same author
+also writes its default cone-angle sample as a strict rejection control.
+Both fixtures can be reproduced byte for byte from the DATA section onward.
+
+The strict reader derives each source band from its original generator,
+proves exact rim and seam incidence, and verifies continuous wall chains
+and strict inner/outer nesting. It preserves the original unit and maps
+each native face, edge and original vertex to its source entity. New
+cardinal vertices subdivide complete original circles into exact native
+quadrants. Pinned readback checks both the independent source and the
+canonical STEP re-export from the native solid. This independent import
+covers the full-rim two-pole generator dialect.
 
 ```sh
 c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" tools/occtref/read_eccentric_annular_chamfer.cxx \
@@ -35,4 +54,14 @@ c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" tools/occtref/read_eccentric_annular_chamfe
 PLAINSOLID_OCCT_ECCENTRIC_RIM_CHAMFER_AUTHOR="$OCCT_CHAMFER_AUTHOR" \
 PLAINSOLID_OCCT_ECCENTRIC_ANNULAR_TRANSFER="$PWD/read-eccentric-annular-chamfer" \
   go test ./exchange -run '^TestEccentricAnnularChamferNeutralTransfer$' -count=1 -v
+```
+
+```sh
+c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" tools/occtref/eccentric_annular_chamfer_exact_step.cxx \
+  -L"$OCCT_LIB" -Wl,-rpath,"$OCCT_LIB" -lTKDESTEP -lTKXSBase -lTKFillet -lTKBool -lTKPrim -lTKBO \
+  -lTKBRep -lTKTopAlgo -lTKGeomBase -lTKGeomAlgo -lTKG3d -lTKG2d -lTKMath -lTKernel \
+  -o "$PWD/occt-eccentric-annular-exact-author"
+PLAINSOLID_OCCT_ECCENTRIC_ANNULAR_EXACT_AUTHOR="$PWD/occt-eccentric-annular-exact-author" \
+PLAINSOLID_OCCT_ECCENTRIC_ANNULAR_IMPORT_READER="$PWD/read-eccentric-annular-chamfer" \
+  go test ./exchange/step -run '^(TestReadEccentricAnnularChamferSTEP.*|TestEccentricAnnularChamferPinnedSTEPAuthor)$' -count=1 -v
 ```
