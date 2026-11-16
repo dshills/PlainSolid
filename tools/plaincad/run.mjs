@@ -27,7 +27,14 @@ const stepRepairWorkerFixture = args.includes("--step-repair-worker-fixture");
 const stepRepairWorkerTest = "e2e/plainsolid-step-repair-worker.spec.ts";
 const orderedMappedStepWorkerFixture = args.includes("--ordered-mapped-step-worker-fixture");
 const orderedMappedStepWorkerTest = "e2e/plainsolid-ordered-mapped-step-worker.spec.ts";
-const supplementalWorkerTest = orderedMappedStepWorkerFixture ? orderedMappedStepWorkerTest : stepRepairWorkerFixture ? stepRepairWorkerTest : undefined;
+const conicalBoreWorkerFixture = args.includes("--conical-bore-worker-fixture");
+const conicalBoreWorkerTest = "e2e/plainsolid-conical-bore-worker.spec.ts";
+const selectedWorkerTests = [
+  [orderedMappedStepWorkerFixture, orderedMappedStepWorkerTest],
+  [stepRepairWorkerFixture, stepRepairWorkerTest],
+  [conicalBoreWorkerFixture, conicalBoreWorkerTest],
+].filter(([enabled]) => enabled).map(([, file]) => file);
+const [supplementalWorkerTest] = selectedWorkerTests;
 const testDefaults = { development: supplementalWorkerTest ?? "e2e/extrusion-hole.spec.ts", production: "production-e2e", "cross-browser": "cross-browser-e2e", unit: stepRepairFixture ? stepRepairTest : leadFitFixture ? leadFitTest : "" };
 const testFile = option("--test", testDefaults[suite]);
 const defaultGrep = suite === "development" && !supplementalWorkerTest
@@ -48,7 +55,7 @@ if (sideDualDiskFixture && (suite !== "development" || testFile !== "e2e/plainso
 if (stepRepairFixture && (suite !== "unit" || testFile !== stepRepairTest))
   throw new Error("The supplemental STEP repair fixture must run by itself in the unit suite.");
 if (supplementalWorkerTest && (suite !== "development" || testFile !== supplementalWorkerTest ||
-    (orderedMappedStepWorkerFixture && stepRepairWorkerFixture)))
+    selectedWorkerTests.length !== 1))
   throw new Error("Select one supplemental STEP worker fixture in the development suite.");
 const gitIdentity = cwd => {
   const git = (...argv) => { try { return execFileSync("git", argv, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return null; } };
@@ -267,6 +274,20 @@ async function runOrderedMappedStepWorkerFixture() {
     expectedCount: 2,
   });
 }
+async function runConicalBoreWorkerFixture() {
+  await runSupplementalSTEPWorker({
+    sourceFiles: {
+      "tools/plaincad/conical-bore-worker.fixture.ts": "src/cad/kernel/plainSolidConicalBoreProbe.ts",
+      "tools/plaincad/conical-bore-worker.spec.fixture.ts": conicalBoreWorkerTest,
+      "exchange/step/testdata/occt-conical-double-rim-eccentric-bore-exact.step": "public/plainsolid-conical-bore-exact.step",
+      "exchange/step/testdata/occt-conical-double-rim-eccentric-bore-rounded.step": "public/plainsolid-conical-bore-rounded.step",
+    },
+    pageName: "plainsolid-conical-bore-worker.html",
+    pageTitle: "PlainSolid conical bore STEP worker",
+    expectedCount: 1,
+  });
+}
+
 async function runSupplementalSTEPWorker({ sourceFiles, pageName, pageTitle, expectedCount }) {
   const sourceHashes = {};
   for (const [source, target] of Object.entries(sourceFiles)) {
@@ -368,6 +389,8 @@ try {
   report.wasmSha256 = hash(await readFile(join(work, "public/assets/plainsolid-kernel.wasm")));
   if (suite === "unit") {
     await runOriginalUnitTests();
+  } else if (conicalBoreWorkerFixture) {
+    await runConicalBoreWorkerFixture();
   } else if (orderedMappedStepWorkerFixture) {
     await runOrderedMappedStepWorkerFixture();
   } else if (stepRepairWorkerFixture) {
