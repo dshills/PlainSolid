@@ -1,0 +1,698 @@
+{
+  "milestone": "Editable native document for the repaired rounded styled mixed conical AP242 DAG",
+  "documentRevision": "5ee0af6c71d12a036b555261276ef7b9d5a67f9a",
+  "styledRepairRevision": "56706349d358a539d9e4d72fcfb530a7b735c332",
+  "strictAppearanceDocumentRevision": "e6057523c5a0e02ebf4517c5d3c101d6ef989040",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "environment": {
+    "PLAINSOLID_OCCT_MIXED_CONICAL_AP242_APPEARANCE": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/mixed-ap242-curved-import/depth-three-dag/appearance/rounded-repair/author"
+  },
+  "verification": {
+    "live.log": {
+      "filter": "^Test.*MixedConicalAP242.*Document.*$",
+      "duration": "114.513s",
+      "race": false
+    },
+    "live-race.log": {
+      "filter": "^TestRoundedMixedConicalAP242DAGAppearanceDocument.*$",
+      "duration": "303.239s",
+      "race": true
+    }
+  },
+  "repairProofLabel": {
+    "Name": "Original STEP repair",
+    "Target": "document",
+    "Attributes": {
+      "step.source.corrected-sha256": {
+        "Kind": "string",
+        "Text": "f0e6052c2af918a4b74e72e124865dcd930e546a2ea39c98c955ac479a4f23af"
+      },
+      "step.source.original-sha256": {
+        "Kind": "string",
+        "Text": "a5806a97098b35d3e3c8f11e31fa7c277c60dbc784adf4b226457a2666c1d012"
+      }
+    }
+  },
+  "localProofLabels": [
+    {
+      "Name": "Conical rounded through-bore",
+      "Target": "asset",
+      "TargetID": "step-product-89",
+      "Parent": "source:step-repair",
+      "Attributes": {
+        "step.material.family": {
+          "Kind": "string",
+          "Text": "conical-rim-fillet-bore"
+        },
+        "step.product.identifier": {
+          "Kind": "string",
+          "Text": "Conical rounded through-bore"
+        },
+        "step.source.body": {
+          "Kind": "integer",
+          "Integer": 95
+        },
+        "step.source.definition": {
+          "Kind": "integer",
+          "Integer": 89
+        },
+        "step.source.local-corrected-sha256": {
+          "Kind": "string",
+          "Text": "9064e7d6c2cd2b3ffc06c2de2e666ea63e91e3b2af69a2f978b6b5ebc1714f02"
+        },
+        "step.source.local-original-sha256": {
+          "Kind": "string",
+          "Text": "a8415a8f05dbe19e6de09227bc771a4d8d4d82594fd452914c817870ee43945d"
+        },
+        "step.source.native-sha256": {
+          "Kind": "string",
+          "Text": "df411bbb977e59552daf4bb7620ea2ff5a7263ef87be0c5248daa075ef058dec"
+        },
+        "step.source.shell": {
+          "Kind": "integer",
+          "Integer": 96
+        }
+      }
+    },
+    {
+      "Name": "Chamfered eccentric annular stock",
+      "Target": "asset",
+      "TargetID": "step-product-257",
+      "Parent": "source:step-repair",
+      "Attributes": {
+        "step.material.family": {
+          "Kind": "string",
+          "Text": "eccentric-annular-chamfer"
+        },
+        "step.product.identifier": {
+          "Kind": "string",
+          "Text": "Chamfered eccentric annular stock"
+        },
+        "step.source.body": {
+          "Kind": "integer",
+          "Integer": 263
+        },
+        "step.source.definition": {
+          "Kind": "integer",
+          "Integer": 257
+        },
+        "step.source.local-corrected-sha256": {
+          "Kind": "string",
+          "Text": "3d389da9bb5a6a45e2185c006d6125d85661c0c843135b6b31d1931a8761b940"
+        },
+        "step.source.local-original-sha256": {
+          "Kind": "string",
+          "Text": "1973e1485aae8af56c2d5982a5f61543ee81629484f7dc3e55afac90d5309a36"
+        },
+        "step.source.native-sha256": {
+          "Kind": "string",
+          "Text": "868c5fbc34da853155b930450bbac9c5b8b9a9c769b82e8875819e100c921ed5"
+        },
+        "step.source.shell": {
+          "Kind": "integer",
+          "Integer": 264
+        }
+      }
+    }
+  ],
+  "unchangedRepairReceiptSHA256": "8e23a20c2ed1efd3d2aa39acf27c5af0131ae3fc9c61f86ce1a799779076ad53",
+  "unmodifiedRepairDocumentExportsCorrectedCarrierByteForByte": true,
+  "originalRepairReceiptReconstructsInitialNativeSnapshotByteForByte": true,
+  "editedNativeSnapshotReopensByteForByte": true,
+  "legacyStrictNativeSnapshotAndSTEPBytesUnchanged": true,
+  "legacyUnstyledCorrectedCarrierAndReceiptUnchanged": true,
+  "changedSTEPRecordIDs": [
+    16,
+    18,
+    69,
+    254,
+    512,
+    520,
+    537
+  ],
+  "localSourceFaceOwner": {
+    "body": 263,
+    "face": 348,
+    "styleItem": 530,
+    "nativeFaceIndex": 3
+  },
+  "contextualOverrideOwner": {
+    "path": [
+      54,
+      85,
+      254
+    ],
+    "matchedPlacement": 68,
+    "styleItem": 513,
+    "SHUO": [
+      500,
+      499
+    ]
+  },
+  "pinnedEditedPaths": [
+    {
+      "sourceNAUOs": [
+        54,
+        85,
+        248
+      ],
+      "pinnedXCAFOrdinalPath": [
+        1,
+        1,
+        1
+      ],
+      "exactWorldPose": [
+        [
+          "1",
+          "0",
+          "0",
+          "142"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "34"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "10"
+        ]
+      ],
+      "pinnedWorldPose": [
+        1,
+        0,
+        0,
+        142,
+        0,
+        1,
+        0,
+        34,
+        0,
+        0,
+        1,
+        10
+      ],
+      "volume": 2282.4014040828897,
+      "area": 1182.6440976399515,
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "observedPresentation": {
+        "path": [
+          1,
+          1,
+          1
+        ],
+        "product": [
+          0,
+          0.9999999999999999,
+          0.9999999999999999
+        ],
+        "override": null,
+        "faces": []
+      }
+    },
+    {
+      "sourceNAUOs": [
+        54,
+        85,
+        254
+      ],
+      "pinnedXCAFOrdinalPath": [
+        1,
+        1,
+        2
+      ],
+      "exactWorldPose": [
+        [
+          "0",
+          "0",
+          "1",
+          "697/8"
+        ],
+        [
+          "1",
+          "0",
+          "0",
+          "56"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "9"
+        ]
+      ],
+      "pinnedWorldPose": [
+        0,
+        0,
+        1,
+        87.125,
+        1,
+        0,
+        0,
+        56,
+        0,
+        1,
+        0,
+        9
+      ],
+      "volume": 2282.4014040828893,
+      "area": 1182.6440976399515,
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "observedPresentation": {
+        "path": [
+          1,
+          1,
+          2
+        ],
+        "product": [
+          0,
+          0.9999999999999999,
+          0.9999999999999999
+        ],
+        "override": [
+          0.9999999999999999,
+          0,
+          0.9999999999999999
+        ],
+        "faces": []
+      }
+    },
+    {
+      "sourceNAUOs": [
+        54,
+        85,
+        464
+      ],
+      "pinnedXCAFOrdinalPath": [
+        1,
+        1,
+        3
+      ],
+      "exactWorldPose": [
+        [
+          "3/5",
+          "-4/5",
+          "0",
+          "112"
+        ],
+        [
+          "4/5",
+          "3/5",
+          "0",
+          "2"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "14"
+        ]
+      ],
+      "pinnedWorldPose": [
+        0.6,
+        -0.8,
+        0,
+        112,
+        0.8,
+        0.6,
+        0,
+        2,
+        0,
+        0,
+        1,
+        14
+      ],
+      "volume": 726.988268498145,
+      "area": 593.8973269066951,
+      "topology": [
+        1,
+        8,
+        14,
+        8
+      ],
+      "observedPresentation": {
+        "path": [
+          1,
+          1,
+          3
+        ],
+        "product": [
+          0,
+          0.9999999999999999,
+          0
+        ],
+        "override": null,
+        "faces": [
+          {
+            "planeZ": 2,
+            "color": [
+              0.9999999999999999,
+              0.5000000034286967,
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "sourceNAUOs": [
+        487,
+        493,
+        248
+      ],
+      "pinnedXCAFOrdinalPath": [
+        2,
+        1,
+        1
+      ],
+      "exactWorldPose": [
+        [
+          "3/5",
+          "0",
+          "4/5",
+          "-414/5"
+        ],
+        [
+          "16/25",
+          "3/5",
+          "-12/25",
+          "-113/25"
+        ],
+        [
+          "-12/25",
+          "4/5",
+          "9/25",
+          "741/25"
+        ]
+      ],
+      "pinnedWorldPose": [
+        0.6,
+        0,
+        0.8,
+        -82.8,
+        0.6400000000000001,
+        0.6,
+        -0.48,
+        -4.519999999999996,
+        -0.48,
+        0.8,
+        0.36,
+        29.64
+      ],
+      "volume": 2282.40140408289,
+      "area": 1182.6440976399515,
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "observedPresentation": {
+        "path": [
+          2,
+          1,
+          1
+        ],
+        "product": [
+          0,
+          0.9999999999999999,
+          0.9999999999999999
+        ],
+        "override": null,
+        "faces": []
+      }
+    },
+    {
+      "sourceNAUOs": [
+        487,
+        493,
+        254
+      ],
+      "pinnedXCAFOrdinalPath": [
+        2,
+        1,
+        2
+      ],
+      "exactWorldPose": [
+        [
+          "0",
+          "4/5",
+          "3/5",
+          "-4661/40"
+        ],
+        [
+          "3/5",
+          "-12/25",
+          "16/25",
+          "-649/25"
+        ],
+        [
+          "4/5",
+          "9/25",
+          "-12/25",
+          "3661/50"
+        ]
+      ],
+      "pinnedWorldPose": [
+        0,
+        0.8,
+        0.6,
+        -116.525,
+        0.6,
+        -0.48,
+        0.6400000000000001,
+        -25.960000000000004,
+        0.8,
+        0.36,
+        -0.48,
+        73.22
+      ],
+      "volume": 2282.4014040828897,
+      "area": 1182.6440976399517,
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "observedPresentation": {
+        "path": [
+          2,
+          1,
+          2
+        ],
+        "product": [
+          0,
+          0.9999999999999999,
+          0.9999999999999999
+        ],
+        "override": null,
+        "faces": []
+      }
+    },
+    {
+      "sourceNAUOs": [
+        487,
+        493,
+        464
+      ],
+      "pinnedXCAFOrdinalPath": [
+        2,
+        1,
+        3
+      ],
+      "exactWorldPose": [
+        [
+          "9/25",
+          "-12/25",
+          "4/5",
+          "-488/5"
+        ],
+        [
+          "108/125",
+          "-19/125",
+          "-12/25",
+          "-1121/25"
+        ],
+        [
+          "44/125",
+          "108/125",
+          "9/25",
+          "497/25"
+        ]
+      ],
+      "pinnedWorldPose": [
+        0.36,
+        -0.48,
+        0.8,
+        -97.6,
+        0.864,
+        -0.15200000000000014,
+        -0.48,
+        -44.84,
+        0.35200000000000015,
+        0.864,
+        0.36,
+        19.88
+      ],
+      "volume": 726.988268498145,
+      "area": 593.897326906695,
+      "topology": [
+        1,
+        8,
+        14,
+        8
+      ],
+      "observedPresentation": {
+        "path": [
+          2,
+          1,
+          3
+        ],
+        "product": [
+          0,
+          0.9999999999999999,
+          0
+        ],
+        "override": null,
+        "faces": [
+          {
+            "planeZ": 2,
+            "color": [
+              0.9999999999999999,
+              0.5000000034286967,
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "sourceNAUOs": [
+        498
+      ],
+      "pinnedXCAFOrdinalPath": [
+        3
+      ],
+      "exactWorldPose": [
+        [
+          "1",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "150"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "40"
+        ]
+      ],
+      "pinnedWorldPose": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        150,
+        0,
+        0,
+        1,
+        40
+      ],
+      "volume": 726.988268498145,
+      "area": 593.897326906695,
+      "topology": [
+        1,
+        8,
+        14,
+        8
+      ],
+      "observedPresentation": {
+        "path": [
+          3
+        ],
+        "product": [
+          0,
+          0.9999999999999999,
+          0
+        ],
+        "override": null,
+        "faces": [
+          {
+            "planeZ": 2,
+            "color": [
+              0.9999999999999999,
+              0.5000000034286967,
+              0
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "atomicRefusals": [
+    "2.8e-12 mm repair budget",
+    "short expanded node limit",
+    "short source receipt byte budget",
+    "changed original receipt digest",
+    "changed local repair ledger",
+    "duplicate conflicting paint",
+    "retargeted contextual style",
+    "conflicting shared occurrence placement"
+  ],
+  "artifactSHA256": {
+    "snapshot.go": "7885fdc601afcb21d9e73f7e65eb32f35222aa7bcd95060559810b1e450fe11a",
+    "verify-snapshot.py": "7058c5eb7b5fbd6e5d2c3637390e38c3f82f07d4a16f9c8c1d3cc618ba490ecb",
+    "initial-document.json": "0cdc3108fd637cdc460874079f744769939a5bb8713682e4e6939ba2191f527d",
+    "edited-document.json": "258d2c951828bfd9a95c72b847b484c6ff552bd5c4160c678c73cc111c188e77",
+    "edited-document.step": "6118f0164166dc02e236267d9fcf4e6cc00445ef165f39c67fadfe496a409d46",
+    "edited-document-xcaf.log": "7ffb37c0278ea11e2f97ca47e526275ec245a4329759e803ac8544fd9f0b65eb",
+    "edited-document-xcaf-geometry.log": "aaef363908a16f1916faa595f4c7301dde0ac5615e9ad4404bf94776b985fd92",
+    "edited-document-world-proof.json": "9eb131ed28838d804da5709644ae0126654827481a025538cdf5e82ae2c1c889",
+    "changed-records.log": "d2bb49a134b2891aa85de3604b7a32bf9e7c452c90e7c14d908e274afb5117a6",
+    "source-receipt.json": "8e23a20c2ed1efd3d2aa39acf27c5af0131ae3fc9c61f86ce1a799779076ad53",
+    "repair-styled-mixed-conical-ap242-document.patch": "3d697011d8f57b3e9669ec193114dd91fcf9a5dcc9e5fabe87ab9b5382b9d044",
+    "legacy-strict/edited-document.json": "7d32d2a2d20c2213b268749d5214adbe7bd4a2549862b7cccb0fcffc6e39108b",
+    "legacy-strict/edited-document.step": "77503752d4e2aa308f6ab03a41b8a5a482a2e024c63ac58d9f5fef2ba24d4138",
+    "legacy-corrected.step": "ce658cfbf366dc1951a1571a1a85e9f2a16b22ab6c61bac6bbf5628ed2c14aa3",
+    "legacy-receipt.json": "573c6297c71b0382e1ae377be1628249fab9f4c6b246770fa12c8d03720fc18b",
+    "legacy-proof.json": "067b1b89eef0dbd371edc6849b35b24d0351a4acc4c4344b6eed91ee3b64fd36",
+    "live.log": "4ab03f75179e653fc3c4a6c33dac146971af6b546f0f4827340bd281d02d5182",
+    "live-race.log": "2bbb9ce7c0d0689854deea5398ca07b2b1ba9f9e3195f77c2e552f70993acebd"
+  },
+  "main_integration": {
+    "log": "mixed-conical-styled-rounded-document-main-race.jsonl",
+    "sha256": "daaed0bce3c8eedfe674062f3cfd185129079ac16d257a5e07544d064ee2704a",
+    "elapsed_seconds": 1173.334,
+    "required_passes": {
+      "TestRoundedMixedConicalAP242DAGAppearanceDocument": 259.4,
+      "TestRoundedMixedConicalAP242DAGAppearanceDocumentReject": 163.4,
+      "TestRoundedMixedConicalAP242DAGDocument": 160.25,
+      "TestRoundedNestedMixedConicalAP242DocumentReceiptAndEdit": 165.92,
+      "TestMixedConicalAP242DAGAppearanceDocumentWrite": 152.72,
+      "TestMixedConicalAP242DAGAppearanceDocumentReject": 173.36
+    }
+  }
+}

@@ -181,6 +181,13 @@ product, a single magenta occurrence override and the orange original
 cap on each of its three uses after exact local placement changes.
 The writer kept all 516 entity identities and rebinds the original SHUO
 context if a shared placement datum needs a separate physical frame.
+The [repaired styled editable document milestone](evidence/mixed-conical-ap242-dag-repaired-appearance-document-2026-11-16.json)
+passed a 1,173.334-second main race with the earlier strict and unstyled
+document controls. The original receipt reconstructs the initial native
+state byte for byte and stays unchanged after recolor, exact movement,
+native save/load and corrected STEP export. Pinned XCAF independently
+reopens all seven edited occurrences. Short budgets and forged or
+conflicting source/style labels publish no output.
 
 The [explicit rounded conical STEP repair](evidence/conical-rim-fillet-default-step-repair-2026-11-15.json)
 was checked against independently pinned OCCT authoring and readback. The

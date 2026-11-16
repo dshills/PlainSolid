@@ -76,7 +76,9 @@ native save/load. STEP writeback can repaint those same original styles and
 edit placement while keeping the contextual override bound to its exact path.
 The independently rounded styled input has explicit repair with an
 original STEP receipt. Both styles and source owners survive corrected
-strict exchange. The repaired editable document path is in progress.
+strict exchange. The repaired file also opens as an editable native
+document, with the unchanged original receipt available separately from
+the current edited document and its strict corrected STEP export.
 
 One transversal circle/parabola family now exports its exact Common, Fuse
 and both Cut orders through STEP and IGES. Each Cut keeps its two material
