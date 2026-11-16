@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"reflect"
@@ -13,6 +14,13 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 )
+
+func clippedFourTransverseRoofFixture(t *testing.T, axis int) *geom.BSplineSurface {
+	t.Helper()
+	_, roof, _ := nativeQuarticRoofPairFixture(t, axis, big.NewRat(1, 1024),
+		[4][2]int64{{1, 4}, {3, 8}, {5, 8}, {3, 4}})
+	return roof
+}
 
 func TestNativeClippedPolynomialFourTransverseFuse(t *testing.T) {
 	ctx := context.Background()
@@ -38,8 +46,7 @@ func TestNativeClippedPolynomialFourTransverseFuse(t *testing.T) {
 		{"-1/4", "1/8", "7/8", "5/4"},
 	}
 	for axis := range 2 {
-		_, original, _ := nativeQuarticRoofPairFixture(t, axis, big.NewRat(1, 1024),
-			[4][2]int64{{1, 4}, {3, 8}, {5, 8}, {3, 4}})
+		original := clippedFourTransverseRoofFixture(t, axis)
 		for layout := range 3 {
 			src := clippedTransverseFuseStock(t, axis, layout, original)
 			want, _ := new(big.Rat).SetString(volumes[layout])
@@ -97,6 +104,26 @@ func TestNativeClippedPolynomialFourTransverseFuse(t *testing.T) {
 						t.Fatal("a fourth omitted original contact must fail source replay", err)
 					}
 				}
+			}
+		}
+	}
+}
+
+func TestNativeClippedPolynomialFourTransverseFuseClosedDisplay(t *testing.T) {
+	ctx := context.Background()
+	for axis := range 2 {
+		roof := clippedFourTransverseRoofFixture(t, axis)
+		for layout := range 3 {
+			stocks := clippedTransverseFuseStock(t, axis, layout, roof)
+			for order := range 2 {
+				t.Run(fmt.Sprintf("axis%d/layout%d/order%d", axis, layout, order), func(t *testing.T) {
+					fuse, err := FuseClippedPolynomialEnvelope(ctx, stocks[0], stocks[1+order], stocks[2-order], axis,
+						1e-9, PolynomialCubicCrossingTangencyEnvelopeOptions{})
+					if err != nil {
+						t.Fatal(err)
+					}
+					checkClippedFuseDisplay(t, fuse)
+				})
 			}
 		}
 	}
