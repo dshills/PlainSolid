@@ -124,5 +124,19 @@
     "elapsed_seconds": [
       1.568
     ]
+  },
+  "projective_curve_clock": {
+    "log": "projective-curve-and-trim-main-race.jsonl",
+    "sha256": "3490121e794dd21cab50555fd609df6df9e6132c241f548e34c50c46e3fddcc7",
+    "main_passes": [
+      "TestExactCurveComparisonPartitionsDomainsAndReversal",
+      "TestExactCurveComparisonDegreeAndRationalMultiplier",
+      "TestExactCurveComparisonLimitsAndCancellation",
+      "TestCompareExactCurvesFractionalOriginalClockAndKnot",
+      "TestTransformProjectiveUVKeepsOriginalCurveKnotsAndPhysicalDerivatives",
+      "TestProjectiveSurfaceGraphOverlapMapsAnOriginalUVCurve",
+      "TestProjectiveSurfaceGraphOverlapDiscoversOriginalPartialMap",
+      "TestProjectiveSurfaceGraphOverlapRejectsAProjectionThatOnlyMatchesSamples"
+    ]
   }
 }

@@ -84,7 +84,9 @@ func (c *SurfaceIsoCurve) RationalSegmentPieces(ctx context.Context, start, end 
 // CompareAffineParameterCurvePieces compares exact piece collections over global
 // normalized [0,1], using the union of their rational cut parameters. Each piece
 // must contain a single Bezier curve on local [0,1]. ReverseB reverses the entire
-// second collection. Public Complete/Continuous claims are not trusted: partition
+// second collection, after the optional normalized BStationRatio pulls back
+// its directed stations as in CompareExactCurves. Public Complete/Continuous
+// claims are not trusted: partition
 // coverage is revalidated. Nonidentity does not imply geometric separation.
 func CompareAffineParameterCurvePieces(ctx context.Context, a, b SurfaceAffineCurvePieces, o ExactCurveComparisonOptions) (r ExactCurveComparison, err error) {
 	r.DifferentSpan, r.DifferentAxis = -1, -1
@@ -108,6 +110,20 @@ func CompareAffineParameterCurvePieces(ctx context.Context, a, b SurfaceAffineCu
 	}
 	budget := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	defer func() { r.ExactOperations = budget.operations }()
+	ratio, err := checkedStationRatio(o.BStationRatio, budget)
+	if err != nil {
+		return r, err
+	}
+	if ratio != nil {
+		if len(b.Pieces) > o.MaxSpans {
+			return r, ErrConvergence
+		}
+		b.Pieces, err = pullProjectiveCurvePieces(ctx, b.Pieces, ratio, o.ReverseB, budget)
+		if err != nil {
+			return r, err
+		}
+		o.ReverseB = false
+	}
 	groups := [2][]SurfaceAffineCurvePiece{a.Pieces, b.Pieces}
 	cuts := []*big.Rat{new(big.Rat), big.NewRat(1, 1)}
 	for index, pieces := range groups {
@@ -207,4 +223,73 @@ func CompareAffineParameterCurvePieces(ctx context.Context, a, b SurfaceAffineCu
 	r.Equal = true
 	r.Complete = true
 	return r, nil
+}
+
+func pullProjectiveCurvePieces(ctx context.Context, pieces []SurfaceAffineCurvePiece, ratio *big.Rat,
+	reverse bool, b *polynomialBudget) ([]SurfaceAffineCurvePiece, error) {
+	if len(pieces) == 0 {
+		return nil, ErrInvalid
+	}
+	one := big.NewRat(1, 1)
+	last := new(big.Rat)
+	for _, piece := range pieces {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if piece.Start == nil || piece.End == nil || piece.Start.Cmp(last) != 0 || piece.End.Cmp(piece.Start) <= 0 ||
+			piece.End.Cmp(one) > 0 || piece.Curve == nil || piece.Curve.patch == nil || piece.Curve.patch.countU != piece.Curve.patch.degreeU+1 {
+			return nil, ErrInvalid
+		}
+		lo, hi := piece.Curve.Domain()
+		if lo != 0 || hi != 1 {
+			return nil, ErrInvalid
+		}
+		for _, end := range [2]*big.Rat{piece.Start, piece.End} {
+			if err := b.check(end); err != nil {
+				return nil, err
+			}
+		}
+		last = piece.End
+	}
+	if last.Cmp(one) != 0 {
+		return nil, ErrInvalid
+	}
+	out := make([]SurfaceAffineCurvePiece, len(pieces))
+	for i := range pieces {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		j := i
+		if reverse {
+			j = len(pieces) - 1 - i
+		}
+		piece := pieces[j]
+		ends := exactInterval{piece.Start, piece.End}
+		if reverse {
+			ends = exactInterval{new(big.Rat).Sub(one, piece.End), new(big.Rat).Sub(one, piece.Start)}
+		}
+		cut, local, err := pullProjectiveInterval(ends, ratio, b)
+		if err != nil {
+			return nil, err
+		}
+		p := piece.Curve.patch
+		net := make([]exactHomogeneous, p.countU)
+		for k := range net {
+			index := k
+			if reverse {
+				index = len(net) - 1 - k
+			}
+			net[k] = p.net[index*p.countV]
+		}
+		net, err = scaleProjectiveBezier(net, local, b)
+		if err != nil {
+			return nil, err
+		}
+		curve, err := exactCurveFromHomogeneousBezier(net, TubeAffineLineOptions{MaxOperations: b.maxOperations, MaxCoefficientBits: b.maxBits, MaxPoles: 8192}, b)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = SurfaceAffineCurvePiece{Start: cut.lo, End: cut.hi, Curve: curve, Cell: piece.Cell}
+	}
+	return out, nil
 }

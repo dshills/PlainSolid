@@ -8,11 +8,14 @@ import (
 
 // ExactCurveComparisonOptions aligns domains only when NormalizeDomains is set;
 // otherwise original domain endpoints must match. ReverseB compares A forward
-// to B backward. Alignment and union knot refinement use exact rational maps,
+// to B backward. A positive BStationRatio maps the normalized A station t
+// to r*t/(1+(r-1)*t) before reversing B. Nil and one use the affine map.
+// Alignment and union knot refinement use exact rational maps,
 // including normalized knots that cannot be represented in float64. Zero limits
 // select 8192 common spans, 4M operations and 16384 coefficient bits.
 type ExactCurveComparisonOptions struct {
 	NormalizeDomains, ReverseB                  bool
+	BStationRatio                               *big.Rat
 	MaxSpans, MaxOperations, MaxCoefficientBits int
 }
 
@@ -61,6 +64,10 @@ func CompareExactCurvesContext(ctx context.Context, a, b *ExactSplineCurve, o Ex
 	}
 	budget := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	defer func() { r.ExactOperations = budget.operations }()
+	ratio, e := checkedStationRatio(o.BStationRatio, budget)
+	if e != nil {
+		return r, e
+	}
 	type span struct {
 		lo, hi *big.Rat
 		net    []exactHomogeneous
@@ -126,6 +133,22 @@ func CompareExactCurvesContext(ctx context.Context, a, b *ExactSplineCurve, o Ex
 	bs, e := extract(b, o.ReverseB)
 	if e != nil {
 		return r, e
+	}
+	if ratio != nil {
+		for i, s := range bs {
+			if e := ctx.Err(); e != nil {
+				return r, e
+			}
+			pulled, local, err := pullProjectiveInterval(exactInterval{s.lo, s.hi}, ratio, budget)
+			if err != nil {
+				return r, err
+			}
+			net, err := scaleProjectiveBezier(s.net, local, budget)
+			if err != nil {
+				return r, err
+			}
+			bs[i] = span{pulled.lo, pulled.hi, net}
+		}
 	}
 	breaks := []*big.Rat{big.NewRat(0, 1), big.NewRat(1, 1)}
 	for _, spans := range [][]span{as, bs} {

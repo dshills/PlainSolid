@@ -169,6 +169,9 @@ The related UV-curve race preserves original nonuniform knots and exact
 physical derivatives. A transported original curve lifts to identical
 rational model points on both charts. A denominator with a pole and an
 insufficient mapped control budget leave no curve.
+Direct and piecewise exact curve comparison pass both directions of a
+fractional clock with an unmatched original knot. A wrong clock with
+the same endpoints and a short span budget do not certify equality.
 The surface-pair cover reports that complete contact in one visit with
 the exact original stations and map. Its short-budget and perturbed
 controls retain pending cells; an edge-only contact remains a candidate.

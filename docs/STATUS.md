@@ -82,6 +82,8 @@ linear-fractional functions, the kernel now discovers the original
 projection and proves the lift on the full overlapping rectangle.
 The proved physical chart map can transport exact UV trim curves while
 retaining their original curve clocks and break stations.
+Exact curve comparison now also supports a fractional station law between
+different original clocks, retaining both sets of knot cuts.
 The surface-pair cover can publish that exact rectangle as the complete
 original contact under the proved graph assumptions. If the proof does
 not conclude, ordinary coverage still retains all possible contacts.
