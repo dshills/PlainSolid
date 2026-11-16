@@ -108,10 +108,7 @@ func BoundRationalMultiSpanSplineTriangleDeviation(ctx context.Context, p *geom.
 			return empty, geom.ErrInvalid
 		}
 	}
-	determinant := func(a, b, c [2]*big.Rat) *big.Rat {
-		return new(big.Rat).Sub(new(big.Rat).Mul(new(big.Rat).Sub(b[0], a[0]), new(big.Rat).Sub(c[1], a[1])), new(big.Rat).Mul(new(big.Rat).Sub(b[1], a[1]), new(big.Rat).Sub(c[0], a[0])))
-	}
-	area := determinant(uv[0], uv[1], uv[2])
+	area := exactUVSignedArea(uv[0], uv[1], uv[2])
 	if area.Sign() == 0 || newExactBoundTriangle(model).det.Sign() == 0 {
 		return empty, geom.ErrDegenerate
 	}
@@ -141,47 +138,10 @@ func BoundRationalMultiSpanSplineTriangleDeviation(ctx context.Context, p *geom.
 	if len(ui) == 0 || len(vi) == 0 || len(ui) > o.MaxCells/len(vi) {
 		return empty, geom.ErrConvergence
 	}
-	same := func(a, b [2]*big.Rat) bool { return a[0].Cmp(b[0]) == 0 && a[1].Cmp(b[1]) == 0 }
-	clip := func(polygon [][2]*big.Rat, axis int, bound *big.Rat, lower bool) [][2]*big.Rat {
-		var out [][2]*big.Rat
-		if len(polygon) == 0 {
-			return out
-		}
-		appendPoint := func(q [2]*big.Rat) {
-			if len(out) == 0 || !same(out[len(out)-1], q) {
-				out = append(out, q)
-			}
-		}
-		for i, a := range polygon {
-			b := polygon[(i+1)%len(polygon)]
-			da := new(big.Rat).Sub(a[axis], bound)
-			db := new(big.Rat).Sub(b[axis], bound)
-			if !lower {
-				da.Neg(da)
-				db.Neg(db)
-			}
-			insideA, insideB := da.Sign() >= 0, db.Sign() >= 0
-			if insideA != insideB {
-				t := new(big.Rat).Quo(da, new(big.Rat).Sub(da, db))
-				var q [2]*big.Rat
-				for k := range q {
-					q[k] = new(big.Rat).Add(a[k], new(big.Rat).Mul(t, new(big.Rat).Sub(b[k], a[k])))
-				}
-				appendPoint(q)
-			}
-			if insideB {
-				appendPoint(b)
-			}
-		}
-		if len(out) > 1 && same(out[0], out[len(out)-1]) {
-			out = out[:len(out)-1]
-		}
-		return out
-	}
 	targets := [3]exactBoundVector{exactBoundPoint(model[0]), exactBoundPoint(model[1]), exactBoundPoint(model[2])}
 	target := func(q [2]*big.Rat) [3]*big.Rat {
-		s := new(big.Rat).Quo(determinant(uv[0], q, uv[2]), area)
-		t := new(big.Rat).Quo(determinant(uv[0], uv[1], q), area)
+		s := new(big.Rat).Quo(exactUVSignedArea(uv[0], q, uv[2]), area)
+		t := new(big.Rat).Quo(exactUVSignedArea(uv[0], uv[1], q), area)
 		var out [3]*big.Rat
 		for k := range out {
 			out[k] = new(big.Rat).Add(targets[0][k], new(big.Rat).Add(new(big.Rat).Mul(s, new(big.Rat).Sub(targets[1][k], targets[0][k])), new(big.Rat).Mul(t, new(big.Rat).Sub(targets[2][k], targets[0][k]))))
@@ -197,10 +157,10 @@ func BoundRationalMultiSpanSplineTriangleDeviation(ctx context.Context, p *geom.
 			}
 			result.Cells++
 			polygon := [][2]*big.Rat{uv[0], uv[1], uv[2]}
-			polygon = clip(polygon, 0, ratInset(us[i]), true)
-			polygon = clip(polygon, 0, ratInset(us[i+1]), false)
-			polygon = clip(polygon, 1, ratInset(vs[j]), true)
-			polygon = clip(polygon, 1, ratInset(vs[j+1]), false)
+			polygon = clipExactUVPolygon(polygon, 0, ratInset(us[i]), true)
+			polygon = clipExactUVPolygon(polygon, 0, ratInset(us[i+1]), false)
+			polygon = clipExactUVPolygon(polygon, 1, ratInset(vs[j]), true)
+			polygon = clipExactUVPolygon(polygon, 1, ratInset(vs[j+1]), false)
 			if len(polygon) < 3 {
 				continue
 			}
@@ -214,7 +174,7 @@ func BoundRationalMultiSpanSplineTriangleDeviation(ctx context.Context, p *geom.
 			}
 			for k := 1; k+1 < len(polygon); k++ {
 				triangle := [3][2]*big.Rat{polygon[0], polygon[k], polygon[k+1]}
-				signed := determinant(triangle[0], triangle[1], triangle[2])
+				signed := exactUVSignedArea(triangle[0], triangle[1], triangle[2])
 				if signed.Sign() == 0 {
 					continue
 				}
@@ -256,4 +216,45 @@ func BoundRationalMultiSpanSplineTriangleDeviation(ctx context.Context, p *geom.
 		return empty, e
 	}
 	return result, nil
+}
+
+func exactUVSignedArea(a, b, c [2]*big.Rat) *big.Rat {
+	return new(big.Rat).Sub(new(big.Rat).Mul(new(big.Rat).Sub(b[0], a[0]), new(big.Rat).Sub(c[1], a[1])), new(big.Rat).Mul(new(big.Rat).Sub(b[1], a[1]), new(big.Rat).Sub(c[0], a[0])))
+}
+
+func clipExactUVPolygon(polygon [][2]*big.Rat, axis int, bound *big.Rat, lower bool) [][2]*big.Rat {
+	var out [][2]*big.Rat
+	if len(polygon) == 0 {
+		return out
+	}
+	appendPoint := func(q [2]*big.Rat) {
+		if len(out) == 0 || !rationalGraphSameUV(out[len(out)-1], q) {
+			out = append(out, q)
+		}
+	}
+	for i, a := range polygon {
+		b := polygon[(i+1)%len(polygon)]
+		da := new(big.Rat).Sub(a[axis], bound)
+		db := new(big.Rat).Sub(b[axis], bound)
+		if !lower {
+			da.Neg(da)
+			db.Neg(db)
+		}
+		insideA, insideB := da.Sign() >= 0, db.Sign() >= 0
+		if insideA != insideB {
+			t := new(big.Rat).Quo(da, new(big.Rat).Sub(da, db))
+			var q [2]*big.Rat
+			for k := range q {
+				q[k] = new(big.Rat).Add(a[k], new(big.Rat).Mul(t, new(big.Rat).Sub(b[k], a[k])))
+			}
+			appendPoint(q)
+		}
+		if insideB {
+			appendPoint(b)
+		}
+	}
+	if len(out) > 1 && rationalGraphSameUV(out[0], out[len(out)-1]) {
+		out = out[:len(out)-1]
+	}
+	return out
 }

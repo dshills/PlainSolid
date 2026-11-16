@@ -38,6 +38,7 @@ type CertifiedMappedChainFace struct {
 	Samples        []MappedChainFaceSample
 	Collision      collision.Report
 	Owner          int
+	supportCells   [][2]int
 }
 
 // TessellateFaceCertified expands the proved source cells only for exact trim
@@ -54,7 +55,7 @@ func (r MappedSplineChainAgreement) TessellateFaceCertified(ctx context.Context,
 	if e != nil {
 		return zero, e
 	}
-	out, e := r.tessellateFaceWithBoundary(ctx, owner, closing, boundary, nil, o.Face)
+	out, e := r.tessellateFaceWithBoundary(ctx, owner, closing, boundary, nil, o.Face, false)
 	if e != nil {
 		return zero, e
 	}
@@ -71,7 +72,7 @@ func (r MappedSplineChainAgreement) TessellateFaceCertified(ctx context.Context,
 
 // The caller supplies the shared boundary and checks represented contacts on
 // either the individual face or the complete assembled mesh.
-func (r MappedSplineChainAgreement) tessellateFaceWithBoundary(ctx context.Context, owner int, closing []PCurve, boundary CertifiedMappedChainPolyline, prescribed [][]*big.Rat, o MixedExactMultiSpanMeshOptions) (CertifiedMappedChainFace, error) {
+func (r MappedSplineChainAgreement) tessellateFaceWithBoundary(ctx context.Context, owner int, closing []PCurve, boundary CertifiedMappedChainPolyline, prescribed [][]*big.Rat, o MixedExactMultiSpanMeshOptions, alignSupportKnots bool) (CertifiedMappedChainFace, error) {
 	var zero CertifiedMappedChainFace
 	if len(boundary.Vertices)+len(r.cuts)-2 > 2048 {
 		return zero, geom.ErrConvergence
@@ -96,16 +97,28 @@ func (r MappedSplineChainAgreement) tessellateFaceWithBoundary(ctx context.Conte
 			}
 		}
 	}
-	o.Face.Cuts = [][][]*big.Rat{cuts}
 	p, e := exactSplineSupportPatch(r.supports[owner], o.Face.Boundary.Composition.SurfacePatchOptions)
 	if e != nil {
 		return zero, e
 	}
-	face, e := TessellateMixedExactMultiSpanRegionCertified(ctx, p, outer, nil, o)
+	if alignSupportKnots {
+		cuts, e = mappedChainKnotTrimCuts(ctx, p, outer, cuts, o.Face.Boundary.Composition)
+		if e != nil {
+			return zero, fmt.Errorf("mapped chain support knot samples: %w", e)
+		}
+	}
+	o.Face.Cuts = [][][]*big.Rat{cuts}
+	face, e := tessellateMixedExactMultiSpanRegionCertified(ctx, p, outer, nil, o, alignSupportKnots)
 	if e != nil {
 		return zero, fmt.Errorf("mapped chain face fill: %w", e)
 	}
 	out := CertifiedMappedChainFace{Face: face, Boundary: boundary, Owner: owner, LedgerVertices: make([]int, len(boundary.Vertices))}
+	if alignSupportKnots {
+		out.supportCells, e = mappedChainTriangleSupportCells(p, face)
+		if e != nil {
+			return zero, fmt.Errorf("mapped chain triangle support cells: %w", e)
+		}
+	}
 	for i := range out.LedgerVertices {
 		out.LedgerVertices[i] = -1
 	}
