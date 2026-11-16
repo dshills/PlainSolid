@@ -5,6 +5,9 @@ passed all nine lanes, with 5,865 passes and 595 explicit optional skips
 among 6,460 inventoried cases. All 53 tested packages passed; eight have
 no tests. The eight trimmed lanes account for 1,602 passes and 51 skips.
 Vet and both amd64 cross-builds passed on the same immutable source.
+The [native Linux ARM64 run](evidence/native-linux-946f7a04-qualification-2026-11-16.json)
+reconciled the same full revision and counts using the pinned OCI
+image, a verified Git archive, Go 1.26.0 and networking disabled.
 The matching [full PlainCAD run](evidence/plaincad-main-946f7a04-2026-11-15.json)
 passed all eight gates.
 The [fresh full PlainCAD run on `4495646a`](evidence/plaincad-main-4495646a-2026-11-16.json)
