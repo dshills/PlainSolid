@@ -149,3 +149,63 @@ func testProjectiveTrimRoot(t *testing.T, root *geom.ExactAlgebraicRoot, want *b
 		t.Fatal("wrong original trim root", root.Interval(), want, sign, err)
 	}
 }
+
+func TestTraceProjectiveSplineFaceContactsClipsAtOriginalInnerUses(t *testing.T) {
+	ctx := context.Background()
+	s0 := projectiveTrimTestSurface(t, 1, []float64{0, 0, 0, 0})
+	s1 := projectiveTrimTestSurface(t, 1, []float64{-.375, -.375, .625, .625})
+	outer := geom.ParameterRectangle{UMin: 0, UMax: 1, VMin: 0, VMax: 1}
+	a, b := projectiveTrimTestRectangle(s0, outer, 21), projectiveTrimTestRectangle(s1, outer, 31)
+	hole := func(s geom.Surface, d geom.ParameterRectangle, edge int) []Use {
+		ccw := projectiveTrimTestRectangle(s, d, edge).Outer
+		cw := make([]Use, 4)
+		for i := range cw {
+			u := ccw[3-i]
+			u.UVStart, u.UVEnd = u.UVEnd, u.UVStart
+			cw[i] = u
+		}
+		return cw
+	}
+	a.Holes = [][]Use{
+		hole(s0, geom.ParameterRectangle{UMin: .25, UMax: .5, VMin: .25, VMax: .375}, 41),
+		// This second hole has collinear edge extensions but is spatially
+		// separate: no terminal at U=3/8 is on either original side.
+		hole(s0, geom.ParameterRectangle{UMin: .625, UMax: .75, VMin: .25, VMax: .375}, 51),
+	}
+	b.Holes = [][]Use{hole(s1, geom.ParameterRectangle{UMin: .25, UMax: .5, VMin: .625, VMax: .75}, 61)}
+	result, err := TraceProjectiveSplineFaceContacts(ctx, a, b, [2]int{0, 1}, ProjectiveSplineFaceContactOptions{})
+	if err != nil || !result.Complete || len(result.Graph.Contours) != 3 || len(result.Vertices) != 6 {
+		t.Fatal("the original holes must cut the contact into three open sections", result, err)
+	}
+	seen := make(map[int]bool)
+	for _, v := range result.Vertices {
+		for owner, source := range v.Uses {
+			if result.Graph.Vertices[v.Vertex].OnOverlapBoundary {
+				if len(source) != 1 || source[0].Loop != 0 {
+					t.Fatal("external terminal does not belong to the original outer side", v)
+				}
+				continue
+			}
+			if len(source) == 0 {
+				continue
+			}
+			if len(source) != 1 || len(v.Uses[1-owner]) != 0 || source[0].Loop != 1 {
+				t.Fatal("hole terminal lost its sole original coedge", v)
+			}
+			q := source[0]
+			if q.Edge != 41+20*owner && q.Edge != 43+20*owner || seen[q.Edge] {
+				t.Fatal("manufactured an extra binding on a hole edge extension", q)
+			}
+			seen[q.Edge] = true
+			testProjectiveTrimRoot(t, q.UseParameter, big.NewRat(1, 2))
+		}
+	}
+	if len(seen) != 4 {
+		t.Fatal("lost an original hole terminal", seen)
+	}
+	b.Holes[0] = projectiveTrimTestRectangle(s1, geom.ParameterRectangle{UMin: .25, UMax: .5, VMin: .625, VMax: .75}, 61).Outer
+	r, err := TraceProjectiveSplineFaceContacts(ctx, a, b, [2]int{0, 1}, ProjectiveSplineFaceContactOptions{})
+	if !errors.Is(err, geom.ErrConvergence) || r.Complete {
+		t.Fatal("an original hole needs the clockwise source winding", r, err)
+	}
+}

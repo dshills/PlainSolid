@@ -391,5 +391,20 @@
     "common_cuts": [["3/8", "13/20"], ["1/2", "2/3"]],
     "proof_cells": 16,
     "one_open_contour_arcs": 4
+  },
+  "rectangular_hole_section": {
+    "main_base": "89e73420",
+    "log": "projective-rectangular-holes-main-race.jsonl",
+    "sha256": "8db5b20dd4a386a013db25c6943e0bf3a9a6fc5db53f27965854ef989a0db040",
+    "main_passes": [
+      "TestProjectiveSurfaceContactsClipHolesInBothOriginalCharts",
+      "TestTraceProjectiveSplineFaceContactsClipsAtOriginalInnerUses",
+      "TestTraceProjectiveSplineFaceContactsClipsOriginalRectangles",
+      "TestSplineFaceCoincidenceProjectiveOriginalOuterAndHole"
+    ],
+    "independent_common_hole_end": "27/38",
+    "retained_open_paths": 3,
+    "terminals": {"inner": 4, "outer": 2},
+    "refusals": ["overlapping hole closures", "hole extending across the positive-area overlap boundary", "reversed inner winding", "coedge identity on a segment extension"]
   }
 }

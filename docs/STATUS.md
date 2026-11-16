@@ -157,7 +157,9 @@ proof cannot finish, the ordinary conservative cover still accounts for
 the unresolved contact.
 Two rectangular trimmed spline faces can now return an exact section
 with the original coedge IDs and normalized parameters at each terminal.
-General trim loops and Boolean assembly from these sections remain open.
+Strictly separated rectangular inner loops can cut that section while
+retaining each original hole and finite edge parameter. Nonrectangular
+trim loops and Boolean assembly from these sections remain open.
 The projective section can insert exact cut stations from either original
 UV clock. Those proof cuts retain the original knot owners and do not
 change the covered geometry.

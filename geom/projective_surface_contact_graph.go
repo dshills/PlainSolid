@@ -19,6 +19,7 @@ type ProjectiveContactVertex struct {
 	Common            [2]*ExactAlgebraicRoot
 	OriginalUV        [2][2]*ExactAlgebraicRoot
 	OnOverlapBoundary bool
+	OnTrimBoundary    bool
 }
 
 // ProjectiveContactArc references one exact local cover arc and its global
@@ -118,7 +119,7 @@ func TraceProjectiveSurfaceContacts(ctx context.Context, source, target *Surface
 		if err != nil || id >= 0 {
 			return id, err
 		}
-		q, err := projectiveContactVertex(point, r.Cover.Atlas.Overlap, b)
+		q, err := projectiveGraphContactVertex(ctx, point, r.Cover.Atlas.Overlap, r.Cover.CommonHoles, b)
 		if err != nil {
 			return -1, err
 		}
@@ -210,7 +211,7 @@ func TraceProjectiveSurfaceContacts(ctx context.Context, source, target *Surface
 			if len(edge) != 4 {
 				return r, ErrConvergence
 			}
-		} else if len(edge) > 2 || len(edge) == 1 && !vertex[v].OnOverlapBoundary {
+		} else if len(edge) > 2 || len(edge) == 1 && !vertex[v].OnOverlapBoundary && !vertex[v].OnTrimBoundary {
 			return r, ErrConvergence
 		}
 	}
@@ -257,6 +258,16 @@ func TraceProjectiveSurfaceContacts(ctx context.Context, source, target *Surface
 	r.SaddleVertices = saddles
 	r.proof = sealProjectiveContactGraph(r.Cover, arcs)
 	return r, nil
+}
+
+func projectiveGraphContactVertex(ctx context.Context, common [2]*ExactAlgebraicRoot, overlap ProjectiveSurfaceGraphOverlap,
+	holes []ExactSurfaceRectangle, b *polynomialBudget) (r ProjectiveContactVertex, err error) {
+	r, err = projectiveContactVertex(common, overlap, b)
+	if err != nil || len(holes) == 0 {
+		return r, err
+	}
+	r.OnTrimBoundary, err = projectiveContactHoleBoundary(ctx, common, holes, b)
+	return r, err
 }
 
 func exactProjectiveContactEndpoint(e SurfacePlaneEndpoint, area ExactSurfaceRectangle, b *polynomialBudget) ([2]*ExactAlgebraicRoot, error) {

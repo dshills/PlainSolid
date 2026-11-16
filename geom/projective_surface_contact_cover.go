@@ -13,6 +13,10 @@ type ProjectiveSurfaceContactCoverOptions struct {
 	Arcs               SurfacePlaneArcOptions
 	MaxExactOperations int
 	OriginalCuts       ProjectiveSurfaceOriginalCuts
+	// OriginalHoles excludes the open interiors of verified rectangles
+	// from each owner's raw chart. Relevant holes must be strictly inside
+	// the common projection and their closed images must be disjoint.
+	OriginalHoles [2][]ExactSurfaceRectangle
 	// IsolateQuadraticSaddles may replace regular isolation in cells with a
 	// complete four-ray saddle proof. All other cells still use Arcs limits.
 	IsolateQuadraticSaddles bool
@@ -29,6 +33,8 @@ type ProjectiveSurfaceContactCover struct {
 	Atlas           ProjectiveSurfaceHeightDifference
 	Isolations      []SurfacePlaneArcs
 	Saddles         []ProjectiveQuadraticSaddle
+	ExcludedCells   []int
+	CommonHoles     []ExactSurfaceRectangle
 	IncompleteCells []int
 	Complete        bool
 	ExactOperations int
@@ -53,10 +59,28 @@ func BoundProjectiveSurfaceContacts(ctx context.Context, a, b *SurfacePatch, axe
 		o.Arcs.MaxOperations = 2_000_000
 	}
 	o.Atlas.MaxOperations = min(o.Atlas.MaxOperations, o.MaxExactOperations)
-	r.Atlas, err = BuildProjectiveSurfaceHeightDifferenceWithOriginalCuts(ctx, a, b, axes, o.OriginalCuts, o.Atlas)
+	cuts, err := projectiveHoleCuts(o.OriginalCuts, o.OriginalHoles)
+	if err != nil {
+		return r, err
+	}
+	r.Atlas, err = BuildProjectiveSurfaceHeightDifferenceWithOriginalCuts(ctx, a, b, axes, cuts, o.Atlas)
 	r.ExactOperations = r.Atlas.ExactOperations
 	if err != nil {
 		return r, err
+	}
+	var excluded []bool
+	if len(o.OriginalHoles[0])+len(o.OriginalHoles[1]) != 0 {
+		bits := o.Arcs.MaxCoefficientBits
+		if bits == 0 {
+			bits = 16384
+		}
+		budget := &polynomialBudget{maxOperations: o.MaxExactOperations - r.ExactOperations, maxBits: bits}
+		holes, mask, skip, err := projectiveContactHoleMask(ctx, r.Atlas, [2]*SurfacePatch{a, b}, o.OriginalHoles, budget)
+		r.ExactOperations += budget.operations
+		if err != nil {
+			return r, err
+		}
+		r.CommonHoles, r.ExcludedCells, excluded = holes, skip, mask
 	}
 	r.Isolations = make([]SurfacePlaneArcs, len(r.Atlas.Cells))
 	var saddleLimits ExactCurvePlaneEventOptions
@@ -70,7 +94,7 @@ func BoundProjectiveSurfaceContacts(ctx context.Context, a, b *SurfacePatch, axe
 	}
 	defer func() {
 		for i, cell := range r.Isolations {
-			if !cell.Complete && (r.Saddles == nil || !r.Saddles[i].Proven) {
+			if !cell.Complete && (excluded == nil || !excluded[i]) && (r.Saddles == nil || !r.Saddles[i].Proven) {
 				r.IncompleteCells = append(r.IncompleteCells, i)
 			}
 		}
@@ -83,6 +107,9 @@ func BoundProjectiveSurfaceContacts(ctx context.Context, a, b *SurfacePatch, axe
 	for i, cell := range r.Atlas.Cells {
 		if err := ctx.Err(); err != nil {
 			return r, err
+		}
+		if excluded != nil && excluded[i] {
+			continue
 		}
 		left := o.MaxExactOperations - r.ExactOperations
 		if left < 1 {

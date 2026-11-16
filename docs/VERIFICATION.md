@@ -35,6 +35,12 @@ The same audit also inserts nonbinary stations from both original charts,
 including a swapped and reversed fractional owner. All 16 resulting
 proof cells preserve the original knot owner and physical projection;
 the same section crosses four cells without gaining a terminal.
+The [rectangular hole section audit](evidence/projective-surface-graph-overlap-2026-11-16.json)
+cuts one contact into three paths using holes in both original charts.
+The exact inner cut `27/38`, four inner terminals, and two outer terminals
+replay. The B-rep proof retains the finite original edge uses and refuses
+clockwise errors and false contacts on edge extensions. Existing projected
+saddles, rectangular sections and hole coincidence pass the same race.
 
 The [full Go run on `c7afb429`](evidence/main-c7afb429-qualification-2026-11-16.json)
 passed all nine lanes: 6,018 passes, 599 optional skips, and no failures

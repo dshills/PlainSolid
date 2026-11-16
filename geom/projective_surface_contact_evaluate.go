@@ -8,6 +8,7 @@ import (
 type projectiveContactGraphProof struct {
 	arcs    []projectiveContactArcProof
 	overlap ProjectiveSurfaceGraphOverlap
+	holes   []ExactSurfaceRectangle
 }
 
 type projectiveContactArcProof struct {
@@ -46,6 +47,9 @@ func sealProjectiveContactGraph(cover ProjectiveSurfaceContactCover, arcs []Proj
 	for i := range p.overlap.Areas {
 		p.overlap.Areas[i] = clone(p.overlap.Areas[i])
 		p.overlap.BStationRatios[i] = new(big.Rat).Set(p.overlap.BStationRatios[i])
+	}
+	for _, hole := range cover.CommonHoles {
+		p.holes = append(p.holes, clone(hole))
 	}
 	return p
 }
@@ -91,7 +95,7 @@ func (g ProjectiveSurfaceContactGraph) EvaluateArcRational(ctx context.Context, 
 		if err != nil {
 			return r, 0, err
 		}
-		q, err := projectiveContactVertex(common, g.proof.overlap, b)
+		q, err := projectiveGraphContactVertex(ctx, common, g.proof.overlap, g.proof.holes, b)
 		if err != nil {
 			return r, 0, err
 		}
@@ -176,7 +180,7 @@ func (g ProjectiveSurfaceContactGraph) EvaluateArcRational(ctx context.Context, 
 	constant := &ExactGraphLineRoot{polynomial: rationalPolynomial{new(big.Rat).Neg(x), big.NewRat(1, 1)}, bounds: [2]*big.Rat{x, x}}
 	var common [2]*ExactAlgebraicRoot
 	common[dep], common[free] = &ExactAlgebraicRoot{root: dependent}, &ExactAlgebraicRoot{root: constant}
-	q, err := projectiveContactVertex(common, g.proof.overlap, b)
+	q, err := projectiveGraphContactVertex(ctx, common, g.proof.overlap, g.proof.holes, b)
 	if err != nil {
 		return ProjectiveContactVertex{}, 0, err
 	}

@@ -21,12 +21,12 @@ type ProjectiveSplineFaceContactOptions struct {
 // its declared model edge ID, and both original normalized parameters. The
 // edge parameter reverses the use clock when the model edge is reversed.
 type ProjectiveSplineFaceCoedgeContact struct {
-	Use, Edge                   int
+	Loop, Use, Edge             int // Outer loop is 0; holes retain input order from 1.
 	UseParameter, EdgeParameter *geom.ExactAlgebraicRoot
 }
 
 // ProjectiveSplineFaceVertex binds one vertex of Graph to its incident
-// original outer coedges. A corner retains both coedges on that owner.
+// original coedges. A corner retains both coedges on that owner.
 type ProjectiveSplineFaceVertex struct {
 	Vertex int
 	Uses   [2][]ProjectiveSplineFaceCoedgeContact
@@ -45,10 +45,11 @@ type ProjectiveSplineFaceContacts struct {
 }
 
 // TraceProjectiveSplineFaceContacts restricts each original support to its
-// exact four-sided outer wire before tracing the section. Curved trim
-// uses, holes, coincidence and zero-area projected overlap remain outside
-// this subset. Face's edge numbers describe use ownership; this query does
-// not independently certify a separate model edge's geometry.
+// exact four-sided outer wire before tracing the section. Strictly separated
+// rectangular holes inside the common projection retain their original
+// clockwise uses. Curved trims, coincidence and zero-area projected overlap
+// remain outside this subset. Face's edge numbers describe use ownership;
+// this query does not independently certify a separate model edge's geometry.
 func TraceProjectiveSplineFaceContacts(ctx context.Context, a, b Face, axes [2]int,
 	o ProjectiveSplineFaceContactOptions) (r ProjectiveSplineFaceContacts, err error) {
 	if ctx == nil {
@@ -63,6 +64,9 @@ func TraceProjectiveSplineFaceContacts(ctx context.Context, a, b Face, axes [2]i
 	if o.MaxPreparationOperations < 1 || o.MaxBoundaryOperations < 1 || o.Patches.MaxOperations < 0 {
 		return r, geom.ErrInvalid
 	}
+	if len(o.Graph.Cover.OriginalHoles[0])+len(o.Graph.Cover.OriginalHoles[1]) != 0 {
+		return r, geom.ErrInvalid // Material comes from the original faces.
+	}
 	faces := [2]Face{a, b}
 	var domains [2]geom.ParameterRectangle
 	var patches [2]*geom.SurfacePatch
@@ -70,11 +74,34 @@ func TraceProjectiveSplineFaceContacts(ctx context.Context, a, b Face, axes [2]i
 		if err := ctx.Err(); err != nil {
 			return r, err
 		}
-		d, err := projectiveSplineFaceRectangle(f)
+		if f.Surface == nil || len(f.Holes) > 32 {
+			return r, geom.ErrConvergence
+		}
+		d, err := projectiveSplineFaceRectangle(f.Outer, false)
 		if err != nil {
 			return r, err
 		}
 		domains[i] = d
+		var prior []geom.ParameterRectangle
+		for _, loop := range f.Holes {
+			h, err := projectiveSplineFaceRectangle(loop, true)
+			if err != nil {
+				return r, err
+			}
+			if h.UMin <= d.UMin || h.UMax >= d.UMax || h.VMin <= d.VMin || h.VMax >= d.VMax {
+				return r, geom.ErrConvergence
+			}
+			for _, a := range prior {
+				if a.UMax >= h.UMin && h.UMax >= a.UMin && a.VMax >= h.VMin && h.VMax >= a.VMin {
+					return r, geom.ErrConvergence
+				}
+			}
+			prior = append(prior, h)
+			o.Graph.Cover.OriginalHoles[i] = append(o.Graph.Cover.OriginalHoles[i], geom.ExactSurfaceRectangle{
+				U: geom.ExactParameterInterval{Lower: new(big.Rat).SetFloat64(h.UMin), Upper: new(big.Rat).SetFloat64(h.UMax)},
+				V: geom.ExactParameterInterval{Lower: new(big.Rat).SetFloat64(h.VMin), Upper: new(big.Rat).SetFloat64(h.VMax)},
+			})
+		}
 		limits := o.Patches
 		remaining := func() int {
 			left := o.MaxPreparationOperations - r.PreparationOperations
@@ -142,64 +169,78 @@ func TraceProjectiveSplineFaceContacts(ctx context.Context, a, b Face, axes [2]i
 		}
 		vertices[i].Vertex = i
 		for owner, f := range faces {
-			for use, u := range f.Outer {
-				start := [2]float64{u.UVStart.X, u.UVStart.Y}
-				end := [2]float64{u.UVEnd.X, u.UVEnd.Y}
-				fixed := 0
-				if start[1] == end[1] {
-					fixed = 1
-				}
-				root := v.OriginalUV[owner][fixed]
-				value := new(big.Rat).SetFloat64(start[fixed])
-				display := root.Interval()
-				if display.Lower.Cmp(value) > 0 || display.Upper.Cmp(value) < 0 {
-					continue
-				}
-				opt, err := limits()
-				if err != nil {
-					return r, err
-				}
-				sign, err := root.SignPolynomial(ctx, []*big.Rat{new(big.Rat).Neg(value), one}, opt)
-				r.BoundaryOperations += sign.Operations
-				if err != nil {
-					return r, err
-				}
-				if sign.Sign != 0 {
-					continue
-				}
-				// The graph already proves this entire vertex is inside
-				// the exact rectangle. A fixed coordinate equality places
-				// it on this original segment, including its endpoints.
-				free := 1 - fixed
-				first := new(big.Rat).SetFloat64(start[free])
-				span := new(big.Rat).Sub(new(big.Rat).SetFloat64(end[free]), first)
-				scale := new(big.Rat).Inv(span)
-				offset := new(big.Rat).Neg(new(big.Rat).Mul(first, scale))
-				opt, err = limits()
-				if err != nil {
-					return r, err
-				}
-				station, used, err := v.OriginalUV[owner][free].AffineMap(ctx, offset, scale, opt)
-				r.BoundaryOperations += used
-				if err != nil {
-					return r, err
-				}
-				edge := station
-				if u.Reversed {
+			loops := append([][]Use{f.Outer}, f.Holes...)
+			for loop, wire := range loops {
+				for use, u := range wire {
+					start := [2]float64{u.UVStart.X, u.UVStart.Y}
+					end := [2]float64{u.UVEnd.X, u.UVEnd.Y}
+					fixed := 0
+					if start[1] == end[1] {
+						fixed = 1
+					}
+					root := v.OriginalUV[owner][fixed]
+					value := new(big.Rat).SetFloat64(start[fixed])
+					display := root.Interval()
+					if display.Lower.Cmp(value) > 0 || display.Upper.Cmp(value) < 0 {
+						continue
+					}
+					opt, err := limits()
+					if err != nil {
+						return r, err
+					}
+					sign, err := root.SignPolynomial(ctx, []*big.Rat{new(big.Rat).Neg(value), one}, opt)
+					r.BoundaryOperations += sign.Operations
+					if err != nil {
+						return r, err
+					}
+					if sign.Sign != 0 {
+						continue
+					}
+					free := 1 - fixed
+					freeRoot := v.OriginalUV[owner][free]
+					if loop != 0 {
+						// A hole side has a finite extent inside the outer
+						// rectangle; equality on its extension is insufficient.
+						inside, used, err := projectiveSplineStationOnTrimSegment(ctx, freeRoot, start[free], end[free], limits)
+						r.BoundaryOperations += used
+						if err != nil {
+							return r, err
+						}
+						if !inside {
+							continue
+						}
+					}
+					first := new(big.Rat).SetFloat64(start[free])
+					span := new(big.Rat).Sub(new(big.Rat).SetFloat64(end[free]), first)
+					scale := new(big.Rat).Inv(span)
+					offset := new(big.Rat).Neg(new(big.Rat).Mul(first, scale))
 					opt, err = limits()
 					if err != nil {
 						return r, err
 					}
-					edge, used, err = station.AffineMap(ctx, one, big.NewRat(-1, 1), opt)
+					station, used, err := freeRoot.AffineMap(ctx, offset, scale, opt)
 					r.BoundaryOperations += used
 					if err != nil {
 						return r, err
 					}
+					edge := station
+					if u.Reversed {
+						opt, err = limits()
+						if err != nil {
+							return r, err
+						}
+						edge, used, err = station.AffineMap(ctx, one, big.NewRat(-1, 1), opt)
+						r.BoundaryOperations += used
+						if err != nil {
+							return r, err
+						}
+					}
+					vertices[i].Uses[owner] = append(vertices[i].Uses[owner], ProjectiveSplineFaceCoedgeContact{
+						Loop: loop, Use: use, Edge: u.Edge, UseParameter: station, EdgeParameter: edge})
 				}
-				vertices[i].Uses[owner] = append(vertices[i].Uses[owner], ProjectiveSplineFaceCoedgeContact{use, u.Edge, station, edge})
 			}
 		}
-		if v.OnOverlapBoundary && len(vertices[i].Uses[0])+len(vertices[i].Uses[1]) == 0 {
+		if (v.OnOverlapBoundary || v.OnTrimBoundary) && len(vertices[i].Uses[0])+len(vertices[i].Uses[1]) == 0 {
 			return r, geom.ErrConvergence
 		}
 	}
@@ -210,17 +251,49 @@ func TraceProjectiveSplineFaceContacts(ctx context.Context, a, b Face, axes [2]i
 	return r, nil
 }
 
-func projectiveSplineFaceRectangle(f Face) (geom.ParameterRectangle, error) {
-	if f.Surface == nil || len(f.Outer) != 4 || len(f.Holes) != 0 {
+func projectiveSplineStationOnTrimSegment(ctx context.Context, root *geom.ExactAlgebraicRoot, a, b float64,
+	limits func() (geom.ExactCurvePlaneEventOptions, error)) (bool, int, error) {
+	var work int
+	lo, hi := new(big.Rat).SetFloat64(min(a, b)), new(big.Rat).SetFloat64(max(a, b))
+	d := root.Interval()
+	if d.Upper.Cmp(lo) < 0 || d.Lower.Cmp(hi) > 0 {
+		return false, 0, nil
+	}
+	for side, cap := range [2]*big.Rat{lo, hi} {
+		if side == 0 && d.Lower.Cmp(cap) >= 0 || side == 1 && d.Upper.Cmp(cap) <= 0 {
+			continue
+		}
+		o, err := limits()
+		if err != nil {
+			return false, work, err
+		}
+		o.MaxOperations -= work
+		if o.MaxOperations < 1 {
+			return false, work, geom.ErrConvergence
+		}
+		proof, err := root.SignPolynomial(ctx, []*big.Rat{new(big.Rat).Neg(cap), big.NewRat(1, 1)}, o)
+		work += proof.Operations
+		if err != nil {
+			return false, work, err
+		}
+		if side == 0 && proof.Sign < 0 || side == 1 && proof.Sign > 0 {
+			return false, work, nil
+		}
+	}
+	return true, work, nil
+}
+
+func projectiveSplineFaceRectangle(wire []Use, clockwise bool) (geom.ParameterRectangle, error) {
+	if len(wire) != 4 {
 		return geom.ParameterRectangle{}, geom.ErrConvergence
 	}
-	first := f.Outer[0].UVStart
+	first := wire[0].UVStart
 	d := geom.ParameterRectangle{UMin: first.X, UMax: first.X, VMin: first.Y, VMax: first.Y}
 	edges := make(map[int]bool, 4)
-	for i, use := range f.Outer {
+	for i, use := range wire {
 		p := use.UVStart
 		if !finite(p.X) || !finite(p.Y) || !finite(use.UVEnd.X) || !finite(use.UVEnd.Y) ||
-			use.UVEnd != f.Outer[(i+1)%4].UVStart || use.Edge < 0 || edges[use.Edge] {
+			use.UVEnd != wire[(i+1)%4].UVStart || use.Edge < 0 || edges[use.Edge] {
 			return geom.ParameterRectangle{}, geom.ErrInvalid
 		}
 		edges[use.Edge] = true
@@ -231,12 +304,16 @@ func projectiveSplineFaceRectangle(f Face) (geom.ParameterRectangle, error) {
 		return geom.ParameterRectangle{}, geom.ErrInvalid
 	}
 	corners := [4]geom.Vec2{{X: d.UMin, Y: d.VMin}, {X: d.UMax, Y: d.VMin}, {X: d.UMax, Y: d.VMax}, {X: d.UMin, Y: d.VMax}}
+	direction := 1
+	if clockwise {
+		direction = -1
+	}
 	for start, corner := range corners {
-		if f.Outer[0].UVStart != corner {
+		if wire[0].UVStart != corner {
 			continue
 		}
-		for i, use := range f.Outer {
-			if use.UVStart != corners[(start+i)%4] || use.UVEnd != corners[(start+i+1)%4] || !exactAffineNativeSourceUse(use) {
+		for i, use := range wire {
+			if use.UVStart != corners[(start+direction*i+4)%4] || use.UVEnd != corners[(start+direction*(i+1)+4)%4] || !exactAffineNativeSourceUse(use) {
 				return geom.ParameterRectangle{}, geom.ErrConvergence
 			}
 		}
