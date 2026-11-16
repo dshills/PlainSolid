@@ -241,6 +241,7 @@ func periodicTrimmedRecords(t *testing.T, raw []byte) topologySource {
 func changePeriodicTrimmedRecord(t *testing.T, source topologySource, owner, index int, value string) []byte {
 	t.Helper()
 	var a topologyAuthor
+	root, contour := 0, 10500
 	changed := false
 	for _, record := range source.entities {
 		p := make([]string, len(record.values))
@@ -252,6 +253,13 @@ func changePeriodicTrimmedRecord(t *testing.T, source topologySource, owner, ind
 			changed = true
 		}
 		a.add(record.kind, 0, strings.Join(p, ",")+";")
+		emitted := &a.records[len(a.records)-1]
+		switch record.kind {
+		case 144:
+			emitted.status = &root
+		case 142:
+			emitted.status = &contour
+		}
 	}
 	if !changed {
 		t.Fatal("ineffective record mutation", owner, index, value)
@@ -260,9 +268,7 @@ func changePeriodicTrimmedRecord(t *testing.T, source topologySource, owner, ind
 	if err != nil {
 		t.Fatal(err)
 	}
-	text := replaceField(string(mutant), 'D', 1, 8, "0")
-	text = replaceField(text, 'D', 5, 8, "10500")
-	return []byte(text)
+	return mutant
 }
 
 type periodicTrimReport struct {
@@ -271,6 +277,7 @@ type periodicTrimReport struct {
 	Bounds           [4]float64
 	Area, Perimeter  float64
 	Edges            []periodicTrimOracleEdge
+	Wires            []periodicTrimOracleWire
 	Samples          []struct {
 		UV            [2]float64
 		Point, Du, Dv [3]float64
@@ -283,6 +290,11 @@ func periodicTrimmedOracle(t *testing.T, oracle, mode, path string) periodicTrim
 	if err != nil {
 		t.Fatalf("pinned OCCT %s: %v\n%s", mode, err, out)
 	}
+	return parsePeriodicTrimOracleReport(t, out)
+}
+
+func parsePeriodicTrimOracleReport(t *testing.T, out []byte) periodicTrimReport {
+	t.Helper()
 	for _, line := range bytes.Split(out, []byte("\n")) {
 		var report periodicTrimReport
 		if bytes.HasPrefix(line, []byte(`{"valid":`)) && json.Unmarshal(line, &report) == nil {

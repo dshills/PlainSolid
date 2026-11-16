@@ -19,9 +19,11 @@
 #include <IGESGeom_TrimmedSurface.hxx>
 #include <Standard_Failure.hxx>
 #include <TopExp.hxx>
+#include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Wire.hxx>
 
+#include <algorithm>
 #include <array>
 #include <iomanip>
 #include <iostream>
@@ -54,11 +56,9 @@ static TopoDS_Face original(bool crossesSeam)
     return BRepBuilderAPI_MakeFace(surface,u,u+.5,1.,3.,1e-9).Face();
 }
 
-// Author the seam graph directly in the pinned IGES writer. The BRep
-// converter's write-seam control truncates both model arcs in this case.
-static bool writeExactSeam(const char* path)
+static occ::handle<IGESGeom_BSplineSurface> exactCarrier(const occ::handle<Geom_BSplineSurface>& native,
+                                                       double u0, double u1, double v0, double v1)
 {
-    const auto native = periodicSupport();
     auto ku = new NCollection_HArray1<double>(-2,7);
     auto kv = new NCollection_HArray1<double>(-1,2);
     auto weights = new NCollection_HArray2<double>(0,6,0,1);
@@ -72,24 +72,29 @@ static bool writeExactSeam(const char* path)
         }
     }
     occ::handle<IGESGeom_BSplineSurface> support = new IGESGeom_BSplineSurface;
-    support->Init(6,1,2,1,true,false,true,true,false,ku,kv,weights,poles,0.,5.,0.,4.);
+    support->Init(6,1,2,1,true,false,true,true,false,ku,kv,weights,poles,u0,u1,v0,v1);
     support->InitStatus(0,1,0,0);
 
+    return support;
+}
+
+template<std::size_t N>
+static occ::handle<IGESGeom_CurveOnSurface> exactContour(const occ::handle<Geom_BSplineSurface>& native,
+                                                        const occ::handle<IGESGeom_BSplineSurface>& support,
+                                                        const std::array<gp_XY,N>& corners, int station)
+{
     using MemberArray = NCollection_HArray1<occ::handle<IGESData_IGESEntity>>;
-    occ::handle<MemberArray> uvMembers = new MemberArray(1,6), modelMembers = new MemberArray(1,6);
-    // One continuous lift across U=5. Each horizontal half has an
-    // independent parameter line and matching complete model spline.
-    const std::array<gp_XY,6> corners{gp_XY(4.75,3),gp_XY(4.75,1),gp_XY(5,1),
-                                     gp_XY(5.25,1),gp_XY(5.25,3),gp_XY(5,3)};
-    for (int i = 0; i < 6; ++i) {
-        const auto a = corners[i], b = corners[(i+1)%6];
+    occ::handle<MemberArray> uvMembers = new MemberArray(1,static_cast<int>(N));
+    occ::handle<MemberArray> modelMembers = new MemberArray(1,static_cast<int>(N));
+    for (std::size_t i = 0; i < N; ++i) {
+        const auto a = corners[i], b = corners[(i+1)%N];
         occ::handle<IGESGeom_Line> uv = new IGESGeom_Line;
         uv->Init(gp_XYZ(a.X(),a.Y(),0),gp_XYZ(b.X(),b.Y(),0));
         uv->InitStatus(0,1,0,0);
         uvMembers->SetValue(i+1,uv);
 
         const int degree = a.X() == b.X() ? 1 : 2;
-        const double first = 2.*i, last = first+1.;
+        const double first = station + 2.*i, last = first+1.;
         auto knots = new NCollection_HArray1<double>(-degree,degree+1);
         auto w = new NCollection_HArray1<double>(0,degree);
         auto p = new NCollection_HArray1<gp_XYZ>(0,degree);
@@ -117,13 +122,51 @@ static bool writeExactSeam(const char* path)
     occ::handle<IGESGeom_CurveOnSurface> outer = new IGESGeom_CurveOnSurface;
     outer->Init(0,support,uv,model,3);
     outer->InitStatus(0,1,5,0);
+    return outer;
+}
+
+// The BRep converter's write-seam control truncates two model arcs.
+static bool writeExactSeam(const char* path)
+{
+    const auto native = periodicSupport();
+    const auto support = exactCarrier(native,0.,5.,0.,4.);
+    const std::array<gp_XY,6> corners{gp_XY(4.75,3),gp_XY(4.75,1),gp_XY(5,1),
+                                     gp_XY(5.25,1),gp_XY(5.25,3),gp_XY(5,3)};
     occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
-    face->Init(support,1,outer,nullptr);
+    face->Init(support,1,exactContour(native,support,corners,0),nullptr);
     IGESControl_Writer writer("MM",0);
     return writer.AddEntity(face) && writer.Write(path);
 }
 
-static bool report(const TopoDS_Shape& shape, bool boundary = false)
+static std::array<gp_XY,4> clockwiseRectangle(double u0, double u1, double v0, double v1)
+{
+    return {gp_XY(u0,v0),gp_XY(u0,v1),gp_XY(u1,v1),gp_XY(u1,v0)};
+}
+
+static bool writeExactHoles(const char* path, std::string_view mode)
+{
+    const auto native = periodicSupport();
+    const auto support = exactCarrier(native,1.125,1.875,.5,3.5);
+    const std::array<gp_XY,4> outer{gp_XY(1.125,.5),gp_XY(1.875,.5),gp_XY(1.875,3.5),gp_XY(1.125,3.5)};
+    const bool overlap = mode == "write-overlapping-holes";
+    const bool touching = mode == "write-touching-hole";
+    const bool wrongWinding = mode == "write-wrong-hole-winding";
+    const int count = mode == "write-one-hole" || touching || wrongWinding ? 1 : 2;
+    using Contours = NCollection_HArray1<occ::handle<IGESGeom_CurveOnSurface>>;
+    occ::handle<Contours> inner = new Contours(1,count);
+    auto one = clockwiseRectangle(touching?1.125:1.25,1.4375,1.,2.);
+    if (wrongWinding) std::reverse(one.begin(),one.end());
+    inner->SetValue(1,exactContour(native,support,one,20));
+    if (count == 2) {
+        inner->SetValue(2,exactContour(native,support,clockwiseRectangle(overlap?1.375:1.5625,1.75,overlap?1.5:2.,3.),40));
+    }
+    occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
+    face->Init(support,1,exactContour(native,support,outer,0),inner);
+    IGESControl_Writer writer("MM",0);
+    return writer.AddEntity(face) && writer.Write(path);
+}
+
+static bool report(const TopoDS_Shape& shape, bool boundary = false, bool allWires = false)
 {
     NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> faces, edges, wires, vertices;
     TopExp::MapShapes(shape,TopAbs_FACE,faces);
@@ -156,10 +199,10 @@ static bool report(const TopoDS_Shape& shape, bool boundary = false)
                   << dv.X() << "," << dv.Y() << "," << dv.Z() << "]}";
     }
     std::cout << "]";
-    if (boundary) {
-        std::cout << ",\"edges\":[";
+    auto reportWire = [&](const TopoDS_Wire& wire) -> bool {
+        std::cout << "[";
         std::size_t count = 0;
-        for (BRepTools_WireExplorer traversal(BRepTools::OuterWire(face),face); traversal.More(); traversal.Next()) {
+        for (BRepTools_WireExplorer traversal(wire,face); traversal.More(); traversal.Next()) {
             const auto edge = traversal.Current();
             double p0,p1,c0,c1;
             const auto uv = BRep_Tool::CurveOnSurface(edge,face,p0,p1);
@@ -179,6 +222,24 @@ static bool report(const TopoDS_Shape& shape, bool boundary = false)
                       << "],\"uvRange\":[" << p0 << "," << p1 << "],\"modelRange\":[" << c0 << "," << c1 << "]}";
         }
         std::cout << "]";
+        return true;
+    };
+    const auto outer = BRepTools::OuterWire(face);
+    if (boundary) {
+        std::cout << ",\"edges\":";
+        if (!reportWire(outer)) return false;
+    }
+    if (allWires) {
+        std::cout << ",\"wires\":[";
+        int count = 0;
+        for (TopExp_Explorer traversal(face,TopAbs_WIRE); traversal.More(); traversal.Next()) {
+            auto wire = TopoDS::Wire(traversal.Current());
+            if (count++) std::cout << ",";
+            std::cout << "{\"outer\":" << (wire.IsSame(outer)?"true":"false") << ",\"edges\":";
+            if (!reportWire(wire)) return false;
+            std::cout << "}";
+        }
+        std::cout << "]";
     }
     std::cout << "}\n";
     return valid;
@@ -192,6 +253,10 @@ int main(int argc,char** argv)
         if (mode == "write-exact-seam") {
             return writeExactSeam(argv[2]) ? 0 : 8;
         }
+        if (mode == "write-one-hole" || mode == "write-two-holes" ||
+            mode == "write-overlapping-holes" || mode == "write-touching-hole" || mode == "write-wrong-hole-winding") {
+            return writeExactHoles(argv[2],mode) ? 0 : 8;
+        }
         if (mode == "write" || mode == "write-seam") {
             const TopoDS_Face face = original(mode == "write-seam");
             if (face.IsNull() || !report(face)) return 3;
@@ -199,10 +264,10 @@ int main(int argc,char** argv)
             if (!writer.AddShape(face) || !writer.Write(argv[2])) return 4;
             return 0;
         }
-        if (mode != "read" && mode != "read-edges") return 2;
+        if (mode != "read" && mode != "read-edges" && mode != "read-wires") return 2;
         IGESControl_Reader reader;
         if (reader.ReadFile(argv[2]) != IFSelect_RetDone || reader.TransferRoots() != 1 || reader.NbShapes() != 1) return 5;
-        return report(reader.OneShape(),mode == "read-edges") ? 0 : 6;
+        return report(reader.OneShape(),mode == "read-edges",mode == "read-wires") ? 0 : 6;
     } catch (const Standard_Failure& e) {
         std::cerr << e.what() << "\n";
         return 7;

@@ -290,6 +290,12 @@ passes the pinned reader and main race. Original and emitted independent
 reports match byte for byte, with 18 edge samples and five surface jets.
 Two executed macOS architectures emit identical bytes; eight prior exports
 remain unchanged. Source tampering and inadmissible encodings refuse.
+The [periodic type 144 inner trim audit](evidence/iges-periodic-trimmed-holes-2026-11-16.json)
+passes one and two original clockwise inner rectangles, with all owner
+IDs, parameter ranges and area signs intact. Pinned OCCT independently
+validates both positives. Overlap, touching and reversed source winding
+refuse; the pinned reader silently reverses the latter. Main race,
+the full IGES suite, amd64 replay and nine prior output digests pass.
 
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips
