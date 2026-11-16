@@ -147,6 +147,8 @@ broader periodic loops remain under qualification.
 The same original knot cell can now retain one or two strictly nested
 clockwise rectangular holes. Each keeps its raw support, paired curve
 owners and signed winding. Arbitrary periodic inner wires remain open.
+Canonical export preserves those certified inner wires and original
+directories. It refuses exact gaps too small for reliable transfer.
 A verified type 144 rectangular trim can also cross the original upper
 U seam. It retains six original trim/model pairs and proves continuous
 geometry and injectivity on the lifted chart. The inconsistent seam

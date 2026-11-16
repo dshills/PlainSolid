@@ -32,7 +32,7 @@ func TestWritePeriodicSeamTrimmedFace(t *testing.T) {
 		if bytes.Equal(input, first.Bytes()) || f.OriginalIGES() != string(input) {
 			t.Fatal("expected a separate canonical carrier and the exact original source")
 		}
-		comparePeriodicSeamRecords(t, input, first.Bytes())
+		comparePeriodicTrimRecords(t, input, first.Bytes())
 		again, err := ReadPeriodicSeamTrimmedFace(ctx, bytes.NewReader(first.Bytes()), Limits{})
 		if err != nil {
 			t.Fatal(err)
@@ -47,7 +47,7 @@ func TestWritePeriodicSeamTrimmedFace(t *testing.T) {
 	}
 }
 
-func comparePeriodicSeamRecords(t *testing.T, input, output []byte) {
+func comparePeriodicTrimRecords(t *testing.T, input, output []byte) {
 	t.Helper()
 	before := periodicTrimmedRecords(t, input)
 	after := periodicTrimmedRecords(t, output)
@@ -111,7 +111,7 @@ func TestWritePeriodicSeamTrimmedFaceReject(t *testing.T) {
 		{"2." + strings.Repeat("0", 68) + "1", "3.", "bounded exact decimal"},
 		{"2.", "2.0000000000000004", "collapse in binary64 transfer"},
 	} {
-		source := editPeriodicSeamWriterSource(t, raw, 25, func(values []string) []string {
+		source := editPeriodicTrimWriterSource(t, raw, 25, func(values []string) []string {
 			for i := 0; i < 3; i++ {
 				values[7+i], values[10+i] = tc.lo, tc.hi
 			}
@@ -122,7 +122,7 @@ func TestWritePeriodicSeamTrimmedFaceReject(t *testing.T) {
 	}
 	// A degree elevation times a positive affine homogeneous weight
 	// factor keeps this entire line exact in normalized parameter.
-	almostPolynomial := editPeriodicSeamWriterSource(t, raw, 23, func([]string) []string {
+	almostPolynomial := editPeriodicTrimWriterSource(t, raw, 23, func([]string) []string {
 		return strings.Split("126,2,2,0,0,0,0,0.,0.,0.,1.,1.,1.,0.999999999999,1.,1.000000000001,5.46875,1.,3.,5.46875,1.,2.000000000001,5.46875,1.,1.,0.,1.,0.,0.,0.", ",")
 	})
 	refuse(read(almostPolynomial), "rational weights lost")
@@ -136,16 +136,16 @@ func TestWritePeriodicSeamTrimmedFaceReject(t *testing.T) {
 	if err := WritePeriodicSeamTrimmedFace(cancelled, &result, f); !errors.Is(err, context.Canceled) || result.Len() != 0 {
 		t.Fatal("cancelled writer published prefix", err)
 	}
-	if err := WritePeriodicSeamTrimmedFace(ctx, periodicSeamShortWriter{}, f); !errors.Is(err, io.ErrShortWrite) {
+	if err := WritePeriodicSeamTrimmedFace(ctx, periodicTrimShortWriter{}, f); !errors.Is(err, io.ErrShortWrite) {
 		t.Fatal("short write was reported as success", err)
 	}
 }
 
-type periodicSeamShortWriter struct{}
+type periodicTrimShortWriter struct{}
 
-func (periodicSeamShortWriter) Write(p []byte) (int, error) { return len(p) - 1, nil }
+func (periodicTrimShortWriter) Write(p []byte) (int, error) { return len(p) - 1, nil }
 
-func editPeriodicSeamWriterSource(t *testing.T, raw []byte, id int, edit func([]string) []string) []byte {
+func editPeriodicTrimWriterSource(t *testing.T, raw []byte, id int, edit func([]string) []string) []byte {
 	t.Helper()
 	source := periodicTrimmedRecords(t, raw)
 	var a topologyAuthor

@@ -105,6 +105,11 @@ func periodic128KnotTokens(knots []*big.Rat, degree int) ([]string, error) {
 }
 
 func encodeExactPeriodicSurface128(g *geom.ExactPeriodicSplineSurface, source *Surface) (string, error) {
+	return encodeExactPeriodicSurface128WithBounds(g, source, nil)
+}
+
+func encodeExactPeriodicSurface128WithBounds(g *geom.ExactPeriodicSplineSurface, source *Surface,
+	bounds *[2]geom.ExactParameterInterval) (string, error) {
 	u, v, controls := g.Data()
 	if len(controls) == 0 {
 		return "", geom.ErrInvalid
@@ -164,7 +169,21 @@ func encodeExactPeriodicSurface128(g *geom.ExactPeriodicSplineSurface, source *S
 	p = append(p, kv...)
 	p = append(p, weights...)
 	p = append(p, poles...)
-	p = append(p, ku[u.Degree], ku[eu.count], kv[v.Degree], kv[ev.count], "0", "0")
+	active := [4]string{ku[u.Degree], ku[eu.count], kv[v.Degree], kv[ev.count]}
+	if bounds != nil {
+		for i, interval := range bounds {
+			active[2*i], err = periodic128Decimal(interval.Lower)
+			if err != nil {
+				return "", err
+			}
+			active[2*i+1], err = periodic128Decimal(interval.Upper)
+			if err != nil {
+				return "", err
+			}
+		}
+	}
+	p = append(p, active[:]...)
+	p = append(p, "0", "0")
 	return strings.Join(p, ",") + ";", nil
 }
 

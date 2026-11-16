@@ -307,6 +307,11 @@ IDs, parameter ranges and area signs intact. Pinned OCCT independently
 validates both positives. Overlap, touching and reversed source winding
 refuse; the pinned reader silently reverses the latter. Main race,
 the full IGES suite, amd64 replay and nine prior output digests pass.
+The [canonical type 144 inner trim audit](evidence/iges-periodic-trimmed-holes-outbound-2026-11-16.json)
+reopens both exports in the strict reader and pinned OCCT. Original and
+emitted pinned reports agree byte for byte: loop winding, edge stations,
+ranges, face geometry and jets match. Main race, full IGES, both executed
+macOS architectures and nine predecessor outputs pass.
 
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips

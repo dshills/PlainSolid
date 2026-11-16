@@ -1,0 +1,159 @@
+{
+  "implementationCommit": "3d6b21e3e0245262df1d9e0869ba3415c406688d",
+  "readerDependency": "51736f39270e0867217f5b7512c667df76a4c9dd",
+  "patch": {
+    "name": "export-periodic-trimmed-iges-128-holes.patch",
+    "sha256": "55b6a57cedb8fed85e3927fb0cf82436da43de40e117bb7059a254543d78020a",
+    "bytes": 22846
+  },
+  "scope": "Source-bound exact type-144 canonical emission with one or two original clockwise holes in one U-periodic knot cell. Retains clipped type-128 bounds, full cyclic owner basis, directory links and original ranges.",
+  "originalSourceUnchanged": true,
+  "canonicalStrictReopenByteStable": true,
+  "pinnedOCCT": {
+    "revision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+    "binary": {
+      "name": "author",
+      "sha256": "e6b38b8b32860666e1e78cb0c5b85aa9476f078ae7ceaa8b48541f9f131e6e36",
+      "bytes": 129768
+    },
+    "readMode": "read-wires"
+  },
+  "fixtures": {
+    "one-hole": {
+      "source": {
+        "name": "one-hole.iges",
+        "sha256": "aaf68f9aabe5d65521fcfbe0a79259f8d6cac348c6a85db2e3a92e01da0e683f",
+        "bytes": 7614
+      },
+      "canonical": {
+        "name": "one-hole.iges",
+        "sha256": "deb74dcd6a9d28b5b5bf879596718e43746a801c1c1d06ae16007ab351ac772e",
+        "bytes": 7533
+      },
+      "pinnedReadLog": {
+        "name": "one-hole.reader.log",
+        "sha256": "541d1fc7b3f282572e47f6d739aec0a9248037d6142030c92275ca021dce826b",
+        "bytes": 2357
+      },
+      "sourceAndCanonicalPinnedLogsByteIdentical": true,
+      "darwinAMD64CanonicalByteIdentical": true,
+      "pinnedReopen": {
+        "valid": true,
+        "topology": [
+          1,
+          2,
+          8,
+          8
+        ],
+        "area": 9.889664035260374,
+        "perimeter": 16.793505205492284,
+        "periodicU": true,
+        "bounds": [
+          1.125,
+          1.875,
+          0.5,
+          3.5
+        ],
+        "wiresCount": 2,
+        "samplesCount": 5
+      }
+    },
+    "two-holes": {
+      "source": {
+        "name": "two-holes.iges",
+        "sha256": "df7ec4fc84af49e7c379db371eb40bc876cafe9ce2c851523fc4db0c9cb70e23",
+        "bytes": 10773
+      },
+      "canonical": {
+        "name": "two-holes.iges",
+        "sha256": "f8d62d3bccc673ebf24bdc404a26c69f3f3171b3dd446d42cab036a201eab359",
+        "bytes": 10692
+      },
+      "pinnedReadLog": {
+        "name": "two-holes.reader.log",
+        "sha256": "4aa314ee16fb892bbdd7ea9b2c6694ad525753923f046359afbd6565b502cefc",
+        "bytes": 3235
+      },
+      "sourceAndCanonicalPinnedLogsByteIdentical": true,
+      "darwinAMD64CanonicalByteIdentical": true,
+      "pinnedReopen": {
+        "valid": true,
+        "topology": [
+          1,
+          3,
+          12,
+          12
+        ],
+        "area": 8.964677078070961,
+        "perimeter": 20.64347911987115,
+        "periodicU": true,
+        "bounds": [
+          1.125,
+          1.875,
+          0.5,
+          3.5
+        ],
+        "wiresCount": 3,
+        "samplesCount": 5
+      }
+    }
+  },
+  "refusals": [
+    "Altered hole order, bounds, curve owner or exact model range",
+    "Forged overlapping original supports",
+    "Overlong exact model range",
+    "Strictly positive 1e-17 gap that collapses between otherwise representable wires",
+    "Cancelled write, short I/O write"
+  ],
+  "tests": {
+    "focused": {
+      "name": "focused.log",
+      "sha256": "22ec41ed4dd822cde54ae4ba923e35a0d477739b2e25b19ebcc060ce7c8d925f",
+      "bytes": 3484,
+      "seconds": 1.661,
+      "passed": true
+    },
+    "race": {
+      "name": "race.log",
+      "sha256": "48dce9b01c10cabdf4a8ddcb8534a0ec4e38efa5f79f5dfedc8f558d679d579d",
+      "bytes": 12142,
+      "seconds": 6.817,
+      "passed": true
+    },
+    "raceFilter": "^(TestWritePeriodic(SeamTrimmedFace|TrimmedFaceWithHoles)|TestReadPeriodic(Seam)?TrimmedFace|TestPeriodicTrimmedFaceSeam|TestReadExactPeriodicSurface128|TestWriteExactPeriodicSurface128|TestNewExactPeriodicSurface128|TestSurfaceExchange|TestIndependentSurfaceParameters|TestExactCurveOnSurface|TestCurveOnSurfaceRejectsMismatch|TestCurveOnSurfacePointerAndLimits|TestMalformedRecordsAndPointers|TestLimits|TestOrthogonalSurface|TestPlacedRectangularSurface|TestQuadraticOvalSurface|TestCurvedOvalSurface|TestPlanarSolidIGES)",
+    "darwinAMD64": {
+      "name": "amd64.log",
+      "sha256": "2bf8f2dda6d37007173e261427af2b0c95342d8e2fdd5bf25e7add047443348c",
+      "bytes": 897,
+      "seconds": null,
+      "passed": true
+    },
+    "fullIGES": {
+      "name": "full.log",
+      "sha256": "e238bd1fc5d2a44389649bb9ae698cb73ac22a7cc1da110a6d390280d9f7fef3",
+      "bytes": 39,
+      "seconds": 108.604,
+      "passed": true
+    }
+  },
+  "unchangedPredecessorOutputs": {
+    "legacy/ordinary/curves.iges": "e7306c47f1c1b717d0b4dcbc988eb9f42ca22207962c334c8250cd9cc4fdbca3",
+    "legacy/ordinary/rectangular-spline-face.igs": "30b5dd8b91a26096740288382b4c2c8c0d514732cc0d165e5d1fdd5cec2fd26b",
+    "legacy/ordinary/translated-trimmed-rational-128.iges": "ab24c50ad001536723860888a87376f38b9be3a9e08e6aae46eac59d9ddba72d",
+    "legacy/periodic/native-rephased.iges": "2d7538bdad0be19a9f8181c8f71edf0a6a972b50642efe73e5dea93f25a8ca65",
+    "legacy/periodic/u.iges": "27caf6f5f36ba1a16050b139072f35e17a084b5641fcd33fccb4547eac752310",
+    "legacy/periodic/uv.iges": "8190bed840cf2723f44f2754f78fcdb8019deddbfe1a7f97f9f53f92e3cb3156",
+    "legacy/periodic/v.iges": "b543d8b06967e59cd06b20598c6bafeb1e918fe5d445bda36556a4cac6068b60",
+    "legacy/planar.iges": "992bbaa2bcd500dc22dc973966ede61632acb7c4b66eff90fedd0abaf18343cd",
+    "legacy/seam.iges": "c323d9b453c627dc16b42833d058d71cbd14313947c8d94d5fbdf4f1154b2b2e"
+  },
+  "sourceQualificationSHA256": "d0c6f1be4975b6f6148ee75de11d9302059f00f0410a582cb93f8d831e17595a",
+  "mainRace": {
+    "sourceBase": "72d91850",
+    "name": "iges-periodic-holes-outbound-main-race.jsonl",
+    "sha256": "e3da4dec1ac07f61f4f09d59928ed7bbf0ffdb884c00f631faeed78d8333f090",
+    "seconds": 6.151,
+    "failures": 0,
+    "skips": 0
+  }
+}

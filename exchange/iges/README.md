@@ -126,6 +126,14 @@ The returned `Holes` carry each removed rectangle's original bounds,
 contour and composite IDs, and directed edge owners. `Patch` evaluates the
 underlying outer rectangle, including the removed regions.
 
+`WritePeriodicTrimmedFaceWithHoles` replays the original proof and strictly
+reopens the entire canonical output before writing. It preserves the cyclic
+support and its clipped IGES bounds, every contour and curve owner, each
+directed edge and original model interval, and the opposite wire winding.
+The writer checks exact decimal encoding and refuses distinct stations
+within one binary64 ULP, including stations on different wires in the same
+chart. The returned proof still retains the complete original source.
+
 The pinned low-level OCCT author and reader preserve one and two original
 inner wires with their directed UV and model owners and original model
 parameter ranges. The strict reader refuses touching and overlapping loops

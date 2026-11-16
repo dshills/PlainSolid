@@ -31,11 +31,15 @@ type PeriodicTrimmedFaceWithHoles struct {
 // the entire directed edge. One projection proves injectivity of the whole
 // outer rectangle before the result is published.
 func ReadPeriodicTrimmedFaceWithHoles(ctx context.Context, r io.Reader, l Limits) (PeriodicTrimmedFaceWithHoles, error) {
-	var zero PeriodicTrimmedFaceWithHoles
 	source, err := readPeriodicTrimSourceWithHoles(ctx, r, l, 4, 2)
 	if err != nil {
-		return zero, err
+		return PeriodicTrimmedFaceWithHoles{}, err
 	}
+	return provePeriodicTrimmedFaceWithHoles(ctx, source)
+}
+
+func provePeriodicTrimmedFaceWithHoles(ctx context.Context, source periodicTrimSource) (PeriodicTrimmedFaceWithHoles, error) {
+	var zero PeriodicTrimmedFaceWithHoles
 	m := source.face
 	cell, err := m.proveOriginalKnotCell(ctx)
 	if err != nil {
