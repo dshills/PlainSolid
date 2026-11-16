@@ -154,6 +154,9 @@ nonbinary original seam stations and continuous outward facet normals.
 Planar original sweep chains can also become closed native B-reps,
 retaining the original face and vertex ancestry and exact material
 volume while omitting all internal joined walls.
+Existing native JSON, STEP and IGES reopen the qualified planar bodies
+with the same material and topology. The original in-memory ledger
+replays against the native indexed graph.
 The joined boundary can also measure certified analytic areas on its
 retained original affine and circular faces. Exact shared walls cancel
 before integration and the result preserves each original owner and side.

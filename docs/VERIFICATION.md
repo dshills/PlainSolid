@@ -503,6 +503,11 @@ and 22 original outer faces on both five-chart controls. Independent
 authored volumes are exactly 3/2 and 41/32, with reversible chart,
 wall and corner ancestry. Curved sources, nonbinary world corners,
 short work and cancellation refuse without a native body.
+The planar transfer audit preserves all native face and vertex
+indices and canonical JSON bytes across reopen. Strict STEP and IGES
+readers reproduce exact original volumes 3/2 and 41/32 with matching
+outward world-coordinate rings. Pinned OCCT independently validates
+all four single-body neutral files.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They

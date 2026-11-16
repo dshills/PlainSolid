@@ -212,5 +212,26 @@
       "collision work limit",
       "cancellation"
     ]
+  },
+  "planar_native_neutral_transfer": {
+    "main_base": "7d64ea8a",
+    "isolated_revision": "133fdd5e7fba59001993d76fedbb9df739513139",
+    "patch_sha256": "552aabd6f57b956da381215b7b860fcab1c8b1584c13b3de63544b8492385b24",
+    "main_race_log": "normal-sweep-open-chain-transfer-main-race.jsonl",
+    "main_race_sha256": "3428aba14f23979bfd9861c069b8336ea96de7d633f2b85d1e30f5b17ed988d4",
+    "main_race_seconds": 2.655,
+    "isolated_race_seconds": 2.531,
+    "independent_pinned_neutral_files": 4,
+    "pinned_topology": [
+      24,
+      44,
+      22
+    ],
+    "strict_native_neutral_volumes": [
+      "3/2",
+      "41/32"
+    ],
+    "native_json_index_and_bytes_retained": true,
+    "chart_ancestry": "replay against stable native graph with the original in-memory analytic ledger; durable source receipt tracked separately"
   }
 }
