@@ -347,6 +347,11 @@ checks all six original faces on two rotated, oppositely oriented circular
 sectors. Independent angle and radial formulas agree with directed totals;
 short work and an altered noncircular profile keep their correct refusals.
 Main race and six earlier area receipts pass.
+The same audit covers joined affine and circular sweeps: exact pair and
+chain totals are 26/5 and 38/5, with 10 and 14 retained original faces.
+The rationally rotated three-cylinder chain also encloses the independent
+physical sector area with width below 1e-16; both join walls are omitted.
+Budget and cancellation controls preserve only independently proved faces.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They

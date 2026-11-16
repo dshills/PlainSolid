@@ -44,16 +44,29 @@ type NormalOffsetSweepBoundaryArea struct {
 // shifted radii are positive. Other frames return ErrDomain.
 func (s *VerifiedNormalOffsetSweep) BoundaryAreaRational(ctx context.Context,
 	o NormalOffsetSweepAreaOptions) (r NormalOffsetSweepBoundaryArea, err error) {
-	if ctx == nil || s == nil || s.source == nil || o.MaxCells < 0 || o.MaxCells > 1<<18 ||
-		(o.AbsoluteError != nil && o.AbsoluteError.Sign() < 0) {
+	if s == nil || s.source == nil {
 		return r, ErrInvalid
 	}
-	if err := ctx.Err(); err != nil {
+	o, err = normalizeSweepBoundaryAreaOptions(ctx, o)
+	if err != nil {
 		return r, err
 	}
-	defaultTolerance := big.NewRat(1, 100_000_000)
+	b := &polynomialBudget{maxOperations: o.Patch.MaxOperations, maxBits: o.Patch.MaxCoefficientBits}
+	defer func() { r.ExactOperations = b.operations }()
+	err = s.measureRetainedBoundaryArea(ctx, o, 0b111111, b, &r)
+	return r, err
+}
+
+func normalizeSweepBoundaryAreaOptions(ctx context.Context, o NormalOffsetSweepAreaOptions) (NormalOffsetSweepAreaOptions, error) {
+	if ctx == nil || o.MaxCells < 0 || o.MaxCells > 1<<18 ||
+		(o.AbsoluteError != nil && o.AbsoluteError.Sign() < 0) {
+		return o, ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return o, err
+	}
 	if o.AbsoluteError == nil {
-		o.AbsoluteError = defaultTolerance
+		o.AbsoluteError = big.NewRat(1, 100_000_000)
 	}
 	if o.MaxCells == 0 {
 		o.MaxCells = 4095
@@ -61,27 +74,27 @@ func (s *VerifiedNormalOffsetSweep) BoundaryAreaRational(ctx context.Context,
 	if o.Patch.MaxOperations == 0 {
 		o.Patch.MaxOperations = 4_000_000
 	}
-	limits, err := patchOptions(o.Patch)
-	if err != nil {
-		return r, err
-	}
-	b := &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
-	defer func() { r.ExactOperations = b.operations }()
-	if len(s.source.net) > limits.MaxPoles {
-		return r, ErrConvergence
+	patch, err := patchOptions(o.Patch)
+	o.Patch = patch
+	return o, err
+}
+
+func (s *VerifiedNormalOffsetSweep) measureRetainedBoundaryArea(ctx context.Context, o NormalOffsetSweepAreaOptions,
+	retained uint8, b *polynomialBudget, r *NormalOffsetSweepBoundaryArea) error {
+	if len(s.source.net) > o.Patch.MaxPoles {
+		return ErrConvergence
 	}
 	for _, q := range [3]*big.Rat{o.AbsoluteError, s.lower, s.upper} {
 		if err := b.check(q); err != nil {
-			return r, err
+			return err
 		}
 	}
-	squares, affine, err := s.affineSweepAreaSquares(ctx, b)
+	squares, affine, err := s.affineSweepAreaSquares(ctx, retained, b)
 	if err != nil {
-		return r, err
+		return err
 	}
 	if !affine {
-		err := s.circularSweepBoundaryArea(ctx, o, b, &r)
-		return r, err
+		return s.circularSweepBoundaryArea(ctx, o, retained, b, r)
 	}
 
 	// Reserve less than one sixth of the requested total width for each
@@ -89,24 +102,27 @@ func (s *VerifiedNormalOffsetSweep) BoundaryAreaRational(ctx context.Context,
 	// enclosure in case the area is irrational.
 	precisionGoal := o.AbsoluteError
 	if precisionGoal.Sign() == 0 {
-		precisionGoal = defaultTolerance
+		precisionGoal = big.NewRat(1, 100_000_000)
 	}
 	precision := max(0, precisionGoal.Denom().BitLen()-precisionGoal.Num().BitLen()) + 4
 	a := boundedRatArithmetic{b: b}
 	total := exactInterval{new(big.Rat), new(big.Rat)}
 	for side, square := range squares {
+		if retained&(1<<side) == 0 {
+			continue
+		}
 		if err := ctx.Err(); err != nil {
-			return r, err
+			return err
 		}
 		if r.VisitedCells >= o.MaxCells {
-			return r, ErrConvergence
+			return ErrConvergence
 		}
 		r.VisitedCells++
 		// Limit the integer shift used by the directed square root.
 		bits := min(precision, (b.maxBits-square.Num().BitLen())/2)
 		lo, hi, err := rationalSqrtBounds(square, bits, b)
 		if err != nil {
-			return r, err
+			return err
 		}
 		r.Faces = append(r.Faces, NormalOffsetSweepFaceArea{
 			Side: NormalOffsetSweepSide(side), Bounds: ExactParameterInterval{Lower: lo, Upper: hi},
@@ -114,26 +130,26 @@ func (s *VerifiedNormalOffsetSweep) BoundaryAreaRational(ctx context.Context,
 		})
 		total = exactInterval{a.add(total.lo, lo), a.add(total.hi, hi)}
 		if a.err != nil {
-			return r, a.err
+			return a.err
 		}
 	}
 	r.Bounds = copySweepInterval(total)
 	if err := ctx.Err(); err != nil {
-		return r, err
+		return err
 	}
 	width := a.sub(total.hi, total.lo)
 	if a.err != nil {
-		return r, a.err
+		return a.err
 	}
 	if width.Cmp(o.AbsoluteError) > 0 {
-		return r, ErrConvergence
+		return ErrConvergence
 	}
 	r.Complete = true
-	return r, nil
+	return nil
 }
 
 func (s *VerifiedNormalOffsetSweep) affineSweepAreaSquares(ctx context.Context,
-	b *polynomialBudget) ([6]*big.Rat, bool, error) {
+	retained uint8, b *polynomialBudget) ([6]*big.Rat, bool, error) {
 	var result [6]*big.Rat
 	a := boundedRatArithmetic{b: b}
 	u, v, affine, err := sweepHomogeneousAffineSpans(ctx, s.source, &a)
@@ -145,19 +161,30 @@ func (s *VerifiedNormalOffsetSweep) affineSweepAreaSquares(ctx context.Context,
 		u[i], v[i] = a.quo(u[i], weight), a.quo(v[i], weight)
 	}
 	var cross [3]*big.Rat
-	for i := range cross {
-		j, k := (i+1)%3, (i+2)%3
-		cross[i] = a.sub(a.mul(u[j], v[k]), a.mul(u[k], v[j]))
+	if retained&(3<<NormalOffsetSweepLower) != 0 {
+		for i := range cross {
+			j, k := (i+1)%3, (i+2)%3
+			cross[i] = a.sub(a.mul(u[j], v[k]), a.mul(u[k], v[j]))
+		}
 	}
 	thickness := a.sub(s.upper, s.lower)
 	thicknessSquare := a.mul(thickness, thickness)
 	// Each side wall extrudes one full source edge along a unit normal
 	// orthogonal to it. Both caps have the original area.
-	uWall := a.mul(sweepLineDot(&a, v, v), thicknessSquare)
-	vWall := a.mul(sweepLineDot(&a, u, u), thicknessSquare)
-	cap := sweepLineDot(&a, cross, cross)
+	if retained&(3<<NormalOffsetSweepUMin) != 0 {
+		uWall := a.mul(sweepLineDot(&a, v, v), thicknessSquare)
+		result[NormalOffsetSweepUMin], result[NormalOffsetSweepUMax] = uWall, uWall
+	}
+	if retained&(3<<NormalOffsetSweepVMin) != 0 {
+		vWall := a.mul(sweepLineDot(&a, u, u), thicknessSquare)
+		result[NormalOffsetSweepVMin], result[NormalOffsetSweepVMax] = vWall, vWall
+	}
+	if retained&(3<<NormalOffsetSweepLower) != 0 {
+		cap := sweepLineDot(&a, cross, cross)
+		result[NormalOffsetSweepLower], result[NormalOffsetSweepUpper] = cap, cap
+	}
 	if a.err != nil {
 		return result, true, a.err
 	}
-	return [6]*big.Rat{uWall, uWall, vWall, vWall, cap, cap}, true, nil
+	return result, true, nil
 }

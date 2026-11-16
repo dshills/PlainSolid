@@ -95,6 +95,9 @@ parallel walls, preserving both original join maps, fourteen analytic
 outer faces, and a strict exact gap between the nonadjacent ends.
 The proved three-chart chain also has an embedded closed display that
 propagates both original exact station maps across the middle chart.
+The joined boundary can also measure certified analytic areas on its
+retained original affine and circular faces. Exact shared walls cancel
+before integration and the result preserves each original owner and side.
 The analytic single-sweep volume can also certify exact point membership
 and bound its unique original inverse. Queries retain possible cells
 when a boundary point or an exhausted work budget prevents a proof.

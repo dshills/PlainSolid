@@ -14,7 +14,7 @@ type sweepCircularAreaProfile struct {
 }
 
 func (s *VerifiedNormalOffsetSweep) circularSweepBoundaryArea(ctx context.Context, o NormalOffsetSweepAreaOptions,
-	b *polynomialBudget, result *NormalOffsetSweepBoundaryArea) error {
+	retained uint8, b *polynomialBudget, result *NormalOffsetSweepBoundaryArea) error {
 	profile, err := s.certifySweepAreaCircularProfile(ctx, b)
 	if err != nil {
 		return err
@@ -79,24 +79,36 @@ func (s *VerifiedNormalOffsetSweep) circularSweepBoundaryArea(ctx context.Contex
 	if bottom.lo.Sign() <= 0 || top.lo.Sign() <= 0 {
 		return ErrConvergence
 	}
-	endArea := a.mul(a.mul(a.add(bottom, top), sweepAreaSingleton(half)), a.mul(thickness, angle))
-	longArea := a.mul(width, thickness)
-	capBottom := a.mul(a.mul(width, bottom), angle)
-	capTop := a.mul(a.mul(width, top), angle)
-	longSquare := a.mul(sweepAreaSingleton(profile.widthSquare), a.square(thickness))
+	var bounds [6]exactInterval
+	var areaSquares [6]*big.Rat
+	ends, radial := profile.rulingAxis*2, (1-profile.rulingAxis)*2
+	if retained&(3<<ends) != 0 {
+		endArea := a.mul(a.mul(a.add(bottom, top), sweepAreaSingleton(half)), a.mul(thickness, angle))
+		bounds[ends], bounds[ends+1] = endArea, endArea
+	}
+	if retained&(3<<radial) != 0 {
+		longArea := a.mul(width, thickness)
+		bounds[radial], bounds[radial+1] = longArea, longArea
+	}
+	if retained&(1<<NormalOffsetSweepLower) != 0 {
+		bounds[NormalOffsetSweepLower] = a.mul(a.mul(width, bottom), angle)
+	}
+	if retained&(1<<NormalOffsetSweepUpper) != 0 {
+		bounds[NormalOffsetSweepUpper] = a.mul(a.mul(width, top), angle)
+	}
+	if retained&(3<<radial) != 0 {
+		longSquare := a.mul(sweepAreaSingleton(profile.widthSquare), a.square(thickness))
+		areaSquares[radial], areaSquares[radial+1] = longSquare.lo, longSquare.lo
+	}
 	if a.err != nil {
 		return a.err
 	}
-	bounds := [6]exactInterval{endArea, endArea, longArea, longArea, capBottom, capTop}
-	var areaSquares [6]*big.Rat
-	if profile.rulingAxis == 1 {
-		bounds[0], bounds[1], bounds[2], bounds[3] = longArea, longArea, endArea, endArea
-	}
-	side := (1 - profile.rulingAxis) * 2
-	areaSquares[side], areaSquares[side+1] = longSquare.lo, longSquare.lo
 
 	total := offsetZeroInterval()
 	for side, interval := range bounds {
+		if retained&(1<<side) == 0 {
+			continue
+		}
 		if err := ctx.Err(); err != nil {
 			return err
 		}
