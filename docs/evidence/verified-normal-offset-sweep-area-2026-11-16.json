@@ -10,5 +10,17 @@
   "independent_exact_total": "382/21",
   "independent_irrational_terms": ["sqrt(61)", "sqrt(5)", "sqrt(13)"],
   "directed_total_width": "less than 2^-150 for the sheared control",
-  "isolate_full_packages_seconds": {"geom": 74.484, "mesh": 7.197, "csg/offset": 47.993}
+  "isolate_full_packages_seconds": {"geom": 74.484, "mesh": 7.197, "csg/offset": 47.993},
+  "circular_sector": {
+    "isolated_revision": "08f7d7ccc72edcc37ae30b5b46d10b15610022cc",
+    "patch_sha256": "b3d6b473ef065611c470dc1c151c3dd1c363fa32d8fb22779ee38b278a3549b3",
+    "main_base": "87a48d65",
+    "main_race_log": "normal-sweep-circular-area-main-race.jsonl",
+    "main_race_sha256": "2f9473a5726fb4e197a7550308f11b29fae60d1cbfd557017baeb1e867df1ebc",
+    "main_named_pass": "TestVerifiedNormalOffsetSweepBoundaryAreaCircularSector",
+    "main_race_seconds": 1.507,
+    "reported_directed_totals_approximately": [3.0094926728257498, 2.9352123249825872],
+    "exact_operations_each": 907,
+    "unchanged_affine_receipts": 6
+  }
 }

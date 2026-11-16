@@ -336,6 +336,11 @@ The [affine sweep area audit](evidence/verified-normal-offset-sweep-area-2026-11
 passes six original faces, exact total `382/21`, and the independent
 irrational areas of a sheared weighted chart. Both short work and
 short precision retain only the proved area information.
+The [circular sweep area audit](evidence/verified-normal-offset-sweep-area-2026-11-16.json)
+checks all six original faces on two rotated, oppositely oriented circular
+sectors. Independent angle and radial formulas agree with directed totals;
+short work and an altered noncircular profile keep their correct refusals.
+Main race and six earlier area receipts pass.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They

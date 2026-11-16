@@ -36,11 +36,12 @@ type NormalOffsetSweepBoundaryArea struct {
 	VisitedCells, ExactOperations int
 }
 
-// BoundaryAreaRational measures all six original boundary faces of a verified
-// affine sweep directly from its exact source and displacement interval.
-// The affine frame need not have a rational unit normal. Each face has an
-// exact area square, and nonsquare roots are enclosed by directed rationals.
-// Curved frames return ErrDomain.
+// BoundaryAreaRational measures all six original boundary faces directly
+// from the exact source and displacement interval. Affine frames have exact
+// area squares even when the unit normal is irrational. A perpendicular
+// circular extrusion also supports directed area bounds when its original
+// rational quadratic arc has tangent of the angle at most 1/2 and both
+// shifted radii are positive. Other frames return ErrDomain.
 func (s *VerifiedNormalOffsetSweep) BoundaryAreaRational(ctx context.Context,
 	o NormalOffsetSweepAreaOptions) (r NormalOffsetSweepBoundaryArea, err error) {
 	if ctx == nil || s == nil || s.source == nil || o.MaxCells < 0 || o.MaxCells > 1<<18 ||
@@ -79,7 +80,8 @@ func (s *VerifiedNormalOffsetSweep) BoundaryAreaRational(ctx context.Context,
 		return r, err
 	}
 	if !affine {
-		return r, ErrDomain
+		err := s.circularSweepBoundaryArea(ctx, o, b, &r)
+		return r, err
 	}
 
 	// Reserve less than one sixth of the requested total width for each
