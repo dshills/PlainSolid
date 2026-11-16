@@ -309,5 +309,15 @@
     ],
     "first_corner_failure_log": "projective-surface-contact-graph-main-race.jsonl",
     "first_corner_failure_sha256": "e3d97a249a31a162e756b3edca28ec97d44554ddc4d8e815c3dc7ed978e9433a"
+  },
+  "original_arc_evaluation": {
+    "log": "projective-contact-arc-evaluation-main-race.jsonl",
+    "sha256": "72c75c5a7db00a5d2b84cf05108f07a3c414d10d7814e5b1e1661930a5e02c4f",
+    "main_passes": [
+      "TestProjectiveContactArcEvaluationRetainsBothOriginalUV",
+      "TestProjectiveContactArcEvaluationRetainsAnIrrationalCoordinate",
+      "TestTraceProjectiveSurfaceContactsJoinsTheOriginalNonbinaryKnot",
+      "TestTraceProjectiveSurfaceContactsFindsAClosedOriginalContour"
+    ]
   }
 }

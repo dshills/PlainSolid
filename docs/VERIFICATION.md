@@ -1,5 +1,11 @@
 # Verification record
 
+The [projective contact evaluation audit](evidence/projective-surface-graph-overlap-2026-11-16.json)
+passes the main geometry race at rational stations on open and closed
+contacts. It proves both original UV identities for an irrational
+dependent coordinate and checks that public result edits, extrapolation
+and an insufficient work budget cannot substitute a false proof.
+
 The [full Go run on `c7afb429`](evidence/main-c7afb429-qualification-2026-11-16.json)
 passed all nine lanes: 6,018 passes, 599 optional skips, and no failures
 across 6,617 inventoried cases. All 54 tested packages passed; eight have

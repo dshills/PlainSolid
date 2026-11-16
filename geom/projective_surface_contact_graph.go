@@ -48,6 +48,7 @@ type ProjectiveSurfaceContactGraph struct {
 	Contours                        []ProjectiveContactContour
 	Complete                        bool
 	JoinComparisons, JoinOperations int
+	proof                           *projectiveContactGraphProof
 }
 
 // TraceProjectiveSurfaceContacts joins the exact regular local coverage
@@ -201,6 +202,7 @@ func TraceProjectiveSurfaceContacts(ctx context.Context, source, target *Surface
 		return r, err
 	}
 	r.Vertices, r.Arcs, r.Contours, r.Complete = vertex, arcs, contours, true
+	r.proof = sealProjectiveContactGraph(r.Cover, arcs)
 	return r, nil
 }
 

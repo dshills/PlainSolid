@@ -118,6 +118,9 @@ The local cover now isolates contacts on each residual cell while
 retaining both original owners and any cells left unresolved.
 Regular open and closed contours now join across exact nonbinary common
 knots. Each junction retains both owners' algebraic original coordinates.
+Each retained arc can now be evaluated at an exact rational common
+station, returning both original UV identities even when a dependent
+coordinate is irrational.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows
