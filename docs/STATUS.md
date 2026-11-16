@@ -50,6 +50,9 @@ the original roof coedges and all four separate Cut contacts.
 The representable overlapping-projection family also transfers exactly.
 Circular model edges and both original UV curves use the same proved
 restriction of a finite-decimal carrier with exact integer stations.
+Exact source discovery now also handles two crossing circles and a
+third strictly separated circle. It verifies every original factor,
+all four junctions and seven signed regions, before native assembly.
 These osculation cases also support exact analytic STEP and IGES
 output with the original owner winding, contact jets and separate Cut
 components. General curved exchange remains open.

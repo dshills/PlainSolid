@@ -1,0 +1,20 @@
+{
+  "scope": "Exact source arrangement for one original parabola with two independently crossing circles and one separated circle",
+  "source_proof": {
+    "isolated_revision": "07f87739fc52d36b1f038f06e5b78724d9ceeb21",
+    "patch_sha256": "54435b06d2bf9b9eb2e0064b74720bbeebf26be658de39b05114cde7c84211a3",
+    "main_base": "89e73420",
+    "main_race_log": "parabola-three-circles-main-race.jsonl",
+    "main_race_sha256": "2c5fc4c1b42797c68f4bb6971008984ccc57b7ab094f1a6fa9986a4c8d65f3e1",
+    "main_trimmed_race_seconds": 77.016,
+    "named_passes": ["TestParabolaThreeCirclesSource", "TestParabolaThreeCirclesSourceRefusals"],
+    "source_layout_axis_order_cases": 20,
+    "per_case": {"exact_junctions": 4, "signed_regions": 7, "isolated_cardinal_extrema": 4},
+    "independent_crossing_intervals": [["3/16", "5/16"], ["11/16", "13/16"]],
+    "both_quotient_minima": "79/64",
+    "independent_separated_gap_range": ["1/32", "217/512"],
+    "independent_controls_sha256": "0a48cf33fa467431dfddc5fd1a111397d17dd7f39be96c95dc5890bf45a4e766",
+    "independent_exact_measures_sha256": "802746d66bd4fa702f17877c4ef37b33d4c10fe98dd0eea0d846c2aefb4f7673",
+    "refusals": ["third circle crosses", "tangency", "stock boundary contact", "interdisk overlap", "altered source coefficients", "arithmetic exhaustion"]
+  }
+}

@@ -137,18 +137,30 @@ func DiscoverSplineGraphParabolaMixedCircles(ctx context.Context, a, c *SurfaceP
 	center := out.Circles[1-cross].Center
 	out.RegionSides[4] = -out.RegionSides[separatedRegion]
 	out.RegionWitnesses[4] = center
-	patches := [2]*SurfacePatch{a, c}
+	out.SeparatedExtrema, err = originalSeparatedCircleExtrema(ctx, [2]*SurfacePatch{a, c}, center, otherRadius, b)
+	if err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	out.ExactOperations = b.operations
+	return out, nil
+}
+
+func originalSeparatedCircleExtrema(ctx context.Context, patches [2]*SurfacePatch, center [2]*big.Rat,
+	radius *big.Rat, b *polynomialBudget) (out [4]ParabolaSeparatedCircleVertex, err error) {
 	for i, radial := range [4][2]int64{{1, 0}, {0, 1}, {-1, 0}, {0, -1}} {
 		uv := [2]*big.Rat{}
 		for axis, direction := range radial {
-			uv[axis] = new(big.Rat).Add(center[axis], new(big.Rat).Mul(otherRadius, big.NewRat(direction, 1)))
+			uv[axis] = new(big.Rat).Add(center[axis], new(big.Rat).Mul(radius, big.NewRat(direction, 1)))
 			if err := b.check(uv[axis]); err != nil {
-				return nil, err
+				return out, err
 			}
 		}
 		jets, err := parabolaCircleOriginalJets(ctx, patches, uv, b)
 		if err != nil {
-			return nil, err
+			return out, err
 		}
 		v := ParabolaSeparatedCircleVertex{Parameters: uv, Point: jets[0].Point}
 		for owner, jet := range jets {
@@ -156,16 +168,12 @@ func DiscoverSplineGraphParabolaMixedCircles(ctx context.Context, a, c *SurfaceP
 				d := new(big.Rat).Mul(u, big.NewRat(-radial[1], 1))
 				d.Add(d, new(big.Rat).Mul(jet.Dv[dim], big.NewRat(radial[0], 1)))
 				if err := b.check(d); err != nil {
-					return nil, err
+					return out, err
 				}
 				v.Tangents[owner][dim] = d
 			}
 		}
-		out.SeparatedExtrema[i] = v
+		out[i] = v
 	}
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	out.ExactOperations = b.operations
 	return out, nil
 }

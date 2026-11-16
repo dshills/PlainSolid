@@ -119,6 +119,10 @@ The overlapping projection STEP/IGES matrix passes another 24 files and
 source rays, 486 roof poles and the separate Cut contacts. A main race
 checks the whole original carrier clock and refuses a changed UV clock.
 All 54 preceding neutral digests match.
+The [three-circle source arrangement audit](evidence/parabola-three-circles-2026-11-16.json)
+passes 20 layouts, axes and owner orders. It retains four exact junctions,
+seven signed regions and four original isolated-ring extrema. Independent
+factor quotients, exact measures and altered/tangent/overlap controls agree.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same
