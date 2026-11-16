@@ -30,7 +30,7 @@ func WritePeriodicConvexTrimmedFace(ctx context.Context, w io.Writer, face Perio
 	if !reflect.DeepEqual(face, proved) {
 		return fmt.Errorf("iges: convex periodic trim no longer matches its original proof: %w", geom.ErrUnrepresentable)
 	}
-	if err := checkPeriodicConvexTransfer(proved, nil); err != nil {
+	if err := checkPeriodicConvexTransfer(proved); err != nil {
 		return err
 	}
 	carrier, err := writePeriodicTrimRecords(source)
@@ -55,13 +55,13 @@ func WritePeriodicConvexTrimmedFace(ctx context.Context, w io.Writer, face Perio
 	return err
 }
 
-func checkPeriodicConvexTransfer(f PeriodicConvexTrimmedFace, hole *PeriodicConvexTrimHole) error {
+func checkPeriodicConvexTransfer(f PeriodicConvexTrimmedFace, holes ...PeriodicConvexTrimHole) error {
 	boxes := [][2]geom.ExactParameterInterval{{f.KnotOwners[0].Domain, f.KnotOwners[1].Domain}}
 	wires := [][4]PeriodicTrimEdge{f.Edges}
-	if hole != nil {
+	for _, hole := range holes {
 		wires = append(wires, hole.Edges)
 	}
-	var points [2][4][2]*big.Rat
+	points := make([][4][2]*big.Rat, len(wires))
 	for index, wire := range wires {
 		for i, edge := range wire {
 			var station [2]geom.ExactParameterInterval
@@ -79,11 +79,19 @@ func checkPeriodicConvexTransfer(f PeriodicConvexTrimmedFace, hole *PeriodicConv
 	if err := checkPeriodicTrimTransferStations(nil, boxes...); err != nil {
 		return err
 	}
-	if !periodicUVStrictlyConvex(points[0], 1) || hole != nil && !periodicUVStrictlyConvex(points[1], -1) {
+	if !periodicUVStrictlyConvex(points[0], 1) {
 		return fmt.Errorf("iges: convex periodic trim loses its original winding or convexity in binary64 transfer: %w", geom.ErrUnrepresentable)
 	}
-	if hole != nil && !periodicUVStrictlyContains(points[0], points[1]) {
-		return fmt.Errorf("iges: convex trim hole loses strict containment in binary64 transfer: %w", geom.ErrUnrepresentable)
+	for _, hole := range points[1:] {
+		if !periodicUVStrictlyConvex(hole, -1) {
+			return fmt.Errorf("iges: convex trim hole loses its original winding or convexity in binary64 transfer: %w", geom.ErrUnrepresentable)
+		}
+		if !periodicUVStrictlyContains(points[0], hole) {
+			return fmt.Errorf("iges: convex trim hole loses strict containment in binary64 transfer: %w", geom.ErrUnrepresentable)
+		}
+	}
+	if len(holes) == 2 && !periodicConvexWiresStrictlyDisjoint(points[1], points[2]) {
+		return fmt.Errorf("iges: convex trim holes lose strict separation in binary64 transfer: %w", geom.ErrUnrepresentable)
 	}
 	return nil
 }

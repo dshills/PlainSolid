@@ -403,10 +403,13 @@ static bool writeExactUVSeams(const char* path, std::string_view mode)
 
 static bool writeExactConvexAffine(const char* path, std::string_view mode)
 {
+    const bool twoHoles = mode == "write-exact-convex-affine-two-holes" ||
+                          mode == "write-exact-convex-affine-two-holes-touching" ||
+                          mode == "write-exact-convex-affine-two-holes-overlap";
     const bool hasHole = mode != "write-exact-convex-affine" && mode != "write-exact-convex-affine-clockwise";
-    // The smaller hole's cubic poles contain more dyadic bits. Scale the
-    // holed geometry so the independent IGES decimal writer retains them.
-    const double scale = hasHole ? 64. : 1.;
+    // The smaller holes' cubic poles contain more dyadic bits. A uniform
+    // scale keeps every coefficient exact through the decimal writer.
+    const double scale = twoHoles ? 16384. : (hasHole ? 64. : 1.);
     const auto native = periodicSupport();
     for (int u = 1; u <= native->NbUPoles(); ++u) {
         const auto p = native->Pole(u,1);
@@ -419,7 +422,19 @@ static bool writeExactConvexAffine(const char* path, std::string_view mode)
     occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
     using Contours = NCollection_HArray1<occ::handle<IGESGeom_CurveOnSurface>>;
     occ::handle<Contours> inner;
-    if (hasHole) {
+    if (twoHoles) {
+        const auto diagonalHole = [](double x, double y) {
+            const auto physical = [=](double a, double b) { return gp_XY(1.5+(x+a)/4.,2.+y+b); };
+            return std::array<gp_XY,4>{physical(-.25,-.5),physical(-.5,-.25),physical(.25,.5),physical(.5,.25)};
+        };
+        const bool touching = mode == "write-exact-convex-affine-two-holes-touching";
+        const bool overlap = mode == "write-exact-convex-affine-two-holes-overlap";
+        const double secondX = touching ? 0. : (overlap ? -.125 : .25);
+        const double secondY = touching || overlap ? 0. : -.25;
+        inner = new Contours(1,2);
+        inner->SetValue(1,exactContour(native,support,diagonalHole(-.25,.25),80));
+        inner->SetValue(2,exactContour(native,support,diagonalHole(secondX,secondY),96));
+    } else if (hasHole) {
         const double rightV = mode == "write-exact-convex-affine-hole-touching" ? 1.5
                             : mode == "write-exact-convex-affine-hole-crossing" ? 1.25 : 2.;
         std::array<gp_XY,4> hole{gp_XY(1.5,1.5),gp_XY(1.375,2),gp_XY(1.5,2.5),gp_XY(1.625,rightV)};
@@ -465,7 +480,9 @@ int main(int argc,char** argv)
         }
         if (mode == "write-exact-convex-affine" || mode == "write-exact-convex-affine-clockwise" ||
             mode == "write-exact-convex-affine-hole" || mode == "write-exact-convex-affine-hole-ccw" ||
-            mode == "write-exact-convex-affine-hole-touching" || mode == "write-exact-convex-affine-hole-crossing") {
+            mode == "write-exact-convex-affine-hole-touching" || mode == "write-exact-convex-affine-hole-crossing" ||
+            mode == "write-exact-convex-affine-two-holes" || mode == "write-exact-convex-affine-two-holes-touching" ||
+            mode == "write-exact-convex-affine-two-holes-overlap") {
             return writeExactConvexAffine(argv[2],mode) ? 0 : 8;
         }
         if (mode == "write" || mode == "write-seam") {

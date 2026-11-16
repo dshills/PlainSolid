@@ -163,7 +163,7 @@ func TestPeriodicConvexTransferRejectsRoundedTurn(t *testing.T) {
 	for i, p := range points {
 		f.Edges[i].UVStart = p
 	}
-	if err := checkPeriodicConvexTransfer(f, nil); err == nil || !strings.Contains(err.Error(), "loses its original winding or convexity") {
+	if err := checkPeriodicConvexTransfer(f); err == nil || !strings.Contains(err.Error(), "loses its original winding or convexity") {
 		t.Fatal("binary64-collinear UV triplet passed the convex transfer guard", err)
 	}
 }
