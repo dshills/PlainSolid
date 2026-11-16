@@ -355,6 +355,33 @@ static bool writeExactUVCell(const char* path, bool clockwise)
     return writer.AddEntity(face) && writer.Write(path);
 }
 
+static bool writeExactUVSeams(const char* path, std::string_view mode)
+{
+    const auto native = doublyPeriodicSupport();
+    const auto support = exactCarrier(native,0.,5.,2.,7.);
+    const auto write = [&](const auto& outer, double u0, double u1, double v0, double v1) {
+        const auto reference = BRepBuilderAPI_MakeFace(native,u0,u1,v0,v1,1e-9).Face();
+        if (reference.IsNull() || !report(reference)) return false;
+        occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
+        face->Init(support,1,exactContour(native,support,outer,48),nullptr);
+        IGESControl_Writer writer("MM",0);
+        return writer.AddEntity(face) && writer.Write(path);
+    };
+    if (mode == "write-exact-uv-u-seam") {
+        const std::array<gp_XY,6> outer{gp_XY(4.75,2.25),gp_XY(5,2.25),gp_XY(5.25,2.25),
+                                        gp_XY(5.25,2.75),gp_XY(5,2.75),gp_XY(4.75,2.75)};
+        return write(outer,4.75,5.25,2.25,2.75);
+    }
+    if (mode == "write-exact-uv-v-seam") {
+        const std::array<gp_XY,6> outer{gp_XY(1.25,6.75),gp_XY(1.75,6.75),gp_XY(1.75,7),
+                                        gp_XY(1.75,7.25),gp_XY(1.25,7.25),gp_XY(1.25,7)};
+        return write(outer,1.25,1.75,6.75,7.25);
+    }
+    const std::array<gp_XY,8> outer{gp_XY(4.75,6.75),gp_XY(5,6.75),gp_XY(5.25,6.75),gp_XY(5.25,7),
+                                    gp_XY(5.25,7.25),gp_XY(5,7.25),gp_XY(4.75,7.25),gp_XY(4.75,7)};
+    return write(outer,4.75,5.25,6.75,7.25);
+}
+
 int main(int argc,char** argv)
 {
     if (argc != 3) return 2;
@@ -379,6 +406,9 @@ int main(int argc,char** argv)
         }
         if (mode == "write-exact-uv-cell" || mode == "write-exact-uv-cell-clockwise") {
             return writeExactUVCell(argv[2],mode == "write-exact-uv-cell-clockwise") ? 0 : 8;
+        }
+        if (mode == "write-exact-uv-u-seam" || mode == "write-exact-uv-v-seam" || mode == "write-exact-uv-both-seams") {
+            return writeExactUVSeams(argv[2],mode) ? 0 : 8;
         }
         if (mode == "write" || mode == "write-seam") {
             const TopoDS_Face face = original(mode == "write-seam");

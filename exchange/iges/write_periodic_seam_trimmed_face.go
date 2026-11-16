@@ -22,7 +22,7 @@ func WritePeriodicSeamTrimmedFace(ctx context.Context, w io.Writer, face Periodi
 	if w == nil || face.original == "" {
 		return geom.ErrInvalid
 	}
-	source, err := readPeriodicTrimSourceForAxes(ctx, strings.NewReader(face.original), Limits{}, 6, periodicTrimSingleAxis)
+	source, err := readPeriodicTrimSourceForAxes(ctx, strings.NewReader(face.original), Limits{}, 6, periodicTrimAnyAxes)
 	if err != nil {
 		return err
 	}
@@ -32,6 +32,15 @@ func WritePeriodicSeamTrimmedFace(ctx context.Context, w io.Writer, face Periodi
 	}
 	if !reflect.DeepEqual(face, proved) {
 		return fmt.Errorf("iges: seam trim no longer matches its original proof: %w", geom.ErrUnrepresentable)
+	}
+	if source.support.PeriodicU && source.support.PeriodicV {
+		var knots [2][2]geom.ExactParameterInterval
+		for i, cell := range proved.Cells {
+			knots[i] = [2]geom.ExactParameterInterval{cell.KnotOwners[0].Domain, cell.KnotOwners[1].Domain}
+		}
+		if err := checkPeriodicTrimTransferStations(nil, proved.Cells[0].Bounds, proved.Cells[1].Bounds, knots[0], knots[1]); err != nil {
+			return err
+		}
 	}
 	carrier, err := writePeriodicTrimRecords(source)
 	if err != nil {

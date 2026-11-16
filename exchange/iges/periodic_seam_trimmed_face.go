@@ -42,13 +42,13 @@ func (f PeriodicSeamTrimmedFace) OriginalIGES() string { return f.original }
 
 // ReadPeriodicSeamTrimmedFace proves one rectangular type-144 face whose
 // directed UV and model composites both split at the upper seam of the
-// original full type-128 carrier. The lift must meet exactly the two
-// adjacent knot cells along the periodic axis and one ordinary span
-// along the opposite axis. Both sides must share the entire seam, and
+// original full type-128 carrier. Exactly one axis may cross a seam.
+// The lift must meet the two neighboring cells on that axis and lie
+// strictly inside one original knot span along the opposite axis. Both sides must share the entire seam, and
 // one fixed projection must prove injectivity over the lifted rectangle.
 func ReadPeriodicSeamTrimmedFace(ctx context.Context, r io.Reader, l Limits) (PeriodicSeamTrimmedFace, error) {
 	var zero PeriodicSeamTrimmedFace
-	source, err := readPeriodicTrimSourceForAxes(ctx, r, l, 6, periodicTrimSingleAxis)
+	source, err := readPeriodicTrimSourceForAxes(ctx, r, l, 6, periodicTrimAnyAxes)
 	if err != nil {
 		return zero, err
 	}
@@ -75,19 +75,34 @@ func provePeriodicSeamTrimmedOuter(ctx context.Context, source *periodicTrimSour
 		Support: base.Support, CarrierBounds: base.Bounds, original: base.original,
 	}
 	u, v, _ := m.Support.Data()
-	axis := 0
-	if v.Periodic {
-		axis = 1
-	}
 	basis := [2]geom.ExactTensorSplineAxis{u, v}
 	for i, b := range basis {
 		first := b.Degree
-		if i == axis {
+		if b.Periodic {
 			first = 0
 		}
 		if m.CarrierBounds[i].Lower.Cmp(b.Knots[first]) != 0 || m.CarrierBounds[i].Upper.Cmp(b.Knots[b.Count]) != 0 {
 			return zero, fmt.Errorf("iges: seam trim requires the full original carrier intervals: %w", geom.ErrUnrepresentable)
 		}
+	}
+	var uv [6]periodicTrimUVEdge
+	var err error
+	m.Bounds, err = readPeriodicTrimUVEdges(source.graph, source.uv, uv[:])
+	if err != nil {
+		return zero, err
+	}
+	axis := 0
+	if u.Periodic && v.Periodic {
+		uCrosses := crossesOriginalUpperSeam(m.Bounds[0], m.CarrierBounds[0].Upper)
+		vCrosses := crossesOriginalUpperSeam(m.Bounds[1], m.CarrierBounds[1].Upper)
+		if uCrosses == vCrosses {
+			return zero, fmt.Errorf("iges: doubly periodic trim requires exactly one original upper seam crossing: %w", geom.ErrUnrepresentable)
+		}
+		if vCrosses {
+			axis = 1
+		}
+	} else if v.Periodic {
+		axis = 1
 	}
 	carrier := m.CarrierBounds[axis]
 	seam := new(big.Rat).Set(carrier.Upper)
@@ -97,15 +112,9 @@ func provePeriodicSeamTrimmedOuter(ctx context.Context, source *periodicTrimSour
 	} else {
 		m.SeamV = seam
 	}
-	var uv [6]periodicTrimUVEdge
-	var err error
-	m.Bounds, err = readPeriodicTrimUVEdges(source.graph, source.uv, uv[:])
-	if err != nil {
-		return zero, err
-	}
 	lift := m.Bounds[axis]
-	if lift.Lower.Cmp(carrier.Lower) <= 0 || lift.Lower.Cmp(seam) >= 0 ||
-		lift.Upper.Cmp(seam) <= 0 || new(big.Rat).Sub(lift.Upper, lift.Lower).Cmp(period) >= 0 {
+	if lift.Lower.Cmp(carrier.Lower) <= 0 || !crossesOriginalUpperSeam(lift, seam) ||
+		new(big.Rat).Sub(lift.Upper, lift.Lower).Cmp(period) >= 0 {
 		return zero, fmt.Errorf("iges: expected one lift crossing the upper original %s seam: %w", [2]string{"U", "V"}[axis], geom.ErrUnrepresentable)
 	}
 	cells, err := m.proveSeamCells(ctx)
@@ -122,6 +131,10 @@ func provePeriodicSeamTrimmedOuter(ctx context.Context, source *periodicTrimSour
 	return m, nil
 }
 
+func crossesOriginalUpperSeam(interval geom.ExactParameterInterval, seam *big.Rat) bool {
+	return interval.Lower.Cmp(seam) < 0 && interval.Upper.Cmp(seam) > 0
+}
+
 func (m *PeriodicSeamTrimmedFace) proveSeamCells(ctx context.Context) ([]geom.ExactPeriodicSurfaceBezierCell, error) {
 	cells, _, err := m.Support.ExactBezierCells(ctx, m.Bounds[0], m.Bounds[1], geom.PeriodicSurfaceBezierOptions{MaxCells: 2})
 	if err != nil {
@@ -134,7 +147,7 @@ func (m *PeriodicSeamTrimmedFace) proveSeamCells(ctx context.Context) ([]geom.Ex
 	if m.SeamV != nil {
 		axis, seam = 1, m.SeamV
 	}
-	ordinary := 1 - axis
+	opposite := 1 - axis
 	for i, cell := range cells {
 		box := [2]geom.ExactParameterInterval{cell.U.Domain, cell.V.Domain}
 		if (i == 0 && box[axis].Upper.Cmp(seam) != 0) || (i == 1 && box[axis].Lower.Cmp(seam) != 0) {
@@ -144,11 +157,14 @@ func (m *PeriodicSeamTrimmedFace) proveSeamCells(ctx context.Context) ([]geom.Ex
 		if err != nil {
 			return nil, err
 		}
+		if cycle := owners[opposite].Cycle; cycle != nil && cycle.Sign() != 0 {
+			return nil, fmt.Errorf("iges: opposite axis is outside its original fundamental cycle: %w", geom.ErrUnrepresentable)
+		}
 		if owners[axis].Cycle.Cmp(big.NewInt(int64(i))) != 0 ||
 			i == 0 && box[axis].Lower.Cmp(owners[axis].Domain.Lower) <= 0 ||
 			i == 1 && box[axis].Upper.Cmp(owners[axis].Domain.Upper) >= 0 ||
-			box[ordinary].Lower.Cmp(owners[ordinary].Domain.Lower) <= 0 ||
-			box[ordinary].Upper.Cmp(owners[ordinary].Domain.Upper) >= 0 {
+			box[opposite].Lower.Cmp(owners[opposite].Domain.Lower) <= 0 ||
+			box[opposite].Upper.Cmp(owners[opposite].Domain.Upper) >= 0 {
 			return nil, fmt.Errorf("iges: lifted rectangle touches an additional original knot station: %w", geom.ErrUnrepresentable)
 		}
 		patch, err := cell.NormalizedPatch(ctx, geom.SurfacePatchOptions{})
