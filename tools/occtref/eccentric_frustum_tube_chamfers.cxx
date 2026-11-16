@@ -18,14 +18,17 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <string_view>
 
-int main() {
+int main(int argc, char** argv) {
+    const bool diagonal = argc == 2 && std::string_view(argv[1]) == "diagonal";
+    if (argc > 2 || (argc == 2 && !diagonal)) return 1;
     const double z0 = 2.0, height = 8.0;
     const std::array<std::array<double, 2>, 2> radii{{{5, 7}, {2, 3}}};
     const std::array<std::array<double, 2>, 2> radial{{{.25, .5}, {.1875, .375}}};
     const std::array<std::array<double, 2>, 2> axial{{{2, 1}, {1, 2}}};
     const auto outer = BRepPrimAPI_MakeCone(gp_Ax2(gp_Pnt(0, 0, z0), gp::DZ()), radii[0][0], radii[0][1], height).Shape();
-    const auto inner = BRepPrimAPI_MakeCone(gp_Ax2(gp_Pnt(2.5, 0, z0), gp::DZ()), radii[1][0], radii[1][1], height).Shape();
+    const auto inner = BRepPrimAPI_MakeCone(gp_Ax2(gp_Pnt(diagonal ? 1.5 : 2.5, diagonal ? 2.0 : 0.0, z0), gp::DZ()), radii[1][0], radii[1][1], height).Shape();
     BRepAlgoAPI_Cut subtract(outer, inner);
     const auto tube = subtract.Shape();
     if (!subtract.IsDone() || tube.IsNull() || !BRepCheck_Analyzer(tube).IsValid()) return 2;
