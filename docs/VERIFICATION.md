@@ -243,6 +243,14 @@ in both owners and across both source orders. A physically creased
 pair reproduces the exact cusp and the changed original exit heights.
 Changing only the later knot cell's residual, placing an ambiguous
 crease at the cusp, or constraining the cell budget produces no result.
+At a shared longitudinal C0 knot both cusp germs can instead use a proved
+one-sided source jet. The exact fixture uses the right cell in the first
+roof and the left cell of the reversed second chart. Both first
+derivatives remain zero and the shared second derivative is
+`(6,0,15/4)`. Opposite departure sides, a C0 terminal ambiguity and
+ordinary or isolated nodes at C0 remain refused. Main passed the
+combined geometry race and the native and pinned exchange race groups
+in 12.219, 35.435 and 27.958 seconds respectively.
 
 A separate isolated real double-point proof passes with and without a
 disjoint regular branch, including source order swaps and rotated

@@ -20,7 +20,11 @@ func bindCuspidalCubicOwners(ctx context.Context, sources [2]*SurfacePatch, out 
 		if err != nil {
 			return err
 		}
-		jets[i], err = graphCubicVertexJets(ctx, sources, v.UV, b)
+		if i == 0 {
+			jets[i], err = cuspidalCubicGermOriginJets(ctx, sources, v.UV, out.ChartMaps, b)
+		} else {
+			jets[i], err = graphCubicVertexJets(ctx, sources, v.UV, b)
+		}
 		if err != nil {
 			return err
 		}
@@ -81,10 +85,36 @@ func bindCuspidalCubicOwners(ctx context.Context, sources [2]*SurfacePatch, out 
 	return nil
 }
 
+func cuspidalCubicGermOriginJets(ctx context.Context, sources [2]*SurfacePatch, uv [2][2]*big.Rat, maps [2][2][3]*big.Rat,
+	b *polynomialBudget) ([2]RationalSurfacePatchJet, error) {
+	var sides [2][2]int
+	for owner, p := range sources {
+		if err := ctx.Err(); err != nil {
+			return [2]RationalSurfacePatchJet{}, err
+		}
+		for axis, c0 := range graphCubicVertexC0Axes(p, uv[owner]) {
+			if !c0 {
+				continue
+			}
+			// The UV displacement starts with ChartMap[x]*q²/Scale
+			// for both outward germs. Its nonzero sign selects the
+			// same adjacent knot cell, even on a reversed owner.
+			direction := maps[owner][axis][0].Sign()
+			if direction == 0 {
+				// The cubics enter opposite cells across a dependent
+				// knot, so a common one-sided jet is unresolved.
+				return [2]RationalSurfacePatchJet{}, ErrConvergence
+			}
+			sides[owner][axis] = direction
+		}
+	}
+	return graphCubicOriginalJetsOnKnotSides(ctx, sources, uv, sides, b)
+}
+
 func bindCuspidalCubicGerm(section *CuspidalCubicSection, germ *CuspidalCubicGerm, cusp, terminal [2]RationalSurfacePatchJet,
 	boundary [2]uint8, exit *big.Rat, side int64, b *polynomialBudget) error {
 	// UV'(0)=0, so the second and third model derivatives are exactly
-	// DS·UV'' and DS·UV''' on each original differentiable support.
+	// DS·UV'' and DS·UV''' on the original source cell reached by the germ.
 	zero := new(big.Rat)
 	second := [2]*big.Rat{new(big.Rat).Quo(big.NewRat(2, 1), section.Scale), zero}
 	third := [2]*big.Rat{zero, new(big.Rat).Quo(big.NewRat(6*side, 1), section.Scale)}

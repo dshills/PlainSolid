@@ -343,7 +343,9 @@ zero first jet, a shared second jet and opposite third jets in the
 original owner charts. Nodal and cuspidal discovery also prove the same
 signed equation on each original knot cell. This accepts an actual
 shared carrier crease away from the required jets and refuses a changed
-residual or an ambiguous cusp or node tangent. Native cuspidal Common,
+residual or an ambiguous cusp or node tangent. A cusp on a longitudinal
+crease can also be proved when both germs depart on the same original
+side, including a reversed owner clock. Native cuspidal Common,
 Fuse and both Cut orders now also qualify on an actual shared carrier
 crease in reversed charts, including native replay and independent
 volume checks. The geometry also distinguishes an isolated real double

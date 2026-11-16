@@ -76,23 +76,44 @@ func cubicCellCompareOperations(t *testing.T, original, refined any, a, b *int) 
 // Add independently controlled hinge heights to the original carrier.
 func addCubicCellHinge(t *testing.T, patch *SurfacePatch, knot float64, slope *big.Rat) *SurfacePatch {
 	t.Helper()
-	q, err := patch.InsertUKnot(knot, patch.degreeU, SurfacePatchOptions{})
+	return addCubicCellAxisHinge(t, patch, knot, 0, 1, slope)
+}
+
+func addCubicCellAxisHinge(t *testing.T, patch *SurfacePatch, knot float64, axis int, side int64, slope *big.Rat) *SurfacePatch {
+	t.Helper()
+	insert, degree := patch.InsertUKnot, patch.degreeU
+	if axis == 1 {
+		insert, degree = patch.InsertVKnot, patch.degreeV
+	}
+	q, err := insert(knot, degree, SurfacePatchOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
+	knots, count := q.knotsU, q.countU
+	if axis == 1 {
+		knots, count = q.knotsV, q.countV
+	}
 	at := new(big.Rat).SetFloat64(knot)
-	for i := range q.countU {
+	shifts := make([]*big.Rat, count)
+	for i := range shifts {
 		g := new(big.Rat)
-		for _, k := range q.knotsU[i+1 : i+q.degreeU+1] {
+		for _, k := range knots[i+1 : i+degree+1] {
 			g.Add(g, new(big.Rat).SetFloat64(k))
 		}
-		g.Quo(g, big.NewRat(int64(q.degreeU), 1))
-		if g.Cmp(at) <= 0 {
-			continue
+		g.Quo(g, big.NewRat(int64(degree), 1))
+		offset := new(big.Rat).Sub(g, at)
+		offset.Mul(offset, big.NewRat(side, 1))
+		if offset.Sign() > 0 {
+			shifts[i] = new(big.Rat).Mul(offset, slope)
 		}
-		shift := new(big.Rat).Mul(new(big.Rat).Sub(g, at), slope)
-		for j := range q.countV {
-			p := &q.net[i*q.countV+j]
+	}
+	for i := range q.net {
+		coordinate := i / q.countV
+		if axis == 1 {
+			coordinate = i % q.countV
+		}
+		if shift := shifts[coordinate]; shift != nil {
+			p := &q.net[i]
 			p[2] = new(big.Rat).Add(p[2], new(big.Rat).Mul(shift, p[3]))
 		}
 	}
@@ -167,10 +188,11 @@ func TestDiscoverProjectedGraphCuspidalCubicWithSharedCarrierCrease(t *testing.T
 			t.Fatal("accepted a changed residual in the right cells", err)
 		}
 	})
-	t.Run("required cusp jet falls on C0 crease", func(t *testing.T) {
+	t.Run("required cusp jet uses the outgoing longitudinal C0 cell", func(t *testing.T) {
 		a, b := addCubicCellHinge(t, src[0], .25, delta), addCubicCellHinge(t, src[1], .25, delta)
-		if out, err := DiscoverProjectedGraphCuspidalCubic(ctx, a, b, axes, 0, opts); !errors.Is(err, ErrConvergence) || out != nil {
-			t.Fatal("published an ambiguous two-sided cusp jet", err)
+		out, err := DiscoverProjectedGraphCuspidalCubic(ctx, a, b, axes, 0, opts)
+		if err != nil || out.Germs[0].ModelSecond[2].RatString() != "15/4" || out.Germs[1].ModelSecond[2].RatString() != "15/4" {
+			t.Fatal("longitudinal knot jet differs from the analytic departure side", err)
 		}
 	})
 }

@@ -162,13 +162,18 @@ func graphCubicBoundary(d ParameterRectangle, uv [2]*big.Rat) (mask uint8) {
 }
 
 func graphCubicOriginalJets(ctx context.Context, patches [2]*SurfacePatch, uv [2][2]*big.Rat,
+	b *polynomialBudget) ([2]RationalSurfacePatchJet, error) {
+	return graphCubicOriginalJetsOnKnotSides(ctx, patches, uv, [2][2]int{}, b)
+}
+
+func graphCubicOriginalJetsOnKnotSides(ctx context.Context, patches [2]*SurfacePatch, uv [2][2]*big.Rat, sides [2][2]int,
 	b *polynomialBudget) (jets [2]RationalSurfacePatchJet, err error) {
 	for owner, source := range patches {
 		remaining := b.maxOperations - b.operations
 		if remaining < 1 {
 			return jets, ErrConvergence
 		}
-		jets[owner], err = source.EvaluateRational(ctx, uv[owner][0], uv[owner][1],
+		jets[owner], err = source.evaluateRationalOnKnotSide(ctx, uv[owner][0], uv[owner][1], sides[owner],
 			SurfacePatchEvaluationOptions{MaxOperations: remaining, MaxCoefficientBits: b.maxBits})
 		b.operations += jets[owner].ExactOperations
 		if err != nil {
@@ -187,22 +192,28 @@ func graphCubicVertexJets(ctx context.Context, patches [2]*SurfacePatch, uv [2][
 		if err := ctx.Err(); err != nil {
 			return jets, err
 		}
-		for axis, data := range []struct {
-			knots         []float64
-			degree, count int
-		}{{p.knotsU, p.degreeU, p.countU}, {p.knotsV, p.degreeV, p.countV}} {
-			value, exact := uv[owner][axis].Float64()
-			if !exact || value <= data.knots[data.degree] || value >= data.knots[data.count] {
-				continue
-			}
-			interior := data.knots[data.degree+1 : data.count]
-			first := sort.SearchFloat64s(interior, value)
-			if last := first + data.degree - 1; last < len(interior) && interior[first] == value && interior[last] == value {
-				return jets, ErrConvergence
-			}
+		if axes := graphCubicVertexC0Axes(p, uv[owner]); axes[0] || axes[1] {
+			return jets, ErrConvergence
 		}
 	}
 	return graphCubicOriginalJets(ctx, patches, uv, b)
+}
+
+func graphCubicVertexC0Axes(p *SurfacePatch, uv [2]*big.Rat) (out [2]bool) {
+	for axis, data := range [2]struct {
+		knots         []float64
+		degree, count int
+	}{{p.knotsU, p.degreeU, p.countU}, {p.knotsV, p.degreeV, p.countV}} {
+		value, exact := uv[axis].Float64()
+		if !exact || value <= data.knots[data.degree] || value >= data.knots[data.count] {
+			continue
+		}
+		interior := data.knots[data.degree+1 : data.count]
+		first := sort.SearchFloat64s(interior, value)
+		last := first + data.degree - 1
+		out[axis] = last < len(interior) && interior[first] == value && interior[last] == value
+	}
+	return out
 }
 
 func bindGraphCubicModelVector(uv [2][2]*big.Rat, jets [2]RationalSurfacePatchJet,
