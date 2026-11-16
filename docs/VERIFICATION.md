@@ -285,6 +285,14 @@ rounding tolerance. Pinned OCCT recovers zero first derivative, outgoing
 second derivative `(4.5,0,81/128)` and opposite third derivatives
 `(0,±4.5,±27/512)`. Main's native and pinned exchange race groups passed
 in 5.385 and 7.256 seconds, including the older creased transfer.
+Fuse reproduces `286551/22528` in both orders and Cut reproduces
+`1695/22528` and `243/22528` natively and in both neutral formats.
+The exact source hinge is shared; it changes the Common/Fuse baseline
+while cancelling in both differences. Pointed Cut transfers at zero
+tolerance. Exterior Cut and Fuse use explicit `1e-14` interior pole
+rounding for their nonterminating wall pcurves, with strict refusal
+before any bytes otherwise. Main's native and live reference race
+groups passed in 13.565 and 29.517 seconds respectively.
 
 A separate isolated real double-point proof passes with and without a
 disjoint regular branch, including source order swaps and rotated
