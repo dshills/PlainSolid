@@ -1,0 +1,159 @@
+package iges
+
+import (
+	"context"
+	"fmt"
+	"math/big"
+
+	"plainsolid/geom"
+)
+
+func (m *PeriodicTrimmedFace) proveEdges(ctx context.Context, graph periodicTrimGraph, cell geom.ExactPeriodicSurfaceBezierCell, uvIDs, modelIDs []int, remaining int) error {
+	first, previous := -1, -1
+	for i, uvID := range uvIDs {
+		uv, err := graph.take(uvID, 110)
+		if err != nil {
+			return err
+		}
+		a, b, err := periodicTrimUVLine(uv)
+		if err != nil {
+			return fmt.Errorf("iges: periodic UV line #%d: %w", uvID, err)
+		}
+		start, end := periodicTrimCorner(m.Bounds, a), periodicTrimCorner(m.Bounds, b)
+		if start < 0 || end != (start+1)%4 || i > 0 && start != previous {
+			return fmt.Errorf("iges: periodic trim UV line #%d does not follow the directed rectangle: %w", uvID, geom.ErrUnrepresentable)
+		}
+		if i == 0 {
+			first = start
+		}
+		previous = end
+		source, err := graph.take(modelIDs[i], 126)
+		if err != nil {
+			return err
+		}
+		curve, domain, used, err := periodicTrimModelEdge(ctx, source, remaining)
+		if err != nil {
+			return fmt.Errorf("iges: periodic model edge #%d: %w", source.id, err)
+		}
+		remaining -= used
+		expected, err := periodicTrimCellEdge(ctx, cell, start)
+		if err != nil {
+			return err
+		}
+		same, err := geom.CompareExactCurvesContext(ctx, expected, curve, geom.ExactCurveComparisonOptions{NormalizeDomains: true, MaxSpans: 1})
+		if err != nil {
+			return err
+		}
+		if !same.Complete || !same.Equal {
+			return fmt.Errorf("iges: periodic model edge #%d disagrees with UV line #%d: %w", source.id, uvID, geom.ErrUnrepresentable)
+		}
+		m.Edges[i] = PeriodicTrimEdge{UVSourceID: uvID, ModelSourceID: source.id, UVStart: a, UVEnd: b,
+			ModelParameter: domain, ModelCurve: curve}
+	}
+	if previous != first {
+		return geom.ErrUnrepresentable
+	}
+	return nil
+}
+
+func periodicTrimUVLine(r topologyRecord) (a, b [2]*big.Rat, err error) {
+	if len(r.values) < 7 {
+		return a, b, geom.ErrUnrepresentable
+	}
+	if err = noPointers(r.values[7:]); err != nil {
+		return a, b, err
+	}
+	p, err := igesPlanarCoordinates(r.values[1:4])
+	if err != nil {
+		return a, b, err
+	}
+	q, err := igesPlanarCoordinates(r.values[4:7])
+	if err != nil {
+		return a, b, err
+	}
+	if p[2].Sign() != 0 || q[2].Sign() != 0 {
+		return a, b, geom.ErrUnrepresentable
+	}
+	return [2]*big.Rat{p[0], p[1]}, [2]*big.Rat{q[0], q[1]}, nil
+}
+
+var periodicTrimCorners = [4][2]int{{0, 0}, {1, 0}, {1, 1}, {0, 1}}
+
+func periodicTrimCorner(bounds [2]geom.ExactParameterInterval, p [2]*big.Rat) int {
+	limits := [2][2]*big.Rat{
+		{bounds[0].Lower, bounds[0].Upper},
+		{bounds[1].Lower, bounds[1].Upper},
+	}
+	for i, c := range periodicTrimCorners {
+		if p[0].Cmp(limits[0][c[0]]) == 0 && p[1].Cmp(limits[1][c[1]]) == 0 {
+			return i
+		}
+	}
+	return -1
+}
+
+func periodicTrimCellEdge(ctx context.Context, cell geom.ExactPeriodicSurfaceBezierCell, start int) (*geom.ExactSplineCurve, error) {
+	a, b := periodicTrimCorners[start], periodicTrimCorners[(start+1)%4]
+	du, dv := cell.DegreeU, cell.DegreeV
+	stepU, stepV := b[0]-a[0], b[1]-a[1]
+	degree := du
+	if stepU == 0 {
+		degree = dv
+	}
+	controls := make([][4]*big.Rat, degree+1)
+	for i := range controls {
+		u, v := a[0]*du+i*stepU, a[1]*dv+i*stepV
+		controls[i] = cell.Control[u*(dv+1)+v]
+	}
+	return geom.NewExactHomogeneousBezier(ctx, controls, geom.SurfacePatchOptions{})
+}
+
+func periodicTrimModelEdge(ctx context.Context, source topologyRecord, remaining int) (*geom.ExactSplineCurve, geom.ExactParameterInterval, int, error) {
+	var zero geom.ExactParameterInterval
+	en, err := decode(126, source.values, remaining)
+	if err != nil {
+		return nil, zero, 0, err
+	}
+	if err := en.validate(); err != nil {
+		return nil, zero, 0, err
+	}
+	s := en.Spline
+	n := s.Curve.Degree() + 1
+	if s.Closed || n != len(s.Curve.Poles()) || n > 26 {
+		return nil, zero, 0, fmt.Errorf("expected one clamped model spline edge: %w", geom.ErrUnrepresentable)
+	}
+	values := source.values[7:]
+	domain := geom.ExactParameterInterval{}
+	domain.Lower, err = igesPlanarExact(values[6*n])
+	if err != nil {
+		return nil, zero, 0, err
+	}
+	domain.Upper, err = igesPlanarExact(values[6*n+1])
+	if err != nil || domain.Lower.Cmp(domain.Upper) >= 0 {
+		return nil, zero, 0, geom.ErrUnrepresentable
+	}
+	for i, p := range values[:2*n] {
+		want := domain.Lower
+		if i >= n {
+			want = domain.Upper
+		}
+		knot, err := igesPlanarExact(p)
+		if err != nil || knot.Cmp(want) != 0 {
+			return nil, zero, 0, fmt.Errorf("model edge bounds must be its full clamped knot range: %w", geom.ErrUnrepresentable)
+		}
+	}
+	controls := make([][4]*big.Rat, n)
+	for i := range controls {
+		w, err := igesPlanarExact(values[2*n+i])
+		if err != nil || w.Sign() <= 0 || s.Polynomial && i > 0 && controls[0][3].Cmp(w) != 0 {
+			return nil, zero, 0, geom.ErrUnrepresentable
+		}
+		p, err := igesPlanarCoordinates(values[3*n+3*i : 3*n+3*i+3])
+		if err != nil {
+			return nil, zero, 0, err
+		}
+		controls[i] = [4]*big.Rat{p[0].Mul(p[0], w), p[1].Mul(p[1], w), p[2].Mul(p[2], w), w}
+	}
+	curve, err := geom.NewExactHomogeneousBezier(ctx, controls, geom.SurfacePatchOptions{})
+	return curve, domain, n, err
+}

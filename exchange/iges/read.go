@@ -595,7 +595,7 @@ func decodeGeometry(kind int, p []parameter, maxPoints int, allowPeriodic bool) 
 		}
 		return Entity{Arc: &Arc{Center: geom.Vec3{X: v[1], Y: v[2], Z: v[0]}, Start: geom.Vec2{X: v[3], Y: v[4]}, End: geom.Vec2{X: v[5], Y: v[6]}}}, nil
 	case 128:
-		return decodeSurfaceMode(p, maxPoints, allowPeriodic)
+		return decodeSurfaceMode(p, maxPoints, allowPeriodic, nil)
 	case 126:
 		if len(p) < 7 {
 			return Entity{}, errors.New("iges: truncated spline")
