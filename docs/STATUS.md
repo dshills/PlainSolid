@@ -94,6 +94,10 @@ original owners, their knot partitions and exact directed coedge clocks.
 Whole trimmed faces with paired original uses can also prove equality
 through a projective chart map, including an original outer wire and
 holes. Arbitrary wire refinements under projective maps remain open.
+For graph projections that meet without positive area, the boundary
+query distinguishes no contact, one exact point, and a complete original
+edge. Unequal edge traces may still meet and are retained for further
+classification.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

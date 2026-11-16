@@ -191,6 +191,10 @@ An independent trimmed-face fixture verifies eight complete original
 coedges, a reversed chart and a hole. A changed hole curve with matching
 vertices, a short budget, and the old affine-only gate refuse the
 projective proof atomically. Previous affine wire controls pass.
+The graph boundary-only query passes both directions of a complete edge
+whose second owner has an original interior knot. Exact point contact
+and a projected point with unequal model lifts are distinguished. The
+unequal edge control preserves a real crossing for later classification.
 
 [Periodic IGES type 128 import](evidence/iges-periodic-128-2026-11-16.json)
 passed three independently authored pinned OCCT inputs and 54 original

@@ -152,5 +152,31 @@
       "TestSplineFaceCoincidenceProjectiveOriginalOuterAndHole"
     ],
     "original_uses": 8
+  },
+  "boundary_only_contact": {
+    "log": "projective-degenerate-boundary-contact-main-race.jsonl",
+    "sha256": "df182fa9eab0997c3cdb87ba8ca287a18de4f12970d1423b18120c26928f95c2",
+    "main_passes": [
+      "TestCompareExactCurvesFractionalOriginalClockAndKnot",
+      "TestTransformProjectiveUVKeepsOriginalCurveKnotsAndPhysicalDerivatives",
+      "TestProjectiveSurfaceGraphOverlapMapsAnOriginalUVCurve",
+      "TestExactSurfaceComparisonFractionalOriginalKnotMaps",
+      "TestProjectiveGraphBoundaryContactAuthenticatesCompleteEdge",
+      "TestProjectiveGraphBoundaryContactSeparatesOnePointFromNoContact",
+      "TestProjectiveGraphContactBoundaryKeepsBothDirectedOriginalCurves",
+      "TestProjectiveGraphContactBoundaryRefusesPartialProof",
+      "TestProjectiveSurfaceGraphOverlapDiscoversOriginalPartialMap",
+      "TestProjectiveSurfaceGraphOverlapRejectsAProjectionThatOnlyMatchesSamples",
+      "TestSurfaceSurfaceProjectiveCoincidenceKeepsExactCompleteContact",
+      "TestSurfaceNormalOffsetSeamAuthenticatesExactFractionalStation",
+      "TestSurfaceSurfaceCoverSplitsFiniteRangesWhoseWidthOverflows",
+      "TestSurfaceSurfaceCoverCrossingAndSymmetry",
+      "TestSurfaceSurfaceDisjointAndIdentical",
+      "TestSurfaceSurfaceTangencyAndLimits",
+      "TestSurfaceSurfaceRationalContactCover",
+      "TestSurfaceSurfaceCoplanarIsNotEqualityProof",
+      "TestVerticalProjectiveChartPreservesWholeSurface"
+    ],
+    "complete_edge_clock": "3/2"
   }
 }
