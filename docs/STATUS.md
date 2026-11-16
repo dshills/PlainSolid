@@ -16,6 +16,11 @@ Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows
 that cross the seam even at a distant cycle.
+The nested conical AP242 reader now materializes an editable document with
+two shared local solids, six leaf occurrences, original face labels, and
+exact original local and world pose labels. Native save/load preserves
+these records through occurrence edits. STEP occurrence writeback is
+still undergoing focused verification.
 
 The previous paired full runs used kernel `af569683` and PlainCAD `efae4d2`.
 The [Go run](evidence/main-af569683-qualification-2026-11-15.json)

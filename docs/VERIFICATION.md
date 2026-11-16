@@ -11,10 +11,18 @@ and the native bytes match the independently authored exact carrier.
 The combined main strict/repair/receipt race passed in 113.115 seconds.
 The PlainCAD bridge now requests the repair by name and retains the
 original receipt in the typed adapter. Its 55.361-second main race
-passed, including native reproof, two refusals and byte-identical
-corrected re-export. Both the ordinary and explicit repair flows passed
-in Chromium using fresh Go WASM workers. The repair emits the same
-10,496-triangle signed display as the already exact source.
+passed, including native reproof, refusal paths and byte-identical
+corrected re-export. The [ordinary and explicit repair flows](evidence/plaincad-conical-bore-repair-chromium-2026-11-15.json)
+both passed in Chromium using fresh Go WASM workers. The repair emits the
+same 10,496-triangle signed display as the already exact source. The
+source audit matched 2,918 kernel files, 849 PlainCAD files and all four
+supplementary fixture inputs to the pinned revisions.
+
+The nested conical AP242 document passed its focused main race in 42.320
+seconds. Two exact local assets supply six leaf paths and fourteen
+original face labels. Moving one group moves only its descendants and
+leaves source provenance intact. Undo, redo and byte-identical native
+replay passed. A short depth or node budget publishes no document.
 
 ## Full Go and PlainCAD rerun (2026-11-15)
 

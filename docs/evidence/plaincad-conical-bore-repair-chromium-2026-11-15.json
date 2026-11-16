@@ -1,0 +1,307 @@
+{
+  "manifestAudit": {
+    "status": "passed",
+    "kernel": {
+      "revision": "c46727946f0d63adab516191fa1fe0b355b4db30",
+      "manifestEntries": 2918,
+      "byteIdentical": 2918
+    },
+    "app": {
+      "revision": "efae4d2ffa6065875d3a76fc5926f358b5936a29",
+      "manifestEntries": 849,
+      "byteIdentical": 849,
+      "stagedVerified": 849,
+      "providerLabelAdaptations": 55,
+      "replacedKernelAdapter": "src/cad/kernel/OpenCascadeKernel.ts",
+      "additionalRootFilesVerified": [
+        "vite.config.ts",
+        "playwright.config.ts",
+        "tsconfig.json",
+        "tsconfig.e2e.json",
+        "package.json",
+        "package-lock.json"
+      ]
+    },
+    "supplement": {
+      "manifestEntries": 4,
+      "byteIdentical": 4,
+      "stagedVerified": 4,
+      "pageSha256": "5dbe4c6b755e17a1bef8bd4ef40128300dd248380b861861c19d061741aace78"
+    },
+    "wasmSha256": "01a5c51fa5d1c54be438ddf03416215ee4b98cca174dab04e8edd1b80241d1f5",
+    "wasmRuntimeSha256": "0c949f4996f9a89698e4b5c586de32249c3b69b7baadb64d220073cc04acba14",
+    "playwright": {
+      "startTime": "2026-11-16T04:44:59.098Z",
+      "duration": 82599.852,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  },
+  "ordinary": {
+    "repair": false,
+    "sourceSHA256": "af7b2221489a2edef6c4535233c8786826519787e9e326639e984bea0bd871a9",
+    "exportSHA256": "af7b2221489a2edef6c4535233c8786826519787e9e326639e984bea0bd871a9",
+    "meshSHA256": "1958b4d1365d8c2fa1d09f838601e4dc4139aeb5f18fe83d77676414892d1edb",
+    "linearDeflection": 0.05,
+    "angularDeflection": 0.2,
+    "workers": [
+      "/src/cad/kernel/plainSolidConicalBoreProbe.ts",
+      "/src/cad/kernel/plainSolidConicalBoreProbe.ts"
+    ],
+    "wasmLoads": [
+      200,
+      200
+    ],
+    "occtRequests": [],
+    "display": {
+      "triangles": 10496,
+      "vertices": 5248,
+      "edges": 15744,
+      "eulerCharacteristic": 0,
+      "signedVolume": 2277.843268907193,
+      "source": "plainsolid",
+      "operation": "stepImport",
+      "geometryAssertions": {
+        "valid": true,
+        "volume": 2282.401400976394,
+        "surfaceArea": 1182.6440976399517,
+        "solidCount": 1
+      }
+    },
+    "originalBytes": 6973,
+    "nativeProof": {
+      "valid": true,
+      "volume": 2282.401400976394,
+      "surfaceArea": 1182.6440976399517,
+      "solidCount": 1,
+      "bounds": {
+        "min": [
+          -12.250000001000176,
+          -10.250000001000204,
+          -1.0000852651282915e-09
+        ],
+        "max": [
+          12.250000001000176,
+          14.250000001000204,
+          6.000000001000086
+        ]
+      }
+    },
+    "roundedRejection": "PlainSolid UNSUPPORTED: STEP source is not a supported complete planar or analytic solid",
+    "meshMs": 24667,
+    "importMs": 3189.6999999955297,
+    "exportMs": 3088.39999999851,
+    "reopenMs": 3179.7000000029802,
+    "reopenedExportMs": 3126.5,
+    "workflowMs": 38324.89999999851
+  },
+  "repaired": {
+    "repair": true,
+    "sourceSHA256": "2cbfc481de8869290aa7ff58442610f51a95f6c7483a2dce3eb0ca378415d716",
+    "exportSHA256": "c88dd9399ba32107d02f6e6d108000b3d5a6a35d0d447d3ff2a848c3ac01edbf",
+    "meshSHA256": "1958b4d1365d8c2fa1d09f838601e4dc4139aeb5f18fe83d77676414892d1edb",
+    "linearDeflection": 0.05,
+    "angularDeflection": 0.2,
+    "workers": [
+      "/src/cad/kernel/plainSolidConicalBoreProbe.ts",
+      "/src/cad/kernel/plainSolidConicalBoreProbe.ts"
+    ],
+    "wasmLoads": [
+      200,
+      200
+    ],
+    "occtRequests": [],
+    "display": {
+      "triangles": 10496,
+      "vertices": 5248,
+      "edges": 15744,
+      "eulerCharacteristic": 0,
+      "signedVolume": 2277.843268907193,
+      "source": "plainsolid",
+      "operation": "stepImport",
+      "geometryAssertions": {
+        "valid": true,
+        "volume": 2282.401400976394,
+        "surfaceArea": 1182.6440976399517,
+        "solidCount": 1
+      }
+    },
+    "originalBytes": 7110,
+    "nativeProof": {
+      "valid": true,
+      "volume": 2282.401400976394,
+      "surfaceArea": 1182.6440976399517,
+      "solidCount": 1,
+      "bounds": {
+        "min": [
+          -12.250000001000176,
+          -10.250000001000204,
+          -1.0000852651282915e-09
+        ],
+        "max": [
+          12.250000001000176,
+          14.250000001000204,
+          6.000000001000086
+        ]
+      }
+    },
+    "roundedRejection": "PlainSolid UNSUPPORTED: STEP source is not a supported complete planar or analytic solid",
+    "repairEvidence": {
+      "family": "occt-conical-rim-fillet-bore",
+      "sourceSHA256": "2cbfc481de8869290aa7ff58442610f51a95f6c7483a2dce3eb0ca378415d716",
+      "lengthUnit": 0.001,
+      "maxDistance": 1e-11,
+      "repairs": [],
+      "pcurveOwners": 0,
+      "conicalRimBore": {
+        "correctedSHA256": "c88dd9399ba32107d02f6e6d108000b3d5a6a35d0d447d3ff2a848c3ac01edbf",
+        "ledger": {
+          "ConeSupportID": 45,
+          "ConeFaceID": 17,
+          "SeamCurveID": 26,
+          "ConeRimEdgeIDs": [
+            39,
+            31
+          ],
+          "ConeSeamVertexIDs": [
+            22,
+            24
+          ],
+          "OriginalAngle": "0.927295218002",
+          "ExactSlope": "4/3",
+          "OriginalRimStations": [
+            "3/16",
+            "21/8"
+          ],
+          "ConeDisplacementBound": "4573135888691254075490428437196656643941906007473700892699221998148701851156089798264649761479438531779230359785800635751662893806401715753494126762384639741613358801502055182654010521044481748282849196486596628891369039657001904027933653756680427915043585800366267903138804794655018377822206760758366004286997161014464935858096844751504499758543066175651026757222959377892673511820826372556387230371462773679007/1617393944190330247743215084798964197421238740657858572019385805543186245227576882178802628071025377115165115960344644406923144864242342430189051478548137740360909497781055713363530143571133718994000577646786579763493117107026935112286878354992876295618460788905011171896041160801785558625055210861276251937716319867674009250192779775850002706272542443034366540965674999527344058397749088000000000000000000000000000000000000",
+          "SeamDisplacementBound": "3429011037613/4000000000000000000000000000",
+          "Frames": [
+            {
+              "SupportID": 71,
+              "PlacementID": 72,
+              "EdgeID": 0,
+              "CorrectedDirectionIDs": [
+                0,
+                75
+              ],
+              "DisplacementBound": "191513471747847/100000000000000000000000000000"
+            },
+            {
+              "SupportID": 97,
+              "PlacementID": 98,
+              "EdgeID": 0,
+              "CorrectedDirectionIDs": [
+                0,
+                101
+              ],
+              "DisplacementBound": "136002320516587/50000000000000000000000000000"
+            },
+            {
+              "SupportID": 32,
+              "PlacementID": 33,
+              "EdgeID": 0,
+              "CorrectedDirectionIDs": [
+                0,
+                36
+              ],
+              "DisplacementBound": "63837823915949/25000000000000000000000000000"
+            },
+            {
+              "SupportID": 40,
+              "PlacementID": 41,
+              "EdgeID": 0,
+              "CorrectedDirectionIDs": [
+                0,
+                44
+              ],
+              "DisplacementBound": "91593399531579/50000000000000000000000000000"
+            },
+            {
+              "SupportID": 57,
+              "PlacementID": 58,
+              "EdgeID": 54,
+              "CorrectedDirectionIDs": [
+                60,
+                61
+              ],
+              "DisplacementBound": "74940054162201/80000000000000000000000000000"
+            },
+            {
+              "SupportID": 66,
+              "PlacementID": 67,
+              "EdgeID": 0,
+              "CorrectedDirectionIDs": [
+                0,
+                70
+              ],
+              "DisplacementBound": "341393580072249/200000000000000000000000000000"
+            },
+            {
+              "SupportID": 83,
+              "PlacementID": 84,
+              "EdgeID": 80,
+              "CorrectedDirectionIDs": [
+                86,
+                87
+              ],
+              "DisplacementBound": "74940054162201/40000000000000000000000000000"
+            },
+            {
+              "SupportID": 92,
+              "PlacementID": 93,
+              "EdgeID": 0,
+              "CorrectedDirectionIDs": [
+                0,
+                96
+              ],
+              "DisplacementBound": "230371277609729/100000000000000000000000000000"
+            }
+          ],
+          "ReversedFaceID": 50,
+          "ReversedBoundID": 51,
+          "ReversedRimEdgeIDs": [
+            39,
+            65
+          ],
+          "OriginalRimOwnerFaceIDs": [
+            [
+              17,
+              50
+            ],
+            [
+              50,
+              102
+            ]
+          ],
+          "OriginalRimUseSenses": [
+            true,
+            false
+          ]
+        }
+      }
+    },
+    "shortRepairRejection": "PlainSolid UNSUPPORTED: conical rim and bore STEP repair could not be proved within maxDistance: step: unsupported bounded conical rim fillet repair: finite cone angle displacement exceeds the source-unit limit",
+    "meshMs": 25227.29999999702,
+    "importMs": 5312.70000000298,
+    "exportMs": 3193.89999999851,
+    "reopenMs": 3202.10000000149,
+    "reopenedExportMs": 3118.60000000149,
+    "workflowMs": 40433.89999999851
+  },
+  "schema": 1,
+  "scope": "Strict and explicitly repaired conical STEP, angular display and fresh Chromium worker export replay",
+  "mainNativeRaceSeconds": 55.362,
+  "files": {
+    ".worktrees/qualification/2026-11-15/plaincad-conical-bore-repair-chromium/readiness.json": "2aab105c7f51e71c347eaac5c0dc110eb983050d59df2b1a0404b490b73e6f36",
+    ".worktrees/qualification/2026-11-15/plaincad-conical-bore-repair-chromium/playwright-results.json": "f714250f86cf2c73374e5adc8447b3152c5fca3df13d9dc77c5230e874a4395a",
+    ".worktrees/qualification/2026-11-15/plaincad-conical-bore-repair-chromium/source-manifest-audit.json": "9a94f5fe670bd3386498ece1e58423cfcc9f69ad081e68d47a9180530aa3a5c0",
+    ".worktrees/qualification/2026-11-15/plaincad-conical-bore-repair-chromium/worker-proofs.json": "06c28ef82e19befe9ce2ff35ac0eaa5bc251e02cff664ba10bb39008d3b3d34a",
+    ".worktrees/qualification/2026-11-15/plaincad-conical-bore-repair-chromium/acceptance.log": "5d20076cbe523d35463b13281b497562407b82eaff8cb78e819385992748fd07",
+    ".worktrees/qualification/2026-11-15/plaincad-conical-bore-repair-chromium/typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".worktrees/qualification/2026-11-15/plaincad-conical-bore-repair-chromium/typecheck-e2e.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".worktrees/qualification/2026-11-15/plaincad-conical-bore-repair-chromium/wasm-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".worktrees/qualification/2026-11-15/repaired-conical-plaincad-bridge-retake-race.jsonl": "6500e5ce24b7695931bbd5ef4bf652f5509fc0953ba1cccbac4806393f73bec9"
+  }
+}
