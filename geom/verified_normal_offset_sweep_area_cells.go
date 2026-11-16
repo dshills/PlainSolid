@@ -18,12 +18,13 @@ func (w *directedSweepAreaWork) estimate(ctx context.Context, cell *directedSwee
 		if err != nil {
 			return err
 		}
+		cell.ruling.applyExactDerivatives(&jet)
 		d, err = offsetCellJacobianFromCartesian(jet, w.budget)
 		if err != nil {
 			return err
 		}
 	} else {
-		jet, err := offsetCartesianRanges(ctx, cell.patch, w.budget)
+		jet, err := directedSweepCapRanges(ctx, cell, w.budget)
 		if err != nil {
 			return err
 		}
@@ -86,6 +87,101 @@ func (w *directedSweepAreaWork) estimate(ctx context.Context, cell *directedSwee
 	cell.area = area
 	cell.width = new(big.Rat).Sub(area.hi, area.lo)
 	return w.budget.check(cell.width)
+}
+
+func directedSweepCapRanges(ctx context.Context, cell *directedSweepAreaCell, b *polynomialBudget) ([3][3][3]exactInterval, error) {
+	ruling := cell.ruling
+	if ruling == nil {
+		return offsetCartesianRanges(ctx, cell.patch, b)
+	}
+	// The proved translation leaves both Cartesian derivatives and
+	// the unit normal independent of the ruling station. One original
+	// endpoint row encloses the entire ruling's cap density. The cap
+	// still integrates its full original ruling parameter interval.
+	side := SurfaceEdgeUMin + SurfaceEdge(2*ruling.axis)
+	h, err := offsetHomogeneousRangesOn(ctx, cell.patch, &side, b)
+	if err != nil {
+		return [3][3][3]exactInterval{}, err
+	}
+	jet, err := offsetCartesianRangesFromHomogeneous(h, b)
+	if err != nil {
+		return jet, err
+	}
+	ruling.applyExactDerivatives(&jet)
+	return jet, nil
+}
+
+type directedSweepRuling struct {
+	axis       int
+	derivative [3]exactInterval
+}
+
+func (r *directedSweepRuling) applyExactDerivatives(jet *[3][3][3]exactInterval) {
+	if r == nil {
+		return
+	}
+	// The ruling derivative is constant and both of its Cartesian
+	// second partials are zero on the original source.
+	u, v := 1-r.axis, r.axis
+	jet[u][v] = r.derivative
+	zero := offsetZeroInterval()
+	jet[2*u][2*v] = [3]exactInterval{zero, zero, zero}
+	jet[1][1] = jet[2*u][2*v]
+}
+
+// A weighted linear ruling may have cancellation between a weight
+// derivative and the translated point. Prove its invariance before taking
+// Cartesian interval bounds. Constant-weight nets already retain zero
+// Cartesian second partials where appropriate.
+func certifyDirectedSweepRuling(ctx context.Context, s *VerifiedNormalOffsetSweep, b *polynomialBudget) (*directedSweepRuling, error) {
+	p := s.source
+	first := p.net[0]
+	varyingWeights := false
+	for _, pole := range p.net[1:] {
+		varyingWeights = varyingWeights || pole[3].Cmp(first[3]) != 0
+	}
+	if !varyingWeights {
+		return nil, nil
+	}
+	w := sweepLineWork{sweep: s, budget: b}
+	a := boundedRatArithmetic{b: b}
+	for axis, count := range [2]int{p.countU, p.countV} {
+		stride := p.countV
+		if axis == 1 {
+			stride = 1
+		}
+		possible := true
+		for i := 1; i < count; i++ {
+			possible = possible && p.net[i*stride][3].Cmp(first[3]) == 0
+		}
+		if !possible {
+			continue
+		}
+		last := p.net[(count-1)*stride]
+		for i := range w.direction {
+			w.direction[i] = a.sub(last[i], first[i])
+		}
+		if a.err != nil {
+			return nil, a.err
+		}
+		ruling, proved, err := w.perpendicularRuling(ctx, axis)
+		if err != nil {
+			return nil, err
+		}
+		if proved {
+			domain := normalSweepParameterIntervals(p.Domain(), exactInterval{s.lower, s.upper})[axis]
+			width := a.sub(domain.hi, domain.lo)
+			certificate := &directedSweepRuling{axis: axis}
+			for i, component := range ruling {
+				certificate.derivative[i] = sweepAreaSingleton(a.quo(component, width))
+			}
+			if a.err != nil {
+				return nil, a.err
+			}
+			return certificate, nil
+		}
+	}
+	return nil, nil
 }
 
 func zeroSweepAreaVector(v [3]exactInterval) bool {
