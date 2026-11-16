@@ -45,6 +45,9 @@ one shared original edge has identical outward unit normals everywhere.
 The matched offset edge then remains continuous for a common distance.
 The original charts may use different positive fractional station maps
 on the edge; the proof checks the complete rational correspondence.
+Two verified offset patches can also certify that they meet only on
+that edge when its projected coordinate stays fixed and the two
+interiors are proved on opposite sides.
 Full-domain curved pair isolation can also use a bounded exact control-hull
 support search. It can prove separation when the world axes and original
 center normals leave overlapping projections, and retains pairs it cannot

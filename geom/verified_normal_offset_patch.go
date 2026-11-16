@@ -10,8 +10,9 @@ import (
 // displacement between zero and distance. It does not own trimmed topology
 // or certify collisions with other patches.
 type VerifiedNormalOffsetPatch struct {
-	source   *SurfacePatch
-	distance *big.Rat
+	source     *SurfacePatch
+	distance   *big.Rat
+	projection NormalOffsetProjection
 }
 
 // NewVerifiedNormalOffsetPatch builds a surface only after proving the full
@@ -26,7 +27,7 @@ func NewVerifiedNormalOffsetPatch(ctx context.Context, source *SurfacePatch, dis
 	if err != nil {
 		return nil, proof, err
 	}
-	return &VerifiedNormalOffsetPatch{source, new(big.Rat).Set(distance)}, proof, nil
+	return &VerifiedNormalOffsetPatch{source, new(big.Rat).Set(distance), projection}, proof, nil
 }
 
 func (p *VerifiedNormalOffsetPatch) Domain() ParameterRectangle {

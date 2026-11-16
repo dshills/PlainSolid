@@ -78,6 +78,11 @@ parameterized rational graph edges with equal endpoints prove a whole
 edge match only after the exact positive fractional map and chart
 reversal are applied. The inverse ratio and the linear reversal alone
 do not prove the shared edge.
+The adjacent verified offset race passed in 4.337 seconds. Two curved
+patches with opposite normal conventions retain the exact shared edge
+on the separating plane. Their original projected derivative bounds
+prove opposite open interior halfspaces. Same-side geometry, a wrong
+signed offset and insufficient proof work do not certify adjacency.
 The exact convex-hull separation race passed in geometry and intersection
 (25.901 and 1.207 seconds). A weighted curved pair separated on an exact
 new support direction, with the gap independently projected from the
