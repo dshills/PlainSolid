@@ -299,6 +299,11 @@ The [curved joined point audit](evidence/verified-normal-offset-sweep-joined-que
 passes both original joins of a rotated curved chain, the reversed raw
 station `14/5`, two algebraic witnesses, exact cap displacement `3/5`,
 and a miss `2^-60` outside the cap. Main race and five old receipts pass.
+The [nonruled joined wall audit](evidence/verified-normal-offset-sweep-joined-query-wall-2026-11-16.json)
+passes both planar joining walls of rotated quartic charts, opposite
+original side IDs, exact cap witnesses and independent algebraic roots.
+It refuses an unresolved off-wall inverse. Main race and ten original
+receipts pass.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They

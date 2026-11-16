@@ -120,6 +120,9 @@ original boundary face and chart identities.
 Exact affine-ruling reductions also prove membership in joined curved
 charts with quadratic or cubic transverse profiles, including original
 algebraic stations and retained cap and side incidences.
+An original nonruled chart can also prove point membership on a shared
+planar swept wall when its weighted wall profile qualifies. Off-wall
+inverse tests still require an independent complete proof.
 An exact surface-pair distance query retains both rational model sample
 points and the squared distance enclosure below float64 range, including
 when an oblique gap is invisible in the outward axis boxes.

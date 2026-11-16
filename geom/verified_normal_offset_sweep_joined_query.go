@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"math/bits"
 )
 
 // NormalOffsetSweepJoinedPointOwner retains the directed inverse bounds in
@@ -30,8 +31,7 @@ type NormalOffsetSweepJoinedQueryResult struct {
 // LocateRational classifies a rational model point in the verified pair.
 // The exact operation and visited cell limits are shared across original
 // charts. MaxDepth applies separately to each original inverse partition.
-// A supported original ruled proof that covers a whole chart counts as
-// one visited cell.
+// A supported original ruled or whole-wall proof counts as one visited cell.
 func (p *VerifiedNormalOffsetSweepPair) LocateRational(ctx context.Context, point [3]*big.Rat,
 	o NormalOffsetSweepQueryOptions) (NormalOffsetSweepJoinedQueryResult, error) {
 	if p == nil || p.coordinate == nil {
@@ -173,6 +173,13 @@ func locateJoinedSweepPointOwner(ctx context.Context, owner int, sweep *Verified
 		witness, proved, err := joinedSweepRulingPoint(ctx, owner, sweep, point, fixed, omitted, budget)
 		if proved || err != nil {
 			return witness, 1, err
+		}
+		if fixed != 0 {
+			side := NormalOffsetSweepSide(bits.TrailingZeros8(fixed))
+			witness, proved, err := joinedSweepWallPoint(ctx, owner, sweep, point, side, budget)
+			if proved || err != nil {
+				return witness, 1, err
+			}
 		}
 	}
 	if budget.operations >= budget.maxOperations {
