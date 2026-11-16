@@ -90,9 +90,21 @@ partial derivatives in physical file parameters, with right-hand seam ownership
 and wrapped periodic axes. `Geometry` and `Entity.EvalSurface` provide the finite
 floating-point view. Affine placement remains available on the entity.
 
-Periodic type-128 export and periodic surface topology are unsupported. Other
-type-128 trim and topology contracts are documented with the corresponding
-codecs.
+`Write` emits standalone, unplaced periodic type 128 through the same
+expanded control layout. `NewExactPeriodicSurface128` also constructs
+a writable surface from an existing `geom.ExactPeriodicSplineSurface`.
+The writer preserves the exact active bounds and duplicates the original
+cyclic controls at the correct seam phase. Each knot, weight and
+dehomogenized Cartesian coordinate must have a terminating decimal
+of at most 63 characters. Distinct knot stations must remain distinguishable
+in the pinned binary64 transfer. Degrees must be at most 25, and
+interior knot multiplicities may not exceed their degree. Nonuniform weights
+must be at least `1e-9` and differ from the first expanded weight in binary64
+by more than `1e-10` for at least one control, matching the pinned reader's
+rationality check.
+Periodic surface trims, topology and placed periodic output are outside
+this subset. Other type-128 trim and topology contracts are documented with
+the corresponding codecs.
 
 ## Unsupported domains
 
@@ -129,7 +141,9 @@ quarter-cylinder net, trimming, affine placement, malformed dimensions and limit
 Type-128 mapping was checked against the pinned OCCT IGES surface translator.
 The three `occt-periodic-128-*.iges` files come from the pinned OCCT writer. The
 oracle constructs nonuniform rational nets periodic in U, V, or both, then
-compares native and reopened first derivatives to the imported exact charts.
+compares native and reopened first derivatives to the exact charts. It also
+reopens all three periodic output variants and a rephased, translated native
+tensor.
 Set `PLAINSOLID_OCCT_PERIODIC_128_IGES` to the executable from
 `tools/occtref/build_iges_periodic_128.sh`.
 Both directions also pass the optional pinned-OCCT surface oracle for a rational
