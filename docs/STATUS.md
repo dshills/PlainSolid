@@ -19,6 +19,9 @@ Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows
 that cross the seam even at a distant cycle.
+Exact curve evaluation also provides physical derivatives through order 16.
+It retains the original right-hand knot span at repeated knots and lets the
+caller inspect the exact cycle and amount of work used.
 The nested conical AP242 reader now materializes an editable document with
 two shared local solids, six leaf occurrences, original face labels, and
 exact original local and world pose labels. Native save/load preserves

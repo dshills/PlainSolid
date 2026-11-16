@@ -15,6 +15,12 @@ The [full native macOS race on `ab33a412`](evidence/native-main-ab33a412-race-20
 passed all nine lanes, with 5,557 passes and 580 optional skips among
 6,137 recorded cases, including 1,468 passes in the eight trimmed lanes.
 
+The focused native periodic geometry race passed in 7.359 seconds. Exact
+curve derivatives through order 16 match the independently differentiated
+rational law in a distant negative cycle and scale in physical parameter
+units. A repeated knot selects the right-hand velocity and acceleration;
+exhausted work and an order beyond the supported bound refuse.
+
 The [explicit rounded conical STEP repair](evidence/conical-rim-fillet-default-step-repair-2026-11-15.json)
 was checked against independently pinned OCCT authoring and readback. The
 finite cone displacement bound is `2.82747187543142e-12` mm. The
