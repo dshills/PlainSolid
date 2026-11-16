@@ -150,6 +150,12 @@ Parallel-band Cut independently qualifies one interior solid of volume
 each. All six native bodies replay identically. The two-ended cavity
 closes from original walls split at the positive exact midpoint, and
 a short sewing budget publishes no component prefix.
+The adjacent-footprint Fuse race qualifies four operand and axis cases
+whose complete lifted common edge agrees under different original
+projective clocks. It cancels the interior wall, retains six exterior
+walls and both original roofs, and reproduces independent volume 21/4
+and projected centroid (12/7, 4/7). All four native shells replay
+byte-identically; unequal lifts, partial edges and disjoint stocks refuse.
 An independent oblique adjacent-side seam also qualifies both Cut
 orders with exact volumes 25/48 and 1/48 and separate native pentagonal
 and triangular original footprints. Both axis orders pass.

@@ -945,5 +945,20 @@
     "real_midpoint_split": "3/2",
     "identical_native_component_replays": 6,
     "short_sewing_refuses_all_components": true
+  },
+  "native_adjacent_coincident_roof_fuse": {
+    "main_base": "9173ef14",
+    "main_race_log": "projective-roof-adjacent-fuse-final-race.jsonl",
+    "main_race_sha256": "ef81ef1317b9a2f5a7b2255a0b26cf5e96fbcbf402ef76652b33e9604035076c",
+    "main_race_seconds": 6.823,
+    "original_axis_order_cases": 4,
+    "topology": [12, 19, 9],
+    "retained_exterior_walls": 6,
+    "exact_original_section_edges": 1,
+    "independent_volume": "21/4",
+    "independent_projected_centroid": ["12/7", "4/7"],
+    "identical_native_replays": 4,
+    "automatic_dispatch": true,
+    "refusals": ["unequal original lifts", "partial coedge", "disjoint footprint"]
   }
 }
