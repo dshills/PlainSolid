@@ -1,5 +1,11 @@
 # Verification record
 
+The [full PlainCAD run on `29563ead`](evidence/plaincad-main-29563ead-2026-11-16.json)
+passed all eight gates on the original pinned app: 345 development,
+66 production, 15 cross-browser, four WASM contract and 1,691 unit cases.
+The source driver and production WASM digests match. The same-source
+full Go run has not yet finished.
+
 The [projective contact evaluation audit](evidence/projective-surface-graph-overlap-2026-11-16.json)
 passes the main geometry race at rational stations on open and closed
 contacts. It proves both original UV identities for an irrational
