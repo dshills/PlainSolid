@@ -99,19 +99,45 @@ func TestOCCTMappedChainRectangularKinkedJoinedIndependentRoofsClosedDisplay(t *
 func TestOCCTMappedChainRectangularKinkedJoinedIndependentRoofsRejectsMovedSupport(t *testing.T) {
 	raw := readInferredSharedMappedChainFixture(t, kinkedJoinedRoofPath)
 	bad := readInferredSharedMappedChainFixture(t, kinkedJoinedMovedSupportPath)
-	rejectKinkedJoinedMovedSupport(t, context.Background(), raw, bad)
+	ctx := context.Background()
+	source, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, threeJoinedRoofOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	rejectKinkedJoinedMovedSupport(t, ctx, source, bad)
 }
 
-func rejectKinkedJoinedMovedSupport(t *testing.T, ctx context.Context, raw, bad []byte) {
+func rejectKinkedJoinedMovedSupport(t *testing.T, ctx context.Context, source MappedChainSTEPModel, bad []byte) {
 	t.Helper()
 	o := threeJoinedRoofOptions()
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(bad), Limits{}, o)
 	if !errors.Is(err, geom.ErrConvergence) || len(m.Native.ChainEdges) != 0 || len(m.SupportJoints) != 0 || len(m.Crossings) != 0 {
 		t.Fatal("moving the north support knot away from the actual material kink must reject atomically", err)
 	}
-	rejectChangedJoinedRationalNativeSupportWithOptions(t, ctx, raw, bad, o, true, "support knot must belong")
+	rejectChangedNativeJoinedRoof(t, ctx, source, bad, true, "support knot must belong")
 }
 
 func TestOCCTMappedChainRectangularKinkedJoinedIndependentRoofsLive(t *testing.T) {
 	verifyPinnedThreeJoinedRoofs(t, threeJoinedKinked)
+}
+
+// Compare the live author to the fixture with the full native and strict
+// source assertions. STEP headers contain timestamps and output filenames.
+func requirePinnedMappedChainData(t *testing.T, raw []byte, fixture string) {
+	t.Helper()
+	data := func(raw []byte) []byte {
+		t.Helper()
+		_, body, ok := bytes.Cut(raw, []byte("\nDATA;\n"))
+		if !ok {
+			t.Fatal("the authored STEP file must contain its exact DATA section")
+		}
+		lines := bytes.Split(body, []byte("\n"))
+		for i, line := range lines {
+			lines[i] = bytes.TrimRight(line, " \t\r")
+		}
+		return bytes.Join(lines, []byte("\n"))
+	}
+	if !bytes.Equal(data(raw), data(readInferredSharedMappedChainFixture(t, fixture))) {
+		t.Fatal("the live pinned author must reproduce the exact audited STEP graph", fixture)
+	}
 }

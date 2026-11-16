@@ -445,7 +445,24 @@ func verifyPinnedThreeJoinedRoofs(t *testing.T, shape threeJoinedRoofShape) {
 		return readInferredSharedMappedChainFixture(t, path), path
 	}
 	raw, _ := authorFile("")
-	canonical := verifyThreeJoinedRoofSource(t, ctx, raw, shape)
+	var canonical []byte
+	var kinkedSource MappedChainSTEPModel
+	if shape == threeJoinedKinked {
+		requirePinnedMappedChainData(t, raw, kinkedJoinedRoofPath)
+		opts := threeJoinedRoofOptions()
+		var err error
+		kinkedSource, err = ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var output bytes.Buffer
+		if err := WriteMappedChainRectangularOriginalShell(ctx, &output, kinkedSource, Limits{}, opts); err != nil {
+			t.Fatal(err)
+		}
+		canonical = output.Bytes()
+	} else {
+		canonical = verifyThreeJoinedRoofSource(t, ctx, raw, shape)
+	}
 	verifyPinnedMappedChainTransfer(t, ctx, reader, raw, canonical, stepVolume, stepArea)
 	data, err := exec.CommandContext(ctx, author, "measure-"+mode).CombinedOutput()
 	if err != nil {
@@ -471,7 +488,8 @@ func verifyPinnedThreeJoinedRoofs(t *testing.T, shape threeJoinedRoofShape) {
 	}
 	switch shape {
 	case threeJoinedKinked:
-		rejectKinkedJoinedMovedSupport(t, ctx, raw, bad)
+		requirePinnedMappedChainData(t, bad, kinkedJoinedMovedSupportPath)
+		rejectKinkedJoinedMovedSupport(t, ctx, kinkedSource, bad)
 	case threeJoinedAsymmetric:
 		rejectAsymmetricJoinedRoofMissingJoint(t, ctx, raw, bad)
 	default:

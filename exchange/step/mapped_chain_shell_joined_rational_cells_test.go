@@ -324,6 +324,11 @@ func rejectChangedJoinedRationalNativeSupportWithOptions(t *testing.T, ctx conte
 	if err != nil {
 		t.Fatal(err)
 	}
+	rejectChangedNativeJoinedRoof(t, ctx, m, badSource, north, diagnosis)
+}
+
+func rejectChangedNativeJoinedRoof(t *testing.T, ctx context.Context, m MappedChainSTEPModel, badSource []byte, north bool, diagnosis string) {
+	t.Helper()
 	owner := 0
 	if m.Shell.IndependentOwnerBases()[0] != north {
 		owner = 1
