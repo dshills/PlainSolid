@@ -28,7 +28,7 @@ func TestNativeCuspidalCubicCommonAtLongitudinalKnot(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			checkCuspidalCubicKnotOriginShell(t, ctx, r, input, order)
+			checkCuspidalCubicKnotOriginEnvelope(t, ctx, r.Boundary(), r.History(), r.section, input, order, 1-order)
 			m, err := r.Boundary().MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 			if err != nil || !(math.Abs(m.Volume-volume) <= 1e-9) || m.Area <= 0 {
 				t.Fatal("native mass differs from the independently integrated hinge", m, volume, err)
@@ -48,7 +48,7 @@ func TestNativeCuspidalCubicCommonAtLongitudinalKnot(t *testing.T) {
 					t.Fatal("source replay changed an original knot, control or chart", i)
 				}
 			}
-			checkCuspidalCubicKnotOriginShell(t, ctx, reloaded, reloaded.sources, order)
+			checkCuspidalCubicKnotOriginEnvelope(t, ctx, reloaded.Boundary(), reloaded.History(), reloaded.section, reloaded.sources, order, 1-order)
 			if err := reloaded.WriteJSON(ctx, &echo); err != nil || !bytes.Equal(raw.Bytes(), echo.Bytes()) {
 				t.Fatal("native source replay changed canonical bytes", err)
 			}
@@ -56,13 +56,13 @@ func TestNativeCuspidalCubicCommonAtLongitudinalKnot(t *testing.T) {
 	}
 }
 
-func checkCuspidalCubicKnotOriginShell(t *testing.T, ctx context.Context, r *CuspidalCubicCommon, sources [3]*geom.BSplineSurface, order int) {
+func checkCuspidalCubicKnotOriginEnvelope(t *testing.T, ctx context.Context, s Solid, h CuspidalCubicCommonHistory,
+	p *geom.CuspidalCubicSection, sources [3]*geom.BSplineSurface, order, exterior int) {
 	t.Helper()
-	s, h := r.Boundary(), r.History()
 	topo := s.Topology()
 	if len(topo.Shells) != 1 || topo.EulerCharacteristic != 2 || topo.CollapsedEdges != 0 ||
 		len(s.faces) != 9 || len(s.edges) != 20 || len(s.vertices) != 13 ||
-		h.RoofOwners != ([2]int{1 - order, order}) || s.faces[h.Base].Surface != sources[0] {
+		h.RoofOwners != ([2]int{exterior, 1 - exterior}) || s.faces[h.Base].Surface != sources[0] {
 		t.Fatal("the crease origin changed native signed topology", h, topo)
 	}
 	for i, face := range h.RoofFaces {
@@ -70,33 +70,39 @@ func checkCuspidalCubicKnotOriginShell(t *testing.T, ctx context.Context, r *Cus
 			t.Fatal("native shell substituted an original knotted roof", i)
 		}
 	}
+	checkCuspidalCubicKnotOriginGerms(t, ctx, s, p, h.Vertices, h.Germs, h.RoofFaces, order)
+}
+
+func checkCuspidalCubicKnotOriginGerms(t *testing.T, ctx context.Context, s Solid, p *geom.CuspidalCubicSection,
+	vertices [3]int, germs, roofs [2]int, order int) {
+	t.Helper()
 	want := [3]geom.Vec3{
 		{X: .75, Y: 1, Z: 527.0 / 256},
 		{X: 3, Y: .25, Z: 599.0 / 256},
 		{X: 3, Y: 1.75, Z: 617.0 / 256},
 	}
-	for i, id := range h.Vertices {
+	for i, id := range vertices {
 		if s.vertices[id] != want[i] {
 			t.Fatal("native origin or exit moved", i, s.vertices[id], want[i])
 		}
 	}
-	cusp := r.section.Vertices[0]
+	cusp := p.Vertices[0]
 	if cusp.UV[order][0].RatString() != "1/4" || cusp.UV[1-order][1].Sign() != 0 {
 		t.Fatal("the model cusp does not lie on both original source knots", cusp.UV)
 	}
-	for i, id := range h.Germs {
+	for i, id := range germs {
 		e := s.edges[id]
 		at := e.Range.Min
-		if e.End == h.Vertices[0] {
+		if e.End == vertices[0] {
 			at = e.Range.Max
-		} else if e.Start != h.Vertices[0] {
+		} else if e.Start != vertices[0] {
 			t.Fatal("germ lost its original common cusp vertex", i)
 		}
 		d, err := e.Curve.Derivative(at)
-		if err != nil || d != (geom.Vec3{}) || !slices.Equal(nodalCubicIncidentFaces(s, id), h.RoofFaces[:]) {
+		if err != nil || d != (geom.Vec3{}) || !slices.Equal(nodalCubicIncidentFaces(s, id), roofs[:]) {
 			t.Fatal("germ lost its zero first derivative or either original roof use", i, d, err)
 		}
-		g := r.section.Germs[i]
+		g := p.Germs[i]
 		third := [2][3]string{{"0", "-36", "-27/64"}, {"0", "36", "27/64"}}[i]
 		for j, second := range [3]string{"18", "0", "81/32"} {
 			if g.ModelSecond[j].RatString() != second || g.ModelThird[j].RatString() != third[j] {
