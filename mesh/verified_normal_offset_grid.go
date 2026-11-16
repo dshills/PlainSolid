@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 
 	"plainsolid/geom"
@@ -23,6 +24,11 @@ type NormalOffsetGridOptions struct {
 	// MaxWork also counts the reported offset-point and cell-bound work,
 	// including work on unsuccessful grids. Reused corners incur no charge.
 	MaxSourceOperations int
+
+	// NormalAngle optionally bounds the deviation in radians between
+	// each facet and the continuous offset normal anywhere in its cell.
+	// A positive request must be below pi/2.
+	NormalAngle float64 `json:",omitempty"`
 }
 
 // CertifiedNormalOffsetGrid is an embedded open mesh on the full offset
@@ -38,8 +44,13 @@ type CertifiedNormalOffsetGrid struct {
 	// eigenvalue in the original parameter units, uniformly across the grid.
 	ProjectedMonotonicityLower *big.Rat
 	// GeometryWork includes cell bounds, offset-point evaluations and the
-	// fixed source-jet reservations for all distinct sampled corners.
+	// fixed source-jet reservations for all distinct sampled corners. Optional
+	// unit-normal bounds also count toward this limit.
 	GeometryWork int
+
+	// SquaredFacetNormalTangent bounds the squared tangent of the
+	// requested facet deviation. It is nil when NormalAngle is zero.
+	SquaredFacetNormalTangent *big.Rat `json:",omitempty"`
 }
 
 // TessellateVerifiedNormalOffsetGrid encloses each continuous offset cell and
@@ -48,7 +59,9 @@ type CertifiedNormalOffsetGrid struct {
 // the largest box diameter. A positive symmetric projected Jacobian on
 // every triangle supplies a single positive monotonicity bound. Integrate
 // that bound over segments in the convex domain to prove global injectivity.
-// An unresolved proof or exhausted budget returns an empty result.
+// A positive NormalAngle also checks the represented facets against the
+// continuous source normal over each full cell. An unresolved proof or
+// exhausted budget returns an empty result.
 func TessellateVerifiedNormalOffsetGrid(ctx context.Context, p *geom.VerifiedNormalOffsetPatch,
 	o NormalOffsetGridOptions) (CertifiedNormalOffsetGrid, error) {
 	var empty CertifiedNormalOffsetGrid
@@ -62,6 +75,9 @@ func TessellateVerifiedNormalOffsetGrid(ctx context.Context, p *geom.VerifiedNor
 	distance := new(big.Rat).SetFloat64(o.Deflection)
 	w := normalOffsetGridWork{options: o, points: make(map[[2]float64]normalOffsetGridPoint)}
 	distance.Mul(distance, distance)
+	if o.NormalAngle > 0 {
+		w.facetLimit = normalOffsetFacetTangentLimit(o.NormalAngle)
+	}
 	for depth := o.MinDepth; depth <= o.MaxDepth; depth++ {
 		if err := ctx.Err(); err != nil {
 			return empty, err
@@ -108,7 +124,8 @@ func checkedNormalOffsetGridOptions(o NormalOffsetGridOptions) (NormalOffsetGrid
 	if !finite(o.Deflection) || o.Deflection <= 0 || o.MinDepth < 0 || o.MinDepth > o.MaxDepth || o.MaxDepth < 0 || o.MaxDepth > 9 ||
 		o.MaxTriangles < 1 || o.MaxTriangles > 524288 ||
 		o.MaxWork < 1 || o.MaxWork > 1_000_000_000 ||
-		o.MaxSourceOperations < 1 || o.MaxSourceOperations > 1_000_000_000 {
+		o.MaxSourceOperations < 1 || o.MaxSourceOperations > 1_000_000_000 ||
+		!finite(o.NormalAngle) || o.NormalAngle < 0 || o.NormalAngle >= math.Pi/2 {
 		return o, geom.ErrInvalid
 	}
 	return o, nil
@@ -123,6 +140,7 @@ type normalOffsetGridWork struct {
 	options    NormalOffsetGridOptions
 	operations int
 	points     map[[2]float64]normalOffsetGridPoint
+	facetLimit *big.Rat
 }
 
 func (w *normalOffsetGridWork) remaining() int { return w.options.MaxWork - w.operations }
@@ -179,6 +197,9 @@ func (w *normalOffsetGridWork) grid(ctx context.Context, p *geom.VerifiedNormalO
 		return empty, err
 	}
 	out := CertifiedNormalOffsetGrid{UStations: u, VStations: v, DistanceUpperSquared: new(big.Rat)}
+	if w.facetLimit != nil {
+		out.SquaredFacetNormalTangent = new(big.Rat)
+	}
 	out.Mesh.Vertices = make([]geom.Vec3, (n+1)*(n+1))
 	out.Mesh.Triangles = make([][3]int, 0, 2*n*n)
 	projection := p.Projection()
@@ -221,17 +242,30 @@ func (w *normalOffsetGridWork) grid(ctx context.Context, p *geom.VerifiedNormalO
 			if bound.Cmp(out.DistanceUpperSquared) > 0 {
 				out.DistanceUpperSquared = bound
 			}
-			alternate, margin := normalOffsetGridCellJacobian(corners, projection, du, dv)
+			var normals *normalOffsetFacetBox
+			if w.facetLimit != nil {
+				if w.remaining() == 0 {
+					return empty, geom.ErrConvergence
+				}
+				box, err := p.NormalBoundsRational(ctx, rect, geom.SurfacePatchOptions{MaxOperations: w.remaining()})
+				w.charge(box.ExactOperations)
+				if err != nil {
+					return empty, err
+				}
+				normals = newNormalOffsetFacetBox(box.Bounds)
+			}
+			diagonal, margin, facetBound := certifyNormalOffsetGridCell(corners, projection, du, dv, normals, w.facetLimit)
 			if margin == nil {
 				return empty, geom.ErrConvergence
 			}
 			if out.ProjectedMonotonicityLower == nil || margin.Cmp(out.ProjectedMonotonicityLower) < 0 {
 				out.ProjectedMonotonicityLower = margin
 			}
-			if alternate {
-				out.Mesh.Triangles = append(out.Mesh.Triangles, [3]int{a, b, d}, [3]int{b, c, d})
-			} else {
-				out.Mesh.Triangles = append(out.Mesh.Triangles, [3]int{a, b, c}, [3]int{a, c, d})
+			if facetBound != nil && facetBound.Cmp(out.SquaredFacetNormalTangent) > 0 {
+				out.SquaredFacetNormalTangent = facetBound
+			}
+			for _, tri := range normalOffsetGridCellTriangles(diagonal) {
+				out.Mesh.Triangles = append(out.Mesh.Triangles, [3]int{ids[tri[0]], ids[tri[1]], ids[tri[2]]})
 			}
 		}
 	}
@@ -279,7 +313,15 @@ func normalOffsetGridDiameterSquared(b geom.RationalSurfaceOffsetPoint, corners 
 	return squared
 }
 
-func normalOffsetGridCellJacobian(corners [4]normalOffsetGridPoint, projection geom.NormalOffsetProjection, du, dv *big.Rat) (alternate bool, margin *big.Rat) {
+func normalOffsetGridCellTriangles(diagonal int) [2][3]int {
+	if diagonal == 0 {
+		return [2][3]int{{0, 1, 2}, {0, 2, 3}}
+	}
+	return [2][3]int{{0, 1, 3}, {1, 2, 3}}
+}
+
+func certifyNormalOffsetGridCell(corners [4]normalOffsetGridPoint, projection geom.NormalOffsetProjection, du, dv *big.Rat,
+	normals *normalOffsetFacetBox, limit *big.Rat) (diagonal int, margin, facetBound *big.Rat) {
 	difference := func(from, to int, scale *big.Rat) (out [2]*big.Rat) {
 		for axis, coordinate := range projection.Axes {
 			q := new(big.Rat).Sub(corners[to].exact[coordinate], corners[from].exact[coordinate])
@@ -305,10 +347,17 @@ func normalOffsetGridCellJacobian(corners [4]normalOffsetGridPoint, projection g
 			if b.Cmp(a) < 0 {
 				a = b
 			}
-			return i == 1, a
+			var bound *big.Rat
+			if normals != nil {
+				bound = normals.certifyCell(corners, normalOffsetGridCellTriangles(i), limit)
+				if bound == nil {
+					continue
+				}
+			}
+			return i, a, bound
 		}
 	}
-	return false, nil
+	return 0, nil, nil
 }
 
 func normalOffsetGridJacobianMargin(u, v [2]*big.Rat, scale *big.Rat) *big.Rat {
