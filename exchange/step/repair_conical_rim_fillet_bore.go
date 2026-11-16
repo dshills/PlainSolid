@@ -170,17 +170,40 @@ func RepairConicalRimFilletBore(ctx context.Context, r io.Reader, l Limits, o Co
 }
 
 func readConicalRepairGraph(f *File, bodyID int64) (conicalRepairGraph, error) {
+	g, err := readModelOnlyConicalRepairGraph(f, bodyID, 6, 10, 6)
+	if err != nil {
+		return g, err
+	}
+	for i, fc := range g.faces {
+		if fc.kind != "CONICAL_SURFACE" {
+			continue
+		}
+		if g.cone != -1 || !fc.sense || len(fc.loops) != 1 || len(fc.loops[0]) != 4 {
+			return g, errConicalRimFilletBoreRepair
+		}
+		g.cone = i
+	}
+	if g.cone < 0 {
+		return g, errConicalRimFilletBoreRepair
+	}
+	return g, nil
+}
+
+func readModelOnlyConicalRepairGraph(f *File, bodyID int64, faces, edges, points int) (conicalRepairGraph, error) {
 	g := conicalRepairGraph{
 		cone: -1, edges: map[int64]conicalRepairEdge{}, incoming: conicalRepairIncoming(f),
 		uses: map[int64][]conicalRepairUse{},
 	}
-	body, _ := simple(f, bodyID, "MANIFOLD_SOLID_BREP", 2)
-	shell, err := simple(f, body.Args[1].Ref, "CLOSED_SHELL", 2)
+	body, err := simple(f, bodyID, "MANIFOLD_SOLID_BREP", 2)
 	if err != nil || body.Args[1].Kind != Reference {
 		return g, errConicalRimFilletBoreRepair
 	}
-	faceIDs, err := listRefs(shell.Args[1], 6)
-	if err != nil || len(faceIDs) != 6 {
+	shell, err := simple(f, body.Args[1].Ref, "CLOSED_SHELL", 2)
+	if err != nil {
+		return g, errConicalRimFilletBoreRepair
+	}
+	faceIDs, err := listRefs(shell.Args[1], faces)
+	if err != nil || len(faceIDs) != faces {
 		return g, errConicalRimFilletBoreRepair
 	}
 	owned := map[int64]bool{}
@@ -196,12 +219,6 @@ func readConicalRepairGraph(f *File, bodyID int64) (conicalRepairGraph, error) {
 		if err != nil {
 			return g, err
 		}
-		if fc.kind == "CONICAL_SURFACE" {
-			if g.cone != -1 || !fc.sense || len(fc.loops) != 1 || len(fc.loops[0]) != 4 {
-				return g, errConicalRimFilletBoreRepair
-			}
-			g.cone = i
-		}
 		g.faces = append(g.faces, fc)
 		for _, loop := range fc.loops {
 			for _, use := range loop {
@@ -209,7 +226,7 @@ func readConicalRepairGraph(f *File, bodyID int64) (conicalRepairGraph, error) {
 			}
 		}
 	}
-	if g.cone < 0 || len(g.uses) != 10 {
+	if len(g.uses) != edges {
 		return g, errConicalRimFilletBoreRepair
 	}
 	vertices := map[int64]bool{}
@@ -232,7 +249,7 @@ func readConicalRepairGraph(f *File, bodyID int64) (conicalRepairGraph, error) {
 		g.edges[id] = conicalRepairEdge{refs[0], refs[1], refs[2], sense}
 		vertices[refs[0]], vertices[refs[1]] = true, true
 	}
-	if len(vertices) != 6 {
+	if len(vertices) != points {
 		return g, errConicalRimFilletBoreRepair
 	}
 	return g, nil

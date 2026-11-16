@@ -205,14 +205,14 @@ func conicalRepairLineBound(f *File, curve int64, ends [2][3]*big.Rat) (*big.Rat
 		return nil, errConicalRimFilletBoreRepair
 	}
 	d, err := mappedRationalCoordinate(f, v.Args[1].Ref, "DIRECTION", 3)
-	if err != nil || d[2].Sign() <= 0 {
+	if err != nil || d[2].Sign() == 0 {
 		return nil, errConicalRimFilletBoreRepair
 	}
 	var chord [3]*big.Rat
 	for i := range chord {
 		chord[i] = new(big.Rat).Sub(ends[1][i], ends[0][i])
 	}
-	if mappedRationalDot(chord, d).Sign() <= 0 {
+	if chord[2].Sign() != d[2].Sign() || mappedRationalDot(chord, d).Sign() <= 0 {
 		return nil, errConicalRimFilletBoreRepair
 	}
 	maximum := new(big.Rat)
