@@ -3161,3 +3161,8 @@ Exact jet, point-distance, and line queries preserve the physical knot
 owners and report unresolved line contacts. The certified fundamental
 patch also supports plane contours through C1 seams and an opt-in
 one-sided continuation proof at C0 creases.
+Uniform knot refinement now bisects one or both original cyclic axes
+without changing the curve or surface. The exact homogeneous refinement
+keeps the physical period and leaves ordinary knot axes in place. It
+returns a numerical spline only when every resulting pole and weight
+fits the original binary64 contract.

@@ -22,6 +22,16 @@ type PeriodicBSpline struct {
 // A physical knot span must also be distinguishable at both domain endpoints.
 // Existing BSpline constructors and their domain semantics are unchanged.
 func NewPeriodicBSpline(degree int, poles []Vec3, weights []float64, start, period float64) (*PeriodicBSpline, error) {
+	return newPeriodicBSpline(degree, poles, weights, start, period, false)
+}
+
+// NewPeriodicBSplineWithExactWeights retains the supplied positive
+// binary64 weights without rescaling their ratios.
+func NewPeriodicBSplineWithExactWeights(degree int, poles []Vec3, weights []float64, start, period float64) (*PeriodicBSpline, error) {
+	return newPeriodicBSpline(degree, poles, weights, start, period, true)
+}
+
+func newPeriodicBSpline(degree int, poles []Vec3, weights []float64, start, period float64, exact bool) (*PeriodicBSpline, error) {
 	end, err := uniformPeriodicEnd(degree, len(poles), start, period)
 	if err != nil {
 		return nil, err
@@ -31,7 +41,7 @@ func NewPeriodicBSpline(degree int, poles []Vec3, weights []float64, start, peri
 			return nil, ErrInvalid
 		}
 	}
-	w, e := copyWeights(len(poles), weights)
+	w, e := splineWeights(poles, weights, exact)
 	if e != nil {
 		return nil, e
 	}
@@ -40,7 +50,7 @@ func NewPeriodicBSpline(degree int, poles []Vec3, weights []float64, start, peri
 	for i := range expandedPoles {
 		expandedPoles[i], expandedWeights[i] = poles[i%len(poles)], w[i%len(poles)]
 	}
-	curve, e := NewBSpline(degree, expandedPoles, uniformPeriodicKnots(degree, len(poles)), expandedWeights)
+	curve, e := NewBSplineWithExactWeights(degree, expandedPoles, uniformPeriodicKnots(degree, len(poles)), expandedWeights)
 	if e != nil {
 		return nil, e
 	}
@@ -199,7 +209,7 @@ func (c *PeriodicBSpline) Reversed() (*PeriodicBSpline, error) {
 		}
 		poles[i], weights[i] = c.poles[j], c.weights[j]
 	}
-	return NewPeriodicBSpline(c.degree, poles, weights, c.start, c.period)
+	return NewPeriodicBSplineWithExactWeights(c.degree, poles, weights, c.start, c.period)
 }
 
 // Sample uniformly samples the fundamental interval, repeating the seam point.

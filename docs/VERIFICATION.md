@@ -216,6 +216,14 @@ failures across 6,216 top-level cases. Its eight trimmed lanes passed
 cross-builds also passed on this snapshot; these do not substitute
 for native runtime qualification on those platforms.
 
+The periodic geometry race passed in 8.758 seconds after adding exact
+uniform refinement. Independent rational span evaluations agree on
+position and first derivative across several cycles for a cubic
+polynomial and a curve with unequal rational weights. Tensor refinement
+preserves both cyclic axes and an alternative repeated ordinary knot
+axis, including a cycle at distance `2^100`. Nonbinary new poles,
+unresolvable physical knots and truncated work refuse without output.
+
 The [full ordinary Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
 later passed all nine lanes on macOS ARM64. The independent inventory
 contains 6,254 cases: 5,666 passes and 588 explicit optional skips,
