@@ -95,6 +95,26 @@ func DiscoverSplineGraphParabolaTwoCircles(ctx context.Context, a, c *SurfacePat
 	return out, nil
 }
 
+func unitParabolaTwoCircleFactors(ctx context.Context, a, c *SurfacePatch, freeAxis int, b *polynomialBudget) (
+	rationalPolynomial, [2]GraphContactCircle, int, error) {
+	if err := validateUnitGraphCircleCharts(ctx, a, c, 8, b); err != nil {
+		return nil, [2]GraphContactCircle{}, 0, err
+	}
+	diff, err := orderingDifference(ctx, a, c, 1, b)
+	if err != nil {
+		return nil, [2]GraphContactCircle{}, 0, err
+	}
+	if diff.Domain() != (ParameterRectangle{UMax: 1, VMax: 1}) || diff.countU != diff.degreeU+1 ||
+		diff.countV != diff.degreeV+1 || diff.degreeU > 8 || diff.degreeV > 8 {
+		return nil, [2]GraphContactCircle{}, 0, ErrConvergence
+	}
+	law, err := graphMixedPowerColumns(diff, freeAxis, 6, 5, b)
+	if err != nil {
+		return nil, [2]GraphContactCircle{}, 0, err
+	}
+	return factorParabolaTwoCircles(law, b)
+}
+
 func factorParabolaTwoCircles(law []rationalPolynomial, b *polynomialBudget) (
 	parabola rationalPolynomial, circles [2]GraphContactCircle, sign int, err error) {
 	if len(law[5]) != 1 || len(law[4]) != 3 || len(law[3]) > 3 {

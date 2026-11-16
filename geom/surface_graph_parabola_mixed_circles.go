@@ -51,22 +51,7 @@ func DiscoverSplineGraphParabolaMixedCircles(ctx context.Context, a, c *SurfaceP
 		return nil, err
 	}
 	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
-	if err := validateUnitGraphCircleCharts(ctx, a, c, 8, b); err != nil {
-		return nil, err
-	}
-	diff, err := orderingDifference(ctx, a, c, 1, b)
-	if err != nil {
-		return nil, err
-	}
-	if diff.Domain() != (ParameterRectangle{UMax: 1, VMax: 1}) || diff.countU != diff.degreeU+1 ||
-		diff.countV != diff.degreeV+1 || diff.degreeU > 8 || diff.degreeV > 8 {
-		return nil, ErrConvergence
-	}
-	law, err := graphMixedPowerColumns(diff, freeAxis, 6, 5, b)
-	if err != nil {
-		return nil, err
-	}
-	p, circles, sign, err := factorParabolaTwoCircles(law, b)
+	p, circles, sign, err := unitParabolaTwoCircleFactors(ctx, a, c, freeAxis, b)
 	if err != nil {
 		return nil, err
 	}
