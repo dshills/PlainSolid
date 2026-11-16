@@ -750,5 +750,19 @@
     "section_edges_per_cut": 2,
     "independent_volume": "1/8",
     "all_original_roofs_retained": true
+  },
+  "automatic_closed_material_selection": {
+    "main_base": "fedb612a",
+    "main_race_log": "projective-roof-boolean-dispatch-main-race.jsonl",
+    "main_race_sha256": "da365c4a1aa84f80861730116d92fcd8844545e9ca8bec4d9d0b538ec4693399",
+    "main_race_seconds": 3.186,
+    "named_pass": "TestBuildProjectiveSplineRoofBooleanFindsExactMaterialProof",
+    "checks": [
+      "exact empty contained Cut",
+      "strict original upper owner",
+      "two-piece crossing Common/Fuse/Cut",
+      "partial footprint refusal",
+      "cancellation"
+    ]
   }
 }

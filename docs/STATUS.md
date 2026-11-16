@@ -272,6 +272,9 @@ all section edges and the split original wall; Cut also closes both
 orders when their original exterior partitions agree.
 Cut can also align different original wall partitions explicitly using
 the exact shared projection and each owner’s original boundary clock.
+One projective roof Boolean entry point now chooses the proved strict
+order or full crossing contour without requiring the caller to supply
+a seam or source-height sign.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows
