@@ -112,7 +112,6 @@ type periodicTrimAxisPolicy uint8
 
 const (
 	periodicTrimUOnly periodicTrimAxisPolicy = iota
-	periodicTrimSingleAxis
 	periodicTrimAnyAxes
 )
 
@@ -209,13 +208,10 @@ func readPeriodicTrimSourceForAxes(ctx context.Context, r io.Reader, l Limits, e
 	uOnly := s.PeriodicU && !s.PeriodicV && !s.ClosedV
 	vOnly := s.PeriodicV && !s.PeriodicU && !s.ClosedU
 	both := s.PeriodicU && s.PeriodicV
-	if !uOnly && !(axes != periodicTrimUOnly && vOnly) && !(axes == periodicTrimAnyAxes && both) {
+	if !uOnly && !(axes == periodicTrimAnyAxes && (vOnly || both)) {
 		expected := "one U-periodic support with an open opposite axis"
-		if axes != periodicTrimUOnly {
-			expected = "one U-periodic support or one V-periodic support with an open opposite axis"
-		}
 		if axes == periodicTrimAnyAxes {
-			expected += " or a doubly periodic support"
+			expected = "one U-periodic support or one V-periodic support with an open opposite axis, or a doubly periodic support"
 		}
 		return zero, fmt.Errorf("iges: periodic trim requires %s: %w", expected, geom.ErrUnrepresentable)
 	}

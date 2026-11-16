@@ -72,8 +72,8 @@ func TestReadPeriodicTrimmedFaceUV(t *testing.T) {
 	if m, err := Read(bytes.NewReader(raw), Limits{}); err == nil || len(m.Entities) != 0 {
 		t.Fatal("ordinary geometry reader admitted trimmed topology", err)
 	}
-	if _, err := readPeriodicTrimSourceForAxes(ctx, bytes.NewReader(raw), Limits{}, 4, periodicTrimSingleAxis); err == nil {
-		t.Fatal("single-periodic-axis topology policy admitted a second cyclic axis")
+	if _, err := readPeriodicTrimSource(ctx, bytes.NewReader(raw), Limits{}, 4); err == nil {
+		t.Fatal("U-only topology policy admitted a second cyclic axis")
 	}
 }
 

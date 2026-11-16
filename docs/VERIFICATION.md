@@ -417,6 +417,11 @@ The [one-cell periodic export audit](evidence/iges-periodic-cell-outbound-2026-1
 matches all four directed pairs, original ranges and physical jets for
 U-only, V-only and doubly periodic cases. Both executed macOS architectures
 produce identical bytes for each source. Main race and 15 prior digests pass.
+The [doubly periodic one-seam audit](evidence/iges-periodic-uv-one-seam-2026-11-16.json)
+passes original U-seam and V-seam fixtures, six pairs per shape, both
+original seam derivatives and the opposite span. Pinned reports and both
+macOS architecture outputs match. An eight-pair dual-seam source retains
+its explicit refusal in this subset. Main race and 18 prior outputs pass.
 The [valid periodic seam trim](evidence/iges-periodic-seam-trimmed-2026-11-16.json)
 passes independently authored type 144, the pinned reopen and main race.
 The reader retains six original directed pairs, distinct seam stations,

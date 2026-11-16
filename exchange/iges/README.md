@@ -161,9 +161,11 @@ and crossing contours and reverses the incorrectly wound inner contour on
 transfer.
 
 `ReadPeriodicSeamTrimmedFace` admits the lifted rectangular case at the
-upper seam of a full type-128 carrier periodic in U or in V. The two
-type-102 composites each contain six directed pieces. The sides parallel
-to the periodic axis split at its original seam station, with matching
+upper seam of a full type-128 carrier. The support can be doubly
+periodic when exactly one seam is crossed and the other axis stays
+strictly inside one original knot span in its fundamental cycle. The
+two type-102 composites each contain six directed pieces. The sides
+parallel to the crossed axis split at its original seam station, with matching
 type-110 UV and complete type-126 model pieces. The reader retains each
 source owner and the two original knot cells, proves their complete
 shared seam, and certifies the whole lifted rectangle with one fixed
@@ -179,6 +181,11 @@ pcurve the parameter interval of its paired model spline on transfer.
 The independently authored V-seam fixture likewise retains its six
 directed source edges, split V stations and original model ranges.
 The pinned reports for its original and canonical carriers match.
+The doubly periodic U-seam and V-seam originals also retain both
+periodic axes, the opposite-axis cell, all six directed pairs and
+physical derivatives after native and pinned canonical reopen. The
+one-seam reader refuses the independently authored dual-crossing control
+with eight original edge pairs.
 
 `ReadPeriodicSeamTrimmedFaceWithHole` admits one clockwise rectangular
 inner contour crossing the same original U seam as its outer loop. Both
