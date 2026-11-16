@@ -60,6 +60,9 @@ swapped/reversed owners and different original knot breaks. Partial
 selected rectangles with nonbinary original endpoints use the same
 proof. Automatic recovery of general chart maps and complete partial
 contact arrangements remain open.
+For graphs whose two selected Cartesian coordinates are independent
+linear-fractional functions, the kernel now discovers the original
+projection and proves the lift on the full overlapping rectangle.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

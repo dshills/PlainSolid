@@ -1,0 +1,39 @@
+{
+  "scope": "Automatically discovered exact partial coincidence of separable Cartesian projective graphs",
+  "main_base": "0f1d59d7",
+  "log": "projective-graph-overlap-main-race.jsonl",
+  "sha256": "f4e5cc71dc768d0b3fe35c7e268d42fd42d63b703ecc539c1e3df6693bd809b7",
+  "named_passes": [
+    "TestExactSurfaceComparisonDegreeKnotsAndDomain",
+    "TestExactSurfaceComparisonChartSymmetries",
+    "TestExactSurfaceComparisonNegativeAndLimits",
+    "TestExactSurfaceComparisonRationalMultiplierAndNonbinaryGrid",
+    "TestExactSurfaceComparisonFractionalOriginalKnotMaps",
+    "TestExactSurfaceComparisonPartialLeavesOtherRegionsUnclassified",
+    "TestProjectiveSurfaceGraphOverlapDiscoversOriginalPartialMap",
+    "TestProjectiveSurfaceGraphOverlapRejectsAProjectionThatOnlyMatchesSamples",
+    "TestSurfaceSurfaceCoverSplitsFiniteRangesWhoseWidthOverflows",
+    "TestSurfaceSurfaceCoverCrossingAndSymmetry",
+    "TestSurfaceSurfaceDisjointAndIdentical",
+    "TestSurfaceSurfaceTangencyAndLimits",
+    "TestSurfaceSurfaceRationalContactCover",
+    "TestSurfaceSurfaceCoplanarIsNotEqualityProof"
+  ],
+  "original_B_uv": [
+    [
+      "-2",
+      "2/7"
+    ],
+    [
+      "64/13",
+      "128/17"
+    ]
+  ],
+  "local_ratios": [
+    "13/17",
+    "7/9"
+  ],
+  "original_lift_difference": "2^-100",
+  "physical_placements": 2,
+  "common_rectangles": 4
+}
