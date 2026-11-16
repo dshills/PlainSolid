@@ -401,19 +401,33 @@ static bool writeExactUVSeams(const char* path, std::string_view mode)
     return write(outer,u0,5.25,v0,7.25);
 }
 
-static bool writeExactConvexAffine(const char* path, bool clockwise)
+static bool writeExactConvexAffine(const char* path, std::string_view mode)
 {
+    const bool hasHole = mode != "write-exact-convex-affine" && mode != "write-exact-convex-affine-clockwise";
+    // The smaller hole's cubic poles contain more dyadic bits. Scale the
+    // holed geometry so the independent IGES decimal writer retains them.
+    const double scale = hasHole ? 64. : 1.;
     const auto native = periodicSupport();
     for (int u = 1; u <= native->NbUPoles(); ++u) {
         const auto p = native->Pole(u,1);
-        native->SetPole(u,1,gp_Pnt(3*p.X(),3*p.Y(),0.));
-        native->SetPole(u,2,gp_Pnt(6*p.X(),6*p.Y(),12.));
+        native->SetPole(u,1,gp_Pnt(3*scale*p.X(),3*scale*p.Y(),0.));
+        native->SetPole(u,2,gp_Pnt(6*scale*p.X(),6*scale*p.Y(),12*scale));
     }
     const auto support = exactCarrier(native,1.25,1.75,1.,3.);
     std::array<gp_XY,4> loop{gp_XY(1.5,1),gp_XY(1.75,2),gp_XY(1.5,3),gp_XY(1.25,2)};
-    if (clockwise) std::reverse(loop.begin(),loop.end());
+    if (mode == "write-exact-convex-affine-clockwise") std::reverse(loop.begin(),loop.end());
     occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
-    face->Init(support,1,exactContour(native,support,loop,64),nullptr);
+    using Contours = NCollection_HArray1<occ::handle<IGESGeom_CurveOnSurface>>;
+    occ::handle<Contours> inner;
+    if (hasHole) {
+        const double rightV = mode == "write-exact-convex-affine-hole-touching" ? 1.5
+                            : mode == "write-exact-convex-affine-hole-crossing" ? 1.25 : 2.;
+        std::array<gp_XY,4> hole{gp_XY(1.5,1.5),gp_XY(1.375,2),gp_XY(1.5,2.5),gp_XY(1.625,rightV)};
+        if (mode == "write-exact-convex-affine-hole-ccw") std::reverse(hole.begin(),hole.end());
+        inner = new Contours(1,1);
+        inner->SetValue(1,exactContour(native,support,hole,80));
+    }
+    face->Init(support,1,exactContour(native,support,loop,64),inner);
     const auto reference = BRepBuilderAPI_MakeFace(native,1.25,1.75,1.,3.,1e-9).Face();
     if (reference.IsNull() || !report(reference)) return false;
     IGESControl_Writer writer("MM",0);
@@ -449,8 +463,10 @@ int main(int argc,char** argv)
             mode == "write-exact-uv-both-seams-unequal" || mode == "write-exact-uv-both-seams-clockwise") {
             return writeExactUVSeams(argv[2],mode) ? 0 : 8;
         }
-        if (mode == "write-exact-convex-affine" || mode == "write-exact-convex-affine-clockwise") {
-            return writeExactConvexAffine(argv[2],mode == "write-exact-convex-affine-clockwise") ? 0 : 8;
+        if (mode == "write-exact-convex-affine" || mode == "write-exact-convex-affine-clockwise" ||
+            mode == "write-exact-convex-affine-hole" || mode == "write-exact-convex-affine-hole-ccw" ||
+            mode == "write-exact-convex-affine-hole-touching" || mode == "write-exact-convex-affine-hole-crossing") {
+            return writeExactConvexAffine(argv[2],mode) ? 0 : 8;
         }
         if (mode == "write" || mode == "write-seam") {
             const TopoDS_Face face = original(mode == "write-seam");

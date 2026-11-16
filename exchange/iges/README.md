@@ -147,6 +147,18 @@ survive binary64 transfer. Pinned OCCT preserves the independent
 bi-degree (2,1) fixture's four directed diagonal lines and cubic model
 splines. The strict proof refuses the clockwise source that OCCT rewinds.
 
+`ReadPeriodicConvexTrimmedFaceWithHole` admits one strictly convex
+clockwise affine inner loop on that same single-cell chart. Both loops
+retain their source owners and complete exact compositions. Every inner
+vertex lies strictly to the left of each directed outer edge, which
+guarantees strict containment of the entire affine hole.
+`WritePeriodicConvexTrimmedFaceWithHole` replays the original and
+reopens the canonical carrier before writing. It also checks winding and
+strict containment after binary64 conversion. Pinned OCCT preserves the
+qualified eight directed edge pairs and original model ranges. Pinned
+transfer splits the independent slanted-edge touching and crossing
+controls. The strict source reader refuses both.
+
 `ReadPeriodicTrimmedFaceWithHoles` admits one or two explicit rectangular
 inner type-142 contours in the same original knot cell as the outer loop.
 Each inner contour owns four directed type-110 UV lines and four complete
