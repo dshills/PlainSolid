@@ -49,7 +49,8 @@ type MappedChainClosedMeshOptions struct {
 	NormalAngle float64
 	// NormalTurn optionally bounds the angle between any two original
 	// one-sided normals associated with the same display facet, in radians
-	// (0,1]. It uses a cone about the exact source normal at the UV centroid.
+	// (0,1]. It uses one-sided source normal cones, with direct pairwise
+	// bounds when one source-centered cone is insufficient.
 	NormalTurn   float64
 	Boundary     MappedChainPolylineOptions
 	Curved       [2]MixedExactMultiSpanMeshOptions
@@ -88,12 +89,12 @@ type CertifiedMappedChainClosedMesh struct {
 	// SquaredNormalTangent bounds the complete shell's one-sided facet angles
 	// when NormalAngle is requested.
 	SquaredNormalTangent *big.Rat `json:",omitempty"`
-	// SquaredHalfNormalTurnTangent bounds each source-centered half-angle
-	// cone. The triangle inequality gives the full requested turn bound.
-	SquaredHalfNormalTurnTangent *big.Rat `json:",omitempty"`
-	DisplayVolume                *big.Rat
-	DisplayCollision             collision.Report
-	RefinementRounds             int
+	// SquaredNormalTurnTangent bounds the complete across-facet source
+	// normal turn when NormalTurn is requested.
+	SquaredNormalTurnTangent *big.Rat `json:",omitempty"`
+	DisplayVolume            *big.Rat
+	DisplayCollision         collision.Report
+	RefinementRounds         int
 }
 
 type mappedChainClosedFaceMesh struct {
@@ -169,14 +170,20 @@ func (r MappedSplineChainAgreement) TessellateClosedCertified(ctx context.Contex
 	build := func(cuts [][][]*big.Rat) error {
 		out.SquaredDistance.SetInt64(0)
 		for owner := range curved {
-			x, err := r.tessellateFaceWithBoundary(ctx, owner, closing[owner], boundary, cuts[owner], o.Curved[owner], roofDisplay)
-			if err != nil {
-				return fmt.Errorf("chain owner %d: %w", owner, err)
+			f := &faces[owner]
+			// A planar mate can receive additional closing stations without
+			// changing this roof's final certified partition. Reuse its
+			// continuous normal-turn proof when every exact cut still agrees.
+			if o.NormalTurn == 0 || !mappedChainDisplayCutsUnchanged(cuts[owner], f.samples) {
+				x, err := r.tessellateFaceWithBoundary(ctx, owner, closing[owner], boundary, cuts[owner], o.Curved[owner], roofDisplay)
+				if err != nil {
+					return fmt.Errorf("chain owner %d: %w", owner, err)
+				}
+				curved[owner], out.Curved[owner] = x, x.Face
+				out.RoofSupportCells[owner] = x.supportCells
+				f.mesh, f.points, f.samples = x.Face.Mesh, x.Face.ExactPoints, x.Face.UVRegion.Samples
 			}
-			curved[owner], out.Curved[owner] = x, x.Face
-			out.RoofSupportCells[owner] = x.supportCells
-			faces[owner].mesh, faces[owner].points, faces[owner].samples = x.Face.Mesh, x.Face.ExactPoints, x.Face.UVRegion.Samples
-			if bound := x.Face.FillSquaredDistance; bound.Cmp(out.SquaredDistance) > 0 {
+			if bound := curved[owner].Face.FillSquaredDistance; bound.Cmp(out.SquaredDistance) > 0 {
 				out.SquaredDistance.Set(bound)
 			}
 		}
@@ -342,19 +349,31 @@ func stitchMappedChainClosed(ctx context.Context, out CertifiedMappedChainClosed
 		}
 	}
 	if o.NormalTurn > 0 {
-		limit := mappedAngleTangentLimit(o.NormalTurn / 2)
-		out.SquaredHalfNormalTurnTangent = new(big.Rat)
+		limit := mappedNormalTurnLimit(o.NormalTurn)
+		out.SquaredNormalTurnTangent = new(big.Rat)
 		for _, roof := range out.Curved {
-			bound := roof.SquaredHalfNormalTurnTangent
+			bound := roof.SquaredNormalTurnTangent
 			if bound == nil || bound.Cmp(limit) > 0 {
 				return zero, geom.ErrConvergence
 			}
-			if bound.Cmp(out.SquaredHalfNormalTurnTangent) > 0 {
-				out.SquaredHalfNormalTurnTangent.Set(bound)
+			if bound.Cmp(out.SquaredNormalTurnTangent) > 0 {
+				out.SquaredNormalTurnTangent.Set(bound)
 			}
 		}
 	}
 	return out, nil
+}
+
+func mappedChainDisplayCutsUnchanged(cuts [][]*big.Rat, samples []MixedExactTrimSamples) bool {
+	if len(cuts) == 0 || len(cuts) != len(samples) {
+		return false
+	}
+	for i, use := range samples {
+		if use.Trim != i || !slices.EqualFunc(cuts[i], use.Parameters, func(a, b *big.Rat) bool { return a.Cmp(b) == 0 }) {
+			return false
+		}
+	}
+	return true
 }
 
 // Copy both ordered sample sets to the first use's direction before taking the

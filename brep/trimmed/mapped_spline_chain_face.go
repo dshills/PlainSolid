@@ -108,12 +108,12 @@ func (r MappedSplineChainAgreement) tessellateFaceWithBoundary(ctx context.Conte
 			return zero, fmt.Errorf("mapped chain support knot samples: %w", e)
 		}
 	}
-	if display.facetAngle > 0 {
+	if display.facetAngle > 0 || display.normalTurn > 0 {
 		// A straight trim may still have rotating normals along it. Insert
 		// exact subdivisions in the original coedge clock so the angular
 		// path can shorten otherwise protected display edges.
 		intervals := int64(4)
-		if display.facetAngle < .25 {
+		if display.facetAngle > 0 && display.facetAngle < .25 {
 			intervals = 8
 		}
 		for i, fixed := range cuts {

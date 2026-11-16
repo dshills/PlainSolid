@@ -234,14 +234,22 @@ func mappedClosingTurnCuts(ctx context.Context, p *geom.SurfacePatch, trims []PC
 			continue
 		}
 		a, b := minMaxRats(clock.start[clock.axis], clock.end[clock.axis])
-		stations := []*big.Rat{a}
+		stations := []*big.Rat{a, b}
 		for _, knot := range probe.knots[clock.axis] {
 			q := ratInset(knot)
 			if a.Cmp(q) < 0 && b.Cmp(q) > 0 {
 				stations = append(stations, q)
 			}
 		}
-		stations = append(stations, b)
+		for _, t := range prescribed[i] {
+			uv, err := mixedExactEvaluate(trim, t)
+			if err != nil {
+				return nil, err
+			}
+			stations = append(stations, uv[clock.axis])
+		}
+		slices.SortFunc(stations, (*big.Rat).Cmp)
+		stations = slices.CompactFunc(stations, func(a, b *big.Rat) bool { return a.Cmp(b) == 0 })
 		var inserts []*big.Rat
 		for j, start := range stations[:len(stations)-1] {
 			end := stations[j+1]

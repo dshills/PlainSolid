@@ -43,8 +43,10 @@ func TestMappedRoofNormalConeUsesOriginalOneSidedDifferentials(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	turn.sourceCentered = true
-	if bound, retries, err := turn.certify(ctx, p, face); err != nil || retries != nil || bound == nil || bound.Cmp(turn.limit) > 0 {
+	if err := turn.enableTurn(ctx, p, .05); err != nil {
+		t.Fatal(err)
+	}
+	if bound, retries, err := turn.certify(ctx, p, face); err != nil || retries != nil || bound == nil || bound.Cmp(turn.turnLimit) > 0 {
 		t.Fatal("the one-sided analytic anchor must prove each facet's .05-radian normal turn", bound, retries, err)
 	}
 	n := func(tr [3]int) [3]*big.Rat {

@@ -32,9 +32,9 @@ type CertifiedCurvedQuadraticTrimMesh struct {
 	// SquaredNormalTangent is the upper bound for an explicitly certified
 	// mapped roof. It is nil on the existing distance-only paths.
 	SquaredNormalTangent *big.Rat `json:",omitempty"`
-	// SquaredHalfNormalTurnTangent is the original support's source-centered
-	// half-angle bound, set only on an explicitly certified mapped roof.
-	SquaredHalfNormalTurnTangent                                                                  *big.Rat `json:",omitempty"`
+	// SquaredNormalTurnTangent bounds across-facet original source normal
+	// angles, set only on an explicitly certified mapped roof.
+	SquaredNormalTurnTangent                                                                      *big.Rat `json:",omitempty"`
 	InteriorRefinementPasses                                                                      int      // Fixed-boundary refinement only; Subdivisions stays 1.
 	SpanCellChecks, SpanPieceChecks                                                               int      // Zero for the single-span API.
 	Mesh                                                                                          mesh.Mesh
@@ -212,7 +212,9 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 				if err != nil {
 					return empty, fmt.Errorf("mapped roof turning cells: %w", err)
 				}
-				turns.sourceCentered = true
+				if err := turns.enableTurn(ctx, p, display.normalTurn); err != nil {
+					return empty, fmt.Errorf("mapped roof turning chart: %w", err)
+				}
 			}
 		}
 	}
@@ -273,7 +275,7 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 		}
 		if distanceReady && angleRetries == nil && turns != nil {
 			var e error
-			result.SquaredHalfNormalTurnTangent, angleRetries, e = turns.certify(ctx, p, result)
+			result.SquaredNormalTurnTangent, angleRetries, e = turns.certify(ctx, p, result)
 			if e != nil {
 				return empty, fmt.Errorf("mapped roof normal turn: %w", e)
 			}

@@ -105,7 +105,7 @@ func TestMappedClosingTurnSharesProjectiveCoedgeCuts(t *testing.T) {
 		t.Fatal("fixture must contain the original west closing edge")
 	}
 	replace := func(trim PCurve, reverseWeights bool) ExactQuadraticUV {
-		w0, w1 := int64(1), int64(2)
+		w0, w1 := int64(1), int64(32)
 		if reverseWeights {
 			w0, w1 = w1, w0
 		}
@@ -137,23 +137,26 @@ func TestMappedClosingTurnSharesProjectiveCoedgeCuts(t *testing.T) {
 		BoundaryModelBudget: .005,
 		Interior:            CurvedQuadraticTrimMeshOptions{Deflection: .08},
 	}}
-	out, err := r.TessellateClosedCertified(ctx, closing, [2]bool{false, true}, planar, seams, MappedChainClosedMeshOptions{
+	options := MappedChainClosedMeshOptions{
 		AlignSupportKnots: true, MaxKnotCellFlips: 10000, NormalTurn: .35,
 		Boundary: MappedChainPolylineOptions{Deflection: .005},
 		Curved:   [2]MixedExactMultiSpanMeshOptions{fill, fill},
-	})
+	}
+	out, err := r.TessellateClosedCertified(ctx, closing, [2]bool{false, true}, planar, seams, options)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out.SquaredHalfNormalTurnTangent == nil || out.SquaredHalfNormalTurnTangent.Cmp(mappedAngleTangentLimit(.35/2)) > 0 ||
+	if out.SquaredNormalTurnTangent == nil || out.SquaredNormalTurnTangent.Cmp(mappedNormalTurnLimit(.35)) > 0 ||
 		!out.DisplayCollision.Complete || len(out.DisplayCollision.Contacts) != 0 || out.Mesh.ValidateSolid() != nil {
 		t.Fatal("joint projective coedges must produce a closed shell with a continuous normal-turn bound")
 	}
 	curvedTrim := len(r.cuts) - 1 + a.Trim
 	samples := [2]MixedExactTrimSamples{out.Curved[0].UVRegion.Samples[curvedTrim], out.Planar[b.Face-2].Samples[b.Trim]}
-	want := [2]*big.Rat{big.NewRat(1, 3), big.NewRat(1, 3)}
+	// The first normalized quarter covers 32/35 of the physical axis.
+	// Its physical midpoint at 16/35 inverts to 1/39 in this source clock.
+	want := [2]*big.Rat{big.NewRat(1, 39), big.NewRat(1, 39)}
 	if reverse {
-		want[1] = big.NewRat(2, 3)
+		want[1] = big.NewRat(38, 39)
 	}
 	var shared [2]int
 	for owner, s := range samples {
@@ -166,5 +169,10 @@ func TestMappedClosingTurnSharesProjectiveCoedgeCuts(t *testing.T) {
 	}
 	if shared[0] < 0 || shared[0] != shared[1] {
 		t.Fatal("physical midpoint must use its original projective stations and one shared display vertex", shared)
+	}
+	wall.Outer[b.Trim] = replace(wall.Outer[b.Trim], !reverse)
+	rejected, err := r.TessellateClosedCertified(ctx, closing, [2]bool{false, true}, planar, seams, options)
+	if !errors.Is(err, geom.ErrConvergence) || len(rejected.Mesh.Vertices) != 0 {
+		t.Fatal("a false closing coedge clock must reject before publishing either owner's mesh", err)
 	}
 }
