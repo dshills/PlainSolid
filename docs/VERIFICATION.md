@@ -82,6 +82,13 @@ re-creates the original native snapshot byte for byte from the source
 receipt. After editing one group, a strict STEP round trip preserves the
 current occurrence changes and leaves the original source receipt intact.
 The main document and prior strict controls passed in 214.197 seconds.
+The [strict mixed conical AP242 DAG](evidence/depth-three-mixed-conical-ap242-dag-2026-11-15.json)
+keeps two native parts, one subassembly shared by different parents,
+and seven leaf paths from eight original relationships. Pinned XCAF
+independently verifies all exact poses and local material. Depth, leaf
+count, cycles, invalid product roles and nonrigid intermediate frames
+refuse atomically. The focused main strict tests and the independent
+121.360-second legacy and DAG race passed.
 
 The [full orthogonal volume offset](evidence/orthogonal-volume-offset-2026-11-15.json)
 matched independently constructed pinned OCCT references for four

@@ -28,6 +28,9 @@ The two local parts are proved once, preserving all six original
 occurrence paths and original placements. A document import entry point
 retains the source receipt while the corrected document can be edited
 and exported through strict STEP.
+The strict mixed conical reader also supports bounded directed acyclic
+product graphs with shared subassemblies, exact composed placements and
+occurrence paths at different depths.
 
 The previous paired full runs used kernel `af569683` and PlainCAD `efae4d2`.
 The [Go run](evidence/main-af569683-qualification-2026-11-15.json)
