@@ -1031,7 +1031,9 @@ func validateNativeExactQuadratics(ctx context.Context, solid Solid) error {
 				}
 				var proven bool
 				var e error
-				if supportEdges[u.Edge] && u.Curve == nil {
+				curve, _ := parametric.CurveMapping(solid.edges[u.Edge].Curve)
+				_, standalone := curve.(*geom.ExactSplineCurve)
+				if u.Curve == nil && (supportEdges[u.Edge] || standalone) {
 					proven, e = compareSplineEdgeUse(ctx, solid.edges[u.Edge], f.Surface, u, edgecheck.Options{})
 				} else {
 					proven, e = compareSplineRationalTrimUse(ctx, solid.edges[u.Edge], f.Surface, u, edgecheck.Options{})

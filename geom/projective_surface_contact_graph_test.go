@@ -65,6 +65,51 @@ func TestTraceProjectiveSurfaceContactsFindsAClosedOriginalContour(t *testing.T)
 	}
 }
 
+func TestTraceProjectiveSurfaceContactsUsesExactFreeProjectionDerivative(t *testing.T) {
+	ctx := context.Background()
+	for _, axes := range [][2]int{{0, 1}, {1, 2}, {2, 0}} {
+		var patch [2]*SurfacePatch
+		for owner := range patch {
+			var poles []Vec3
+			var weights []float64
+			for i := range 2 {
+				for j := range 2 {
+					x, y, w := float64(i), float64(j), 1.
+					z := 1 + x*y
+					if owner == 0 {
+						w += y
+					} else {
+						z += x - .5
+					}
+					var p [3]float64
+					p[axes[0]], p[axes[1]], p[3-axes[0]-axes[1]] = x, y, z
+					poles = append(poles, Vec3{p[0], p[1], p[2]})
+					weights = append(weights, w)
+				}
+			}
+			knots := []float64{0, 0, 1, 1}
+			surface, err := NewBSplineSurface(1, 1, 2, 2, poles, knots, knots, weights)
+			if err != nil {
+				t.Fatal(err)
+			}
+			patch[owner], err = NewSurfacePatch(surface, SurfacePatchOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		g, err := TraceProjectiveSurfaceContacts(ctx, patch[0], patch[1], axes, ProjectiveSurfaceContactGraphOptions{})
+		if err != nil || !g.Complete || len(g.Arcs) != 1 || len(g.Cover.Isolations) != 1 {
+			t.Fatal("the original fractional chart must retain one unbroken arc", axes, err)
+		}
+		arc := g.Cover.Isolations[0].Arcs[0]
+		d := arc.Certificate.WorldDerivative
+		if arc.Depth != 0 || arc.OnBoundary || arc.Certificate.WorldAxis != 1 ||
+			d.Sign != 1 || d.Min != .5 || d.Max != 2 {
+			t.Fatal("the exact derivative of 2v/(1+v) is 2/(1+v)^2", axes, arc.Certificate)
+		}
+	}
+}
+
 func assertProjectiveContactChain(t *testing.T, g ProjectiveSurfaceContactGraph, c ProjectiveContactContour) {
 	t.Helper()
 	have := map[int]bool{}

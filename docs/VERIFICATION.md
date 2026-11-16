@@ -83,6 +83,12 @@ The closed Common/Fuse audit passes both projection-axis orders, with
 `9F/19E/12V`, two retained original roofs and six exact adjoining walls.
 Independent integrals give volumes `9/8` and `11/8` and matching planar
 centroids. A roof touching the base refuses before topology is published.
+Crossing Cut qualifies both original orders and both axis orders, with
+5 faces, 9 edges, 6 vertices and independent volume 1/8. Two triangular
+side faces meet the exact section without zero-length edges. All four
+native results reopen byte-identically. Certified display checks every
+original coedge use. The contact solver also certifies the exact free
+projection derivative across each of the three coordinate-plane pairs.
 The [ordinary exact spline jet audit](evidence/exact-spline-rational-evaluation-2026-11-16.json)
 passes a nonbinary station, a right-hand interior derivative and a
 left-hand final derivative. Its outward boxes and short work refusal
@@ -400,7 +406,7 @@ The [height-order audit](evidence/projective-height-order-2026-11-16.json)
 proves exact original coincidence and both signs of a constant 2^-120
 lift across differently clocked surfaces. Positive corners with a
 negative interior only produce a conservative difference interval.
-The origin atlas and all coefficient checks share one work limit.
+The original atlas and all coefficient checks share one work limit.
 The related UV-curve race preserves original nonuniform knots and exact
 physical derivatives. A transported original curve lifts to identical
 rational model points on both charts. A denominator with a pole and an

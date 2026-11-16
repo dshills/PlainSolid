@@ -226,6 +226,9 @@ One open section on equal projected rectangles can now select the
 two original lower or upper roof fragments with a common model seam.
 For a positive common planar base, those fragments now form closed
 Common and Fuse solids with exact original roof and wall ownership.
+Both ordered crossing Cuts now close against the other original spline
+roof, discard the canceled base and preserve exact side walls. They
+reopen byte-identically and certify an embedded original-face display.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

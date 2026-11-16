@@ -335,7 +335,11 @@
       "TestTraceProjectiveSurfaceContactsFindsAClosedOriginalContour"
     ],
     "terminating_common_knot": "9/10",
-    "both_wall_polynomial": ["1/8", "-1", "1"],
+    "both_wall_polynomial": [
+      "1/8",
+      "-1",
+      "1"
+    ],
     "tested_distinct_rays_per_case": 4
   },
   "quadratic_saddle_network": {
@@ -353,8 +357,17 @@
       "TestTraceProjectiveSurfaceContactsFindsAClosedOriginalContour"
     ],
     "placements": 2,
-    "topology_each": {"vertices": 7, "arcs": 6, "quadratic_saddles": 1, "terminal_paths": 4},
-    "irrational_interior_polynomial": ["7/32", "-1", "1"]
+    "topology_each": {
+      "vertices": 7,
+      "arcs": 6,
+      "quadratic_saddles": 1,
+      "terminal_paths": 4
+    },
+    "irrational_interior_polynomial": [
+      "7/32",
+      "-1",
+      "1"
+    ]
   },
   "surface_pair_integration": {
     "main_base": "acf54c33",
@@ -378,7 +391,10 @@
       "TestTraceProjectiveSplineFaceContactsClipsOriginalRectangles",
       "TestTraceProjectiveSplineFaceContactsRetainsBothUsesAtAnOriginalCorner"
     ],
-    "original_normalized_coedge_positions": ["3/4", "2/5"],
+    "original_normalized_coedge_positions": [
+      "3/4",
+      "2/5"
+    ],
     "reversed_edge_normalized_position": "1/4",
     "quadratic_corner_terminals": 4
   },
@@ -387,8 +403,20 @@
     "log": "projective-original-cuts-main-race.jsonl",
     "sha256": "477da53eb922aeda71e00e59b52e5b0673d1e8410431b1733cee608335a29c63",
     "main_pass": "TestProjectiveSurfaceOriginalCutsUseBothRawClocks",
-    "original_clocks": ["A: U=3/8, V=5/6", "B: U=-1, V=6"],
-    "common_cuts": [["3/8", "13/20"], ["1/2", "2/3"]],
+    "original_clocks": [
+      "A: U=3/8, V=5/6",
+      "B: U=-1, V=6"
+    ],
+    "common_cuts": [
+      [
+        "3/8",
+        "13/20"
+      ],
+      [
+        "1/2",
+        "2/3"
+      ]
+    ],
     "proof_cells": 16,
     "one_open_contour_arcs": 4
   },
@@ -404,17 +432,37 @@
     ],
     "independent_common_hole_end": "27/38",
     "retained_open_paths": 3,
-    "terminals": {"inner": 4, "outer": 2},
-    "refusals": ["overlapping hole closures", "hole extending across the positive-area overlap boundary", "reversed inner winding", "coedge identity on a segment extension"]
+    "terminals": {
+      "inner": 4,
+      "outer": 2
+    },
+    "refusals": [
+      "overlapping hole closures",
+      "hole extending across the positive-area overlap boundary",
+      "reversed inner winding",
+      "coedge identity on a segment extension"
+    ]
   },
   "exact_shared_contact_spline": {
     "main_base": "59c9ee6b",
     "log": "projective-contact-spline-main-race-2.jsonl",
     "sha256": "5cd6b911b56f7796ca1d66604de2269f729f073f49c0b3e628289eac34826351",
     "initial_test_api_build_failure_sha256": "4514bea767754bde5f0672faad719c68bf516be1f5c8c9a6bcbaff93d46140bd",
-    "main_passes": ["TestProjectiveContactSplineKeepsBothOriginalPcurvesAndCurvedModel", "TestProjectiveContactSplineRejectsTheChordOfAnOriginalCurve"],
-    "independent_model_law": ["x", "x", "x^2"],
-    "exact_replay_stations": ["0", "2/7", "1/2", "1"]
+    "main_passes": [
+      "TestProjectiveContactSplineKeepsBothOriginalPcurvesAndCurvedModel",
+      "TestProjectiveContactSplineRejectsTheChordOfAnOriginalCurve"
+    ],
+    "independent_model_law": [
+      "x",
+      "x",
+      "x^2"
+    ],
+    "exact_replay_stations": [
+      "0",
+      "2/7",
+      "1/2",
+      "1"
+    ]
   },
   "native_face_imprint": {
     "main_base": "86293eb7",
@@ -424,8 +472,15 @@
     "output_faces": 4,
     "original_source_edge_ids_per_owner": 4,
     "original_splits_per_owner": 2,
-    "shared_exact_model_midpoint": ["1/2", "1/2", "1/4"],
-    "fractional_original_B_midpoint": ["1/3", "1/2"]
+    "shared_exact_model_midpoint": [
+      "1/2",
+      "1/2",
+      "1/4"
+    ],
+    "fractional_original_B_midpoint": [
+      "1/3",
+      "1/2"
+    ]
   },
   "closed_shell_imprint": {
     "main_base": "d42af917",
@@ -433,19 +488,39 @@
     "sha256": "50e0998e9790a7e9a2b479d07a1e6391447bc04ec56f5e42283aea871e2d1cb0",
     "main_pass": "TestImprintProjectiveSplineShellFacesPropagatesOriginalCuts",
     "initial_unresolved_coedge_comparison_sha256": "1bb51bd3cc5269451abca5b83693ef2b7ede08bc3910f624b31f7c8e908d815f",
-    "result_topology_each": {"faces": 7, "edges": 15, "vertices": 10},
+    "result_topology_each": {
+      "faces": 7,
+      "edges": 15,
+      "vertices": 10
+    },
     "full_original_model_edges_each": 12,
     "propagated_stations_each": 2,
-    "independent_volume_and_centroid": {"volume": "1", "centroid": ["1/2", "1/2", "3/4"]},
-    "controls": ["continuous pcurve interior perturbation", "failed exact sewing leaves no shell prefix"]
+    "independent_volume_and_centroid": {
+      "volume": "1",
+      "centroid": [
+        "1/2",
+        "1/2",
+        "3/4"
+      ]
+    },
+    "controls": [
+      "continuous pcurve interior perturbation",
+      "failed exact sewing leaves no shell prefix"
+    ]
   },
   "closed_shell_native_replay": {
     "main_base": "d42af917",
     "log": "projective-split-shell-persistence-main-race.jsonl",
     "sha256": "d9ed1275138ac14ba431f595b8348bd02b6c79e02ae201247605c25a03b5c462",
-    "named_passes": ["TestNativeExactBezierCurvePreservesOriginalClockAndControls", "TestProjectiveImprintedShellNativeExactSplineRoundTrip"],
+    "named_passes": [
+      "TestNativeExactBezierCurvePreservesOriginalClockAndControls",
+      "TestProjectiveImprintedShellNativeExactSplineRoundTrip"
+    ],
     "native_shells": 2,
-    "standalone_original_clock": [-2, 3],
+    "standalone_original_clock": [
+      -2,
+      3
+    ],
     "byte_identical_replay": true
   },
   "multiple_closed_shell_imprints": {
@@ -453,7 +528,11 @@
     "log": "projective-multi-shell-main-race.jsonl",
     "sha256": "6813e722f5b345357d21e043c0af8b0a749273d4fa958720a73721a99cdea22e",
     "main_pass": "TestImprintProjectiveSplineShellFacePairsRetainsTwoSeparateSections",
-    "result_topology_each": {"faces": 8, "edges": 18, "vertices": 12},
+    "result_topology_each": {
+      "faces": 8,
+      "edges": 18,
+      "vertices": 12
+    },
     "propagated_stations_each": 4,
     "independent_volume_each": "1"
   },
@@ -462,17 +541,79 @@
     "geometry_main_sha256": "ddee989bde035b8eea25f4e5158b55d3a212e14cad434ba10fc2bfd2167c06d6",
     "native_main_log": "projective-face-envelope-main-race.jsonl",
     "native_main_sha256": "1af25083007bbeeaac8f1aea5dc986b98ffbf9412a37b19adcf06a3fb9890e03",
-    "named_passes": ["TestProjectiveContactHeightClassifiesBothOriginalLifts", "TestSelectProjectiveSplineFaceEnvelopeRetainsOriginalMaterialSides"],
+    "named_passes": [
+      "TestProjectiveContactHeightClassifiesBothOriginalLifts",
+      "TestSelectProjectiveSplineFaceEnvelopeRetainsOriginalMaterialSides"
+    ],
     "exact_lift_difference_scale": "2^-120",
-    "original_signs_retained": {"lower": [-1, 1], "upper": [1, -1]}
+    "original_signs_retained": {
+      "lower": [
+        -1,
+        1
+      ],
+      "upper": [
+        1,
+        -1
+      ]
+    }
   },
   "closed_projective_roof_boolean": {
     "main_base": "87a48d65",
     "log": "projective-roof-solid-main-race.jsonl",
     "sha256": "1b7e740d3fd75820680d0e78e15ba7caeee722d104fd67da21c247a7e88e588e",
     "pass": "TestBuildProjectiveSplineRoofSolidClosesExactCommonAndFuse",
-    "topology_each": {"faces": 9, "edges": 19, "vertices": 12},
-    "independent_material": {"common": {"volume": "9/8", "projected_centroid": ["31/54", "29/54"]}, "fuse": {"volume": "11/8", "projected_centroid": ["37/66", "35/66"]}},
+    "topology_each": {
+      "faces": 9,
+      "edges": 19,
+      "vertices": 12
+    },
+    "independent_material": {
+      "common": {
+        "volume": "9/8",
+        "projected_centroid": [
+          "31/54",
+          "29/54"
+        ]
+      },
+      "fuse": {
+        "volume": "11/8",
+        "projected_centroid": [
+          "37/66",
+          "35/66"
+        ]
+      }
+    },
     "projection_axis_orders": 2
+  },
+  "closed_projective_cut": {
+    "main_base": "2a196388",
+    "main_race_log": "projective-roof-closed-cut-main-race.jsonl",
+    "main_race_sha256": "a9f8508edd711508433fa97452bf31db0f896642b9534a0c3bed528ce2ff37e7",
+    "main_race_seconds": {
+      "geom": 2.236,
+      "brep/trimmed": 48.902
+    },
+    "input_orders": 2,
+    "axis_orders": 2,
+    "per_result": {
+      "faces": 5,
+      "edges": 9,
+      "vertices": 6,
+      "exact_incident_triangular_walls": 2,
+      "seams": 1,
+      "base_faces": 0
+    },
+    "independent_volume": "1/8",
+    "independent_centroid_x": [
+      "5/6",
+      "1/6"
+    ],
+    "independent_centroid_y": "1/2",
+    "byte_identical_reopens": 4,
+    "certified_display_original_coedge_uses": 18,
+    "original_fractional_derivative_range": [
+      "1/2",
+      "2"
+    ]
   }
 }

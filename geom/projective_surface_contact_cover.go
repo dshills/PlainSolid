@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"errors"
+	"math/big"
 )
 
 // ProjectiveSurfaceContactCoverOptions bounds common height construction
@@ -103,6 +104,7 @@ func BoundProjectiveSurfaceContacts(ctx context.Context, a, b *SurfacePatch, axe
 	if err != nil {
 		return r, err
 	}
+	projected := projectiveContactProjectionCertificate(ctx)
 	all := true
 	for i, cell := range r.Atlas.Cells {
 		if err := ctx.Err(); err != nil {
@@ -133,7 +135,7 @@ func BoundProjectiveSurfaceContacts(ctx context.Context, a, b *SurfacePatch, axe
 		}
 		arc := o.Arcs
 		arc.MaxOperations = min(left, arc.MaxOperations)
-		r.Isolations[i], err = CertifySurfacePlaneArcsContext(ctx, cell.Difference, plane, arc)
+		r.Isolations[i], err = certifySurfacePlaneArcsContext(ctx, cell.Difference, plane, arc, projected)
 		r.ExactOperations += r.Isolations[i].ExactOperations
 		if err != nil && !errors.Is(err, ErrConvergence) {
 			return r, err
@@ -145,4 +147,42 @@ func BoundProjectiveSurfaceContacts(ctx context.Context, a, b *SurfacePatch, axe
 	}
 	r.Complete = true
 	return r, nil
+}
+
+// Where the interval quotient rule loses the sign to weight variation,
+// prove the free projected coordinate across the entire original local
+// patch. It is independent of the fixed axis, so its ordinary derivative
+// is also its derivative along the implicit contact graph.
+func projectiveContactProjectionCertificate(ctx context.Context) surfaceArcProjectionCertificate {
+	return func(p *SurfacePatch, data surfaceArcData, fixed int, b *polynomialBudget) (SurfaceArcCertificate, bool, error) {
+		normal := [2]exactInterval{data.du[4], data.dv[4]}[fixed]
+		if normal.sign() == 0 {
+			return SurfaceArcCertificate{}, false, nil
+		}
+		// The height atlas stores its two selected projections in the
+		// residual patch's X and Y coordinates, for every source axis pair.
+		proof, err := certifyProjectiveGraphProjection(ctx, p, [2]int{0, 1}, p.options.MaxPoles, b)
+		if errors.Is(err, ErrDomain) {
+			return SurfaceArcCertificate{}, false, nil
+		}
+		if err != nil {
+			return SurfaceArcCertificate{}, false, err
+		}
+		free := 1 - fixed
+		index := 0
+		if proof[index].raw != free {
+			index = 1
+		}
+		chart := proof[index]
+		d := projectiveParameterIntervals(p.Domain())[free]
+		a := boundedRatArithmetic{b: b}
+		span := a.sub(chart.ends[1], chart.ends[0])
+		first := a.quo(a.mul(span, chart.ratio), a.sub(d.hi, d.lo))
+		last := a.quo(first, a.mul(chart.ratio, chart.ratio))
+		if a.err != nil {
+			return SurfaceArcCertificate{}, false, a.err
+		}
+		lo, hi := orderedProjectiveEnds([2]*big.Rat{first, last})
+		return SurfaceArcCertificate{fixed, index, certifiedRange(normal), certifiedRange(exactInterval{lo, hi})}, true, nil
+	}
 }

@@ -162,6 +162,13 @@ func CertifySurfacePlaneArcs(patch *SurfacePatch, plane Plane, options SurfacePl
 // CertifySurfacePlaneArcsContext checks cancellation between bounded cells.
 // Pending still covers cells that were not processed.
 func CertifySurfacePlaneArcsContext(ctx context.Context, patch *SurfacePatch, plane Plane, options SurfacePlaneArcOptions) (result SurfacePlaneArcs, err error) {
+	return certifySurfacePlaneArcsContext(ctx, patch, plane, options, nil)
+}
+
+type surfaceArcProjectionCertificate func(*SurfacePatch, surfaceArcData, int, *polynomialBudget) (SurfaceArcCertificate, bool, error)
+
+func certifySurfacePlaneArcsContext(ctx context.Context, patch *SurfacePatch, plane Plane, options SurfacePlaneArcOptions,
+	projected surfaceArcProjectionCertificate) (result SurfacePlaneArcs, err error) {
 	if ctx == nil || patch == nil || len(patch.net) == 0 || !plane.valid() {
 		return result, ErrInvalid
 	}
@@ -274,6 +281,9 @@ func CertifySurfacePlaneArcsContext(ctx context.Context, patch *SurfacePatch, pl
 			certified := false
 			for axis := 0; allowArc && axis < 2; axis++ {
 				cert, ok, e := data.certify(axis, b)
+				if e == nil && !ok && projected != nil {
+					cert, ok, e = projected(p, data, axis, b)
+				}
 				if e != nil {
 					pending(p)
 					return result, e

@@ -39,6 +39,20 @@ func SelectProjectiveSplineFaceEnvelope(ctx context.Context, a, b Face, axes [2]
 	if ctx == nil || operation != parametric.Intersection && operation != parametric.Union || o.MaxClassifyOperations < 0 {
 		return r, geom.ErrInvalid
 	}
+	want := [2]int{-1, 1}
+	if operation == parametric.Union {
+		want = [2]int{1, -1}
+	}
+	return selectProjectiveSplineFaceFragments(ctx, a, b, axes, want, o)
+}
+
+// A common sign picks the same projected region for both originals. Their
+// effective section directions then agree until one face is turned over.
+func selectProjectiveSplineFaceFragments(ctx context.Context, a, b Face, axes [2]int, want [2]int,
+	o ProjectiveSplineEnvelopeOptions) (r ProjectiveSplineEnvelope, err error) {
+	if o.MaxClassifyOperations < 0 {
+		return r, geom.ErrInvalid
+	}
 	if o.MaxClassifyOperations == 0 {
 		o.MaxClassifyOperations = 2_000_000
 	}
@@ -66,13 +80,8 @@ func SelectProjectiveSplineFaceEnvelope(ctx context.Context, a, b Face, axes [2]
 		return r, geom.ErrConvergence
 	}
 	var choices [2]int
-	var side [2]int
 	var witnesses [2]geom.ProjectiveContactHeight
 	for owner, part := range source.Fragments {
-		want := 2*owner - 1 // A below B, or B below A, for the lower envelope.
-		if operation == parametric.Union {
-			want = -want
-		}
 		match := -1
 		d := source.contact.Domains[owner]
 		for i, f := range part {
@@ -118,7 +127,7 @@ func SelectProjectiveSplineFaceEnvelope(ctx context.Context, a, b Face, axes [2]
 			if witness.Difference == nil {
 				return r, geom.ErrConvergence
 			}
-			if witness.Sign == want {
+			if witness.Sign == want[owner] {
 				if match >= 0 {
 					return r, geom.ErrConvergence
 				}
@@ -128,7 +137,7 @@ func SelectProjectiveSplineFaceEnvelope(ctx context.Context, a, b Face, axes [2]
 		if match < 0 {
 			return r, geom.ErrConvergence
 		}
-		choices[owner], side[owner] = match, want
+		choices[owner] = match
 	}
 	var retained [2]SewFace
 	var sources [2][]ProjectiveSplineImprintUse
@@ -141,12 +150,12 @@ func SelectProjectiveSplineFaceEnvelope(ctx context.Context, a, b Face, axes [2]
 		}
 		orientation[i] = section.Reversed != retained[i].Face.Reversed
 	}
-	if orientation[0] == orientation[1] {
+	if (orientation[0] == orientation[1]) != (want[0] == want[1]) {
 		return r, geom.ErrConvergence
 	}
 	if err := ctx.Err(); err != nil {
 		return r, err
 	}
-	r.Faces, r.Sources, r.RetainedSide, r.Witness, r.Section, r.Complete = retained, sources, side, witnesses, source.Section, true
+	r.Faces, r.Sources, r.RetainedSide, r.Witness, r.Section, r.Complete = retained, sources, want, witnesses, source.Section, true
 	return r, nil
 }
