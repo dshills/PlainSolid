@@ -1,0 +1,71 @@
+{
+  "plainSolidRevision": "a91be075f81568d336ba1b2f5db702562406cbba",
+  "baseRevision": "56fc65ef02fa6b8850e9a4e0c0068d5379969774",
+  "goVersion": "go version go1.27.4 darwin/arm64",
+  "architecture": "arm64",
+  "occtReferenceSource": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "occtReferenceSourceArchiveSha256": "32b1e918a697a0398e8ce623099af2c1d62cdeda2b2eefa86f07c0aee9d4aaf7",
+  "oracleSource": "exchange/iges/testdata/occt_clipped_polynomial_cut.cxx",
+  "oracleSourceSha256": "17aaab2ec60089cff74e52ea50ef138657f5b9951af19dc42a48050a96c1b2a7",
+  "oracleExecutable": "read_components",
+  "oracleExecutableSha256": "9f5822eb2387f1303fe8d096ce664b0f4df10c8212837672794d1ae660fad934",
+  "unitInMetres": 0.001,
+  "derivedPoleTolerance": 1e-14,
+  "fixtures": {
+    "partial": {
+      "source": "exchange/testdata/native_clipped_polynomial_cut_partial.json",
+      "sourceSha256": "2fee86565b185c00d8ce0f76c6de761d30518c971b9e34d3a8613921b76b4311",
+      "output": "cut-partial.igs",
+      "outputSha256": "5ce461921e9ff679bf4de6f30a7fe1dafc5e517bf67a62e3b6c640ab1d6db459",
+      "occtLog": "occt-partial.json",
+      "transferredRoots": 1,
+      "faces": 17,
+      "solids": 3,
+      "separateVertexIDs": 25,
+      "componentVolumes": [
+        1.4493071794558837e-06,
+        1.1515735251296228e-05,
+        1.9156563996744274
+      ],
+      "volume": 1.9156693647168581
+    },
+    "dependent": {
+      "source": "exchange/testdata/native_clipped_polynomial_cut_dependent.json",
+      "sourceSha256": "b2b790bf9c67bfae3eb779e8f90eb04a121dc15a57702f4eb8290cf276477a2e",
+      "output": "cut-dependent.igs",
+      "outputSha256": "0b522f5f6b484e3e3e4e5e5c733c987fc079b8fa23dee6caf5f7d877d77c95c2",
+      "occtLog": "occt-dependent.json",
+      "transferredRoots": 1,
+      "faces": 16,
+      "solids": 4,
+      "separateVertexIDs": 22,
+      "componentVolumes": [
+        3.5030939756694e-05,
+        1.1515735251294917e-05,
+        0.00024515752520019976,
+        1.9361572265625
+      ],
+      "volume": 1.9364489307627082
+    }
+  },
+  "legacyClippedFuseBeforeSha256": "c66d5e2fb70df740c13f8dd45c6ae1571c16e15c713083946275031ebe766795",
+  "legacyClippedFuseAfterSha256": "c66d5e2fb70df740c13f8dd45c6ae1571c16e15c713083946275031ebe766795",
+  "focused": "10.300s",
+  "liveRuns": [
+    {
+      "file": "full-iges.jsonl",
+      "action": "pass",
+      "elapsedSeconds": 87.102
+    },
+    {
+      "file": "focused-race.jsonl",
+      "action": "pass",
+      "elapsedSeconds": 70.54
+    },
+    {
+      "file": "focused-race-final.jsonl",
+      "action": "pass",
+      "elapsedSeconds": 86.235
+    }
+  ]
+}

@@ -53,82 +53,9 @@ func WriteClippedPolynomialFuse(ctx context.Context, w io.Writer, fuse *trimmed.
 		controls += count
 		return ctx.Err()
 	}
-	supports := make([]int, len(b.Faces))
-	for i, f := range b.Faces {
-		s, err := f.BSplineSupport()
-		if err != nil {
-			return fmt.Errorf("iges: clipped Fuse support %d: %w", i, err)
-		}
-		d := s.Data()
-		if err := consume(len(d.Poles)); err != nil {
-			return err
-		}
-		us, ue, vs, ve := s.Domain()
-		polynomial := true
-		for _, w := range d.Weights {
-			polynomial = polynomial && w == 1
-		}
-		en := Entity{Surface: &Surface{Geometry: s, UStart: us, UEnd: ue, VStart: vs, VEnd: ve, Polynomial: polynomial}}
-		supports[i] = a.entity(en)
-		record, err := exactClippedFuseIGESSupport(d, [4]float64{us, ue, vs, ve}, polynomial)
-		if err != nil {
-			return err
-		}
-		a.records[len(a.records)-1].data = record
+	if _, err := emitExactBezierIGESBody(&a, b, bound, consume); err != nil {
+		return err
 	}
-	verts := []string{"502", strconv.Itoa(len(b.Vertices))}
-	for _, p := range b.Vertices {
-		for _, v := range []float64{p.X, p.Y, p.Z} {
-			x, err := clippedFuseIGESDecimal(new(big.Rat).SetFloat64(v))
-			if err != nil {
-				return err
-			}
-			verts = append(verts, x)
-		}
-	}
-	vertexList := a.add(502, 1, joinTopologyValues(verts))
-	edgeList := []int{504, len(b.Edges)}
-	for i, e := range b.Edges {
-		if err := consume(len(e.Model.Control)); err != nil {
-			return err
-		}
-		v, err := exactClippedFuseIGESBezier(e.Model, false, bound)
-		if err != nil {
-			return fmt.Errorf("iges: clipped Fuse model edge %d: %w", i, err)
-		}
-		model := a.add(126, 0, v)
-		edgeList = append(edgeList, model, vertexList, e.Start+1, vertexList, e.End+1)
-	}
-	edgeDir := a.add(504, 1, topologyNumbers(edgeList...))
-	faces := []int{514, len(b.Faces)}
-	incidence := make([]int, len(b.Edges))
-	for i, f := range b.Faces {
-		face := []int{510, supports[i], len(f.Loops), 1}
-		for _, loop := range f.Loops {
-			uses := []int{508, len(loop)}
-			for _, u := range loop {
-				if err := consume(len(u.UV.Control)); err != nil {
-					return err
-				}
-				v, err := exactClippedFuseIGESBezier(u.UV, true, bound)
-				if err != nil {
-					return fmt.Errorf("iges: clipped Fuse edge %d face %d pcurve: %w", u.Edge, i, err)
-				}
-				pc := a.add(126, 0, v)
-				uses = append(uses, 0, edgeDir, u.Edge+1, clippedFuseIGESOrientation(u.Reversed), 1, 0, pc)
-				incidence[u.Edge]++
-			}
-			face = append(face, a.add(508, 1, topologyNumbers(uses...)))
-		}
-		faces = append(faces, a.add(510, 1, topologyNumbers(face...)), clippedFuseIGESOrientation(f.Reversed))
-	}
-	for _, n := range incidence {
-		if n != 2 {
-			return geom.ErrConvergence
-		}
-	}
-	shell := a.add(514, 1, topologyNumbers(faces...))
-	a.add(186, 0, topologyNumbers(186, shell, 1, 0))
 	if len(a.records) > l.MaxEntities {
 		return geom.ErrConvergence
 	}
@@ -147,6 +74,85 @@ func WriteClippedPolynomialFuse(ctx context.Context, w io.Writer, fuse *trimmed.
 		err = io.ErrShortWrite
 	}
 	return err
+}
+
+func emitExactBezierIGESBody(a *topologyAuthor, b trimmed.ExactBezierBoundary, bound *big.Rat, consume func(int) error) (int, error) {
+	supports := make([]int, len(b.Faces))
+	for i, f := range b.Faces {
+		s, err := f.BSplineSupport()
+		if err != nil {
+			return 0, fmt.Errorf("iges: clipped spline support %d: %w", i, err)
+		}
+		d := s.Data()
+		if err := consume(len(d.Poles)); err != nil {
+			return 0, err
+		}
+		us, ue, vs, ve := s.Domain()
+		polynomial := true
+		for _, w := range d.Weights {
+			polynomial = polynomial && w == 1
+		}
+		en := Entity{Surface: &Surface{Geometry: s, UStart: us, UEnd: ue, VStart: vs, VEnd: ve, Polynomial: polynomial}}
+		supports[i] = a.entity(en)
+		record, err := exactIGESSplineSupport(d, [4]float64{us, ue, vs, ve}, polynomial)
+		if err != nil {
+			return 0, err
+		}
+		a.records[len(a.records)-1].data = record
+	}
+	verts := []string{"502", strconv.Itoa(len(b.Vertices))}
+	for _, p := range b.Vertices {
+		for _, v := range []float64{p.X, p.Y, p.Z} {
+			x, err := exactIGESSplineDecimal(new(big.Rat).SetFloat64(v))
+			if err != nil {
+				return 0, err
+			}
+			verts = append(verts, x)
+		}
+	}
+	vertexList := a.add(502, 1, joinTopologyValues(verts))
+	edgeList := []int{504, len(b.Edges)}
+	for i, e := range b.Edges {
+		if err := consume(len(e.Model.Control)); err != nil {
+			return 0, err
+		}
+		v, err := exactIGESBezier(e.Model, false, bound)
+		if err != nil {
+			return 0, fmt.Errorf("iges: clipped spline model edge %d: %w", i, err)
+		}
+		model := a.add(126, 0, v)
+		edgeList = append(edgeList, model, vertexList, e.Start+1, vertexList, e.End+1)
+	}
+	edgeDir := a.add(504, 1, topologyNumbers(edgeList...))
+	faces := []int{514, len(b.Faces)}
+	incidence := make([]int, len(b.Edges))
+	for i, f := range b.Faces {
+		face := []int{510, supports[i], len(f.Loops), 1}
+		for _, loop := range f.Loops {
+			uses := []int{508, len(loop)}
+			for _, u := range loop {
+				if err := consume(len(u.UV.Control)); err != nil {
+					return 0, err
+				}
+				v, err := exactIGESBezier(u.UV, true, bound)
+				if err != nil {
+					return 0, fmt.Errorf("iges: clipped spline edge %d face %d pcurve: %w", u.Edge, i, err)
+				}
+				pc := a.add(126, 0, v)
+				uses = append(uses, 0, edgeDir, u.Edge+1, igesSplineFaceOrientation(u.Reversed), 1, 0, pc)
+				incidence[u.Edge]++
+			}
+			face = append(face, a.add(508, 1, topologyNumbers(uses...)))
+		}
+		faces = append(faces, a.add(510, 1, topologyNumbers(face...)), igesSplineFaceOrientation(f.Reversed))
+	}
+	for _, n := range incidence {
+		if n != 2 {
+			return 0, geom.ErrConvergence
+		}
+	}
+	shell := a.add(514, 1, topologyNumbers(faces...))
+	return a.add(186, 0, topologyNumbers(186, shell, 1, 0)), nil
 }
 
 // VerifyClippedPolynomialFuseIGES authenticates the canonical IGES topology
@@ -178,7 +184,7 @@ func VerifyClippedPolynomialFuseIGES(ctx context.Context, input io.Reader, fuse 
 	return ctx.Err()
 }
 
-func clippedFuseIGESOrientation(reversed bool) int {
+func igesSplineFaceOrientation(reversed bool) int {
 	if reversed {
 		return 0
 	}
@@ -187,11 +193,11 @@ func clippedFuseIGESOrientation(reversed bool) int {
 
 // IGES accepts finite decimal parameters. Use the exact represented surface
 // values instead of the default shortest decimal float encoding.
-func exactClippedFuseIGESSupport(d geom.BSplineSurfaceData, domain [4]float64, polynomial bool) (string, error) {
+func exactIGESSplineSupport(d geom.BSplineSurfaceData, domain [4]float64, polynomial bool) (string, error) {
 	p := []string{"128", strconv.Itoa(d.CountU - 1), strconv.Itoa(d.CountV - 1), strconv.Itoa(d.DegreeU), strconv.Itoa(d.DegreeV), "0", "0", flag(polynomial), "0", "0"}
 	add := func(v ...float64) error {
 		for _, x := range v {
-			s, err := clippedFuseIGESDecimal(new(big.Rat).SetFloat64(x))
+			s, err := exactIGESSplineDecimal(new(big.Rat).SetFloat64(x))
 			if err != nil {
 				return err
 			}
@@ -226,7 +232,7 @@ func exactClippedFuseIGESSupport(d geom.BSplineSurfaceData, domain [4]float64, p
 	return joinTopologyValues(append(p, "0", "0")), nil
 }
 
-func exactClippedFuseIGESBezier(span geom.ExactBezierSpan, planar bool, tolerance *big.Rat) (string, error) {
+func exactIGESBezier(span geom.ExactBezierSpan, planar bool, tolerance *big.Rat) (string, error) {
 	deg := len(span.Control) - 1
 	one := big.NewRat(1, 1)
 	weights := make([]*big.Rat, len(span.Control))
@@ -252,7 +258,7 @@ func exactClippedFuseIGESBezier(span geom.ExactBezierSpan, planar bool, toleranc
 		p = append(p, "1.")
 	}
 	for _, w := range weights {
-		s, err := clippedFuseIGESDecimal(w.Mul(w, new(big.Rat).SetInt(denominator)))
+		s, err := exactIGESSplineDecimal(w.Mul(w, new(big.Rat).SetInt(denominator)))
 		if err != nil {
 			return "", err
 		}
@@ -261,12 +267,12 @@ func exactClippedFuseIGESBezier(span geom.ExactBezierSpan, planar bool, toleranc
 	for i, h := range span.Control {
 		for j := 0; j < 3; j++ {
 			q := new(big.Rat).Quo(h[j], h[3])
-			x, err := clippedFuseIGESDecimal(q)
+			x, err := exactIGESSplineDecimal(q)
 			if err != nil && i > 0 && i < deg && tolerance.Sign() > 0 {
 				v, _ := q.Float64()
 				nearest := new(big.Rat).SetFloat64(v)
 				if nearest != nil && new(big.Rat).Abs(new(big.Rat).Sub(q, nearest)).Cmp(tolerance) <= 0 {
-					x, err = clippedFuseIGESDecimal(nearest)
+					x, err = exactIGESSplineDecimal(nearest)
 				}
 			}
 			if err != nil {
@@ -278,7 +284,7 @@ func exactClippedFuseIGESBezier(span geom.ExactBezierSpan, planar bool, toleranc
 	return joinTopologyValues(append(p, "0.", "1.", "0.", "0.", flag(planar)+".", "0", "0")), nil
 }
 
-func clippedFuseIGESDecimal(q *big.Rat) (string, error) {
+func exactIGESSplineDecimal(q *big.Rat) (string, error) {
 	if q == nil {
 		return "", geom.ErrInvalid
 	}
