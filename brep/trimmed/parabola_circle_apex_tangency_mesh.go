@@ -182,12 +182,22 @@ func parabolaCircleApexFreeSecond(h parabolaCircleMeshHeight, uv [2]*big.Rat, fr
 }
 
 func parabolaCircleApexCutMeshVolumes(height [2]parabolaCircleMeshHeight, p *geom.SplineGraphParabolaCircleApexTangency) [2][2]*big.Rat {
-	// Only the strip opposite the disk survives the native Cut gate. Its
-	// contribution is rational. A full disk moment is a rational times pi.
+	// Only the strip opposite the disk survives the native Cut gate.
+	strips, disk := parabolaCircleApexSignedMoments(height, p)
+	strip := strips[1-p.DiskRegion]
+	pi := parabolaCircleMeshPi()
+	return [2][2]*big.Rat{{strip, new(big.Rat).Set(strip)},
+		{new(big.Rat).Mul(disk, pi[0]), new(big.Rat).Mul(disk, pi[1])}}
+}
+
+// The whole strips are rational. The disk moment excludes its factor pi.
+func parabolaCircleApexSignedMoments(height [2]parabolaCircleMeshHeight, p *geom.SplineGraphParabolaCircleApexTangency) (
+	strips [2]*big.Rat, disk *big.Rat) {
 	free := p.FreeAxis
 	powers := parabolaCircleMeshStripPowers(p.ParabolaControls, free)
 	circle := geom.GraphContactCircle{Center: p.CircleCenter, RadiusSquared: p.RadiusSquared}
-	lower, unit, disk := new(big.Rat), new(big.Rat), new(big.Rat)
+	lower, unit := new(big.Rat), new(big.Rat)
+	disk = new(big.Rat)
 	for owner, h := range height {
 		for u, row := range h.coefficients {
 			for v, c := range row {
@@ -212,11 +222,5 @@ func parabolaCircleApexCutMeshVolumes(height [2]parabolaCircleMeshHeight, p *geo
 			}
 		}
 	}
-	strip := lower
-	if p.DiskRegion == 0 {
-		strip = new(big.Rat).Sub(unit, lower)
-	}
-	pi := parabolaCircleMeshPi()
-	return [2][2]*big.Rat{{strip, new(big.Rat).Set(strip)},
-		{new(big.Rat).Mul(disk, pi[0]), new(big.Rat).Mul(disk, pi[1])}}
+	return [2]*big.Rat{lower, new(big.Rat).Sub(unit, lower)}, disk
 }

@@ -39,13 +39,47 @@ func (r *ParabolaCircleCrossingsEnvelope) TessellateCertified(ctx context.Contex
 	if o.MaxTriangles < len(r.solid.faces) {
 		return empty, parametric.ErrBudget
 	}
-	var height [3]parabolaCircleMeshHeight
-	var patches [2]*geom.SurfacePatch
-	for i, source := range r.sources {
+	height, patches, err := parabolaCircleEnvelopeHeights(ctx, r.sources)
+	if err != nil {
+		return empty, err
+	}
+	proof, err := geom.DiscoverSplineGraphParabolaCircleCrossings(ctx, patches[0], patches[1], r.axis, geom.GraphPointContactOptions{})
+	if err != nil {
+		return empty, err
+	}
+	volume := parabolaCircleCrossingsEnvelopeVolume(height, r.history.RoofOwners, proof)
+	layout := parabolaCircleEnvelopeLayout{
+		roofFaces: r.history.RoofFaces, roofOwners: r.history.RoofOwners,
+		base: r.history.Base, walls: r.history.WallFaces[:],
+	}
+	display, err := certifyParabolaCircleEnvelopeDisplay(ctx, r.solid, layout, height, volume, o)
+	if err != nil {
+		return empty, err
+	}
+	out := CertifiedParabolaCircleCrossingsEnvelopeMesh{CertifiedParabolaTwoCirclesComponentMesh: display}
+	for i, junction := range r.history.Junctions {
+		id := out.OriginalVertices[junction.Vertex]
+		if !exactPointCoordinatesEqual(exactBoundPoint(out.Mesh.Vertices[id]), proof.Nodes[i].Point) {
+			return empty, geom.ErrConvergence
+		}
+		for _, native := range junction.Rays {
+			edge := out.OriginalEdges[native].Vertices
+			if edge[0] != id && edge[len(edge)-1] != id {
+				return empty, geom.ErrConvergence
+			}
+		}
+		out.JunctionVertices[i] = id
+	}
+	return out, nil
+}
+
+func parabolaCircleEnvelopeHeights(ctx context.Context, sources [3]*geom.BSplineSurface) (
+	height [3]parabolaCircleMeshHeight, patches [2]*geom.SurfacePatch, err error) {
+	for i, source := range sources {
 		var patch *geom.SurfacePatch
 		height[i], patch, err = parabolaCircleDisplayHeight(ctx, source)
 		if err != nil {
-			return empty, err
+			return height, patches, err
 		}
 		height[i].normalHessian = parabolaCircleMeshHessian(source)
 		height[i].hessian = height[i].normalHessian
@@ -63,11 +97,12 @@ func (r *ParabolaCircleCrossingsEnvelope) TessellateCertified(ctx context.Contex
 			patches[i-1] = patch
 		}
 	}
-	proof, err := geom.DiscoverSplineGraphParabolaCircleCrossings(ctx, patches[0], patches[1], r.axis, geom.GraphPointContactOptions{})
-	if err != nil {
-		return empty, err
-	}
-	volume := parabolaCircleCrossingsEnvelopeVolume(height, r.history.RoofOwners, proof)
+	return height, patches, nil
+}
+
+func certifyParabolaCircleEnvelopeDisplay(ctx context.Context, s Solid, layout parabolaCircleEnvelopeLayout,
+	height [3]parabolaCircleMeshHeight, volume [2]*big.Rat, o ParabolaTwoCirclesMeshOptions) (CertifiedParabolaTwoCirclesComponentMesh, error) {
+	var empty CertifiedParabolaTwoCirclesComponentMesh
 	if volume[0].Sign() <= 0 {
 		return empty, geom.ErrConvergence
 	}
@@ -78,35 +113,22 @@ func (r *ParabolaCircleCrossingsEnvelope) TessellateCertified(ctx context.Contex
 	minimum := new(big.Rat).Mul(volume[1], new(big.Rat).Sub(big.NewRat(1, 1), ratInset(o.RelativeVolumeTolerance)))
 	maximum := new(big.Rat).Mul(volume[0], new(big.Rat).Add(big.NewRat(1, 1), ratInset(o.RelativeVolumeTolerance)))
 	for n := 1; n <= o.MaxSubdivisions; n *= 2 {
-		out, err := r.displayEnvelope(ctx, plane, height, n, o)
+		out, err := displayParabolaCircleEnvelopeCandidate(ctx, s, layout, plane, height, n, o)
 		if errors.Is(err, errRefine) {
 			continue
 		}
 		if err != nil {
 			return empty, err
 		}
-		if err := auditParabolaTwoCirclesMesh(ctx, r.solid, out.CertifiedParabolaTwoCirclesComponentMesh); err != nil {
-			return empty, fmt.Errorf("trimmed: crossing envelope display ownership: %w", err)
+		if err := auditParabolaTwoCirclesMesh(ctx, s, out); err != nil {
+			return empty, fmt.Errorf("trimmed: circle-parabola envelope display ownership: %w", err)
 		}
 		actual, report, err := checkClosedPeriodicMesh(ctx, out.Mesh, o.Collision)
 		if err != nil {
-			return empty, fmt.Errorf("trimmed: crossing envelope display embedding: %w", err)
+			return empty, fmt.Errorf("trimmed: circle-parabola envelope display embedding: %w", err)
 		}
 		if actual.Cmp(minimum) < 0 || actual.Cmp(maximum) > 0 {
 			continue
-		}
-		for i, junction := range r.history.Junctions {
-			id := out.OriginalVertices[junction.Vertex]
-			if !exactPointCoordinatesEqual(exactBoundPoint(out.Mesh.Vertices[id]), proof.Nodes[i].Point) {
-				return empty, geom.ErrConvergence
-			}
-			for _, native := range junction.Rays {
-				edge := out.OriginalEdges[native].Vertices
-				if edge[0] != id && edge[len(edge)-1] != id {
-					return empty, geom.ErrConvergence
-				}
-			}
-			out.JunctionVertices[i] = id
 		}
 		if err := ctx.Err(); err != nil {
 			return empty, err
@@ -146,20 +168,27 @@ func parabolaCircleCrossingsEnvelopeVolume(height [3]parabolaCircleMeshHeight, o
 	return out
 }
 
+type parabolaCircleEnvelopeLayout struct {
+	roofFaces, roofOwners [4]int
+	base                  int
+	walls                 []int
+	apex                  [4]authenticatedParabolaCircleApexLoop
+}
+
 type crossingEnvelopeDisplay struct {
-	CertifiedParabolaCircleCrossingsEnvelopeMesh
+	CertifiedParabolaTwoCirclesComponentMesh
 	exact []exactBoundVector
 	facet *parabolaCircleFacetCone
 }
 
-func (r *ParabolaCircleCrossingsEnvelope) displayEnvelope(ctx context.Context, plane *geom.SurfacePatch,
-	height [3]parabolaCircleMeshHeight, n int, o ParabolaTwoCirclesMeshOptions) (CertifiedParabolaCircleCrossingsEnvelopeMesh, error) {
-	var empty CertifiedParabolaCircleCrossingsEnvelopeMesh
+func displayParabolaCircleEnvelopeCandidate(ctx context.Context, s Solid, layout parabolaCircleEnvelopeLayout, plane *geom.SurfacePatch,
+	height [3]parabolaCircleMeshHeight, n int, o ParabolaTwoCirclesMeshOptions) (CertifiedParabolaTwoCirclesComponentMesh, error) {
+	var empty CertifiedParabolaTwoCirclesComponentMesh
 	d := crossingEnvelopeDisplay{}
 	d.Region, d.Subdivisions = -1, n
-	d.Mesh.Vertices = slices.Clone(r.solid.vertices)
+	d.Mesh.Vertices = slices.Clone(s.vertices)
 	d.OriginalVertices = make([]int, len(d.Mesh.Vertices))
-	d.OriginalEdges = make([]ParabolaTwoCirclesMeshEdge, len(r.solid.edges))
+	d.OriginalEdges = make([]ParabolaTwoCirclesMeshEdge, len(s.edges))
 	for i, p := range d.Mesh.Vertices {
 		d.OriginalVertices[i] = i
 		d.exact = append(d.exact, exactBoundPoint(p))
@@ -179,18 +208,18 @@ func (r *ParabolaCircleCrossingsEnvelope) displayEnvelope(ctx context.Context, p
 		cuts[i] = big.NewRat(int64(i), int64(n))
 	}
 	topArea := new(big.Rat)
-	for i, id := range r.history.RoofFaces {
-		area, err := d.addGraphFace(ctx, r.solid, id, plane, height[1+r.history.RoofOwners[i]], cuts, o)
+	for i, id := range layout.roofFaces {
+		area, err := d.addGraphFace(ctx, s, id, plane, height[1+layout.roofOwners[i]], cuts, o, layout.apex[i])
 		if err != nil {
 			return empty, err
 		}
 		topArea.Add(topArea, area)
 	}
-	baseArea, err := d.addGraphFace(ctx, r.solid, r.history.Base, plane, height[0], cuts, o)
+	baseArea, err := d.addGraphFace(ctx, s, layout.base, plane, height[0], cuts, o, nil)
 	if err != nil {
 		return empty, err
 	}
-	// The top's internal coedges cancel precisely in XY and its six
+	// The top's internal coedges cancel precisely in XY and its
 	// stock sides tile the same unit rectangle as the oppositely oriented base.
 	if topArea.Cmp(big.NewRat(2, 1)) != 0 || baseArea.Cmp(topArea) != 0 {
 		return empty, geom.ErrConvergence
@@ -199,19 +228,19 @@ func (r *ParabolaCircleCrossingsEnvelope) displayEnvelope(ctx context.Context, p
 		turnLimit != nil && d.SquaredSourceNormalTurn.Cmp(turnLimit) > 0 {
 		return empty, errRefine
 	}
-	for _, id := range r.history.WallFaces {
-		if err := d.addWall(r.solid, id, o.MaxTriangles); err != nil {
+	for _, id := range layout.walls {
+		if err := d.addWall(s, id, o.MaxTriangles); err != nil {
 			return empty, err
 		}
 	}
 	if d.facet != nil {
 		d.SquaredFacetNormalTangent = d.facet.maximum
 	}
-	return d.CertifiedParabolaCircleCrossingsEnvelopeMesh, nil
+	return d.CertifiedParabolaTwoCirclesComponentMesh, nil
 }
 
 func (d *crossingEnvelopeDisplay) addGraphFace(ctx context.Context, s Solid, id int, plane *geom.SurfacePatch,
-	h parabolaCircleMeshHeight, cuts []*big.Rat, o ParabolaTwoCirclesMeshOptions) (*big.Rat, error) {
+	h parabolaCircleMeshHeight, cuts []*big.Rat, o ParabolaTwoCirclesMeshOptions, apex authenticatedParabolaCircleApexLoop) (*big.Rat, error) {
 	f := s.faces[id]
 	if len(f.Holes) != 0 {
 		return nil, geom.ErrConvergence
@@ -229,11 +258,11 @@ func (d *crossingEnvelopeDisplay) addGraphFace(ctx context.Context, s Solid, id 
 	if remaining < 1 {
 		return nil, parametric.ErrBudget
 	}
-	foot, err := tessellateMixedExactAffineRegionCuts(ctx, plane, curves, nil, [][][]*big.Rat{fixed}, MixedExactAffineMeshOptions{
+	foot, err := tessellateMixedExactAffineRegionWithApex(ctx, plane, curves, nil, [][][]*big.Rat{fixed}, MixedExactAffineMeshOptions{
 		MaxBoundaryVertices: 2048, MaxTriangulationWork: 10000000, MaxTriangles: remaining,
 		Topology: trimvalidate.Options{MaxEdges: 2048, MaxWork: 10000000},
 		Display:  geom.ComposedCollectionPolylineOptions{ComposedCurvePolylineOptions: geom.ComposedCurvePolylineOptions{Deflection: o.Deflection / 8}},
-	})
+	}, apex)
 	if errors.Is(err, geom.ErrConvergence) {
 		return nil, errRefine
 	}
