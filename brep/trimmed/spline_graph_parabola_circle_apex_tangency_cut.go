@@ -85,27 +85,42 @@ func CutParabolaCircleApexTangencySplineGraphs(ctx context.Context, base, a, b *
 	if err != nil {
 		return nil, err
 	}
-	if p.proof.RegionSides[p.proof.DiskRegion] > 0 {
-		return nil, fmt.Errorf("trimmed: parabola-circle Cut enclosing layer pinches at the exact apex: %w", geom.ErrDegenerate)
+	return assembleParabolaCircleTangentCut(ctx, sources, p.tangentSection(), tolerance, o.Proof)
+}
+
+type parabolaCircleTangentSection struct {
+	regions                  [3]openGraphRegion
+	axis, diskRegion         int
+	parameters, circleCenter [2]*big.Rat
+	point                    [3]*big.Rat
+	slope                    *big.Rat
+	second                   [2]*big.Rat // parabola, circle
+}
+
+func assembleParabolaCircleTangentCut(ctx context.Context, sources [3]*geom.BSplineSurface, sec parabolaCircleTangentSection,
+	tolerance float64, proof geom.GraphPointContactOptions) (*ParabolaCircleApexTangencyCut, error) {
+	a, b := sources[1], sources[2]
+	if sec.regions[sec.diskRegion].sign > 0 {
+		return nil, fmt.Errorf("trimmed: parabola-circle Cut enclosing layer pinches at the exact tangent contact: %w", geom.ErrDegenerate)
 	}
-	regions := [2]int{1 - p.proof.DiskRegion, 2}
-	out := &ParabolaCircleApexTangencyCut{sources: sources, axis: axis, tolerance: tolerance,
-		contact: ParabolaCircleApexCutContact{Parameters: p.proof.Parameters, Point: p.proof.Point}}
-	eval := exactGraphVertexEvaluator(ctx, o.Proof)
+	regions := [2]int{1 - sec.diskRegion, 2}
+	out := &ParabolaCircleApexTangencyCut{sources: sources, axis: sec.axis, tolerance: tolerance,
+		contact: ParabolaCircleApexCutContact{Parameters: sec.parameters, Point: sec.point}}
+	eval := exactGraphVertexEvaluator(ctx, proof)
 	for part, region := range regions {
-		if p.regions[region].sign <= 0 {
+		if sec.regions[region].sign <= 0 {
 			return nil, geom.ErrConvergence
 		}
-		loop := p.regions[region].loop
+		loop := sec.regions[region].loop
 		body, h, err := assembleOpenSplineGraphPairOnCharts(ctx, a, b, 0, true, tolerance, loop, [2]graphEnvelopeChart{}, nil, eval)
 		if err != nil {
 			return nil, err
 		}
-		history, err := bindParabolaCircleApexCutLayer(ctx, body, h, p, region, [2]*geom.BSplineSurface{a, b}, o.Proof)
+		history, err := bindParabolaCircleTangentCutLayer(ctx, body, h, sec, region, [2]*geom.BSplineSurface{a, b}, proof)
 		if err != nil {
 			return nil, fmt.Errorf("trimmed: parabola-circle apex Cut region %d: %w", region, err)
 		}
-		v, err := exactParabolaCircleCrossingVertex(body, p.proof.Point)
+		v, err := exactParabolaCircleCrossingVertex(body, sec.point)
 		if err != nil {
 			return nil, err
 		}
@@ -113,15 +128,11 @@ func CutParabolaCircleApexTangencySplineGraphs(ctx context.Context, base, a, b *
 		if err != nil || contactVertex != v {
 			return nil, geom.ErrConvergence
 		}
-		second := p.proof.ParabolaSecondDerivative
-		if region == 2 {
-			second = p.proof.CircleSecondDerivative
-		}
 		rays := [2]int{-1, -1}
 		for _, id := range h.ContourEdges {
 			e := body.edges[id]
 			if e.Start == v || e.End == v {
-				sign, err := parabolaCircleApexRay(body, id, v, axis, second)
+				sign, err := parabolaCircleTangentRay(body, id, v, sec.axis, sec.slope, sec.second[part])
 				if err != nil {
 					return nil, err
 				}
@@ -142,7 +153,7 @@ func CutParabolaCircleApexTangencySplineGraphs(ctx context.Context, base, a, b *
 	// the parabola and circle. The exact substituted quartic proves just
 	// the apex, where the original vertical interval collapses to a point.
 	check := polynomialNodeCutMaterial{components: out.components[:], contacts: []TwoPolynomialNodeComponentContact{
-		{Parameters: p.proof.Parameters, Point: p.proof.Point, Components: [2]int{0, 1}, Vertices: out.contact.Vertices},
+		{Parameters: sec.parameters, Point: sec.point, Components: [2]int{0, 1}, Vertices: out.contact.Vertices},
 	}}
 	if err := check.validateContactIdentities(); err != nil {
 		return nil, err
@@ -153,16 +164,16 @@ func CutParabolaCircleApexTangencySplineGraphs(ctx context.Context, base, a, b *
 	return out, nil
 }
 
-func bindParabolaCircleApexCutLayer(ctx context.Context, s Solid, h OpenSectionHistory, p parabolaCircleApexPartition,
+func bindParabolaCircleTangentCutLayer(ctx context.Context, s Solid, h OpenSectionHistory, sec parabolaCircleTangentSection,
 	region int, roofs [2]*geom.BSplineSurface, opts geom.GraphPointContactOptions) (out ParabolaCircleApexCutHistory, err error) {
 	topo := s.Topology()
 	want, contour, walls := [3]int{5, 10, 7}, 2, 3
-	witness := p.proof.CircleCenter
+	witness := sec.circleCenter
 	if region == 2 {
 		want, contour, walls = [3]int{2, 4, 4}, 4, 0
 	} else {
-		axis := p.proof.FreeAxis
-		witness = p.proof.Parameters
+		axis := sec.axis
+		witness = sec.parameters
 		ordinate := new(big.Rat).Set(witness[1-axis])
 		if region == 1 {
 			ordinate.Add(ordinate, big.NewRat(1, 1))
@@ -173,7 +184,7 @@ func bindParabolaCircleApexCutLayer(ctx context.Context, s Solid, h OpenSectionH
 		len(h.ContourEdges) != contour || len(h.WallFaces) != walls || len(h.DomainSides) != walls {
 		return out, geom.ErrConvergence
 	}
-	loop := p.regions[region].loop
+	loop := sec.regions[region].loop
 	caps := [2]int{h.SplineFace, h.PlaneFace}
 	for i, id := range caps {
 		if err := bindParabolaCircleCrossingFace(ctx, s.faces[id], roofs[i], i == 1, loop, witness); err != nil {

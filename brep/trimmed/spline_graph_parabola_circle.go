@@ -147,12 +147,16 @@ func parabolaOpenGraphRegions(parabola [3][2]*big.Rat, freeAxis int) (out [2]ope
 }
 
 func exactGraphCircleRings(center [2]*big.Rat, radiusSquared *big.Rat) (outer, inner []openSectionPiece, err error) {
-	var controls [3][3]*big.Rat
 	circle, err := ellipseGraphContactLoop(geom.GraphEllipseHint{Center: center,
 		RadiusSquared: [2]*big.Rat{radiusSquared, radiusSquared}})
 	if err != nil {
 		return nil, nil, err
 	}
+	return exactGraphConicRings(circle)
+}
+
+func exactGraphConicRings(circle []openSectionPiece) (outer, inner []openSectionPiece, err error) {
+	var controls [3][3]*big.Rat
 	reversed := make([]openSectionPiece, len(circle))
 	for i, piece := range circle {
 		// Keep the exact homogeneous quarter-arc controls in the native
