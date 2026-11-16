@@ -1,11 +1,13 @@
 import { OpenCascadeKernel } from "./OpenCascadeKernel";
 import type { BoundingBox, RenderMesh } from "./KernelAdapter";
 import type { NativeStepExport } from "./nativeStep";
+import type { NativeStepRepairEvidence, StepImportOptions } from "./OpenCascadeKernel";
 
 export type ConicalBoreWorkerRequest = {
   operation: "importAndMesh";
   source: string;
   rounded: string;
+  repair?: boolean;
 } | { operation: "reopen"; source: string };
 
 type SourceProof = {
@@ -17,6 +19,7 @@ type SourceProof = {
 
 export type ConicalBoreWorkerReply =
   | ({ ok: true; operation: "importAndMesh"; roundedRejection: string;
+    shortRepairRejection?: string; repairProof?: NativeStepRepairEvidence;
     meshMs: number; meshSHA256: string; display: ReturnType<typeof proveClosedDisplay> } & SourceProof)
   | ({ ok: true; operation: "reopen" } & SourceProof)
   | { ok: false; error: string };
@@ -71,9 +74,9 @@ function proveClosedDisplay(mesh: RenderMesh) {
     signedVolume, source: mesh.geometrySource, operation: mesh.kernelOperation, geometryAssertions };
 }
 
-function rejectRounded(kernel: OpenCascadeKernel, rounded: string) {
+function rejectRounded(kernel: OpenCascadeKernel, rounded: string, options?: StepImportOptions) {
   try {
-    kernel.disposeShape(kernel.importStep(rounded));
+    kernel.disposeShape(kernel.importStep(rounded, options));
   } catch (error) {
     return error instanceof Error ? error.message : String(error);
   }
@@ -83,11 +86,15 @@ function rejectRounded(kernel: OpenCascadeKernel, rounded: string) {
 async function run(request: ConicalBoreWorkerRequest): Promise<ConicalBoreWorkerReply> {
   await OpenCascadeKernel.initialize();
   const kernel = new OpenCascadeKernel();
+  const repair = request.operation === "importAndMesh" && request.repair ? {
+    stepRepair: { family: "occt-conical-rim-fillet-bore", maxDistance: 1e-11, native: true },
+  } as const : undefined;
   const started = performance.now();
-  const shape = kernel.importStep(request.source);
+  const shape = kernel.importStep(repair && request.operation === "importAndMesh" ? request.rounded : request.source, repair);
   const importMs = performance.now() - started;
   try {
-    if (kernel.nativeStepRepairEvidence(shape)) throw new Error("Ordinary import unexpectedly reported a repair");
+    const repairProof = kernel.nativeStepRepairEvidence(shape);
+    if (!!repair !== !!repairProof) throw new Error("Conical import did not retain the requested repair policy");
     const bounds = kernel.nativeBounds(shape);
     const exportSource = () => {
       const started = performance.now();
@@ -97,6 +104,9 @@ async function run(request: ConicalBoreWorkerRequest): Promise<ConicalBoreWorker
     if (request.operation === "reopen") return { ok: true, operation: "reopen", ...exportSource() };
 
     const roundedRejection = rejectRounded(kernel, request.rounded);
+    const shortRepairRejection = repair ? rejectRounded(kernel, request.rounded, {
+      stepRepair: { ...repair.stepRepair, maxDistance: 1e-12 },
+    }) : undefined;
     const meshStart = performance.now();
     const mesh = kernel.tessellate(shape, { linearDeflection: .05, angularDeflection: .2, analyticNormals: true });
     const meshMs = performance.now() - meshStart;
@@ -107,7 +117,7 @@ async function run(request: ConicalBoreWorkerRequest): Promise<ConicalBoreWorker
     const raw = JSON.stringify({ positions, normals, indices, bounds: meshBounds, geometryAssertions });
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
     const meshSHA256 = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
-    return { ok: true, operation: "importAndMesh", ...exportSource(), roundedRejection, display, meshMs, meshSHA256 };
+    return { ok: true, operation: "importAndMesh", ...exportSource(), roundedRejection, shortRepairRejection, repairProof, display, meshMs, meshSHA256 };
   } finally {
     kernel.disposeShape(shape);
   }

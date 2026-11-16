@@ -284,7 +284,7 @@ async function runConicalBoreWorkerFixture() {
     },
     pageName: "plainsolid-conical-bore-worker.html",
     pageTitle: "PlainSolid conical bore STEP worker",
-    expectedCount: 1,
+    expectedCount: 2,
   });
 }
 

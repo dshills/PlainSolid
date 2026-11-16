@@ -472,3 +472,11 @@ Use `annular` for the chamfered annulus control. The conical probe checks
 Use `--suite development --conical-bore-worker-fixture` with the pinned
 PlainCAD checkout for ordinary import, display, export and fresh worker
 reopen. It checks exact source replay and closed signed display incidence.
+
+For the original rounded OCCT conical fixture, request
+`stepRepair: { family: "occt-conical-rim-fillet-bore", maxDistance: 1e-11, native: true }`.
+This is an explicit millimetre source repair. The receipt retains the
+original bytes and the certified displacement of the affected source
+geometry. Export emits the corrected STEP, which reopens through ordinary
+strict import. The same worker fixture tests this path and the refusal at
+`1e-12` mm; use `--grep 'repaired conical bore'` to run only the repair case.

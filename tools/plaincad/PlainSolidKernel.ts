@@ -14,8 +14,8 @@ import type { SketchProfile, ProfileLoop } from "../sketch/profileDetection";
 import { transformPoint, type SketchPlaneTransform } from "../sketch/planes";
 
 export interface StepRepairOptions {
-  /** Explicitly select the four-cell ordered mapped source reader. */
-  readonly family?: "mapped-chain-v13";
+  /** Select a specific source repair or proof recipe. */
+  readonly family?: "mapped-chain-v13" | "occt-conical-rim-fillet-bore";
   /** Positive finite displacement in the source STEP's length units. */
   readonly maxDistance: number;
   /** Include source-bound proof JSON for independent native reproof. */
@@ -41,7 +41,7 @@ export interface StepRepairEvidence {
   readonly family: "occt-single-pcurve-convex-arc" | "occt-grouped-pcurve-convex-arc"
     | "occt-posed-grouped-pcurve-convex-arc" | "occt-rational-posed-single-pcurve-convex-arc"
     | "occt-rational-posed-grouped-pcurve-convex-arc" | "occt-rational-posed-grouped-through-bore-pcurve-convex-arc"
-    | "mapped-chain-v13";
+    | "mapped-chain-v13" | "occt-conical-rim-fillet-bore";
   readonly sourceSHA256: string;
   /** Source length unit, in metres. */
   readonly lengthUnit: number;
@@ -66,6 +66,33 @@ export interface StepRepairEvidence {
     readonly SquaredDistance: string;
   }[];
   readonly pcurveOwners: number;
+  readonly conicalRimBore?: {
+    readonly correctedSHA256: string;
+    readonly ledger: {
+      readonly ConeSupportID: number;
+      readonly ConeFaceID: number;
+      readonly SeamCurveID: number;
+      readonly ConeRimEdgeIDs: readonly [number, number];
+      readonly ConeSeamVertexIDs: readonly [number, number];
+      readonly OriginalAngle: string;
+      readonly ExactSlope: string;
+      readonly OriginalRimStations: readonly [string, string];
+      readonly ConeDisplacementBound: string;
+      readonly SeamDisplacementBound: string;
+      readonly Frames: readonly {
+        readonly SupportID: number;
+        readonly PlacementID: number;
+        readonly EdgeID: number;
+        readonly CorrectedDirectionIDs: readonly [number, number];
+        readonly DisplacementBound: string;
+      }[];
+      readonly ReversedFaceID: number;
+      readonly ReversedBoundID: number;
+      readonly ReversedRimEdgeIDs: readonly [number, number];
+      readonly OriginalRimOwnerFaceIDs: readonly [readonly [number, number], readonly [number, number]];
+      readonly OriginalRimUseSenses: readonly [boolean, boolean];
+    };
+  };
   readonly mappedChain?: {
     readonly boundaryVersion: 13;
     readonly originalFaces: readonly number[];

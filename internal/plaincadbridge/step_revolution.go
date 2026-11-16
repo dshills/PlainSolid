@@ -42,12 +42,16 @@ func (b *Bridge) importProvedSTEPRevolution(ctx context.Context, source string) 
 		shape, err := b.putSTEPAnalytic(s, unit)
 		return shape, true, err
 	}
+	shape, err := b.putProvedSTEPRevolution(ctx, s, p)
+	return shape, true, err
+}
+
+func (b *Bridge) putProvedSTEPRevolution(ctx context.Context, s trimmed.Solid, p provedSTEPRevolution) (Shape, error) {
 	m, err := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-10})
 	if err != nil {
-		return Shape{}, true, err
+		return Shape{}, err
 	}
-	shape, err := b.putAnalyticBody(&analyticBody{solid: s, volume: m.Volume, area: m.Area, stepRevolution: &p})
-	return shape, true, err
+	return b.putAnalyticBody(&analyticBody{solid: s, volume: m.Volume, area: m.Area, stepRevolution: &p})
 }
 
 func (p provedSTEPRevolution) tessellateConical(ctx context.Context, o parametric.TessellationOptions) (mesh.Mesh, error) {

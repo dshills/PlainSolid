@@ -9,6 +9,12 @@ vertices and directed incident owner IDs remain in the replay ledger.
 Both original and corrected files reopen in OCCT as valid positive solids,
 and the native bytes match the independently authored exact carrier.
 The combined main strict/repair/receipt race passed in 113.115 seconds.
+The PlainCAD bridge now requests the repair by name and retains the
+original receipt in the typed adapter. Its 55.361-second main race
+passed, including native reproof, two refusals and byte-identical
+corrected re-export. Both the ordinary and explicit repair flows passed
+in Chromium using fresh Go WASM workers. The repair emits the same
+10,496-triangle signed display as the already exact source.
 
 ## Full Go and PlainCAD rerun (2026-11-15)
 

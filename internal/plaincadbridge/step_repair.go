@@ -37,6 +37,7 @@ type stepRepairEvidence struct {
 	WorldPose        *[3][4]*big.Rat                 `json:"worldPose,omitempty"`
 	ThroughBore      *stepRepairBoreEvidence         `json:"throughBore,omitempty"`
 	MappedChain      *mappedChainStepEvidence        `json:"mappedChain,omitempty"`
+	ConicalRimBore   *conicalRimBoreSTEPEvidence     `json:"conicalRimBore,omitempty"`
 }
 
 type stepRepairBoreEvidence struct {
@@ -67,6 +68,8 @@ func (b *Bridge) importSTEPWithRepair(ctx context.Context, source string, repair
 	switch repair.Family {
 	case orderedMappedSTEPFamily:
 		return b.importOrderedMappedSTEP(ctx, source, *repair, units)
+	case conicalRimBoreSTEPFamily:
+		return b.importConicalRimBoreSTEP(ctx, source, *repair, units)
 	case "":
 	default:
 		return Shape{}, errors.New("unknown stepRepair family")

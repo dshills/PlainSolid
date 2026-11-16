@@ -3216,7 +3216,9 @@ signed cardinal cases. The corrected output uses the separately validated
 model-only representation. The explicit Go repair is qualified against
 the original rounded OCCT export. Its receipt binds the original,
 corrected and native bytes. The stock conical source stays outside strict
-import, and the PlainCAD bridge qualification is running separately.
+import. PlainCAD now offers the explicit source repair and receipt, with
+certified angular display and corrected STEP export. The focused native
+bridge and both typed Chromium workflows passed.
 
 ### Periodic spline geometry
 

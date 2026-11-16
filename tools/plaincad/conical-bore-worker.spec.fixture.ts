@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import type { ConicalBoreWorkerReply, ConicalBoreWorkerRequest } from "../src/cad/kernel/plainSolidConicalBoreProbe";
 
-test("PlainSolid module workers preserve the ordinary conical bore STEP and signed angular display", async ({ page }, info) => {
+for (const repair of [false, true]) test(`PlainSolid module workers preserve the ${repair ? "repaired" : "ordinary"} conical bore STEP and signed angular display`, async ({ page }, info) => {
   test.setTimeout(180_000);
   const workers: string[] = [];
   const wasmLoads: number[] = [];
@@ -16,7 +16,7 @@ test("PlainSolid module workers preserve the ordinary conical bore STEP and sign
   });
 
   await page.goto("/plainsolid-conical-bore-worker.html");
-  const result = await page.evaluate(async () => {
+  const result = await page.evaluate(async repair => {
     const start = performance.now();
     const decoder = new TextDecoder("utf-8", { fatal: true });
     async function fetchSource(path: string) {
@@ -36,7 +36,7 @@ test("PlainSolid module workers preserve the ordinary conical bore STEP and sign
     const [source, rounded] = await Promise.all([
       fetchSource("/plainsolid-conical-bore-exact.step"), fetchSource("/plainsolid-conical-bore-rounded.step"),
     ]);
-    const original = await ask({ operation: "importAndMesh", source: decoder.decode(source), rounded: decoder.decode(rounded) });
+    const original = await ask({ operation: "importAndMesh", source: decoder.decode(source), rounded: decoder.decode(rounded), repair });
     if (!original.ok) throw new Error(original.error);
     if (original.operation !== "importAndMesh") throw new Error("Unexpected conical import reply");
     const reopened = await ask({ operation: "reopen", source: decoder.decode(original.exported.bytes) });
@@ -45,8 +45,8 @@ test("PlainSolid module workers preserve the ordinary conical bore STEP and sign
     const workflowMs = performance.now() - start;
     const capture = ({ bytes, ...proof }: typeof original.exported) => ({ ...proof, bytes: Array.from(new Uint8Array(bytes)) });
     return { original: { ...original, exported: capture(original.exported) },
-      reopened: { ...reopened, exported: capture(reopened.exported) }, source: Array.from(new Uint8Array(source)), workflowMs };
-  });
+      reopened: { ...reopened, exported: capture(reopened.exported) }, source: Array.from(new Uint8Array(repair ? rounded : source)), workflowMs };
+  }, repair);
   expect(workers).toEqual(Array(2).fill("/src/cad/kernel/plainSolidConicalBoreProbe.ts"));
   expect(wasmLoads).toHaveLength(2);
   expect(wasmLoads).toContain(200);
@@ -73,15 +73,31 @@ test("PlainSolid module workers preserve the ordinary conical bore STEP and sign
   expect(reopened.exported.after).toEqual(original.exported.before);
 
   const originalBytes = Buffer.from(source);
-  expect(Buffer.from(original.exported.bytes)).toEqual(originalBytes);
-  expect(Buffer.from(reopened.exported.bytes)).toEqual(originalBytes);
   const sourceSHA256 = createHash("sha256").update(originalBytes).digest("hex");
-  expect(sourceSHA256).toBe("af7b2221489a2edef6c4535233c8786826519787e9e326639e984bea0bd871a9");
+  const exportedBytes = Buffer.from(original.exported.bytes);
+  const exportSHA256 = createHash("sha256").update(exportedBytes).digest("hex");
+  expect(Buffer.from(reopened.exported.bytes)).toEqual(exportedBytes);
+  if (repair) {
+    expect(original.shortRepairRejection).toMatch(/^PlainSolid UNSUPPORTED:.*within maxDistance/);
+    expect(exportedBytes).not.toEqual(originalBytes);
+    expect(exportSHA256).toBe("c88dd9399ba32107d02f6e6d108000b3d5a6a35d0d447d3ff2a848c3ac01edbf");
+    expect(original.repairProof?.repairEvidence).toMatchObject({
+      family: "occt-conical-rim-fillet-bore", sourceSHA256, lengthUnit: .001, maxDistance: 1e-11,
+      conicalRimBore: { correctedSHA256: exportSHA256, ledger: { ExactSlope: "4/3", ReversedBoundID: 51 } },
+    });
+    const native = JSON.parse(original.repairProof?.nativeProofJSON ?? "");
+    expect(native.Format).toBe("plainsolid-step-conical-rim-fillet-bore-repair-source");
+    expect(native.Source).toBe(originalBytes.toString("base64"));
+  } else {
+    expect(exportedBytes).toEqual(originalBytes);
+    expect(sourceSHA256).toBe("af7b2221489a2edef6c4535233c8786826519787e9e326639e984bea0bd871a9");
+  }
 
   await info.attach("conical-bore-worker-proof", { contentType: "application/json", body: JSON.stringify({
-    sourceSHA256, meshSHA256: original.meshSHA256, linearDeflection: .05, angularDeflection: .2,
+    repair, sourceSHA256, exportSHA256, meshSHA256: original.meshSHA256, linearDeflection: .05, angularDeflection: .2,
     workers, wasmLoads, occtRequests, display: original.display, originalBytes: originalBytes.length,
     nativeProof: original.exported.before[0], roundedRejection: original.roundedRejection,
+    repairEvidence: original.repairProof?.repairEvidence, shortRepairRejection: original.shortRepairRejection,
     meshMs: original.meshMs, importMs: original.importMs, exportMs: original.exportMs,
     reopenMs: reopened.importMs, reopenedExportMs: reopened.exportMs, workflowMs,
   }, null, 2) });
