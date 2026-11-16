@@ -200,6 +200,32 @@ static TopoDS_Shape chamfered() {
     return chamfer.IsDone() ? chamfer.Shape() : TopoDS_Shape{};
 }
 
+static void describeUse(const TopoDS_Shape& shape, const TopoDS_Shape& local, const gp_Trsf& pose,
+                        bool shared, int outer = 0, int inner = 0) {
+    GProp_GProps mass, area;
+    BRepGProp::VolumeProperties(shape, mass, 1e-10, true);
+    BRepGProp::SurfaceProperties(shape, area, 1e-10);
+    ShapeMap solids, faces, edges, vertices;
+    TopExp::MapShapes(shape, TopAbs_SOLID, solids);
+    TopExp::MapShapes(shape, TopAbs_FACE, faces);
+    TopExp::MapShapes(shape, TopAbs_EDGE, edges);
+    TopExp::MapShapes(shape, TopAbs_VERTEX, vertices);
+    const auto c = mass.CentreOfMass();
+    std::cout << '{';
+    if (outer != 0) std::cout << "\"path\":[" << outer << ',' << inner << "],";
+    std::cout << "\"sharedWithFirst\":" << (shared ? "true" : "false")
+              << ",\"valid\":" << (BRepCheck_Analyzer(local).IsValid() ? "true" : "false")
+              << ",\"volume\":" << mass.Mass() << ",\"area\":" << area.Mass()
+              << ",\"centroid\":[" << c.X() << ',' << c.Y() << ',' << c.Z()
+              << "],\"topology\":[" << solids.Extent() << ',' << faces.Extent() << ',' << edges.Extent() << ',' << vertices.Extent()
+              << "],\"pose\":[";
+    for (int row = 1; row <= 3; ++row) for (int col = 1; col <= 4; ++col) {
+        if (row != 1 || col != 1) std::cout << ',';
+        std::cout << pose.Value(row,col);
+    }
+    std::cout << "]}";
+}
+
 static void describe(const occ::handle<XCAFDoc_ShapeTool>& shapes, const TDF_Label& root) {
     NCollection_Sequence<TDF_Label> uses;
     shapes->GetComponents(root, uses, false);
@@ -210,32 +236,41 @@ static void describe(const occ::handle<XCAFDoc_ShapeTool>& shapes, const TDF_Lab
         const auto label = uses.Value(i);
         if (!shapes->GetReferredShape(label, part)) return;
         if (i == 1) first = part;
-        const auto s = shapes->GetShape(label);
-        const auto trsf = s.Location().Transformation();
-        const auto local = shapes->GetShape(part);
-        GProp_GProps mass, area;
-        BRepGProp::VolumeProperties(s, mass, 1e-10, true);
-        BRepGProp::SurfaceProperties(s, area, 1e-10);
-        ShapeMap solids, faces, edges, verts;
-        TopExp::MapShapes(s, TopAbs_SOLID, solids);
-        TopExp::MapShapes(s, TopAbs_FACE, faces);
-        TopExp::MapShapes(s, TopAbs_EDGE, edges);
-        TopExp::MapShapes(s, TopAbs_VERTEX, verts);
-        const auto c = mass.CentreOfMass();
-        if (i != 1) std::cout << ',';
-        std::cout << "{\"sharedWithFirst\":" << (part == first ? "true":"false")
-                  << ",\"valid\":" << (BRepCheck_Analyzer(local).IsValid() ? "true":"false")
-                  << ",\"volume\":" << mass.Mass() << ",\"area\":" << area.Mass()
-                  << ",\"centroid\":[" << c.X() << ',' << c.Y() << ',' << c.Z()
-                  << "],\"topology\":[" << solids.Extent() << ',' << faces.Extent() << ',' << edges.Extent() << ',' << verts.Extent()
-                  << "],\"pose\":[";
-        for (int row = 1; row <= 3; ++row) for (int col = 1; col <= 4; ++col) {
-            if (row != 1 || col != 1) std::cout << ',';
-            std::cout << trsf.Value(row,col);
-        }
-        std::cout << "]}";
+        if (i > 1) std::cout << ',';
+        const auto shape = shapes->GetShape(label);
+        describeUse(shape, shapes->GetShape(part), shape.Location().Transformation(), part == first);
     }
     std::cout << "]}\n";
+}
+
+static bool describeNested(const occ::handle<XCAFDoc_ShapeTool>& shapes, const TDF_Label& root) {
+    NCollection_Sequence<TDF_Label> outerUses;
+    shapes->GetComponents(root, outerUses, false);
+    if (outerUses.Length() != 2) return false;
+    TDF_Label group, repeated;
+    if (!shapes->GetReferredShape(outerUses.Value(1), group) ||
+        !shapes->GetReferredShape(outerUses.Value(2), repeated) || group != repeated) return false;
+    NCollection_Sequence<TDF_Label> innerUses;
+    shapes->GetComponents(group, innerUses, false);
+    if (innerUses.Length() != 3) return false;
+
+    TDF_Label first;
+    std::cout << std::setprecision(17) << "{\"groupsShared\":true,\"occurrences\":[";
+    for (int i = 1; i <= outerUses.Length(); ++i) {
+        const auto parent = shapes->GetShape(outerUses.Value(i)).Location();
+        for (int j = 1; j <= innerUses.Length(); ++j) {
+            TDF_Label product;
+            const auto label = innerUses.Value(j);
+            if (!shapes->GetReferredShape(label, product)) return false;
+            if (i == 1 && j == 1) first = product;
+            if (i != 1 || j != 1) std::cout << ',';
+            const auto local = shapes->GetShape(product);
+            const auto world = parent * shapes->GetShape(label).Location();
+            describeUse(local.Moved(world), local, world.Transformation(), product == first, i, j);
+        }
+    }
+    std::cout << "]}\n";
+    return true;
 }
 
 int main(int argc, char** argv) {
@@ -243,7 +278,9 @@ int main(int argc, char** argv) {
     occ::handle<TDocStd_Document> doc = new TDocStd_Document(TCollection_ExtendedString("BinXCAF"));
     auto shapes = XCAFDoc_DocumentTool::ShapeTool(doc->Main());
     const std::string_view mode(argv[1]);
-    if (mode == "write" || mode == "write-exact") {
+    const bool nest = mode == "write-nested" || mode == "write-nested-exact" || mode == "read-nested";
+    const bool exact = mode == "write-exact" || mode == "write-nested-exact";
+    if (mode == "write" || mode == "write-exact" || mode == "write-nested" || mode == "write-nested-exact") {
         const auto fillet = rounded(), chamfer = chamfered();
         if (fillet.IsNull() || chamfer.IsNull() || !BRepCheck_Analyzer(fillet).IsValid() || !BRepCheck_Analyzer(chamfer).IsValid()) return 2;
         auto root = shapes->NewShape(), f = shapes->AddShape(fillet, false), c = shapes->AddShape(chamfer, false);
@@ -254,26 +291,38 @@ int main(int argc, char** argv) {
         a.SetTranslation(gp_Vec(30,2,4));
         b.SetValues(0,0,1,-30, 1,0,0,24, 0,1,0,3);
         d.SetValues(.6,-.8,0,0, .8,.6,0,-30, 0,0,1,8);
-        shapes->AddComponent(root,f,TopLoc_Location(a));
-        shapes->AddComponent(root,f,TopLoc_Location(b));
-        shapes->AddComponent(root,c,TopLoc_Location(d));
+        const auto group = nest ? shapes->NewShape() : root;
+        shapes->AddComponent(group, f, TopLoc_Location(a));
+        shapes->AddComponent(group, f, TopLoc_Location(b));
+        shapes->AddComponent(group, c, TopLoc_Location(d));
+        if (nest) {
+            TDataStd_Name::Set(root,TCollection_ExtendedString("Repeated mixed conical AP242 subassembly"));
+            TDataStd_Name::Set(group,TCollection_ExtendedString("Original mixed conical group"));
+            gp_Trsf outerA, outerB;
+            outerA.SetValues(.6,-.8,0,100, .8,.6,0,20, 0,0,1,12);
+            outerB.SetValues(1,0,0,-100, 0,.6,-.8,-20, 0,.8,.6,30);
+            shapes->AddComponent(root, group, TopLoc_Location(outerA));
+            shapes->AddComponent(root, group, TopLoc_Location(outerB));
+        }
         shapes->UpdateAssemblies();
         STEPCAFControl_Writer writer;
         DESTEP_Parameters params;
         params.WriteSchema = DESTEP_Parameters::WriteMode_StepSchema_AP242DIS;
         params.WriteSurfaceCurMode = false;
         if (!writer.Transfer(doc,params) ||
-            (mode == "write-exact" && !selectExactCarriers(writer.ChangeWriter().Model())) ||
+            (exact && !selectExactCarriers(writer.ChangeWriter().Model())) ||
             writer.Write(argv[2]) != IFSelect_RetDone) return 3;
+        if (nest) return describeNested(shapes, root) ? 0 : 7;
         describe(shapes,root);
         return 0;
     }
-    if (mode != "read") return 4;
+    if (mode != "read" && mode != "read-nested") return 4;
     STEPCAFControl_Reader reader;
     if (reader.ReadFile(argv[2]) != IFSelect_RetDone || !reader.Transfer(doc)) return 5;
     NCollection_Sequence<TDF_Label> roots;
     shapes->GetFreeShapes(roots);
     if (roots.Length() != 1) return 6;
+    if (nest) return describeNested(shapes, roots.Value(1)) ? 0 : 7;
     describe(shapes,roots.Value(1));
     return 0;
 }
