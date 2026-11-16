@@ -102,6 +102,10 @@ func splitParabolaCircleTangentOpenRegions(controls [3][2]*big.Rat, parameters [
 	return out, nil
 }
 
+func parabolaCircleApexRay(s Solid, edgeID, vertex, axis int, second *big.Rat) (int, error) {
+	return parabolaCircleTangentRay(s, edgeID, vertex, axis, new(big.Rat), second)
+}
+
 // At the exact slope m the free-clock second derivative is
 // (N_y”−m*N_x”−(v−m*u)*W”)/(W*(u')²). The weight-derivative terms
 // cancel because v' equals m*u'.
