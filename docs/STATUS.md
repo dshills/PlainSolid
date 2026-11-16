@@ -387,6 +387,10 @@ qualified polynomial roofs, retaining the exact cusp vertices and
 enforcing a source volume bound. The generic solid preview remains
 separate. Broader contact discovery, creased-source display and advanced
 edge modifications remain in progress.
+Common now also qualifies with the original longitudinal C0 crease at
+the cusp. Both original owner orders replay natively and transfer in
+STEP and IGES with the exact one-sided cusp derivatives and volume.
+Fuse and both Cut orders on this crease-at-cusp input remain open.
 Full ordinary Go on `01d12dab` and PlainCAD on `a3b7548d` have passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,

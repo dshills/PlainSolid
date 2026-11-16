@@ -106,6 +106,20 @@ func checkCuspidalCubicReadbackJets(t *testing.T, ctx context.Context, format, e
 
 func checkCuspidalCubicJetsOnSpan(t *testing.T, ctx context.Context, format, ext string, data []byte, p geom.Vec3, fraction float64) {
 	t.Helper()
+	// The original smooth height law has dZ/dX=5/64 and dZ/dY=3/256
+	// at the cusp. Normalize both derivatives to the exported span.
+	second := [3]float64{4.5, 0, 45.0 / 128}
+	third := [3]float64{0, 4.5, 27.0 / 512}
+	for axis := range 3 {
+		second[axis] *= fraction * fraction
+		third[axis] *= fraction * fraction * fraction
+	}
+	checkCuspidalCubicExpectedJets(t, ctx, format, ext, data, p, second, third)
+}
+
+func checkCuspidalCubicExpectedJets(t *testing.T, ctx context.Context, format, ext string, data []byte, p geom.Vec3,
+	wantSecond, wantPositiveThird [3]float64) {
+	t.Helper()
 	reader := os.Getenv("PLAINSOLID_OCCT_CUSPIDAL_CUBIC_JETS")
 	if reader == "" {
 		return
@@ -135,11 +149,6 @@ func checkCuspidalCubicJetsOnSpan(t *testing.T, ctx context.Context, format, ext
 	if len(report.Germs) != 2 {
 		t.Fatalf("independent %s did not find both original germs", format)
 	}
-	// In the normalized outward edge parameter, the source chart gives
-	// second X=9/2 and third Y=±9/2. At the cusp the original common
-	// height law gives dZ/dX=5/64 and dZ/dY=3/256.
-	wantSecond := [3]float64{4.5, 0, 45.0 / 128}
-	wantThird := [3]float64{0, 4.5, 27.0 / 512}
 	var sided [2]bool
 	for _, germ := range report.Germs {
 		if germ.First != ([3]float64{}) {
@@ -155,10 +164,8 @@ func checkCuspidalCubicJetsOnSpan(t *testing.T, ctx context.Context, format, ext
 		}
 		sided[side] = true
 		for axis := range 3 {
-			second := wantSecond[axis] * fraction * fraction
-			third := sign * wantThird[axis] * fraction * fraction * fraction
-			if !(math.Abs(germ.Second[axis]-second) <= 1e-12) ||
-				!(math.Abs(germ.Third[axis]-third) <= 1e-12) {
+			if !(math.Abs(germ.Second[axis]-wantSecond[axis]) <= 1e-12) ||
+				!(math.Abs(germ.Third[axis]-sign*wantPositiveThird[axis]) <= 1e-12) {
 				t.Fatalf("independent %s changed the second or third derivative at axis %d: %+v", format, axis, germ)
 			}
 		}

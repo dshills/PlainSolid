@@ -68,6 +68,17 @@ func TestCuspidalCubicCreasedCommonExchange(t *testing.T) {
 func checkCuspidalCreasedReadback(t *testing.T, ctx context.Context, source trimmed.Solid, cusp int, counts [3]int,
 	stepData, igesData []byte, volume float64) {
 	t.Helper()
+	// The crease at x=21/16 is halfway along the original normalized
+	// outward germ clock, whose longitudinal law is quadratic.
+	checkCuspidalKnotReadback(t, ctx, source, cusp, counts, stepData, igesData, volume,
+		func(format, ext string, data []byte, p geom.Vec3) {
+			checkCuspidalCubicJetsOnSpan(t, ctx, format, ext, data, p, .5)
+		})
+}
+
+func checkCuspidalKnotReadback(t *testing.T, ctx context.Context, source trimmed.Solid, cusp int, counts [3]int,
+	stepData, igesData []byte, volume float64, jets func(string, string, []byte, geom.Vec3)) {
+	t.Helper()
 	b, err := source.ExtractExactBezierBoundaryAtRationalKnots(ctx, edgecheck.Options{})
 	if err != nil || ([3]int{len(b.Faces), len(b.Edges), len(b.Vertices)}) != counts {
 		t.Fatalf("native neutral proof changed source topology: %v", err)
@@ -106,8 +117,6 @@ func checkCuspidalCreasedReadback(t *testing.T, ctx context.Context, source trim
 			t.Logf("%s retained %d faces, %d edges, %d vertices; volume %.15g area %.15g",
 				f.name, part.Faces, part.Edges, out.IndexedVertices, part.Volume, part.Area)
 		}
-		// The crease at x=21/16 is halfway along the original
-		// normalized outward germ clock, whose x law is quadratic.
-		checkCuspidalCubicJetsOnSpan(t, ctx, f.name, f.ext, f.data, point, .5)
+		jets(f.name, f.ext, f.data, point)
 	}
 }

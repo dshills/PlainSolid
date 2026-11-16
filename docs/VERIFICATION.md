@@ -259,6 +259,15 @@ derivatives remain zero and the shared second derivative is
 ordinary or isolated nodes at C0 remain refused. Main passed the
 combined geometry race and the native and pinned exchange race groups
 in 12.219, 35.435 and 27.958 seconds respectively.
+An original-stock Common fixture now places that crease at the cusp in
+both owner orders. Native replay is byte-identical, with 9 faces, 20
+edges, 13 vertices and signed volume `284613/22528`. STEP and IGES add
+only two exact stock-edge stations, reopen as 9 faces, 22 edges and 15
+vertices, and give the same positive volume. Transfer uses zero pole
+rounding tolerance. Pinned OCCT recovers zero first derivative, outgoing
+second derivative `(4.5,0,81/128)` and opposite third derivatives
+`(0,±4.5,±27/512)`. Main's native and pinned exchange race groups passed
+in 5.385 and 7.256 seconds, including the older creased transfer.
 
 A separate isolated real double-point proof passes with and without a
 disjoint regular branch, including source order swaps and rotated
