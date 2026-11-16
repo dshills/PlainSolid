@@ -456,6 +456,11 @@ triangles per control, independently verifying original stations,
 full face coverage, indexed closure and outward orientation. Exact
 signed volumes are 5/4 and 31/32. Distance and angle bounds pass, a
 one-triangle-short request refuses, and six earlier displays match.
+The bounded open-chain audit proves six independent separations and
+22 original exterior faces on five authored charts, with exact volume
+6/5 and area 74/5. Eight charts prove all 21 nonadjacent pairs. Missing
+separators and actual nonadjacent contact refuse; 55 earlier receipts
+match and regression packages and race checks pass.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They

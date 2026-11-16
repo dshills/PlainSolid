@@ -142,6 +142,9 @@ three nonadjacent pairs. It preserves eighteen original faces, with
 qualified material, boundary and query results. Affine and nonparallel
 four-chart chains also have certified closed displays preserving all
 three original seam maps.
+The analytic chain now supports two through eight owners, certifying
+every adjacent wall and independently separating every nonadjacent
+pair. It retains original face owners for area, moments and distance.
 The joined boundary can also measure certified analytic areas on its
 retained original affine and circular faces. Exact shared walls cancel
 before integration and the result preserves each original owner and side.

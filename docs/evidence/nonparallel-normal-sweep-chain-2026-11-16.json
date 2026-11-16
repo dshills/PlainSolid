@@ -100,5 +100,40 @@
     "distance_limit": 0.8,
     "angular_limit_radians": 0.04,
     "previous_three_chart_bytes_unchanged": 6
+  },
+  "bounded_open_chains": {
+    "main_base": "0d31bbf7",
+    "isolated_revision": "e2e6ef45d98459e39db8b50bdd817938db1a09a0",
+    "patch_sha256": "2c921fd990bce600b1495ba6a471a16fa7db07e80b21b381f404bcbad901fe22",
+    "main_race_log": "normal-sweep-open-chain-main-race-final.jsonl",
+    "main_race_sha256": "2db54f32250ce5616c3ae83440ce5881ba4beec2e7dd2a6872e2a4a7eebec4f6",
+    "main_race_seconds": 8.207,
+    "isolated_race_seconds": 8.772,
+    "isolated_package_seconds": {
+      "geom": 81.631,
+      "mesh": 6.819,
+      "csg/offset": 51.047
+    },
+    "qualified_owner_limits": [
+      2,
+      8
+    ],
+    "five_chart_qualifier": {
+      "adjacent_wall_joins": 4,
+      "nonadjacent_separation_proofs": 6,
+      "retained_original_faces": 22,
+      "exact_volume": "6/5",
+      "exact_boundary_area": "74/5",
+      "separation_cells": 12,
+      "separation_operations": 7692
+    },
+    "eight_chart_separation_proofs": 21,
+    "prior_receipts_unchanged": 55,
+    "refusals": [
+      "missing or duplicate pair separators",
+      "nonadjacent interior overlap despite valid adjacent joins",
+      "nonadjacent swept edge contact",
+      "short shared cell or work budgets"
+    ]
   }
 }
