@@ -112,6 +112,15 @@ contains 24 files, 32 positive one-shell solids and 432 independently
 audited directed original conic uses. The tiny lens readback agrees with
 the independent original-support author to within `6.74e-21` cubic units.
 Both short budgets emitted no bytes, and all 144 earlier files matched.
+The [apex tangency native milestone](evidence/parabola-circle-apex-tangency-native-2026-11-16.json)
+passed the combined main race in 105.267 seconds. It authenticates the
+only double root, original tangent rays and second derivatives. Sixteen
+Common/Fuse results close with 12 faces, 28 edges and 18 vertices; four
+eligible Cuts each preserve two positive shells sharing only the
+source apex. Four pinched reverse Cuts refuse atomically. Independently
+authored pinned lenses corroborate the exact volume; direct OCCT drops
+the lens in three of four cases and reports two shared vertices in the
+fourth. All 24 prior native recipes and 48 neutral files match.
 
 The [proper-similarity display milestone](evidence/parabola-circle-proper-similarity-2026-11-16.json)
 passed its main focused race in 322.877 seconds. Eight components from four

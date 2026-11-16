@@ -90,6 +90,10 @@ positive lens.
 Their exact Common, Fuse and Cut outputs also transfer through STEP
 and IGES. The tiny lens retains its original four quadrant vertices
 and its identity as a separate solid in both formats.
+A single interior parabola and circle apex tangency now also qualifies
+original contact and native material. Common and Fuse are connected;
+the eligible Cut preserves two positive shells touching at one original
+vertex. The reverse orientation that pinches one shell refuses.
 Certified display of the separated two-circle Cuts now accepts proper
 rational similarities. The proof uses the original world coedge owners
 and reports distance in physical units after rotation and scaling.
