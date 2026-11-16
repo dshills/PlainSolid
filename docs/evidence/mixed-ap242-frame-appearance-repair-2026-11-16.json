@@ -1,0 +1,1384 @@
+{
+  "owner": "codex/repair-combined-styled-spatial-ap242",
+  "exchangeCommit": "50932264c32616330ede4174f018eff6987fa987",
+  "documentCommit": "773776f1382d3a71c7935aafdf5be46d379649d8",
+  "pinnedOCCT": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "authorSHA256": "3291cf1031c630574292878d4a088571307e648b58124e9a8e532a88d4e1d530",
+  "authorSourceSHA256": "9dcb0d838c2833fe4b071c05cce4b209d322a7a33c0d859857e71b3344186e60",
+  "authorMode": "write-dag-rounded-frame-appearance",
+  "readerModes": [
+    "read-dag",
+    "read-dag-appearance"
+  ],
+  "oracleEnvironment": "PLAINSOLID_OCCT_MIXED_CONICAL_AP242_FRAME_APPEARANCE_REPAIR",
+  "go": "go1.27.4 on Darwin arm64 and executed Darwin amd64",
+  "scope": "One rounded private terminal rolling-rim placement also borrowed by its original depth-three SHUO context with independently rounded local rolling-rim and eccentric chamfered parts.",
+  "fileUnit": "millimetre",
+  "budgets": {
+    "axisChord": 1e-12,
+    "frameDisplacementMMOnCorrectedLocalSolid": 1e-10,
+    "localGeometryDistanceMM": 3e-12,
+    "maxPrimitiveComponent": 256
+  },
+  "negatives": {
+    "axisChord": 3e-13,
+    "frameDisplacementMM": 1e-11,
+    "localGeometryDistanceMM": 2.8e-12,
+    "axisChordAmbiguous": 0.001
+  },
+  "carrierDigests": {
+    "original": "ddbbe663c85a3976c5338d22509cbd22046acb7e4808272a5f8d7e65dcc4b85c",
+    "frameOnly": "3f84bb314b261e622cea98d64fbf8cd2bce8a36c8b9be463aab8b92f43cfd0fb",
+    "corrected": "c1abbd4782009f073e6fc3c2d2fcc708d9a5fc9617bc616696482b8c1f792856"
+  },
+  "frame": {
+    "originalRelationship": 251,
+    "usage": 254,
+    "targetPlacement": 68,
+    "origin": 69,
+    "directionIDsXZ": [
+      71,
+      70
+    ],
+    "primitiveDirectionsXZ": [
+      [
+        -15,
+        10,
+        6
+      ],
+      [
+        10,
+        6,
+        15
+      ]
+    ],
+    "axisChordUpperBoth": "34667888766899010772654015898702235/91343852333181432387730302044767688728495783936",
+    "localExtentMM": "57/4",
+    "displacementUpperMM": "9880348298566218070206394531130136975/182687704666362864775460604089535377456991567872",
+    "expandedPaths": [
+      [
+        54,
+        85,
+        254
+      ],
+      [
+        487,
+        493,
+        254
+      ]
+    ],
+    "originalSHUOPath": [
+      54,
+      85,
+      254
+    ],
+    "SHUOPrefixAndTerminal": [
+      500,
+      499
+    ],
+    "context": 503,
+    "originalPaintedCap": 348
+  },
+  "tests": {
+    "exchange": {
+      "filter": "^(TestRepairMixedConicalAP242DAGFrameAppearance|TestRepairedMixedConicalAP242DAGFrameAppearance)",
+      "live": {
+        "log": "focus.log",
+        "sha256": "57e75411c10238bd164eb0541e1df415f3018fdbd3c60c8cb4a3f7d7c9df234b",
+        "elapsedSeconds": 64.395
+      },
+      "race": {
+        "log": "race.log",
+        "sha256": "fa197d76f45e27612b72d0acbbcc0fdca7dde1ae7d4d19ddbf745403bc6bd5c9",
+        "elapsedSeconds": 373.642
+      }
+    },
+    "document": {
+      "filter": "^TestRepairedMixedConicalAP242DAGFrameAppearanceDocument",
+      "live": {
+        "log": "document-focus.log",
+        "sha256": "f8736862551abaeb844c6333d1ccee3b064a4b927a0ca6f1abf8516360a236c3",
+        "elapsedSeconds": 74.12
+      },
+      "race": {
+        "log": "document-race.log",
+        "sha256": "f8d0f6600839d6c49f3cd9048ca77723b36da0c568fc7c569a99c073121cb541",
+        "elapsedSeconds": 367.115
+      }
+    }
+  },
+  "artifacts": [
+    {
+      "name": "original.step",
+      "sha256": "ddbbe663c85a3976c5338d22509cbd22046acb7e4808272a5f8d7e65dcc4b85c",
+      "bytes": 26124
+    },
+    {
+      "name": "corrected.step",
+      "sha256": "c1abbd4782009f073e6fc3c2d2fcc708d9a5fc9617bc616696482b8c1f792856",
+      "bytes": 24775
+    },
+    {
+      "name": "receipt.json",
+      "sha256": "3ab2e3346e36eed4e0d717f27599e67bd1d9a63fdb717edb83d611b11204a454",
+      "bytes": 52338
+    },
+    {
+      "name": "repair-combined-frame-appearance-exchange.patch",
+      "sha256": "a0365c6bbe34c53c934d18f2fddd97cdc5b444bb687835b8f869ba986013a1e0",
+      "bytes": 56897
+    },
+    {
+      "name": "document/edit-combined-frame-appearance-document.patch",
+      "sha256": "662498dae1873d62a821f99d8a105aa79a33eae98e096e09fda7138d37374c72",
+      "bytes": 24294
+    },
+    {
+      "name": "document/arm64/initial-document.json",
+      "sha256": "9bcdeead990a6de952ccc4870bddbb42e7e7f962348fa91d6cc3b0b9aff73d87",
+      "bytes": 80357
+    },
+    {
+      "name": "document/arm64/edited-document.json",
+      "sha256": "2225a4fb9c7eb8e5da60f2551e586254ef967fc3ff15e840d36c35ec81fa19b0",
+      "bytes": 80550
+    },
+    {
+      "name": "document/arm64/edited-document.step",
+      "sha256": "36aec55dc4ebf585882a3db2de9c9c90154c117fb886f4fe3262af85b79e4972",
+      "bytes": 24748
+    },
+    {
+      "name": "document/arm64/source-receipt.json",
+      "sha256": "3ab2e3346e36eed4e0d717f27599e67bd1d9a63fdb717edb83d611b11204a454",
+      "bytes": 52338
+    }
+  ],
+  "oracle": {
+    "original": {
+      "assemblyDefinitions": 4,
+      "sharedAssemblies": 1,
+      "materialDefinitions": 2,
+      "leafOccurrences": [
+        {
+          "path": [
+            1,
+            1,
+            1
+          ],
+          "definition": 1,
+          "sharedWithFirst": true,
+          "valid": true,
+          "volume": 2282.4014009762636,
+          "area": 1182.6440976399656,
+          "centroid": [
+            141.98761202395428,
+            27.983482698605545,
+            13.320613872008
+          ],
+          "topology": [
+            1,
+            6,
+            10,
+            6
+          ],
+          "pose": [
+            1,
+            0,
+            0,
+            142,
+            0,
+            1,
+            0,
+            26,
+            0,
+            0,
+            1,
+            10
+          ]
+        },
+        {
+          "path": [
+            1,
+            1,
+            2
+          ],
+          "definition": 1,
+          "sharedWithFirst": true,
+          "valid": true,
+          "volume": 2282.4014009762636,
+          "area": 1182.6440976399656,
+          "centroid": [
+            83.13110853521705,
+            47.47618752592028,
+            12.661563537363188
+          ],
+          "topology": [
+            1,
+            6,
+            10,
+            6
+          ],
+          "pose": [
+            -0.7894736842103489,
+            -0.31578947368454297,
+            0.5263157894737508,
+            82,
+            0.526315789473917,
+            -0.7894736842105151,
+            0.31578947368385046,
+            48,
+            0.3157894736842659,
+            0.5263157894735015,
+            0.789473684210626,
+            9
+          ]
+        },
+        {
+          "path": [
+            1,
+            1,
+            3
+          ],
+          "definition": 2,
+          "sharedWithFirst": false,
+          "valid": true,
+          "volume": 726.9882656102546,
+          "area": 593.897326906747,
+          "centroid": [
+            112.16135909656151,
+            -6.553231188210818,
+            20.394116339655863
+          ],
+          "topology": [
+            1,
+            8,
+            14,
+            8
+          ],
+          "pose": [
+            0.6,
+            -0.8,
+            0,
+            112,
+            0.8,
+            0.6,
+            0,
+            -6,
+            0,
+            0,
+            1,
+            14
+          ]
+        },
+        {
+          "path": [
+            2,
+            1,
+            1
+          ],
+          "definition": 1,
+          "sharedWithFirst": true,
+          "valid": true,
+          "volume": 2282.401400976264,
+          "area": 1182.6440976399656,
+          "centroid": [
+            -80.15094168802102,
+            -4.931733344069762,
+            32.42815338130926
+          ],
+          "topology": [
+            1,
+            6,
+            10,
+            6
+          ],
+          "pose": [
+            0.6,
+            0,
+            0.8,
+            -82.8,
+            0.6400000000000001,
+            0.6,
+            -0.48,
+            -4.519999999999996,
+            -0.48,
+            0.8,
+            0.36,
+            29.64
+          ]
+        },
+        {
+          "path": [
+            2,
+            1,
+            2
+          ],
+          "definition": 1,
+          "sharedWithFirst": true,
+          "valid": true,
+          "volume": 2282.401400976263,
+          "area": 1182.6440976399654,
+          "centroid": [
+            -115.99208404897921,
+            -30.587928519843253,
+            76.0361807972828
+          ],
+          "topology": [
+            1,
+            6,
+            10,
+            6
+          ],
+          "pose": [
+            -0.2210526315787966,
+            0.2315789473680755,
+            0.9473684210527513,
+            -119.6,
+            -0.34105263157872084,
+            -0.9284210526316973,
+            0.1473684210524104,
+            -29.240000000000006,
+            0.9136842105264368,
+            -0.29052631578937094,
+            0.28421052631550536,
+            75.68
+          ]
+        },
+        {
+          "path": [
+            2,
+            1,
+            3
+          ],
+          "definition": 2,
+          "sharedWithFirst": false,
+          "valid": true,
+          "volume": 726.9882656102541,
+          "area": 593.8973269067471,
+          "centroid": [
+            -92.3878914703384,
+            -48.137844734161945,
+            21.66184456535793
+          ],
+          "topology": [
+            1,
+            8,
+            14,
+            8
+          ],
+          "pose": [
+            0.36,
+            -0.48,
+            0.8,
+            -97.6,
+            0.864,
+            -0.15200000000000014,
+            -0.48,
+            -44.84,
+            0.35200000000000015,
+            0.864,
+            0.36,
+            19.88
+          ]
+        },
+        {
+          "path": [
+            3
+          ],
+          "definition": 2,
+          "sharedWithFirst": false,
+          "valid": true,
+          "volume": 726.9882656102542,
+          "area": 593.897326906747,
+          "centroid": [
+            -0.3457694926317486,
+            149.5389740098243,
+            46.39411633965587
+          ],
+          "topology": [
+            1,
+            8,
+            14,
+            8
+          ],
+          "pose": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            150,
+            0,
+            0,
+            1,
+            40
+          ]
+        }
+      ],
+      "paintedPaths": [
+        {
+          "path": [
+            1,
+            1,
+            1
+          ],
+          "product": [
+            0.9999999999999999,
+            0,
+            0
+          ],
+          "override": null,
+          "faces": []
+        },
+        {
+          "path": [
+            1,
+            1,
+            2
+          ],
+          "product": [
+            0.9999999999999999,
+            0,
+            0
+          ],
+          "override": [
+            0,
+            0,
+            0.9999999999999999
+          ],
+          "faces": []
+        },
+        {
+          "path": [
+            1,
+            1,
+            3
+          ],
+          "product": [
+            0,
+            0.9999999999999999,
+            0
+          ],
+          "override": null,
+          "faces": [
+            {
+              "planeZ": 2,
+              "color": [
+                0.9999999999999999,
+                0.9999999999999999,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "path": [
+            2,
+            1,
+            1
+          ],
+          "product": [
+            0.9999999999999999,
+            0,
+            0
+          ],
+          "override": null,
+          "faces": []
+        },
+        {
+          "path": [
+            2,
+            1,
+            2
+          ],
+          "product": [
+            0.9999999999999999,
+            0,
+            0
+          ],
+          "override": null,
+          "faces": []
+        },
+        {
+          "path": [
+            2,
+            1,
+            3
+          ],
+          "product": [
+            0,
+            0.9999999999999999,
+            0
+          ],
+          "override": null,
+          "faces": [
+            {
+              "planeZ": 2,
+              "color": [
+                0.9999999999999999,
+                0.9999999999999999,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "path": [
+            3
+          ],
+          "product": [
+            0,
+            0.9999999999999999,
+            0
+          ],
+          "override": null,
+          "faces": [
+            {
+              "planeZ": 2,
+              "color": [
+                0.9999999999999999,
+                0.9999999999999999,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "corrected": {
+      "assemblyDefinitions": 4,
+      "sharedAssemblies": 1,
+      "materialDefinitions": 2,
+      "leafOccurrences": [
+        {
+          "path": [
+            1,
+            1,
+            1
+          ],
+          "definition": 1,
+          "sharedWithFirst": true,
+          "valid": true,
+          "volume": 2282.4014040828897,
+          "area": 1182.6440976399515,
+          "centroid": [
+            141.9875600104498,
+            27.98348690977326,
+            13.320613869796095
+          ],
+          "topology": [
+            1,
+            6,
+            10,
+            6
+          ],
+          "pose": [
+            1,
+            0,
+            0,
+            142,
+            0,
+            1,
+            0,
+            26,
+            0,
+            0,
+            1,
+            10
+          ]
+        },
+        {
+          "path": [
+            1,
+            1,
+            2
+          ],
+          "definition": 1,
+          "sharedWithFirst": true,
+          "valid": true,
+          "volume": 2282.40140408289,
+          "area": 1182.6440976399522,
+          "centroid": [
+            83.13114826750392,
+            47.4761568250882,
+            12.661549326703831
+          ],
+          "topology": [
+            1,
+            6,
+            10,
+            6
+          ],
+          "pose": [
+            -0.7894736842105264,
+            -0.3157894736842106,
+            0.5263157894736842,
+            82,
+            0.5263157894736843,
+            -0.7894736842105264,
+            0.3157894736842105,
+            48,
+            0.31578947368421056,
+            0.5263157894736843,
+            0.7894736842105263,
+            9
+          ]
+        },
+        {
+          "path": [
+            1,
+            1,
+            3
+          ],
+          "definition": 2,
+          "sharedWithFirst": false,
+          "valid": true,
+          "volume": 726.988268498145,
+          "area": 593.8973269066951,
+          "centroid": [
+            112.16126607288417,
+            -6.553303452072025,
+            20.39411633864865
+          ],
+          "topology": [
+            1,
+            8,
+            14,
+            8
+          ],
+          "pose": [
+            0.6,
+            -0.8,
+            0,
+            112,
+            0.8,
+            0.6,
+            0,
+            -6,
+            0,
+            0,
+            1,
+            14
+          ]
+        },
+        {
+          "path": [
+            2,
+            1,
+            1
+          ],
+          "definition": 1,
+          "sharedWithFirst": true,
+          "valid": true,
+          "volume": 2282.40140408289,
+          "area": 1182.6440976399515,
+          "centroid": [
+            -80.15097289789324,
+            -4.931764104950291,
+            32.42818171592929
+          ],
+          "topology": [
+            1,
+            6,
+            10,
+            6
+          ],
+          "pose": [
+            0.6,
+            0,
+            0.8,
+            -82.8,
+            0.6400000000000001,
+            0.6,
+            -0.48,
+            -4.519999999999996,
+            -0.48,
+            0.8,
+            0.36,
+            29.64
+          ]
+        },
+        {
+          "path": [
+            2,
+            1,
+            2
+          ],
+          "definition": 1,
+          "sharedWithFirst": true,
+          "valid": true,
+          "volume": 2282.40140408289,
+          "area": 1182.6440976399522,
+          "centroid": [
+            -115.99207157813458,
+            -30.58791469056242,
+            76.03613204928206
+          ],
+          "topology": [
+            1,
+            6,
+            10,
+            6
+          ],
+          "pose": [
+            -0.22105263157894736,
+            0.23157894736842108,
+            0.9473684210526316,
+            -119.6,
+            -0.34105263157894755,
+            -0.928421052631579,
+            0.14736842105263157,
+            -29.240000000000006,
+            0.913684210526316,
+            -0.2905263157894738,
+            0.2842105263157895,
+            75.68
+          ]
+        },
+        {
+          "path": [
+            2,
+            1,
+            3
+          ],
+          "definition": 2,
+          "sharedWithFirst": false,
+          "valid": true,
+          "volume": 726.988268498145,
+          "area": 593.897326906695,
+          "centroid": [
+            -92.38794728535056,
+            -48.1379476271487,
+            21.66183140527149
+          ],
+          "topology": [
+            1,
+            8,
+            14,
+            8
+          ],
+          "pose": [
+            0.36,
+            -0.48,
+            0.8,
+            -97.6,
+            0.864,
+            -0.15200000000000014,
+            -0.48,
+            -44.84,
+            0.35200000000000015,
+            0.864,
+            0.36,
+            19.88
+          ]
+        },
+        {
+          "path": [
+            3
+          ],
+          "definition": 2,
+          "sharedWithFirst": false,
+          "valid": true,
+          "volume": 726.988268498145,
+          "area": 593.897326906695,
+          "centroid": [
+            -0.34588311792711346,
+            149.53900507044943,
+            46.39411633864865
+          ],
+          "topology": [
+            1,
+            8,
+            14,
+            8
+          ],
+          "pose": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            150,
+            0,
+            0,
+            1,
+            40
+          ]
+        }
+      ],
+      "paintedPaths": [
+        {
+          "path": [
+            1,
+            1,
+            1
+          ],
+          "product": [
+            0.9999999999999999,
+            0,
+            0
+          ],
+          "override": null,
+          "faces": []
+        },
+        {
+          "path": [
+            1,
+            1,
+            2
+          ],
+          "product": [
+            0.9999999999999999,
+            0,
+            0
+          ],
+          "override": [
+            0,
+            0,
+            0.9999999999999999
+          ],
+          "faces": []
+        },
+        {
+          "path": [
+            1,
+            1,
+            3
+          ],
+          "product": [
+            0,
+            0.9999999999999999,
+            0
+          ],
+          "override": null,
+          "faces": [
+            {
+              "planeZ": 2,
+              "color": [
+                0.9999999999999999,
+                0.9999999999999999,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "path": [
+            2,
+            1,
+            1
+          ],
+          "product": [
+            0.9999999999999999,
+            0,
+            0
+          ],
+          "override": null,
+          "faces": []
+        },
+        {
+          "path": [
+            2,
+            1,
+            2
+          ],
+          "product": [
+            0.9999999999999999,
+            0,
+            0
+          ],
+          "override": null,
+          "faces": []
+        },
+        {
+          "path": [
+            2,
+            1,
+            3
+          ],
+          "product": [
+            0,
+            0.9999999999999999,
+            0
+          ],
+          "override": null,
+          "faces": [
+            {
+              "planeZ": 2,
+              "color": [
+                0.9999999999999999,
+                0.9999999999999999,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "path": [
+            3
+          ],
+          "product": [
+            0,
+            0.9999999999999999,
+            0
+          ],
+          "override": null,
+          "faces": [
+            {
+              "planeZ": 2,
+              "color": [
+                0.9999999999999999,
+                0.9999999999999999,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "edited": {
+      "assemblyDefinitions": 4,
+      "sharedAssemblies": 1,
+      "materialDefinitions": 2,
+      "leafOccurrences": [
+        {
+          "path": [
+            1,
+            1,
+            1
+          ],
+          "definition": 1,
+          "sharedWithFirst": true,
+          "valid": true,
+          "volume": 2282.4014040828897,
+          "area": 1182.6440976399515,
+          "centroid": [
+            141.9875600104498,
+            27.98348690977326,
+            13.320613869796095
+          ],
+          "topology": [
+            1,
+            6,
+            10,
+            6
+          ],
+          "pose": [
+            1,
+            0,
+            0,
+            142,
+            0,
+            1,
+            0,
+            26,
+            0,
+            0,
+            1,
+            10
+          ]
+        },
+        {
+          "path": [
+            1,
+            1,
+            2
+          ],
+          "definition": 1,
+          "sharedWithFirst": true,
+          "valid": true,
+          "volume": 2282.4014040828893,
+          "area": 1182.6440976399517,
+          "centroid": [
+            85.28930439499769,
+            48.75139651340491,
+            12.320613869796095
+          ],
+          "topology": [
+            1,
+            6,
+            10,
+            6
+          ],
+          "pose": [
+            0.38461538461538464,
+            -0.9230769230769231,
+            0,
+            87.125,
+            0.9230769230769231,
+            0.38461538461538464,
+            0,
+            48,
+            0,
+            0,
+            1,
+            9
+          ]
+        },
+        {
+          "path": [
+            1,
+            1,
+            3
+          ],
+          "definition": 2,
+          "sharedWithFirst": false,
+          "valid": true,
+          "volume": 726.988268498145,
+          "area": 593.8973269066951,
+          "centroid": [
+            112.16126607288417,
+            -6.553303452072025,
+            20.39411633864865
+          ],
+          "topology": [
+            1,
+            8,
+            14,
+            8
+          ],
+          "pose": [
+            0.6,
+            -0.8,
+            0,
+            112,
+            0.8,
+            0.6,
+            0,
+            -6,
+            0,
+            0,
+            1,
+            14
+          ]
+        },
+        {
+          "path": [
+            2,
+            1,
+            1
+          ],
+          "definition": 1,
+          "sharedWithFirst": true,
+          "valid": true,
+          "volume": 2282.40140408289,
+          "area": 1182.6440976399515,
+          "centroid": [
+            -80.15097289789324,
+            -4.931764104950291,
+            32.42818171592929
+          ],
+          "topology": [
+            1,
+            6,
+            10,
+            6
+          ],
+          "pose": [
+            0.6,
+            0,
+            0.8,
+            -82.8,
+            0.6400000000000001,
+            0.6,
+            -0.48,
+            -4.519999999999996,
+            -0.48,
+            0.8,
+            0.36,
+            29.64
+          ]
+        },
+        {
+          "path": [
+            2,
+            1,
+            2
+          ],
+          "definition": 1,
+          "sharedWithFirst": true,
+          "valid": true,
+          "volume": 2282.40140408289,
+          "area": 1182.6440976399517,
+          "centroid": [
+            -114.96992626716452,
+            -28.277901936660662,
+            75.89767209425163
+          ],
+          "topology": [
+            1,
+            6,
+            10,
+            6
+          ],
+          "pose": [
+            0.23076923076923078,
+            -0.5538461538461539,
+            0.8,
+            -116.525,
+            0.8,
+            -0.36000000000000015,
+            -0.48,
+            -25.960000000000004,
+            0.5538461538461539,
+            0.7507692307692307,
+            0.36,
+            73.22
+          ]
+        },
+        {
+          "path": [
+            2,
+            1,
+            3
+          ],
+          "definition": 2,
+          "sharedWithFirst": false,
+          "valid": true,
+          "volume": 726.988268498145,
+          "area": 593.897326906695,
+          "centroid": [
+            -92.38794728535056,
+            -48.1379476271487,
+            21.66183140527149
+          ],
+          "topology": [
+            1,
+            8,
+            14,
+            8
+          ],
+          "pose": [
+            0.36,
+            -0.48,
+            0.8,
+            -97.6,
+            0.864,
+            -0.15200000000000014,
+            -0.48,
+            -44.84,
+            0.35200000000000015,
+            0.864,
+            0.36,
+            19.88
+          ]
+        },
+        {
+          "path": [
+            3
+          ],
+          "definition": 2,
+          "sharedWithFirst": false,
+          "valid": true,
+          "volume": 726.988268498145,
+          "area": 593.897326906695,
+          "centroid": [
+            -0.34588311792711346,
+            149.53900507044943,
+            46.39411633864865
+          ],
+          "topology": [
+            1,
+            8,
+            14,
+            8
+          ],
+          "pose": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            150,
+            0,
+            0,
+            1,
+            40
+          ]
+        }
+      ],
+      "paintedPaths": [
+        {
+          "path": [
+            1,
+            1,
+            1
+          ],
+          "product": [
+            0,
+            0.9999999999999999,
+            0.9999999999999999
+          ],
+          "override": null,
+          "faces": []
+        },
+        {
+          "path": [
+            1,
+            1,
+            2
+          ],
+          "product": [
+            0,
+            0.9999999999999999,
+            0.9999999999999999
+          ],
+          "override": [
+            0.9999999999999999,
+            0,
+            0.9999999999999999
+          ],
+          "faces": []
+        },
+        {
+          "path": [
+            1,
+            1,
+            3
+          ],
+          "product": [
+            0,
+            0.9999999999999999,
+            0
+          ],
+          "override": null,
+          "faces": [
+            {
+              "planeZ": 2,
+              "color": [
+                0.9999999999999999,
+                0.5000000034286967,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "path": [
+            2,
+            1,
+            1
+          ],
+          "product": [
+            0,
+            0.9999999999999999,
+            0.9999999999999999
+          ],
+          "override": null,
+          "faces": []
+        },
+        {
+          "path": [
+            2,
+            1,
+            2
+          ],
+          "product": [
+            0,
+            0.9999999999999999,
+            0.9999999999999999
+          ],
+          "override": null,
+          "faces": []
+        },
+        {
+          "path": [
+            2,
+            1,
+            3
+          ],
+          "product": [
+            0,
+            0.9999999999999999,
+            0
+          ],
+          "override": null,
+          "faces": [
+            {
+              "planeZ": 2,
+              "color": [
+                0.9999999999999999,
+                0.5000000034286967,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "path": [
+            3
+          ],
+          "product": [
+            0,
+            0.9999999999999999,
+            0
+          ],
+          "override": null,
+          "faces": [
+            {
+              "planeZ": 2,
+              "color": [
+                0.9999999999999999,
+                0.5000000034286967,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "matchingBytes": {
+    "otherArchitectureExchange": {
+      "corrected.step": "c1abbd4782009f073e6fc3c2d2fcc708d9a5fc9617bc616696482b8c1f792856",
+      "receipt.json": "3ab2e3346e36eed4e0d717f27599e67bd1d9a63fdb717edb83d611b11204a454"
+    },
+    "otherArchitectureDocument": {
+      "initial-document.json": "9bcdeead990a6de952ccc4870bddbb42e7e7f962348fa91d6cc3b0b9aff73d87",
+      "edited-document.json": "2225a4fb9c7eb8e5da60f2551e586254ef967fc3ff15e840d36c35ec81fa19b0",
+      "edited-document.step": "36aec55dc4ebf585882a3db2de9c9c90154c117fb886f4fe3262af85b79e4972",
+      "source-receipt.json": "3ab2e3346e36eed4e0d717f27599e67bd1d9a63fdb717edb83d611b11204a454"
+    },
+    "previousUnstyledFrameExchange": {
+      "corrected.step": "5db55bd9dd6c69e723d340e5d76fa662d4f70dd9b24523738b9635ef6c7cdf01",
+      "receipt.json": "04e26492cd7d116d27ffcd54bd3504c599cd3786ce09c0ac17184ed54da27b76"
+    },
+    "previousStyledGeometryExchange": {
+      "corrected.step": "f0e6052c2af918a4b74e72e124865dcd930e546a2ea39c98c955ac479a4f23af",
+      "receipt.json": "8e23a20c2ed1efd3d2aa39acf27c5af0131ae3fc9c61f86ce1a799779076ad53"
+    },
+    "previousUnstyledFrameDocument": {
+      "initial-document.json": "5401269364288c528c200ad9dbf5be0be3aebdecc24fa83d70a51d3a42638200",
+      "edited-document.json": "d53307bd9727bbb8b6162d8a16190266cc14b7a571606b14f76940a91815989b",
+      "edited-document.step": "181082866139bc15fa3d3a46844b0e39f9326a89aa94fd401dab87852005af28",
+      "source-receipt.json": "04e26492cd7d116d27ffcd54bd3504c599cd3786ce09c0ac17184ed54da27b76"
+    },
+    "previousStyledGeometryDocument": {
+      "initial-document.json": "0cdc3108fd637cdc460874079f744769939a5bb8713682e4e6939ba2191f527d",
+      "edited-document.json": "258d2c951828bfd9a95c72b847b484c6ff552bd5c4160c678c73cc111c188e77",
+      "edited-document.step": "6118f0164166dc02e236267d9fcf4e6cc00445ef165f39c67fadfe496a409d46",
+      "source-receipt.json": "8e23a20c2ed1efd3d2aa39acf27c5af0131ae3fc9c61f86ce1a799779076ad53"
+    }
+  },
+  "main_exchange": {
+    "agent_evidence_sha256": "f91f0370b333309e16dcfa26871d3cc109c3835eb49c12943d71d2cb0062b300",
+    "path": "combined-styled-frame-main-race.jsonl",
+    "sha256": "2670ee336ea25a8ed443c7312012e32677a55ac0458a3c3b51a27c704f124500",
+    "passes": [
+      "TestRepairMixedConicalAP242DAGFrameAppearance",
+      "TestRepairMixedConicalAP242DAGFrameAppearanceReject",
+      "TestRepairedMixedConicalAP242DAGFrameAppearanceReceipt",
+      "TestRepairMixedConicalAP242DAGFrameAppearancePinnedAuthor"
+    ],
+    "elapsed_seconds": [
+      385.97
+    ]
+  }
+}

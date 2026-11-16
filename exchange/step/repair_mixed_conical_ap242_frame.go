@@ -72,12 +72,12 @@ func (m RepairedMixedConicalAP242Frame) Assembly() MixedConicalAP242DAG {
 // graph must pass the ordinary strict mixed conical reader.
 func RepairMixedConicalAP242Frame(ctx context.Context, r io.Reader, limits MixedConicalAP242DAGLimits, o MixedConicalAP242FrameRepairOptions) (RepairedMixedConicalAP242Frame, error) {
 	var zero RepairedMixedConicalAP242Frame
-	if o.MaxPrimitiveComponent == 0 {
-		o.MaxPrimitiveComponent = 256
-	}
-	if ctx == nil || r == nil || o.OccurrenceID <= 0 || !finiteNumber(o.MaxAxisChord) || o.MaxAxisChord <= 0 || o.MaxAxisChord >= .25 ||
-		!finiteNumber(o.MaxDisplacement) || o.MaxDisplacement <= 0 || o.MaxPrimitiveComponent < 1 || o.MaxPrimitiveComponent > 4096 {
+	if ctx == nil || r == nil {
 		return zero, geom.ErrInvalid
+	}
+	o, err := normalizeMixedConicalAP242FrameRepairOptions(o)
+	if err != nil {
+		return zero, err
 	}
 	if err := ctx.Err(); err != nil {
 		return zero, err
@@ -97,6 +97,45 @@ func RepairMixedConicalAP242Frame(ctx context.Context, r io.Reader, limits Mixed
 	if err != nil {
 		return zero, err
 	}
+	pending, err := inferMixedConicalAP242FrameRepair(ctx, a, o)
+	if err != nil {
+		return zero, err
+	}
+	pending.apply(a.Source)
+	corrected, err := mappedPlanarSourceBytes(a.Source)
+	if err != nil {
+		return zero, err
+	}
+	model, err := ReadMixedConicalAP242DAG(ctx, bytes.NewReader(corrected), l, geom.SurfacePatchOptions{})
+	if err != nil {
+		return zero, fmt.Errorf("step: verify repaired occurrence carrier: %w", err)
+	}
+	evidence, err := pending.prove(ctx, model, o.MaxDisplacement)
+	if err != nil {
+		return zero, err
+	}
+	return RepairedMixedConicalAP242Frame{original: string(raw), corrected: string(corrected), options: o, evidence: evidence, assembly: model}, nil
+}
+
+func normalizeMixedConicalAP242FrameRepairOptions(o MixedConicalAP242FrameRepairOptions) (MixedConicalAP242FrameRepairOptions, error) {
+	if o.MaxPrimitiveComponent == 0 {
+		o.MaxPrimitiveComponent = 256
+	}
+	if o.OccurrenceID <= 0 || !finiteNumber(o.MaxAxisChord) || o.MaxAxisChord <= 0 || o.MaxAxisChord >= .25 ||
+		!finiteNumber(o.MaxDisplacement) || o.MaxDisplacement <= 0 || o.MaxPrimitiveComponent < 1 || o.MaxPrimitiveComponent > 4096 {
+		return o, geom.ErrInvalid
+	}
+	return o, nil
+}
+
+type inferredMixedConicalFrameRepair struct {
+	occ        ExactNAUOOccurrence
+	evidence   MixedConicalAP242FrameRepairEvidence
+	chordUpper [2]*big.Rat
+}
+
+func inferMixedConicalAP242FrameRepair(ctx context.Context, a Assembly, o MixedConicalAP242FrameRepairOptions) (inferredMixedConicalFrameRepair, error) {
+	var zero inferredMixedConicalFrameRepair
 	occ, ids, originID, err := mixedConicalFrameRepairOwner(a, o.OccurrenceID)
 	if err != nil {
 		return zero, err
@@ -138,24 +177,27 @@ func RepairMixedConicalAP242Frame(ctx context.Context, r io.Reader, limits Mixed
 		return zero, err
 	}
 	occ.pose = mappedRationalBasis{Origin: origin, X: unit[0], Y: mappedRationalCross(unit[1], unit[0]), Z: unit[1]}
-	for i, id := range ids {
+	return inferredMixedConicalFrameRepair{occ: occ, evidence: evidence, chordUpper: upper}, nil
+}
+
+// apply updates the two directions whose exclusive ownership the caller
+// has proved on this source graph.
+func (p inferredMixedConicalFrameRepair) apply(f *File) {
+	for i, id := range p.evidence.DirectionIDs {
 		record, _ := simple(f, id, "DIRECTION", 2)
 		record.Args = slices.Clone(record.Args)
 		items := make([]Value, 3)
-		for j, value := range evidence.PrimitiveDirections[i] {
+		for j, value := range p.evidence.PrimitiveDirections[i] {
 			items[j] = Value{Kind: Number, Text: strconv.FormatInt(value, 10) + "."}
 		}
 		record.Args[1] = Value{Kind: Aggregate, Items: items}
 		f.Entities[id] = Entity{ID: id, Records: []Record{record}}
 	}
-	corrected, err := mappedPlanarSourceBytes(f)
-	if err != nil {
-		return zero, err
-	}
-	model, err := ReadMixedConicalAP242DAG(ctx, bytes.NewReader(corrected), l, geom.SurfacePatchOptions{})
-	if err != nil {
-		return zero, fmt.Errorf("step: verify repaired occurrence carrier: %w", err)
-	}
+}
+
+func (p inferredMixedConicalFrameRepair) prove(ctx context.Context, model MixedConicalAP242DAG, maxDisplacement float64) (MixedConicalAP242FrameRepairEvidence, error) {
+	var zero MixedConicalAP242FrameRepairEvidence
+	occ, evidence, upper := p.occ, p.evidence, p.chordUpper
 	if !slices.ContainsFunc(model.Occurrences, func(use ExactNAUOOccurrence) bool {
 		return use.NAUOID == occ.NAUOID && equalMixedConicalOccurrences(use, occ)
 	}) {
@@ -175,7 +217,7 @@ func RepairMixedConicalAP242Frame(ctx context.Context, r io.Reader, limits Mixed
 	// product with the exact local coordinate extent bounds every move.
 	frameBound := new(big.Rat).Add(new(big.Rat).Mul(upper[0], big.NewRat(4, 1)), new(big.Rat).Mul(upper[1], big.NewRat(6, 1)))
 	displacement := new(big.Rat).Mul(frameBound, extent)
-	if displacement.Cmp(new(big.Rat).SetFloat64(o.MaxDisplacement)) > 0 {
+	if displacement.Cmp(new(big.Rat).SetFloat64(maxDisplacement)) > 0 {
 		return zero, fmt.Errorf("step: occurrence displacement proof exceeds source-unit budget: %w", geom.ErrConvergence)
 	}
 	evidence.BodyID = part.SourceBodyID
@@ -189,7 +231,7 @@ func RepairMixedConicalAP242Frame(ctx context.Context, r io.Reader, limits Mixed
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
-	return RepairedMixedConicalAP242Frame{original: string(raw), corrected: string(corrected), options: o, evidence: evidence, assembly: model}, nil
+	return evidence, nil
 }
 
 func mixedConicalFrameRepairOwner(a Assembly, target int64) (occ ExactNAUOOccurrence, ids [2]int64, originID int64, err error) {

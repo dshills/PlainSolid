@@ -40,6 +40,14 @@ paths recover the same edited shared relationship. Native save/load
 preserves the repair ledger and the source replay receipt. Forged
 direction ownership, conflicting shared edits and ownerless paint refuse.
 
+[Combined styled AP242 repair](evidence/mixed-ap242-frame-appearance-repair-2026-11-16.json)
+passes the pinned independent source and main exchange race. One proved
+SHUO context borrows the repaired shared frame. The sibling instance
+uses the same exact relationship without inheriting that override.
+The prior standalone repair outputs reproduce byte for byte. The
+combined corrected carrier and raw receipt also match across executed
+Darwin ARM64 and amd64 producers.
+
 The [closed normal sweep display](evidence/closed-verified-normal-sweep-2026-11-16.json)
 passes closed-shell embedding and exact positive signed volume controls
 for a rational planar slab and a curved strip in both placements. The

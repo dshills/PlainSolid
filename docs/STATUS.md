@@ -30,6 +30,10 @@ refuses it and the source replay receipt keeps the original bytes.
 The repaired frame can be edited in a native document. Both expanded
 instances of the shared STEP relationship keep their original identities,
 and the raw replay receipt remains separate from the edited carrier.
+The opt-in exchange repair can also compose a private rounded frame
+with a separate local geometry defect on the same styled source. Both
+budgets are enforced and the original shared placement, appearance
+override and face owners remain bound to the source replay.
 A single verified normal sweep now has a closed, outward, embedded
 display mesh with a proved spatial error and original face and station
 identities. An optional angular limit also certifies continuous outward
