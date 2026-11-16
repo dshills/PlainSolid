@@ -246,6 +246,14 @@ curve checks the physical derivative and owner at a nonuniform knot.
 Invalid input, cancellation and short pole/work budgets publish no edit.
 All 32 periodic curve and surface cases passed under the race detector
 in 6.225 seconds.
+The nonuniform tensor extension matches the original rational Bézier
+tensor evaluator component by component for points and both partials.
+It exercises asymmetric rational weights, edits at both seams and
+on both axes, repeated interior knots, and simultaneous opposite
+cycles of magnitude `2^100`. A mixed tensor retains its discontinuous
+ordinary station and the correct upper endpoint limit. Invalid domain
+or short resource limits deliver no partial result. All 34 periodic
+tests passed under the race detector in 7.499 seconds.
 
 The [full ordinary Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
 later passed all nine lanes on macOS ARM64. The independent inventory

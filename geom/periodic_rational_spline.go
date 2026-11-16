@@ -10,9 +10,13 @@ import (
 // exact, potentially nonuniform knot intervals. It owns its input. The
 // original seam knot is simple; interior knot multiplicity may reach degree.
 type ExactPeriodicSplineCurve struct {
+	exactCyclicAxis
+	net []exactHomogeneous
+}
+
+type exactCyclicAxis struct {
 	degree int
 	knots  []*big.Rat
-	net    []exactHomogeneous
 	period *big.Rat
 }
 
@@ -33,26 +37,38 @@ func NewExactPeriodicSplineCurve(ctx context.Context, degree int, knots []*big.R
 		return nil, ErrConvergence
 	}
 	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
-	result := &ExactPeriodicSplineCurve{degree: degree, knots: make([]*big.Rat, len(knots)), net: make([]exactHomogeneous, len(controls))}
+	axis, err := newExactCyclicAxis(ctx, degree, knots, b)
+	if err != nil {
+		return nil, err
+	}
+	net, err := ownedHomogeneousNet(ctx, controls, b)
+	if err != nil {
+		return nil, err
+	}
+	return &ExactPeriodicSplineCurve{axis, net}, nil
+}
+
+func newExactCyclicAxis(ctx context.Context, degree int, knots []*big.Rat, b *polynomialBudget) (exactCyclicAxis, error) {
+	result := exactCyclicAxis{degree: degree, knots: make([]*big.Rat, len(knots))}
 	mult := 1
 	for i, x := range knots {
 		if err := ctx.Err(); err != nil {
-			return nil, err
+			return exactCyclicAxis{}, err
 		}
 		if x == nil {
-			return nil, ErrInvalid
+			return exactCyclicAxis{}, ErrInvalid
 		}
 		if err := b.check(x); err != nil {
-			return nil, err
+			return exactCyclicAxis{}, err
 		}
 		if i > 0 {
 			switch x.Cmp(knots[i-1]) {
 			case -1:
-				return nil, ErrInvalid
+				return exactCyclicAxis{}, ErrInvalid
 			case 0:
 				mult++
 				if i == 1 || i == len(knots)-1 || mult > degree {
-					return nil, ErrInvalid
+					return exactCyclicAxis{}, ErrInvalid
 				}
 			default:
 				mult = 1
@@ -62,8 +78,13 @@ func NewExactPeriodicSplineCurve(ctx context.Context, degree int, knots []*big.R
 	}
 	result.period = new(big.Rat).Sub(knots[len(knots)-1], knots[0])
 	if err := b.check(result.period); err != nil {
-		return nil, err
+		return exactCyclicAxis{}, err
 	}
+	return result, nil
+}
+
+func ownedHomogeneousNet(ctx context.Context, controls [][4]*big.Rat, b *polynomialBudget) ([]exactHomogeneous, error) {
+	result := make([]exactHomogeneous, len(controls))
 	for i, h := range controls {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -78,7 +99,7 @@ func NewExactPeriodicSplineCurve(ctx context.Context, degree int, knots []*big.R
 			if err := b.check(v); err != nil {
 				return nil, err
 			}
-			result.net[i][axis] = new(big.Rat).Set(v)
+			result[i][axis] = new(big.Rat).Set(v)
 		}
 	}
 	return result, nil
@@ -175,35 +196,71 @@ func (c *ExactPeriodicSplineCurve) InsertKnot(ctx context.Context, t *big.Rat, o
 		return nil, ErrConvergence
 	}
 	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
-	x, _, _, s, err := c.locate(t, b)
+	axis, blends, err := c.insertion(ctx, t, b)
 	if err != nil {
 		return nil, err
 	}
+	controls := make([][4]*big.Rat, n+1)
+	for i, q := range blends {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		controls[i] = q.apply(c.net[q.left], c.net[q.right])
+	}
+	net, err := ownedHomogeneousNet(ctx, controls, b)
+	if err != nil {
+		return nil, err
+	}
+	return &ExactPeriodicSplineCurve{axis, net}, nil
+}
+
+type cyclicKnotBlend struct {
+	left, right int
+	alpha, beta *big.Rat
+}
+
+func (q cyclicKnotBlend) apply(left, right exactHomogeneous) [4]*big.Rat {
+	if q.alpha == nil {
+		return left
+	}
+	var out [4]*big.Rat
+	for axis := range out {
+		out[axis] = new(big.Rat).Add(new(big.Rat).Mul(q.beta, left[axis]), new(big.Rat).Mul(q.alpha, right[axis]))
+	}
+	return out
+}
+
+func (c exactCyclicAxis) insertion(ctx context.Context, t *big.Rat, b *polynomialBudget) (exactCyclicAxis, []cyclicKnotBlend, error) {
+	n := len(c.knots) - 1
+	x, _, _, s, err := c.locate(t, b)
+	if err != nil {
+		return exactCyclicAxis{}, nil, err
+	}
 	if x.Cmp(c.knots[0]) == 0 {
-		return nil, ErrDomain
+		return exactCyclicAxis{}, nil, ErrDomain
 	}
 	m := 0
 	for j := s; j > 0 && c.knots[j].Cmp(x) == 0; j-- {
 		m++
 	}
 	if m >= c.degree {
-		return nil, ErrDomain
+		return exactCyclicAxis{}, nil, ErrDomain
 	}
 	knots := make([]*big.Rat, n+2)
 	copy(knots, c.knots[:s+1])
 	knots[s+1] = x
 	copy(knots[s+2:], c.knots[s+1:])
-	controls := make([][4]*big.Rat, n+1)
+	controls := make([]cyclicKnotBlend, n+1)
 	// The unrolled Boehm updates start after s and end just before the
 	// next orbit's updates. Because n > degree those update bands never
 	// overlap. The old and new lengths have distinct cyclic indices.
 	for i := s + 1; i <= s+n+1; i++ {
 		if err := ctx.Err(); err != nil {
-			return nil, err
+			return exactCyclicAxis{}, nil, err
 		}
-		left := c.net[(i-1)%n]
+		q := &controls[i%(n+1)]
+		q.left, q.right = (i-1)%n, i%n
 		if i > s+c.degree-m {
-			controls[i%(n+1)] = left
 			continue
 		}
 		k0, k1 := c.knot(i-c.degree), c.knot(i)
@@ -211,19 +268,16 @@ func (c *ExactPeriodicSplineCurve) InsertKnot(ctx context.Context, t *big.Rat, o
 		beta := new(big.Rat).Sub(big.NewRat(1, 1), alpha)
 		for _, v := range []*big.Rat{alpha, beta} {
 			if err := b.check(v); err != nil {
-				return nil, err
+				return exactCyclicAxis{}, nil, err
 			}
 		}
-		right := c.net[i%n]
-		for axis := range left {
-			controls[i%(n+1)][axis] = new(big.Rat).Add(new(big.Rat).Mul(beta, left[axis]), new(big.Rat).Mul(alpha, right[axis]))
-		}
+		q.alpha, q.beta = alpha, beta
 	}
-	o.MaxOperations -= b.operations
-	if o.MaxOperations < 1 {
-		return nil, ErrConvergence
+	axis, err := newExactCyclicAxis(ctx, c.degree, knots, b)
+	if err != nil {
+		return exactCyclicAxis{}, nil, err
 	}
-	return NewExactPeriodicSplineCurve(ctx, c.degree, knots, controls, o)
+	return axis, controls, nil
 }
 
 // EvaluateRational evaluates the exact nonuniform cyclic law. Seam and
@@ -245,36 +299,47 @@ func (c *ExactPeriodicSplineCurve) EvaluateRational(ctx context.Context, t *big.
 	}
 	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	defer func() { result.ExactOperations = b.operations }()
-	local, shift, cycle, span, err := c.locate(t, b)
+	owner, local, err := c.owner(t, b)
 	if err != nil {
 		return result, err
 	}
 	source := make([]exactHomogeneous, c.degree+1)
 	for i := range source {
-		source[i] = c.net[(span+i)%len(c.net)]
+		source[i] = c.net[(owner.Span+i)%len(c.net)]
 	}
-	h, d, err := differentiatePeriodicNet(ctx, source, func(j, r int) (a, slope *big.Rat) {
-		left := c.knot(span + j - c.degree)
-		right := c.knot(span + j + 1 - r)
-		slope = new(big.Rat).Inv(new(big.Rat).Sub(right, left))
-		a = new(big.Rat).Mul(new(big.Rat).Sub(local, left), slope)
-		return a, slope
-	}, b)
+	h, d, err := differentiatePeriodicNet(ctx, source, rationalSplineBlend(c.degree, owner.Span, local, c.knot), b)
 	if err != nil {
 		return result, err
+	}
+	return exactPeriodicCurveResult(ctx, h, d, big.NewRat(1, 1), owner, b)
+}
+
+func rationalSplineBlend(degree, span int, t *big.Rat, knot func(int) *big.Rat) func(j, r int) (a, slope *big.Rat) {
+	return func(j, r int) (a, slope *big.Rat) {
+		left := knot(span + j - degree)
+		right := knot(span + j + 1 - r)
+		slope = new(big.Rat).Inv(new(big.Rat).Sub(right, left))
+		a = new(big.Rat).Mul(new(big.Rat).Sub(t, left), slope)
+		return a, slope
+	}
+}
+
+func (c exactCyclicAxis) owner(t *big.Rat, b *polynomialBudget) (ExactSurfaceKnotSpan, *big.Rat, error) {
+	local, shift, cycle, span, err := c.locate(t, b)
+	if err != nil {
+		return ExactSurfaceKnotSpan{}, nil, err
 	}
 	start := new(big.Rat).Add(c.knots[span], shift)
 	end := new(big.Rat).Add(c.knots[span+1], shift)
 	for _, q := range []*big.Rat{start, end} {
 		if err := b.check(q); err != nil {
-			return result, err
+			return ExactSurfaceKnotSpan{}, nil, err
 		}
 	}
-	owner := ExactSurfaceKnotSpan{Cycle: cycle, Span: span, Domain: ExactParameterInterval{Lower: start, Upper: end}}
-	return exactPeriodicCurveResult(ctx, h, d, big.NewRat(1, 1), owner, b)
+	return ExactSurfaceKnotSpan{Cycle: cycle, Span: span, Domain: ExactParameterInterval{Lower: start, Upper: end}}, local, nil
 }
 
-func (c *ExactPeriodicSplineCurve) locate(t *big.Rat, b *polynomialBudget) (local, shift *big.Rat, cycle *big.Int, span int, err error) {
+func (c exactCyclicAxis) locate(t *big.Rat, b *polynomialBudget) (local, shift *big.Rat, cycle *big.Int, span int, err error) {
 	if err := b.check(t); err != nil {
 		return nil, nil, nil, 0, err
 	}
@@ -292,8 +357,8 @@ func (c *ExactPeriodicSplineCurve) locate(t *big.Rat, b *polynomialBudget) (loca
 	return local, shift, cycle, span, nil
 }
 
-func (c *ExactPeriodicSplineCurve) knot(index int) *big.Rat {
-	n := len(c.net)
+func (c exactCyclicAxis) knot(index int) *big.Rat {
+	n := len(c.knots) - 1
 	cycle, offset := index/n, index%n
 	if offset < 0 {
 		offset += n

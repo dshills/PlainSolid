@@ -121,14 +121,24 @@ func (c *PeriodicBSpline) periodicHomogeneousJet(ctx context.Context, span int, 
 
 func differentiatePeriodicNet(ctx context.Context, controls []exactHomogeneous, blend func(j, r int) (a, slope *big.Rat),
 	b *polynomialBudget) (value, derivative exactHomogeneous, err error) {
+	return evaluateSplineNet(ctx, controls, blend, true, b)
+}
+
+func evaluateSplineNet(ctx context.Context, controls []exactHomogeneous, blend func(j, r int) (a, slope *big.Rat),
+	wantDerivative bool, b *polynomialBudget) (value, derivative exactHomogeneous, err error) {
 	p := len(controls) - 1
-	jets := make([]exactHomogeneous, len(controls))
+	var jets []exactHomogeneous
+	if wantDerivative {
+		jets = make([]exactHomogeneous, len(controls))
+	}
 	for i, h := range controls {
 		for axis, q := range h {
 			if err := b.check(q); err != nil {
 				return value, derivative, err
 			}
-			jets[i][axis] = new(big.Rat)
+			if wantDerivative {
+				jets[i][axis] = new(big.Rat)
+			}
 		}
 	}
 	for r := 1; r <= p; r++ {
@@ -138,7 +148,12 @@ func differentiatePeriodicNet(ctx context.Context, controls []exactHomogeneous, 
 		for j := p; j >= r; j-- {
 			a, slope := blend(j, r)
 			q := new(big.Rat).Sub(big.NewRat(1, 1), a)
-			for _, alpha := range []*big.Rat{a, q, slope} {
+			if wantDerivative {
+				if err := b.check(slope); err != nil {
+					return value, derivative, err
+				}
+			}
+			for _, alpha := range []*big.Rat{a, q} {
 				if err := b.check(alpha); err != nil {
 					return value, derivative, err
 				}
@@ -146,16 +161,23 @@ func differentiatePeriodicNet(ctx context.Context, controls []exactHomogeneous, 
 			for axis := 0; axis < 4; axis++ {
 				left, right := controls[j-1][axis], controls[j][axis]
 				h := new(big.Rat).Add(new(big.Rat).Mul(q, left), new(big.Rat).Mul(a, right))
-				d := new(big.Rat).Sub(right, left)
-				d.Mul(d, slope).Add(d, new(big.Rat).Mul(q, jets[j-1][axis])).Add(d, new(big.Rat).Mul(a, jets[j][axis]))
-				for _, x := range []*big.Rat{h, d} {
-					if err := b.check(x); err != nil {
+				if err := b.check(h); err != nil {
+					return value, derivative, err
+				}
+				if wantDerivative {
+					d := new(big.Rat).Sub(right, left)
+					d.Mul(d, slope).Add(d, new(big.Rat).Mul(q, jets[j-1][axis])).Add(d, new(big.Rat).Mul(a, jets[j][axis]))
+					if err := b.check(d); err != nil {
 						return value, derivative, err
 					}
+					jets[j][axis] = d
 				}
-				controls[j][axis], jets[j][axis] = h, d
+				controls[j][axis] = h
 			}
 		}
 	}
-	return controls[p], jets[p], nil
+	if wantDerivative {
+		derivative = jets[p]
+	}
+	return controls[p], derivative, nil
 }

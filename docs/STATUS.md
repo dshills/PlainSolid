@@ -3188,6 +3188,8 @@ cycle, knot interval and one-sided seam ownership.
 An exact cyclic curve can now also retain an authored nonuniform knot
 vector or insert an arbitrary interior rational knot once per cycle.
 The operation preserves the homogeneous curve and its physical jets
-without rounding the refined coefficients. Nonuniform tensor editing,
-periodic seam multiplicity changes and neutral exchange of these edited
-curves remain open.
+without rounding the refined coefficients. The same operation now applies
+to either cyclic direction of an exact tensor, including mixed domains
+with a discontinuous ordinary axis. Exact tensor queries preserve the
+original physical partials and cycle ownership. Periodic seam
+multiplicity changes and exchange of these edited splines remain open.
