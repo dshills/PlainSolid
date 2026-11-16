@@ -8,6 +8,14 @@ no tests. Vet, Linux and Windows amd64 cross-builds, and [all eight
 matching PlainCAD gates](evidence/plaincad-main-4495646a-2026-11-16.json)
 passed on the immutable revision.
 
+The [full PlainCAD run on `c7afb429`](evidence/plaincad-main-c7afb429-2026-11-16.json)
+passed 345 development, 66 production and 15 cross-browser cases, four
+WASM contract cases and 1,691 ordinary unit cases. All eight gates passed
+without a skipped, flaky or failed reported case. The pinned Playwright
+driver and production WASM agree with their verified source assets. The
+matching ordinary Go run is still in progress; vet and both amd64
+cross-builds passed on the same immutable tree.
+
 The [native fourth-order contact qualification](evidence/parabola-circle-osculation-native-2026-11-16.json)
 proves that an original parabola and circle have a single order-four
 contact and no hidden crossings. Sixteen Common/Fuse cases have one
