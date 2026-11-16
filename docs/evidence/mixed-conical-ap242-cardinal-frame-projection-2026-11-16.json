@@ -1,0 +1,490 @@
+{
+  "milestone": "Portable exact source projection for proper cardinal-axis AP242 occurrence rotations",
+  "revision": "26f31329242c22e6583c807d74b5992d42176ded",
+  "baseRevision": "5c54b48e17d07041e5ee015caab51f233c62f935",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "goVersion": "go1.27.4",
+  "pinnedExecutable": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/mixed-ap242-curved-import/depth-three-dag/appearance/rounded-repair/author",
+  "pinnedExecutableArchitecture": "Darwin arm64",
+  "goWriterAndReaderArchitectures": [
+    "Darwin arm64 native",
+    "Darwin amd64 via Rosetta"
+  ],
+  "tests": {
+    "portable-live-arm64.log": {
+      "filter": "^(TestEdit.*MixedConicalAP242.*|TestReadMixedConicalAP242DAG.*)$",
+      "duration": "91.172s"
+    },
+    "portable-race-arm64.log": {
+      "filter": "^(TestEditMixedConicalAP242DAG.*RationalRotation.*|TestReadMixedConicalAP242DAGReject)$",
+      "duration": "245.130s"
+    },
+    "portable-live-amd64.log": {
+      "filter": "^TestEditMixedConicalAP242DAG.*RationalRotation.*$",
+      "duration": null
+    }
+  },
+  "ordinaryProjectorWitness": {
+    "exactAxis": [
+      "20/29",
+      "21/29",
+      "0"
+    ],
+    "canonicalRatios": [
+      20,
+      21,
+      0
+    ],
+    "exactRoundedXBits": "3fe611a7b9611a7c",
+    "ordinaryXBits": "3fe611a7b9611a7b",
+    "arm64Alternative": [
+      "6",
+      "63/10",
+      "0"
+    ],
+    "amd64ScalesProbedWithoutMatch": 2688,
+    "implementedPositiveRescalingFallback": false
+  },
+  "oldGenericAssemblyReaderUnchanged": true,
+  "exactAuthority": "An exact unit orthogonal source frame with one fixed positive Cartesian axis, neutral child frame, same ordinary target and identical original translation. Only the specialized view uses its correctly rounded rational coefficients.",
+  "platformIdenticalCanonicalSTEP": true,
+  "platformIdenticalRepairedNativeAndOriginalReceipt": true,
+  "legacyFiveThirteenthsRotationAndTranslationBytesIdentical": true,
+  "atomicRefusals": [
+    "typed reflection",
+    "arbitrary 3D ordinary projection discrepancy",
+    "conflicting shared edits",
+    "nonorthogonal source after ordinary frame projection"
+  ],
+  "nativeRepairedSelectedNAUO": 254,
+  "repairedSTEPChangedRecords": [
+    70,
+    71
+  ],
+  "pinnedRepairedWorlds": [
+    {
+      "path": [
+        54,
+        85,
+        248
+      ],
+      "pinnedPath": [
+        1,
+        1,
+        1
+      ],
+      "exactWorld": [
+        [
+          "1",
+          "0",
+          "0",
+          "142"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "26"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "10"
+        ]
+      ],
+      "pinnedWorld": [
+        1,
+        0,
+        0,
+        142,
+        0,
+        1,
+        0,
+        26,
+        0,
+        0,
+        1,
+        10
+      ],
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "signedVolume": 2282.4014040828897
+    },
+    {
+      "path": [
+        54,
+        85,
+        254
+      ],
+      "pinnedPath": [
+        1,
+        1,
+        2
+      ],
+      "exactWorld": [
+        [
+          "20/29",
+          "-21/29",
+          "0",
+          "82"
+        ],
+        [
+          "21/29",
+          "20/29",
+          "0",
+          "48"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "9"
+        ]
+      ],
+      "pinnedWorld": [
+        0.6896551724137931,
+        -0.7241379310344828,
+        0,
+        82,
+        0.7241379310344828,
+        0.6896551724137931,
+        0,
+        48,
+        0,
+        0,
+        1,
+        9
+      ],
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "signedVolume": 2282.4014040828893
+    },
+    {
+      "path": [
+        54,
+        85,
+        464
+      ],
+      "pinnedPath": [
+        1,
+        1,
+        3
+      ],
+      "exactWorld": [
+        [
+          "3/5",
+          "-4/5",
+          "0",
+          "112"
+        ],
+        [
+          "4/5",
+          "3/5",
+          "0",
+          "-6"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "14"
+        ]
+      ],
+      "pinnedWorld": [
+        0.6,
+        -0.8,
+        0,
+        112,
+        0.8,
+        0.6,
+        0,
+        -6,
+        0,
+        0,
+        1,
+        14
+      ],
+      "topology": [
+        1,
+        8,
+        14,
+        8
+      ],
+      "signedVolume": 726.988268498145
+    },
+    {
+      "path": [
+        487,
+        493,
+        248
+      ],
+      "pinnedPath": [
+        2,
+        1,
+        1
+      ],
+      "exactWorld": [
+        [
+          "3/5",
+          "0",
+          "4/5",
+          "-414/5"
+        ],
+        [
+          "16/25",
+          "3/5",
+          "-12/25",
+          "-113/25"
+        ],
+        [
+          "-12/25",
+          "4/5",
+          "9/25",
+          "741/25"
+        ]
+      ],
+      "pinnedWorld": [
+        0.6,
+        0,
+        0.8,
+        -82.8,
+        0.6400000000000001,
+        0.6,
+        -0.48,
+        -4.519999999999996,
+        -0.48,
+        0.8,
+        0.36,
+        29.64
+      ],
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "signedVolume": 2282.40140408289
+    },
+    {
+      "path": [
+        487,
+        493,
+        254
+      ],
+      "pinnedPath": [
+        2,
+        1,
+        2
+      ],
+      "exactWorld": [
+        [
+          "12/29",
+          "-63/145",
+          "4/5",
+          "-598/5"
+        ],
+        [
+          "127/145",
+          "-36/725",
+          "-12/25",
+          "-731/25"
+        ],
+        [
+          "36/145",
+          "652/725",
+          "9/25",
+          "1892/25"
+        ]
+      ],
+      "pinnedWorld": [
+        0.41379310344827586,
+        -0.43448275862068964,
+        0.8,
+        -119.6,
+        0.8758620689655173,
+        -0.0496551724137932,
+        -0.48,
+        -29.240000000000006,
+        0.24827586206896554,
+        0.8993103448275863,
+        0.36,
+        75.68
+      ],
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "signedVolume": 2282.40140408289
+    },
+    {
+      "path": [
+        487,
+        493,
+        464
+      ],
+      "pinnedPath": [
+        2,
+        1,
+        3
+      ],
+      "exactWorld": [
+        [
+          "9/25",
+          "-12/25",
+          "4/5",
+          "-488/5"
+        ],
+        [
+          "108/125",
+          "-19/125",
+          "-12/25",
+          "-1121/25"
+        ],
+        [
+          "44/125",
+          "108/125",
+          "9/25",
+          "497/25"
+        ]
+      ],
+      "pinnedWorld": [
+        0.36,
+        -0.48,
+        0.8,
+        -97.6,
+        0.864,
+        -0.15200000000000014,
+        -0.48,
+        -44.84,
+        0.35200000000000015,
+        0.864,
+        0.36,
+        19.88
+      ],
+      "topology": [
+        1,
+        8,
+        14,
+        8
+      ],
+      "signedVolume": 726.988268498145
+    },
+    {
+      "path": [
+        498
+      ],
+      "pinnedPath": [
+        3
+      ],
+      "exactWorld": [
+        [
+          "1",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "150"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "40"
+        ]
+      ],
+      "pinnedWorld": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        150,
+        0,
+        0,
+        1,
+        40
+      ],
+      "topology": [
+        1,
+        8,
+        14,
+        8
+      ],
+      "signedVolume": 726.988268498145
+    }
+  ],
+  "artifactSHA256": {
+    "projection-probe.go": "7691e21743cce33d6b4e5ee016b9fae6ea7fe84bf22c7315b285367ee6483c61",
+    "projection-probe.log": "8f65fa98aecae606dad0337637357c3d23b53d796015cad42e2e154be95b4e87",
+    "full-projection-probe-amd64.log": "1552206383ebd9732e752b68585f1efb019a80779538d681a51147de4c221aba",
+    "short-scale-probe.log": "ce0bc905bad3df8d2caa710775b3c27581f41ca2e2ff1720ce0105613dee8d85",
+    "adjacent-ratio-arm64.log": "0f5d05566e017ae60b5085abe777b1f3fe7d36a45dbe48caba1a902a9ffee16e",
+    "adjacent-ratio-amd64.log": "4d2ce95b83e8743593cc1ca3a4dab75fccf45805a6208dd14ad941923425e77c",
+    "read-probe.log": "89a278f0e6c050b76e040ed2a92f56f773d62165be73c1752639b21f919727c6",
+    "integer-direction.step": "f8e8d406a4c05a2c2b070a739684c8d239b2e8c43a487e68d175b8be58645391",
+    "decimal-direction.step": "57df8c301fb68b689ea139fa222b0f906cb3d77d27aaf756ce9c4c3e5173e4f3",
+    "decimal-direction-xcaf.log": "750fab2ecf753bbf90d810132758f5343791ad4b1e6ac5afa2c49a2220aa052e",
+    "quaternion-canonical-arm64.log": "f2f4e52292a48f6096e26dbf30812e89e736ee840c23eea883afa0fa74487e68",
+    "quaternion-canonical-amd64.log": "9da97eebe477df4617ac65a0d16d697712dc53390f6de1b2eef4eb9cd476a165",
+    "portable-producer.go": "f6c764b3786d2fc801fc76e2e9f5d01c6824e410e1959eabab5d5079f8edfd7a",
+    "portable-producer-arm64.log": "6f2b9fdb645f5cffc198ecb0871d748ef0e54854895f58322e8a9d4ed0905761",
+    "portable-producer-amd64.log": "6f2b9fdb645f5cffc198ecb0871d748ef0e54854895f58322e8a9d4ed0905761",
+    "repaired-styled-rotation.go": "1daf066cbc470f364d27fa889234626369afb918310e2c8ea6d05bd4d68c5fd8",
+    "legacy-rotation/rotated-native.json": "efbbb46349f66c35ee9a34ac0f742340976c1c73f722b2e541da9d531745b3ca",
+    "legacy-rotation/rotated-native.step": "ac168d6ed207e741e29bb62a0fc51cffeac8fe2b328f8d6c244c5f1e37044871",
+    "legacy-translation.step": "2c55e09b2d84f19fa2d3da4b7cff3c388bb22eb4dfcb85d9768ed6c2deaaf9ae",
+    "repaired-changed-records.log": "a38c26b64657b88ac877f2539eaf0eca3a192ec274160a5f62a51222edb5a6dc",
+    "qualify-mixed-conical-cardinal-frame-projection.patch": "76e1530342fe3fb6a21865ede08ee4ec74bdf27e20756800a9db358c6e19182e",
+    "arm64/occt-dag-mixed-conical-curved-ap242-exact.step--20-21.step": "f8e8d406a4c05a2c2b070a739684c8d239b2e8c43a487e68d175b8be58645391",
+    "arm64/occt-dag-mixed-conical-ap242-appearance.step--20-21.step": "27f374336a16a7c564a004632359b700946bc78cbc7413ad015e1afc4358f8c0",
+    "arm64/xcaf-geometry.log": "750fab2ecf753bbf90d810132758f5343791ad4b1e6ac5afa2c49a2220aa052e",
+    "arm64/xcaf-appearance.log": "933bc616b004f1452562c33ec34407be290314a8dfe2b2cd2abaef899caf844f",
+    "amd64/occt-dag-mixed-conical-curved-ap242-exact.step--20-21.step": "f8e8d406a4c05a2c2b070a739684c8d239b2e8c43a487e68d175b8be58645391",
+    "amd64/occt-dag-mixed-conical-ap242-appearance.step--20-21.step": "27f374336a16a7c564a004632359b700946bc78cbc7413ad015e1afc4358f8c0",
+    "amd64/xcaf-geometry.log": "750fab2ecf753bbf90d810132758f5343791ad4b1e6ac5afa2c49a2220aa052e",
+    "amd64/xcaf-appearance.log": "933bc616b004f1452562c33ec34407be290314a8dfe2b2cd2abaef899caf844f",
+    "portable-repaired-arm64/rotated-native.json": "0504f3ae143a0ddd8ce8e5827b2ab9262937810f935236054b1772864f348479",
+    "portable-repaired-arm64/rotated-native.step": "600ba6e322e306f1c32d9dd5bd21cca8c08017cc73e1c044bb46b903d2c597d4",
+    "portable-repaired-arm64/repair-source-receipt.json": "8e23a20c2ed1efd3d2aa39acf27c5af0131ae3fc9c61f86ce1a799779076ad53",
+    "portable-repaired-arm64/xcaf-geometry.log": "8b2ce7468d6aaee0cf8634e174200911c15448418ccae9cdc5ef52a82a26d3e1",
+    "portable-repaired-arm64/xcaf-appearance.log": "933bc616b004f1452562c33ec34407be290314a8dfe2b2cd2abaef899caf844f",
+    "portable-repaired-amd64/rotated-native.json": "0504f3ae143a0ddd8ce8e5827b2ab9262937810f935236054b1772864f348479",
+    "portable-repaired-amd64/rotated-native.step": "600ba6e322e306f1c32d9dd5bd21cca8c08017cc73e1c044bb46b903d2c597d4",
+    "portable-repaired-amd64/repair-source-receipt.json": "8e23a20c2ed1efd3d2aa39acf27c5af0131ae3fc9c61f86ce1a799779076ad53",
+    "portable-repaired-amd64/xcaf-geometry.log": "8b2ce7468d6aaee0cf8634e174200911c15448418ccae9cdc5ef52a82a26d3e1",
+    "portable-repaired-amd64/xcaf-appearance.log": "933bc616b004f1452562c33ec34407be290314a8dfe2b2cd2abaef899caf844f",
+    "portable-live-arm64.log": "e973606fb9a16415e68266a9bba03dad6e9e06e04a964e26db5aafdb1c788029",
+    "portable-race-arm64.log": "020ad40948d1dca902237232091f7e479390a47c9c41bc873d00b8f12cb6b395",
+    "portable-live-amd64.log": "c6a7299986fe134c04956713dec1e220602df25aaf0e9c4d469b1fe892c339bb"
+  },
+  "main_integration": {
+    "log": "mixed-conical-cardinal-projection-main-race.jsonl",
+    "sha256": "0eae6e9f8233d1b31c653d01f110a8da405b80284f2c27a113cc201e5ceb5f51",
+    "elapsed_seconds": 322.489,
+    "required_passes": {
+      "TestEditMixedConicalAP242DAGRationalRotationCardinalProjection": 92.32,
+      "TestEditMixedConicalAP242DAGRationalRotation": 110.27,
+      "TestEditMixedConicalAP242DAGStyledTerminalRationalRotation": 54.48,
+      "TestEditMixedConicalAP242DAGRationalRotationReject": 36.64,
+      "TestReadMixedConicalAP242DAG": 14.48,
+      "TestMixedConicalAP242DAGAppearance": 12.94
+    }
+  }
+}

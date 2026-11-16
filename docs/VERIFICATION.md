@@ -245,6 +245,12 @@ through native save/load and strict STEP export, with pinned XCAF checks
 on both exact worlds and paint ownership. Translation-only replay and
 the prior strict and repaired files remain byte identical. Reflections,
 unsupported projections, false labels and conflicting shared edits refuse.
+The [portable fixed-axis frame milestone](evidence/mixed-conical-ap242-cardinal-frame-projection-2026-11-16.json)
+passed the main race in 322.489 seconds. The same exact integer
+directions give the `20/29,21/29` rotation and byte-identical styled
+and repaired files on ARM64 and amd64 Go (the latter ran under Rosetta).
+Pinned ARM64 XCAF independently reopened both outputs. Nonproper,
+ambiguous and unproved three-dimensional projection entries still refuse.
 
 The [explicit rounded conical STEP repair](evidence/conical-rim-fillet-default-step-repair-2026-11-15.json)
 was checked against independently pinned OCCT authoring and readback. The
