@@ -1,0 +1,222 @@
+package offset
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"math/big"
+
+	"plainsolid/collision"
+	"plainsolid/geom"
+	"plainsolid/mesh"
+)
+
+// CertifiedVerifiedSweepChainMesh is the single outward and embedded
+// boundary of three joined original sweep charts. A vertex records its
+// original exact grid index in each incident owner. Only vertices of
+// either common wall perimeter have two original owners.
+type CertifiedVerifiedSweepChainMesh struct {
+	Mesh                      mesh.Mesh
+	UVStations                [3][2][]*big.Rat
+	DisplacementStations      []*big.Rat
+	VertexStations            [][3]VerifiedSweepPairMeshStation
+	OriginalFace              []VerifiedSweepPairMeshFace
+	DistanceUpperSquared      *big.Rat
+	SquaredFacetNormalTangent *big.Rat `json:",omitempty"`
+	SignedDisplayVolume       *big.Rat
+	GeometryWork              int
+	Collision                 collision.Report
+}
+
+// TessellateVerifiedNormalOffsetSweepChain transports one exact station
+// grid through both original maps. The fourteen retained outer faces
+// share indexed vertices along both joined wall perimeters. Each cell
+// certifies both directed distances using its original continuous source
+// and delivered rounded facets. Optional continuous facet deviation uses
+// each original outer face's normal. Exact indexed collision and shell
+// validation certify a single closed positive boundary. Failure is atomic.
+func TessellateVerifiedNormalOffsetSweepChain(ctx context.Context, chain *geom.VerifiedNormalOffsetSweepChain,
+	o VerifiedSweepMeshOptions) (CertifiedVerifiedSweepChainMesh, error) {
+	var empty CertifiedVerifiedSweepChainMesh
+	if ctx == nil || chain == nil {
+		return empty, geom.ErrInvalid
+	}
+	sweeps := chain.Sweeps()
+	if sweeps[0] == nil {
+		return empty, geom.ErrInvalid
+	}
+	o, err := checkedVerifiedSweepMeshOptions(o)
+	if err != nil {
+		return empty, err
+	}
+	joins, faces := chain.Joins(), chain.Boundary()
+	domain, displacement := sweeps[0].Domain()
+	domains := [3]geom.ParameterRectangle{domain}
+	for owner := 1; owner < len(sweeps); owner++ {
+		domains[owner], _ = sweeps[owner].Domain()
+	}
+	limit := sweepRat(o.Deflection)
+	half := new(big.Rat).Quo(limit, big.NewRat(2, 1))
+	limit.Mul(limit, limit)
+	span := new(big.Rat).Sub(displacement.Upper, displacement.Lower)
+	maxT := 1
+	for maxT < 1<<o.MaxDepth && span.Cmp(half) > 0 {
+		maxT *= 2
+		span.Quo(span, big.NewRat(2, 1))
+	}
+	w := verifiedSweepMeshWork{options: o}
+	for depth := 0; depth <= o.MaxDepth; depth++ {
+		if err := ctx.Err(); err != nil {
+			return empty, err
+		}
+		n := 1 << depth
+		nT := min(n, maxT)
+		if o.NormalAngle > 0 {
+			nT = max(nT, n/8)
+		}
+		count := 12*n*n + 16*n*nT
+		if count > o.MaxTriangles || w.remaining() == 0 {
+			return empty, ErrLimit
+		}
+		grids := makeVerifiedSweepChainGrids(domains, displacement, joins, n, nT)
+		out, err := sampleVerifiedSweepChainMesh(ctx, &w, sweeps, faces, grids, joins, limit, n, count)
+		if errors.Is(err, geom.ErrConvergence) {
+			continue
+		}
+		if err != nil {
+			return empty, err
+		}
+		locator, err := collision.NewMeshPointLocator(ctx, out.Mesh, nil, collision.LocationOptions{
+			MaxTriangles: o.MaxTriangles, MaxCollisionPairs: o.MaxCollisionPairs,
+		})
+		if err != nil {
+			return empty, fmt.Errorf("offset: verified sweep chain mesh embedding: %w", err)
+		}
+		shells := locator.Shells()
+		if len(shells) != 1 || shells[0].Parent != -1 || shells[0].Depth != 0 ||
+			len(shells[0].Triangles) != count || shells[0].SignedVolume.Sign() <= 0 {
+			return empty, geom.ErrConvergence
+		}
+		out.Collision, out.SignedDisplayVolume = locator.BoundaryCollision(), shells[0].SignedVolume
+		out.GeometryWork = w.operations
+		if err := ctx.Err(); err != nil {
+			return empty, err
+		}
+		return out, nil
+	}
+	return empty, geom.ErrConvergence
+}
+
+func makeVerifiedSweepChainGrids(domains [3]geom.ParameterRectangle, displacement geom.ExactParameterInterval,
+	joins [2]geom.VerifiedNormalOffsetSweepChainJoin, n, nT int) (grids [3]verifiedSweepPairGrid) {
+	displacements := sweepRationalStations(displacement.Lower, displacement.Upper, nT)
+	grids[0] = makeVerifiedSweepChartGrid(domains[0], displacements, n, [2][]*big.Rat{})
+	for i, join := range joins {
+		sourceAxis := 1 - int(join.Original.Edges[0])/2
+		targetAxis := 1 - int(join.Original.Edges[1])/2
+		target := sweepChartUVExtents(domains[i+1])[targetAxis]
+		var mapped [2][]*big.Rat
+		mapped[targetAxis] = remapVerifiedSweepStations(grids[i].stations[sourceAxis], target, join.Original)
+		grids[i+1] = makeVerifiedSweepChartGrid(domains[i+1], displacements, n, mapped)
+	}
+	return grids
+}
+
+type verifiedSweepChainMeshBuilder struct {
+	out         CertifiedVerifiedSweepChainMesh
+	ids         [3]map[[3]int]int
+	represented [][3]*big.Rat
+	seams       [2]verifiedSweepPairSeamGrid
+}
+
+func sampleVerifiedSweepChainMesh(ctx context.Context, w *verifiedSweepMeshWork, sweeps [3]*geom.VerifiedNormalOffsetSweep,
+	faces []geom.VerifiedNormalOffsetSweepBoundaryFace, grids [3]verifiedSweepPairGrid,
+	joins [2]geom.VerifiedNormalOffsetSweepChainJoin, limit *big.Rat, n, count int) (CertifiedVerifiedSweepChainMesh, error) {
+	var empty CertifiedVerifiedSweepChainMesh
+	vertexCount := count/2 + 2
+	builder := verifiedSweepChainMeshBuilder{
+		represented: make([][3]*big.Rat, 0, vertexCount),
+		out: CertifiedVerifiedSweepChainMesh{
+			Mesh:                 mesh.Mesh{Vertices: make([]geom.Vec3, 0, vertexCount), Triangles: make([][3]int, 0, count)},
+			DisplacementStations: grids[0].stations[2],
+			VertexStations:       make([][3]VerifiedSweepPairMeshStation, 0, vertexCount),
+			OriginalFace:         make([]VerifiedSweepPairMeshFace, 0, count),
+			DistanceUpperSquared: new(big.Rat),
+		},
+	}
+	for i, join := range joins {
+		builder.seams[i] = makeVerifiedSweepPairSeamGrid(join.Original, n)
+	}
+	for owner, grid := range grids {
+		builder.ids[owner] = make(map[[3]int]int, vertexCount/3)
+		builder.out.UVStations[owner] = [2][]*big.Rat{grid.stations[0], grid.stations[1]}
+	}
+	if w.options.NormalAngle > 0 {
+		builder.out.SquaredFacetNormalTangent = new(big.Rat)
+	}
+	for _, face := range faces {
+		grid := grids[face.Owner]
+		side := int(face.Side)
+		axis := side / 2
+		free := [3][2]int{{1, 2}, {0, 2}, {0, 1}}[axis]
+		identity := VerifiedSweepPairMeshFace{Owner: face.Owner, Side: face.Side}
+		vertex := func(station [3]int) (int, [3]*big.Rat, error) {
+			return builder.vertex(ctx, w, sweeps[face.Owner], grid, face.Owner, station)
+		}
+		for i := 0; i < grid.segments[free[0]]; i++ {
+			for j := 0; j < grid.segments[free[1]]; j++ {
+				lo := [3]int{}
+				lo[axis] = (side % 2) * grid.segments[axis]
+				lo[free[0]], lo[free[1]] = i, j
+				cell, err := certifyVerifiedSweepOuterCell(ctx, w, sweeps[face.Owner], grid, face, lo, free, limit,
+					&builder.out.Mesh.Vertices, vertex)
+				if err != nil {
+					return empty, err
+				}
+				builder.out.Mesh.Triangles = append(builder.out.Mesh.Triangles, cell.triangles[:]...)
+				builder.out.OriginalFace = append(builder.out.OriginalFace, identity, identity)
+				if cell.distance.Cmp(builder.out.DistanceUpperSquared) > 0 {
+					builder.out.DistanceUpperSquared = cell.distance
+				}
+				if cell.angle != nil && cell.angle.Cmp(builder.out.SquaredFacetNormalTangent) > 0 {
+					builder.out.SquaredFacetNormalTangent = cell.angle
+				}
+			}
+		}
+	}
+	if len(builder.out.Mesh.Vertices) != vertexCount || len(builder.out.Mesh.Triangles) != count {
+		return empty, geom.ErrConvergence
+	}
+	return builder.out, nil
+}
+
+func (b *verifiedSweepChainMeshBuilder) vertex(ctx context.Context, w *verifiedSweepMeshWork,
+	sweep *geom.VerifiedNormalOffsetSweep, grid verifiedSweepPairGrid, owner int, station [3]int) (int, [3]*big.Rat, error) {
+	if id, ok := b.ids[owner][station]; ok {
+		return id, b.represented[id], nil
+	}
+	point, exact, err := w.vertex(ctx, sweep, grid.verifiedSweepGrid, station)
+	if err != nil {
+		return 0, exact, err
+	}
+	id := len(b.out.Mesh.Vertices)
+	b.ids[owner][station] = id
+	var original [3]VerifiedSweepPairMeshStation
+	original[owner] = VerifiedSweepPairMeshStation{Index: station, Present: true}
+	for i, seam := range b.seams {
+		local := owner - i
+		if local < 0 || local > 1 {
+			continue
+		}
+		if peer, shared := seam.paired(local, station); shared {
+			peerOwner := i + 1 - local
+			b.ids[peerOwner][peer] = id
+			original[peerOwner] = VerifiedSweepPairMeshStation{Index: peer, Present: true}
+			break
+		}
+	}
+	b.out.VertexStations = append(b.out.VertexStations, original)
+	b.out.Mesh.Vertices = append(b.out.Mesh.Vertices, point)
+	b.represented = append(b.represented, exact)
+	return id, exact, nil
+}
