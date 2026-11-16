@@ -176,10 +176,15 @@ timed out when first rerun alone. The same unmodified case passed at 39.644
 seconds on a second focus run. An instrumented run passed at 36.577 seconds,
 with 34.286 seconds in OCCT construction. Separately, the same body with
 the real PlainSolid adapter and first optimized WASM passed in 13.793 seconds;
-its original TypeScript mesh checks took 1.378 seconds combined. The focused
-passes do not qualify the full failed run. The whole ordinary suite reruns
-on the same immutable app and WASM. No deadline or geometry tolerance was
-increased. Raw phase records are in
+its original TypeScript mesh checks took 1.378 seconds combined. A second
+full run with scoped loopback passed 1,690 cases and failed only that same
+OCCT control. The [partitioned verification](evidence/plaincad-main-ab33a412-partitioned-2026-11-15.json)
+reconciles the same 1,691 file/test identities from the full coverage and
+unchanged 39.644-second focused pass. A separate full attempt without
+loopback passed the same control in 40.737 seconds but lost 15 gateway
+tests because the sandbox denied their listeners. All reports and failure
+statuses are retained; case coverage across retries is not an uninterrupted
+suite pass. No deadline or geometry tolerance was increased. Raw phase records are in
 `.worktrees/qualification/2026-11-15/plaincad-lead-phase-evidence`.
 
 The older full native race `491b18f1` reproduced the same five shaded
@@ -301,6 +306,71 @@ snapshots separate from the refreshed ordinary, race and PlainCAD runs.
   display. Three-transverse native Fuse (`0c8baacf`) passed the main race
   in 301.390 seconds with 12 exact source cases and explicit negative
   controls. All 50 prior Fuse recipes stayed byte-identical in isolation.
+- Separate three-transverse native Cut (`b33ae2a6`) passed with the prior
+  Fuse and display regressions in 504.465 seconds under the main race
+  detector. Eight cases retain four or five shells and each of three
+  original point contacts. The four connected self-contact cases return
+  no material. Native Common (`916f4a5c`) retains six original roof
+  sectors and all three crossings in 12 cases and passed with two-contact
+  Common and three-contact Cut regressions in 63.622 seconds on main.
+  The isolated native Common race passed in 57.131 seconds and 82 prior
+  native recipe hashes remained identical.
+- The three-transverse STEP Cut companion (`1478182f`) passed its pinned
+  focused readback and the previous two-contact Cut in 6.341 seconds.
+  Replacing the third contact's coordinate entity by an equal entry
+  from a different component rejects even though its physical point has
+  not moved. The earlier [IGES Cut](evidence/clipped-cut-iges-2026-11-15.json)
+  (`c75fa2fd`) keeps three bodies with 17 faces and 25 exact vertex
+  occurrences, or four with 16 faces and 22 occurrences. The main pinned
+  IGES Cut and Fuse race completed in 155.432 seconds.
+- [Three-transverse IGES Cut](evidence/clipped-three-transverse-cut-iges-2026-11-15.json)
+  (`a6763a04`) transfers one group with four solids, 19 faces and 29
+  exact vertices, or five solids, 18 faces and 26 vertices. Pinned OCCT
+  total volumes are `1.915649475022965` and `1.936160890551037`. The
+  third original contact keeps both coordinate occurrences. Aliasing
+  one across components or omitting its source ledger entry rejects.
+  The main live regression passed in 33.953 seconds; full IGES and the
+  focused live race passed in isolation in 123.182 and 141.910 seconds.
+  Four earlier analytic IGES byte streams remained identical.
+- Two-transverse Common transferred through STEP (`c705e026`) and
+  [IGES](evidence/clipped-common-iges-2026-11-15.json) (`6e72ff02`).
+  Independent pinned OCCT reopens one valid 14-face solid with 32 edges,
+  20 vertices, volume `11.970411420799792`, and area
+  `32.98325572738854`. Both owner uses of all 32 edges are retained.
+  The integrated live IGES group passed in 28.834 seconds; the isolated
+  live IGES race and full package passed in 93.793 and 117.115 seconds.
+  The STEP Common's tests passed under the race detector in 37.79 seconds
+  within a broader run whose distinct kinked-roof live test timed out.
+  The raw higher-order mixed Common probes produced the same
+  `SelfIntersectingWire` and `UnorientableShape` in pinned OCCT for both
+  formats. The public writers refuse that input before producing bytes;
+  the exact native mixed Common remains supported.
+- The STEP three-transverse Common (`2e5712a9`) keeps each exact vertex,
+  four incident source rays, and both pcurves for every model edge.
+  Pinned OCCT reads one valid 15-face solid in each original fixture.
+  The partial layout has volume `11.97070306403954` and area
+  `32.98520166320661`; the dependent layout has volume
+  `11.97069946101146` and area `31.65507482163024`. Changing the third
+  original contact rejects. The main STEP batch with prior clipped
+  Common, Cut and Fuse passed in 28.987 seconds.
+- Closed clipped previews (`32b1df05`) passed on main in 34.595 seconds
+  for all eight admitted three-contact Cut assemblies and twelve
+  three-contact Common cases, with previous Fuse displays and resource
+  limits. The Cut component shells retain exact component-local contacts
+  through source replay. Default strip-bearing components differ in
+  preview volume by under 0.3%, and Common by under 0.023%; default
+  absolute deflection can still give about 13.7% relative error on a
+  thin overlap-only shell.
+- The independently kinked original rational STEP (`38d53120`) retains
+  one-sided seam slopes `(1/2,5/8)` and `(-1/2,1/4)` at a real
+  unilateral support change. Original and canonical pinned transfer agree
+  with native volume `0.6434452454600076` and area `4.6427728126414856`.
+  The moved-support original rejects even though it remains readable in
+  OCCT. The pinned main source and live run passed in 37.225 seconds.
+  The pinned isolate race and closed display passed in 925.637 seconds.
+  A concurrent mixed main race reached its fixed 120-second live-test
+  context after both standalone exact source assertions passed. Both raw
+  main runs are kept; the contention timeout was not recorded as a pass.
 - The [tilted through-bore bridge](evidence/plaincad-tilted-bore-bridge-2026-11-15.json)
   (`8e9cae2c`) keeps both cap openings in a closed 644-triangle display and
   re-proves the original source graph on native reopen. The integrated

@@ -77,9 +77,19 @@ PlainSolid adapter passed the same body in 13.793 seconds with the first
 candidate mesher optimization. The separate [lead fixture](evidence/plaincad-lead-fit-committed-2026-11-15.json)
 now qualifies all three original one-, two- and four-start tests through
 typed Go WASM at their original 45-second limit. The [failure record](evidence/plaincad-main-ab33a412-lead-control-2026-11-15.json)
-remains separate from the full ordinary suite rerun. Both full Go and
+and [reconciled case coverage](evidence/plaincad-main-ab33a412-partitioned-2026-11-15.json)
+preserve the separate attempts. The full loopback unit rerun passed 1,690
+cases and failed only the same OCCT timing control. The remaining case passed
+unchanged in both a focused run and a separate full run without loopback.
+All 1,691 case identities are accounted for; an uninterrupted current
+ordinary suite pass is still open. Both full Go and
 PlainCAD now also run against `b6335d3c`; vet and Windows amd64 build passed.
-The browser suites on that snapshot required scoped loopback access after
+The Linux amd64 cross-build on that same source also passed; neither
+cross-build establishes native runtime coverage. The corrected
+`ab33a412` ordinary Go package lane finished with 4,089 passes and
+529 explicit optional skips. The eight separate trimmed lanes must
+finish before it can be recorded as a full rerun.
+The browser suites on `b6335d3c` required scoped loopback access after
 the default sandbox denied their local test servers; preserve those startup
 logs separately from the browser results.
 Vet and the Windows amd64 cross-build on `016354ee` pass; native
@@ -195,8 +205,11 @@ checked layouts (`81308396`). Exact two-transverse Cut (`ace75343`) now
 builds separate closed native components with the qualified tighter preview
 (`5d6a15c1`). Two transverse contacts also qualify exact clipped Fuse
 (`3eac2245`) and Common (`a25a8fc8`), with their original wall and source
-recipes. Three exact transverse contacts qualify native Fuse (`0c8baacf`);
-separate three-contact Cut and Common results are in progress. Adjacent
+recipes. Three exact transverse contacts qualify native Fuse (`0c8baacf`),
+separate native Cut (`b33ae2a6`), and native Common (`916f4a5c`). Cut
+retains all three contact pairs between distinct positive components and
+refuses a contact inside one connected component. Common keeps one closed
+shell, six original roof sectors and both uses of every source edge. Adjacent
 rational STEP model cells (`8672cf02`) retain inferred roots and both
 independently authored sides of a stored joint through native replay,
 strict STEP and closed display. Distinct transverse rational roof weights
@@ -206,11 +219,28 @@ stepped Fuse transfers through analytic STEP (`936ef7be`) and IGES
 rational model cells (`c3fb8b82`) now retain two original support joints.
 Native v12 (`b6335d3c`) independently authenticates one shared and one
 unilateral support change. Separate clipped Cut components transfer to
-analytic STEP (`56fc65ef`), retaining distinct exact vertex occurrences
-at their original shared points. The exact projection filter (`d883a33f`)
+analytic STEP (`56fc65ef`) and IGES (`c75fa2fd`), retaining distinct exact
+vertex occurrences at their original shared points. The STEP companion for
+three transverse Cut contacts (`1478182f`) preserves four or five separate
+closed solids, and three-contact Common (`2e5712a9`) transfers one valid
+15-face solid in both checked layouts. Three-contact Cut also passes
+[independent IGES transfer](evidence/clipped-three-transverse-cut-iges-2026-11-15.json)
+(`a6763a04`), preserving separate vertex occurrences and the exact third
+contact. Source-aware Cut and Common previews
+(`32b1df05`) retain the original vertices and closed incidence through
+native replay. The transverse two-contact Common transfers through STEP
+(`c705e026`) and [IGES](evidence/clipped-common-iges-2026-11-15.json)
+(`6e72ff02`) with original roof and wall charts and both owner pcurves.
+Both transfer APIs refuse higher-order mixed Common before writing. Pinned
+OCCT reports the same self-intersecting wire and unorientable face in raw
+probes of both formats; the separate exact native Common still passes.
+The exact projection filter (`d883a33f`)
 and helical mesher (`61ee3e80`) reduce qualification and display time.
-Current focused work covers Common STEP, Cut IGES and an actual kink at
-the original unilateral support joint.
+The original unilateral support kink now passes native v12 and strict
+STEP (`38d53120`), with a pinned closed solid and unchanged original
+homogeneous weight ratios. A moved original knot still rejects. Work
+continues on three-contact exchange and display, the portable cusp
+boundary, and more than three ordered original rational model cells.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
