@@ -270,6 +270,7 @@ type periodicTrimReport struct {
 	Topology         [4]int
 	Bounds           [4]float64
 	Area, Perimeter  float64
+	Edges            []periodicTrimOracleEdge
 	Samples          []struct {
 		UV            [2]float64
 		Point, Du, Dv [3]float64

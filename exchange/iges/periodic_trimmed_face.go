@@ -47,6 +47,52 @@ func (f PeriodicTrimmedFace) OriginalIGES() string { return f.original }
 // entire oriented edge under its normalized affine parameter.
 func ReadPeriodicTrimmedFace(ctx context.Context, r io.Reader, l Limits) (PeriodicTrimmedFace, error) {
 	var zero PeriodicTrimmedFace
+	source, err := readPeriodicTrimSource(ctx, r, l, 4)
+	if err != nil {
+		return zero, err
+	}
+	m := source.face
+	cell, err := m.proveOriginalKnotCell(ctx)
+	if err != nil {
+		return zero, err
+	}
+	if err := m.proveEdges(ctx, source.graph, cell, source.uv, source.model, source.remaining); err != nil {
+		return zero, err
+	}
+	if len(source.graph.claimed) != len(source.graph.records) {
+		return zero, geom.ErrUnrepresentable
+	}
+	m.Patch, err = cell.NormalizedPatch(ctx, geom.SurfacePatchOptions{})
+	if err != nil {
+		return zero, err
+	}
+	for _, axes := range [3][2]int{{0, 1}, {0, 2}, {1, 2}} {
+		if err := ctx.Err(); err != nil {
+			return zero, err
+		}
+		proof, err := geom.CertifySurfaceInjectivity(m.Patch, geom.SurfaceInjectivityOptions{
+			ProjectionAxes: axes, MaxDepth: 6, MaxCells: 64, MaxOperations: 200000,
+		})
+		if err == nil && proof.ProvenInjective {
+			if err := ctx.Err(); err != nil {
+				return zero, err
+			}
+			m.ProjectionAxes, m.ProjectionOrientation = axes, proof.ProjectionOrientation
+			return m, nil
+		}
+	}
+	return zero, fmt.Errorf("iges: periodic trim projection is unproved: %w", geom.ErrUnrepresentable)
+}
+
+type periodicTrimSource struct {
+	face      PeriodicTrimmedFace
+	graph     periodicTrimGraph
+	uv, model []int
+	remaining int
+}
+
+func readPeriodicTrimSource(ctx context.Context, r io.Reader, l Limits, edgeCount int) (periodicTrimSource, error) {
+	var zero periodicTrimSource
 	if ctx == nil {
 		return zero, geom.ErrInvalid
 	}
@@ -62,10 +108,11 @@ func ReadPeriodicTrimmedFace(ctx context.Context, r io.Reader, l Limits) (Period
 	if err != nil {
 		return zero, err
 	}
-	if len(doc.entities) != 13 {
-		return zero, fmt.Errorf("iges: expected one periodic trim with thirteen source owners: %w", geom.ErrUnrepresentable)
+	owners := 5 + 2*edgeCount
+	if len(doc.entities) != owners {
+		return zero, fmt.Errorf("iges: expected one periodic trim with %d source owners: %w", owners, geom.ErrUnrepresentable)
 	}
-	g := periodicTrimGraph{records: make(map[int]topologyRecord, 13), claimed: make(map[int]bool, 13)}
+	g := periodicTrimGraph{records: make(map[int]topologyRecord, owners), claimed: make(map[int]bool, owners)}
 	var m PeriodicTrimmedFace
 	for _, q := range doc.entities {
 		g.records[q.id] = q
@@ -92,15 +139,15 @@ func ReadPeriodicTrimmedFace(ctx context.Context, r io.Reader, l Limits) (Period
 		return zero, fmt.Errorf("iges: mismatched periodic trim contour support or mode: %w", geom.ErrUnrepresentable)
 	}
 	m.UVCompositeID, m.ModelCompositeID = contour[3], contour[4]
-	uv, err := g.links(m.UVCompositeID, 102, 6)
+	uv, err := g.links(m.UVCompositeID, 102, 2+edgeCount)
 	if err != nil {
 		return zero, err
 	}
-	model, err := g.links(m.ModelCompositeID, 102, 6)
+	model, err := g.links(m.ModelCompositeID, 102, 2+edgeCount)
 	if err != nil {
 		return zero, err
 	}
-	if uv[1] != 4 || model[1] != 4 {
+	if uv[1] != edgeCount || model[1] != edgeCount {
 		return zero, geom.ErrUnrepresentable
 	}
 
@@ -125,54 +172,18 @@ func ReadPeriodicTrimmedFace(ctx context.Context, r io.Reader, l Limits) (Period
 	for i := range m.Bounds {
 		m.Bounds[i] = geom.ExactParameterInterval{Lower: bounds[2*i], Upper: bounds[2*i+1]}
 	}
-	cell, err := m.proveOriginalKnotCell(ctx)
-	if err != nil {
-		return zero, err
-	}
-	if err := m.proveEdges(ctx, g, cell, uv[2:], model[2:], remaining); err != nil {
-		return zero, err
-	}
-	if len(g.claimed) != len(g.records) {
-		return zero, geom.ErrUnrepresentable
-	}
-	m.Patch, err = cell.NormalizedPatch(ctx, geom.SurfacePatchOptions{})
-	if err != nil {
-		return zero, err
-	}
-	for _, axes := range [3][2]int{{0, 1}, {0, 2}, {1, 2}} {
-		if err := ctx.Err(); err != nil {
-			return zero, err
-		}
-		proof, err := geom.CertifySurfaceInjectivity(m.Patch, geom.SurfaceInjectivityOptions{
-			ProjectionAxes: axes, MaxDepth: 6, MaxCells: 64, MaxOperations: 200000,
-		})
-		if err == nil && proof.ProvenInjective {
-			if err := ctx.Err(); err != nil {
-				return zero, err
-			}
-			m.ProjectionAxes, m.ProjectionOrientation = axes, proof.ProjectionOrientation
-			m.LengthUnit, m.original = doc.unit, string(doc.bytes)
-			return m, nil
-		}
-	}
-	return zero, fmt.Errorf("iges: periodic trim projection is unproved: %w", geom.ErrUnrepresentable)
+	m.LengthUnit, m.original = doc.unit, string(doc.bytes)
+	return periodicTrimSource{m, g, uv[2:], model[2:], remaining}, nil
 }
 
 func (m *PeriodicTrimmedFace) proveOriginalKnotCell(ctx context.Context) (geom.ExactPeriodicSurfaceBezierCell, error) {
 	var zero geom.ExactPeriodicSurfaceBezierCell
-	var middle [2]*big.Rat
-	for i, r := range m.Bounds {
-		if r.Lower.Cmp(r.Upper) >= 0 {
-			return zero, geom.ErrUnrepresentable
-		}
-		middle[i] = new(big.Rat).Mul(new(big.Rat).Add(r.Lower, r.Upper), big.NewRat(1, 2))
-	}
-	jet, err := m.Support.EvaluateRational(ctx, middle[0], middle[1], geom.SurfacePatchOptions{})
+	owners, err := periodicTrimKnotOwners(ctx, m.Support, m.Bounds)
 	if err != nil {
 		return zero, err
 	}
-	m.KnotOwners = [2]geom.ExactSurfaceKnotSpan{jet.U, jet.V}
-	if jet.U.Cycle.Sign() != 0 {
+	m.KnotOwners = owners
+	if owners[0].Cycle.Sign() != 0 {
 		return zero, fmt.Errorf("iges: periodic trim lies outside its original fundamental cycle: %w", geom.ErrUnrepresentable)
 	}
 	for i, owner := range m.KnotOwners {
@@ -189,6 +200,23 @@ func (m *PeriodicTrimmedFace) proveOriginalKnotCell(ctx context.Context) (geom.E
 		return zero, geom.ErrUnrepresentable
 	}
 	return cells[0], nil
+}
+
+func periodicTrimKnotOwners(ctx context.Context, support *geom.ExactPeriodicSplineSurface,
+	bounds [2]geom.ExactParameterInterval) ([2]geom.ExactSurfaceKnotSpan, error) {
+	var zero [2]geom.ExactSurfaceKnotSpan
+	var middle [2]*big.Rat
+	for i, r := range bounds {
+		if r.Lower.Cmp(r.Upper) >= 0 {
+			return zero, geom.ErrUnrepresentable
+		}
+		middle[i] = new(big.Rat).Mul(new(big.Rat).Add(r.Lower, r.Upper), big.NewRat(1, 2))
+	}
+	jet, err := support.EvaluateRational(ctx, middle[0], middle[1], geom.SurfacePatchOptions{})
+	if err != nil {
+		return zero, err
+	}
+	return [2]geom.ExactSurfaceKnotSpan{jet.U, jet.V}, nil
 }
 
 type periodicTrimGraph struct {

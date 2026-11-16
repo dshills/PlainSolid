@@ -115,6 +115,21 @@ file bytes, all source entity IDs, the full cyclic support, the finite UV
 bounds, original knot-cell owners and the model edge parameter ranges.
 The returned patch uses the normalized unit square.
 
+`ReadPeriodicSeamTrimmedFace` admits the lifted rectangular case at the
+upper U seam of the original full type-128 carrier. The two type-102
+composites each contain six directed pieces. The horizontal sides split
+at the original seam station, with matching type-110 UV and complete
+type-126 model pieces. The reader retains each source owner and the two
+original knot cells, proves their complete shared seam, and certifies the
+whole lifted rectangle with one fixed projection. The lifted endpoints
+must map exactly to the working coordinates used for that proof.
+
+The independent `occt-periodic-exact-seam-trimmed-128.iges` fixture is
+written from explicitly paired lifted segments through OCCT's standard
+IGES entities. The pinned reader reopens its six directed edges with the
+same UV stations, model points, and model parameter ranges. It assigns each
+pcurve the parameter interval of its paired model spline on transfer.
+
 The pinned OCCT type-144 fixture and its separately written seam control
 are checked by `tools/occtref/build_iges_periodic_128_trim.sh` and the
 `PLAINSOLID_OCCT_PERIODIC_128_TRIM_IGES` tests. The seam control rephases
