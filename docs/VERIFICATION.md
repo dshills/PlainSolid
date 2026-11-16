@@ -460,6 +460,11 @@ passes original U-seam and V-seam fixtures, six pairs per shape, both
 original seam derivatives and the opposite span. Pinned reports and both
 macOS architecture outputs match. An eight-pair dual-seam source retains
 its explicit refusal in this subset. Main race and 18 prior outputs pass.
+The [four-cell periodic trim audit](evidence/iges-periodic-uv-both-seams-2026-11-16.json)
+passes both original seams and all eight directed pairs. Symmetric and
+unequal-width cells agree with independently reopened pinned jets after
+physical derivative scaling. Missing and shifted splits refuse. Main
+race, full IGES, both macOS architectures and 20 earlier files pass.
 The [valid periodic seam trim](evidence/iges-periodic-seam-trimmed-2026-11-16.json)
 passes independently authored type 144, the pinned reopen and main race.
 The reader retains six original directed pairs, distinct seam stations,

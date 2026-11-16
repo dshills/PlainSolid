@@ -232,6 +232,8 @@ Canonical emission also preserves one-cell rectangles for U-only,
 V-only and doubly periodic original supports.
 Doubly periodic trims can also cross exactly one original seam in
 either axis while preserving the opposite original span and cycle.
+The outer-only double-seam profile also admits a rectangle across both
+original seams, with four exact cells and eight directed edge pairs.
 The same original knot cell can now retain one or two strictly nested
 clockwise rectangular holes. Each keeps its raw support, paired curve
 owners and signed winding. Arbitrary periodic inner wires remain open.

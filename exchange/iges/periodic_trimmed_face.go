@@ -262,7 +262,7 @@ func readPeriodicTrimComposite(g periodicTrimGraph, id, edges int) ([]int, error
 		return nil, geom.ErrUnrepresentable
 	}
 	n, err := intValue(r.values[1])
-	if err != nil || n != 4 && n != 6 || edges != 0 && n != edges {
+	if err != nil || edges != 0 && n != edges || edges == 0 && n != 4 && n != 6 {
 		return nil, fmt.Errorf("iges: wrong periodic trim edge count on composite #%d: %w", id, geom.ErrUnrepresentable)
 	}
 	values, err := periodicTrimLinkValues(r, 2+n)

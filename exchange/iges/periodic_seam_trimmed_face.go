@@ -44,8 +44,9 @@ func (f PeriodicSeamTrimmedFace) OriginalIGES() string { return f.original }
 // directed UV and model composites both split at the upper seam of the
 // original full type-128 carrier. Exactly one axis may cross a seam.
 // The lift must meet the two neighboring cells on that axis and lie
-// strictly inside one original knot span along the opposite axis. Both sides must share the entire seam, and
-// one fixed projection must prove injectivity over the lifted rectangle.
+// strictly inside one original knot span along the opposite axis. Both
+// sides must share the entire seam, and one fixed projection must prove
+// injectivity over the lifted rectangle.
 func ReadPeriodicSeamTrimmedFace(ctx context.Context, r io.Reader, l Limits) (PeriodicSeamTrimmedFace, error) {
 	var zero PeriodicSeamTrimmedFace
 	source, err := readPeriodicTrimSourceForAxes(ctx, r, l, 6, periodicTrimAnyAxes)
@@ -250,26 +251,41 @@ func proveLiftedTrimEdges(ctx context.Context, graph periodicTrimGraph, bounds [
 }
 
 func (m *PeriodicSeamTrimmedFace) proveLiftInjectivity(ctx context.Context, axis int, period *big.Rat) error {
-	fundamental, err := m.Support.ExactFundamentalPatch(ctx, geom.PeriodicSurfaceBezierOptions{MaxCells: 64})
+	var periods [2]*big.Rat
+	periods[axis] = period
+	var err error
+	m.ProjectionAxes, m.ProjectionOrientation, err = provePeriodicTrimLiftProjection(ctx, m.Support, m.Bounds, periods, 2)
+	return err
+}
+
+func provePeriodicTrimLiftProjection(ctx context.Context, support *geom.ExactPeriodicSplineSurface,
+	bounds [2]geom.ExactParameterInterval, periods [2]*big.Rat, expectedPieces int) ([2]int, int, error) {
+	var zero [2]int
+	fundamental, err := support.ExactFundamentalPatch(ctx, geom.PeriodicSurfaceBezierOptions{MaxCells: 64})
 	if err != nil {
-		return err
+		return zero, 0, err
 	}
-	source := [4]*big.Rat{m.Bounds[0].Lower, m.Bounds[0].Upper, m.Bounds[1].Lower, m.Bounds[1].Upper}
-	wrappedUpper := 2*axis + 1
-	source[wrappedUpper] = new(big.Rat).Sub(source[wrappedUpper], period)
 	var mapped [4]float64
-	_, periodicSpans := fundamental.Coordinates[axis].Breaks()
-	for i, q := range source {
-		t, err := fundamental.Coordinates[i/2].ToWorking(q)
-		if err != nil {
-			return err
+	for axis, b := range bounds {
+		coords := fundamental.Coordinates[axis]
+		upper, shift := b.Upper, int64(0)
+		if period := periods[axis]; period != nil {
+			upper = new(big.Rat).Sub(upper, period)
+			_, spans := coords.Breaks()
+			shift = int64(len(spans))
 		}
-		if i == wrappedUpper {
-			t.Add(t, big.NewRat(int64(len(periodicSpans)), 1))
-		}
-		mapped[i], err = geom.RepresentedExactScalar(t)
-		if err != nil {
-			return err
+		for i, q := range [2]*big.Rat{b.Lower, upper} {
+			t, err := coords.ToWorking(q)
+			if err != nil {
+				return zero, 0, err
+			}
+			if i == 1 && shift != 0 {
+				t.Add(t, big.NewRat(shift, 1))
+			}
+			mapped[2*axis+i], err = geom.RepresentedExactScalar(t)
+			if err != nil {
+				return zero, 0, err
+			}
 		}
 	}
 	domain := geom.ParameterRectangle{UMin: mapped[0], UMax: mapped[1], VMin: mapped[2], VMax: mapped[3]}
@@ -278,12 +294,11 @@ func (m *PeriodicSeamTrimmedFace) proveLiftInjectivity(ctx context.Context, axis
 			ProjectionAxes: axes, MaxDepth: 6, MaxCells: 64, MaxOperations: 200000,
 		})
 		if ctx.Err() != nil {
-			return ctx.Err()
+			return zero, 0, ctx.Err()
 		}
-		if err == nil && p.ProvenInjective && p.FundamentalPieces == 2 {
-			m.ProjectionAxes, m.ProjectionOrientation = axes, p.ProjectionOrientation
-			return nil
+		if err == nil && p.ProvenInjective && p.FundamentalPieces == expectedPieces {
+			return axes, p.ProjectionOrientation, nil
 		}
 	}
-	return fmt.Errorf("iges: complete lifted periodic trim projection is unproved: %w", geom.ErrUnrepresentable)
+	return zero, 0, fmt.Errorf("iges: complete lifted periodic trim projection is unproved: %w", geom.ErrUnrepresentable)
 }

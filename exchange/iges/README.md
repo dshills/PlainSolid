@@ -187,6 +187,18 @@ physical derivatives after native and pinned canonical reopen. The
 one-seam reader refuses the independently authored dual-crossing control
 with eight original edge pairs.
 
+`ReadPeriodicDoubleSeamTrimmedFace` accepts that separate outer-only
+case when both original upper seams split the rectangle into exactly
+four adjacent knot cells. It retains both cycles in each cell and all
+eight original directed UV/model pairs. Matching homogeneous boundary
+controls and first differences scaled by the physical cell widths prove
+both first partials across every shared seam segment. One fixed
+projection certifies injectivity over the complete four-cell lift.
+`WritePeriodicDoubleSeamTrimmedFace` replays these proofs before
+canonical emission and reopens the entire output before writing. Pinned
+OCCT preserves both originally authored rectangles, including the case
+with unequal physical widths on each side of each seam.
+
 `ReadPeriodicSeamTrimmedFaceWithHole` admits one clockwise rectangular
 inner contour crossing the same original U seam as its outer loop. Both
 type-102 composites of the inner contour preserve six paired edges at
