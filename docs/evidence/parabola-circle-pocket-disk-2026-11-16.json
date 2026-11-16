@@ -20,5 +20,36 @@
   "independent_circle_squared_gap": "343/262144",
   "independent_signed_volume_B_minus_A": "-1115390675*pi/906694364710971881029632",
   "prior_native_bytes_unchanged": 4,
-  "prior_neutral_bytes_unchanged": 12
+  "prior_neutral_bytes_unchanged": 12,
+  "native_common_fuse": {
+    "main_base": "e0845470",
+    "isolated_revision": "ec52c91cbffc2a9d779972aa5fd3f323bca73b3e",
+    "patch_sha256": "5b5283b62fbe8fd54f82b87b5bba66f634c4cca9aada7c3d71d7b629d73e17af",
+    "main_log": "parabola-circle-pocket-disk-envelope-main.jsonl",
+    "main_log_sha256": "eb4b8e4c1f8de35282b79c284ca2505ed14bac297885404711904dbef3495d8f",
+    "main_seconds": 304.458,
+    "isolated_native_ordinary_seconds": 227.572,
+    "isolated_source_race_three_count_seconds": 25.965,
+    "isolated_source_low_gc_stress_ten_count_seconds": 21.676,
+    "native_variants": 16,
+    "per_closed_shell": {
+      "faces": 14,
+      "edges": 40,
+      "vertices": 29,
+      "euler_characteristic": 2,
+      "original_pocket_inner_wires": 1,
+      "original_crossing_fans": 4
+    },
+    "exact_positive_disk_A_minus_B": "1115390675*pi/906694364710971881029632",
+    "independent_max_relative_error": {
+      "volume": 6.17e-16,
+      "physical_area": 3.515e-14
+    },
+    "identical_native_replays": 8,
+    "predecessor_bytes_unchanged": {
+      "native": 4,
+      "neutral": 12
+    },
+    "scope": "constant original height denominator for analytic disk measure; general volume and full native race are tracked separately"
+  }
 }

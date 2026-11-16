@@ -97,7 +97,9 @@ original coedges and cap/pocket subdivisions through pinned readback.
 A separate original circle can now be proved wholly inside that
 bounded pocket. The source keeps all four earlier transverse junctions,
 certifies seven signed regions, and retains the exact tiny disk volume.
-Native assembly for that nested pocket is qualified separately.
+Native Common and Fuse assemble the nested pocket as one closed shell,
+retain its original inner wire and disk owner, and certify the tiny
+volume directly from the exact original polynomial.
 Projectively related graph surfaces can also prove strict original
 height order or exact coincidence over their entire shared projection.
 The same full-footprint ordered proof builds closed Common, Fuse and

@@ -57,7 +57,7 @@ func TestNativeParabolaCircleFourCrossingsEnvelope(t *testing.T) {
 								t.Fatal("lost original native roof support", j)
 							}
 						}
-						checkNativeFourCrossingCircleFans(t, r, axis, reflected)
+						checkNativeFourCrossingCircleFans(t, body, h, axis, reflected)
 						props, err := body.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-6})
 						if err != nil || math.Abs(props.Volume-volume[i]) > 1e-10 || math.Abs(props.Area-independentArea[layout][i]) > 1e-8 {
 							t.Fatal("native shell differs from independently integrated source", props, volume[i], independentArea[layout][i], err)
@@ -74,9 +74,8 @@ func TestNativeParabolaCircleFourCrossingsEnvelope(t *testing.T) {
 	}
 }
 
-func checkNativeFourCrossingCircleFans(t *testing.T, r *ParabolaCircleFourCrossingsEnvelope, axis int, reflected bool) {
+func checkNativeFourCrossingCircleFans(t *testing.T, body Solid, h ParabolaCircleFourCrossingsHistory, axis int, reflected bool) {
 	t.Helper()
-	body, h := r.Boundary(), r.History()
 	const n = 4
 	var seen []int
 	for i, node := range h.Junctions {

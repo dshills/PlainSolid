@@ -97,22 +97,28 @@ func DiscoverSplineGraphParabolaTwoCircles(ctx context.Context, a, c *SurfacePat
 
 func unitParabolaTwoCircleFactors(ctx context.Context, a, c *SurfacePatch, freeAxis int, b *polynomialBudget) (
 	rationalPolynomial, [2]GraphContactCircle, int, error) {
-	if err := validateUnitGraphCircleCharts(ctx, a, c, 8, b); err != nil {
-		return nil, [2]GraphContactCircle{}, 0, err
-	}
-	diff, err := orderingDifference(ctx, a, c, 1, b)
-	if err != nil {
-		return nil, [2]GraphContactCircle{}, 0, err
-	}
-	if diff.Domain() != (ParameterRectangle{UMax: 1, VMax: 1}) || diff.countU != diff.degreeU+1 ||
-		diff.countV != diff.degreeV+1 || diff.degreeU > 8 || diff.degreeV > 8 {
-		return nil, [2]GraphContactCircle{}, 0, ErrConvergence
-	}
-	law, err := graphMixedPowerColumns(diff, freeAxis, 6, 5, b)
+	law, _, err := unitParabolaTwoCircleLaw(ctx, a, c, freeAxis, b)
 	if err != nil {
 		return nil, [2]GraphContactCircle{}, 0, err
 	}
 	return factorParabolaTwoCircles(law, b)
+}
+
+func unitParabolaTwoCircleLaw(ctx context.Context, a, c *SurfacePatch, freeAxis int, b *polynomialBudget) (
+	[]rationalPolynomial, *SurfacePatch, error) {
+	if err := validateUnitGraphCircleCharts(ctx, a, c, 8, b); err != nil {
+		return nil, nil, err
+	}
+	diff, err := orderingDifference(ctx, a, c, 1, b)
+	if err != nil {
+		return nil, nil, err
+	}
+	if diff.Domain() != (ParameterRectangle{UMax: 1, VMax: 1}) || diff.countU != diff.degreeU+1 ||
+		diff.countV != diff.degreeV+1 || diff.degreeU > 8 || diff.degreeV > 8 {
+		return nil, nil, ErrConvergence
+	}
+	law, err := graphMixedPowerColumns(diff, freeAxis, 6, 5, b)
+	return law, diff, err
 }
 
 func factorParabolaTwoCircles(law []rationalPolynomial, b *polynomialBudget) (

@@ -33,7 +33,7 @@ func TestParabolaCirclePocketDiskSource(t *testing.T) {
 			for order := range 2 {
 				t.Run(fmt.Sprintf("%d/%d/%d", layout, axis, order), func(t *testing.T) {
 					src := parabolaTwoCirclesPatches(t, stocks[1+order], stocks[2-order])
-					p, err := geom.DiscoverSplineGraphParabolaCirclePocketDisk(ctx, src[0], src[1], axis, geom.GraphPointContactOptions{})
+					p, err := geom.DiscoverSplineGraphParabolaCirclePocketDiskWithVolume(ctx, src[0], src[1], axis, geom.GraphPointContactOptions{})
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -44,6 +44,9 @@ func TestParabolaCirclePocketDiskSource(t *testing.T) {
 						p.PocketProjection[0].Cmp(big.NewRat(255, 512)) != 0 || p.PocketProjection[1].Cmp(big.NewRat(257, 512)) != 0 ||
 						p.ExactOperations <= p.Crossing.ExactOperations {
 						t.Fatal("changed signed pocket coverage or original factor order", p)
+					}
+					if p.DiskSignedVolumePiCoefficient.Cmp(expectedPocketDiskVolumePiCoefficient(t, layout, order)) != 0 {
+						t.Fatal("changed exact signed disk source volume", p.DiskSignedVolumePiCoefficient)
 					}
 					checkFourCrossingCircleJunctions(t, &p.Crossing, reflected)
 					checkOriginalPocketDiskExtrema(t, p, axis, reflected)
@@ -166,4 +169,59 @@ func checkPocketDiskMeasures(t *testing.T, stocks [3]*geom.BSplineSurface, signs
 		{"0", "-1115390675/906694364710971881029632", "0", "0"},
 	}
 	checkParabolaCircleGreenMeasures(t, stocks, signs[:], areas[:], volume[:], big.NewRat(int64(-sign), int64(1+layout)), order)
+}
+
+func expectedPocketDiskVolumePiCoefficient(t *testing.T, layout, order int) *big.Rat {
+	t.Helper()
+	r, ok := new(big.Rat).SetString("1115390675/906694364710971881029632")
+	if !ok {
+		t.Fatal("invalid independent disk volume coefficient")
+	}
+	return r.Mul(r, big.NewRat(int64((1-2*layout)*(1-2*order)), int64(1+layout)))
+}
+
+func TestParabolaCirclePocketDiskVariableWeightVolumeRefusal(t *testing.T) {
+	ctx := context.Background()
+	stock := parabolaCirclePocketDiskStocks(t, 0, false, twoCircleProbe(256, 84, 1, 512), big.NewRat(735, 32), false)
+	// Degree-seven denominator poles [3,3,3,3,1,1,1,1] elevate to
+	// degree-eight weights [3,3,3,3,2,1,1,1,1]. Their product with u has
+	// the authored Cartesian X poles i/8 except for i=4 at 3/4.
+	// Both original roofs retain physical identity XY and the same
+	// homogeneous factored numerator with a variable denominator.
+	for i := 1; i <= 2; i++ {
+		data := stock[i].Data()
+		weights := make([]float64, len(data.Poles))
+		for j, pole := range data.Poles {
+			row := j / data.CountV
+			w := [9]int64{3, 3, 3, 3, 2, 1, 1, 1, 1}[row]
+			weights[j] = float64(w)
+			if row == 4 {
+				pole.X = .75
+			}
+			two := big.NewRat(2, 1)
+			z := new(big.Rat).Sub(new(big.Rat).SetFloat64(pole.Z), two)
+			z.Quo(z, big.NewRat(w, 1)).Add(z, two)
+			var exact bool
+			pole.Z, exact = z.Float64()
+			if !exact {
+				t.Fatal("weighted original fixture lost an exact source pole", z)
+			}
+			data.Poles[j] = pole
+		}
+		var err error
+		stock[i], err = geom.NewBSplineSurfaceWithExactWeights(data.DegreeU, data.DegreeV, data.CountU, data.CountV,
+			data.Poles, data.KnotsU, data.KnotsV, weights)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	patches := parabolaTwoCirclesPatches(t, stock[1], stock[2])
+	proof, err := geom.DiscoverSplineGraphParabolaCirclePocketDisk(ctx, patches[0], patches[1], 0, geom.GraphPointContactOptions{})
+	if err != nil || proof.RegionSides[6] != 1 {
+		t.Fatal("weighted source geometry should retain its exact disk sign", proof, err)
+	}
+	out, err := geom.DiscoverSplineGraphParabolaCirclePocketDiskWithVolume(ctx, patches[0], patches[1], 0, geom.GraphPointContactOptions{})
+	if out != nil || !errors.Is(err, geom.ErrUnrepresentable) {
+		t.Fatal("published a polynomial volume for a variable original denominator", out, err)
+	}
 }

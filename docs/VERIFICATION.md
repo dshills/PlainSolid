@@ -293,6 +293,13 @@ checks all seven exact signed region integrals. Four original fans
 and the inner circle cardinal jets are retained in both chart orders.
 The independently signed disk volume is about -3.86e-15; four prior
 native and twelve neutral exports retain their bytes.
+The native nested Common and Fuse pass the complete ordinary matrix
+on 16 cases with 14 faces, 40 edges and 29 vertices. Every result
+retains the original inner wire and disk roof, all four crossing fans,
+and independent volume and area. Eight native replays and forgery
+controls pass. The direct disk certificate requires a constant original
+height denominator; exact geometry alone can admit more. The full
+native race remains separate from the source race and ordinary matrix.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same
