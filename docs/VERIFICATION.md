@@ -186,6 +186,14 @@ continuous turn. The tight meshes are within `0.000955` mm and 0.004%
 of exact signed volume. Only the original source-authenticated cusp
 loops use the new proof, with prior mesh bytes and ordinary trim refusal
 unchanged.
+The [nonapex tangency native milestone](evidence/parabola-circle-oblique-tangency-native-2026-11-16.json)
+passed the integrated 336.337-second main race with the prior apex
+display. It checks one rational double root, the shared nonzero ray and
+distinct original second derivatives. Twenty new recipes replay, and
+the 24 primary positive bodies agree with independent exact volumes
+within `2.22e-16`. Pinned OCCT separately authored positive lenses agree
+within `1.34e-19`; its direct Cut counts disagree in all four cases.
+All 20 prior apex native and 40 neutral files are byte identical.
 
 The [proper-similarity display milestone](evidence/parabola-circle-proper-similarity-2026-11-16.json)
 passed its main focused race in 322.877 seconds. Eight components from four

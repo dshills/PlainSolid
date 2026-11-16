@@ -72,7 +72,7 @@ func CombineParabolaCircleApexTangencySplineGraphs(ctx context.Context, base, a,
 	if err != nil {
 		return nil, err
 	}
-	h, err := bindParabolaCircleApexEnvelope(ctx, s, assembly, partition, regions, bridge, src, op, o.Proof)
+	h, err := bindParabolaCircleTangentEnvelope(ctx, s, assembly, partition.tangentSection(), regions, bridge, src, op, o.Proof)
 	if err != nil {
 		return nil, err
 	}
@@ -101,17 +101,21 @@ func parabolaCircleApexEnvelopeRegions(p parabolaCircleApexPartition) (regions [
 	if err != nil {
 		return regions, bridge, err
 	}
+	return splitParabolaCircleTangentEnvelopeRegions(p.regions, axis, side, apex, far, stock)
+}
+
+func splitParabolaCircleTangentEnvelopeRegions(original [3]openGraphRegion, axis, side int, apex, far, stock geom.Vec2) (
+	regions [4]openGraphRegion, bridge openSectionPiece, err error) {
+	copy(regions[:], original[:])
 	bridge = openSectionPiece{a: far, b: stock, side: -1}
 	rev := reverseParabolaCircleCrossingPiece
 
-	// The bridge is beyond the far circle extremum on the same free
-	// station as the apex. It meets the exact circle and stock only at
-	// its two ends and stays strictly on the enclosing side of the open
-	// parabola. The only other contact between the two closed trim traces
-	// is the already-proved apex.
+	// The source proves the bridge lies on the outward normal beyond
+	// the far extremum and stays strictly in the enclosing region.
+	// Its two ends are the only bridge contacts with the boundaries.
 	var split []openSectionPiece
 	splits := 0
-	for _, piece := range p.regions[side].loop {
+	for _, piece := range original[side].loop {
 		a, b := [2]float64{piece.a.X, piece.a.Y}, [2]float64{piece.b.X, piece.b.Y}
 		v := [2]float64{stock.X, stock.Y}
 		if piece.side >= 0 && a[1-axis] == v[1-axis] && b[1-axis] == v[1-axis] &&
@@ -130,8 +134,8 @@ func parabolaCircleApexEnvelopeRegions(p parabolaCircleApexPartition) (regions [
 	if err != nil {
 		return regions, bridge, err
 	}
-	inner := make([]openSectionPiece, len(p.regions[2].loop))
-	for i, arc := range p.regions[2].loop {
+	inner := make([]openSectionPiece, len(original[2].loop))
+	for i, arc := range original[2].loop {
 		inner[len(inner)-1-i] = rev(arc)
 	}
 	circle, err := splitParabolaCircleApexLoop(inner, apex, far)
@@ -150,7 +154,7 @@ func parabolaCircleApexEnvelopeRegions(p parabolaCircleApexPartition) (regions [
 			}
 			starts[piece.a] = true
 		}
-		regions[region] = openGraphRegion{loop: loop, sign: p.regions[side].sign}
+		regions[region] = openGraphRegion{loop: loop, sign: original[side].sign}
 	}
 	return regions, bridge, nil
 }
@@ -168,7 +172,7 @@ func splitParabolaCircleApexLoop(loop []openSectionPiece, from, to geom.Vec2) ([
 	return [2][]openSectionPiece{rotated[:end], rotated[end:]}, nil
 }
 
-func bindParabolaCircleApexEnvelope(ctx context.Context, s Solid, assembly SplineGraphBooleanHistory, p parabolaCircleApexPartition,
+func bindParabolaCircleTangentEnvelope(ctx context.Context, s Solid, assembly SplineGraphBooleanHistory, sec parabolaCircleTangentSection,
 	regions [4]openGraphRegion, bridge openSectionPiece, src [3]*geom.BSplineSurface, op parametric.BooleanOp,
 	opts geom.GraphPointContactOptions) (h ParabolaCircleApexEnvelopeHistory, err error) {
 	topo := s.Topology()
@@ -183,7 +187,7 @@ func bindParabolaCircleApexEnvelope(ctx context.Context, s Solid, assembly Splin
 		return h, geom.ErrConvergence
 	}
 	copy(h.WallFaces[:], assembly.WallFaces)
-	side := p.proof.DiskRegion
+	side := sec.diskRegion
 	for i, r := range regions {
 		owner := 0
 		if (r.sign > 0) != (op == parametric.Union) {
@@ -230,7 +234,7 @@ func bindParabolaCircleApexEnvelope(ctx context.Context, s Solid, assembly Splin
 			return h, geom.ErrConvergence
 		}
 	}
-	ids, err := bindParabolaCircleCrossingEdges(s, assembly.ContourEdges, append(slices.Clone(p.regions[2].loop), bridge))
+	ids, err := bindParabolaCircleCrossingEdges(s, assembly.ContourEdges, append(slices.Clone(sec.regions[2].loop), bridge))
 	if err != nil {
 		return h, err
 	}
@@ -241,7 +245,7 @@ func bindParabolaCircleApexEnvelope(ctx context.Context, s Solid, assembly Splin
 		s.edges[h.Bridge].Curve.(surfaceTrimCurve).surface != src[1+h.RoofOwners[side]] {
 		return h, geom.ErrConvergence
 	}
-	h.Vertex, err = exactParabolaCircleCrossingVertex(s, p.proof.Point)
+	h.Vertex, err = exactParabolaCircleCrossingVertex(s, sec.point)
 	if err != nil {
 		return h, err
 	}
@@ -252,11 +256,11 @@ func bindParabolaCircleApexEnvelope(ctx context.Context, s Solid, assembly Splin
 			continue
 		}
 		incident++
-		branch, regular, second := 0, 1-side, p.proof.ParabolaSecondDerivative
+		branch, regular, second := 0, 1-side, sec.second[0]
 		if slices.Contains(h.Circle[:], id) {
-			branch, regular, second = 1, 2, p.proof.CircleSecondDerivative
+			branch, regular, second = 1, 2, sec.second[1]
 		}
-		direction, err := parabolaCircleApexRay(s, id, h.Vertex, p.proof.FreeAxis, second)
+		direction, err := parabolaCircleTangentRay(s, id, h.Vertex, sec.axis, sec.slope, second)
 		if err != nil {
 			return h, err
 		}

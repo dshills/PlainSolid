@@ -128,6 +128,10 @@ keeps positive components with one registered apex between their
 separate vertex identities.
 The cusp-ended apex Common and Fuse envelopes also have certified closed
 display with original-owner loop, distance and normal-angle proofs.
+A sole nonapex circle tangency with nonzero original slope now also has
+exact native material. Common and Fuse require the original normal
+bridge to enter the interior of a stock side. Admitted two-shell Cuts
+retain one original point; pinched reverse orientations refuse.
 Certified display of the separated two-circle Cuts now accepts proper
 rational similarities. The proof uses the original world coedge owners
 and reports distance in physical units after rotation and scaling.
