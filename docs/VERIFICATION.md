@@ -41,6 +41,10 @@ The exact inner cut `27/38`, four inner terminals, and two outer terminals
 replay. The B-rep proof retains the finite original edge uses and refuses
 clockwise errors and false contacts on edge extensions. Existing projected
 saddles, rectangular sections and hole coincidence pass the same race.
+The [shared contact curve audit](evidence/projective-surface-graph-overlap-2026-11-16.json)
+proves both original pcurves compose to the same curved model law
+`(x,x,x²)` in a reversed/swapped rational chart. A false chord that
+shares the endpoints, cancellation and short exact work refuse.
 
 The [full Go run on `c7afb429`](evidence/main-c7afb429-qualification-2026-11-16.json)
 passed all nine lanes: 6,018 passes, 599 optional skips, and no failures

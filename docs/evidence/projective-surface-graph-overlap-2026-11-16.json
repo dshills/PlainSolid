@@ -406,5 +406,14 @@
     "retained_open_paths": 3,
     "terminals": {"inner": 4, "outer": 2},
     "refusals": ["overlapping hole closures", "hole extending across the positive-area overlap boundary", "reversed inner winding", "coedge identity on a segment extension"]
+  },
+  "exact_shared_contact_spline": {
+    "main_base": "59c9ee6b",
+    "log": "projective-contact-spline-main-race-2.jsonl",
+    "sha256": "5cd6b911b56f7796ca1d66604de2269f729f073f49c0b3e628289eac34826351",
+    "initial_test_api_build_failure_sha256": "4514bea767754bde5f0672faad719c68bf516be1f5c8c9a6bcbaff93d46140bd",
+    "main_passes": ["TestProjectiveContactSplineKeepsBothOriginalPcurvesAndCurvedModel", "TestProjectiveContactSplineRejectsTheChordOfAnOriginalCurve"],
+    "independent_model_law": ["x", "x", "x^2"],
+    "exact_replay_stations": ["0", "2/7", "1/2", "1"]
   }
 }

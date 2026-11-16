@@ -166,6 +166,9 @@ trim loops and Boolean assembly from these sections remain open.
 The projective section can insert exact cut stations from either original
 UV clock. Those proof cuts retain the original knot owners and do not
 change the covered geometry.
+When a contact arc is straight in the common chart and has rational
+endpoints, it can produce one exact spatial spline and two original
+pcurves with the same clock. Native face splitting is the next step.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

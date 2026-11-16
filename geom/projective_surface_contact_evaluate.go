@@ -9,12 +9,14 @@ type projectiveContactGraphProof struct {
 	arcs    []projectiveContactArcProof
 	overlap ProjectiveSurfaceGraphOverlap
 	holes   []ExactSurfaceRectangle
+	sources [2]*SurfacePatch
 }
 
 type projectiveContactArcProof struct {
 	arc    SurfacePlaneArc
 	common ExactSurfaceRectangle
 	saddle *projectiveContactSaddleArcProof
+	ends   [2][2]*ExactAlgebraicRoot
 }
 
 type projectiveContactSaddleArcProof struct {
@@ -23,14 +25,15 @@ type projectiveContactSaddleArcProof struct {
 	end    [2]*ExactAlgebraicRoot
 }
 
-func sealProjectiveContactGraph(cover ProjectiveSurfaceContactCover, arcs []ProjectiveContactArc) *projectiveContactGraphProof {
+func sealProjectiveContactGraph(cover ProjectiveSurfaceContactCover, arcs []ProjectiveContactArc,
+	vertices []ProjectiveContactVertex, sources [2]*SurfacePatch) *projectiveContactGraphProof {
 	clone := func(x ExactSurfaceRectangle) ExactSurfaceRectangle {
 		return ExactSurfaceRectangle{
 			ExactParameterInterval{new(big.Rat).Set(x.U.Lower), new(big.Rat).Set(x.U.Upper)},
 			ExactParameterInterval{new(big.Rat).Set(x.V.Lower), new(big.Rat).Set(x.V.Upper)},
 		}
 	}
-	p := &projectiveContactGraphProof{arcs: make([]projectiveContactArcProof, len(arcs)), overlap: cover.Atlas.Overlap}
+	p := &projectiveContactGraphProof{arcs: make([]projectiveContactArcProof, len(arcs)), overlap: cover.Atlas.Overlap, sources: sources}
 	for i, use := range arcs {
 		if use.Saddle {
 			saddle := cover.Saddles[use.Cell]
@@ -42,6 +45,9 @@ func sealProjectiveContactGraph(cover ProjectiveSurfaceContactCover, arcs []Proj
 			p.arcs[i].saddle = &projectiveContactSaddleArcProof{axis: axis, center: saddle.Center.Common, end: ray.End.Common}
 		} else {
 			p.arcs[i] = projectiveContactArcProof{arc: cover.Isolations[use.Cell].Arcs[use.Local], common: clone(cover.Atlas.Cells[use.Cell].Common)}
+		}
+		for j, v := range use.Vertices {
+			p.arcs[i].ends[j] = vertices[v].Common
 		}
 	}
 	for i := range p.overlap.Areas {

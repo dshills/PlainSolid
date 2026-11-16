@@ -256,7 +256,7 @@ func TraceProjectiveSurfaceContacts(ctx context.Context, source, target *Surface
 	}
 	r.Vertices, r.Arcs, r.Contours, r.Complete = vertex, arcs, contours, true
 	r.SaddleVertices = saddles
-	r.proof = sealProjectiveContactGraph(r.Cover, arcs)
+	r.proof = sealProjectiveContactGraph(r.Cover, arcs, vertex, [2]*SurfacePatch{source, target})
 	return r, nil
 }
 
