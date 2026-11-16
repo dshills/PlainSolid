@@ -129,6 +129,10 @@ The chain also admits two nonparallel opposing original wall joins
 when an independent exact plane strictly separates the closed ends
 over their full signed layers. The joins retain fourteen original
 faces, point membership, and the certified display.
+An exact open four-chart chain now certifies three joins and all
+three nonadjacent pairs. It preserves eighteen original faces, with
+qualified material, boundary and query results. Four-chart display
+is tracked separately.
 The joined boundary can also measure certified analytic areas on its
 retained original affine and circular faces. Exact shared walls cancel
 before integration and the result preserves each original owner and side.

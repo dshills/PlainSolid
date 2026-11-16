@@ -411,6 +411,11 @@ end-projection gaps are 1 and 3/5 on the two independent separators,
 and the independent original volume is 5/8. The certified display,
 both seam memberships and 17 prior receipts pass. A touching affine
 L and overlapping disjointness candidates refuse.
+The four-chart chain passes all three independent nonadjacent gaps,
+keeps 18 original exterior faces, and returns the exact affine volume
+1 and area 62/5. The nonparallel volume and all retained face areas
+agree with independent source integrals. A 17-face budget keeps only
+that certified prefix; race and 46 predecessor receipts pass.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They

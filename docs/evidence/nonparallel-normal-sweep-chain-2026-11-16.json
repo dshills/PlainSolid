@@ -36,5 +36,38 @@
     "nonparallel original ends with overlapping material",
     "separator that fails on full signed displacement layers",
     "short work or cancellation"
-  ]
+  ],
+  "four_original_charts": {
+    "main_base": "2520c628",
+    "isolated_revision": "393ff0fdd272b73f2403528e979bc812593bc3bd",
+    "patch_sha256": "87f223eff822f7dd5047296992f784c2ee06177ad8aaefb8ce5732a5fae34f7f",
+    "main_race_log": "four-normal-sweep-chain-main-race.jsonl",
+    "main_race_sha256": "86cda8794d702e7952611cdab4ceeeb9dcdf8a78ee39091af5e74afa3e44be9b",
+    "main_race_seconds": 44.451,
+    "isolated_race_seconds": 12.451,
+    "isolated_package_seconds": {
+      "geom": 103.884,
+      "mesh": 13.365,
+      "csg/offset": 59.378
+    },
+    "adjacent_full_wall_joins": 3,
+    "strict_nonadjacent_projection_gaps": [
+      "13/10",
+      "6",
+      "8/5"
+    ],
+    "retained_original_faces": 18,
+    "analytic_affine_volume": "1",
+    "analytic_affine_boundary_area": "62/5",
+    "analytic_nonparallel_volume": "31/40",
+    "analytic_nonparallel_boundary_area": "(190+sqrt(17))/20",
+    "nonparallel_directed_area_interval": [
+      "9.657142639160",
+      "9.757053375244"
+    ],
+    "full_coarse_visits": 18,
+    "short_prefix_faces": 17,
+    "predecessor_receipts_unchanged": 46,
+    "four_chart_display": "not yet qualified by this patch"
+  }
 }
