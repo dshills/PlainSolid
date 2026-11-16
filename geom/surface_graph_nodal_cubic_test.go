@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func nodalCubicFixture(t *testing.T, r, s, depth, scale *big.Rat, perturb bool) [2]*SurfacePatch {
+func cubicGraphSourceFixture(t *testing.T, r, s, depth, scale *big.Rat, perturb bool) [2]*SurfacePatch {
 	t.Helper()
 	ctx := context.Background()
 	turn := new(big.Rat).Sub(r, depth)
@@ -61,7 +61,7 @@ func nodalCubicFixture(t *testing.T, r, s, depth, scale *big.Rat, perturb bool) 
 	return result
 }
 
-func independentNodalCubicOwner(t *testing.T, p *SurfacePatch) *SurfacePatch {
+func independentCubicGraphOwner(t *testing.T, p *SurfacePatch) *SurfacePatch {
 	t.Helper()
 	// The independently authored B chart is (2+2*y, 1-4*x) with
 	// respect to the model XY coordinates, including a reversed free axis.
@@ -79,8 +79,8 @@ func independentNodalCubicOwner(t *testing.T, p *SurfacePatch) *SurfacePatch {
 func TestDiscoverProjectedGraphNodalCubic(t *testing.T) {
 	ctx := context.Background()
 	for _, axes := range [][2]int{{0, 1}, {0, 2}, {2, 0}} {
-		src := nodalCubicFixture(t, big.NewRat(13, 16), big.NewRat(1, 2), big.NewRat(1, 16), big.NewRat(1, 1), false)
-		src[1] = independentNodalCubicOwner(t, src[1])
+		src := cubicGraphSourceFixture(t, big.NewRat(13, 16), big.NewRat(1, 2), big.NewRat(1, 16), big.NewRat(1, 1), false)
+		src[1] = independentCubicGraphOwner(t, src[1])
 		elevation, dependent := 2, 1
 		if axes != ([2]int{0, 1}) {
 			elevation, dependent = 1, 2
@@ -196,7 +196,7 @@ func checkNodalCubicRestrictions(t *testing.T, proof *NodalCubicSection, src [2]
 
 func TestDiscoverProjectedGraphNodalCubicChangedCoefficients(t *testing.T) {
 	ctx := context.Background()
-	src := nodalCubicFixture(t, big.NewRat(3, 4), big.NewRat(3, 8), big.NewRat(9, 64), big.NewRat(4, 1), false)
+	src := cubicGraphSourceFixture(t, big.NewRat(3, 4), big.NewRat(3, 8), big.NewRat(9, 64), big.NewRat(4, 1), false)
 	axes := [2]int{0, 1}
 	proof, err := DiscoverProjectedGraphNodalCubic(ctx, src[0], src[1], axes, 0, GraphPointContactOptions{})
 	if err != nil {
@@ -219,8 +219,8 @@ func TestDiscoverProjectedGraphNodalCubicChangedCoefficients(t *testing.T) {
 
 func TestDiscoverProjectedGraphNodalCubicObliqueFootprint(t *testing.T) {
 	ctx := context.Background()
-	src := nodalCubicFixture(t, big.NewRat(13, 16), big.NewRat(1, 2), big.NewRat(1, 16), big.NewRat(1, 1), false)
-	src[1] = independentNodalCubicOwner(t, src[1])
+	src := cubicGraphSourceFixture(t, big.NewRat(13, 16), big.NewRat(1, 2), big.NewRat(1, 16), big.NewRat(1, 1), false)
+	src[1] = independentCubicGraphOwner(t, src[1])
 	for _, patch := range src {
 		for i, h := range patch.net {
 			x := new(big.Rat).Add(new(big.Rat).Mul(big.NewRat(2, 1), h[0]), h[1])
@@ -245,7 +245,7 @@ func TestDiscoverProjectedGraphNodalCubicObliqueFootprint(t *testing.T) {
 }
 
 func TestDiscoverProjectedGraphNodalCubicExactNonbinaryVertices(t *testing.T) {
-	src := nodalCubicFixture(t, big.NewRat(2, 3), big.NewRat(1, 2), big.NewRat(1, 9), big.NewRat(1, 1), false)
+	src := cubicGraphSourceFixture(t, big.NewRat(2, 3), big.NewRat(1, 2), big.NewRat(1, 9), big.NewRat(1, 1), false)
 	proof, err := DiscoverProjectedGraphNodalCubic(context.Background(), src[0], src[1], [2]int{0, 1}, 0, GraphPointContactOptions{})
 	if err != nil {
 		t.Fatal(err)
@@ -264,7 +264,7 @@ func TestDiscoverProjectedGraphNodalCubicCoefficientBudget(t *testing.T) {
 	ctx := context.Background()
 	depth := new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 160))
 	center := new(big.Rat).Add(big.NewRat(3, 4), depth)
-	src := nodalCubicFixture(t, center, big.NewRat(1, 2), depth, big.NewRat(1, 1), false)
+	src := cubicGraphSourceFixture(t, center, big.NewRat(1, 2), depth, big.NewRat(1, 1), false)
 	axes := [2]int{0, 1}
 	proof, err := DiscoverProjectedGraphNodalCubic(ctx, src[0], src[1], axes, 0, GraphPointContactOptions{})
 	if err != nil || proof.LoopDepth.Cmp(depth) != 0 || proof.Vertices[0].Point[0].Cmp(proof.Vertices[1].Point[0]) == 0 {
@@ -296,7 +296,7 @@ func TestDiscoverProjectedGraphNodalCubicRefusals(t *testing.T) {
 		{"coupled height perturbation", big.NewRat(13, 16), big.NewRat(1, 2), big.NewRat(1, 16), true, ErrConvergence},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			src := nodalCubicFixture(t, tc.r, tc.s, tc.a, big.NewRat(1, 1), tc.perturb)
+			src := cubicGraphSourceFixture(t, tc.r, tc.s, tc.a, big.NewRat(1, 1), tc.perturb)
 			out, err := DiscoverProjectedGraphNodalCubic(ctx, src[0], src[1], axes, 0, GraphPointContactOptions{})
 			if !errors.Is(err, tc.err) || out != nil {
 				t.Fatal("unsupported source publishes an arrangement", out, err, tc.err)
@@ -304,7 +304,7 @@ func TestDiscoverProjectedGraphNodalCubicRefusals(t *testing.T) {
 		})
 	}
 
-	src := nodalCubicFixture(t, big.NewRat(13, 16), big.NewRat(1, 2), big.NewRat(1, 16), big.NewRat(1, 1), false)
+	src := cubicGraphSourceFixture(t, big.NewRat(13, 16), big.NewRat(1, 2), big.NewRat(1, 16), big.NewRat(1, 1), false)
 	for _, tc := range []struct {
 		axes [2]int
 		free int
