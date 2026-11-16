@@ -102,9 +102,25 @@ interior knot multiplicities may not exceed their degree. Nonuniform weights
 must be at least `1e-9` and differ from the first expanded weight in binary64
 by more than `1e-10` for at least one control, matching the pinned reader's
 rationality check.
-Periodic surface trims, topology and placed periodic output are outside
-this subset. Other type-128 trim and topology contracts are documented with
-the corresponding codecs.
+Placed periodic output and periodic face export are outside this subset.
+
+`ReadPeriodicTrimmedFace` separately admits one unplaced type-144 face with
+an explicit outer type-142 contour on a U-periodic type-128 support. Its
+CCW rectangular loop must lie strictly within one original knot cell, and
+the ordered type-102 composites must own four type-110 UV lines and four
+fully clamped single-span type-126 model splines. The reader proves the
+complete directed edge correspondences with exact rational coefficients and
+certifies projected injectivity of the trimmed patch. It retains original
+file bytes, all source entity IDs, the full cyclic support, the finite UV
+bounds, original knot-cell owners and the model edge parameter ranges.
+The returned patch uses the normalized unit square.
+
+The pinned OCCT type-144 fixture and its separately written seam control
+are checked by `tools/occtref/build_iges_periodic_128_trim.sh` and the
+`PLAINSOLID_OCCT_PERIODIC_128_TRIM_IGES` tests. The seam control rephases
+the raw type-128 support and contains truncated model splines. OCCT
+reopens a valid face after transfer. The exact face reader refuses the
+original edge graph.
 
 ## Unsupported domains
 

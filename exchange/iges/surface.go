@@ -3,6 +3,8 @@ package iges
 import (
 	"errors"
 	"math"
+	"math/big"
+
 	"plainsolid/geom"
 )
 
@@ -62,10 +64,13 @@ func (e Entity) EvalSurface(u, v float64) (geom.Vec3, error) {
 	return p, err
 }
 func decodeSurface(p []parameter, maxPoints int) (Entity, error) {
-	return decodeSurfaceMode(p, maxPoints, false)
+	return decodeSurfaceMode(p, maxPoints, false, nil)
 }
 
-func decodeSurfaceMode(p []parameter, maxPoints int, allowPeriodic bool) (Entity, error) {
+// For a proved trimmed-face input, declared receives the exact original
+// finite bounds. The caller must prove those bounds independently; the
+// returned support represents the full underlying cyclic knot lattice.
+func decodeSurfaceMode(p []parameter, maxPoints int, allowPeriodic bool, declared *[4]*big.Rat) (Entity, error) {
 	if len(p) < 14 {
 		return Entity{}, errors.New("iges: truncated surface")
 	}
@@ -133,7 +138,18 @@ func decodeSurfaceMode(p []parameter, maxPoints int, allowPeriodic bool) (Entity
 		ClosedU: flags[0], ClosedV: flags[1], Polynomial: flags[2], PeriodicU: flags[3], PeriodicV: flags[4]}
 	if periodic {
 		raw := p[10 : 10+len(values)]
-		s.periodic, e = provePeriodicSurface128(g, raw[:ku], raw[ku:ku+kv], raw[ku+kv:ku+kv+4*n], raw[ku+kv+4*n:],
+		bounds := raw[ku+kv+4*n:]
+		if declared != nil {
+			for i, value := range bounds {
+				declared[i], e = igesPlanarExact(value)
+				if e != nil {
+					return Entity{}, e
+				}
+			}
+			bounds = []parameter{raw[du], raw[nu], raw[ku+dv], raw[ku+nv]}
+			s.UStart, s.UEnd, s.VStart, s.VEnd = g.Domain()
+		}
+		s.periodic, e = provePeriodicSurface128(g, raw[:ku], raw[ku:ku+kv], raw[ku+kv:ku+kv+4*n], bounds,
 			[2]int{nu, nv}, [2]int{du, dv}, [2]bool{flags[3], flags[4]}, flags[2])
 		if e != nil {
 			return Entity{}, e

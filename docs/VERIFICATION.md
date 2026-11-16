@@ -208,6 +208,12 @@ passes U, V, and both periodic directions and a rephased native case.
 Pinned readers independently reopen all four with matching physical jets
 and winding. Ordinary IGES outputs and cross-architecture periodic bytes
 match; unsupported encodings refuse before writing.
+The [periodic type 144 face import](evidence/iges-periodic-trimmed-face-2026-11-16.json)
+passes pinned independent source and reopen for one exact original
+knot rectangle. It retains 13 raw owners and proves its projected
+orientation and four directed edges. The pinned seam-crossing negative
+has a raw model/UV endpoint difference of `11/32 mm` and refuses.
+Main race, executed amd64 controls and all seven prior exports pass.
 
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips
