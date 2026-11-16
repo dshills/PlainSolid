@@ -223,6 +223,12 @@ polynomial and a curve with unequal rational weights. Tensor refinement
 preserves both cyclic axes and an alternative repeated ordinary knot
 axis, including a cycle at distance `2^100`. Nonbinary new poles,
 unresolvable physical knots and truncated work refuse without output.
+Direct exact periodic curve evaluation also agrees with independently
+restricted rational Bézier spans in an original cycle of magnitude
+`2^100`. A weighted degree-one seam selects its exact right derivative.
+Output bounds enclose each jet, and one-short work returns no geometry
+or cycle ID. The combined periodic and cubic geometry race passed in
+12.219 seconds.
 
 The [full ordinary Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
 later passed all nine lanes on macOS ARM64. The independent inventory

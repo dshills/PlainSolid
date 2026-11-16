@@ -3166,3 +3166,6 @@ without changing the curve or surface. The exact homogeneous refinement
 keeps the physical period and leaves ordinary knot axes in place. It
 returns a numerical spline only when every resulting pole and weight
 fits the original binary64 contract.
+Direct rational curve evaluation now gives an exact point and first
+derivative in the original physical parameter units, with the exact
+cycle, knot interval and one-sided seam ownership.

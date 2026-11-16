@@ -92,21 +92,12 @@ func (s *PeriodicBSplineSurface) tensorAxisAtParameter(ctx context.Context, dire
 	axis := s.axis[direction]
 	var basisLower, basisUpper *big.Rat
 	if axis.Period != 0 {
-		origin, step := exactUniformPeriodicAxis(s.count[direction], axis.Start, axis.Period)
-		station := new(big.Rat).Quo(new(big.Rat).Sub(position, origin), step)
-		if err := b.check(station); err != nil {
+		window.owner, normalized, err = periodicSpanAtPosition(s.count[direction], axis.Start, axis.Period, position, b)
+		if err != nil {
 			return window, nil, err
 		}
-		index := new(big.Int).Div(station.Num(), station.Denom())
-		cycle, offset := new(big.Int), new(big.Int)
-		cycle.DivMod(index, big.NewInt(int64(s.count[direction])), offset)
-		global := new(big.Rat).SetInt(index)
-		start := new(big.Rat).Add(origin, new(big.Rat).Mul(step, global))
-		end := new(big.Rat).Add(start, step)
-		window.owner = ExactSurfaceKnotSpan{Domain: ExactParameterInterval{Lower: start, Upper: end}, Cycle: cycle, Span: int(offset.Int64())}
-		basisLower = new(big.Rat).SetInt(offset)
+		basisLower = big.NewRat(int64(window.owner.Span), 1)
 		basisUpper = new(big.Rat).Add(basisLower, big.NewRat(1, 1))
-		normalized = new(big.Rat).Sub(station, global)
 	} else {
 		knot := func(i int) *big.Rat { return new(big.Rat).SetFloat64(knots[i]) }
 		end := position.Cmp(knot(count))

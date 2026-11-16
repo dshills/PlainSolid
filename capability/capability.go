@@ -45,7 +45,7 @@ func Lookup(id string) (Feature, bool) {
 }
 
 var catalog = [...]Feature{
-	{"geometry.curves", "Curves", "Analytic conics and rational spline evaluation, editing, intersection with a plane, distance and length bounds", "Continuous clamped splines required by several exact bounds; general curve intersection remains incomplete", SupportedSubset},
+	{"geometry.curves", "Curves", "Analytic conics, rational spline editing and exact cyclic evaluation and uniform refinement, plane intersection, distance and length bounds", "Continuous clamped splines required by several exact bounds; general curve intersection and nonuniform periodic editing remain incomplete", SupportedSubset},
 	{"geometry.surfaces", "Surfaces", "Analytic and rational spline evaluation, derivatives, exact subpatches, projection, area and distance bounds", "General surface fitting and full periodic editing remain incomplete", SupportedSubset},
 	{"geometry.wrapped_toroid", "Wrapped rational toroids", "Exact canonical tensor quotient embedding, outward orientation, paired seam topology and point classification", "Arbitrary wrapped support embedding and material queries remain incomplete", SupportedSubset},
 	{"intersection.spline_pair", "Spline intersections", "Certified spline-pair tubes on selected coordinate-plane charts, exact dependent anchors at C0 knots, original rational trim clipping through degree eight, selected double contacts, and coincident coedge imprints", "General exhaustive branch discovery, arbitrary coincidence and singular contact classification remain incomplete", SupportedSubset},
