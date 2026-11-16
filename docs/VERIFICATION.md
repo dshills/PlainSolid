@@ -247,7 +247,14 @@ Common and 12.58134321732954 for Fuse in both orders, and the unchanged
 1695/22528 and 243/22528 for the two Cuts. The combined trimmed race run
 including existing cuspidal, nodal and knot integration cases passed in
 38.010 seconds. Geometry and algebraic cell regressions passed under race
-in 2.562 seconds. Neutral exchange of the creased shell is separate.
+in 2.562 seconds. The [separate creased neutral record](evidence/cuspidal-creased-neutral-2026-11-15.json)
+contains all twelve independent STEP and IGES readbacks of the original
+creased roofs. Each carries positive signed material, retains the exact
+support-knot joints and reproduces the original cusp jets after their
+parameter range is scaled for the split. Legacy uncreased transfers in
+both formats match byte for byte. The combined pinned exchange race
+passed in 21.885 seconds. The native extraction rejects cuts with
+irrational clocks or unrepresentable model vertices before output.
 
 Both native cuspidal Cut orders passed the main branch race run alongside
 the existing Common, Fuse and nodal regressions (25.450 seconds). Exact

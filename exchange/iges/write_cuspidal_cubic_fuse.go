@@ -14,7 +14,7 @@ func WriteCuspidalCubicFuse(ctx context.Context, w io.Writer, fuse *trimmed.Cusp
 	if fuse == nil {
 		return geom.ErrInvalid
 	}
-	return writeExactBezierSingleIGES(ctx, w, fuse.Boundary(), unit, l, o)
+	return writeExactBezierSingleIGESMode(ctx, w, fuse.Boundary(), unit, l, o, true)
 }
 
 // VerifyCuspidalCubicFuseIGES authenticates the topology, original

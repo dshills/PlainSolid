@@ -49,6 +49,10 @@ type ExactBezierBoundaryUse struct {
 // each model edge and UV use. It refuses unsupported analytic, multi-span
 // and algebraic trim laws rather than replacing them with fitted samples.
 func (s Solid) ExtractExactBezierBoundary(ctx context.Context, o edgecheck.Options) (ExactBezierBoundary, error) {
+	return s.extractExactBezierBoundary(ctx, o, false)
+}
+
+func (s Solid) extractExactBezierBoundary(ctx context.Context, o edgecheck.Options, splitKnots bool) (ExactBezierBoundary, error) {
 	var zero ExactBezierBoundary
 	if ctx == nil || len(s.faces) == 0 {
 		return zero, geom.ErrInvalid
@@ -90,8 +94,17 @@ func (s Solid) ExtractExactBezierBoundary(ctx context.Context, o edgecheck.Optio
 		}
 	}
 	limits := geom.SurfacePatchOptions{MaxOperations: o.MaxWork, MaxCoefficientBits: o.MaxBits}
+	splits := make(map[int][]exactBoundaryKnotPart)
 	for i, e := range s.edges {
 		model, err := exactBoundaryModel(ctx, e, limits)
+		if splitKnots && errors.Is(err, geom.ErrConvergence) {
+			parts, splitErr := out.splitRationalKnotEdge(ctx, i, e, o)
+			if splitErr != nil {
+				return zero, fmt.Errorf("trimmed: exact Bézier edge %d knot cells: %w", i, splitErr)
+			}
+			splits[i] = parts
+			continue
+		}
 		if err != nil {
 			return zero, fmt.Errorf("trimmed: exact Bézier edge %d: %w", i, err)
 		}
@@ -102,8 +115,16 @@ func (s Solid) ExtractExactBezierBoundary(ctx context.Context, o edgecheck.Optio
 	}
 	for i, f := range s.faces {
 		for _, loop := range append([][]Use{f.Outer}, f.Holes...) {
-			pc := make([]ExactBezierBoundaryUse, len(loop))
-			for j, u := range loop {
+			pc := make([]ExactBezierBoundaryUse, 0, len(loop))
+			for _, u := range loop {
+				if parts := splits[u.Edge]; len(parts) != 0 {
+					uses, err := out.splitRationalKnotUse(ctx, f.Surface, u, parts, limits)
+					if err != nil {
+						return zero, fmt.Errorf("trimmed: exact Bézier face %d edge %d knot coedges: %w", i, u.Edge, err)
+					}
+					pc = append(pc, uses...)
+					continue
+				}
 				uv, err := exactBoundaryUV(ctx, u, limits)
 				if err != nil {
 					return zero, fmt.Errorf("trimmed: exact Bézier pcurve on face %d edge %d: %w", i, u.Edge, err)
@@ -115,7 +136,7 @@ func (s Solid) ExtractExactBezierBoundary(ctx context.Context, o edgecheck.Optio
 				if u.Reversed {
 					slices.Reverse(uv.Control)
 				}
-				pc[j] = ExactBezierBoundaryUse{Edge: u.Edge, Reversed: u.Reversed, UV: uv}
+				pc = append(pc, ExactBezierBoundaryUse{Edge: u.Edge, Reversed: u.Reversed, UV: uv})
 			}
 			out.Faces[i].Loops = append(out.Faces[i].Loops, pc)
 		}
@@ -181,9 +202,20 @@ func exactBoundaryModel(ctx context.Context, e parametric.Edge, o geom.SurfacePa
 }
 
 func exactBoundaryGraphBezier(ctx context.Context, support geom.Surface, a, b geom.Vec2, trim PCurve, o geom.SurfacePatchOptions) (*geom.ExactSplineCurve, error) {
-	p, err := exactFaceSupportPatch(Face{Surface: support}, o)
+	cells, err := exactBoundaryGraphCells(ctx, support, a, b, trim, geom.SurfaceCurveAgreementOptions{SurfacePatchOptions: o})
 	if err != nil {
 		return nil, err
+	}
+	curve, _, err := cells.SingleExactBezier(ctx, [2]*big.Rat{big.NewRat(0, 1), big.NewRat(1, 1)},
+		geom.ExactCurvePlaneEventOptions{MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits})
+	return curve, err
+}
+
+func exactBoundaryGraphCells(ctx context.Context, support geom.Surface, a, b geom.Vec2, trim PCurve, options geom.SurfaceCurveAgreementOptions) (geom.SurfaceCurveCompositionCells, error) {
+	o := options.SurfacePatchOptions
+	p, err := exactFaceSupportPatch(Face{Surface: support}, o)
+	if err != nil {
+		return geom.SurfaceCurveCompositionCells{}, err
 	}
 	var c *geom.ExactSplineCurve
 	if trim == nil {
@@ -195,15 +227,9 @@ func exactBoundaryGraphBezier(ctx context.Context, support geom.Surface, a, b ge
 		c, err = polynomialTrimDescriptor(ctx, trim, false, o)
 	}
 	if err != nil {
-		return nil, err
+		return geom.SurfaceCurveCompositionCells{}, err
 	}
-	cells, err := p.BuildSurfaceCurveCompositionCells(ctx, c, geom.SurfaceCurveAgreementOptions{SurfacePatchOptions: o})
-	if err != nil {
-		return nil, err
-	}
-	curve, _, err := cells.SingleExactBezier(ctx, [2]*big.Rat{big.NewRat(0, 1), big.NewRat(1, 1)},
-		geom.ExactCurvePlaneEventOptions{MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits})
-	return curve, err
+	return p.BuildSurfaceCurveCompositionCells(ctx, c, options)
 }
 
 func exactBoundaryUV(ctx context.Context, u Use, o geom.SurfacePatchOptions) (geom.ExactBezierSpan, error) {

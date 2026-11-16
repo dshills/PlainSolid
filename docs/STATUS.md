@@ -339,8 +339,11 @@ volume checks. The geometry also distinguishes an isolated real double
 point from both a crossing node and a cusp. When the same cubic has a
 separate regular branch in the footprint, the proof keeps its two
 original exits and shows the isolated point is not on that branch.
-Curved trim quadrature splits at the certified rational
-source knots. Creased neutral transfer still needs qualification.
+Curved trim quadrature splits at the certified rational source knots.
+[Creased cuspidal transfer](evidence/cuspidal-creased-neutral-2026-11-15.json)
+now qualifies both orders of Common, Fuse and Cut in STEP and IGES,
+retaining both original supports and the exact cusp while introducing
+only the supported rational seam splits.
 Native Common (`fea3d0b4`) and Fuse (`750c9e80`)
 preserve this singularity in both source orders and in closed displays.
 [Independent STEP and IGES readback](../exchange/CUSPIDAL_CUBIC.md)

@@ -18,7 +18,7 @@ func WriteCuspidalCubicCommon(ctx context.Context, w io.Writer, common *trimmed.
 	if common == nil {
 		return geom.ErrInvalid
 	}
-	return writeExactBezierSingleIGES(ctx, w, common.Boundary(), unit, l, o)
+	return writeExactBezierSingleIGESMode(ctx, w, common.Boundary(), unit, l, o, true)
 }
 
 // VerifyCuspidalCubicCommonIGES authenticates the topology, original

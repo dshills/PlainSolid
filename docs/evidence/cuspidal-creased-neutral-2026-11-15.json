@@ -1,0 +1,788 @@
+{
+  "milestone": "Native creased cuspidal Common, Fuse and both Cut orders transferred to STEP and IGES",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "scope": "Source-backed writers; pinned independent readback; no independent foreign reconstruction.",
+  "artifactsRoot": ".worktrees/qualification/2026-11-15/cuspidal-knot-neutral-evidence",
+  "implementationIsolates": [
+    "97afcbb2edbfe82abc409839adda4485a4e841f3",
+    "e350884913fd4cf2556bb01d205e3934c6330264"
+  ],
+  "mainPinnedRace": {
+    "raw": ".worktrees/qualification/2026-11-15/acnodal-and-creased-main-confirmed-race.jsonl",
+    "sha256": "43d5f81b18070cf0b95c113e58acf859f42c2377f194b432e8518a40a74c9200",
+    "trimmedSeconds": 10.675,
+    "exchangeSeconds": 21.885
+  },
+  "priorUncreasedTransfersUnchanged": [
+    {
+      "name": "legacy-before/common-0.igs",
+      "sha256": "00c6f4004ea066266e9a89b5693f414c6775ba38a7365d328db0a113cdecd3af"
+    },
+    {
+      "name": "legacy-before/common-0.step",
+      "sha256": "50507a39cc2606e55dd0c490d0a67978af1cb4070e18f9df1b296c91a83e6a34"
+    },
+    {
+      "name": "legacy-before/common-1.igs",
+      "sha256": "00c6f4004ea066266e9a89b5693f414c6775ba38a7365d328db0a113cdecd3af"
+    },
+    {
+      "name": "legacy-before/common-1.step",
+      "sha256": "50507a39cc2606e55dd0c490d0a67978af1cb4070e18f9df1b296c91a83e6a34"
+    },
+    {
+      "name": "legacy-fuse-cut-before/cut-0.igs",
+      "sha256": "809101c607486838f6a5ab0112fcc9d4a976cb38da58f05a751c73a83708b80a"
+    },
+    {
+      "name": "legacy-fuse-cut-before/cut-0.step",
+      "sha256": "9fc1eabdad13794e53076a603cce66392500ce9fcb5ad10d174fbe272b0db7cf"
+    },
+    {
+      "name": "legacy-fuse-cut-before/cut-1.igs",
+      "sha256": "8f7d0c827805b3bac330e895946013b02239aff755a85f2e205ca0440d8d62d0"
+    },
+    {
+      "name": "legacy-fuse-cut-before/cut-1.step",
+      "sha256": "0b771303cd5779d889271b028d59ee0842f31f88ce3528de78b48ec688688a70"
+    },
+    {
+      "name": "legacy-fuse-cut-before/fuse-0.igs",
+      "sha256": "64efa525d3922388806f0510fc0fd9591704d0bf5e4d00e3b276847b2f7c6579"
+    },
+    {
+      "name": "legacy-fuse-cut-before/fuse-0.step",
+      "sha256": "ee28277098442f39a2cb30896f7b98b525e645d0ce1268b2240ea376ee9a4612"
+    },
+    {
+      "name": "legacy-fuse-cut-before/fuse-1.igs",
+      "sha256": "64efa525d3922388806f0510fc0fd9591704d0bf5e4d00e3b276847b2f7c6579"
+    },
+    {
+      "name": "legacy-fuse-cut-before/fuse-1.step",
+      "sha256": "e6edb83c900115d694070365c4a4986ca6356e14e72fb254ea0edd3d7a0279e0"
+    }
+  ],
+  "transfers": [
+    {
+      "operation": "common",
+      "order": 0,
+      "format": "step",
+      "neutral": {
+        "name": "creased-first/common-0.step",
+        "sha256": "033bb522b913e8fe98377b56f93a57fde16feec32e3f0f0a7f1a2fa3cf716d98"
+      },
+      "independentReader": {
+        "name": "creased-first/common-0-step-mass.log",
+        "sha256": "089efb1272de655b1733ce9eed7ab746dd3d88f38d2b3123564fe74faa773b22"
+      },
+      "independentJets": {
+        "name": "creased-first/common-0-step-jets.log",
+        "sha256": "bbc959c3a861a51d272bec3a481021006b4aef1596ffa01a82ea91c66edb3dab"
+      },
+      "topology": [
+        9,
+        24,
+        17
+      ],
+      "signedVolume": 12.495316938920453,
+      "area": 32.95442282555588,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            0.5624999999999947,
+            0.006591796875010658
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            -0.5625000000000013,
+            -0.006591796875010658
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "common",
+      "order": 0,
+      "format": "iges",
+      "neutral": {
+        "name": "creased-first/common-0.igs",
+        "sha256": "a855371bef6f0d426ed6b966ccb7f4f55f535fae11d25b935b98bea896e30580"
+      },
+      "independentReader": {
+        "name": "creased-first/common-0-iges-mass.log",
+        "sha256": "9727d152fc23509833c432c934bf1183215cd8a90cfd070faa523e403230545e"
+      },
+      "independentJets": {
+        "name": "creased-first/common-0-iges-jets.log",
+        "sha256": "9c602edc6ec4c0993c869e85d586fe600778d3c04baa2da5d00baf1f9c4e7ffd"
+      },
+      "topology": [
+        9,
+        24,
+        17
+      ],
+      "signedVolume": 12.495316938920453,
+      "area": 32.95442282555588,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            0.5624999999999947,
+            0.006591796875010658
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            -0.5625000000000013,
+            -0.006591796875010658
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "common",
+      "order": 1,
+      "format": "step",
+      "neutral": {
+        "name": "creased-first/common-1.step",
+        "sha256": "033bb522b913e8fe98377b56f93a57fde16feec32e3f0f0a7f1a2fa3cf716d98"
+      },
+      "independentReader": {
+        "name": "creased-first/common-1-step-mass.log",
+        "sha256": "089efb1272de655b1733ce9eed7ab746dd3d88f38d2b3123564fe74faa773b22"
+      },
+      "independentJets": {
+        "name": "creased-first/common-1-step-jets.log",
+        "sha256": "bbc959c3a861a51d272bec3a481021006b4aef1596ffa01a82ea91c66edb3dab"
+      },
+      "topology": [
+        9,
+        24,
+        17
+      ],
+      "signedVolume": 12.495316938920453,
+      "area": 32.95442282555588,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            0.5624999999999947,
+            0.006591796875010658
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            -0.5625000000000013,
+            -0.006591796875010658
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "common",
+      "order": 1,
+      "format": "iges",
+      "neutral": {
+        "name": "creased-first/common-1.igs",
+        "sha256": "a855371bef6f0d426ed6b966ccb7f4f55f535fae11d25b935b98bea896e30580"
+      },
+      "independentReader": {
+        "name": "creased-first/common-1-iges-mass.log",
+        "sha256": "9727d152fc23509833c432c934bf1183215cd8a90cfd070faa523e403230545e"
+      },
+      "independentJets": {
+        "name": "creased-first/common-1-iges-jets.log",
+        "sha256": "9c602edc6ec4c0993c869e85d586fe600778d3c04baa2da5d00baf1f9c4e7ffd"
+      },
+      "topology": [
+        9,
+        24,
+        17
+      ],
+      "signedVolume": 12.495316938920453,
+      "area": 32.95442282555588,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            0.5624999999999947,
+            0.006591796875010658
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            -0.5625000000000013,
+            -0.006591796875010658
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "fuse",
+      "order": 0,
+      "format": "step",
+      "neutral": {
+        "name": "creased-fuse-cut/fuse-0.step",
+        "sha256": "cf6d2a6352045a4b20c8cf24fb8ca685d66469e500b8020fc268351d98985275"
+      },
+      "independentReader": {
+        "name": "creased-fuse-cut/fuse-0-step-mass.log",
+        "sha256": "a2c24c99ef4a239dbdd790dda904a25ec62acbf3b7962babae5b73f2006dc2c8"
+      },
+      "independentJets": {
+        "name": "creased-fuse-cut/fuse-0-step-jets.log",
+        "sha256": "bbc959c3a861a51d272bec3a481021006b4aef1596ffa01a82ea91c66edb3dab"
+      },
+      "topology": [
+        9,
+        24,
+        17
+      ],
+      "signedVolume": 12.581343217329545,
+      "area": 33.278350206590446,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            0.5624999999999947,
+            0.006591796875010658
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            -0.5625000000000013,
+            -0.006591796875010658
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "fuse",
+      "order": 0,
+      "format": "iges",
+      "neutral": {
+        "name": "creased-fuse-cut/fuse-0.igs",
+        "sha256": "4d1dcb1306339998697e5fe0a9976b8eab8cb88b5b0877587e88067369ac704f"
+      },
+      "independentReader": {
+        "name": "creased-fuse-cut/fuse-0-iges-mass.log",
+        "sha256": "c1fe2c7932d2e29ac625a2b1506bc301a3a80f0e26c8448fbfff532dbfd5b7a7"
+      },
+      "independentJets": {
+        "name": "creased-fuse-cut/fuse-0-iges-jets.log",
+        "sha256": "9c602edc6ec4c0993c869e85d586fe600778d3c04baa2da5d00baf1f9c4e7ffd"
+      },
+      "topology": [
+        9,
+        24,
+        17
+      ],
+      "signedVolume": 12.581343217329545,
+      "area": 33.278350206590446,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            0.5624999999999947,
+            0.006591796875010658
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            -0.5625000000000013,
+            -0.006591796875010658
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "fuse",
+      "order": 1,
+      "format": "step",
+      "neutral": {
+        "name": "creased-fuse-cut/fuse-1.step",
+        "sha256": "e066ef226279fc077084a9ff8ba17d819f10c176f5b480e40494f475dc71e334"
+      },
+      "independentReader": {
+        "name": "creased-fuse-cut/fuse-1-step-mass.log",
+        "sha256": "a2c24c99ef4a239dbdd790dda904a25ec62acbf3b7962babae5b73f2006dc2c8"
+      },
+      "independentJets": {
+        "name": "creased-fuse-cut/fuse-1-step-jets.log",
+        "sha256": "bbc959c3a861a51d272bec3a481021006b4aef1596ffa01a82ea91c66edb3dab"
+      },
+      "topology": [
+        9,
+        24,
+        17
+      ],
+      "signedVolume": 12.581343217329545,
+      "area": 33.278350206590446,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            0.5624999999999947,
+            0.006591796875010658
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            -0.5625000000000013,
+            -0.006591796875010658
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "fuse",
+      "order": 1,
+      "format": "iges",
+      "neutral": {
+        "name": "creased-fuse-cut/fuse-1.igs",
+        "sha256": "4d1dcb1306339998697e5fe0a9976b8eab8cb88b5b0877587e88067369ac704f"
+      },
+      "independentReader": {
+        "name": "creased-fuse-cut/fuse-1-iges-mass.log",
+        "sha256": "c1fe2c7932d2e29ac625a2b1506bc301a3a80f0e26c8448fbfff532dbfd5b7a7"
+      },
+      "independentJets": {
+        "name": "creased-fuse-cut/fuse-1-iges-jets.log",
+        "sha256": "9c602edc6ec4c0993c869e85d586fe600778d3c04baa2da5d00baf1f9c4e7ffd"
+      },
+      "topology": [
+        9,
+        24,
+        17
+      ],
+      "signedVolume": 12.581343217329545,
+      "area": 33.278350206590446,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            0.5624999999999947,
+            0.006591796875010658
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            -0.5625000000000013,
+            -0.006591796875010658
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "cut",
+      "order": 0,
+      "format": "step",
+      "neutral": {
+        "name": "creased-fuse-cut/cut-0.step",
+        "sha256": "d624f1be12e6f75cd1186c8f9a8930cb7c75488804b27dfa1dde7de26a86105c"
+      },
+      "independentReader": {
+        "name": "creased-fuse-cut/cut-0-step-mass.log",
+        "sha256": "42cf6fc4a1bcbe5b5253b303c4dbdd3c4b634eb5e6c198876e1fcf9fd1664e80"
+      },
+      "independentJets": {
+        "name": "creased-fuse-cut/cut-0-step-jets.log",
+        "sha256": "bbc959c3a861a51d272bec3a481021006b4aef1596ffa01a82ea91c66edb3dab"
+      },
+      "topology": [
+        7,
+        22,
+        17
+      ],
+      "signedVolume": 0.07523970170454547,
+      "area": 9.654042751714332,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            0.5624999999999947,
+            0.006591796875010658
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            -0.5625000000000013,
+            -0.006591796875010658
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "cut",
+      "order": 0,
+      "format": "iges",
+      "neutral": {
+        "name": "creased-fuse-cut/cut-0.igs",
+        "sha256": "b0a0e7aadd94f554de6fbe18cd3defd9d83816b4f5610576fd3c24c6826a1474"
+      },
+      "independentReader": {
+        "name": "creased-fuse-cut/cut-0-iges-mass.log",
+        "sha256": "0a954f4584498ab359d49574574374c08e6c185985ca4bcecb75f55fc1b44dab"
+      },
+      "independentJets": {
+        "name": "creased-fuse-cut/cut-0-iges-jets.log",
+        "sha256": "30a3f78f2e03c1fd5ef91bfd050232c11215b848d7a2cb24ac52186d5e7ee6e3"
+      },
+      "topology": [
+        7,
+        22,
+        17
+      ],
+      "signedVolume": 0.07523970170454547,
+      "area": 9.654042751714332,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            0.5624999999999947,
+            0.006591796875010658
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            -0.5625000000000013,
+            -0.006591796875010658
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "cut",
+      "order": 1,
+      "format": "step",
+      "neutral": {
+        "name": "creased-fuse-cut/cut-1.step",
+        "sha256": "8d5258875e01b2d786b31c407a23de2d24d6e3ac8ef13d44bf7b6e2ab6f548f2"
+      },
+      "independentReader": {
+        "name": "creased-fuse-cut/cut-1-step-mass.log",
+        "sha256": "622d878c5a2a9ad0c0c38d8d17ebd5427aad04bce108993b7d225510a9b070b0"
+      },
+      "independentJets": {
+        "name": "creased-fuse-cut/cut-1-step-jets.log",
+        "sha256": "6e84296ce7692afea018f7051a332c81950c9d7d9b2bc1451b9951e260e0471b"
+      },
+      "topology": [
+        4,
+        9,
+        7
+      ],
+      "signedVolume": 0.010786576704545501,
+      "area": 2.7514220650595287,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            -0.5625000000000013,
+            -0.006591796875010658
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            0.5624999999999947,
+            0.006591796875010658
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "cut",
+      "order": 1,
+      "format": "iges",
+      "neutral": {
+        "name": "creased-fuse-cut/cut-1.igs",
+        "sha256": "73d9fca9f4216a13ef423acd9bc752ef6190a56373759dc9598824beca9a071e"
+      },
+      "independentReader": {
+        "name": "creased-fuse-cut/cut-1-iges-mass.log",
+        "sha256": "dfcd195d95720b630179522c18c68b17e5a8f81267accb2d85826b30acac10a2"
+      },
+      "independentJets": {
+        "name": "creased-fuse-cut/cut-1-iges-jets.log",
+        "sha256": "873921b9ecdb7c631449fa0e085241fb33e34f3782e4763eb73d5b6b71c6de53"
+      },
+      "topology": [
+        4,
+        9,
+        7
+      ],
+      "signedVolume": 0.010786576704545501,
+      "area": 2.7514220650595287,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            -0.5625000000000013,
+            -0.006591796875010658
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            1.1250000000000004,
+            0,
+            0.087890625
+          ],
+          "Third": [
+            -6.661338147750939e-15,
+            0.5624999999999947,
+            0.006591796875010658
+          ]
+        }
+      ]
+    }
+  ]
+}

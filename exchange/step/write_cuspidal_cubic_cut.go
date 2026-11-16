@@ -14,7 +14,7 @@ func WriteCuspidalCubicCut(ctx context.Context, w io.Writer, cut *trimmed.Cuspid
 	if cut == nil {
 		return geom.ErrInvalid
 	}
-	return writeExactBezierSingleSTEP(ctx, w, cut.Boundary(), name, unit, l, o)
+	return writeExactBezierSingleSTEPMode(ctx, w, cut.Boundary(), name, unit, l, o, true)
 }
 
 // VerifyCuspidalCubicCutSTEP checks the canonical topology, physical

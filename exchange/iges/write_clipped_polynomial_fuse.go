@@ -35,6 +35,10 @@ func WriteClippedPolynomialFuse(ctx context.Context, w io.Writer, fuse *trimmed.
 }
 
 func writeExactBezierSingleIGES(ctx context.Context, w io.Writer, s trimmed.Solid, unit float64, l Limits, o ClippedPolynomialFuseIGESOptions) error {
+	return writeExactBezierSingleIGESMode(ctx, w, s, unit, l, o, false)
+}
+
+func writeExactBezierSingleIGESMode(ctx context.Context, w io.Writer, s trimmed.Solid, unit float64, l Limits, o ClippedPolynomialFuseIGESOptions, splitKnots bool) error {
 	bound := new(big.Rat).SetFloat64(o.PoleTolerance)
 	if ctx == nil || w == nil || bound == nil || bound.Sign() < 0 {
 		return geom.ErrInvalid
@@ -46,7 +50,11 @@ func writeExactBezierSingleIGES(ctx context.Context, w io.Writer, s trimmed.Soli
 	if len(s.Topology().Shells) != 1 {
 		return geom.ErrConvergence
 	}
-	b, err := s.ExtractExactBezierBoundary(ctx, o.Proof)
+	extract := s.ExtractExactBezierBoundary
+	if splitKnots {
+		extract = s.ExtractExactBezierBoundaryAtRationalKnots
+	}
+	b, err := extract(ctx, o.Proof)
 	if err != nil {
 		return err
 	}

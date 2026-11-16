@@ -35,6 +35,10 @@ func WriteClippedPolynomialFuse(ctx context.Context, w io.Writer, fuse *trimmed.
 }
 
 func writeExactBezierSingleSTEP(ctx context.Context, w io.Writer, s trimmed.Solid, name string, lengthUnit float64, l Limits, o ClippedPolynomialFuseSTEPOptions) error {
+	return writeExactBezierSingleSTEPMode(ctx, w, s, name, lengthUnit, l, o, false)
+}
+
+func writeExactBezierSingleSTEPMode(ctx context.Context, w io.Writer, s trimmed.Solid, name string, lengthUnit float64, l Limits, o ClippedPolynomialFuseSTEPOptions, splitKnots bool) error {
 	if ctx == nil || w == nil || !utf8.ValidString(name) || len(name) > 1024 || !validLengthUnit(lengthUnit) ||
 		!finiteNumber(o.PoleTolerance) || o.PoleTolerance < 0 {
 		return geom.ErrInvalid
@@ -46,9 +50,16 @@ func writeExactBezierSingleSTEP(ctx context.Context, w io.Writer, s trimmed.Soli
 	if len(s.Topology().Shells) != 1 || len(s.Vertices()) > l.MaxVertices || len(s.Faces()) > l.MaxFaces || len(s.Edges()) > l.MaxEdgeUses/2 {
 		return geom.ErrConvergence
 	}
-	b, err := s.ExtractExactBezierBoundary(ctx, o.Proof)
+	extract := s.ExtractExactBezierBoundary
+	if splitKnots {
+		extract = s.ExtractExactBezierBoundaryAtRationalKnots
+	}
+	b, err := extract(ctx, o.Proof)
 	if err != nil {
 		return err
+	}
+	if len(b.Vertices) > l.MaxVertices || len(b.Edges) > l.MaxEdgeUses/2 {
+		return geom.ErrConvergence
 	}
 	staged := clippedFuseSTEPStage{limit: l.MaxBytes}
 	var geometryErr error

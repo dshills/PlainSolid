@@ -3,6 +3,7 @@ package exchange_test
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -40,6 +41,12 @@ func TestCuspidalCubicCommonExchange(t *testing.T) {
 			}
 			if err := iges.WriteCuspidalCubicCommon(ctx, &ig, common, units, iges.Limits{}, iopts); err != nil {
 				t.Fatal(err)
+			}
+			// Both old operand orders produced the same canonical neutral
+			// bytes before rational knot splitting became available.
+			if fmt.Sprintf("%x", sha256.Sum256(st.Bytes())) != "50507a39cc2606e55dd0c490d0a67978af1cb4070e18f9df1b296c91a83e6a34" ||
+				fmt.Sprintf("%x", sha256.Sum256(ig.Bytes())) != "00c6f4004ea066266e9a89b5693f414c6775ba38a7365d328db0a113cdecd3af" {
+				t.Fatal("uncreased Common neutral bytes changed")
 			}
 			if err := step.VerifyCuspidalCubicCommonSTEP(ctx, bytes.NewReader(st.Bytes()), common, name, units, step.Limits{}, so); err != nil {
 				t.Fatal(err)
@@ -94,6 +101,11 @@ func TestCuspidalCubicCommonExchange(t *testing.T) {
 
 func checkCuspidalCubicReadbackJets(t *testing.T, ctx context.Context, format, ext string, data []byte, p geom.Vec3) {
 	t.Helper()
+	checkCuspidalCubicJetsOnSpan(t, ctx, format, ext, data, p, 1)
+}
+
+func checkCuspidalCubicJetsOnSpan(t *testing.T, ctx context.Context, format, ext string, data []byte, p geom.Vec3, fraction float64) {
+	t.Helper()
 	reader := os.Getenv("PLAINSOLID_OCCT_CUSPIDAL_CUBIC_JETS")
 	if reader == "" {
 		return
@@ -143,8 +155,10 @@ func checkCuspidalCubicReadbackJets(t *testing.T, ctx context.Context, format, e
 		}
 		sided[side] = true
 		for axis := range 3 {
-			if !(math.Abs(germ.Second[axis]-wantSecond[axis]) <= 1e-12) ||
-				!(math.Abs(germ.Third[axis]-sign*wantThird[axis]) <= 1e-12) {
+			second := wantSecond[axis] * fraction * fraction
+			third := sign * wantThird[axis] * fraction * fraction * fraction
+			if !(math.Abs(germ.Second[axis]-second) <= 1e-12) ||
+				!(math.Abs(germ.Third[axis]-third) <= 1e-12) {
 				t.Fatalf("independent %s changed the second or third derivative at axis %d: %+v", format, axis, germ)
 			}
 		}
