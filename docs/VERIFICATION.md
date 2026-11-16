@@ -71,6 +71,12 @@ and validates their world poses, signed volume and topology. A changed
 name on a shared relationship appears in both uses. Invalid or conflicting
 edits produce no output. Main's STEP and document races passed in 94.996
 and 98.513 seconds; the existing rational spherical edit also passed.
+The [rounded nested AP242 repair](evidence/rounded-nested-mixed-conical-ap242-repair-2026-11-15.json)
+requires `3e-12` mm and refuses `2.8e-12` mm. It repairs definitions 62
+and 230 once, relocates only eight newly generated supports, and keeps
+every original occurrence ID and exact placement. Pinned XCAF reopens
+all six raw and corrected paths as positive solids. The main flat,
+nested, writeback and source receipt race passed in 469.168 seconds.
 
 The [full orthogonal volume offset](evidence/orthogonal-volume-offset-2026-11-15.json)
 matched independently constructed pinned OCCT references for four

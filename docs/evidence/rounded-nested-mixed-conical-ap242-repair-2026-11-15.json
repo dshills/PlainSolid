@@ -1,0 +1,669 @@
+{
+  "milestone": "Opt-in bounded repair of pinned independently authored nested rounded mixed-conical AP242",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "plainSolidRevision": "6e2b23b4929acdd7bf1090c7379f28dccf4764b3",
+  "requiredStandaloneChamferRepairRevision": "0fcaf55f2ed145ad043cf72b26352edb9bd1998d",
+  "environment": {
+    "PLAINSOLID_OCCT_MIXED_CONICAL_AP242": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/mixed-ap242-curved-import/nested-author"
+  },
+  "testCommand": "go test -race ./exchange/step -run 'MixedConicalAP242' -count=1 -v",
+  "liveTests": {
+    "live.log": "26.322s",
+    "live-race.log": "359.161s"
+  },
+  "lengthUnit": "mm",
+  "callerBudgetMillimetres": 3e-12,
+  "tightBudgetRejection": {
+    "2.8e-12": "rolling-rim product #62 finite cone angle"
+  },
+  "originalRootDefinitionIDs": [
+    5
+  ],
+  "originalGroupDefinitionID": 31,
+  "originalOccurrenceIDs": [
+    58,
+    221,
+    227,
+    437,
+    443
+  ],
+  "localRepairs": [
+    {
+      "definitionID": 62,
+      "bodyID": 68,
+      "sourceSHA256": "56b8c3ae550ef2d0cae833eede3a5498eefadda7e56c55b475ac8338276cd27c",
+      "correctedSHA256": "01a1f00976cbd64722d9f49706352ba9ae8649d04601a62d5e29bb8911bb95b3",
+      "nativeSHA256": "df411bbb977e59552daf4bb7620ea2ff5a7263ef87be0c5248daa075ef058dec",
+      "generatedMap": {
+        "223": 444,
+        "224": 445
+      }
+    },
+    {
+      "definitionID": 230,
+      "bodyID": 236,
+      "sourceSHA256": "4f11f807e0ebe1adfd0f65b5f1b7dd35e591249c3212831c8d5968d04b54b1c8",
+      "correctedSHA256": "3701852868fdec7901481bfe2f2b13aad1e75e9ff2ffef9c4938c9439b71b9e3",
+      "nativeSHA256": "868c5fbc34da853155b930450bbac9c5b8b9a9c769b82e8875819e100c921ed5",
+      "generatedMap": {
+        "439": 446,
+        "440": 447,
+        "441": 448,
+        "442": 449,
+        "443": 450,
+        "444": 451
+      }
+    }
+  ],
+  "exactWorlds": [
+    {
+      "ProductID": 62,
+      "Path": [
+        58,
+        221
+      ],
+      "Pose": [
+        [
+          "3/5",
+          "-4/5",
+          "0",
+          "582/5"
+        ],
+        [
+          "4/5",
+          "3/5",
+          "0",
+          "226/5"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "16"
+        ]
+      ]
+    },
+    {
+      "ProductID": 62,
+      "Path": [
+        58,
+        227
+      ],
+      "Pose": [
+        [
+          "-4/5",
+          "0",
+          "3/5",
+          "314/5"
+        ],
+        [
+          "3/5",
+          "0",
+          "4/5",
+          "52/5"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "15"
+        ]
+      ]
+    },
+    {
+      "ProductID": 230,
+      "Path": [
+        58,
+        437
+      ],
+      "Pose": [
+        [
+          "-7/25",
+          "-24/25",
+          "0",
+          "124"
+        ],
+        [
+          "24/25",
+          "-7/25",
+          "0",
+          "2"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "20"
+        ]
+      ]
+    },
+    {
+      "ProductID": 62,
+      "Path": [
+        443,
+        221
+      ],
+      "Pose": [
+        [
+          "1",
+          "0",
+          "0",
+          "-70"
+        ],
+        [
+          "0",
+          "3/5",
+          "-4/5",
+          "-22"
+        ],
+        [
+          "0",
+          "4/5",
+          "3/5",
+          "34"
+        ]
+      ]
+    },
+    {
+      "ProductID": 62,
+      "Path": [
+        443,
+        227
+      ],
+      "Pose": [
+        [
+          "0",
+          "0",
+          "1",
+          "-130"
+        ],
+        [
+          "3/5",
+          "-4/5",
+          "0",
+          "-8"
+        ],
+        [
+          "4/5",
+          "3/5",
+          "0",
+          "51"
+        ]
+      ]
+    },
+    {
+      "ProductID": 230,
+      "Path": [
+        443,
+        437
+      ],
+      "Pose": [
+        [
+          "3/5",
+          "-4/5",
+          "0",
+          "-100"
+        ],
+        [
+          "12/25",
+          "9/25",
+          "-4/5",
+          "-222/5"
+        ],
+        [
+          "16/25",
+          "12/25",
+          "3/5",
+          "54/5"
+        ]
+      ]
+    }
+  ],
+  "pinnedOriginal": {
+    "groupsShared": true,
+    "occurrences": [
+      {
+        "path": [
+          1,
+          1
+        ],
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.4014009762636,
+        "area": 1182.6440976399656,
+        "centroid": [
+          114.80578105548814,
+          46.38017923832676,
+          19.320613872008
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          0.6,
+          -0.8,
+          0,
+          116.4,
+          0.8,
+          0.6,
+          0,
+          45.2,
+          0,
+          0,
+          1,
+          16
+        ]
+      },
+      {
+        "path": [
+          1,
+          2
+        ],
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.4014009762636,
+        "area": 1182.6440976399656,
+        "centroid": [
+          64.80227870404137,
+          13.049058311978971,
+          16.983482698605545
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          -0.8,
+          0,
+          0.6,
+          62.8,
+          0.6,
+          0,
+          0.8,
+          10.399999999999997,
+          0,
+          1,
+          0,
+          15
+        ]
+      },
+      {
+        "path": [
+          1,
+          3
+        ],
+        "sharedWithFirst": false,
+        "valid": true,
+        "volume": 726.9882656102544,
+        "area": 593.897326906747,
+        "centroid": [
+          124.53940040850556,
+          1.7971485643227183,
+          26.394116339655863
+        ],
+        "topology": [
+          1,
+          8,
+          14,
+          8
+        ],
+        "pose": [
+          -0.28000000000000014,
+          -0.96,
+          0,
+          124,
+          0.96,
+          -0.2800000000000001,
+          0,
+          2,
+          0,
+          0,
+          1,
+          20
+        ]
+      },
+      {
+        "path": [
+          2,
+          1
+        ],
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.4014009762636,
+        "area": 1182.6440976399656,
+        "centroid": [
+          -70.01238797604572,
+          -23.466401478443075,
+          37.57915448208924
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          1,
+          0,
+          0,
+          -70,
+          0,
+          0.6,
+          -0.8,
+          -22,
+          0,
+          0.8,
+          0.6,
+          34
+        ]
+      },
+      {
+        "path": [
+          2,
+          2
+        ],
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.401400976263,
+        "area": 1182.6440976399656,
+        "centroid": [
+          -126.679386127992,
+          -9.594218944511864,
+          52.18017923832676
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          0,
+          0,
+          1,
+          -130,
+          0.6,
+          -0.8,
+          0,
+          -8.000000000000002,
+          0.8,
+          0.6,
+          0,
+          51
+        ]
+      },
+      {
+        "path": [
+          2,
+          3
+        ],
+        "sharedWithFirst": false,
+        "valid": true,
+        "volume": 726.9882656102544,
+        "area": 593.897326906747,
+        "centroid": [
+          -99.83864090343849,
+          -49.84723178465118,
+          14.193884853224864
+        ],
+        "topology": [
+          1,
+          8,
+          14,
+          8
+        ],
+        "pose": [
+          0.6,
+          -0.8,
+          0,
+          -100,
+          0.48,
+          0.36,
+          -0.8,
+          -44.4,
+          0.6400000000000001,
+          0.48,
+          0.6,
+          10.8
+        ]
+      }
+    ]
+  },
+  "pinnedCorrected": {
+    "groupsShared": true,
+    "occurrences": [
+      {
+        "path": [
+          1,
+          1
+        ],
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.4014040828897,
+        "area": 1182.6440976399515,
+        "centroid": [
+          114.80574647845128,
+          46.380140154223795,
+          19.320613869796095
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          0.6,
+          -0.8,
+          0,
+          116.4,
+          0.8,
+          0.6,
+          0,
+          45.2,
+          0,
+          0,
+          1,
+          16
+        ]
+      },
+      {
+        "path": [
+          1,
+          2
+        ],
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.4014040828893,
+        "area": 1182.6440976399515,
+        "centroid": [
+          64.80232031351781,
+          13.049027102106752,
+          16.98348690977326
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          -0.8,
+          0,
+          0.6,
+          62.8,
+          0.6,
+          0,
+          0.8,
+          10.399999999999997,
+          0,
+          1,
+          0,
+          15
+        ]
+      },
+      {
+        "path": [
+          1,
+          3
+        ],
+        "sharedWithFirst": false,
+        "valid": true,
+        "volume": 726.988268498145,
+        "area": 593.897326906695,
+        "centroid": [
+          124.53940240538813,
+          1.797030787064127,
+          26.39411633864865
+        ],
+        "topology": [
+          1,
+          8,
+          14,
+          8
+        ],
+        "pose": [
+          -0.28000000000000014,
+          -0.96,
+          0,
+          124,
+          0.96,
+          -0.2800000000000001,
+          0,
+          2,
+          0,
+          0,
+          1,
+          20
+        ]
+      },
+      {
+        "path": [
+          2,
+          1
+        ],
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.4014040828897,
+        "area": 1182.6440976399515,
+        "centroid": [
+          -70.0124399895502,
+          -23.46639894997292,
+          37.57915784969626
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          1,
+          0,
+          0,
+          -70,
+          0,
+          0.6,
+          -0.8,
+          -22,
+          0,
+          0.8,
+          0.6,
+          34
+        ]
+      },
+      {
+        "path": [
+          2,
+          2
+        ],
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.401404082889,
+        "area": 1182.6440976399515,
+        "centroid": [
+          -126.67938613020391,
+          -9.59425352154873,
+          52.18014015422379
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          0,
+          0,
+          1,
+          -130,
+          0.6,
+          -0.8,
+          0,
+          -8.000000000000002,
+          0.8,
+          0.6,
+          0,
+          51
+        ]
+      },
+      {
+        "path": [
+          2,
+          3
+        ],
+        "sharedWithFirst": false,
+        "valid": true,
+        "volume": 726.9882684981447,
+        "area": 593.897326906695,
+        "centroid": [
+          -99.83873392711583,
+          -49.84727514216213,
+          14.19382704153157
+        ],
+        "topology": [
+          1,
+          8,
+          14,
+          8
+        ],
+        "pose": [
+          0.6,
+          -0.8,
+          0,
+          -100,
+          0.48,
+          0.36,
+          -0.8,
+          -44.4,
+          0.6400000000000001,
+          0.48,
+          0.6,
+          10.8
+        ]
+      }
+    ]
+  },
+  "sourceFixtureSHA256": {
+    "occt-nested-mixed-conical-curved-ap242-rounded.step": "cada24eee451e6592cb34a46284c96f09a8ac35983cba453244ae704e8e8a92a",
+    "occt-nested-mixed-conical-curved-ap242-exact.step": "fa3f0d778b2451f7db66f943a4588cb94632922c3cc925130722b8c5eb242dfe"
+  },
+  "artifactSHA256": {
+    "corrected.step": "d1a6ffdf17e414decb10ab8caf2ee34aca6cdd6d34364365a9ab2eac27e0dc1a",
+    "source-receipt.json": "1c89c132dbfce3d440136a4fab33626adde10b935f2d97c2278bbb1fdb052680",
+    "proof-ledger.json": "a025e4427041166d7592d3be0be757ef15d5693db31651764704643bf2c66671",
+    "repair-nested-mixed-conical-ap242.patch": "72e37a4a601b6ae41c74df29596cd81da08735d0431fefcab457138b8b55b359",
+    "pinned-original-reopen.log": "6b789d08e5eee1c7f834f45df148da9c42e52912e20248b68275873d4ea5914c",
+    "pinned-corrected-reopen.log": "c8ad17a1556a652599cafd1b5d8c32598c940169da6ba91995d4d30f5ea7b28c"
+  },
+  "mainIntegration": {
+    "elapsedSeconds": 469.169,
+    "file": ".worktrees/qualification/2026-11-15/nested-ap242-repair-main-race.jsonl",
+    "sha256": "78da7c7ee3b6be4541f589c80620c9f26aa0bbf715a73cead663903eb056c22a"
+  }
+}

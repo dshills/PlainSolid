@@ -23,6 +23,9 @@ exact original local and world pose labels. Native save/load preserves
 these records through occurrence edits. STEP writeback changes names
 and translations on the original occurrence relationships and refuses
 conflicting edits to shared relationships.
+The original rounded nested AP242 source can also be repaired explicitly.
+The two local parts are proved once, preserving all six original
+occurrence paths and original placements.
 
 The previous paired full runs used kernel `af569683` and PlainCAD `efae4d2`.
 The [Go run](evidence/main-af569683-qualification-2026-11-15.json)
