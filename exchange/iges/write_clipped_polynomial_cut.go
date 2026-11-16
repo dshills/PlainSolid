@@ -38,6 +38,18 @@ func WriteClippedPolynomialThreeTransverseCut(ctx context.Context, w io.Writer, 
 	return writeClippedCutIGESBodies(ctx, w, cut.Components(), cut.Contacts(), unit, l, o)
 }
 
+// WriteClippedPolynomialTransverseCut transfers a source Cut with one to
+// three transverse contacts. Each component has a separate type 186 solid
+// and vertex table. Higher counts remain native-only because pinned
+// readers can reverse very thin separate shells.
+func WriteClippedPolynomialTransverseCut(ctx context.Context, w io.Writer, cut *trimmed.ClippedPolynomialTransverseCut, unit float64, l Limits, o ClippedPolynomialCutIGESOptions) error {
+	contacts := cut.Contacts()
+	if err := validateClippedTransverseCutIGESCount(len(contacts)); err != nil {
+		return err
+	}
+	return writeClippedCutIGESBodies(ctx, w, cut.Components(), contacts, unit, l, o)
+}
+
 func writeClippedCutIGESBodies(ctx context.Context, w io.Writer, components []trimmed.Solid, contacts []trimmed.PolynomialMixedCutContact, unit float64, l Limits, o ClippedPolynomialCutIGESOptions) error {
 	bound := new(big.Rat).SetFloat64(o.PoleTolerance)
 	if ctx == nil || w == nil || !finite(unit) || unit <= 0 || bound == nil || bound.Sign() < 0 {
@@ -126,6 +138,27 @@ func VerifyClippedPolynomialThreeTransverseCutIGES(ctx context.Context, input io
 	return verifyClippedCutIGESBodies(ctx, input, l, func(w io.Writer) error {
 		return WriteClippedPolynomialThreeTransverseCut(ctx, w, cut, unit, l, o)
 	})
+}
+
+// VerifyClippedPolynomialTransverseCutIGES matches the grouped bodies and
+// all original contact occurrences, coedges and units to the native proof.
+func VerifyClippedPolynomialTransverseCutIGES(ctx context.Context, input io.Reader, cut *trimmed.ClippedPolynomialTransverseCut, unit float64, l Limits, o ClippedPolynomialCutIGESOptions) error {
+	if err := validateClippedTransverseCutIGESCount(len(cut.Contacts())); err != nil {
+		return err
+	}
+	return verifyClippedCutIGESBodies(ctx, input, l, func(w io.Writer) error {
+		return WriteClippedPolynomialTransverseCut(ctx, w, cut, unit, l, o)
+	})
+}
+
+func validateClippedTransverseCutIGESCount(n int) error {
+	if n < 1 {
+		return geom.ErrInvalid
+	}
+	if n > 3 {
+		return fmt.Errorf("iges: portable clipped Cut transfer admits at most three transverse contacts: %w", geom.ErrDomain)
+	}
+	return nil
 }
 
 func verifyClippedCutIGESBodies(ctx context.Context, input io.Reader, l Limits, write func(io.Writer) error) error {

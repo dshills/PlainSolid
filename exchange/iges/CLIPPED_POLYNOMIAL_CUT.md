@@ -42,3 +42,24 @@ reopen with 3 and 4 solids, respectively. The three-contact fixtures reopen
 with 4 solids and 29 vertices, and 5 solids and 26 vertices. The verifier
 rejects a third-contact edge redirected to the other component's vertex
 record at the same exact coordinate.
+
+The variable-count Cut writer also accepts one transverse crossing. Its
+fixture retains three separate solids, 14 faces, 18 indexed vertices
+and positive volume in each original component. To qualify both neutral
+formats, compile the same component reader with
+`-DPLAINSOLID_OCCT_STEP_COMPONENT_READER` and `-lTKDESTEP` instead of
+`-lTKDEIGES`, then run:
+
+```sh
+PLAINSOLID_OCCT_CLIPPED_CUT_STEP_COMPONENTS=/tmp/plainsolid-occt-clipped-cut-step \
+PLAINSOLID_OCCT_CLIPPED_CUT_IGES=/tmp/plainsolid-occt-clipped-cut-iges \
+  go test ./exchange -run '^TestVariableTransverseClippedCutExchange$' -count=1 -v
+```
+
+The exact native implementation accepts up to five transverse crossings.
+STEP and IGES reject counts above three before writing records. The
+[readback evidence](../../docs/evidence/variable-transverse-cut-transfer-2026-11-15.json)
+shows why both topology and signed per-body properties matter: the default
+pinned readers considered the four- and five-contact probe shapes valid,
+but reoriented some of their thinnest components and returned negative
+volume. The original native components have strictly positive volume.

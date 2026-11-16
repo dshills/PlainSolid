@@ -1,0 +1,204 @@
+{
+  "schema": 1,
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "meaning": "Default independent BRep validation passed all raw cases. The signed material on some separate thin bodies did not. The higher counts remain outside public transfer.",
+  "cases": [
+    {
+      "transverseContacts": 1,
+      "nativeReceipt": {
+        "file": "native_clipped_polynomial_variable_cut_1.json",
+        "bytes": 4877,
+        "sha256": "6e0fc2afa9bc784043e4276a28584844777ec503307ecb570ab79cb95a3d5445"
+      },
+      "exactPositiveComponentVolumes": [
+        "14149/34359738368",
+        "81989/34359738368",
+        "15861/8192"
+      ],
+      "experimentalTransferWithOriginalOrientation": {
+        "STEP": {
+          "file": "variable-cut-1.step",
+          "bytes": 38803,
+          "sha256": "49b1acdc87f9641472486586baa0d82b20afa27984e4b67b31dd2ef64522f36f"
+        },
+        "IGES": {
+          "file": "variable-cut-1.igs",
+          "bytes": 49248,
+          "sha256": "a2ece259c0f053075c7cb57844ba3368dcf55dc9fc20b282344ae38241d03c9f"
+        }
+      },
+      "defaultPinnedReadback": {
+        "STEP": {
+          "report": {
+            "file": "variable-cut-1-step-components.log",
+            "bytes": 1115,
+            "sha256": "fcb35f864893ec47f29bec59c56a028b427e81deced60563917f3e3f0ae3c998"
+          },
+          "faces": 14,
+          "solids": 3,
+          "indexedVertices": 18,
+          "signedComponentVolumes": [
+            4.117900971376208e-07,
+            2.386193955316874e-06,
+            1.9361572265625
+          ]
+        },
+        "IGES": {
+          "report": {
+            "file": "variable-cut-1-iges-occt.log",
+            "bytes": 1164,
+            "sha256": "87ea92735da82e88d634d4c1ffebfa7ceb5276e4c39131bf60dae70594d37179"
+          },
+          "faces": 14,
+          "solids": 3,
+          "indexedVertices": 18,
+          "signedComponentVolumes": [
+            4.117900971376208e-07,
+            2.386193955316874e-06,
+            1.9361572265625
+          ]
+        }
+      }
+    },
+    {
+      "transverseContacts": 4,
+      "nativeReceipt": {
+        "file": "native_clipped_polynomial_variable_cut_4.json",
+        "bytes": 5657,
+        "sha256": "3dcac1dd31167b530bb39f68d6efac7e3cf3608821dca7eafc9f1401869aa4d8"
+      },
+      "exactPositiveComponentVolumes": [
+        "86202403/39307540692992",
+        "4711/628920651087872",
+        "25319/314460325543936",
+        "4711/628920651087872",
+        "86202403/39307540692992",
+        "15861/8192"
+      ],
+      "experimentalTransferWithOriginalOrientation": {
+        "STEP": {
+          "file": "variable-cut-4.step",
+          "bytes": 71366,
+          "sha256": "1b23ad52205c0eef658eb6496f80ab33a376fda6e2771f5143b0c0bd8159e0c8"
+        },
+        "IGES": {
+          "file": "variable-cut-4.igs",
+          "bytes": 85860,
+          "sha256": "2673d0afc0cb2d7c714fa3c8cc938072f37e427b9619c207b4a93316c8e12e6e"
+        }
+      },
+      "defaultPinnedReadback": {
+        "STEP": {
+          "report": {
+            "file": "variable-cut-4-step-components.log",
+            "bytes": 2290,
+            "sha256": "a051d16d94cf1c4aae3171d4e8adfefa4528f942b9d10340f1d6ce2945562a3f"
+          },
+          "faces": 20,
+          "solids": 6,
+          "indexedVertices": 30,
+          "signedComponentVolumes": [
+            2.1930245820691065e-06,
+            -7.490611084416407e-12,
+            8.051572157662942e-11,
+            -7.490611056195874e-12,
+            2.1930245820565014e-06,
+            1.9361572265625
+          ]
+        },
+        "IGES": {
+          "report": {
+            "file": "variable-cut-4-iges-occt.log",
+            "bytes": 2339,
+            "sha256": "9a1b2e8fe6292a5b8f971b678c34dbcb77f027a0c46f45e85627af207c0e8097"
+          },
+          "faces": 20,
+          "solids": 6,
+          "indexedVertices": 30,
+          "signedComponentVolumes": [
+            2.1930245820691065e-06,
+            -7.490611084416407e-12,
+            8.051572157662942e-11,
+            -7.490611056195874e-12,
+            2.1930245820565014e-06,
+            1.9361572265625
+          ]
+        }
+      }
+    },
+    {
+      "transverseContacts": 5,
+      "nativeReceipt": {
+        "file": "native_clipped_polynomial_variable_cut_5.json",
+        "bytes": 5874,
+        "sha256": "c9431ba3fea4d26e2050c041fe3669fa6eb96d70a39ce208f207e17d2a2938f7"
+      },
+      "exactPositiveComponentVolumes": [
+        "65183535/281474976710656",
+        "32805/576460752303423488",
+        "2085/576460752303423488",
+        "2085/576460752303423488",
+        "32805/576460752303423488",
+        "65183535/281474976710656",
+        "15861/8192"
+      ],
+      "experimentalTransferWithOriginalOrientation": {
+        "STEP": {
+          "file": "variable-cut-5.step",
+          "bytes": 85893,
+          "sha256": "0c4ba9864c43a2fb39b8d8fc7fb727113a450ed919a6200e063716f1e9541776"
+        },
+        "IGES": {
+          "file": "variable-cut-5.igs",
+          "bytes": 108864,
+          "sha256": "8068d20ebd2e32f508c8e8b4a7c161ad9d027e3c423c4bd8d675d6b292481ed4"
+        }
+      },
+      "defaultPinnedReadback": {
+        "STEP": {
+          "report": {
+            "file": "variable-cut-5-step-components.log",
+            "bytes": 2642,
+            "sha256": "7b708b74b63db8ea7b9065d96aacf7038f80f50006a4ae5df34bdbb8909e3d8b"
+          },
+          "faces": 22,
+          "solids": 7,
+          "indexedVertices": 34,
+          "signedComponentVolumes": [
+            2.3157843642770786e-07,
+            -5.690744800531307e-14,
+            -3.616720276016421e-15,
+            -3.6168786382971285e-15,
+            -5.69076178780188e-14,
+            2.3157843642704143e-07,
+            1.9361572265625
+          ]
+        },
+        "IGES": {
+          "report": {
+            "file": "variable-cut-5-iges-occt.log",
+            "bytes": 2691,
+            "sha256": "491f42cf6f8bb8e7c650c93e85ffb18164493847b8adbc6d0d0998fd17527c69"
+          },
+          "faces": 22,
+          "solids": 7,
+          "indexedVertices": 34,
+          "signedComponentVolumes": [
+            2.3157843642770786e-07,
+            -5.690744800531307e-14,
+            -3.616720276016421e-15,
+            -3.6168786382971285e-15,
+            -5.69076178780188e-14,
+            2.3157843642704143e-07,
+            1.9361572265625
+          ]
+        }
+      }
+    }
+  ],
+  "integratedMainGuardAndReaderTest": {
+    "file": "variable-clipped-cut-public-exchange-main-live.jsonl",
+    "bytes": 15494,
+    "sha256": "a3ce7155e9839f4447ef3664cbf47647c35eaa0b9edfdbf815cd3bcf31683e2d"
+  }
+}

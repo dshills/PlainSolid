@@ -37,6 +37,18 @@ func WriteClippedPolynomialThreeTransverseCut(ctx context.Context, w io.Writer, 
 	return writeClippedCutSTEPBodies(ctx, w, cut.Components(), cut.Contacts(), name, lengthUnit, l, o)
 }
 
+// WriteClippedPolynomialTransverseCut transfers a source Cut with one to
+// three transverse contacts. Every contact retains distinct, exact
+// component-local vertex entities with coincident coordinates. Higher counts
+// remain native-only: pinned readers can reverse very thin separate shells.
+func WriteClippedPolynomialTransverseCut(ctx context.Context, w io.Writer, cut *trimmed.ClippedPolynomialTransverseCut, name string, lengthUnit float64, l Limits, o ClippedPolynomialCutSTEPOptions) error {
+	contacts := cut.Contacts()
+	if err := validateClippedTransverseCutSTEPCount(len(contacts)); err != nil {
+		return err
+	}
+	return writeClippedCutSTEPBodies(ctx, w, cut.Components(), contacts, name, lengthUnit, l, o)
+}
+
 func writeClippedCutSTEPBodies(ctx context.Context, w io.Writer, parts []trimmed.Solid, contacts []trimmed.PolynomialMixedCutContact,
 	name string, lengthUnit float64, l Limits, o ClippedPolynomialCutSTEPOptions) error {
 	if ctx == nil || w == nil || !utf8.ValidString(name) || len(name) > 1024 || !validLengthUnit(lengthUnit) ||
@@ -127,6 +139,27 @@ func VerifyClippedPolynomialThreeTransverseCutSTEP(ctx context.Context, input io
 	return verifyClippedCutSTEPBodies(ctx, input, l, func(w io.Writer) error {
 		return WriteClippedPolynomialThreeTransverseCut(ctx, w, cut, name, lengthUnit, l, o)
 	})
+}
+
+// VerifyClippedPolynomialTransverseCutSTEP authenticates every separate body,
+// coedge and paired contact occurrence against the original native sources.
+func VerifyClippedPolynomialTransverseCutSTEP(ctx context.Context, input io.Reader, cut *trimmed.ClippedPolynomialTransverseCut, name string, lengthUnit float64, l Limits, o ClippedPolynomialCutSTEPOptions) error {
+	if err := validateClippedTransverseCutSTEPCount(len(cut.Contacts())); err != nil {
+		return err
+	}
+	return verifyClippedCutSTEPBodies(ctx, input, l, func(w io.Writer) error {
+		return WriteClippedPolynomialTransverseCut(ctx, w, cut, name, lengthUnit, l, o)
+	})
+}
+
+func validateClippedTransverseCutSTEPCount(n int) error {
+	if n < 1 {
+		return geom.ErrInvalid
+	}
+	if n > 3 {
+		return fmt.Errorf("step: portable clipped Cut transfer admits at most three transverse contacts: %w", geom.ErrDomain)
+	}
+	return nil
 }
 
 func verifyClippedCutSTEPBodies(ctx context.Context, input io.Reader, l Limits, write func(io.Writer) error) error {

@@ -2,7 +2,13 @@
 #include <BRepGProp.hxx>
 #include <BRep_Tool.hxx>
 #include <GProp_GProps.hxx>
+#ifdef PLAINSOLID_OCCT_STEP_COMPONENT_READER
+#include <STEPControl_Reader.hxx>
+using ComponentReader = STEPControl_Reader;
+#else
 #include <IGESControl_Reader.hxx>
+using ComponentReader = IGESControl_Reader;
+#endif
 #include <NCollection_IndexedMap.hxx>
 #include <Standard_Failure.hxx>
 #include <TopExp.hxx>
@@ -25,7 +31,7 @@ static int count(const TopoDS_Shape& body, TopAbs_ShapeEnum kind) {
 int main(int argc, char** argv) {
     if (argc != 2) return 2;
     try {
-        IGESControl_Reader reader;
+        ComponentReader reader;
         if (reader.ReadFile(argv[1]) != IFSelect_RetDone) return 3;
         const int transferred = reader.TransferRoots();
         if (transferred == 0) return 4;
