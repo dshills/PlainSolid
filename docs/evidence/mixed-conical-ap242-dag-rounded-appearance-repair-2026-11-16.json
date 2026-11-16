@@ -1,0 +1,481 @@
+{
+  "milestone": "Bounded exact repair of an independently authored rounded styled mixed conical AP242 DAG",
+  "revision": "56706349d358a539d9e4d72fcfb530a7b735c332",
+  "baseRevision": "52118ad94cb491dac8abe06bc583fb1c9cfad110",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "fixture": "exchange/step/testdata/occt-dag-mixed-conical-ap242-rounded-appearance.step",
+  "oracleSource": "tools/occtref/author_ap242_mixed_conical_curved.cxx",
+  "oracleSourceSHA256": "23a681d0e84464caa057f1f6941195e9d3bb51aba9b2a3d2d8d61450f8886827",
+  "environment": {
+    "PLAINSOLID_OCCT_MIXED_CONICAL_AP242_DAG": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/mixed-ap242-curved-import/depth-three-dag/appearance/rounded-repair/author",
+    "PLAINSOLID_OCCT_MIXED_CONICAL_AP242_APPEARANCE": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/mixed-ap242-curved-import/depth-three-dag/appearance/rounded-repair/author",
+    "PLAINSOLID_OCCT_MIXED_CONICAL_AP242_ROUNDED_APPEARANCE": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/mixed-ap242-curved-import/depth-three-dag/appearance/rounded-repair/author"
+  },
+  "verification": {
+    "live.log": {
+      "filter": "^(TestRepair.*MixedConicalAP242DAGAppearance.*|TestMixedConicalAP242DAGAppearance.*)$",
+      "duration": "49.884s",
+      "race": false
+    },
+    "live-race.log": {
+      "filter": "^(TestRepair.*MixedConicalAP242DAGAppearance.*|TestMixedConicalAP242DAGAppearance.*|TestReadMixedConicalAP242DAG.*)$",
+      "duration": "268.729s",
+      "race": true
+    }
+  },
+  "callerBudgetMillimetres": 3e-12,
+  "tightCallerBudgetRejectedMillimetres": 2.8e-12,
+  "tightBudgetCause": "finite cone angle displacement exceeds the source-unit limit",
+  "rollingRimConeDisplacementBoundApproxMillimetres": 2.8274718754314197e-12,
+  "originalSourceStrictRejected": true,
+  "originalBytesRetained": true,
+  "priorUnstyledCorrectedCarrierPartProofAndReceiptUnchanged": true,
+  "pinnedOriginalAndCorrectedAppearanceIdentical": true,
+  "pinnedMaximumOriginalCorrectedRelativeVolumeDelta": 3.972403717881153e-09,
+  "productStyles": [
+    {
+      "DefinitionID": 89,
+      "BodyID": 95,
+      "FaceID": 0,
+      "StyledItemID": 505,
+      "PresentationID": 504,
+      "AssignmentID": 506,
+      "NativeFaceIndex": 0,
+      "Color": {
+        "R": 1,
+        "G": 0,
+        "B": 0
+      }
+    },
+    {
+      "DefinitionID": 257,
+      "BodyID": 263,
+      "FaceID": 0,
+      "StyledItemID": 522,
+      "PresentationID": 521,
+      "AssignmentID": 523,
+      "NativeFaceIndex": 0,
+      "Color": {
+        "R": 0,
+        "G": 1,
+        "B": 0
+      }
+    }
+  ],
+  "faceStyles": [
+    {
+      "DefinitionID": 257,
+      "BodyID": 263,
+      "FaceID": 348,
+      "StyledItemID": 530,
+      "PresentationID": 521,
+      "AssignmentID": 531,
+      "NativeFaceIndex": 3,
+      "Color": {
+        "R": 1,
+        "G": 1,
+        "B": 0
+      }
+    }
+  ],
+  "scopedOverride": {
+    "PrefixSHUOID": 500,
+    "TerminalSHUOID": 499,
+    "Path": [
+      54,
+      85,
+      254
+    ],
+    "Context": {
+      "OccurrenceID": 254,
+      "BodyID": 95,
+      "StyledItemID": 513,
+      "BaseStyledItemID": 505,
+      "AssignmentID": 514,
+      "ContextRepresentationID": 503,
+      "DefinitionRepresentationID": 501,
+      "ProductShapeID": 502,
+      "CDSRID": 250,
+      "TransformationID": 252,
+      "PlacementID": 68,
+      "Color": {
+        "R": 0,
+        "G": 0,
+        "B": 1
+      }
+    }
+  },
+  "generatedSupportIDs": {
+    "89": {
+      "250": 538,
+      "251": 539
+    },
+    "257": {
+      "466": 540,
+      "467": 541,
+      "468": 542,
+      "469": 543,
+      "470": 544,
+      "471": 545
+    }
+  },
+  "paths": [
+    {
+      "ProductID": 89,
+      "Path": [
+        54,
+        85,
+        248
+      ],
+      "Pose": [
+        [
+          "1",
+          "0",
+          "0",
+          "142"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "26"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "10"
+        ]
+      ]
+    },
+    {
+      "ProductID": 89,
+      "Path": [
+        54,
+        85,
+        254
+      ],
+      "Pose": [
+        [
+          "0",
+          "0",
+          "1",
+          "82"
+        ],
+        [
+          "1",
+          "0",
+          "0",
+          "48"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "9"
+        ]
+      ]
+    },
+    {
+      "ProductID": 257,
+      "Path": [
+        54,
+        85,
+        464
+      ],
+      "Pose": [
+        [
+          "3/5",
+          "-4/5",
+          "0",
+          "112"
+        ],
+        [
+          "4/5",
+          "3/5",
+          "0",
+          "-6"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "14"
+        ]
+      ]
+    },
+    {
+      "ProductID": 89,
+      "Path": [
+        487,
+        493,
+        248
+      ],
+      "Pose": [
+        [
+          "3/5",
+          "0",
+          "4/5",
+          "-414/5"
+        ],
+        [
+          "16/25",
+          "3/5",
+          "-12/25",
+          "-113/25"
+        ],
+        [
+          "-12/25",
+          "4/5",
+          "9/25",
+          "741/25"
+        ]
+      ]
+    },
+    {
+      "ProductID": 89,
+      "Path": [
+        487,
+        493,
+        254
+      ],
+      "Pose": [
+        [
+          "0",
+          "4/5",
+          "3/5",
+          "-598/5"
+        ],
+        [
+          "3/5",
+          "-12/25",
+          "16/25",
+          "-731/25"
+        ],
+        [
+          "4/5",
+          "9/25",
+          "-12/25",
+          "1892/25"
+        ]
+      ]
+    },
+    {
+      "ProductID": 257,
+      "Path": [
+        487,
+        493,
+        464
+      ],
+      "Pose": [
+        [
+          "9/25",
+          "-12/25",
+          "4/5",
+          "-488/5"
+        ],
+        [
+          "108/125",
+          "-19/125",
+          "-12/25",
+          "-1121/25"
+        ],
+        [
+          "44/125",
+          "108/125",
+          "9/25",
+          "497/25"
+        ]
+      ]
+    },
+    {
+      "ProductID": 257,
+      "Path": [
+        498
+      ],
+      "Pose": [
+        [
+          "1",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "150"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "40"
+        ]
+      ]
+    }
+  ],
+  "pinnedReopenedStyles": [
+    {
+      "path": [
+        1,
+        1,
+        1
+      ],
+      "product": [
+        0.9999999999999999,
+        0,
+        0
+      ],
+      "override": null,
+      "faces": []
+    },
+    {
+      "path": [
+        1,
+        1,
+        2
+      ],
+      "product": [
+        0.9999999999999999,
+        0,
+        0
+      ],
+      "override": [
+        0,
+        0,
+        0.9999999999999999
+      ],
+      "faces": []
+    },
+    {
+      "path": [
+        1,
+        1,
+        3
+      ],
+      "product": [
+        0,
+        0.9999999999999999,
+        0
+      ],
+      "override": null,
+      "faces": [
+        {
+          "planeZ": 2,
+          "color": [
+            0.9999999999999999,
+            0.9999999999999999,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "path": [
+        2,
+        1,
+        1
+      ],
+      "product": [
+        0.9999999999999999,
+        0,
+        0
+      ],
+      "override": null,
+      "faces": []
+    },
+    {
+      "path": [
+        2,
+        1,
+        2
+      ],
+      "product": [
+        0.9999999999999999,
+        0,
+        0
+      ],
+      "override": null,
+      "faces": []
+    },
+    {
+      "path": [
+        2,
+        1,
+        3
+      ],
+      "product": [
+        0,
+        0.9999999999999999,
+        0
+      ],
+      "override": null,
+      "faces": [
+        {
+          "planeZ": 2,
+          "color": [
+            0.9999999999999999,
+            0.9999999999999999,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "path": [
+        3
+      ],
+      "product": [
+        0,
+        0.9999999999999999,
+        0
+      ],
+      "override": null,
+      "faces": [
+        {
+          "planeZ": 2,
+          "color": [
+            0.9999999999999999,
+            0.9999999999999999,
+            0
+          ]
+        }
+      ]
+    }
+  ],
+  "artifactSHA256": {
+    "author": "c6c6085202f5baefc57e2332a2afd7142f2c5c93ffc402f9bd6e61c3cde71c47",
+    "rounded-appearance.step": "a5806a97098b35d3e3c8f11e31fa7c277c60dbc784adf4b226457a2666c1d012",
+    "corrected.step": "f0e6052c2af918a4b74e72e124865dcd930e546a2ea39c98c955ac479a4f23af",
+    "receipt.json": "8e23a20c2ed1efd3d2aa39acf27c5af0131ae3fc9c61f86ce1a799779076ad53",
+    "author.log": "40e6877acf148cb90fcfd0be16507bb8720f7c8779c3f4868a58146124b39065",
+    "snapshot.go": "0daf8a45a5bc792f6002dda9ce9716dc1ba679b8bd4f9bc56a0ba1e1ce9ca07c",
+    "snapshot.log": "fce7399c88b1aada50c4bdc7fd68513b13a9972293d48f286b63505e88bec9fd",
+    "original-xcaf.log": "933bc616b004f1452562c33ec34407be290314a8dfe2b2cd2abaef899caf844f",
+    "corrected-xcaf.log": "933bc616b004f1452562c33ec34407be290314a8dfe2b2cd2abaef899caf844f",
+    "original-geometry.log": "b2351f828b70b469ea8e347550bd1091b9ba624df97a4b93c7e309b01273969c",
+    "corrected-geometry.log": "c6d32b99c5448cf7dde7030922f215af22f24101d3af3bac718af47a81b7547e",
+    "unchanged-unstyled-corrected.step": "ce658cfbf366dc1951a1571a1a85e9f2a16b22ab6c61bac6bbf5628ed2c14aa3",
+    "unchanged-unstyled-receipt.json": "573c6297c71b0382e1ae377be1628249fab9f4c6b246770fa12c8d03720fc18b",
+    "unchanged-unstyled-proof.json": "067b1b89eef0dbd371edc6849b35b24d0351a4acc4c4344b6eed91ee3b64fd36",
+    "repair-styled-mixed-conical-ap242-dag.patch": "96e38b4016541c4938a4f992176903f25659bedc61cbbf170da099fab8c6e715",
+    "live.log": "ad343e71e068a420d4431de9816b3a542c0f1e7650fb551c9ec2c9bb8ec47934",
+    "live-race.log": "e027410420dc338405e20dcd7c0c41c38afdf10bef66d6a8d3f8b8d6d1770a26"
+  },
+  "main_integration": {
+    "log": "mixed-conical-styled-rounded-repair-main-race.jsonl",
+    "sha256": "38c023866b4bf3a7ddc31e2d538fd6b6a61289c6059bee21c979b5d328f70449",
+    "elapsed_seconds": 435.913,
+    "required_passes": {
+      "TestRepairMixedConicalAP242DAGAppearance": 39.04,
+      "TestRepairMixedConicalAP242DAGAppearanceReject": 0.14,
+      "TestRepairedMixedConicalAP242DAGAppearanceReceipt": 153.19,
+      "TestRepairMixedConicalAP242DAGAppearancePinnedAuthor": 24.14,
+      "TestRepairMixedConicalAP242DAG": 36.69,
+      "TestRepairedMixedConicalAP242DAGReceipt": 121.34,
+      "TestMixedConicalAP242DAGAppearancePinnedAuthor": 12.49
+    },
+    "optional_skips": []
+  }
+}

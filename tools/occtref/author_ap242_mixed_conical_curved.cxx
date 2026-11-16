@@ -433,12 +433,14 @@ int main(int argc, char** argv) {
     auto shapes = XCAFDoc_DocumentTool::ShapeTool(doc->Main());
     const std::string_view mode(argv[1]);
     const bool nest = mode == "write-nested" || mode == "write-nested-exact" || mode == "read-nested";
-    const bool appearance = mode == "write-dag-appearance" || mode == "read-dag-appearance";
+    const bool appearance = mode == "write-dag-appearance" || mode == "write-dag-rounded-appearance" ||
+                            mode == "read-dag-appearance";
     const bool dag = mode == "write-dag" || mode == "write-dag-exact" || mode == "read-dag" || appearance;
     auto colors = XCAFDoc_DocumentTool::ColorTool(doc->Main());
     const bool exact = mode == "write-exact" || mode == "write-nested-exact" || mode == "write-dag-exact" || mode == "write-dag-appearance";
     if (mode == "write" || mode == "write-exact" || mode == "write-nested" || mode == "write-nested-exact" ||
-        mode == "write-dag" || mode == "write-dag-exact" || mode == "write-dag-appearance") {
+        mode == "write-dag" || mode == "write-dag-exact" || mode == "write-dag-appearance" ||
+        mode == "write-dag-rounded-appearance") {
         const auto fillet = rounded(), chamfer = chamfered();
         if (fillet.IsNull() || chamfer.IsNull() || !BRepCheck_Analyzer(fillet).IsValid() || !BRepCheck_Analyzer(chamfer).IsValid()) return 2;
         auto root = shapes->NewShape(), f = shapes->AddShape(fillet, false), c = shapes->AddShape(chamfer, false);

@@ -119,6 +119,13 @@ three of its instances, and the blue override on only relationship path
 entity IDs; qualification compares the unchanged non-presentation graph
 and checks the style owners. The committed original STEP bytes and
 earlier corrected STEP and source receipt remain byte identical.
+The [rounded styled AP242 milestone](evidence/mixed-conical-ap242-dag-rounded-appearance-repair-2026-11-16.json)
+passed a 435.913-second main race with pinned OCCT authoring and
+original/corrected readback. The opt-in `3e-12` mm budget succeeds and
+`2.8e-12` mm refuses the finite cone correction. Both XCAF appearance
+reports are byte identical. The seven exact world placements, paint on
+original face #348 and the single override at `[54,85,254]` survive.
+The earlier unstyled corrected STEP and replay receipt still match.
 
 The [explicit rounded conical STEP repair](evidence/conical-rim-fillet-default-step-repair-2026-11-15.json)
 was checked against independently pinned OCCT authoring and readback. The

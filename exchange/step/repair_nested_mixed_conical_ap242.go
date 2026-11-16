@@ -156,11 +156,17 @@ func RepairNestedMixedConicalAP242Assembly(ctx context.Context, r io.Reader, l L
 }
 
 func repairMixedConicalAP242Parts(ctx context.Context, h mixedConicalAP242Hierarchy, l Limits, distance float64) ([]byte, [2]NestedMixedConicalAP242PartRepair, error) {
-	f := h.assembly.Source
-	fixed := cloneOvalFile(f)
-	fixed.Order = slices.Clone(f.Order)
-	incoming := conicalRepairIncoming(f)
-	freshID := slices.Max(f.Order)
+	return repairMixedConicalAP242PartsInto(ctx, h, h.assembly.Source, l, distance)
+}
+
+// The enclosing source can also retain authenticated presentation records
+// erased from the private geometry proof. Their references and IDs must count
+// for local ownership and fresh entity allocation.
+func repairMixedConicalAP242PartsInto(ctx context.Context, h mixedConicalAP242Hierarchy, source *File, l Limits, distance float64) ([]byte, [2]NestedMixedConicalAP242PartRepair, error) {
+	fixed := cloneOvalFile(source)
+	fixed.Order = slices.Clone(source.Order)
+	incoming := conicalRepairIncoming(source)
+	freshID := slices.Max(source.Order)
 	var parts [2]NestedMixedConicalAP242PartRepair
 	n := 0
 	for _, product := range h.assembly.Products {
@@ -172,7 +178,7 @@ func repairMixedConicalAP242Parts(ctx context.Context, h mixedConicalAP242Hierar
 			return nil, parts, err
 		}
 		roots := []int64{h.records.definitionShapes[product.DefinitionID], h.records.protocol, h.records.categories[product.ProductID]}
-		view, err := mixedConicalAP242ViewFile(f, roots, l)
+		view, err := mixedConicalAP242ViewFile(h.assembly.Source, roots, l)
 		if err != nil {
 			return nil, parts, err
 		}

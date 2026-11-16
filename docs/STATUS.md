@@ -62,6 +62,9 @@ relationship writeback, with a conflict check for expanded shared uses.
 The strict depth-three exchange path now also reads product surface fills,
 face fills and an occurrence override authenticated on its full original
 SHUO path. Editable appearance and appearance writeback remain in progress.
+The independently rounded styled input has explicit repair with an
+original STEP receipt. Both styles and source owners survive corrected
+strict exchange. The repaired editable document path is in progress.
 
 One transversal circle/parabola family now exports its exact Common, Fuse
 and both Cut orders through STEP and IGES. Each Cut keeps its two material
