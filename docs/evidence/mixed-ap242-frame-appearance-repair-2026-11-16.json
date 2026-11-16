@@ -1380,5 +1380,16 @@
     "elapsed_seconds": [
       385.97
     ]
+  },
+  "main_document": {
+    "path": "combined-styled-frame-document-main-race.jsonl",
+    "sha256": "a6d11e569c43991dcd6d39d583773b3a42723c725ffdf4b532a2554620d8524f",
+    "passes": [
+      "TestRepairedMixedConicalAP242DAGFrameAppearanceDocument",
+      "TestRepairedMixedConicalAP242DAGFrameAppearanceDocumentReject"
+    ],
+    "elapsed_seconds": [
+      368.843
+    ]
   }
 }

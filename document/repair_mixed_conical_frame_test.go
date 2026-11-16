@@ -230,6 +230,16 @@ func openRepairedMixedConicalFrameDocument(t *testing.T) ([]byte, RepairedMixedC
 
 func checkRepairedFrameDocumentOracle(t *testing.T, oracle string, raw []byte, s State) {
 	t.Helper()
+	keys := []string{
+		"step-product-5/occ-54/occ-85/occ-245", repairedFrameLeft, "step-product-5/occ-54/occ-85/occ-443",
+		"step-product-5/occ-466/occ-472/occ-245", repairedFrameRight, "step-product-5/occ-466/occ-472/occ-443",
+		"step-product-5/occ-477",
+	}
+	checkFrameDocumentOracle(t, oracle, raw, s, keys, "step-product-254")
+}
+
+func checkFrameDocumentOracle(t *testing.T, oracle string, raw []byte, s State, keys []string, chamferAsset string) {
+	t.Helper()
 	path := filepath.Join(t.TempDir(), "edited-frame.step")
 	if err := os.WriteFile(path, raw, 0600); err != nil {
 		t.Fatal(err)
@@ -248,11 +258,7 @@ func checkRepairedFrameDocumentOracle(t *testing.T, oracle string, raw []byte, s
 	if err != nil || json.Unmarshal(out, &hit) != nil || hit.SharedAssemblies != 1 || hit.MaterialDefinitions != 2 || len(hit.Occurrences) != 7 {
 		t.Fatalf("pinned XCAF failed to reopen the edited strict graph: %v\n%s", err, out)
 	}
-	keys := []string{
-		"step-product-5/occ-54/occ-85/occ-245", repairedFrameLeft, "step-product-5/occ-54/occ-85/occ-443",
-		"step-product-5/occ-466/occ-472/occ-245", repairedFrameRight, "step-product-5/occ-466/occ-472/occ-443",
-		"step-product-5/occ-477",
-	}
+
 	paths := [][]int{{1, 1, 1}, {1, 1, 2}, {1, 1, 3}, {2, 1, 1}, {2, 1, 2}, {2, 1, 3}, {3}}
 	for i, got := range hit.Occurrences {
 		want, err := s.WorldTransform(keys[i])
@@ -260,7 +266,7 @@ func checkRepairedFrameDocumentOracle(t *testing.T, oracle string, raw []byte, s
 			t.Fatal("pinned XCAF changed an original expanded path", got, err)
 		}
 		topology, volume, area := [4]int{1, 6, 10, 6}, 2282.40140408289, 1182.6440976399515
-		if s.Nodes[keys[i]].Asset == "step-product-254" {
+		if s.Nodes[keys[i]].Asset == chamferAsset {
 			topology, volume, area = [4]int{1, 8, 14, 8}, 726.988268498145, 593.897326906695
 		}
 		if got.Topology != topology || math.Abs(got.Volume-volume) > 1e-8*volume || math.Abs(got.Area-area) > 1e-8*area {

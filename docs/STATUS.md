@@ -34,6 +34,9 @@ The opt-in exchange repair can also compose a private rounded frame
 with a separate local geometry defect on the same styled source. Both
 budgets are enforced and the original shared placement, appearance
 override and face owners remain bound to the source replay.
+The repaired styled assembly also remains editable in a native document:
+shared placement edits and original face colors survive save/load and
+independent STEP reopen with the raw receipt intact.
 A single verified normal sweep now has a closed, outward, embedded
 display mesh with a proved spatial error and original face and station
 identities. An optional angular limit also certifies continuous outward

@@ -47,6 +47,10 @@ uses the same exact relationship without inheriting that override.
 The prior standalone repair outputs reproduce byte for byte. The
 combined corrected carrier and raw receipt also match across executed
 Darwin ARM64 and amd64 producers.
+The main document race and pinned reopen also pass exact shared rotation,
+translation, naming and original cap paint after native save/load. The
+sibling instance keeps its original override precedence; forged receipts,
+paint without an owner, and conflicting shared edits refuse atomically.
 
 The [closed normal sweep display](evidence/closed-verified-normal-sweep-2026-11-16.json)
 passes closed-shell embedding and exact positive signed volume controls

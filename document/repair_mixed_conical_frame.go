@@ -58,14 +58,27 @@ func materializeRepairedMixedConicalFrameDocument(ctx context.Context, m step.Re
 		return zero, err
 	}
 	s, _ := d.Snapshot()
-	e := m.Evidence()
+	if err := addConicalFrameRepairProvenance(&s, m.OriginalSTEP(), m.CorrectedModelSTEP(), m.Evidence()); err != nil {
+		return zero, err
+	}
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
+	d, err = New(s, historyLimit)
+	if err != nil {
+		return zero, err
+	}
+	return RepairedMixedConicalAP242FrameDocument{Document: d, Repair: m}, nil
+}
+
+func addConicalFrameRepairProvenance(s *State, original, corrected string, e step.MixedConicalAP242FrameRepairEvidence) error {
 	digest := func(raw string) Attribute {
 		return conicalStrAttr(fmt.Sprintf("%x", sha256.Sum256([]byte(raw))))
 	}
 	s.Labels[mixedConicalFrameRepairLabel] = Label{
 		Name: "Original STEP occurrence repair", Target: DocumentLabel,
 		Attributes: map[string]Attribute{
-			"step.source.original-sha256": digest(m.OriginalSTEP()), "step.source.corrected-sha256": digest(m.CorrectedModelSTEP()),
+			"step.source.original-sha256": digest(original), "step.source.corrected-sha256": digest(corrected),
 			"step.source.nauo": conicalIntAttr(e.OccurrenceID), "step.source.relationship": conicalIntAttr(e.RelationshipID),
 			"step.source.context-dependent-representation": conicalIntAttr(e.CDSRID),
 			"step.source.transformation":                   conicalIntAttr(e.TransformationID),
@@ -88,23 +101,16 @@ func materializeRepairedMixedConicalFrameDocument(ctx context.Context, m step.Re
 			continue
 		}
 		if n.Asset != mixedConicalProductKey(e.ChildID) || label.Attributes["step.source.relationship"] != conicalIntAttr(e.RelationshipID) {
-			return zero, geom.ErrUnrepresentable
+			return geom.ErrUnrepresentable
 		}
 		label.Parent = mixedConicalFrameRepairLabel
 		s.Labels[id] = label
 		uses++
 	}
 	if uses == 0 {
-		return zero, geom.ErrUnrepresentable
+		return geom.ErrUnrepresentable
 	}
-	if err := ctx.Err(); err != nil {
-		return zero, err
-	}
-	d, err = New(s, historyLimit)
-	if err != nil {
-		return zero, err
-	}
-	return RepairedMixedConicalAP242FrameDocument{Document: d, Repair: m}, nil
+	return nil
 }
 
 // WriteRepairedMixedConicalAP242FrameSTEP binds the native snapshot to its
