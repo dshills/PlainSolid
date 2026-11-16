@@ -323,9 +323,12 @@ its own qualification. Native Common (`fea3d0b4`) and Fuse (`750c9e80`)
 preserve this singularity in both source orders and in closed displays.
 [Independent STEP and IGES](../exchange/CUSPIDAL_CUBIC.md) (`5a296f9c`)
 retain the zero first, shared second and opposite third derivatives on
-the actual reopened model curves. Cuspidal Cut, broader contact
-discovery, finite angle display and advanced edge modifications remain
-in progress.
+the actual reopened model curves. Native cuspidal Cut qualifies in both
+source orders with exact closed shells and original cusp derivatives.
+The pointed Cut has a closed preview at the documented settings;
+the exterior preview still needs a conforming mesh. Its exact material
+proof remains available. Broader contact discovery, finite angle display
+and advanced edge modifications remain in progress.
 Ordinary Go is also running on `01d12dab`; the full PlainCAD run on
 `a296b700` has passed.
 Wider independent STEP and IGES graphs are still required.

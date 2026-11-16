@@ -226,6 +226,16 @@ crease at the cusp, or constraining the cell budget produces no result.
 The native solid and neutral paths require separate evidence for this
 class of sources.
 
+Both native cuspidal Cut orders passed the main branch race run alongside
+the existing Common, Fuse and nodal regressions (25.450 seconds). Exact
+source integration gives `1695/22528` for the exterior and `243/22528`
+for the pointed Cut. Closed native shells retain two original cusp edges
+and exact zero first derivative. The pointed preview at deflection
+`0.005` and angle `0.1` closed with 1,536 triangles and 0.509% relative
+volume error. The exterior test confirms the generic preview returns an
+explicit error and no mesh when closure fails; finer probes exceeded the
+current budget. This is an unresolved display case.
+
 The older full native race `491b18f1` reproduced the same five shaded
 signed-frame failures as ordinary `5181d219`. Its `packages.jsonl` is
 retained in `.worktrees/qualification/2026-11-15/go-491b18f1-race`.
