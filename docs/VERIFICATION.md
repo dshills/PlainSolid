@@ -190,6 +190,11 @@ passes the main race for exact affine faces, edges and corners, a rotated
 negative-Jacobian parabola, and a rational weighted spherical sector.
 Curved bounds retain replayable original face stations. Interrupted
 searches retain only justified bounds, and old analytic moment digests match.
+The [joined sweep distance audit](evidence/verified-normal-offset-sweep-joined-distance-2026-11-16.json)
+uses original outer boundary coverage and proves positive distance at
+points lying on either removed wall. Independent rational references
+cover rotated curved, exact affine and mixed-chart cases. Main race and
+four byte-identical single-sweep receipts pass.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They

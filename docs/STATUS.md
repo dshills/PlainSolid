@@ -83,6 +83,9 @@ original extensive moments before deriving the joined centroid and inertia.
 On a single verified sweep, a directed squared-distance query covers all
 six original analytic faces and returns a replayable original face and
 parameter witness. Affine faces, edges and corners have exact results.
+The same query handles the ten retained outer faces of a joined pair
+and fourteen of a three-chart chain. Removed common walls are excluded;
+each witness identifies its original chart and face.
 An exact surface-pair distance query retains both rational model sample
 points and the squared distance enclosure below float64 range, including
 when an oblique gap is invisible in the outward axis boxes.
