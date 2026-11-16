@@ -5,6 +5,11 @@ passes the main geometry race at rational stations on open and closed
 contacts. It proves both original UV identities for an irrational
 dependent coordinate and checks that public result edits, extrapolation
 and an insufficient work budget cannot substitute a false proof.
+The same [audit](evidence/projective-surface-graph-overlap-2026-11-16.json)
+now covers complete contact within one exact quadratic saddle cell. Two
+placements preserve the independently reversed/swapped owner, the
+nonbinary original knot and all four terminals. Irrational terminals,
+corner deduplication, nonzero critical levels and budget limits pass.
 
 The [full Go run on `c7afb429`](evidence/main-c7afb429-qualification-2026-11-16.json)
 passed all nine lanes: 6,018 passes, 599 optional skips, and no failures

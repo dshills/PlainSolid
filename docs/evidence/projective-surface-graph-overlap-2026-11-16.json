@@ -319,5 +319,23 @@
       "TestTraceProjectiveSurfaceContactsJoinsTheOriginalNonbinaryKnot",
       "TestTraceProjectiveSurfaceContactsFindsAClosedOriginalContour"
     ]
+  },
+  "quadratic_saddle_cell": {
+    "log": "projective-quadratic-saddle-main-race-2.jsonl",
+    "sha256": "48001d5b92025aa26d1a09b9f5604586221f501deb770d5647fc94ca88da1a7a",
+    "initial_incorrect_expected_chart_value": {
+      "log": "projective-quadratic-saddle-main-race.jsonl",
+      "sha256": "0c9b3de8dcf3a7495d6424e7da07ebe4eab83d18994f737c5c34430fbed8d872",
+      "correct_original_station": "64/13"
+    },
+    "main_passes": [
+      "TestProjectiveQuadraticSaddleRetainsIndependentOriginalCharts",
+      "TestProjectiveQuadraticSaddleClipsIrrationalEndpointsAndCorners",
+      "TestTraceProjectiveSurfaceContactsJoinsTheOriginalNonbinaryKnot",
+      "TestTraceProjectiveSurfaceContactsFindsAClosedOriginalContour"
+    ],
+    "terminating_common_knot": "9/10",
+    "both_wall_polynomial": ["1/8", "-1", "1"],
+    "tested_distinct_rays_per_case": 4
   }
 }

@@ -124,6 +124,10 @@ knots. Each junction retains both owners' algebraic original coordinates.
 Each retained arc can now be evaluated at an exact rational common
 station, returning both original UV identities even when a dependent
 coordinate is irrational.
+An original common knot cell can now prove a complete interior quadratic
+saddle: one exact junction and four separate rays clipped against the
+cell boundary. Joining singular cells into a wider contact network is
+qualified separately.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows
