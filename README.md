@@ -10,6 +10,10 @@ Requires Go 1.23 or newer. No CGo, native libraries, or third-party Go modules.
 The Go module path `plainsolid` is provisional. PlainSolid is available under
 the [MIT License](LICENSE).
 
+![Isometric render of the ORBIT drive housing with a recessed pocket, central bore, and counterbored mounting holes](docs/images/orbit-drive-housing.png)
+
+*ORBIT drive housing, rebuilt in PlainCAD with the PlainSolid WebAssembly kernel.*
+
 ## Current capabilities
 
 | Package | Implemented domain |
