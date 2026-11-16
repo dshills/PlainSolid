@@ -33,6 +33,14 @@ displacement limits, preserves the original source receipt, and refuses
 tight limits, ambiguous primitive directions and borrowed placement
 owners. Native Darwin ARM64 and executed Darwin amd64 snapshots agreed.
 
+The [closed normal sweep display](evidence/closed-verified-normal-sweep-2026-11-16.json)
+passes closed-shell embedding and exact positive signed volume controls
+for a rational planar slab and a curved strip in both placements. The
+default distance of 0.05 was met; the curved mesh volume agreed with
+the independent analytic value within 0.014%. All eight previous grid
+digests matched. Main race controls cover the new meshes, atomic resource
+and precision refusals, and the existing stitched atlas.
+
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips
 among 6,460 inventoried cases. All 53 tested packages passed; eight have
