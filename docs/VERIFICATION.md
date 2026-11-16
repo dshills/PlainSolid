@@ -439,6 +439,11 @@ keeps 18 original exterior faces, and returns the exact affine volume
 1 and area 62/5. The nonparallel volume and all retained face areas
 agree with independent source integrals. A 17-face budget keeps only
 that certified prefix; race and 46 predecessor receipts pass.
+The matching four-chart display audit checks 170 vertices and 336
+triangles per control, independently verifying original stations,
+full face coverage, indexed closure and outward orientation. Exact
+signed volumes are 5/4 and 31/32. Distance and angle bounds pass, a
+one-triangle-short request refuses, and six earlier displays match.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They

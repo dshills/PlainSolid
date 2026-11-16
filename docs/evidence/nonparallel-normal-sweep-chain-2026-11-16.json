@@ -67,7 +67,38 @@
     ],
     "full_coarse_visits": 18,
     "short_prefix_faces": 17,
-    "predecessor_receipts_unchanged": 46,
-    "four_chart_display": "not yet qualified by this patch"
+    "predecessor_receipts_unchanged": 46
+  },
+  "four_chart_display": {
+    "main_base": "ffad445a",
+    "isolated_revision": "997597b67af2bfddb04d38ee03877f27959a63f2",
+    "patch_sha256": "c4e660ab6728dafbbd14799cb89f24843b453912026d2ab2a8fb3636b29864df",
+    "main_race_log": "four-normal-sweep-chain-mesh-main-race.jsonl",
+    "main_race_sha256": "70927764c68c672d981b476592a3fb876be19d5caf32fa464c2c5fbca3961ca2",
+    "main_race_seconds": 109.157,
+    "isolated_race_seconds": 87.339,
+    "isolated_packages_seconds": {
+      "geom": 90.059,
+      "mesh": 7.856,
+      "csg/offset": 56.902
+    },
+    "per_mesh": {
+      "vertices": 170,
+      "triangles": 336,
+      "owner_faces": 18,
+      "seams": 3,
+      "seam_vertices": [
+        10,
+        10,
+        10
+      ]
+    },
+    "independent_signed_volumes": [
+      "5/4",
+      "31/32"
+    ],
+    "distance_limit": 0.8,
+    "angular_limit_radians": 0.04,
+    "previous_three_chart_bytes_unchanged": 6
   }
 }

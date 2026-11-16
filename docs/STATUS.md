@@ -134,8 +134,9 @@ over their full signed layers. The joins retain fourteen original
 faces, point membership, and the certified display.
 An exact open four-chart chain now certifies three joins and all
 three nonadjacent pairs. It preserves eighteen original faces, with
-qualified material, boundary and query results. Four-chart display
-is tracked separately.
+qualified material, boundary and query results. Affine and nonparallel
+four-chart chains also have certified closed displays preserving all
+three original seam maps.
 The joined boundary can also measure certified analytic areas on its
 retained original affine and circular faces. Exact shared walls cancel
 before integration and the result preserves each original owner and side.

@@ -28,6 +28,28 @@ type CertifiedVerifiedSweepChainMesh struct {
 	Collision                 collision.Report
 }
 
+type verifiedSweepChainUVStations interface {
+	[3][2][]*big.Rat | [4][2][]*big.Rat
+}
+
+type verifiedSweepChainVertexStations interface {
+	[3]VerifiedSweepPairMeshStation | [4]VerifiedSweepPairMeshStation
+}
+
+// Both public results keep their original fixed-width station layout.
+type verifiedSweepChainMesh[UV verifiedSweepChainUVStations, Vertex verifiedSweepChainVertexStations] struct {
+	Mesh                      mesh.Mesh
+	UVStations                UV
+	DisplacementStations      []*big.Rat
+	VertexStations            []Vertex
+	OriginalFace              []VerifiedSweepPairMeshFace
+	DistanceUpperSquared      *big.Rat
+	SquaredFacetNormalTangent *big.Rat `json:",omitempty"`
+	SignedDisplayVolume       *big.Rat
+	GeometryWork              int
+	Collision                 collision.Report
+}
+
 // TessellateVerifiedNormalOffsetSweepChain transports one exact station
 // grid through both original maps. The fourteen retained outer faces
 // share indexed vertices along both joined wall perimeters. Each cell
@@ -45,13 +67,23 @@ func TessellateVerifiedNormalOffsetSweepChain(ctx context.Context, chain *geom.V
 	if sweeps[0] == nil {
 		return empty, geom.ErrInvalid
 	}
+	joins := chain.Joins()
+	out, err := tessellateVerifiedSweepChain[[3][2][]*big.Rat, [3]VerifiedSweepPairMeshStation](
+		ctx, sweeps[:], joins[:], chain.Boundary(), o)
+	return CertifiedVerifiedSweepChainMesh(out), err
+}
+
+func tessellateVerifiedSweepChain[UV verifiedSweepChainUVStations, Vertex verifiedSweepChainVertexStations](ctx context.Context,
+	sweeps []*geom.VerifiedNormalOffsetSweep, joins []geom.VerifiedNormalOffsetSweepChainJoin,
+	faces []geom.VerifiedNormalOffsetSweepBoundaryFace, o VerifiedSweepMeshOptions) (verifiedSweepChainMesh[UV, Vertex], error) {
+	var empty verifiedSweepChainMesh[UV, Vertex]
 	o, err := checkedVerifiedSweepMeshOptions(o)
 	if err != nil {
 		return empty, err
 	}
-	joins, faces := chain.Joins(), chain.Boundary()
+	domains := make([]geom.ParameterRectangle, len(sweeps))
 	domain, displacement := sweeps[0].Domain()
-	domains := [3]geom.ParameterRectangle{domain}
+	domains[0] = domain
 	for owner := 1; owner < len(sweeps); owner++ {
 		domains[owner], _ = sweeps[owner].Domain()
 	}
@@ -74,12 +106,14 @@ func TessellateVerifiedNormalOffsetSweepChain(ctx context.Context, chain *geom.V
 		if o.NormalAngle > 0 {
 			nT = max(nT, n/8)
 		}
-		count := 12*n*n + 16*n*nT
+		// Each chart contributes two cap faces. Each of the joins
+		// removes two side faces from the original four per chart.
+		count := 4*len(sweeps)*n*n + 2*(4*len(sweeps)-2*len(joins))*n*nT
 		if count > o.MaxTriangles || w.remaining() == 0 {
 			return empty, ErrLimit
 		}
 		grids := makeVerifiedSweepChainGrids(domains, displacement, joins, n, nT)
-		out, err := sampleVerifiedSweepChainMesh(ctx, &w, sweeps, faces, grids, joins, limit, n, count)
+		out, err := sampleVerifiedSweepChainMesh[UV, Vertex](ctx, &w, sweeps, faces, grids, joins, limit, n, count)
 		if errors.Is(err, geom.ErrConvergence) {
 			continue
 		}
@@ -107,8 +141,9 @@ func TessellateVerifiedNormalOffsetSweepChain(ctx context.Context, chain *geom.V
 	return empty, geom.ErrConvergence
 }
 
-func makeVerifiedSweepChainGrids(domains [3]geom.ParameterRectangle, displacement geom.ExactParameterInterval,
-	joins [2]geom.VerifiedNormalOffsetSweepChainJoin, n, nT int) (grids [3]verifiedSweepPairGrid) {
+func makeVerifiedSweepChainGrids(domains []geom.ParameterRectangle, displacement geom.ExactParameterInterval,
+	joins []geom.VerifiedNormalOffsetSweepChainJoin, n, nT int) []verifiedSweepPairGrid {
+	grids := make([]verifiedSweepPairGrid, len(domains))
 	displacements := sweepRationalStations(displacement.Lower, displacement.Upper, nT)
 	grids[0] = makeVerifiedSweepChartGrid(domains[0], displacements, n, [2][]*big.Rat{})
 	for i, join := range joins {
@@ -122,24 +157,27 @@ func makeVerifiedSweepChainGrids(domains [3]geom.ParameterRectangle, displacemen
 	return grids
 }
 
-type verifiedSweepChainMeshBuilder struct {
-	out         CertifiedVerifiedSweepChainMesh
-	ids         [3]map[[3]int]int
+type verifiedSweepChainMeshBuilder[UV verifiedSweepChainUVStations, Vertex verifiedSweepChainVertexStations] struct {
+	out         verifiedSweepChainMesh[UV, Vertex]
+	ids         []map[[3]int]int
 	represented [][3]*big.Rat
-	seams       [2]verifiedSweepPairSeamGrid
+	seams       []verifiedSweepPairSeamGrid
 }
 
-func sampleVerifiedSweepChainMesh(ctx context.Context, w *verifiedSweepMeshWork, sweeps [3]*geom.VerifiedNormalOffsetSweep,
-	faces []geom.VerifiedNormalOffsetSweepBoundaryFace, grids [3]verifiedSweepPairGrid,
-	joins [2]geom.VerifiedNormalOffsetSweepChainJoin, limit *big.Rat, n, count int) (CertifiedVerifiedSweepChainMesh, error) {
-	var empty CertifiedVerifiedSweepChainMesh
+func sampleVerifiedSweepChainMesh[UV verifiedSweepChainUVStations, Vertex verifiedSweepChainVertexStations](
+	ctx context.Context, w *verifiedSweepMeshWork, sweeps []*geom.VerifiedNormalOffsetSweep,
+	faces []geom.VerifiedNormalOffsetSweepBoundaryFace, grids []verifiedSweepPairGrid,
+	joins []geom.VerifiedNormalOffsetSweepChainJoin, limit *big.Rat, n, count int) (verifiedSweepChainMesh[UV, Vertex], error) {
+	var empty verifiedSweepChainMesh[UV, Vertex]
 	vertexCount := count/2 + 2
-	builder := verifiedSweepChainMeshBuilder{
+	builder := verifiedSweepChainMeshBuilder[UV, Vertex]{
+		ids:         make([]map[[3]int]int, len(sweeps)),
+		seams:       make([]verifiedSweepPairSeamGrid, len(joins)),
 		represented: make([][3]*big.Rat, 0, vertexCount),
-		out: CertifiedVerifiedSweepChainMesh{
+		out: verifiedSweepChainMesh[UV, Vertex]{
 			Mesh:                 mesh.Mesh{Vertices: make([]geom.Vec3, 0, vertexCount), Triangles: make([][3]int, 0, count)},
 			DisplacementStations: grids[0].stations[2],
-			VertexStations:       make([][3]VerifiedSweepPairMeshStation, 0, vertexCount),
+			VertexStations:       make([]Vertex, 0, vertexCount),
 			OriginalFace:         make([]VerifiedSweepPairMeshFace, 0, count),
 			DistanceUpperSquared: new(big.Rat),
 		},
@@ -148,7 +186,7 @@ func sampleVerifiedSweepChainMesh(ctx context.Context, w *verifiedSweepMeshWork,
 		builder.seams[i] = makeVerifiedSweepPairSeamGrid(join.Original, n)
 	}
 	for owner, grid := range grids {
-		builder.ids[owner] = make(map[[3]int]int, vertexCount/3)
+		builder.ids[owner] = make(map[[3]int]int, vertexCount/len(sweeps))
 		builder.out.UVStations[owner] = [2][]*big.Rat{grid.stations[0], grid.stations[1]}
 	}
 	if w.options.NormalAngle > 0 {
@@ -190,7 +228,7 @@ func sampleVerifiedSweepChainMesh(ctx context.Context, w *verifiedSweepMeshWork,
 	return builder.out, nil
 }
 
-func (b *verifiedSweepChainMeshBuilder) vertex(ctx context.Context, w *verifiedSweepMeshWork,
+func (b *verifiedSweepChainMeshBuilder[UV, Vertex]) vertex(ctx context.Context, w *verifiedSweepMeshWork,
 	sweep *geom.VerifiedNormalOffsetSweep, grid verifiedSweepPairGrid, owner int, station [3]int) (int, [3]*big.Rat, error) {
 	if id, ok := b.ids[owner][station]; ok {
 		return id, b.represented[id], nil
@@ -201,7 +239,7 @@ func (b *verifiedSweepChainMeshBuilder) vertex(ctx context.Context, w *verifiedS
 	}
 	id := len(b.out.Mesh.Vertices)
 	b.ids[owner][station] = id
-	var original [3]VerifiedSweepPairMeshStation
+	var original Vertex
 	original[owner] = VerifiedSweepPairMeshStation{Index: station, Present: true}
 	for i, seam := range b.seams {
 		local := owner - i
