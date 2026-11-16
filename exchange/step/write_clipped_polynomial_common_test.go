@@ -3,8 +3,10 @@ package step
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"os"
 	"os/exec"
@@ -32,14 +34,6 @@ func TestWriteClippedPolynomialCommon(t *testing.T) {
 			s := source.Boundary()
 			var raw bytes.Buffer
 			opts := ClippedPolynomialCommonSTEPOptions{PoleTolerance: 1e-14}
-			if kind == "mixed" {
-				// The native mixed-contact material is valid, but pinned
-				// OCCT rejects the narrow high-order cusp in the raw transfer.
-				if err := WriteClippedPolynomialCommon(ctx, &raw, source, "Clipped Common", .001, Limits{}, opts); !errors.Is(err, geom.ErrDomain) || raw.Len() != 0 {
-					t.Fatalf("unsupported cusp published bytes: %v", err)
-				}
-				return
-			}
 			if err := WriteClippedPolynomialCommon(ctx, &raw, source, "Clipped Common", .001, Limits{}, opts); err != nil {
 				t.Fatal(err)
 			}
@@ -48,6 +42,32 @@ func TestWriteClippedPolynomialCommon(t *testing.T) {
 			}
 			if err := verify(raw.Bytes()); err != nil {
 				t.Fatal(err)
+			}
+			faceCount, edgeCount := len(s.Faces()), len(s.Edges())
+			if kind == "mixed" {
+				faceCount++
+				edgeCount++
+				var unsplit bytes.Buffer
+				if err := writeExactBezierSingleSTEP(ctx, &unsplit, s, "Clipped Common", .001, Limits{}, opts); err != nil {
+					t.Fatal(err)
+				}
+				if err := verify(unsplit.Bytes()); !errors.Is(err, geom.ErrConvergence) {
+					t.Fatalf("unsplit cusp accepted as canonical: %v", err)
+				}
+				limited := opts
+				limited.Proof.MaxWork = 1
+				var refused bytes.Buffer
+				if err := WriteClippedPolynomialCommon(ctx, &refused, source, "Clipped Common", .001, Limits{}, limited); err == nil || refused.Len() != 0 {
+					t.Fatalf("truncated source proof published bytes: %v", err)
+				}
+				if err := WriteClippedPolynomialCommon(ctx, &refused, source, "Clipped Common", .001, Limits{MaxFaces: faceCount - 1}, opts); !errors.Is(err, geom.ErrConvergence) || refused.Len() != 0 {
+					t.Fatalf("split faces exceeded the transfer budget: %v", err)
+				}
+			} else {
+				const beforeSplit = "9a1a692625a708dd3e389dea727613d48db81f62a7334689ba5ce1817b8ad47e"
+				if digest := fmt.Sprintf("%x", sha256.Sum256(raw.Bytes())); digest != beforeSplit {
+					t.Fatalf("transverse output bytes changed: %s", digest)
+				}
 			}
 			modified := bytes.Replace(raw.Bytes(), []byte(".CURVE_3D."), []byte(".PCURVE_S2."), 1)
 			if err := verify(modified); !errors.Is(err, geom.ErrConvergence) {
@@ -67,7 +87,8 @@ func TestWriteClippedPolynomialCommon(t *testing.T) {
 					counts[r.Type]++
 				}
 			}
-			if counts["MANIFOLD_SOLID_BREP"] != 1 || counts["ADVANCED_FACE"] != len(s.Faces()) || counts["PCURVE"] != 2*len(s.Edges()) {
+			if counts["MANIFOLD_SOLID_BREP"] != 1 || counts["ADVANCED_FACE"] != faceCount || counts["VERTEX_POINT"] != len(s.Vertices()) ||
+				counts["EDGE_CURVE"] != edgeCount || counts["PCURVE"] != 2*edgeCount {
 				t.Fatal("a wall, model edge or original coedge was lost", counts)
 			}
 			if oracle := os.Getenv("PLAINSOLID_OCCT_CLIPPED_FUSE_STEP"); oracle != "" {
@@ -84,7 +105,7 @@ func TestWriteClippedPolynomialCommon(t *testing.T) {
 					t.Fatalf("independent STEP reader: %v\n%s", err, data)
 				}
 				want, err := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
-				if err != nil || got.Solids != 1 || got.Faces != len(s.Faces()) || math.Abs(got.Volume-want.Volume) > 1e-7 || math.Abs(got.Area-want.Area) > 1e-7 {
+				if err != nil || got.Solids != 1 || got.Faces != faceCount || math.Abs(got.Volume-want.Volume) > 1e-7 || math.Abs(got.Area-want.Area) > 1e-7 {
 					t.Fatalf("independent STEP measures: %+v, native volume %.16g area %.16g: %v", got, want.Volume, want.Area, err)
 				}
 			}
