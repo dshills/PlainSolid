@@ -55,6 +55,9 @@ Unexcluded original parameter pairs remain available to later contact
 analysis when limits or overlapping enclosures prevent a decision.
 An exact noncardinal projection can preserve small gaps hidden by the
 axis-aligned boxes, and can exclude the full pair before subdivision.
+One verified offset face can produce a conforming mesh with certified
+two-sided distance and one-to-one projection of the rounded triangles.
+The certificate covers its original open parameter rectangle.
 Full-domain curved pair isolation can also use a bounded exact control-hull
 support search. It can prove separation when the world axes and original
 center normals leave overlapping projections, and retains pairs it cannot

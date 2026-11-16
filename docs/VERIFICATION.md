@@ -95,6 +95,13 @@ The offset projection race passed in 2.934 seconds. Projecting the
 original homogeneous controls preserves a strict gap of `2^-80`
 between two oblique offset planes. A single directed pair test proves
 separation while the same axis-aligned budget leaves the pair unresolved.
+The [verified offset grid milestone](evidence/verified-normal-offset-grid-2026-11-16.json)
+passed the full mesh race on main and then passed again with the new
+directional geometry. A rational bivariate roof meets a `0.05` mm
+request with 8,192 triangles and a certified upper bound of `0.037986`
+mm. Exact projected triangle determinants and symmetric derivative
+bounds prove injectivity in the delivered rounded mesh. Cancellation,
+work exhaustion and rounding collapse refuse atomically.
 The exact convex-hull separation race passed in geometry and intersection
 (25.901 and 1.207 seconds). A weighted curved pair separated on an exact
 new support direction, with the gap independently projected from the
