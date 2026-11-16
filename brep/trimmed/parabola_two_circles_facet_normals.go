@@ -35,17 +35,7 @@ func certifyParabolaCircleFacetNormals(ctx context.Context, s Solid, h ParabolaC
 		a, b, c := points[t[0]], points[t[1]], points[t[2]]
 		return ddCross(boundSubtract(b, a), boundSubtract(c, a))
 	}
-	maximum := new(big.Rat)
-	add := func(a, b [3]*big.Rat) bool {
-		q, ok := ddTanSquared(a, b)
-		if !ok || q.Cmp(limit) > 0 {
-			return false
-		}
-		if q.Cmp(maximum) > 0 {
-			maximum.Set(q)
-		}
-		return true
-	}
+	cone := parabolaCircleFacetCone{limit: limit, maximum: new(big.Rat)}
 	for i, tri := range footprint {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -56,26 +46,8 @@ func certifyParabolaCircleFacetNormals(ctx context.Context, s Solid, h ParabolaC
 			if display.OriginalFace[f] != h.RoofFaces[side] {
 				return nil, geom.ErrConvergence
 			}
-			n := facet(f)
-			g := roof.gradient(center)
-			m := roof.normalHessian
-			du := new(big.Rat).Add(new(big.Rat).Mul(m[0], radius[0]), new(big.Rat).Mul(m[1], radius[1]))
-			dv := new(big.Rat).Add(new(big.Rat).Mul(m[1], radius[0]), new(big.Rat).Mul(m[2], radius[1]))
-			rayZ := big.NewRat(1, 1)
-			if s.faces[h.RoofFaces[side]].Reversed {
-				rayZ.Neg(rayZ)
-			}
-			// The source gradient lies in this rectangle on the whole
-			// padded footprint. Positive-dot circular cones below pi/2
-			// are convex, so their four corners certify every source ray.
-			for _, u := range [2]*big.Rat{new(big.Rat).Sub(g[0], du), new(big.Rat).Add(g[0], du)} {
-				for _, v := range [2]*big.Rat{new(big.Rat).Sub(g[1], dv), new(big.Rat).Add(g[1], dv)} {
-					ray := [3]*big.Rat{new(big.Rat).Neg(new(big.Rat).Mul(u, rayZ)),
-						new(big.Rat).Neg(new(big.Rat).Mul(v, rayZ)), rayZ}
-					if !add(n, ray) {
-						return nil, errRefine
-					}
-				}
+			if !cone.addGraph(facet(f), roof, s.faces[h.RoofFaces[side]].Reversed, center, radius) {
+				return nil, errRefine
 			}
 		}
 	}
@@ -92,11 +64,51 @@ func certifyParabolaCircleFacetNormals(ctx context.Context, s Solid, h ParabolaC
 		if f.Reversed {
 			normal = normal.Scale(-1)
 		}
-		if !add(facet(i+2*len(footprint)), exactBoundPoint(normal)) {
+		if !cone.add(facet(i+2*len(footprint)), exactBoundPoint(normal)) {
 			return nil, errRefine
 		}
 	}
-	return maximum, nil
+	return cone.maximum, nil
+}
+
+type parabolaCircleFacetCone struct {
+	limit, maximum *big.Rat
+}
+
+func (c *parabolaCircleFacetCone) add(facet, source exactBoundVector) bool {
+	q, ok := ddTanSquared(facet, source)
+	if !ok || q.Cmp(c.limit) > 0 {
+		return false
+	}
+	if q.Cmp(c.maximum) > 0 {
+		c.maximum.Set(q)
+	}
+	return true
+}
+
+func (c *parabolaCircleFacetCone) addGraph(facet exactBoundVector, roof parabolaCircleMeshHeight,
+	reversed bool, center, radius [2]*big.Rat) bool {
+	g := roof.gradient(center)
+	m := roof.normalHessian
+	du := new(big.Rat).Add(new(big.Rat).Mul(m[0], radius[0]), new(big.Rat).Mul(m[1], radius[1]))
+	dv := new(big.Rat).Add(new(big.Rat).Mul(m[1], radius[0]), new(big.Rat).Mul(m[2], radius[1]))
+	rayZ := big.NewRat(1, 1)
+	if reversed {
+		rayZ.Neg(rayZ)
+	}
+	// The source gradient lies in this rectangle on the whole padded
+	// footprint. Positive-dot circular cones below pi/2 are convex, so
+	// their four corners certify every source ray.
+	for _, u := range [2]*big.Rat{new(big.Rat).Sub(g[0], du), new(big.Rat).Add(g[0], du)} {
+		for _, v := range [2]*big.Rat{new(big.Rat).Sub(g[1], dv), new(big.Rat).Add(g[1], dv)} {
+			ray := exactBoundVector{new(big.Rat).Neg(new(big.Rat).Mul(u, rayZ)),
+				new(big.Rat).Neg(new(big.Rat).Mul(v, rayZ)), rayZ}
+			if !c.add(facet, ray) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func parabolaCircleFacetSourceBox(uv [][2]*big.Rat, t [3]int, pad *big.Rat) (center, radius [2]*big.Rat) {
