@@ -362,6 +362,11 @@ passes exact repeat emission, both executed macOS architectures, and
 identical pinned reports for the original source and exported carrier.
 All 12 directed pairs retain their original owners and ranges. A
 transfer-collapsing gap refuses atomically; eleven prior outputs match.
+The [mixed periodic inner trim audit](evidence/iges-periodic-mixed-holes-2026-11-16.json)
+retains 16 original directed pairs with one seam-crossing and one
+single-span hole, in both independent source orders. The pinned reader
+validates the positives. Once-rounded model coefficients and original
+overlapping wires refuse. Main race, full IGES, amd64 and 12 earlier files pass.
 
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips

@@ -1,0 +1,349 @@
+{
+  "implementationCommit": "ff9aef7af5e7f7e6cac48238a1632c94697d0c8f",
+  "dependency": "4111429fba672851f399ab2c42b29275f45e8c25",
+  "patch": {
+    "name": "import-periodic-trimmed-iges-128-mixed-seam-holes.patch",
+    "sha256": "83cb7bb9925c9b7dcba1a31f60e29a1c5bde80df8f529d1c6b31bdf507459d86",
+    "bytes": 82771
+  },
+  "sourceScope": "Two strictly interior disjoint original clockwise holes in one certified outer lift. One split original seam-crossing contour and one single-span contour.",
+  "chart": {
+    "fileUnits": "mm",
+    "originalUOwners": [
+      [
+        "4",
+        "5"
+      ],
+      [
+        "5",
+        "6"
+      ]
+    ],
+    "originalUSeam": "5",
+    "projection": [
+      "Y",
+      "Z"
+    ],
+    "projectionOrientation": 1,
+    "outerBounds": [
+      [
+        "19/4",
+        "21/4"
+      ],
+      [
+        "1",
+        "3"
+      ]
+    ],
+    "seamHoleBounds": [
+      [
+        "39/8",
+        "41/8"
+      ],
+      [
+        "3/2",
+        "5/2"
+      ]
+    ],
+    "singleSpanHoleBounds": [
+      [
+        "77/16",
+        "79/16"
+      ],
+      [
+        "9/8",
+        "11/8"
+      ]
+    ],
+    "strictVGap": "1/8",
+    "signedUVAreas": [
+      "1",
+      "-1/4",
+      "-1/32"
+    ]
+  },
+  "graph": {
+    "directoryOwners": 43,
+    "sourceControlPoints": 56,
+    "outerFaceID": 1,
+    "supportID": 3,
+    "originalOwnerOrder": [
+      [
+        5,
+        35,
+        65
+      ],
+      [
+        5,
+        35,
+        57
+      ]
+    ],
+    "edgePairCountsByOriginalOrder": [
+      [
+        6,
+        6,
+        4
+      ],
+      [
+        6,
+        4,
+        6
+      ]
+    ],
+    "outerModelRangeStarts": [
+      0,
+      2,
+      4,
+      6,
+      8,
+      10
+    ],
+    "seamHoleModelRangeStarts": [
+      20,
+      22,
+      24,
+      26,
+      28,
+      30
+    ],
+    "singleSpanModelRangeStarts": [
+      40,
+      42,
+      44,
+      46
+    ]
+  },
+  "pinnedOCCT": {
+    "revision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+    "binary": {
+      "name": "author",
+      "sha256": "bcc9f51bad8985008405a26d8b90d98a5e48c7bb1478b13103c336fc1558a4fd",
+      "bytes": 146728
+    },
+    "source": {
+      "name": "iges_periodic_128_trim.cxx",
+      "sha256": "785f4c0a2b0477d417d831d630d90d27c5b42a4e9661730aa75d9f15d6849f77",
+      "bytes": 15504
+    },
+    "readMode": "read-wires"
+  },
+  "fixtures": {
+    "seamThenSingleSpan": {
+      "source": {
+        "name": "exact-seam-mixed.iges",
+        "sha256": "e8379004fa6eb499eddfc147357b2527dfc648d39320aee1dade1f19f17c43df",
+        "bytes": 12636
+      },
+      "strictExactInput": "Complete exact pairing, strict containment and disjointness",
+      "fileContourOrder": [
+        5,
+        35,
+        65
+      ],
+      "pinnedReadLog": {
+        "name": "exact-seam-mixed.reader.log",
+        "sha256": "4ffb9006af292ffe85c7e20268869f42ca2083c132e45bf7d4f90254106f3b19",
+        "bytes": 3738
+      },
+      "pinnedReaderExit": 0,
+      "pinnedReopen": {
+        "valid": true,
+        "topology": [
+          1,
+          3,
+          16,
+          16
+        ],
+        "area": 2.941538669583753,
+        "perimeter": 13.627549535111653,
+        "periodicU": true,
+        "bounds": [
+          4.75,
+          5.25,
+          1,
+          3
+        ],
+        "samplesCount": 5,
+        "wiresCount": 3
+      }
+    },
+    "singleSpanThenSeam": {
+      "source": {
+        "name": "exact-seam-mixed-reversed.iges",
+        "sha256": "8f1f38fd95e8a4ddd9fe3b91bd1da7c4ab120be47863b6cf481c011cd3d72b08",
+        "bytes": 12636
+      },
+      "strictExactInput": "Complete exact pairing, strict containment/disjointness and original contour order",
+      "fileContourOrder": [
+        5,
+        35,
+        57
+      ],
+      "pinnedReadLog": {
+        "name": "exact-seam-mixed-reversed.reader.log",
+        "sha256": "5ae1398abbd82668568870412558c43d2f2cf385ad1bb392c53be6c9c99f788e",
+        "bytes": 3738
+      },
+      "pinnedReaderExit": 0,
+      "pinnedReopen": {
+        "valid": true,
+        "topology": [
+          1,
+          3,
+          16,
+          16
+        ],
+        "area": 2.9415386695837524,
+        "perimeter": 13.627549535111653,
+        "periodicU": true,
+        "bounds": [
+          4.75,
+          5.25,
+          1,
+          3
+        ],
+        "samplesCount": 5,
+        "wiresCount": 3
+      }
+    },
+    "overlap": {
+      "source": {
+        "name": "exact-seam-mixed-overlap.iges",
+        "sha256": "1e111440dbfec35c7c97d3527a45709371989753602d61eb6da7363de1a6e8a4",
+        "bytes": 12636
+      },
+      "strictExactInput": "Strict refusal after complete UV/model pairing; OCCT splits to 20 edges and reports valid",
+      "fileContourOrder": [
+        5,
+        35,
+        65
+      ],
+      "pinnedReadLog": {
+        "name": "exact-seam-mixed-overlap.reader.log",
+        "sha256": "65077b7a98561224a59ad228179c247963f20b0d541bfdb0a4aa7829a63e7e33",
+        "bytes": 4598
+      },
+      "pinnedReaderExit": 0,
+      "pinnedReopen": {
+        "valid": true,
+        "topology": [
+          1,
+          3,
+          20,
+          18
+        ],
+        "area": 2.816067469529198,
+        "perimeter": 14.127549535111763,
+        "periodicU": true,
+        "bounds": [
+          4.75,
+          5.25,
+          1,
+          3
+        ],
+        "samplesCount": 5,
+        "wiresCount": 3
+      }
+    },
+    "rounded": {
+      "source": {
+        "name": "exact-seam-mixed-rounded.iges",
+        "sha256": "3be3378f06a1c3a092a501cfd65ef1ab2f8b9beabe0cb6f514280cf12cae7005",
+        "bytes": 12636
+      },
+      "strictExactInput": "Strict refusal of raw model edge #79 off UV #69 by 1/4000000000 mm in X",
+      "fileContourOrder": [
+        5,
+        35,
+        65
+      ],
+      "pinnedReadLog": {
+        "name": "exact-seam-mixed-rounded.reader.log",
+        "sha256": "86445769cb45b13f1c372e6cf1634036eca24d4d811c73ae77536fe6ab402dde",
+        "bytes": 3734
+      },
+      "pinnedReaderExit": 0,
+      "pinnedReopen": {
+        "valid": true,
+        "topology": [
+          1,
+          3,
+          16,
+          16
+        ],
+        "area": 2.940078458862369,
+        "perimeter": 13.631505577734265,
+        "periodicU": true,
+        "bounds": [
+          4.75,
+          5.25,
+          1,
+          3
+        ],
+        "samplesCount": 5,
+        "wiresCount": 3
+      }
+    }
+  },
+  "tests": {
+    "focused": {
+      "name": "focused.log",
+      "sha256": "b07f3cf4dbaf761332cecf09b6f47d62dee160b59ee3f94bbc930745011a55b9",
+      "bytes": 6176,
+      "seconds": 2.905,
+      "passed": true
+    },
+    "race": {
+      "name": "race.log",
+      "sha256": "714de07b44d7c864f4aedc1d179c8b83fac5cefbb73af47531be6ef5ec52430f",
+      "bytes": 14694,
+      "seconds": 9.169,
+      "passed": true
+    },
+    "raceFilter": "^(TestWritePeriodic(SeamTrimmedFace|TrimmedFaceWithHoles)|TestReadPeriodic(Seam)?TrimmedFace|TestPeriodicTrimmedFaceSeam|TestReadExactPeriodicSurface128|TestWriteExactPeriodicSurface128|TestNewExactPeriodicSurface128|TestSurfaceExchange|TestIndependentSurfaceParameters|TestExactCurveOnSurface|TestCurveOnSurfaceRejectsMismatch|TestCurveOnSurfacePointerAndLimits|TestMalformedRecordsAndPointers|TestLimits|TestOrthogonalSurface|TestPlacedRectangularSurface|TestQuadraticOvalSurface|TestCurvedOvalSurface|TestPlanarSolidIGES)",
+    "darwinAMD64": {
+      "name": "amd64.log",
+      "sha256": "dd6bc7b95950d9a58961c04339ea2e71501bcafd948571e808810c4a02ab906f",
+      "bytes": 1493,
+      "seconds": null,
+      "passed": true
+    },
+    "fullIGES": {
+      "name": "full.log",
+      "sha256": "1f682cb37c828bb7ac7ebc5200a964e2b87565f49937999c68ce5c7375d82ec0",
+      "bytes": 39,
+      "seconds": 124.733,
+      "passed": true
+    }
+  },
+  "atomicNegatives": [
+    "Duplicate contour and curve owners or wrong support",
+    "Illegal mixed composite size",
+    "Original rounded model control or original overlap",
+    "One entity or control too few"
+  ],
+  "unchangedPredecessorOutputs": {
+    "legacy/one-hole.iges": "deb74dcd6a9d28b5b5bf879596718e43746a801c1c1d06ae16007ab351ac772e",
+    "legacy/ordinary/curves.iges": "e7306c47f1c1b717d0b4dcbc988eb9f42ca22207962c334c8250cd9cc4fdbca3",
+    "legacy/ordinary/rectangular-spline-face.igs": "30b5dd8b91a26096740288382b4c2c8c0d514732cc0d165e5d1fdd5cec2fd26b",
+    "legacy/ordinary/translated-trimmed-rational-128.iges": "ab24c50ad001536723860888a87376f38b9be3a9e08e6aae46eac59d9ddba72d",
+    "legacy/periodic/native-rephased.iges": "2d7538bdad0be19a9f8181c8f71edf0a6a972b50642efe73e5dea93f25a8ca65",
+    "legacy/periodic/u.iges": "27caf6f5f36ba1a16050b139072f35e17a084b5641fcd33fccb4547eac752310",
+    "legacy/periodic/uv.iges": "8190bed840cf2723f44f2754f78fcdb8019deddbfe1a7f97f9f53f92e3cb3156",
+    "legacy/periodic/v.iges": "b543d8b06967e59cd06b20598c6bafeb1e918fe5d445bda36556a4cac6068b60",
+    "legacy/planar.iges": "992bbaa2bcd500dc22dc973966ede61632acb7c4b66eff90fedd0abaf18343cd",
+    "legacy/seam-hole.iges": "1a490104f5ea88187c2009ede8f62a33e2b59c3432f62d99ec99c737d6703727",
+    "legacy/seam.iges": "c323d9b453c627dc16b42833d058d71cbd14313947c8d94d5fbdf4f1154b2b2e",
+    "legacy/two-holes.iges": "f8d62d3bccc673ebf24bdc404a26c69f3f3171b3dd446d42cab036a201eab359"
+  },
+  "sourceQualificationSHA256": "455c8a071df1550647966fa615a5d43217b6efb917f268ec504adf3c29bbe73e",
+  "mainRace": {
+    "sourceBase": "948c085f",
+    "name": "iges-periodic-mixed-holes-main-race.jsonl",
+    "sha256": "d87ba9b3c04a27b785537f4f4a48a3d9f4df289e31cea94627645ce401ba52f3",
+    "seconds": 8.098,
+    "failures": 0,
+    "skips": 0
+  }
+}

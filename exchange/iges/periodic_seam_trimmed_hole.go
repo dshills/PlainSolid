@@ -31,7 +31,7 @@ type PeriodicSeamTrimmedFaceWithHole struct {
 // Each loop must have six complete paired edges in the same chart and the
 // original inner winding must be opposite to the outer winding.
 func ReadPeriodicSeamTrimmedFaceWithHole(ctx context.Context, r io.Reader, l Limits) (PeriodicSeamTrimmedFaceWithHole, error) {
-	source, err := readPeriodicTrimSourceWithHoles(ctx, r, l, 6, 6, 1)
+	source, err := readPeriodicTrimSource(ctx, r, l, 6, []int{6})
 	if err != nil {
 		return PeriodicSeamTrimmedFaceWithHole{}, err
 	}
@@ -44,32 +44,38 @@ func provePeriodicSeamTrimmedFaceWithHole(ctx context.Context, source periodicTr
 	if err != nil {
 		return zero, err
 	}
-	owner := source.holes[0]
-	var uv [6]periodicTrimUVEdge
-	bounds, err := readPeriodicTrimUVEdges(source.graph, owner.uv, uv[:])
+	hole, _, err := provePeriodicSeamHole(ctx, source.graph, outer, source.holes[0], source.remaining)
 	if err != nil {
-		return zero, err
-	}
-	inner := PeriodicSeamTrimmedFace{Support: outer.Support, Bounds: bounds, SeamU: outer.SeamU}
-	cells, err := inner.proveSeamCells(ctx)
-	if err != nil {
-		return zero, fmt.Errorf("iges: periodic hole #%d: %w", owner.contourID, err)
-	}
-	edges, _, err := proveLiftedTrimEdges(ctx, source.graph, bounds, outer.SeamU, uv, owner.model, cells, -1, source.remaining)
-	if err != nil {
-		return zero, fmt.Errorf("iges: periodic hole #%d: %w", owner.contourID, err)
-	}
-	if err := provePeriodicTrimHoleContainment(owner.contourID, bounds, outer.Bounds); err != nil {
 		return zero, err
 	}
 	if len(source.graph.claimed) != len(source.graph.records) {
 		return zero, geom.ErrUnrepresentable
 	}
-	return PeriodicSeamTrimmedFaceWithHole{
-		PeriodicSeamTrimmedFace: outer,
-		Hole: PeriodicSeamTrimHole{
-			ContourID: owner.contourID, UVCompositeID: owner.uvID, ModelCompositeID: owner.modelID,
-			Bounds: bounds, Cells: inner.Cells, Edges: edges,
-		},
-	}, nil
+	return PeriodicSeamTrimmedFaceWithHole{PeriodicSeamTrimmedFace: outer, Hole: hole}, nil
+}
+
+func provePeriodicSeamHole(ctx context.Context, graph periodicTrimGraph, outer PeriodicSeamTrimmedFace,
+	owner periodicTrimLoopSource, remaining int) (PeriodicSeamTrimHole, int, error) {
+	var zero PeriodicSeamTrimHole
+	var uv [6]periodicTrimUVEdge
+	bounds, err := readPeriodicTrimUVEdges(graph, owner.uv, uv[:])
+	if err != nil {
+		return zero, 0, err
+	}
+	inner := PeriodicSeamTrimmedFace{Support: outer.Support, Bounds: bounds, SeamU: outer.SeamU}
+	cells, err := inner.proveSeamCells(ctx)
+	if err != nil {
+		return zero, 0, fmt.Errorf("iges: periodic hole #%d: %w", owner.contourID, err)
+	}
+	edges, remaining, err := proveLiftedTrimEdges(ctx, graph, bounds, outer.SeamU, uv, owner.model, cells, -1, remaining)
+	if err != nil {
+		return zero, 0, fmt.Errorf("iges: periodic hole #%d: %w", owner.contourID, err)
+	}
+	if err := provePeriodicTrimHoleContainment(owner.contourID, bounds, outer.Bounds); err != nil {
+		return zero, 0, err
+	}
+	return PeriodicSeamTrimHole{
+		ContourID: owner.contourID, UVCompositeID: owner.uvID, ModelCompositeID: owner.modelID,
+		Bounds: bounds, Cells: inner.Cells, Edges: edges,
+	}, remaining, nil
 }

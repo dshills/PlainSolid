@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"slices"
 
 	"plainsolid/geom"
 )
@@ -101,11 +102,7 @@ type periodicTrimSource struct {
 	remaining int
 }
 
-func readPeriodicTrimSource(ctx context.Context, r io.Reader, l Limits, edgeCount int) (periodicTrimSource, error) {
-	return readPeriodicTrimSourceWithHoles(ctx, r, l, edgeCount, 0, 0)
-}
-
-func readPeriodicTrimSourceWithHoles(ctx context.Context, r io.Reader, l Limits, edgeCount, holeEdgeCount, maxHoles int) (periodicTrimSource, error) {
+func readPeriodicTrimSource(ctx context.Context, r io.Reader, l Limits, edgeCount int, holeLayouts ...[]int) (periodicTrimSource, error) {
 	var zero periodicTrimSource
 	if ctx == nil {
 		return zero, geom.ErrInvalid
@@ -123,16 +120,24 @@ func readPeriodicTrimSourceWithHoles(ctx context.Context, r io.Reader, l Limits,
 		return zero, err
 	}
 	owners := 5 + 2*edgeCount
-	holeCount := 0
-	if maxHoles > 0 {
-		holeOwners := 3 + 2*holeEdgeCount
-		extra := len(doc.entities) - owners
-		holeCount = extra / holeOwners
-		if holeCount < 1 || holeCount > maxHoles || extra%holeOwners != 0 {
-			return zero, fmt.Errorf("iges: invalid explicit periodic trim hole count (maximum %d): %w", maxHoles, geom.ErrUnrepresentable)
+	var layout []int
+	if len(holeLayouts) != 0 {
+		for _, candidate := range holeLayouts {
+			n := owners
+			for _, edges := range candidate {
+				n += 3 + 2*edges
+			}
+			if n == len(doc.entities) {
+				layout = slices.Clone(candidate)
+				owners = n
+				break
+			}
 		}
-		owners += extra
+		if layout == nil {
+			return zero, fmt.Errorf("iges: invalid explicit periodic trim hole count or layout: %w", geom.ErrUnrepresentable)
+		}
 	}
+	holeCount := len(layout)
 	if len(doc.entities) != owners {
 		return zero, fmt.Errorf("iges: expected one periodic trim with %d source owners: %w", owners, geom.ErrUnrepresentable)
 	}
@@ -162,10 +167,15 @@ func readPeriodicTrimSourceWithHoles(ctx context.Context, r io.Reader, l Limits,
 	m.UVCompositeID, m.ModelCompositeID = outer.uvID, outer.modelID
 	holes := make([]periodicTrimLoopSource, holeCount)
 	for i, id := range face[5:] {
-		holes[i], err = readPeriodicTrimLoop(g, m.SupportID, id, holeEdgeCount)
+		holes[i], err = readPeriodicTrimLoop(g, m.SupportID, id, 0)
 		if err != nil {
 			return zero, err
 		}
+		owner := slices.Index(layout, len(holes[i].uv))
+		if owner < 0 {
+			return zero, fmt.Errorf("iges: wrong periodic trim edge count on hole #%d: %w", id, geom.ErrUnrepresentable)
+		}
+		layout = slices.Delete(layout, owner, owner+1)
 	}
 
 	rec, err := g.take(m.SupportID, 128)
@@ -207,18 +217,34 @@ func readPeriodicTrimLoop(g periodicTrimGraph, supportID, contourID, edgeCount i
 	if contour[1] != 0 || contour[2] != supportID || contour[5] != 3 {
 		return zero, fmt.Errorf("iges: mismatched periodic trim contour support or mode: %w", geom.ErrUnrepresentable)
 	}
-	uv, err := g.links(contour[3], 102, 2+edgeCount)
+	uv, err := readPeriodicTrimComposite(g, contour[3], edgeCount)
 	if err != nil {
 		return zero, err
 	}
-	model, err := g.links(contour[4], 102, 2+edgeCount)
+	model, err := readPeriodicTrimComposite(g, contour[4], len(uv))
 	if err != nil {
 		return zero, err
 	}
-	if uv[1] != edgeCount || model[1] != edgeCount {
-		return zero, geom.ErrUnrepresentable
+	return periodicTrimLoopSource{contourID: contourID, uvID: contour[3], modelID: contour[4], uv: uv, model: model}, nil
+}
+
+func readPeriodicTrimComposite(g periodicTrimGraph, id, edges int) ([]int, error) {
+	r, err := g.take(id, 102)
+	if err != nil {
+		return nil, err
 	}
-	return periodicTrimLoopSource{contourID: contourID, uvID: contour[3], modelID: contour[4], uv: uv[2:], model: model[2:]}, nil
+	if len(r.values) < 2 {
+		return nil, geom.ErrUnrepresentable
+	}
+	n, err := intValue(r.values[1])
+	if err != nil || n != 4 && n != 6 || edges != 0 && n != edges {
+		return nil, fmt.Errorf("iges: wrong periodic trim edge count on composite #%d: %w", id, geom.ErrUnrepresentable)
+	}
+	values, err := periodicTrimLinkValues(r, 2+n)
+	if err != nil {
+		return nil, err
+	}
+	return values[2:], nil
 }
 
 func (m *PeriodicTrimmedFace) proveOriginalKnotCell(ctx context.Context) (geom.ExactPeriodicSurfaceBezierCell, error) {
@@ -285,6 +311,10 @@ func (g periodicTrimGraph) links(id, kind, count int) ([]int, error) {
 	if err != nil {
 		return nil, err
 	}
+	return periodicTrimLinkValues(r, count)
+}
+
+func periodicTrimLinkValues(r topologyRecord, count int) ([]int, error) {
 	if len(r.values) < count {
 		return nil, geom.ErrUnrepresentable
 	}
@@ -293,10 +323,11 @@ func (g periodicTrimGraph) links(id, kind, count int) ([]int, error) {
 	}
 	out := make([]int, count)
 	for i := range out {
-		out[i], err = intValue(r.values[i])
+		n, err := intValue(r.values[i])
 		if err != nil {
 			return nil, err
 		}
+		out[i] = n
 	}
 	return out, nil
 }

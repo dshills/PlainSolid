@@ -20,7 +20,7 @@ func WritePeriodicSeamTrimmedFaceWithHole(ctx context.Context, w io.Writer, face
 	if w == nil || face.original == "" {
 		return geom.ErrInvalid
 	}
-	source, err := readPeriodicTrimSourceWithHoles(ctx, strings.NewReader(face.original), Limits{}, 6, 6, 1)
+	source, err := readPeriodicTrimSource(ctx, strings.NewReader(face.original), Limits{}, 6, []int{6})
 	if err != nil {
 		return err
 	}
