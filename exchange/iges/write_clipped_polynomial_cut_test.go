@@ -206,7 +206,12 @@ func readOCCTExactBezierIGES(t *testing.T, ctx context.Context, oracle string, d
 	return result
 }
 
-func verifyOCCTClippedCutIGES(t *testing.T, ctx context.Context, oracle string, data []byte, cut *trimmed.ClippedPolynomialCut, faces int) {
+type clippedCutIGESMaterial interface {
+	Components() []trimmed.Solid
+	ExactComponentVolumes() ([]*big.Rat, *big.Rat)
+}
+
+func verifyOCCTClippedCutIGES(t *testing.T, ctx context.Context, oracle string, data []byte, cut clippedCutIGESMaterial, faces int) {
 	t.Helper()
 	result := readOCCTExactBezierIGES(t, ctx, oracle, data)
 	parts := cut.Components()
@@ -246,7 +251,7 @@ func verifyOCCTClippedCutIGES(t *testing.T, ctx context.Context, oracle string, 
 			t.Fatalf("independent OCCT original component incidence or orientation: %+v", body)
 		}
 		want, _ := expectedVolumes[match].Float64()
-		if math.Abs(body.Volume-want) > math.Max(1e-12, want*1e-10) {
+		if math.Abs(body.Volume-want) > math.Max(1e-17, want*1e-10) {
 			t.Fatalf("independent OCCT component %d volume %.16g, exact source %.16g", match, body.Volume, want)
 		}
 		matched[match] = true
