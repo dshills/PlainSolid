@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"math"
 	"plainsolid/geom"
+	"strings"
 	"testing"
 )
 
@@ -66,6 +67,7 @@ func TestIndependentSurfaceParameters(t *testing.T) {
 }
 
 func FuzzSurfaceParameters(f *testing.F) {
+	f.Add(strings.Join(periodic128Parameters(f, periodic128Fixture(f, "uv")), ",") + ";")
 	f.Add("128,1,1,1,1,0,0,1,0,0,0,0,1,1,0,0,1,1,1,1,1,1,0,0,0,2,0,0,0,3,0,2,3,0,0,1,0,1;")
 	f.Fuzz(func(t *testing.T, s string) {
 		if len(s) > 65536 {
@@ -76,7 +78,7 @@ func FuzzSurfaceParameters(f *testing.F) {
 		if e != nil {
 			return
 		}
-		ent, e := decode(128, p, 100)
+		ent, e := decodeGeometry(128, p, 100, true)
 		if e == nil {
 			if e = ent.validate(); e != nil {
 				t.Fatal(e)

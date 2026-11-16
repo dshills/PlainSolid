@@ -172,6 +172,9 @@ func writeSweptMode(w io.Writer, m Model, curved, wires, revolutions, tabulated 
 		return errors.New("iges: directory sequence limit exceeded")
 	}
 	for i, e := range m.Entities {
+		if e.Surface != nil && (e.Surface.PeriodicU || e.Surface.PeriodicV || e.Surface.periodic != nil) {
+			return errors.New("iges: periodic spline surface write unsupported")
+		}
 		if e.Composite != nil {
 			if err := m.validateCompositeMode(i, wires); err != nil {
 				return err

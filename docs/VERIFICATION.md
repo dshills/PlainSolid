@@ -140,6 +140,14 @@ The surface-pair cover reports that complete contact in one visit with
 the exact original stations and map. Its short-budget and perturbed
 controls retain pending cells; an edge-only contact remains a candidate.
 
+[Periodic IGES type 128 import](evidence/iges-periodic-128-2026-11-16.json)
+passed three independently authored pinned OCCT inputs and 54 original
+and reopened point/physical-derivative comparisons. The exact expanded
+owners reduce to cyclic control counts in U, V, and both. A nonbinary
+on-disk period `36/5` is retained. Duplicate pole/weight, shifted knot,
+wrong flags and topology-owner controls refuse. Main race, bounded fuzz,
+and matched ordinary IGES bytes passed.
+
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips
 among 6,460 inventoried cases. All 53 tested packages passed; eight have

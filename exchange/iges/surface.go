@@ -6,22 +6,31 @@ import (
 	"plainsolid/geom"
 )
 
-// Surface is an untrimmed-topology type-128 patch with a rectangular parameter
-// interval. Closed flags are metadata, not closure proofs. Periodic flags are
-// rejected; no wrapped parameter semantics or boundary trimming is provided.
+// Surface is a type-128 patch with a rectangular parameter interval and an
+// expanded finite Geometry. For a proved periodic source, a separate exact
+// wrapped parameter domain is available via ExactPeriodicGeometry.
+// Closed flags on ordinary directions are metadata.
 type Surface struct {
 	Geometry                                           *geom.BSplineSurface
 	UStart, UEnd, VStart, VEnd                         float64
 	ClosedU, ClosedV, Polynomial, PeriodicU, PeriodicV bool
+	periodic                                           *periodicSurface128
 }
 
 func (s Surface) Validate() error {
-	if s.Geometry == nil || s.PeriodicU || s.PeriodicV {
-		return errors.New("iges: missing or periodic surface unsupported")
+	if s.Geometry == nil {
+		return errors.New("iges: missing spline surface")
 	}
 	a, b, c, d := s.Geometry.Domain()
 	if math.IsNaN(a) || !finite(s.UStart) || !finite(s.UEnd) || !finite(s.VStart) || !finite(s.VEnd) || s.UStart < a || s.UEnd > b || s.VStart < c || s.VEnd > d || s.UStart >= s.UEnd || s.VStart >= s.VEnd {
 		return errors.New("iges: invalid surface interval")
+	}
+	if s.PeriodicU || s.PeriodicV || s.periodic != nil {
+		if s.periodic == nil || s.periodic.expanded != s.Geometry || s.periodic.axes != [2]bool{s.PeriodicU, s.PeriodicV} || s.periodic.polynomial != s.Polynomial ||
+			s.PeriodicU && !s.ClosedU || s.PeriodicV && !s.ClosedV ||
+			s.UStart != a || s.UEnd != b || s.VStart != c || s.VEnd != d {
+			return errors.New("iges: inconsistent periodic surface evidence")
+		}
 	}
 	if s.Polynomial {
 		w := s.Geometry.Data().Weights
@@ -53,6 +62,10 @@ func (e Entity) EvalSurface(u, v float64) (geom.Vec3, error) {
 	return p, err
 }
 func decodeSurface(p []parameter, maxPoints int) (Entity, error) {
+	return decodeSurfaceMode(p, maxPoints, false)
+}
+
+func decodeSurfaceMode(p []parameter, maxPoints int, allowPeriodic bool) (Entity, error) {
 	if len(p) < 14 {
 		return Entity{}, errors.New("iges: truncated surface")
 	}
@@ -81,6 +94,10 @@ func decodeSurface(p []parameter, maxPoints int) (Entity, error) {
 		}
 		flags[i] = v == 1
 	}
+	periodic := flags[3] || flags[4]
+	if periodic && (!allowPeriodic || n > maxPeriodicSurface128Poles || flags[3] && !flags[0] || flags[4] && !flags[1]) {
+		return Entity{}, errors.New("iges: unsupported periodic surface flags or control net size")
+	}
 	values := make([]float64, ku+kv+4*n+4)
 	for i := range values {
 		x, e := realValue(p[10+i])
@@ -103,12 +120,25 @@ func decodeSurface(p []parameter, maxPoints int) (Entity, error) {
 			poles[dst] = geom.Vec3{X: values[j], Y: values[j+1], Z: values[j+2]}
 		}
 	}
-	g, e := geom.NewBSplineSurface(du, dv, nu, nv, poles, values[:ku], values[ku:ku+kv], weights)
+	buildGeometry := geom.NewBSplineSurface
+	if periodic {
+		buildGeometry = geom.NewBSplineSurfaceWithExactWeights
+	}
+	g, e := buildGeometry(du, dv, nu, nv, poles, values[:ku], values[ku:ku+kv], weights)
 	if e != nil {
 		return Entity{}, e
 	}
 	tail := values[ku+kv+4*n:]
-	s := &Surface{g, tail[0], tail[1], tail[2], tail[3], flags[0], flags[1], flags[2], flags[3], flags[4]}
+	s := &Surface{Geometry: g, UStart: tail[0], UEnd: tail[1], VStart: tail[2], VEnd: tail[3],
+		ClosedU: flags[0], ClosedV: flags[1], Polynomial: flags[2], PeriodicU: flags[3], PeriodicV: flags[4]}
+	if periodic {
+		raw := p[10 : 10+len(values)]
+		s.periodic, e = provePeriodicSurface128(g, raw[:ku], raw[ku:ku+kv], raw[ku+kv:ku+kv+4*n], raw[ku+kv+4*n:],
+			[2]int{nu, nv}, [2]int{du, dv}, [2]bool{flags[3], flags[4]}, flags[2])
+		if e != nil {
+			return Entity{}, e
+		}
+	}
 	if e = s.Validate(); e != nil {
 		return Entity{}, e
 	}

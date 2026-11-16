@@ -77,6 +77,10 @@ Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows
 that cross the seam even at a distant cycle.
+Standalone IGES type 128 import now proves expanded periodic knot and
+control ownership before exposing exact cyclic geometry. U, V and both
+periodic directions are supported for full active rectangles in this
+bounded import. Periodic trim/topology import remains open.
 Exact curve evaluation also provides physical derivatives through order 16.
 It retains the original right-hand knot span at repeated knots and lets the
 caller inspect the exact cycle and amount of work used.

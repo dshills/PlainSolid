@@ -74,10 +74,25 @@ deadlines; use application deadlines and tighter limits where appropriate.
 `VStart`, `VEnd` preserve a rectangular interval inside its knot domain.
 `Entity.EvalSurface(u,v)` maps normalized parameters and applies affine placement.
 The decoder explicitly transposes IGES U-fast control nets to Go geometry order.
-Control-point limits count curves and surface nets together. Closed flags are
-metadata rather than closure proofs; periodic flags are rejected. Polynomial
-flags require equal weights. Boundary trimming, holes and shell topology are
-not represented by type 128 alone and remain unsupported.
+Control-point limits count curves and expanded surface nets together. Closed
+flags on ordinary directions are metadata. Polynomial flags require equal
+weights.
+
+`Read` accepts standalone periodic type-128 surfaces on the full original
+active rectangle, with at most 4096 expanded control points per periodic
+surface. A flagged periodic direction must also be closed. The importer
+verifies the exact decimal knot translations across the seam and matches every
+repeated pole and weight to its original cyclic control. It preserves the
+original parameter origin, seam multiplicity, and period independently in each
+direction. `Surface.ExactPeriodicGeometry()` returns the validated cyclic tensor
+in local file coordinates. Its `EvaluateRational` method returns exact points and
+partial derivatives in physical file parameters, with right-hand seam ownership
+and wrapped periodic axes. `Geometry` and `Entity.EvalSurface` provide the finite
+floating-point view. Affine placement remains available on the entity.
+
+Periodic type-128 export and periodic surface topology are unsupported. Other
+type-128 trim and topology contracts are documented with the corresponding
+codecs.
 
 ## Unsupported domains
 
@@ -112,6 +127,11 @@ No external source code or fixture was copied.
 Surface tests include independent bilinear-plane parameters and a rational
 quarter-cylinder net, trimming, affine placement, malformed dimensions and limits.
 Type-128 mapping was checked against the pinned OCCT IGES surface translator.
+The three `occt-periodic-128-*.iges` files come from the pinned OCCT writer. The
+oracle constructs nonuniform rational nets periodic in U, V, or both, then
+compares native and reopened first derivatives to the imported exact charts.
+Set `PLAINSOLID_OCCT_PERIODIC_128_IGES` to the executable from
+`tools/occtref/build_iges_periodic_128.sh`.
 Both directions also pass the optional pinned-OCCT surface oracle for a rational
 quarter cylinder of radius 1 and height 2: one valid face, area pi within `1e-6`,
 and sampled imported points on the analytic surface. This qualifies that patch;

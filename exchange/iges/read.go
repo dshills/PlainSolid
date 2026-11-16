@@ -349,7 +349,8 @@ func readSweptMode(r io.Reader, l Limits, curved, wires, revolutions, tabulated 
 			continue
 		}
 		entityIndex[i+1] = len(model.Entities)
-		entity, e := decode(kind, values, l.MaxControlPoints-controlPoints)
+		allowPeriodic := !curved && !wires && !revolutions && !tabulated && !subordinate[i+1]
+		entity, e := decodeGeometry(kind, values, l.MaxControlPoints-controlPoints, allowPeriodic)
 		if e != nil {
 			return Model{}, e
 		}
@@ -423,6 +424,9 @@ func readSweptMode(r io.Reader, l Limits, curved, wires, revolutions, tabulated 
 		}
 		c := p.value
 		c.Surface = refs[0]
+		if s := model.Entities[c.Surface].Surface; s != nil && s.periodic != nil {
+			return Model{}, errors.New("iges: periodic spline surface topology unsupported")
+		}
 		c.ParameterCurve = refs[1]
 		c.ModelCurve = refs[2]
 		validate := model.ValidateCurveOnSurface
@@ -506,6 +510,10 @@ func readSweptMode(r io.Reader, l Limits, curved, wires, revolutions, tabulated 
 	return model, nil
 }
 func decode(kind int, p []parameter, maxPoints int) (Entity, error) {
+	return decodeGeometry(kind, p, maxPoints, false)
+}
+
+func decodeGeometry(kind int, p []parameter, maxPoints int, allowPeriodic bool) (Entity, error) {
 	if len(p) == 0 {
 		return Entity{}, errors.New("iges: empty parameters")
 	}
@@ -587,7 +595,7 @@ func decode(kind int, p []parameter, maxPoints int) (Entity, error) {
 		}
 		return Entity{Arc: &Arc{Center: geom.Vec3{X: v[1], Y: v[2], Z: v[0]}, Start: geom.Vec2{X: v[3], Y: v[4]}, End: geom.Vec2{X: v[5], Y: v[6]}}}, nil
 	case 128:
-		return decodeSurface(p, maxPoints)
+		return decodeSurfaceMode(p, maxPoints, allowPeriodic)
 	case 126:
 		if len(p) < 7 {
 			return Entity{}, errors.New("iges: truncated spline")
