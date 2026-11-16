@@ -41,6 +41,9 @@ Native topology also admits strictly overlapping circle projections
 when the original junction intervals remain separate and exact circle
 stations give positive cap fans. Completely coincident projections with
 nonbinary original junctions remain outside native storage.
+The representable disjoint-projection Common, Fuse and both Cut orders
+now transfer through exact STEP and IGES. Both pinned readers preserve
+the original roof coedges and all four separate Cut contacts.
 These osculation cases also support exact analytic STEP and IGES
 output with the original owner winding, contact jets and separate Cut
 components. General curved exchange remains open.

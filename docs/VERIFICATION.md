@@ -94,6 +94,10 @@ qualifies the native overlapping projection case in both axes and
 operand orders. Common and Fuse retain `13F/36E/25V`; the smallest Cut
 component agrees with an independent integral near `8.5630e-11`.
 The main race passes all four cases and the unavailable cap split control.
+The exact disjoint-projection transfer audit covers 24 STEP and IGES
+files with 40 positive solid results. Pinned readers retain 30 original
+directed roof coedges, 32 source rays and 486 exact roof poles per file.
+The main positive matrix and the repaired separate refusal check pass.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same

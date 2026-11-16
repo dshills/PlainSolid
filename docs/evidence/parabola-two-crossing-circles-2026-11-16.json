@@ -63,5 +63,26 @@
     "variant_count": 4,
     "envelope_topology": {"faces": 13, "edges": 36, "vertices": 25},
     "smallest_cut_volume_reference": 8.5630010035837172e-11
+  },
+  "disjoint_projection_neutral": {
+    "isolated_revision": "dc6e9bfe764b62d52bdbc47406054cf688ba4535",
+    "patch_sha256": "e085a4e603fbfa2af8c0867c090794a01609a73743a991d71edbad09aef196c9",
+    "pinned_occt_revision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+    "main_positive_matrix": {
+      "log": "parabola-two-crossing-neutral-main-pinned.jsonl",
+      "sha256": "cc9b45390be536ad65464ae48496f3f84612867912aa11a0de065203518b67cf",
+      "named_pass": "TestParabolaTwoCrossingCirclesExchange",
+      "seconds": 439.77,
+      "package_exit": "separate negative construction lacked its prerequisite in this archive; rerun below"
+    },
+    "main_refusal_with_native_overlap_implementation": {
+      "log": "parabola-two-crossing-neutral-main-refusal.jsonl",
+      "sha256": "3a55803bd305ccfa34077ccb2f885a9192770b893b866a6f8693df9da60619d6",
+      "named_pass": "TestParabolaTwoCrossingCirclesUnrepresentableTransfer",
+      "seconds": 49.751
+    },
+    "files": 24,
+    "pinned_positive_solids": 40,
+    "original_per_file": {"directed_coedges": 30, "junction_rays": 32, "roof_poles": 486}
   }
 }
