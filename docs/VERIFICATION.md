@@ -563,6 +563,12 @@ Variable convex polygon sizes qualify original outer/inner edge counts
 retain their independently linked owner ranges and loop roles. Three
 pinned reports and both canonical macOS architectures agree, and 25
 old bytes match. A collinear turn and a changed cubic control refuse.
+The [concave polygon audit](evidence/iges-periodic-concave-polygon-2026-11-16.json)
+retains an original five-edge concave face, one reflex vertex, exact
+signed UV area 75/128 and all model ranges. The raw and canonical
+pinned reports match. Crossing and touching controls change topology
+in pinned OCCT and refuse original transfer here; winding and rounded
+clearance controls also refuse. Twenty-eight prior carriers match.
 The [valid periodic seam trim](evidence/iges-periodic-seam-trimmed-2026-11-16.json)
 passes independently authored type 144, the pinned reopen and main race.
 The reader retains six original directed pairs, distinct seam stations,

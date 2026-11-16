@@ -1,0 +1,39 @@
+{
+  "scope": "Standalone original simple concave affine outer polygon on one periodic type-128 cell",
+  "main_base": "2520c628",
+  "isolated_revision": "d9677f9776179727d5c7030087367826a8711e8f",
+  "patch_sha256": "1bd95be31b0819ee9428572643bd6466f681eb4224c6c19fb45f15e421a40b93",
+  "source_qualification_sha256": "6d85129834f28c43a453915608ab1dbbd9976f3b18a96260b9826331f8efa35d",
+  "main_race_log": "iges-periodic-concave-polygon-main-race.jsonl",
+  "main_race_sha256": "0ec891655e7bef9635bc24dfbfa0e123bd864cfa02cdcdf9201d30d4775da1f9",
+  "main_race_seconds": 6.963,
+  "isolated_full_iges_seconds": 132.728,
+  "isolated_race_seconds": 22.83,
+  "original_directed_pairs": 5,
+  "original_model_range_start": 144,
+  "original_model_range_end": 153,
+  "exact_signed_uv_area": "75/128",
+  "original_reflex_vertices": 1,
+  "pinned_raw_canonical_report_identical": true,
+  "architecture_carriers_byte_identical": true,
+  "predecessor_carriers_unchanged": 28,
+  "independent_negative_reopen_counts": {
+    "crossing": [
+      2,
+      2,
+      7,
+      6
+    ],
+    "touching": [
+      2,
+      2,
+      6,
+      5
+    ]
+  },
+  "refusals": [
+    "crossing or touching nonadjacent original closed edges",
+    "clockwise outer loop",
+    "binary64 rounding eliminates disjointness"
+  ]
+}
