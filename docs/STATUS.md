@@ -43,6 +43,10 @@ corrected export and an original-source receipt. Strict and explicitly
 repaired depth-three inputs support editable native documents and
 relationship writeback, with a conflict check for expanded shared uses.
 
+One transversal circle/parabola family now exports its exact Common, Fuse
+and both Cut orders through STEP and IGES. Each Cut keeps its two material
+shells separate and retains the two original contact pairs.
+
 The previous paired full runs used kernel `af569683` and PlainCAD `efae4d2`.
 The [Go run](evidence/main-af569683-qualification-2026-11-15.json)
 accounted for all 5,714 top-level tests: 5,199 passes and 515 explicit

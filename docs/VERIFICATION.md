@@ -21,6 +21,15 @@ rational law in a distant negative cycle and scale in physical parameter
 units. A repeated knot selects the right-hand velocity and acceleration;
 exhausted work and an order beyond the supported bound refuse.
 
+The [transversal parabola/circle neutral exchange milestone](evidence/parabola-circle-crossings-neutral-2026-11-16.json)
+passed its pinned main race in 33.929 seconds. The 24 STEP and IGES outputs
+reopen as 32 positive single-shell solids; each of the eight grouped Cuts
+retains two paired contacts without sharing the component's vertex IDs.
+Pinned OCCT audits verified 336 directed conic roof uses and matched the
+exact source volume within `4.45e-16` absolute. The prior 108 neutral
+files are byte identical. The direct OCCT Boolean's distinct vertex
+ownership and measured volume differences are recorded separately.
+
 The [explicit rounded conical STEP repair](evidence/conical-rim-fillet-default-step-repair-2026-11-15.json)
 was checked against independently pinned OCCT authoring and readback. The
 finite cone displacement bound is `2.82747187543142e-12` mm. The
