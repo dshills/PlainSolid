@@ -12,6 +12,15 @@ type parabolaCircleApexPartition struct {
 	regions [3]openGraphRegion
 }
 
+func (p parabolaCircleApexPartition) tangentSection() parabolaCircleTangentSection {
+	proof := p.proof
+	return parabolaCircleTangentSection{
+		regions: p.regions, axis: proof.FreeAxis, diskRegion: proof.DiskRegion, parameters: proof.Parameters,
+		point: proof.Point, circleCenter: proof.CircleCenter, slope: new(big.Rat),
+		second: [2]*big.Rat{proof.ParabolaSecondDerivative, proof.CircleSecondDerivative},
+	}
+}
+
 func proveParabolaCircleApexPartition(ctx context.Context, sources [3]*geom.BSplineSurface, axis int,
 	tolerance float64, o ParabolaCircleGraphOptions) (p parabolaCircleApexPartition, err error) {
 	if ctx == nil || sources[0] == nil || sources[1] == nil || sources[2] == nil || axis < 0 || axis > 1 ||
@@ -26,39 +35,14 @@ func proveParabolaCircleApexPartition(ctx context.Context, sources [3]*geom.BSpl
 	if err != nil {
 		return p, err
 	}
-	open, err := parabolaOpenGraphRegions(p.proof.ParabolaControls, axis)
+	open, err := splitParabolaCircleTangentOpenRegions(p.proof.ParabolaControls, p.proof.Parameters, axis)
 	if err != nil {
 		return p, err
 	}
+	copy(p.regions[:2], open[:])
 	apex, err := exactGraphPartitionUV(p.proof.Parameters)
 	if err != nil {
 		return p, err
-	}
-	for region, original := range open {
-		var loop []openSectionPiece
-		for _, piece := range original.loop {
-			if piece.side >= 0 {
-				loop = append(loop, piece)
-				continue
-			}
-			cut := p.proof.Parameters[axis]
-			if ([2]float64{piece.a.X, piece.a.Y})[axis] == 1 {
-				cut = new(big.Rat).Sub(big.NewRat(1, 1), cut)
-			}
-			curve := piece.c.(ExactQuadraticUV)
-			stations := [3]*big.Rat{new(big.Rat), cut, big.NewRat(1, 1)}
-			for i := range 2 {
-				arc, err := curve.Restrict(stations[i], stations[i+1])
-				if err != nil {
-					return p, err
-				}
-				if arc.ends[1-i] != apex {
-					return p, geom.ErrConvergence
-				}
-				loop = append(loop, openSectionPiece{a: arc.ends[0], b: arc.ends[1], c: arc, side: -1})
-			}
-		}
-		p.regions[region].loop = loop
 	}
 	ring, _, err := exactGraphCircleRings(p.proof.CircleCenter, p.proof.RadiusSquared)
 	if err != nil {
@@ -80,12 +64,52 @@ func proveParabolaCircleApexPartition(ctx context.Context, sources [3]*geom.BSpl
 	return p, nil
 }
 
-// parabolaCircleApexRay proves the outgoing free direction and the original
-// dependent second derivative from one exact quadratic coedge at the apex.
-// The shared first roof jet lifts the same free direction on both original
-// surfaces. At zero dependent first derivative, the dependent second jet in
-// the free clock is (N”−vW”)/(W*(u')²).
+func splitParabolaCircleTangentOpenRegions(controls [3][2]*big.Rat, parameters [2]*big.Rat, axis int) (out [2]openGraphRegion, err error) {
+	open, err := parabolaOpenGraphRegions(controls, axis)
+	if err != nil {
+		return out, err
+	}
+	apex, err := exactGraphPartitionUV(parameters)
+	if err != nil {
+		return out, err
+	}
+	for region, original := range open {
+		var loop []openSectionPiece
+		for _, piece := range original.loop {
+			if piece.side >= 0 {
+				loop = append(loop, piece)
+				continue
+			}
+			cut := parameters[axis]
+			if ([2]float64{piece.a.X, piece.a.Y})[axis] == 1 {
+				cut = new(big.Rat).Sub(big.NewRat(1, 1), cut)
+			}
+			curve := piece.c.(ExactQuadraticUV)
+			stations := [3]*big.Rat{new(big.Rat), cut, big.NewRat(1, 1)}
+			for i := range 2 {
+				arc, err := curve.Restrict(stations[i], stations[i+1])
+				if err != nil {
+					return out, err
+				}
+				if arc.ends[1-i] != apex {
+					return out, geom.ErrConvergence
+				}
+				loop = append(loop, openSectionPiece{a: arc.ends[0], b: arc.ends[1], c: arc, side: -1})
+			}
+		}
+		out[region].loop = loop
+	}
+	return out, nil
+}
+
 func parabolaCircleApexRay(s Solid, edgeID, vertex, axis int, second *big.Rat) (int, error) {
+	return parabolaCircleTangentRay(s, edgeID, vertex, axis, new(big.Rat), second)
+}
+
+// At the exact slope m the free-clock second derivative is
+// (N_y”−m*N_x”−(v−m*u)*W”)/(W*(u')²). The weight-derivative terms
+// cancel because v' equals m*u'.
+func parabolaCircleTangentRay(s Solid, edgeID, vertex, axis int, slope, second *big.Rat) (int, error) {
 	edge := s.edges[edgeID]
 	if (edge.Start == vertex) == (edge.End == vertex) {
 		return 0, geom.ErrConvergence
@@ -106,7 +130,7 @@ func parabolaCircleApexRay(s Solid, edgeID, vertex, axis int, second *big.Rat) (
 		return 0, err
 	}
 	f, d := derivative[axis], 1-axis
-	if f.Sign() == 0 || derivative[d].Sign() != 0 {
+	if f.Sign() == 0 || derivative[d].Cmp(new(big.Rat).Mul(slope, f)) != 0 {
 		return 0, geom.ErrConvergence
 	}
 	constantSecond := func(coordinate int) *big.Rat {
@@ -116,7 +140,9 @@ func parabolaCircleApexRay(s Solid, edgeID, vertex, axis int, second *big.Rat) (
 		return diff.Add(diff, coefficients[0][coordinate]).Mul(diff, big.NewRat(2, 1))
 	}
 	secondNumerator := constantSecond(d)
-	secondNumerator.Sub(secondNumerator, new(big.Rat).Mul(uv[d], constantSecond(2)))
+	secondNumerator.Sub(secondNumerator, new(big.Rat).Mul(slope, constantSecond(axis)))
+	offset := new(big.Rat).Sub(uv[d], new(big.Rat).Mul(slope, uv[axis]))
+	secondNumerator.Sub(secondNumerator, new(big.Rat).Mul(offset, constantSecond(2)))
 	scale := new(big.Rat).Mul(f, f)
 	scale.Mul(scale, curve.control[0][2])
 	if secondNumerator.Quo(secondNumerator, scale).Cmp(second) != 0 {
