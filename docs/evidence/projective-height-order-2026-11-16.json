@@ -17,5 +17,35 @@
     "positive original corners",
     "negative interior midpoint -1/2"
   ],
-  "work_limit": "single budget for original common atlas and complete exact enclosure"
+  "work_limit": "single budget for original common atlas and complete exact enclosure",
+  "native_material": {
+    "other_patch_dependency": "f11354d2",
+    "main_base": "39acbd4f",
+    "main_race_log": "projective-roof-ordered-main-race.jsonl",
+    "main_race_sha256": "62144195df3124bde372c1acdbe2533f431359bc9a3229a30b72b8a811a6e623",
+    "main_race_seconds": 38.098,
+    "positive_cases": 6,
+    "per_solid": {
+      "faces": 6,
+      "edges": 12,
+      "vertices": 8,
+      "walls": 4
+    },
+    "independent_volumes": {
+      "common": "5/4",
+      "fuse": "7/4",
+      "cut": "1/2"
+    },
+    "independent_centroid_z": {
+      "common": "29/45",
+      "fuse": "8/9",
+      "cut": "3/2"
+    },
+    "empty_cases": 4,
+    "empty_reasons": [
+      "strict containment",
+      "exact coincidence"
+    ],
+    "partial_footprint_refuses": true
+  }
 }

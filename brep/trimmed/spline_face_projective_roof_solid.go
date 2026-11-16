@@ -23,18 +23,19 @@ type ProjectiveRoofWall struct {
 	Source      ProjectiveSplineImprintUse
 }
 
-// ProjectiveRoofSolid is the regularized Common or Fuse of two solids
-// defined between the same constant-height base and the original faces.
+// ProjectiveRoofSolid is a regularized Boolean of two solids defined
+// between the same constant-height base and the original faces.
 // Roofs and Walls retain their original face/edge sources.
 type ProjectiveRoofSolid struct {
 	Solid Solid
-	Roofs [2]int
+	Roofs [2]int // -1 for an absent owner in a completed result.
 	Walls []ProjectiveRoofWall
 	// FloorSources is ordered like Walls for Cut; it retains original B uses.
 	FloorSources []ProjectiveSplineImprintUse
 	BaseFace     int
 	Section      int
 	Complete     bool
+	Empty        bool // A proved empty result has no Solid.
 }
 
 type projectiveRoofRim struct {
@@ -238,7 +239,7 @@ func sewProjectiveRoofParts(ctx context.Context, parts []SewFace, seams [2]int, 
 		for j := range face.Outer {
 			face.Outer[j].Edge += eo
 		}
-		if i < 2 {
+		if i < 2 && seams[i] >= 0 {
 			seams[i] += eo
 		}
 		allFaces = append(allFaces, face)
@@ -247,7 +248,13 @@ func sewProjectiveRoofParts(ctx context.Context, parts []SewFace, seams [2]int, 
 	if err != nil {
 		return Solid{}, -1, err
 	}
-	if len(proof.FlippedFaces) != 0 || proof.Edges[seams[0]].Edge != proof.Edges[seams[1]].Edge {
+	if len(proof.FlippedFaces) != 0 {
+		return Solid{}, -1, geom.ErrConvergence
+	}
+	if seams == [2]int{-1, -1} {
+		return solid, -1, nil
+	}
+	if proof.Edges[seams[0]].Edge != proof.Edges[seams[1]].Edge {
 		return Solid{}, -1, geom.ErrConvergence
 	}
 	return solid, proof.Edges[seams[0]].Edge, nil

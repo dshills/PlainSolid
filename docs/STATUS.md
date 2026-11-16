@@ -75,6 +75,9 @@ Both native Cut orders now retain four separate positive components
 and six exact point contacts with the original directed source rays.
 Projectively related graph surfaces can also prove strict original
 height order or exact coincidence over their entire shared projection.
+The same full-footprint ordered proof builds closed Common, Fuse and
+Cut results without a synthetic intersection seam. A contained or
+coincident stock reports an explicitly empty Cut.
 These osculation cases also support exact analytic STEP and IGES
 output with the original owner winding, contact jets and separate Cut
 components. General curved exchange remains open.

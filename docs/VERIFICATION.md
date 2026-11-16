@@ -407,6 +407,10 @@ proves exact original coincidence and both signs of a constant 2^-120
 lift across differently clocked surfaces. Positive corners with a
 negative interior only produce a conservative difference interval.
 The original atlas and all coefficient checks share one work limit.
+The ordered material audit also passes six closed solid cases with
+independent volumes 5/4, 7/4 and 1/2. Both projection-axis orders
+preserve the original roofs and four side faces. Strict containment
+and coincidence return empty Cut, and an incomplete footprint refuses.
 The related UV-curve race preserves original nonuniform knots and exact
 physical derivatives. A transported original curve lifts to identical
 rational model points on both charts. A denominator with a pole and an
