@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"reflect"
 	"testing"
 
 	"plainsolid/geom"
@@ -92,5 +93,42 @@ func TestOrthogonalOpenVolumeRefusesAnAbsentMouth(t *testing.T) {
 	}
 	if r, err := ThickenVolumeOpenPlane(ctx, box, 1, VolumeOpenPlane{Axis: -1}, VolumeOptions{}); !errors.Is(err, ErrInvalid) || r.ExactVolume != nil {
 		t.Fatal("invalid selected support published a result", err)
+	}
+}
+
+func TestOrthogonalOpenVolumeSimultaneousMouths(t *testing.T) {
+	ctx := context.Background()
+	box := volumeCells(t, volumeBox(0, 6, 0, 6, 0, 6))
+	stock, err := box.BRep(solid.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	top := VolumeOpenPlane{Axis: 2, High: true}
+	for _, other := range []VolumeOpenPlane{{Axis: 2}, {Axis: 0, High: true}} {
+		r, err := ThickenOrthogonalVolumeOpenPlanes(ctx, stock, 1, []VolumeOpenPlane{top, other}, VolumeOptions{})
+		// Two separate 4×4×1 mouth prisms extend the common 4³ core.
+		checkOffsetVolume(t, r, err, 120)
+		got, err := ThickenVolumeOpenPlanes(ctx, box, 1, []VolumeOpenPlane{other, top}, VolumeOptions{})
+		if err != nil || !reflect.DeepEqual(r, got) {
+			t.Fatal("opening order or source representation changed the result", err)
+		}
+		ss, err := r.Solid.Shells()
+		if err != nil || len(ss) != 1 {
+			t.Fatal("two mouths should remain on one closed boundary shell", len(ss), err)
+		}
+		euler := len(r.Solid.Vertices()) - len(r.Solid.Edges())
+		for _, face := range r.Solid.Faces() {
+			euler += 1 - len(face.Holes)
+		}
+		if euler != 0 {
+			t.Fatal("the two mouths do not produce a passage", euler)
+		}
+	}
+	if req, err := ThickenVolumeOpenPlanes(ctx, box, 1, []VolumeOpenPlane{top, top}, VolumeOptions{}); !errors.Is(err, ErrInvalid) || req.ExactVolume != nil {
+		t.Fatal("duplicate opening published geometry", err)
+	}
+	withTip := volumeCells(t, volumeBox(0, 6, 0, 6, 0, 6), volumeBox(2.75, 3.25, 2.75, 3.25, 6, 8))
+	if req, err := ThickenVolumeOpenPlanes(ctx, withTip, 1, []VolumeOpenPlane{{Axis: 0}, top}, VolumeOptions{}); !errors.Is(err, ErrNoOpenCore) || req.ExactVolume != nil {
+		t.Fatal("missing second mouth leaked the first", err)
 	}
 }

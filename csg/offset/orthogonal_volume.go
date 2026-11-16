@@ -194,7 +194,7 @@ func (g volumeGrid) accumulate(b *budget) error {
 	return nil
 }
 
-func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float64, o VolumeOptions, keepWall bool, opening *VolumeOpenPlane) (VolumeResult, error) {
+func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float64, o VolumeOptions, keepWall bool, openings []VolumeOpenPlane) (VolumeResult, error) {
 	var zero VolumeResult
 	result := VolumeResult{ExactVolume: new(big.Rat)}
 	b := &budget{ctx: ctx, remaining: o.MaxWork}
@@ -203,7 +203,7 @@ func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float
 	}
 	count := source.CellCount()
 	if count == 0 {
-		if opening != nil {
+		if len(openings) != 0 {
 			return zero, ErrNoOpenCore
 		}
 		return result, nil
@@ -257,7 +257,7 @@ func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float
 		shifted[a] = unique(shifted[a])
 	}
 	if vanished {
-		if opening != nil {
+		if len(openings) != 0 {
 			return zero, ErrNoOpenCore
 		}
 		return unchangedVolumeLayer(cells, exact, b, o)
@@ -313,12 +313,13 @@ func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float
 			lo[a] = g.position(a, axis[0])
 			hi[a] = g.position(a, axis[len(axis)-1])
 		}
-		var mouth orthogonalOpenMouth
-		if opening != nil {
-			mouth, err = proveVolumeOpening(g, original, lo, hi, insetLo, insetHi, *opening, b)
+		mouths := make([]orthogonalOpenMouth, 0, len(openings))
+		for _, opening := range openings {
+			mouth, err := proveVolumeOpening(g, original, lo, hi, insetLo, insetHi, opening, b)
 			if err != nil {
 				return zero, err
 			}
+			mouths = append(mouths, mouth)
 		}
 		take = func(i, j, k int) bool {
 			index := g.index(i, j, k)
@@ -328,8 +329,10 @@ func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float
 			// The core is occupied only inside the inset limits and outside
 			// every expanded complementary box.
 			inside := i >= insetLo[0] && i < insetHi[0] && j >= insetLo[1] && j < insetHi[1] && k >= insetLo[2] && k < insetHi[2]
-			if opening != nil && mouth.contains([3]int{i, j, k}) {
-				return false
+			for _, mouth := range mouths {
+				if mouth.contains([3]int{i, j, k}) {
+					return false
+				}
 			}
 			return !inside || g.delta[index] > 0
 		}

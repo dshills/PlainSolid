@@ -25,17 +25,31 @@ type VolumeOpenPlane struct {
 // plane. Only complete, positive cross sections of the exact core are
 // opened. The lip retains original material and can contain several gaps.
 func ThickenVolumeOpenPlane(ctx context.Context, source solid.Solid, thickness float64, opening VolumeOpenPlane, o VolumeOptions) (VolumeResult, error) {
-	o, err := volumeOpenOptions(ctx, thickness, opening, o)
+	return ThickenVolumeOpenPlanes(ctx, source, thickness, []VolumeOpenPlane{opening}, o)
+}
+
+// ThickenVolumeOpenPlanes forms simultaneous openings on distinct original
+// extremal planes. Their columns are proved against the same original core
+// before any material is removed, so the result is independent of their order.
+func ThickenVolumeOpenPlanes(ctx context.Context, source solid.Solid, thickness float64, openings []VolumeOpenPlane, o VolumeOptions) (VolumeResult, error) {
+	o, err := volumeOpenOptions(ctx, thickness, openings, o)
 	if err != nil {
 		return VolumeResult{}, err
 	}
-	return computeVolumeOffset(ctx, source, -thickness, o, true, &opening)
+	return computeVolumeOffset(ctx, source, -thickness, o, true, openings)
 }
 
 // ThickenOrthogonalVolumeOpenPlane proves the native orthogonal solid before
 // extending its cubical core to one original extremal plane.
 func ThickenOrthogonalVolumeOpenPlane(ctx context.Context, source brep.Solid, thickness float64, opening VolumeOpenPlane, o VolumeOptions) (VolumeResult, error) {
-	o, err := volumeOpenOptions(ctx, thickness, opening, o)
+	return ThickenOrthogonalVolumeOpenPlanes(ctx, source, thickness, []VolumeOpenPlane{opening}, o)
+}
+
+// ThickenOrthogonalVolumeOpenPlanes proves the original orthogonal B-rep,
+// then opens each selected extreme in one exact arrangement. Any missing
+// mouth or nonmanifold result refuses the entire operation.
+func ThickenOrthogonalVolumeOpenPlanes(ctx context.Context, source brep.Solid, thickness float64, openings []VolumeOpenPlane, o VolumeOptions) (VolumeResult, error) {
+	o, err := volumeOpenOptions(ctx, thickness, openings, o)
 	if err != nil {
 		return VolumeResult{}, err
 	}
@@ -43,12 +57,26 @@ func ThickenOrthogonalVolumeOpenPlane(ctx context.Context, source brep.Solid, th
 	if err != nil {
 		return VolumeResult{}, err
 	}
-	return computeVolumeOffset(ctx, cells, -thickness, o, true, &opening)
+	return computeVolumeOffset(ctx, cells, -thickness, o, true, openings)
 }
 
-func volumeOpenOptions(ctx context.Context, thickness float64, opening VolumeOpenPlane, o VolumeOptions) (VolumeOptions, error) {
-	if !(thickness > 0) || opening.Axis < 0 || opening.Axis > 2 {
+func volumeOpenOptions(ctx context.Context, thickness float64, openings []VolumeOpenPlane, o VolumeOptions) (VolumeOptions, error) {
+	if !(thickness > 0) || len(openings) == 0 || len(openings) > 6 {
 		return VolumeOptions{}, ErrInvalid
+	}
+	var seen [6]bool
+	for _, opening := range openings {
+		if opening.Axis < 0 || opening.Axis > 2 {
+			return VolumeOptions{}, ErrInvalid
+		}
+		i := 2 * opening.Axis
+		if opening.High {
+			i++
+		}
+		if seen[i] {
+			return VolumeOptions{}, ErrInvalid
+		}
+		seen[i] = true
 	}
 	return volumeOffsetOptions(ctx, thickness, o)
 }

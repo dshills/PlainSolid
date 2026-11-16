@@ -71,6 +71,9 @@ extend the first or last complete core cross section to one original
 extremal support. They verify every opening column against original
 material before cutting. The lip, unselected supports and independent
 internal walls stay in place. An absent positive mouth refuses atomically.
+The plural variants open several distinct extremal planes in one operation.
+Every opening is proved against the same unedited source and core, and
+the final wall is independent of selection order.
 
 The pinned OCCT control independently builds the expected stepped and
 hollow solids from their moved support stations. See

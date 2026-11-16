@@ -3192,6 +3192,8 @@ Closed wall thickening retains the exact original material minus its
 cubical erosion, including split cores and separate enclosed walls.
 Open thickening can extend a proved core to one original extremal support,
 keeping the lip, other support planes and independent cavity walls.
+Several distinct original planes can open simultaneously without changing
+the result when the selections are reordered.
 
 ### Original curved loops and STEP cavities
 

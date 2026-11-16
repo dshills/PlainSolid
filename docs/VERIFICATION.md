@@ -100,6 +100,11 @@ stepped opening gives volume 18.5, area 78 and one boundary shell. The
 hollow opening gives volume 576, area 1,200 and three shells. All six box
 supports and a missing mouth were also tested. The main pinned race
 passed in 1.655 seconds.
+Simultaneous adjacent and opposed mouths leave the same exact volume
+120 and one Euler-zero shell in the independent cube construction.
+Reversing the selection order and promoting the native source give the
+same cells and B-rep. A duplicate or a missing second mouth fails without
+publishing the first. The focused pinned regression race passed in 1.595 seconds.
 
 ## Full Go and PlainCAD rerun (2026-11-15)
 
