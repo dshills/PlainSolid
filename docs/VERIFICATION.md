@@ -283,6 +283,15 @@ rotate in only the selected direction, and the native codec stores
 the repeated seam byte for byte. Nonknots, excessive multiplicity and
 short bit budgets refuse. Main's sealed periodic and persistence race
 passed in 6.177 and 1.171 seconds.
+The wrapped nonuniform adapter proves position closure on an edited
+tensor and preserves every occupied source knot interval in both
+directions. Exact coordinate round trips recover original points and
+physical partials. A plane section crosses the relocated nonbinary
+seam through four original spans and the mapped seam root contains
+physical `v=-1/8`. The adapter refuses ordinary knot jumps instead of
+welding distinct limits, and short grid/work limits return no patch.
+The broad periodic/wrapped race passed in 7.103 seconds and the plane
+section recheck passed in 1.340 seconds.
 
 The [full ordinary Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
 later passed all nine lanes on macOS ARM64. The independent inventory

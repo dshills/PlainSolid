@@ -3235,6 +3235,8 @@ knots and controls without choosing floating poles. The ordinary
 curve/surface interfaces evaluate the represented query values and
 round only their results. Exact insertion also handles repeated seam
 knots through the degree, and the same physical curve or surface can
-use any original knot as its fundamental seam. General tensor trim
-arrangements, knot removal and neutral exchange of these edited
-splines remain open.
+use any original knot as its fundamental seam. A continuous edited
+tensor now reassembles as a wrapped patch with an exact piecewise
+physical coordinate map and supports a closed plane contour across
+the new seam. General tensor trim arrangements, knot removal and
+neutral exchange of these edited splines remain open.
