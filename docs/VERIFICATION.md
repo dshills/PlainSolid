@@ -268,6 +268,11 @@ dedicated volume check now refines the same coarse request to 24
 closed triangles, with 0.585522% error against the exact source
 integral and no unintended contacts. Replay preserves the mesh bytes.
 Truncated work returns no partial mesh. Focused main race: 1.739 seconds.
+The Cut STEP and IGES live race passed in 2.209 seconds. Both reopened
+solids keep four faces, seven edges and five exact original vertices,
+with signed volume matching `4703/1614807040`. The pinned probe proves
+that the isolated point lies outside the cap and checks the nonzero
+regular turning derivative and both directed original owner curves.
 
 The native shared-crease follow-up retains the two original cusp roof
 charts, one closed Euler-2 shell and byte-identical native replay for all
