@@ -1,0 +1,29 @@
+{
+  "agent_commit": "506e62b195c21074d52748ec07fca3e22ccc11c9",
+  "main_archive_base": "29563ead",
+  "summary": "# Analytic mass moments of joined normal sweeps\n\nThe isolated composition commit is `506e62b195c21074d52748ec07fca3e22ccc11c9`. The portable patch SHA-256 is `6d48dd456c4955b0644e7092d65336dd06096bcba35b17fad4e51e77fd0befc8`. It builds on the separately qualified single-sweep centroid and inertia query.\n\nThe pair and three-chart chain now expose `MassMomentsRational` with the same unit-density outputs and explicit tolerances as a single sweep. The sealed analytic join proofs give disjoint open material across the original charts. Shared walls have zero mass. The integration initializes each original chart once, including the common middle chart of the chain, with one exact reference computed from all original homogeneous control hulls. The aggregate contains directed volume and extensive first and second moments. The centroid and both inertia tensors are derived after summing those extensive moments. Each curved refinement replaces only its original owner's contribution and uses that owner's certified determinant orientation. The result has no dependence on display tessellation.\n\nThe work and visited-cell budgets are aggregate across all original owners. A refused computation may publish its previous valid enclosure if the full source cover proves positive total volume. If work ends before the complete chart cover, the result carries no numerical bounds even when one chart's contribution is known. Cancellation clears numerical bounds.\n\nThe independent exact controls are adjacent unequal-width rectangular slabs in a translated 3-4-5 rotation. Each original chart contributes one exact cell even at a 64-bit coefficient bound. The two-chart union returns volume `99/35` and world centroid `(23/20,-17/20,421/315)` in 1,131 exact operations. The three-chart union returns volume `33/5` and centroid `(39/20,-1/4,421/315)` in 1,538 exact operations. All first and second moments and all entries of both inertia tensors match the exact independently integrated whole slab. Slightly short work preserves valid material bounds when possible, and an exact work cutoff after one original owner refuses the partial sum atomically.\n\nThe curved fixtures use the original two-axis rational rotation of three adjacent quartic graph charts and the preserved exact reversed projective middle chart. Independent quadrature uses the analytic graph normal, mean and Gaussian curvature, and signed displacement moments through degree four. The pair qualifies all outputs in 1,246 cells and 2,139,299 exact operations. Its independent volume and centroid are approximately 0.9778851995992 and `(0.5983302416,0.1049976812,0.1065966505)`. The pair achieved maximum widths 0.12475033, 0.24749374, 0.51278186 and 0.75496182 for volume, centroid, second moments and inertia respectively. The chain qualifies all outputs in 2,025 cells and 3,479,703 exact operations. Its independent volume and centroid are approximately 1.466661455172 and `(0.9674011146,0.381800836,-0.08529665611)`. The chain achieved corresponding maximum widths 0.12356650, 0.16658604, 0.81614938 and 1.24875449. The fixtures check positive coarse results after source initialization, short work following an established enclosure, refusal before full owner coverage and cancellation.\n\nAll three full single-chart JSON receipt digests match the baseline precisely, including an affine exact slab, an ordinary parabolic strip and a rotated negative-Jacobian parabolic strip. Focused native and race suites passed in 22.046 and 68.884 seconds. Full geometry, mesh and offset package suites passed in 66.103, 8.255 and 49.129 seconds. Logs, digest comparisons and the portable patch are in this directory.\n",
+  "digests": {
+    "normal-sweep-joined-moments-main-race.jsonl": "e3369eceea9dd6cfd5d560d6dca7c1083235ac924f21284b0fa03d1eeae6aac7",
+    "after.log": "7a9dd1669c24a1166eeca82c5ff4060d87dd338c384ef131ec91b0b22eec23fe",
+    "baseline.log": "74695ccb5657a6ea70e01b656da4171dffe33af30f610ccab9e74d698dd73a0d",
+    "focused.log": "6f5c53236435935a5607e8a0add0d52074a6a99a29ecf08ffb76e6491de5a9ac",
+    "packages.log": "a0763e17c66102e4f0b5709504e2f2771e0244bdfb0f29f5248c0899700784d5",
+    "race.log": "8851c2094b35f66e99b002b9b8357ddee25c5893f173d5f1f7a0ddd37889d2c3",
+    "after.tsv": "462aa226170f876da9319b4535c8a789357e314fabe18ca7dcd0925054766331",
+    "baseline.tsv": "462aa226170f876da9319b4535c8a789357e314fabe18ca7dcd0925054766331",
+    "verified-normal-offset-sweep-joined-moments.patch": "6d48dd456c4955b0644e7092d65336dd06096bcba35b17fad4e51e77fd0befc8"
+  },
+  "main_race_passes": [
+    "TestVerifiedJoinedNormalOffsetSweepMomentsExactSlabs",
+    "TestVerifiedJoinedNormalOffsetSweepMomentsCurvedAndBudgets",
+    "TestVerifiedNormalOffsetSweepMomentsExactRationalSlab",
+    "TestVerifiedNormalOffsetSweepMomentsCurvedAndSigned",
+    "TestVerifiedNormalOffsetSweepMomentsSphericalSector",
+    "TestVerifiedNormalOffsetSweepVolumeExactSlab",
+    "TestVerifiedNormalOffsetSweepVolumeParabolicStrip",
+    "TestVerifiedNormalOffsetSweepVolumeSphericalSector"
+  ],
+  "main_race_seconds": [
+    123.516
+  ]
+}

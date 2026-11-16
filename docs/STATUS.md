@@ -74,6 +74,8 @@ a valid coarse interval when refinement exhausts its budget.
 Single-sweep mass moments also enclose the original centroid, full
 second moments and inertia about the origin and centroid, without a
 display mesh. Exact rational slabs retain exact results.
+For verified pairs and three-chart chains, the same analytic query sums
+original extensive moments before deriving the joined centroid and inertia.
 An exact surface-pair distance query retains both rational model sample
 points and the squared distance enclosure below float64 range, including
 when an oblique gap is invisible in the outward axis boxes.

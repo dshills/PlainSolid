@@ -39,9 +39,16 @@ type NormalOffsetSweepMassMoments struct {
 // four and encloses the remaining UV integrals by directed subdivision.
 // Centroid and centroidal inertia use a local reference before conversion
 // to model coordinates. Cancellation returns no numerical bounds.
-func (s *VerifiedNormalOffsetSweep) MassMomentsRational(ctx context.Context, o NormalOffsetSweepMomentOptions) (r NormalOffsetSweepMassMoments, err error) {
-	if ctx == nil || s == nil || s.source == nil ||
-		o.MaxDepth < 0 || o.MaxDepth > 64 || o.MaxCells < 0 || o.MaxCells > 1<<18 {
+func (s *VerifiedNormalOffsetSweep) MassMomentsRational(ctx context.Context, o NormalOffsetSweepMomentOptions) (NormalOffsetSweepMassMoments, error) {
+	if s == nil || s.source == nil {
+		return NormalOffsetSweepMassMoments{}, ErrInvalid
+	}
+	return massMomentsOfVerifiedSweeps(ctx, []*VerifiedNormalOffsetSweep{s}, o)
+}
+
+func massMomentsOfVerifiedSweeps(ctx context.Context, sweeps []*VerifiedNormalOffsetSweep,
+	o NormalOffsetSweepMomentOptions) (r NormalOffsetSweepMassMoments, err error) {
+	if ctx == nil || o.MaxDepth < 0 || o.MaxDepth > 64 || o.MaxCells < 0 || o.MaxCells > 1<<18 {
 		return r, ErrInvalid
 	}
 	tolerances := [4]*big.Rat{o.VolumeTolerance, o.CentroidTolerance, o.SecondMomentTolerance, o.InertiaTolerance}
@@ -75,18 +82,25 @@ func (s *VerifiedNormalOffsetSweep) MassMomentsRational(ctx context.Context, o N
 		}
 		precision = max(precision, q.Denom().BitLen()-q.Num().BitLen()+bits.Len(uint(o.MaxCells))+16)
 	}
-	root := *s.source
-	root.options.MaxPoles = min(root.options.MaxPoles, limits.MaxPoles)
-	if len(root.net) > root.options.MaxPoles {
+	if len(sweeps) > o.MaxCells {
 		return r, ErrConvergence
 	}
-	w := sweepMomentWork{
-		options: o, budget: budget, sweep: s, precision: precision,
+	roots := make([]SurfacePatch, len(sweeps))
+	for i, s := range sweeps {
+		roots[i] = *s.source
+		root := &roots[i]
+		root.options.MaxPoles = min(root.options.MaxPoles, limits.MaxPoles)
+		if len(root.net) > root.options.MaxPoles {
+			return r, ErrConvergence
+		}
 	}
-	if err := w.setup(ctx, &root); err != nil {
+	w := sweepMomentWork{
+		options: o, budget: budget, sweep: sweeps[0], precision: precision,
+	}
+	if err := w.setup(ctx, roots); err != nil {
 		return r, err
 	}
-	return w.integrate(ctx, &root)
+	return w.integrate(ctx, sweeps, roots)
 }
 
 const sweepMomentCount = 10
@@ -100,6 +114,7 @@ type sweepMomentCell struct {
 	value    sweepRawMoments
 	priority *big.Rat
 	depth    int
+	owner    int
 }
 
 type sweepMomentWork struct {
@@ -114,24 +129,26 @@ type sweepMomentWork struct {
 	visited, active int
 }
 
-func (w *sweepMomentWork) setup(ctx context.Context, root *SurfacePatch) error {
+func (w *sweepMomentWork) setup(ctx context.Context, roots []SurfacePatch) error {
 	a := boundedRatArithmetic{b: w.budget}
 	two := big.NewRat(2, 1)
 	var hull [3]exactInterval
-	for _, h := range root.net {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-		for i := range hull {
-			coordinate := a.quo(h[i], h[3])
-			if a.err != nil {
-				return a.err
+	for i := range roots {
+		for _, h := range roots[i].net {
+			if err := ctx.Err(); err != nil {
+				return err
 			}
-			if hull[i].lo == nil || coordinate.Cmp(hull[i].lo) < 0 {
-				hull[i].lo = coordinate
-			}
-			if hull[i].hi == nil || coordinate.Cmp(hull[i].hi) > 0 {
-				hull[i].hi = coordinate
+			for axis := range hull {
+				coordinate := a.quo(h[axis], h[3])
+				if a.err != nil {
+					return a.err
+				}
+				if hull[axis].lo == nil || coordinate.Cmp(hull[axis].lo) < 0 {
+					hull[axis].lo = coordinate
+				}
+				if hull[axis].hi == nil || coordinate.Cmp(hull[axis].hi) > 0 {
+					hull[axis].hi = coordinate
+				}
 			}
 		}
 	}
@@ -159,7 +176,8 @@ func (w *sweepMomentWork) setup(ctx context.Context, root *SurfacePatch) error {
 	return a.err
 }
 
-func (w *sweepMomentWork) integrate(ctx context.Context, root *SurfacePatch) (r NormalOffsetSweepMassMoments, err error) {
+func (w *sweepMomentWork) integrate(ctx context.Context, sweeps []*VerifiedNormalOffsetSweep,
+	roots []SurfacePatch) (r NormalOffsetSweepMassMoments, err error) {
 	defer func() {
 		r.ActiveCells, r.VisitedCells = w.active, w.visited
 		if ctx.Err() != nil {
@@ -167,37 +185,14 @@ func (w *sweepMomentWork) integrate(ctx context.Context, root *SurfacePatch) (r 
 			err = ctx.Err()
 		}
 	}()
-	exact, affine, err := w.affineCell(ctx, root)
+	// Joined volumes have disjoint open chart material and common
+	// exact displacement endpoints. Sum the original owner
+	// roots once in one reference frame before publishing any result.
+	total, queue, err := w.initialize(ctx, sweeps, roots)
 	if err != nil {
 		return r, err
 	}
-	if affine {
-		w.active, w.visited = 1, 1
-		r, err = w.derive(exact)
-		if err != nil {
-			return r, err
-		}
-		complete, err := w.complete(r)
-		if err != nil {
-			return r, err
-		}
-		if !complete {
-			return r, ErrConvergence
-		}
-		r.Complete = true
-		return r, nil
-	}
-	if w.precision >= w.budget.maxBits {
-		return r, ErrConvergence
-	}
-	w.factor = new(big.Int).Lsh(big.NewInt(1), uint(w.precision))
-	first, err := w.estimate(ctx, root, 0)
-	if err != nil {
-		return r, err
-	}
-	sum, best := first.value, first.value
-	w.active = 1
-	queue := sweepMomentQueue{first}
+	sum, best := total, total
 	for {
 		if err := ctx.Err(); err != nil {
 			return r, err
@@ -232,6 +227,7 @@ func (w *sweepMomentWork) integrate(ctx context.Context, root *SurfacePatch) (r 
 		if err != nil {
 			return r, err
 		}
+		w.sweep = sweeps[parent.owner]
 		lc, err := w.estimate(ctx, left, parent.depth+1)
 		if err != nil {
 			return r, err
@@ -245,9 +241,51 @@ func (w *sweepMomentWork) integrate(ctx context.Context, root *SurfacePatch) (r 
 			return r, err
 		}
 		w.active++
+		lc.owner, rc.owner = parent.owner, parent.owner
 		heap.Push(&queue, lc)
 		heap.Push(&queue, rc)
 	}
+}
+
+func (w *sweepMomentWork) initialize(ctx context.Context, sweeps []*VerifiedNormalOffsetSweep,
+	roots []SurfacePatch) (sum sweepRawMoments, queue sweepMomentQueue, err error) {
+	a := offsetIntervalArithmetic{b: w.budget}
+	for i := range roots {
+		w.sweep = sweeps[i]
+		value, affine, err := w.affineCell(ctx, &roots[i])
+		if err != nil {
+			return sum, nil, err
+		}
+		if affine {
+			w.visited++
+		} else {
+			if w.factor == nil {
+				if w.precision >= w.budget.maxBits {
+					return sum, nil, ErrConvergence
+				}
+				w.factor = new(big.Int).Lsh(big.NewInt(1), uint(w.precision))
+			}
+			cell, err := w.estimate(ctx, &roots[i], 0)
+			if err != nil {
+				return sum, nil, err
+			}
+			cell.owner = i
+			value = cell.value
+			heap.Push(&queue, cell)
+		}
+		if i == 0 {
+			sum = value
+		} else {
+			for k, result := range value {
+				sum[k] = a.add(sum[k], result)
+			}
+			if a.err != nil {
+				return sum, nil, a.err
+			}
+		}
+		w.active++
+	}
+	return sum, queue, nil
 }
 
 func (w *sweepMomentWork) estimate(ctx context.Context, p *SurfacePatch, depth int) (sweepMomentCell, error) {

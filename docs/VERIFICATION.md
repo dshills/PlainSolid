@@ -160,6 +160,11 @@ negative-Jacobian parabolic strips, and a spherical sector with an
 independent rational axial second moment. Short work retains a
 positive coarse enclosure; cancellation refuses. Both previous volume
 receipts match byte for byte.
+The [joined mass moments](evidence/verified-normal-offset-sweep-joined-moments-2026-11-16.json)
+preserve exact placed slab totals `99/35` and `33/5`; independent
+integrals verify all tensor entries on the curved pair and chain. A
+coarse positive result requires every original chart to be covered.
+Main race passes and the three single-chart receipts match byte for byte.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They
