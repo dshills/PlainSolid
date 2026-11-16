@@ -35,8 +35,8 @@ func TestMappedRoofNormalConeUsesOriginalOneSidedDifferentials(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bound, err := proof.certify(ctx, p, face)
-	if err != nil || bound == nil || bound.Cmp(proof.limit) > 0 {
+	bound, retries, err := proof.certify(ctx, p, face)
+	if err != nil || bound == nil || bound.Cmp(proof.limit) > 0 || retries != nil {
 		t.Fatal("both original one-sided normals must be covered by their own facet cones", bound, err)
 	}
 	n := func(tr [3]int) [3]*big.Rat {
@@ -77,5 +77,20 @@ func TestMappedRoofFiniteAngleProofOnClosedCreasedShell(t *testing.T) {
 			t.Fatal("missing finite one-sided roof cone", i, norm)
 		}
 		t.Logf("roof=%d triangles=%d tangent²<=%s", i, len(face.Mesh.Triangles), norm.FloatString(9))
+	}
+}
+
+func TestMappedRoofNormalTrimNeighborhoodUsesExactUVImage(t *testing.T) {
+	a := [3]*big.Rat{new(big.Rat), new(big.Rat), big.NewRat(1, 1)}
+	b := [3]*big.Rat{big.NewRat(3, 4), big.NewRat(3, 8), big.NewRat(3, 2)}
+	c := [3]*big.Rat{big.NewRat(2, 1), big.NewRat(1, 1), big.NewRat(2, 1)}
+	line, err := NewExactQuadraticUV([3][3]*big.Rat{a, b, c})
+	if err != nil || !mappedRoofStraightTrimImage([]PCurve{line}) {
+		t.Fatal("the positive clock changes only traversal of an exact line", err)
+	}
+	b[1] = big.NewRat(7, 16)
+	bowed, err := NewExactQuadraticUV([3][3]*big.Rat{a, b, c})
+	if err != nil || mappedRoofStraightTrimImage([]PCurve{bowed}) {
+		t.Fatal("a bowed source trim cannot drop its normal neighborhood", err)
 	}
 }

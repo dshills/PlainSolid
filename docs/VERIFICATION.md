@@ -525,6 +525,16 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   rejected. The earlier 2,822-triangle mesh bytes are identical. Main
   focused native passed in 44.310 seconds and the isolated race passed
   in 261.541 seconds.
+- On the authored v13 source, the opt-in native finite facet angle path
+  returned 2,126 closed triangles covering both original roofs and five
+  planar sides. It keeps three exact source joints, checks 116,690
+  candidate collision pairs with no unintended contacts, and certifies
+  squared distance at most 0.007986104052 mm² and squared facet-to-source
+  tangent at most 0.132665466495 for the 0.35 radian request. The
+  main branch test passed in 163.754 seconds. Exact one-sided normals
+  disprove a 0.35 radian facet angle on the unsplit closing edge;
+  synchronized closing-edge subdivision is necessary. This proof is
+  distinct from PlainCAD's normal-turn control across a facet.
 - The native variable-count clipped Cut (`0091b243`) independently
   checks one, four and five contacts across two axes and two original
   footprint layouts. It agrees with the older two- and three-contact

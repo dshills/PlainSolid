@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"slices"
 )
 
 // MappedChainFaceOptions keeps independent boundary, complete UV-fill/lift and
@@ -105,6 +106,16 @@ func (r MappedSplineChainAgreement) tessellateFaceWithBoundary(ctx context.Conte
 		cuts, e = mappedChainKnotTrimCuts(ctx, p, outer, cuts, o.Face.Boundary.Composition)
 		if e != nil {
 			return zero, fmt.Errorf("mapped chain support knot samples: %w", e)
+		}
+	}
+	if angle > 0 {
+		// A straight trim may still have rotating normals along it. Insert
+		// exact quarters in the original coedge clock so the angular path
+		// can reduce the length of otherwise protected display edges.
+		for i, fixed := range cuts {
+			fixed = append(slices.Clone(fixed), new(big.Rat), big.NewRat(1, 4), big.NewRat(1, 2), big.NewRat(3, 4), big.NewRat(1, 1))
+			slices.SortFunc(fixed, (*big.Rat).Cmp)
+			cuts[i] = slices.CompactFunc(fixed, func(a, b *big.Rat) bool { return a.Cmp(b) == 0 })
 		}
 	}
 	o.Face.Cuts = [][][]*big.Rat{cuts}

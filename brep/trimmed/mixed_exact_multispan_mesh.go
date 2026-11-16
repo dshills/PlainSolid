@@ -47,5 +47,8 @@ func tessellateMixedExactMultiSpanRegionCertified(ctx context.Context, p *geom.S
 		return CertifiedMixedExactCurvedMesh{}, e
 	}
 	work.maxKnotCellFlips, work.mappedNormalAngle = maxFlips, angle
+	if angle > 0 && len(holes) == 0 {
+		work.mappedStraightTrimImage = mappedRoofStraightTrimImage(outer)
+	}
 	return tessellateMixedExactCurvedRegion(ctx, p, outer, holes, o.Face, &work, alignSupportKnots)
 }

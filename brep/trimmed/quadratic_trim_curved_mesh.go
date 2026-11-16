@@ -184,6 +184,7 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 	passes := 0
 	var quality *mappedRoofQuality
 	var normals *mappedRoofNormals
+	var distanceByTriangle map[[3]int]*big.Rat
 	if spans != nil && spans.maxKnotCellFlips > 0 {
 		var err error
 		quality, err = newMappedRoofQuality(ctx, p, spans.maxKnotCellFlips)
@@ -191,7 +192,12 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 			return empty, fmt.Errorf("mapped roof projected quality: %w", err)
 		}
 		if spans.mappedNormalAngle > 0 {
-			normals, err = newMappedRoofNormals(ctx, p, spans.mappedNormalAngle, boundary.Region.FillSquaredDistance)
+			distanceByTriangle = make(map[[3]int]*big.Rat)
+			trimDistance := boundary.Region.FillSquaredDistance
+			if spans.mappedStraightTrimImage {
+				trimDistance = new(big.Rat)
+			}
+			normals, err = newMappedRoofNormals(ctx, p, spans.mappedNormalAngle, trimDistance)
 			if err != nil {
 				return empty, fmt.Errorf("mapped roof normal cells: %w", err)
 			}
@@ -215,23 +221,27 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 			}
 			uv := [3][2]*big.Rat{result.ExactUV[tri[0]], result.ExactUV[tri[1]], result.ExactUV[tri[2]]}
 			model := [3]geom.Vec3{result.Mesh.Vertices[tri[0]], result.Mesh.Vertices[tri[1]], result.Mesh.Vertices[tri[2]]}
-			var bound *big.Rat
-			ok := false
-			if spans == nil {
-				bound, ok = rationalBiquadraticExactCorrespondenceBound(p, uv, model)
-			} else {
-				var e error
-				bound, e = spans.bound(ctx, p, uv, model)
-				if e != nil {
-					return empty, e
+			bound := distanceByTriangle[tri]
+			if bound == nil {
+				if spans == nil {
+					var ok bool
+					bound, ok = rationalBiquadraticExactCorrespondenceBound(p, uv, model)
+					if !ok {
+						return empty, geom.ErrConvergence
+					}
+				} else {
+					var e error
+					bound, e = spans.bound(ctx, p, uv, model)
+					if e != nil {
+						return empty, e
+					}
+					result.SpanCellChecks, result.SpanPieceChecks = spans.cells, spans.pieces
+					if distanceByTriangle != nil {
+						distanceByTriangle[tri] = bound
+					}
 				}
-				ok = true
-				result.SpanCellChecks, result.SpanPieceChecks = spans.cells, spans.pieces
 			}
 			result.TriangleChecks++
-			if !ok {
-				return empty, geom.ErrConvergence
-			}
 			result.SquaredErrors = append(result.SquaredErrors, bound)
 			result.OriginalFace = append(result.OriginalFace, -1)
 			if bound.Cmp(maximum) > 0 {
@@ -239,9 +249,10 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 			}
 		}
 		distanceReady := maximum.Cmp(quarter) <= 0 && n >= minimum
+		var angleRetries []bool
 		if distanceReady && normals != nil {
 			var e error
-			result.SquaredNormalTangent, e = normals.certify(ctx, p, result)
+			result.SquaredNormalTangent, angleRetries, e = normals.certify(ctx, p, result)
 			if e != nil {
 				return empty, fmt.Errorf("mapped roof normal cone: %w", e)
 			}
@@ -264,7 +275,14 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 		}
 		if n == o.MaxSubdivisions || len(result.Mesh.Triangles) > o.MaxTriangles/4 || len(result.Mesh.Triangles) > (o.MaxTriangleChecks-result.TriangleChecks)/4 {
 			if distanceReady && normals != nil {
-				return empty, fmt.Errorf("mapped roof angular refinement: %w", geom.ErrConvergence)
+				unresolved := 0
+				for _, retry := range angleRetries {
+					if retry {
+						unresolved++
+					}
+				}
+				return empty, fmt.Errorf("mapped roof angular refinement after %d passes, %d of %d triangles unresolved: %w",
+					passes, unresolved, len(result.Mesh.Triangles), geom.ErrConvergence)
 			}
 			return empty, geom.ErrConvergence
 		}
@@ -291,14 +309,27 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 		}
 		next := make([][3]int, 0, 4*len(result.Mesh.Triangles))
 		if fixedBoundary {
-			for _, t := range result.Mesh.Triangles {
+			selected := map[edge]bool{}
+			for i, needsRefinement := range angleRetries {
+				if needsRefinement {
+					t := result.Mesh.Triangles[i]
+					for j, a := range t {
+						k := key(a, t[(j+1)%3])
+						if !boundaryEdges[k] {
+							selected[k] = true
+						}
+					}
+				}
+			}
+			for i, t := range result.Mesh.Triangles {
 				if err := ctx.Err(); err != nil {
 					return empty, err
 				}
 				m := [3]int{-1, -1, -1}
 				count := 0
 				for j, a := range t {
-					if !boundaryEdges[key(a, t[(j+1)%3])] {
+					k := key(a, t[(j+1)%3])
+					if !boundaryEdges[k] && (angleRetries == nil || selected[k]) {
 						id, err := midpoint(a, t[(j+1)%3])
 						if err != nil {
 							return empty, err
@@ -309,6 +340,10 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 				}
 				switch count {
 				case 0:
+					if angleRetries != nil && !angleRetries[i] {
+						next = append(next, t)
+						continue
+					}
 					var uv [2]*big.Rat
 					for k := range uv {
 						uv[k] = new(big.Rat).Quo(new(big.Rat).Add(new(big.Rat).Add(result.ExactUV[t[0]][k], result.ExactUV[t[1]][k]), result.ExactUV[t[2]][k]), big.NewRat(3, 1))

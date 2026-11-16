@@ -269,7 +269,11 @@ homogeneous weight ratios. A moved original knot still rejects. Native v13
 and strict STEP now retain ordered support changes across four to seven
 original cells (`7a196ec6`), including an independently authored
 four-cell source and three different joint masks. Its closed exact display
-is qualified (`821b8bcd`). Four original eccentric frustum rim chamfers
+is qualified (`821b8bcd`). The opt-in native path also proves a
+0.35 radian facet-to-source angle and a distance below 0.09 mm after
+refining the original closing edges and their neighboring spline cells.
+The PlainCAD angular control measures normal turning across a facet and
+needs a separate proof. Four original eccentric frustum rim chamfers
 now preserve both circular axes and prove the shell gap at all runouts
 ([independent evidence](evidence/eccentric-frustum-rim-chamfer-2026-11-15.json),
 `b600bde2`). The [diagonal cap fallback](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
