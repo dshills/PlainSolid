@@ -1,0 +1,45 @@
+{
+  "agent_revision": "e2695586590e250f8a742c9b812c943bf30ce2e2",
+  "summary": "# Exact oblique separation for two joined normal sweeps\n\nThe isolated geometry commit is `e2695586590e250f8a742c9b812c943bf30ce2e2` on `0f1d59d7fcc9df2b1d5c959f64b7f578a511aa44`. The portable patch SHA-256 is `88d91a76d1f04d1c88eb6291d60eb41fca41640a8e008384c06ee8a14ba41337`. The patch owns only the three geometry files.\n\nThe optional `VerifiedNormalOffsetSweepJoin.Covector` selects the exact original linear functional q. The plane constant is returned in that raw scale as `Coordinate`; the plane is q\u00b7x = Coordinate. Nil covector components count as zero. An explicit zero covector is invalid. Omitting the covector selects the existing Cartesian path and preserves its serialized join fields and exact operation counts.\n\nThe seam certificate matches the entire original point and oriented unit normal under the original station map. Exact homogeneous edge polynomials prove that q\u00b7S divided by the edge weight is constant and that q annihilates the source cross product along the common edge. Directed rational cell derivatives bound q\u00b7\u2202(S+tN) in the fixed edge parameter at both exact displacement endpoints. Affinity in displacement extends the strict signs to the whole interval. Integration inward from the common plane puts every point away from the shared wall in its prescribed open halfspace. These bounds cover points at unequal displacements and use the same aggregate proof budgets as the Cartesian path.\n\nThe positive geometry uses separately authored original charts on the graph `z=(x-5/8)^2/32+y^2/64`, placed by the proper rational coordinate rotation with rows `(48,-39,20)/65`, `(36,52,15)/65`, and `(-25,0,60)/65`, plus translation `(1/8,-1/4,5/16)`. The exact rotated plane covector is `(48,36,-25)/7` and its constant is `477/112`. B retains a different fixed axis, original free domain and reversed M\u00f6bius station ratio `3/2`. The original displacement interval is `[-1/11,2/13]`. The proof uses 25,511 exact operations, including 446 for the wall equality. It stays valid under exact covector negation with the requested halfspace signs reversed. A separate sparse-covector test checks nil coordinate components and the retained original scale.\n\nNegative cases include an exact common wall with a nonconstant projected source edge, a straight original edge with constant projection and a normal that separates the displaced wall from that plane, an incorrect side sign, an explicit zero covector, an exceeded exact operation budget and an exceeded coefficient budget. Caller mutations cannot alter the retained plane, covector or returned proof.\n\nThe supplemental fixture is independently authored from exact fractions by `author_rotated_sweep.py`. It imports the resulting authored charts and exercises the existing paired mesh increment unchanged. The positive embedded result has 8,960 triangles and 68 singly indexed shared perimeter vertices, including 62 nonbinary raw B station occurrences. The mesh contains exactly the retained outer face identities with no duplicate physical points. Its certified distance is 0.279050069985 at request 0.43. The exact signed display volume is approximately 0.976941911841713, versus 0.976943149396481 from independent midpoint integration of the source normal sweep Jacobian. Exact collision and indexed closure both pass. This supplemental check requests distance only.\n\nThe old Cartesian geometry controls retain operation counts of 1,788 and 6,275, and the previous planar and curved paired display receipts retain their complete JSON digests. The separator still requires two independently verified charts with one full original wall, equal displacement ranges with matched oriented normals, and a strict constant-plane separator. It does not extend the single-chart projection theorem or qualify nonplanar separating walls.\n\n`focused.log`, `focused-race.log`, `race.log` and `packages.log` record tests. The supplemental mesh logs and digest comparison files are in this directory. Supplemental mesh tests require the prior paired mesh patch and use the `oblique_pair_mesh_overlay.json` and `PLAIN_SOLID_OBLIQUE_SWEEP_FIXTURE` path to `rotated-sweep-charts.json`.\n",
+  "main_runs": [
+    {
+      "log": "verified-normal-sweep-pair-oblique-main-race.jsonl",
+      "passes": [
+        "TestVerifiedNormalOffsetSweepPairWithObliquePlane",
+        "TestVerifiedNormalOffsetSweepPairPreservesCartesianJoinJSON",
+        "TestVerifiedNormalOffsetSweepPairRefusesBadObliquePlanes",
+        "TestVerifiedNormalOffsetSweepPairRetainsOriginalCurvedBoundary",
+        "TestVerifiedNormalOffsetSweepPairRefusesUnprovedContact"
+      ],
+      "seconds": [
+        6.571
+      ]
+    },
+    {
+      "log": "verified-normal-sweep-oblique-mesh-main-race.jsonl",
+      "passes": [
+        "TestVerifiedSweepObliqueMeshReference"
+      ],
+      "seconds": [
+        34.754
+      ]
+    }
+  ],
+  "digests": {
+    "verified-normal-sweep-pair-oblique-main-race.jsonl": "f4889ed07aa6aac591d7803649c60262c82e891f0765ae4e7036b9425257bd57",
+    "verified-normal-sweep-oblique-mesh-main-race.jsonl": "3483e05e6e6ce891ec0721e8c964042c2c84b213eb4b8c0dea3e372fe51f73b9",
+    "cartesian_mesh_after.log": "fc46a1e68a220d28eedbbb9701fa77f9e8a582650d1c9fe7257e1d2497dd76e8",
+    "cartesian_mesh_baseline.log": "3be69212e20b6910ec09ccd254dbfb0d65ddf5ba6fe8656c772b41ff22ec031c",
+    "focused-race.log": "827966689a0ee0d52fd560e83c1a1b2347383f052db251dc15b7191baca17b6e",
+    "focused.log": "8422b4eb0f46e0f2f12b52b6ca6fc1058fd24bccd248f10e15f712f9e54ef1b7",
+    "oblique-mesh-race.log": "e5a1363f280d92c6c074f7c4964693039354661c3141dc6bfec54f32b6008a59",
+    "oblique-mesh.log": "957869caae26b78af97b27ebd37493777a1a320d41550b225b2a5ba921865aed",
+    "packages.log": "3a8012c6de2d2b457cadd32fcabeb5553a91f851cec21ef1da45b9124acdd658",
+    "race.log": "284e55655e2a1789e8abc91c5ed9d6ea712a5c81bc71a49642e1412633f69daa",
+    "cartesian_mesh_after.tsv": "171f0058005a57ee76d9b780f3b906818780089fd87fe48f3387d076468bc380",
+    "cartesian_mesh_baseline.tsv": "171f0058005a57ee76d9b780f3b906818780089fd87fe48f3387d076468bc380",
+    "rotated-sweep-charts.json": "e38c50764ba268afcdf82ac493481ffd2ba1fadc752ccd39e0eaa1a9f0088a1c",
+    "author_rotated_sweep.py": "f644d1709bb64d2c9e836b987859eba679618e0fc07a9ed9362a773a434f8eb9",
+    "verified-normal-offset-sweep-pair-oblique.patch": "88d91a76d1f04d1c88eb6291d60eb41fca41640a8e008384c06ee8a14ba41337"
+  }
+}

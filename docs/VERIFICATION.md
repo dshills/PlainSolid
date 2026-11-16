@@ -89,6 +89,12 @@ Independent samples confirm continuous spatial and angular bounds.
 All six single-sweep output digests match, and main race checks passed
 the planar, curved, budget and output precision cases.
 
+[Oblique two-chart sweep](evidence/verified-normal-offset-sweep-oblique-2026-11-16.json)
+proves the exact plane `(48x+36y-25z)/7=477/112` for independently
+rotated curved charts. The corresponding main mesh race retains 68
+shared stations and one embedded positive shell. Both previous
+Cartesian receipts and original proof work counts are unchanged.
+
 [Exact normal sweep membership](evidence/verified-normal-sweep-query-2026-11-16.json)
 passed rational slab interior, boundary and near-exterior controls and
 independently known points on a curved sweep, including a split station

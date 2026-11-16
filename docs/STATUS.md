@@ -45,7 +45,8 @@ display mesh with a proved spatial error and original face and station
 identities. An optional angular limit also certifies continuous outward
 normals on its original walls and layers. Two independently embedded
 sweeps can also prove an exact shared wall and disjoint interiors when
-the wall stays on one Cartesian separator. Their ten original outer
+the wall stays on one exact separating plane, including an oblique
+plane with a rational covector. Their ten original outer
 faces retain their chart owners and windings. Multi-chart display and
 general offset joins remain open beyond the proved pair. The pair now
 has a closed stitched display mesh that retains both original parameter
