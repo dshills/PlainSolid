@@ -119,8 +119,11 @@ exact atlas station. Both operand orders retain original UV stations
 3/8 and 1/2 on the differently weighted charts, two seams, four original
 walls and volume 1/8. A short budget still refuses without a result.
 The common entry point also passes automatic ordered, empty and
-two-seam Common/Fuse/Cut results. A partial footprint and canceled
-proof still publish no result.
+two-seam Common/Fuse/Cut results. A partial-footprint Fuse and a
+canceled proof still publish no result. Exact partial-footprint Common
+passes both ordered and crossing lifts, with independent volumes 11/16
+and 21/32 and original coedge ancestry intact. Two empty overlap
+controls pass and a nonbinary original clipping station refuses.
 An independent oblique adjacent-side seam also qualifies both Cut
 orders with exact volumes 25/48 and 1/48 and separate native pentagonal
 and triangular original footprints. Both axis orders pass.

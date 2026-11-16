@@ -764,5 +764,37 @@
       "partial footprint refusal",
       "cancellation"
     ]
+  },
+  "partial_projection_common": {
+    "main_base": "eebaa5fd",
+    "main_race_log": "projective-roof-overlap-dispatch-main-race.jsonl",
+    "main_race_sha256": "4aa75e964cf0719d75225a6285dad6affe2bcb8e8e421a14fc2d46b4543cd23e",
+    "main_race_seconds": 47.36,
+    "original_projected_overlap": [
+      "1/2",
+      "1"
+    ],
+    "independent_volumes": [
+      "11/16",
+      "21/32"
+    ],
+    "wall_counts": [
+      4,
+      6
+    ],
+    "wall_source_generated_counts": [
+      1,
+      0
+    ],
+    "section_edge_counts": [
+      0,
+      1
+    ],
+    "both_projection_axis_orders": true,
+    "empty_cases": [
+      "edge-only projected contact",
+      "disjoint projection"
+    ],
+    "unrepresentable_original_clip": "1/3"
   }
 }

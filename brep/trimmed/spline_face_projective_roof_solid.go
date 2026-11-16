@@ -221,36 +221,43 @@ func buildProjectiveSplineRoofSolid(ctx context.Context, a, b Face, axes [2]int,
 
 func projectiveRoofsAboveBase(a, b Face, height int, baseHeight float64, limits geom.SurfacePatchOptions) error {
 	for _, owner := range [2]Face{a, b} {
-		d, err := projectiveSplineFaceRectangle(owner.Outer, false)
-		if err != nil {
+		if _, err := projectiveRoofSupportAboveBase(owner, height, baseHeight, limits); err != nil {
 			return err
-		}
-		raw, pose := parametric.SurfaceMapping(owner.Surface)
-		patch, err := exactSplineSupportPatch(raw, limits)
-		if err != nil {
-			return err
-		}
-		if patch.Domain() != d {
-			patch, err = patch.Trim(d)
-			if err != nil {
-				return err
-			}
-		}
-		if pose != geom.Identity() {
-			patch, err = patch.Transformed(pose)
-			if err != nil {
-				return err
-			}
-		}
-		box, err := patch.Bounds()
-		if err != nil {
-			return err
-		}
-		if projectiveVectorAxis(box.Min, height) <= baseHeight {
-			return geom.ErrConvergence
 		}
 	}
 	return nil
+}
+
+func projectiveRoofSupportAboveBase(owner Face, height int, baseHeight float64, limits geom.SurfacePatchOptions) (*geom.SurfacePatch, error) {
+	d, err := projectiveSplineFaceRectangle(owner.Outer, false)
+	if err != nil {
+		return nil, err
+	}
+	raw, pose := parametric.SurfaceMapping(owner.Surface)
+	patch, err := exactSplineSupportPatch(raw, limits)
+	if err != nil {
+		return nil, err
+	}
+	if patch.Domain() != d {
+		patch, err = patch.Trim(d)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if pose != geom.Identity() {
+		patch, err = patch.Transformed(pose)
+		if err != nil {
+			return nil, err
+		}
+	}
+	box, err := patch.Bounds()
+	if err != nil {
+		return nil, err
+	}
+	if projectiveVectorAxis(box.Min, height) <= baseHeight {
+		return nil, geom.ErrConvergence
+	}
+	return patch, nil
 }
 
 func sewProjectiveRoofParts(ctx context.Context, parts []SewFace, seams [2]int, o ExactSewOptions) (Solid, int, error) {

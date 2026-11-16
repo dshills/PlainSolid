@@ -280,6 +280,9 @@ the exact shared projection and each owner’s original boundary clock.
 One projective roof Boolean entry point now chooses the proved strict
 order or full crossing contour without requiring the caller to supply
 a seam or source-height sign.
+Common also accepts unequal footprints, clips their exact projected
+rectangle, and distinguishes generated walls from surviving original
+coedge ranges. Edge-only or disjoint footprint intersections are empty.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows
