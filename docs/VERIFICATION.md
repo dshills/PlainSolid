@@ -320,6 +320,18 @@ STEP and 155.961 seconds for IGES. The first live attempt used an older
 IGES comparator without edge incidence. The pinned comparator with
 that inventory passes unchanged tests, including the old uncreased cases.
 
+The mixed parabola/circle fixture proves its complete polynomial from
+the original two charts, with no supplied trim proposal. The open conic
+exits the original opposite walls; the closed circle is strictly
+separated. Common and Fuse each retain 10 faces, 23 edges, 16 vertices,
+one inner wire and Euler characteristic 2. Independent vertical-strip
+and disk integrals give `54715159/27525120 − 4317π/134217728` for
+Common and `55418249/27525120 + 4317π/134217728` for Fuse. Both input
+orders and chart axes replay byte-identically. A second arrangement
+puts the circle below the branch. A changed coefficient, intersecting
+or tangent circle, nonrepresentable native radius, forged ledger and
+short budget all refuse. Main's native race passed in 24.333 seconds.
+
 A separate isolated real double-point proof passes with and without a
 disjoint regular branch, including source order swaps and rotated
 projection axes. The original surface tangents agree at the isolated

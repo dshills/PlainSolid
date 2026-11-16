@@ -414,6 +414,12 @@ original cusp knot only, eligible stock-wall pcurves are elevated
 exactly from cubic to quartic when needed for terminating decimal
 coordinates. The original roofs, model curves, cusp derivatives and
 stock knot stations remain exact.
+Native Common and Fuse now also discover and preserve a transverse open
+parabola and a separate closed circle on a shared spline footprint. Both
+roof owners retain their original charts and the enclosing roof carries
+the true circular hole. Opposite stock sides and two chart orientations
+pass. Native Cut and independent neutral exchange for this mixed family
+remain the next checks.
 Full ordinary Go on `01d12dab` and PlainCAD on `a3b7548d` have passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,
