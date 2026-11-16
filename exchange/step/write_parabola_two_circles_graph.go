@@ -33,7 +33,7 @@ func VerifyParabolaTwoCirclesGraphEnvelopeSTEP(ctx context.Context, in io.Reader
 }
 
 // WriteParabolaTwoCirclesGraphCut transfers the exact positive source layers as
-// one solid with two through holes or three disjoint solids.
+// one solid or a group of separate solids.
 func WriteParabolaTwoCirclesGraphCut(ctx context.Context, w io.Writer, body *trimmed.ParabolaTwoCirclesGraphCut,
 	name string, unit float64, l Limits, proof edgecheck.Options) error {
 	parts := body.Components()
@@ -41,7 +41,7 @@ func WriteParabolaTwoCirclesGraphCut(ctx context.Context, w io.Writer, body *tri
 	switch len(parts) {
 	case 1:
 		return writeExactBezierSingleSTEP(ctx, w, parts[0], name, unit, l, o)
-	case 3:
+	case 2, 3:
 		return writeClippedCutSTEPBodies(ctx, w, parts, nil, name, unit, l, o)
 	default:
 		return geom.ErrInvalid

@@ -12,7 +12,11 @@ import (
 
 func authoredPlacedParabolaTwoCirclesStock(t *testing.T) [3]*geom.BSplineSurface {
 	t.Helper()
-	contacts := parabolaTwoCirclesStock(t, 0, twoCirclePrimaryStock(), false)
+	return placeParabolaTwoCirclesTestStock(t, parabolaTwoCirclesStock(t, 0, twoCirclePrimaryStock(), false))
+}
+
+func placeParabolaTwoCirclesTestStock(t *testing.T, contacts [3]*geom.BSplineSurface) [3]*geom.BSplineSurface {
+	t.Helper()
 	var placed [3]*geom.BSplineSurface
 	for i, source := range contacts {
 		data := source.Data()

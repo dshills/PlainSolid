@@ -151,16 +151,17 @@ func parabolaCircleMeshSourceVolumes(h [2]parabolaCircleMeshHeight,
 		}
 		return out
 	}
-	zero := new(big.Rat)
-	volumes := [4][2]*big.Rat{
-		bound(lower, zero), bound(new(big.Rat).Sub(unit, lower), zero), bound(zero, disk[0]), bound(zero, disk[1]),
+	// Subtract each signed disk integral from its own proved strip.
+	// The two circles are ordered by free coordinate, which does not
+	// determine their enclosing strip.
+	holes := [2]*big.Rat{new(big.Rat), new(big.Rat)}
+	for i, strip := range source.CircleRegions {
+		holes[strip].Sub(holes[strip], disk[i])
 	}
-	enclosing, offset := 0, lower
-	if source.CirclesAbove {
-		enclosing, offset = 1, new(big.Rat).Sub(unit, lower)
+	return [4][2]*big.Rat{
+		bound(lower, holes[0]), bound(new(big.Rat).Sub(unit, lower), holes[1]),
+		bound(new(big.Rat), disk[0]), bound(new(big.Rat), disk[1]),
 	}
-	volumes[enclosing] = bound(offset, new(big.Rat).Neg(new(big.Rat).Add(disk[0], disk[1])))
-	return volumes
 }
 
 func parabolaCircleDiskMoment(c geom.GraphContactCircle, u, v int) *big.Rat {

@@ -585,6 +585,17 @@ two-face lens with Euler characteristic two. Exact source integrals
 check all four Cut order and axis combinations. Earlier same-side
 30 native recipes and 60 STEP and IGES files retain their bytes.
 The main new and previous native race passed in 764.804 seconds.
+The [opposite-side STEP and IGES proof](evidence/parabola-opposite-circles-neutral-2026-11-15.json)
+reopens 32 positive solids from 24 source-exact outputs. Independently
+authored lens shells confirm model and UV ownership and signed material;
+ordinary pinned Boolean volume deviations are recorded separately.
+Main's live both-format race passed in 394.424 seconds.
+The [opposite-side display proof](evidence/parabola-opposite-circles-display-2026-11-15.json)
+keeps a genus-one wall and a separate positive lens on identity and
+signed-axis placed charts at `.05` distance and `.2` source-normal turn.
+It proves the original hole edges and whole-assembly contact exclusion.
+Sixteen earlier display outputs retain their full bytes. The combined
+main display and old controls passed in 306.765 seconds.
 
 A separate isolated real double-point proof passes with and without a
 disjoint regular branch, including source order swaps and rotated

@@ -77,11 +77,6 @@ func (r *ParabolaTwoCirclesGraphCut) tessellateCertified(ctx context.Context, o 
 	if ctx == nil || r == nil || len(r.components) == 0 || len(r.components) != len(r.history) {
 		return nil, geom.ErrInvalid
 	}
-	// The exact volume certificate below uses the same-side circle layout.
-	// Its positive Cut contains either one or three components.
-	if len(r.components) != 1 && len(r.components) != 3 {
-		return nil, geom.ErrConvergence
-	}
 	if o.Deflection == 0 {
 		o.Deflection = .05
 	}

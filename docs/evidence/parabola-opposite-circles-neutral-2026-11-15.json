@@ -1,0 +1,65 @@
+{
+  "native_prerequisite": "fcd8162f18628e2ae41c967bf9772b8e187894bd",
+  "commit": "4f2b64b26aac84dfb60c4b35c2d99da812b4acc9",
+  "patch": {
+    "path": "parabola-opposite-circles-neutral.patch",
+    "sha256": "4f753129ac97ab4e1ce37e461caf817199f8a9a45c782ce09e911605dd4bd20a"
+  },
+  "occt": {
+    "version": "8.1.0",
+    "commit": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+    "reader_sha256": {
+      "step": "24c33a502833a62df447405c6ec936a33c485d775228004644bb7a9800070f87",
+      "iges": "c422b20f4a234589739c056e2e47c59d9c1b079789b8d07f6642b6b2540ea9af"
+    }
+  },
+  "neutral": {
+    "cases": 12,
+    "files": 24,
+    "positive_closed_solids": 32,
+    "maximum_absolute_volume_error": 4.440892098500626e-16,
+    "maximum_relative_volume_error": 3.2724368509271356e-13,
+    "smallest_positive_volume": 4.4196689602334555e-07,
+    "component_table": "neutral-mass.tsv",
+    "legacy_files_byte_identical": 60,
+    "legacy_checksum_table": "neutral-same-side-sha256.tsv"
+  },
+  "independent_original_lenses": {
+    "authored_shapes": 4,
+    "readback_comparisons": 8,
+    "maximum_absolute_volume_difference": 2.541098841762901e-19,
+    "maximum_absolute_area_difference": 2.7755575615628914e-17,
+    "table": "authored-lenses-vs-neutral.tsv"
+  },
+  "direct_occt_boolean_diagnostic": {
+    "cases": 12,
+    "valid_matching_counts": true,
+    "component_comparisons": 16,
+    "cut_component_volumes_outside_neutral_bound": 6,
+    "maximum_absolute_volume_difference": 2.133989988840554e-10,
+    "maximum_relative_volume_difference": 5.776989508661039e-07,
+    "table": "direct-occt-vs-exact.tsv"
+  },
+  "focused_pinned_race": {
+    "seconds": 314.871,
+    "log": "neutral-pinned-race.log",
+    "sha256": "99f5f7bd8dc550fdf6f903e29ca0f74fd2495f45ea29f4d7641cba0cd048b95c"
+  },
+  "mainIntegration": {
+    "elapsedSeconds": 394.425,
+    "log": {
+      "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-neutral-main-race.jsonl",
+      "sha256": "bcaab605d9ffd93da613cf8ef1e2f1dbd8704d12a4f6b1164a0c6dbcb2d6729e"
+    },
+    "caseNames": [
+      "TestParabolaOppositeCirclesEnvelopeExchange/common",
+      "TestParabolaOppositeCirclesEnvelopeExchange/fuse",
+      "TestParabolaOppositeCirclesEnvelopeExchange",
+      "TestParabolaOppositeCirclesCutExchange/0/0",
+      "TestParabolaOppositeCirclesCutExchange/0/1",
+      "TestParabolaOppositeCirclesCutExchange/1/0",
+      "TestParabolaOppositeCirclesCutExchange/1/1",
+      "TestParabolaOppositeCirclesCutExchange"
+    ]
+  }
+}
