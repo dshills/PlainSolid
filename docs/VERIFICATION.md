@@ -1,5 +1,15 @@
 # Verification record
 
+The [explicit rounded conical STEP repair](evidence/conical-rim-fillet-default-step-repair-2026-11-15.json)
+was checked against independently pinned OCCT authoring and readback. The
+finite cone displacement bound is `2.82747187543142e-12` mm. The
+`1e-11` mm opt-in proves the original exact slope `4/3`, line seam,
+meridians and one lower bound reversal; `1e-12` mm refuses. Original
+vertices and directed incident owner IDs remain in the replay ledger.
+Both original and corrected files reopen in OCCT as valid positive solids,
+and the native bytes match the independently authored exact carrier.
+The combined main strict/repair/receipt race passed in 113.115 seconds.
+
 ## Full Go and PlainCAD rerun (2026-11-15)
 
 The [pinned Go report](evidence/main-af569683-qualification-2026-11-15.json)

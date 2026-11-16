@@ -3213,8 +3213,10 @@ both rational cap curves, isolates finite trim endpoints, and proves their
 radial correspondence to the original angular model edges. Native reload
 checks the full original STEP evidence for the unposed, translated, and
 signed cardinal cases. The corrected output uses the separately validated
-model-only representation. Explicit repair at the bridge import entry
-point is in progress.
+model-only representation. The explicit Go repair is qualified against
+the original rounded OCCT export. Its receipt binds the original,
+corrected and native bytes. The stock conical source stays outside strict
+import, and the PlainCAD bridge qualification is running separately.
 
 ### Periodic spline geometry
 
