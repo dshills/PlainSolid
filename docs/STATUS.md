@@ -482,6 +482,10 @@ Common and Fuse then keep one original hole on each roof owner. Each
 Cut retains a through-hole layer and one separate positive lens. Exact
 STEP and IGES and the certified identity or placed display preserve
 both components and their source ownership.
+For one circle crossing the open parabola, geometry now proves the
+two original transverse intersections and all four connected signed
+regions in an exact retained chart. Native shell assembly for this
+crossing case is in progress.
 Full ordinary Go and PlainCAD on `a3b7548d` have passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,

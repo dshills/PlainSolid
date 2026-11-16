@@ -596,6 +596,11 @@ signed-axis placed charts at `.05` distance and `.2` source-normal turn.
 It proves the original hole edges and whole-assembly contact exclusion.
 Sixteen earlier display outputs retain their full bytes. The combined
 main display and old controls passed in 306.765 seconds.
+The [transverse parabola and circle proof](evidence/parabola-circle-crossings-geometry-2026-11-15.json)
+proves the complete residual, two exact original intersections, both
+source jets and four signed regions through the two axis and operand
+orders. Tangency, moved coefficients, unsupported exits and short
+limits fail closed. The focused main geometry race passed in 1.778 seconds.
 
 A separate isolated real double-point proof passes with and without a
 disjoint regular branch, including source order swaps and rotated
