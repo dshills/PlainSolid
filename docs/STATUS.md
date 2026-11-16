@@ -41,6 +41,9 @@ directed rational coordinate bounds, even for irrational unit normals.
 A single smooth rational patch can also prove its normal offset remains
 one-to-one through two signed model axes at each fixed displacement.
 That proof does not cover a neighboring face or the swept volume.
+For some smooth charts a separate three-dimensional monotonicity
+certificate proves that the entire signed normal sweep is one-to-one,
+including points on different displacement layers.
 When the proof is complete, the resulting offset can be used as a
 `geom.Surface`, with directed rational bounds for positions and first
 partials in the original parameters.

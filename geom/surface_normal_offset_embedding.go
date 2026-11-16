@@ -38,9 +38,47 @@ func (p *SurfacePatch) CertifyProjectedNormalOffsetEmbedding(ctx context.Context
 
 func projectedOffsetCellMonotone(ctx context.Context, p *SurfacePatch, distance *big.Rat, projection NormalOffsetProjection,
 	b *polynomialBudget) (bool, error) {
+	d, err := offsetCellJacobianBounds(ctx, p, b)
+	if err != nil || d == nil {
+		return false, err
+	}
+	a := &d.arithmetic
+	zero := offsetZeroInterval()
+	shift := exactInterval{zero.lo, distance}
+	if distance.Sign() < 0 {
+		shift.lo, shift.hi = shift.hi, shift.lo
+	}
+	var matrix [2][2]exactInterval
+	for row, i := range projection.Axes {
+		du, dv := d.normalDerivative(i, 0), d.normalDerivative(i, 1)
+		matrix[row][0] = a.add(d.tangent[0][i], a.mul(shift, du))
+		matrix[row][1] = a.add(d.tangent[1][i], a.mul(shift, dv))
+		if projection.Reversed[row] {
+			matrix[row][0] = a.sub(zero, matrix[row][0])
+			matrix[row][1] = a.sub(zero, matrix[row][1])
+		}
+	}
+	if a.err != nil || matrix[0][0].lo.Sign() <= 0 || matrix[1][1].lo.Sign() <= 0 {
+		return false, a.err
+	}
+	side := a.add(matrix[0][1], matrix[1][0])
+	four := big.NewRat(4, 1)
+	det := a.sub(a.mul(exactInterval{four, four}, a.mul(matrix[0][0], matrix[1][1])), a.square(side))
+	return a.err == nil && det.lo.Sign() > 0, a.err
+}
+
+type offsetCellJacobian struct {
+	arithmetic               offsetIntervalArithmetic
+	tangent, normalPartials  [2][3]exactInterval
+	normal                   [3]exactInterval
+	normalDot                [2]exactInterval
+	length, length2, length3 exactInterval
+}
+
+func offsetCellJacobianBounds(ctx context.Context, p *SurfacePatch, b *polynomialBudget) (*offsetCellJacobian, error) {
 	jet, err := offsetCartesianRanges(ctx, p, b)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	a := offsetIntervalArithmetic{b: b}
 	u, v := jet[1][0], jet[0][1]
@@ -56,7 +94,7 @@ func projectedOffsetCellMonotone(ctx context.Context, p *SurfacePatch, distance 
 		}
 	}
 	if a.err != nil || scale.Sign() == 0 {
-		return false, a.err
+		return nil, a.err
 	}
 	// Scale by a fixed positive value over this cell to avoid losing
 	// small but nonzero normals in the square-root enclosure.
@@ -69,45 +107,33 @@ func projectedOffsetCellMonotone(ctx context.Context, p *SurfacePatch, distance 
 	}
 	length2 := a.norm2(n)
 	if a.err != nil || length2.lo.Sign() <= 0 {
-		return false, a.err
+		return nil, a.err
 	}
 	lo, _, err := rationalSqrtBounds(length2.lo, 96, b)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	_, hi, err := rationalSqrtBounds(length2.hi, 96, b)
 	if err != nil || lo.Sign() <= 0 {
-		return false, err
+		return nil, err
 	}
 	length, err := boundedExactInterval(lo, hi, b)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	length3 := a.mul(length2, length)
 	nuDot, nvDot := a.dot(n, nu), a.dot(n, nv)
-	zero := offsetZeroInterval()
-	shift := exactInterval{zero.lo, distance}
-	if distance.Sign() < 0 {
-		shift.lo, shift.hi = shift.hi, shift.lo
+	if a.err != nil {
+		return nil, a.err
 	}
-	var matrix [2][2]exactInterval
-	for row, i := range projection.Axes {
-		// Differentiate the normalized vector: n_i'= (N_i' |N|²
-		// - N_i (N·N')) / |N|³.
-		du := a.div(a.sub(a.mul(nu[i], length2), a.mul(n[i], nuDot)), length3)
-		dv := a.div(a.sub(a.mul(nv[i], length2), a.mul(n[i], nvDot)), length3)
-		matrix[row][0] = a.add(u[i], a.mul(shift, du))
-		matrix[row][1] = a.add(v[i], a.mul(shift, dv))
-		if projection.Reversed[row] {
-			matrix[row][0] = a.sub(zero, matrix[row][0])
-			matrix[row][1] = a.sub(zero, matrix[row][1])
-		}
-	}
-	if a.err != nil || matrix[0][0].lo.Sign() <= 0 || matrix[1][1].lo.Sign() <= 0 {
-		return false, a.err
-	}
-	side := a.add(matrix[0][1], matrix[1][0])
-	four := big.NewRat(4, 1)
-	det := a.sub(a.mul(exactInterval{four, four}, a.mul(matrix[0][0], matrix[1][1])), a.square(side))
-	return a.err == nil && det.lo.Sign() > 0, a.err
+	return &offsetCellJacobian{arithmetic: a, tangent: [2][3]exactInterval{u, v}, normal: n,
+		normalPartials: [2][3]exactInterval{nu, nv}, normalDot: [2]exactInterval{nuDot, nvDot},
+		length: length, length2: length2, length3: length3}, nil
+}
+
+func (d *offsetCellJacobian) normalDerivative(i, parameter int) exactInterval {
+	a := &d.arithmetic
+	// Differentiate the normalized vector:
+	// n' = (N' |N|² - N (N·N')) / |N|³.
+	return a.div(a.sub(a.mul(d.normalPartials[parameter][i], d.length2), a.mul(d.normal[i], d.normalDot[parameter])), d.length3)
 }

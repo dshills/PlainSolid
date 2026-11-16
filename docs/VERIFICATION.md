@@ -74,6 +74,11 @@ Both a parabolic cylinder and its rotated signed-axis chart certify the
 full injective offset at positive and negative displacements. The
 focal line stays unresolved at the critical displacement, and a
 projection that drops an entire tangent direction cannot certify.
+The full normal sweep race passed in 3.434 seconds. The parabolic
+source and its rotated chart are injective across the complete
+`[-0.1,0.1]` displacement interval. Positive definiteness at both ends
+proves all intermediate layers together. The focal line stays unresolved,
+and a wrong displacement direction or short work refuses.
 The verified offset surface race passed in 2.921 seconds. Its position
 and first partials agree with independent rational and irrational values
 on the parabolic cylinder. A focal-line input cannot construct a usable
