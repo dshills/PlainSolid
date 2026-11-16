@@ -139,6 +139,9 @@ singularities remain unresolved.
 The surface-pair query can opt into this exact contour graph. If that
 proof cannot finish, the ordinary conservative cover still accounts for
 the unresolved contact.
+Two rectangular trimmed spline faces can now return an exact section
+with the original coedge IDs and normalized parameters at each terminal.
+General trim loops and Boolean assembly from these sections remain open.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

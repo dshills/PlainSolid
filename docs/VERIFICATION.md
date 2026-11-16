@@ -20,6 +20,11 @@ The same audit qualifies the surface-pair query: exact open contacts in
 both operand orders, quadratic networks in two placements, and exact
 absence with overlapping boxes. An isolated tangency and short graph
 budget still leave valid conservative candidates.
+The [trimmed-face section audit](evidence/projective-surface-graph-overlap-2026-11-16.json)
+passes original rectangle restrictions on both faces, a rotated wire-use
+order, a reversed edge clock, and a quadratic crossing with two original
+uses at each corner. A hole or a short work budget publishes no partial
+section.
 
 The [full Go run on `c7afb429`](evidence/main-c7afb429-qualification-2026-11-16.json)
 passed all nine lanes: 6,018 passes, 599 optional skips, and no failures

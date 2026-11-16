@@ -369,5 +369,17 @@
       "TestSurfaceSurfaceProjectiveContactsFallbackRemainsConservative",
       "TestTraceProjectiveSurfaceContactsJoinsQuadraticSaddleAcrossOriginalKnots"
     ]
+  },
+  "rectangular_trimmed_face_section": {
+    "main_base": "d2d6b9d3",
+    "log": "projective-trimmed-face-main-race.jsonl",
+    "sha256": "2529c484b733e55524d7aef4ed70f7db59b7d1873e7f9ff3e6e4cd77f6033958",
+    "main_passes": [
+      "TestTraceProjectiveSplineFaceContactsClipsOriginalRectangles",
+      "TestTraceProjectiveSplineFaceContactsRetainsBothUsesAtAnOriginalCorner"
+    ],
+    "original_normalized_coedge_positions": ["3/4", "2/5"],
+    "reversed_edge_normalized_position": "1/4",
+    "quadratic_corner_terminals": 4
   }
 }
