@@ -1,0 +1,527 @@
+{
+  "milestone": "Editable native documents with bounded spatial STEP frame repair replay",
+  "documentRevision": "aa5bd8d2e36905e625cc7cf9cb6f1483df8c9e44",
+  "frameRepairRevision": "9887fdc98645f8d1691b8af2bd33c7cefd855ce7",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "pinnedExecutable": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/mixed-ap242-curved-import/depth-three-dag/appearance/rounded-repair/rotation/projection/noncardinal/rounded-frame-repair/author",
+  "pinnedExecutableArchitecture": "Darwin arm64",
+  "goArchitectures": [
+    "Darwin arm64 native",
+    "Darwin amd64 via Rosetta"
+  ],
+  "environment": {
+    "PLAINSOLID_OCCT_MIXED_CONICAL_AP242_FRAME_REPAIR": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/mixed-ap242-curved-import/depth-three-dag/appearance/rounded-repair/rotation/projection/noncardinal/rounded-frame-repair/author",
+    "PLAINSOLID_OCCT_MIXED_CONICAL_AP242_APPEARANCE": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/mixed-ap242-curved-import/depth-three-dag/appearance/rounded-repair/rotation/projection/noncardinal/rounded-frame-repair/author"
+  },
+  "tests": {
+    "live.log": {
+      "duration": "146.953s",
+      "filter": "^Test.*MixedConicalAP242.*Document.*$",
+      "race": false
+    },
+    "race.log": {
+      "duration": "168.341s",
+      "filter": "^TestRepairedMixedConicalAP242FrameDocument.*$",
+      "race": true
+    }
+  },
+  "nativeSourceLedger": {
+    "Name": "Original STEP occurrence repair",
+    "Target": "document",
+    "Attributes": {
+      "step.repair.displacement-upper": {
+        "Kind": "string",
+        "Text": "9880348298566218070206394531130136975/182687704666362864775460604089535377456991567872"
+      },
+      "step.source.body": {
+        "Kind": "integer",
+        "Integer": 95
+      },
+      "step.source.context-dependent-representation": {
+        "Kind": "integer",
+        "Integer": 247
+      },
+      "step.source.corrected-sha256": {
+        "Kind": "string",
+        "Text": "5db55bd9dd6c69e723d340e5d76fa662d4f70dd9b24523738b9635ef6c7cdf01"
+      },
+      "step.source.definition": {
+        "Kind": "integer",
+        "Integer": 89
+      },
+      "step.source.from-placement": {
+        "Kind": "integer",
+        "Integer": 11
+      },
+      "step.source.nauo": {
+        "Kind": "integer",
+        "Integer": 251
+      },
+      "step.source.origin": {
+        "Kind": "integer",
+        "Integer": 69
+      },
+      "step.source.original-sha256": {
+        "Kind": "string",
+        "Text": "760b44f67c8cd77196b462986c63d4dc396170f5be6dc108f1a7f7b92822725d"
+      },
+      "step.source.parent-definition": {
+        "Kind": "integer",
+        "Integer": 58
+      },
+      "step.source.relationship": {
+        "Kind": "integer",
+        "Integer": 248
+      },
+      "step.source.to-placement": {
+        "Kind": "integer",
+        "Integer": 68
+      },
+      "step.source.transformation": {
+        "Kind": "integer",
+        "Integer": 249
+      },
+      "step.source.x-direction": {
+        "Kind": "integer",
+        "Integer": 71
+      },
+      "step.source.z-direction": {
+        "Kind": "integer",
+        "Integer": 70
+      }
+    }
+  },
+  "pinnedEditedWorlds": [
+    {
+      "sourcePath": [
+        54,
+        85,
+        245
+      ],
+      "pinnedPath": [
+        1,
+        1,
+        1
+      ],
+      "exactEditedWorld": [
+        [
+          "-4/5",
+          "0",
+          "3/5",
+          "412/5"
+        ],
+        [
+          "3/5",
+          "0",
+          "4/5",
+          "266/5"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "8"
+        ]
+      ],
+      "pinnedWorld": [
+        -0.8,
+        0,
+        0.6,
+        82.4,
+        0.6,
+        0,
+        0.8,
+        53.2,
+        0,
+        1,
+        0,
+        8
+      ],
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "positiveVolume": 2282.4014040828897,
+      "area": 1182.6440976399515
+    },
+    {
+      "sourcePath": [
+        54,
+        85,
+        251
+      ],
+      "pinnedPath": [
+        1,
+        1,
+        2
+      ],
+      "exactEditedWorld": [
+        [
+          "-4/13",
+          "48/65",
+          "3/5",
+          "1257/10"
+        ],
+        [
+          "3/13",
+          "-36/65",
+          "4/5",
+          "779/40"
+        ],
+        [
+          "12/13",
+          "5/13",
+          "0",
+          "30"
+        ]
+      ],
+      "pinnedWorld": [
+        -0.3076923076923077,
+        0.7384615384615385,
+        0.6,
+        125.7,
+        0.23076923076923078,
+        -0.5538461538461539,
+        0.8,
+        19.475,
+        0.9230769230769231,
+        0.38461538461538464,
+        0,
+        30
+      ],
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "positiveVolume": 2282.4014040828893,
+      "area": 1182.6440976399515
+    },
+    {
+      "sourcePath": [
+        54,
+        85,
+        443
+      ],
+      "pinnedPath": [
+        1,
+        1,
+        3
+      ],
+      "exactEditedWorld": [
+        [
+          "-12/25",
+          "16/25",
+          "3/5",
+          "544/5"
+        ],
+        [
+          "9/25",
+          "-12/25",
+          "4/5",
+          "192/5"
+        ],
+        [
+          "4/5",
+          "3/5",
+          "0",
+          "-24"
+        ]
+      ],
+      "pinnedWorld": [
+        -0.48,
+        0.6400000000000001,
+        0.6,
+        108.8,
+        0.36,
+        -0.48,
+        0.8,
+        38.4,
+        0.8,
+        0.6,
+        0,
+        -24
+      ],
+      "topology": [
+        1,
+        8,
+        14,
+        8
+      ],
+      "positiveVolume": 726.9882684981451,
+      "area": 593.8973269066951
+    },
+    {
+      "sourcePath": [
+        466,
+        472,
+        245
+      ],
+      "pinnedPath": [
+        2,
+        1,
+        1
+      ],
+      "exactEditedWorld": [
+        [
+          "3/5",
+          "0",
+          "4/5",
+          "-414/5"
+        ],
+        [
+          "16/25",
+          "3/5",
+          "-12/25",
+          "-113/25"
+        ],
+        [
+          "-12/25",
+          "4/5",
+          "9/25",
+          "741/25"
+        ]
+      ],
+      "pinnedWorld": [
+        0.6,
+        0,
+        0.8,
+        -82.8,
+        0.6400000000000001,
+        0.6,
+        -0.48,
+        -4.519999999999996,
+        -0.48,
+        0.8,
+        0.36,
+        29.64
+      ],
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "positiveVolume": 2282.40140408289,
+      "area": 1182.6440976399515
+    },
+    {
+      "sourcePath": [
+        466,
+        472,
+        251
+      ],
+      "pinnedPath": [
+        2,
+        1,
+        2
+      ],
+      "exactEditedWorld": [
+        [
+          "3/13",
+          "-36/65",
+          "4/5",
+          "-4661/40"
+        ],
+        [
+          "4/5",
+          "-9/25",
+          "-12/25",
+          "-649/25"
+        ],
+        [
+          "36/65",
+          "244/325",
+          "9/25",
+          "3661/50"
+        ]
+      ],
+      "pinnedWorld": [
+        0.23076923076923078,
+        -0.5538461538461539,
+        0.8,
+        -116.525,
+        0.8,
+        -0.36000000000000015,
+        -0.48,
+        -25.960000000000004,
+        0.5538461538461539,
+        0.7507692307692307,
+        0.36,
+        73.22
+      ],
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "positiveVolume": 2282.40140408289,
+      "area": 1182.6440976399517
+    },
+    {
+      "sourcePath": [
+        466,
+        472,
+        443
+      ],
+      "pinnedPath": [
+        2,
+        1,
+        3
+      ],
+      "exactEditedWorld": [
+        [
+          "9/25",
+          "-12/25",
+          "4/5",
+          "-488/5"
+        ],
+        [
+          "108/125",
+          "-19/125",
+          "-12/25",
+          "-1121/25"
+        ],
+        [
+          "44/125",
+          "108/125",
+          "9/25",
+          "497/25"
+        ]
+      ],
+      "pinnedWorld": [
+        0.36,
+        -0.48,
+        0.8,
+        -97.6,
+        0.864,
+        -0.15200000000000014,
+        -0.48,
+        -44.84,
+        0.35200000000000015,
+        0.864,
+        0.36,
+        19.88
+      ],
+      "topology": [
+        1,
+        8,
+        14,
+        8
+      ],
+      "positiveVolume": 726.988268498145,
+      "area": 593.897326906695
+    },
+    {
+      "sourcePath": [
+        477
+      ],
+      "pinnedPath": [
+        3
+      ],
+      "exactEditedWorld": [
+        [
+          "1",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "150"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "40"
+        ]
+      ],
+      "pinnedWorld": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        150,
+        0,
+        0,
+        1,
+        40
+      ],
+      "topology": [
+        1,
+        8,
+        14,
+        8
+      ],
+      "positiveVolume": 726.988268498145,
+      "area": 593.897326906695
+    }
+  ],
+  "changedCorrectedCarrierRecords": [
+    69,
+    70,
+    71,
+    251
+  ],
+  "replayedOriginalReceiptSHA256": "04e26492cd7d116d27ffcd54bd3504c599cd3786ce09c0ac17184ed54da27b76",
+  "initialAndEditedNativeFilesCrossArchitectureIdentical": true,
+  "editedCarrierAndUnchangedOriginalReceiptCrossArchitectureIdentical": true,
+  "legacyStyledDocumentAndTranslationBytesIdentical": true,
+  "atomicRefusals": [
+    "tight angle or distance",
+    "short native node and receipt byte bounds",
+    "short strict writeback expansion",
+    "forged receipt owner IDs",
+    "different genuine proof with the same corrected carrier",
+    "mutated relationship",
+    "mutated original path",
+    "conflicting repeated use",
+    "ownerless STEP recoloring"
+  ],
+  "artifactSHA256": {
+    "snapshot.go": "4824d858561959b17754f9a1f56628987b51d8bd694221166f19c880b7bd837f",
+    "producer-arm64.log": "152e4211e51cad328681f9bac9bee7f458bca375dc845fb0de5c1996b69a611e",
+    "producer-amd64.log": "bbe0ad33dff42f88a0459c825b9458159c7eae0c896694a6ad7fb5271f2bfdbe",
+    "changed-records.log": "1347c48bfb097b61c1f5a6fb9bfb6eb1befd3c0209be37de25fd50f2622e3af0",
+    "legacy-translation.step": "2c55e09b2d84f19fa2d3da4b7cff3c388bb22eb4dfcb85d9768ed6c2deaaf9ae",
+    "legacy-styled/edited-document.json": "258d2c951828bfd9a95c72b847b484c6ff552bd5c4160c678c73cc111c188e77",
+    "legacy-styled/edited-document.step": "6118f0164166dc02e236267d9fcf4e6cc00445ef165f39c67fadfe496a409d46",
+    "legacy-styled/source-receipt.json": "8e23a20c2ed1efd3d2aa39acf27c5af0131ae3fc9c61f86ce1a799779076ad53",
+    "edit-repaired-spatial-ap242-frame-document.patch": "02f6475fef1546470cf6634d4529cd0eec7fc92ccd2181b4444a86ec547e4df2",
+    "arm64/initial-document.json": "5401269364288c528c200ad9dbf5be0be3aebdecc24fa83d70a51d3a42638200",
+    "arm64/edited-document.json": "d53307bd9727bbb8b6162d8a16190266cc14b7a571606b14f76940a91815989b",
+    "arm64/edited-document.step": "181082866139bc15fa3d3a46844b0e39f9326a89aa94fd401dab87852005af28",
+    "arm64/source-receipt.json": "04e26492cd7d116d27ffcd54bd3504c599cd3786ce09c0ac17184ed54da27b76",
+    "arm64/xcaf.log": "cee281d268da53bf54a6f83508f9aaec6804c12dca53bb982bae0f4f8bb67c21",
+    "amd64/initial-document.json": "5401269364288c528c200ad9dbf5be0be3aebdecc24fa83d70a51d3a42638200",
+    "amd64/edited-document.json": "d53307bd9727bbb8b6162d8a16190266cc14b7a571606b14f76940a91815989b",
+    "amd64/edited-document.step": "181082866139bc15fa3d3a46844b0e39f9326a89aa94fd401dab87852005af28",
+    "amd64/source-receipt.json": "04e26492cd7d116d27ffcd54bd3504c599cd3786ce09c0ac17184ed54da27b76",
+    "amd64/xcaf.log": "cee281d268da53bf54a6f83508f9aaec6804c12dca53bb982bae0f4f8bb67c21",
+    "live.log": "864b20cc1989dae96c7ea370b70a41df7075a4bec71cbf3bb0095562e309bda7",
+    "race.log": "ff7b1d2ec5e88346530d7d7562191193adcdfe6d9d2c0fc47ee3e56a35462a4a"
+  },
+  "main_integration": {
+    "source_evidence_sha256": "a9f455f20a1eff73dcf3ef6df6f8fd25de43fc8d143c33b713259d49e41ab5c8",
+    "path": "repaired-frame-document-main-race.jsonl",
+    "sha256": "6dd3044566bb72f3da58c3e86e0158b3b7902ceb0c1a89e9a78c331f7c57de82",
+    "top_level_passes": [
+      "TestMixedConicalAP242DAGDocumentSpatialRotation",
+      "TestRepairedMixedConicalAP242FrameDocument",
+      "TestRepairedMixedConicalAP242FrameDocumentReject"
+    ],
+    "package_seconds": [
+      289.016
+    ]
+  }
+}

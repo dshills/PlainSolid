@@ -33,6 +33,13 @@ displacement limits, preserves the original source receipt, and refuses
 tight limits, ambiguous primitive directions and borrowed placement
 owners. Native Darwin ARM64 and executed Darwin amd64 snapshots agreed.
 
+The [editable repaired frame](evidence/mixed-ap242-rounded-frame-document-2026-11-16.json)
+passed main race controls and an independent XCAF reopen after renaming,
+translation and exact rotation. Both expanded original occurrence
+paths recover the same edited shared relationship. Native save/load
+preserves the repair ledger and the source replay receipt. Forged
+direction ownership, conflicting shared edits and ownerless paint refuse.
+
 The [closed normal sweep display](evidence/closed-verified-normal-sweep-2026-11-16.json)
 passes closed-shell embedding and exact positive signed volume controls
 for a rational planar slab and a curved strip in both placements. The

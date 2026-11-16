@@ -27,6 +27,9 @@ components. General curved exchange remains open.
 Explicit bounded AP242 repair can correct one independently rounded
 private spatial occurrence frame, while the strict raw reader still
 refuses it and the source replay receipt keeps the original bytes.
+The repaired frame can be edited in a native document. Both expanded
+instances of the shared STEP relationship keep their original identities,
+and the raw replay receipt remains separate from the edited carrier.
 A single verified normal sweep now has a closed, outward, embedded
 display mesh with a proved spatial error and original face and station
 identities. Closed multi-chart sweeps and general offset joins remain open.
