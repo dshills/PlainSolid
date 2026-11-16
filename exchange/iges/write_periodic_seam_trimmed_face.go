@@ -33,7 +33,7 @@ func WritePeriodicSeamTrimmedFace(ctx context.Context, w io.Writer, face Periodi
 	if !reflect.DeepEqual(face, proved) {
 		return fmt.Errorf("iges: seam trim no longer matches its original proof: %w", geom.ErrUnrepresentable)
 	}
-	carrier, err := writePeriodicSeamTrimRecords(source)
+	carrier, err := writePeriodicTrimRecords(source)
 	if err != nil {
 		return err
 	}
@@ -57,23 +57,23 @@ func WritePeriodicSeamTrimmedFace(ctx context.Context, w io.Writer, face Periodi
 	return err
 }
 
-func writePeriodicSeamTrimRecords(source periodicTrimSource) ([]byte, error) {
-	support, err := encodeExactPeriodicSurface128(source.face.Support, source.support)
+func writePeriodicTrimRecords(source periodicTrimSource) ([]byte, error) {
+	support, err := encodeExactPeriodicSurface128WithBounds(source.face.Support, source.support, &source.face.Bounds)
 	if err != nil {
 		return nil, err
 	}
 	// Compute standard globals and model extents through the ordinary
 	// standalone surface writer. Only the indexed record graph is replaced.
 	a := topologyAuthor{geometry: Model{Entities: []Entity{{Surface: source.support}}}}
-	root, outer := 0, 10500
+	root, contour := 0, 10500
 	for i := range len(source.graph.records) {
 		id := 2*i + 1
 		r := source.graph.records[id]
 		data := support
 		if r.kind != 128 {
-			data, err = periodicSeamTrimRecord(r)
+			data, err = periodicTrimRecord(r)
 			if err != nil {
-				return nil, fmt.Errorf("iges: periodic seam trim owner #%d: %w", id, err)
+				return nil, fmt.Errorf("iges: periodic trim owner #%d: %w", id, err)
 			}
 		}
 		a.add(r.kind, 0, data)
@@ -83,7 +83,7 @@ func writePeriodicSeamTrimRecords(source periodicTrimSource) ([]byte, error) {
 		case 144:
 			emitted.status = &root
 		case 142:
-			emitted.status = &outer
+			emitted.status = &contour
 		}
 	}
 	return a.file(source.face.LengthUnit)
@@ -91,15 +91,17 @@ func writePeriodicSeamTrimRecords(source periodicTrimSource) ([]byte, error) {
 
 // The strict graph proof already established the finite clamped layout, so
 // each of its original coefficients can be emitted directly and exactly.
-func periodicSeamTrimRecord(r topologyRecord) (string, error) {
+func periodicTrimRecord(r topologyRecord) (string, error) {
 	count, integers := len(r.values), len(r.values)
 	switch r.kind {
 	case 144:
-		count, integers = 5, 5
+		holes, _ := intValue(r.values[3])
+		count, integers = 5+holes, 5+holes
 	case 142:
 		count, integers = 6, 6
 	case 102:
-		count, integers = 8, 8
+		edges, _ := intValue(r.values[1])
+		count, integers = 2+edges, 2+edges
 	case 110:
 		count, integers = 7, 1
 	case 126:
@@ -132,7 +134,7 @@ func periodicSeamTrimRecord(r topologyRecord) (string, error) {
 		if exact[0].Cmp(exact[3]) == 0 {
 			axis = 1
 		}
-		if err := periodicSeamTransferInterval(exact[axis], exact[axis+3]); err != nil {
+		if err := periodicTrimTransferInterval(exact[axis], exact[axis+3]); err != nil {
 			return "", err
 		}
 	case 126:
@@ -140,21 +142,21 @@ func periodicSeamTrimRecord(r topologyRecord) (string, error) {
 		if _, err := periodicIGESTransferWeights(exact[2*n : 3*n]); err != nil {
 			return "", err
 		}
-		if err := periodicSeamTransferInterval(exact[6*n], exact[6*n+1]); err != nil {
+		if err := periodicTrimTransferInterval(exact[6*n], exact[6*n+1]); err != nil {
 			return "", err
 		}
 	}
 	return joinTopologyValues(append(tokens, "0", "0")), nil
 }
 
-func periodicSeamTransferInterval(a, b *big.Rat) error {
+func periodicTrimTransferInterval(a, b *big.Rat) error {
 	x, _ := a.Float64()
 	y, _ := b.Float64()
 	ulp := func(f float64) float64 {
 		return math.Abs(math.Nextafter(f, math.Copysign(math.Inf(1), f)) - f)
 	}
 	if math.Abs(x-y) <= max(ulp(x), ulp(y)) {
-		return fmt.Errorf("iges: distinct seam trim stations collapse in binary64 transfer: %w", geom.ErrUnrepresentable)
+		return fmt.Errorf("iges: distinct periodic trim stations collapse in binary64 transfer: %w", geom.ErrUnrepresentable)
 	}
 	return nil
 }
