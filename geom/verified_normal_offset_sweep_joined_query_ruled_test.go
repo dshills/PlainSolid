@@ -181,12 +181,15 @@ func TestVerifiedJoinedNormalOffsetSweepLocatesAlgebraicCapPerimeter(t *testing.
 	t.Logf("retained both cap faces and excluded both joining wall copies at the exact algebraic perimeter, %d operations", got.ExactOperations)
 }
 
-func TestVerifiedJoinedNormalOffsetSweepLocatesRefusesIncompleteNonRuledProof(t *testing.T) {
+func TestVerifiedJoinedNormalOffsetSweepLocatesRefusesIncompleteNonRuledOffWallProof(t *testing.T) {
 	ctx := context.Background()
 	sweeps := placedSweepChainFixture(t)
 	first, second := sweepChainPlacedJoins()
 	_, chain := joinedSweepMomentFixture(t, sweeps, first, second)
-	point := obliqueSweepTestTransform(big.NewRat(5, 8), new(big.Rat), big.NewRat(1, 17))
+	// This known middle-chart point is away from both exact join
+	// planes. Its original quartic height is 1/8192 at the center.
+	height := new(big.Rat).Add(big.NewRat(1, 8192), big.NewRat(1, 17))
+	point := obliqueSweepTestTransform(big.NewRat(9, 8), new(big.Rat), height)
 	got, err := chain.LocateRational(ctx, point, NormalOffsetSweepQueryOptions{MaxDepth: 1, MaxCells: 2})
 	if !errors.Is(err, ErrConvergence) || got.Location != NormalOffsetSweepUnresolved || len(got.Owners) != 0 ||
 		got.VisitedCells != 2 {

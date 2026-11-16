@@ -8,36 +8,12 @@ import (
 
 func (w *sweepLineWork) acceptRulingRoot(ctx context.Context, axis int, ruling [3]*big.Rat,
 	root *ExactAlgebraicRoot, p sweepLineRulingPolynomials, tSign int, exactT *big.Rat) (*NormalOffsetSweepLineSpan, error) {
-	normalized, err := w.encloseRulingRoot(ctx, root)
+	profileAxis := 1 - axis
+	normalized, profile, exactProfile, err := w.normalFootProfileBounds(ctx, root, p, profileAxis)
 	if err != nil {
 		return nil, err
 	}
-	profileAxis := 1 - axis
-	original := w.original[profileAxis]
-	a := boundedRatArithmetic{b: w.budget}
-	width := a.sub(original.hi, original.lo)
-	raw := func(s *big.Rat) *big.Rat { return a.add(original.lo, a.mul(width, s)) }
-	profile := exactInterval{raw(normalized.lo), raw(normalized.hi)}
-	if a.err != nil {
-		return nil, a.err
-	}
-	var known *big.Rat
-	if normalized.lo.Cmp(normalized.hi) == 0 {
-		known = normalized.lo
-	} else if b := w.optionalRulingBudget(); b != nil {
-		known, err = recoverRationalPolynomialRoot(p.normalFoot, normalized.lo, normalized.hi, b)
-		w.budget.operations += b.operations
-		if err != nil && !errors.Is(err, ErrConvergence) {
-			return nil, err
-		}
-	}
-	var exactProfile *big.Rat
-	if known != nil {
-		exactProfile = raw(known)
-		if a.err != nil {
-			return nil, a.err
-		}
-		profile = exactInterval{exactProfile, exactProfile}
+	if exactProfile != nil {
 		if b := w.optionalRulingBudget(); b != nil {
 			query := *w
 			query.budget = b
@@ -52,6 +28,45 @@ func (w *sweepLineWork) acceptRulingRoot(ctx context.Context, axis int, ruling [
 	if err != nil {
 		return nil, err
 	}
+	certificate := w.normalFootCertificate(p, profileAxis, normalized, profile, shift)
+	return w.algebraicRulingSpan(axis, p.along, p.rate, exactProfile, exactT, certificate)
+}
+
+func (w *sweepLineWork) normalFootProfileBounds(ctx context.Context, root *ExactAlgebraicRoot, p sweepLineRulingPolynomials,
+	profileAxis int) (normalized, profile exactInterval, exactProfile *big.Rat, err error) {
+	normalized, err = w.encloseRulingRoot(ctx, root)
+	if err != nil {
+		return normalized, profile, nil, err
+	}
+	original := w.original[profileAxis]
+	a := boundedRatArithmetic{b: w.budget}
+	width := a.sub(original.hi, original.lo)
+	raw := func(s *big.Rat) *big.Rat { return a.add(original.lo, a.mul(width, s)) }
+	profile = exactInterval{raw(normalized.lo), raw(normalized.hi)}
+	if a.err != nil {
+		return normalized, profile, nil, a.err
+	}
+	var known *big.Rat
+	if normalized.lo.Cmp(normalized.hi) == 0 {
+		known = normalized.lo
+	} else if b := w.optionalRulingBudget(); b != nil {
+		known, err = recoverRationalPolynomialRoot(p.normalFoot, normalized.lo, normalized.hi, b)
+		w.budget.operations += b.operations
+		if err != nil && !errors.Is(err, ErrConvergence) {
+			return normalized, profile, nil, err
+		}
+	}
+	if known != nil {
+		exactProfile = raw(known)
+		if a.err != nil {
+			return normalized, profile, nil, a.err
+		}
+		profile = exactInterval{exactProfile, exactProfile}
+	}
+	return normalized, profile, exactProfile, nil
+}
+
+func (w *sweepLineWork) normalFootCertificate(p sweepLineRulingPolynomials, profileAxis int, normalized, profile, shift exactInterval) *NormalOffsetSweepLineAlgebraicStation {
 	recipe := ExactRootRecipe{
 		Version: 1, Coefficients: make([]string, len(p.normalFoot)),
 		Lower: normalized.lo.RatString(), Upper: normalized.hi.RatString(),
@@ -59,11 +74,10 @@ func (w *sweepLineWork) acceptRulingRoot(ctx context.Context, axis int, ruling [
 	for i, q := range p.normalFoot {
 		recipe.Coefficients[i] = q.RatString()
 	}
-	certificate := &NormalOffsetSweepLineAlgebraicStation{
-		ProfileAxis: profileAxis, OriginalProfile: copySweepInterval(original), ProfileRoot: recipe,
+	return &NormalOffsetSweepLineAlgebraicStation{
+		ProfileAxis: profileAxis, OriginalProfile: copySweepInterval(w.original[profileAxis]), ProfileRoot: recipe,
 		ProfileParameter: copySweepInterval(profile), SignedDisplacement: copySweepInterval(shift),
 	}
-	return w.algebraicRulingSpan(axis, p.along, p.rate, exactProfile, exactT, certificate)
 }
 
 func (w *sweepLineWork) optionalRulingBudget() *polynomialBudget {

@@ -16,41 +16,54 @@ func (w *sweepLineWork) intersectRulingAlgebraic(ctx context.Context, axis int, 
 	if err != nil {
 		return nil, err
 	}
+	orientation := 1
+	if axis == 1 {
+		orientation = -1
+	}
+	root, sign, displacement, err := w.findNormalFoot(ctx, p, orientation)
+	if err != nil || root == nil {
+		return nil, err
+	}
+	return w.acceptRulingRoot(ctx, axis, ruling, root, p, sign, displacement)
+}
+
+// findNormalFoot searches the original profile for a normal station in
+// the signed sweep layer. The caller has proved that at most one admissible
+// profile can produce the target point.
+func (w *sweepLineWork) findNormalFoot(ctx context.Context, p sweepLineRulingPolynomials, orientation int) (*ExactAlgebraicRoot, int, *big.Rat, error) {
 	if len(p.normalFoot) == 0 {
 		// A coincident family is outside the finite root proof.
-		return nil, ErrConvergence
+		return nil, 0, nil, ErrConvergence
 	}
 	options, err := w.algebraicOptions()
 	if err != nil {
-		return nil, err
+		return nil, 0, nil, err
 	}
 	roots, err := IsolateExactPolynomialRoots(ctx, p.normalFoot, new(big.Rat), big.NewRat(1, 1), options)
 	w.budget.operations += roots.Operations
 	if err != nil {
-		return nil, err
+		return nil, 0, nil, err
 	}
 	for _, root := range roots.Roots {
 		tSign, err := w.rulingRootSign(ctx, root.Root, p.direction)
 		if err != nil {
-			return nil, err
+			return nil, 0, nil, err
 		}
-		if axis == 1 {
-			tSign = -tSign
-		}
+		tSign *= orientation
 		var exactT *big.Rat
 		if tSign == 0 {
 			exactT = new(big.Rat)
 		}
 		lower, err := w.compareRulingShift(ctx, root.Root, p, tSign, w.original[2].lo)
 		if err != nil {
-			return nil, err
+			return nil, 0, nil, err
 		}
 		if lower < 0 {
 			continue
 		}
 		upper, err := w.compareRulingShift(ctx, root.Root, p, tSign, w.original[2].hi)
 		if err != nil {
-			return nil, err
+			return nil, 0, nil, err
 		}
 		if upper > 0 {
 			continue
@@ -61,11 +74,9 @@ func (w *sweepLineWork) intersectRulingAlgebraic(ctx context.Context, axis int, 
 		if upper == 0 {
 			exactT = w.original[2].hi
 		}
-		// The perpendicular ruling and sealed sweep injectivity
-		// preclude a second admissible transverse root.
-		return w.acceptRulingRoot(ctx, axis, ruling, root.Root, p, tSign, exactT)
+		return root.Root, tSign, exactT, nil
 	}
-	return nil, nil
+	return nil, 0, nil, nil
 }
 
 func (w *sweepLineWork) rulingPolynomials(ctx context.Context, axis int, ruling [3]*big.Rat) (result sweepLineRulingPolynomials, err error) {
