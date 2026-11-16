@@ -438,3 +438,12 @@ Run the focused Node qualification with the Go WASM runtime.
 GOOS=js GOARCH=wasm go build -o /tmp/plaincad-ordered-mapped.wasm ./cmd/plaincadwasm
 node tools/plaincad/ordered-mapped-step.mjs /tmp/plaincad-ordered-mapped.wasm "$(go env GOROOT)/lib/wasm/wasm_exec.js"
 ```
+
+Use `--suite development --ordered-mapped-step-worker-fixture` with the
+pinned PlainCAD checkout to run one supplemental Chromium test. Two fresh
+typed module workers use the explicit `mapped-chain-v13` option to import
+the authored four-cell source and strictly reopen its canonical STEP. The
+test checks the same native receipt and canonical bytes in both workers.
+It checks oriented edge closure at 0.36 mm, rejection of a finer distance
+or a tighter angular request, and rejection through ordinary STEP import.
+The source, worker and WASM hashes accompany the fixture result.
