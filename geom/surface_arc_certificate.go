@@ -64,27 +64,67 @@ func coefficientRange(values []*big.Rat) exactInterval {
 	return exactInterval{minimum, maximum}
 }
 func scalarPartial(values []*big.Rat, countU, countV int, uDirection bool, domain ParameterRectangle, b *polynomialBudget) ([]*big.Rat, error) {
-	degree, count, other := countU-1, countU, countV
+	count := (countU - 1) * countV
+	if !uDirection {
+		count = countU * (countV - 1)
+	}
+	coefficients := make([]big.Rat, count)
+	result := make([]*big.Rat, count)
+	err := forEachScalarPartial(values, countU, countV, uDirection, domain, func(i int, n, d *big.Int) error {
+		result[i] = coefficients[i].SetFrac(n, d)
+		return b.check(result[i])
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func scalarPartialRange(values []*big.Rat, countU, countV int, uDirection bool, domain ParameterRectangle, b *polynomialBudget) (exactInterval, error) {
+	var hull exactFractionRange
+	err := forEachScalarPartial(values, countU, countV, uDirection, domain, func(_ int, n, d *big.Int) error {
+		return hull.extend(n, d, b)
+	})
+	if err != nil {
+		return exactInterval{}, err
+	}
+	return hull.interval(), nil
+}
+
+func forEachScalarPartial(values []*big.Rat, countU, countV int, uDirection bool, domain ParameterRectangle, use func(int, *big.Int, *big.Int) error) error {
+	count, other := countU, countV
 	width := new(big.Rat).Sub(new(big.Rat).SetFloat64(domain.UMax), new(big.Rat).SetFloat64(domain.UMin))
 	if !uDirection {
-		degree, count, other = countV-1, countV, countU
+		count, other = countV, countU
 		width.Sub(new(big.Rat).SetFloat64(domain.VMax), new(big.Rat).SetFloat64(domain.VMin))
 	}
-	scale := new(big.Rat).Quo(big.NewRat(int64(degree), 1), width)
-	result := make([]*big.Rat, (count-1)*other)
+	scale := new(big.Rat).Quo(big.NewRat(int64(count-1), 1), width)
+	var numerator, denominator, otherNumerator big.Int
 	for i := 0; i < count-1; i++ {
 		for j := 0; j < other; j++ {
 			before, after, index := i*countV+j, (i+1)*countV+j, i*other+j
 			if !uDirection {
 				before, after, index = j*countV+i, j*countV+i+1, j*(count-1)+i
 			}
-			result[index] = new(big.Rat).Mul(scale, new(big.Rat).Sub(values[after], values[before]))
-			if e := b.check(result[index]); e != nil {
-				return nil, e
+			hi, lo := values[after], values[before]
+			// Form scale*(hi-lo) before reducing the result.
+			if hi.Denom().Cmp(lo.Denom()) == 0 {
+				numerator.Sub(hi.Num(), lo.Num())
+				denominator.Mul(hi.Denom(), scale.Denom())
+			} else {
+				numerator.Mul(hi.Num(), lo.Denom())
+				otherNumerator.Mul(lo.Num(), hi.Denom())
+				numerator.Sub(&numerator, &otherNumerator)
+				denominator.Mul(hi.Denom(), lo.Denom())
+				denominator.Mul(&denominator, scale.Denom())
+			}
+			numerator.Mul(&numerator, scale.Num())
+			if err := use(index, &numerator, &denominator); err != nil {
+				return err
 			}
 		}
 	}
-	return result, nil
+	return nil
 }
 
 // CertifiedScalarRange encloses an exact rational expression. Sign remains
@@ -114,26 +154,46 @@ type surfaceArcData struct {
 
 func (p *SurfacePatch) arcData(plane Plane, b *polynomialBudget) (surfaceArcData, error) {
 	data := surfaceArcData{}
-	center := p.bounds.Min
-	equation := exactPlaneCoefficients(plane)
-	offset := new(big.Rat).Set(equation[3])
-	for axis := 0; axis < 3; axis++ {
-		offset.Add(offset, new(big.Rat).Mul(equation[axis], new(big.Rat).SetFloat64(coordinate(center, axis))))
+	center := [3]*big.Rat{
+		new(big.Rat).SetFloat64(p.bounds.Min.X),
+		new(big.Rat).SetFloat64(p.bounds.Min.Y),
+		new(big.Rat).SetFloat64(p.bounds.Min.Z),
 	}
+	equation := exactPlaneCoefficients(plane)
+	// Regularity and transversality use z=0 when requesting the centered
+	// fields. Its homogeneous plane coefficient is exactly the stored z.
+	zPlane := equation[0].Sign() == 0 && equation[1].Sign() == 0 &&
+		equation[2].Cmp(big.NewRat(1, 1)) == 0 && equation[3].Sign() == 0
 
 	for field := range data.fields {
 		data.fields[field] = make([]*big.Rat, len(p.net))
 	}
+	centered := make([][3]big.Rat, len(p.net))
+	var left, right, weightDenominator, denominator big.Int
 	for i, h := range p.net {
-		data.fields[3][i] = h[3]
-		f := new(big.Rat).Mul(offset, h[3])
-		for axis := 0; axis < 3; axis++ {
-			centered := new(big.Rat).Sub(h[axis], new(big.Rat).Mul(new(big.Rat).SetFloat64(coordinate(center, axis)), h[3]))
-			if e := b.check(centered); e != nil {
+		w := h[3]
+		data.fields[3][i] = w
+		for axis, c := range center {
+			value := h[axis]
+			if c.Sign() != 0 {
+				// Form H-C*W exactly with one reduction. The plane
+				// coefficient is formed separately from the original H,W.
+				weightDenominator.Mul(c.Denom(), w.Denom())
+				left.Mul(value.Num(), &weightDenominator)
+				right.Mul(c.Num(), w.Num())
+				right.Mul(&right, value.Denom())
+				denominator.Mul(value.Denom(), &weightDenominator)
+				left.Sub(&left, &right)
+				value = centered[i][axis].SetFrac(&left, &denominator)
+			}
+			if e := b.check(value); e != nil {
 				return data, e
 			}
-			data.fields[axis][i] = centered
-			f.Add(f, new(big.Rat).Mul(centered, equation[axis]))
+			data.fields[axis][i] = value
+		}
+		f := h[2]
+		if !zPlane {
+			f = exactPlaneHomogeneousValue(equation, h)
 		}
 		if e := b.check(f); e != nil {
 			return data, e
@@ -143,15 +203,15 @@ func (p *SurfacePatch) arcData(plane Plane, b *polynomialBudget) (surfaceArcData
 	domain := p.Domain()
 	for field, values := range data.fields {
 		data.base[field] = coefficientRange(values)
-		du, e := scalarPartial(values, p.countU, p.countV, true, domain, b)
+		du, e := scalarPartialRange(values, p.countU, p.countV, true, domain, b)
 		if e != nil {
 			return data, e
 		}
-		dv, e := scalarPartial(values, p.countU, p.countV, false, domain, b)
+		dv, e := scalarPartialRange(values, p.countU, p.countV, false, domain, b)
 		if e != nil {
 			return data, e
 		}
-		data.du[field], data.dv[field] = coefficientRange(du), coefficientRange(dv)
+		data.du[field], data.dv[field] = du, dv
 	}
 	return data, nil
 }

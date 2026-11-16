@@ -167,38 +167,40 @@ func (p *SurfacePatch) ExactOperations() int {
 	return p.operations
 }
 func (p *SurfacePatch) computeBounds(budget *polynomialBudget) error {
-	var minimum, maximum [3]*big.Rat
-	var scratch big.Rat
+	var hull [3]exactFractionRange
+	var numerator, denominator big.Int
 	for _, h := range p.net {
-		if h[3].Sign() <= 0 {
+		w := h[3]
+		if w.Sign() <= 0 {
 			return ErrInvalid
 		}
-		for axis := 0; axis < 3; axis++ {
+		unitWeight := w.IsInt() && w.Num().BitLen() == 1
+		for axis := range hull {
 			coordinate := h[axis]
-			if !h[3].IsInt() || h[3].Num().BitLen() != 1 {
-				coordinate = scratch.Quo(coordinate, h[3])
+			n, d := coordinate.Num(), coordinate.Denom()
+			if !unitWeight {
+				numerator.Mul(n, w.Denom())
+				denominator.Mul(d, w.Num())
+				n, d = &numerator, &denominator
 			}
-			if e := budget.check(coordinate); e != nil {
-				return e
-			}
-			if minimum[axis] == nil {
-				minimum[axis] = new(big.Rat).Set(coordinate)
-			} else if coordinate.Cmp(minimum[axis]) < 0 {
-				minimum[axis].Set(coordinate)
-			}
-			if maximum[axis] == nil {
-				maximum[axis] = new(big.Rat).Set(coordinate)
-			} else if coordinate.Cmp(maximum[axis]) > 0 {
-				maximum[axis].Set(coordinate)
+			if err := hull[axis].extend(n, d, budget); err != nil {
+				return err
 			}
 		}
 	}
-	p.bounds = Box{Vec3{rationalFloatBound(minimum[0], true), rationalFloatBound(minimum[1], true), rationalFloatBound(minimum[2], true)}, Vec3{rationalFloatBound(maximum[0], false), rationalFloatBound(maximum[1], false), rationalFloatBound(maximum[2], false)}}
+	ranges := [3]CertifiedScalarRange{
+		certifiedRange(hull[0].interval()), certifiedRange(hull[1].interval()), certifiedRange(hull[2].interval()),
+	}
+	p.bounds = Box{
+		Vec3{ranges[0].Min, ranges[1].Min, ranges[2].Min},
+		Vec3{ranges[0].Max, ranges[1].Max, ranges[2].Max},
+	}
 	if !p.bounds.Valid() {
 		return ErrInvalid
 	}
 	return nil
 }
+
 func insertionKnots(knots []float64, t float64, count int) []float64 {
 	index := sort.Search(len(knots), func(i int) bool { return knots[i] > t })
 	result := make([]float64, 0, len(knots)+count)

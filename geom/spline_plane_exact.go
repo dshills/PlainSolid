@@ -9,9 +9,20 @@ import (
 type rationalPolynomial []*big.Rat
 type polynomialBudget struct{ operations, maxOperations, maxBits int }
 
-func (b *polynomialBudget) check(v *big.Rat) error {
+func (b *polynomialBudget) charge() bool {
 	b.operations++
-	if b.operations > b.maxOperations || v.Num().BitLen() > b.maxBits || v.Denom().BitLen() > b.maxBits {
+	return b.operations <= b.maxOperations
+}
+
+func (b *polynomialBudget) check(v *big.Rat) error {
+	if !b.charge() || v.Num().BitLen() > b.maxBits || v.Denom().BitLen() > b.maxBits {
+		return ErrConvergence
+	}
+	return nil
+}
+
+func (b *polynomialBudget) checkBits(numerator, denominator int) error {
+	if !b.charge() || numerator > b.maxBits || denominator > b.maxBits {
 		return ErrConvergence
 	}
 	return nil
