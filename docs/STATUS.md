@@ -31,6 +31,8 @@ and exported through strict STEP.
 The strict mixed conical reader also supports bounded directed acyclic
 product graphs with shared subassemblies, exact composed placements and
 occurrence paths at different depths.
+The STEP writer applies names and exact relative translations to the
+original shared relationships and re-proves all retained paths.
 
 The previous paired full runs used kernel `af569683` and PlainCAD `efae4d2`.
 The [Go run](evidence/main-af569683-qualification-2026-11-15.json)

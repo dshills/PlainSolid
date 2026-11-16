@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "scope": "Name and exact translation writeback for original depth-three AP242 DAG relationships",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "elapsedSeconds": 185.818,
+  "cases": [
+    "TestEditMixedConicalAP242DAG",
+    "TestEditNestedMixedConicalAP242STEP",
+    "TestEditNestedMixedConicalAP242STEPReject"
+  ],
+  "files": {
+    ".worktrees/qualification/2026-11-15/dag-write-main-race.jsonl": "2640a688caced8a3614545fcc5db2f6ee52345bd299ef77d65f41b16320ef9c9",
+    ".worktrees/qualification/2026-11-15/mixed-ap242-curved-import/depth-three-dag/dag-author": "1a4934b71ccb42de744c330b535219999d459ed26d3f796dbcfa0f6683787937"
+  }
+}

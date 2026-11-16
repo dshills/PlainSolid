@@ -89,6 +89,12 @@ independently verifies all exact poses and local material. Depth, leaf
 count, cycles, invalid product roles and nonrigid intermediate frames
 refuse atomically. The focused main strict tests and the independent
 121.360-second legacy and DAG race passed.
+The [depth-three STEP writeback](evidence/depth-three-ap242-dag-writeback-2026-11-15.json)
+renames one shared relationship and translates one parent. All seven
+paths and both local native solids retain their original identity and
+geometry. Every moved or unchanged world pose matches the exact expected
+matrix and pinned XCAF readback. The main DAG and earlier two-level
+edit race passed in 185.815 seconds.
 
 The [full orthogonal volume offset](evidence/orthogonal-volume-offset-2026-11-15.json)
 matched independently constructed pinned OCCT references for four
