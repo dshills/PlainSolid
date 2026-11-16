@@ -30,7 +30,13 @@ type NormalOffsetCoverage struct {
 // cannot prove the entire patch. It does not certify continuity across a
 // crease, injectivity, collision freedom, or topology of the final offset.
 func (p *SurfacePatch) CertifyNormalOffsetCoverage(ctx context.Context, distance *big.Rat,
-	o NormalOffsetCoverageOptions) (result NormalOffsetCoverage, err error) {
+	o NormalOffsetCoverageOptions) (NormalOffsetCoverage, error) {
+	return p.certifyNormalOffsetCells(ctx, distance, o, offsetCellFocalFree)
+}
+
+func (p *SurfacePatch) certifyNormalOffsetCells(ctx context.Context, distance *big.Rat, o NormalOffsetCoverageOptions,
+	check func(context.Context, *SurfacePatch, *big.Rat, *polynomialBudget) (bool, error),
+) (result NormalOffsetCoverage, err error) {
 	if ctx == nil || p == nil || len(p.net) == 0 || distance == nil || o.MaxDepth < 0 || o.MaxDepth > 64 ||
 		o.MaxCells < 0 || o.MaxCells > 1<<18 {
 		return result, ErrInvalid
@@ -82,7 +88,7 @@ func (p *SurfacePatch) CertifyNormalOffsetCoverage(ctx context.Context, distance
 		c := remaining[i]
 		t, direction, knot := patchSplitChoice(c.patch)
 		if !knot {
-			ok, err := offsetCellFocalFree(ctx, c.patch, distance, b)
+			ok, err := check(ctx, c.patch, distance, b)
 			if err != nil {
 				return result, err
 			}
@@ -123,17 +129,16 @@ func (p *SurfacePatch) CertifyNormalOffsetCoverage(ctx context.Context, distance
 	return result, nil
 }
 
-func offsetCellFocalFree(ctx context.Context, p *SurfacePatch, distance *big.Rat, b *polynomialBudget) (bool, error) {
+func offsetCartesianRanges(ctx context.Context, p *SurfacePatch, b *polynomialBudget) (d [3][3][3]exactInterval, err error) {
 	h, err := offsetHomogeneousRanges(ctx, p, b)
 	if err != nil {
-		return false, err
+		return d, err
 	}
 	a := offsetIntervalArithmetic{b: b}
 	w := h[0][0][3]
 	if w.lo.Sign() <= 0 {
-		return false, ErrInvalid
+		return d, ErrInvalid
 	}
-	var d [3][3][3]exactInterval
 	for total := 0; total <= 2; total++ {
 		for i := 0; i <= total; i++ {
 			j := total - i
@@ -155,24 +160,23 @@ func offsetCellFocalFree(ctx context.Context, p *SurfacePatch, distance *big.Rat
 			}
 		}
 	}
+	return d, a.err
+}
+
+func offsetCellFocalFree(ctx context.Context, p *SurfacePatch, distance *big.Rat, b *polynomialBudget) (bool, error) {
+	d, err := offsetCartesianRanges(ctx, p, b)
+	if err != nil {
+		return false, err
+	}
+	a := offsetIntervalArithmetic{b: b}
 	du, dv := d[1][0], d[0][1]
-	var normal [3]exactInterval
-	for i := range normal {
-		j, k := (i+1)%3, (i+2)%3
-		normal[i] = a.sub(a.mul(du[j], dv[k]), a.mul(du[k], dv[j]))
-	}
-	dot := func(x, y [3]exactInterval) exactInterval {
-		return a.add(a.add(a.mul(x[0], y[0]), a.mul(x[1], y[1])), a.mul(x[2], y[2]))
-	}
-	norm2 := func(v [3]exactInterval) exactInterval {
-		return a.add(a.add(a.square(v[0]), a.square(v[1])), a.square(v[2]))
-	}
-	area2 := norm2(normal)
+	normal := a.cross(du, dv)
+	area2 := a.norm2(normal)
 	if a.err != nil || area2.lo.Sign() <= 0 {
 		return false, a.err
 	}
-	e, f, g := norm2(du), dot(du, dv), norm2(dv)
-	l, m, n := dot(d[2][0], normal), dot(d[1][1], normal), dot(d[0][2], normal)
+	e, f, g := a.norm2(du), a.dot(du, dv), a.norm2(dv)
+	l, m, n := a.dot(d[2][0], normal), a.dot(d[1][1], normal), a.dot(d[0][2], normal)
 	displacement, zero := exactInterval{distance, distance}, offsetZeroInterval()
 	// A lower bound for E*sqrt(area2) - distance*L.
 	first := a.sub(zero, a.mul(displacement, l))
@@ -290,4 +294,20 @@ func (a *offsetIntervalArithmetic) square(x exactInterval) exactInterval {
 		}
 		return boundedExactInterval(lo, hi, b)
 	}, x, x)
+}
+
+func (a *offsetIntervalArithmetic) cross(x, y [3]exactInterval) (v [3]exactInterval) {
+	for i := range v {
+		j, k := (i+1)%3, (i+2)%3
+		v[i] = a.sub(a.mul(x[j], y[k]), a.mul(x[k], y[j]))
+	}
+	return v
+}
+
+func (a *offsetIntervalArithmetic) dot(x, y [3]exactInterval) exactInterval {
+	return a.add(a.add(a.mul(x[0], y[0]), a.mul(x[1], y[1])), a.mul(x[2], y[2]))
+}
+
+func (a *offsetIntervalArithmetic) norm2(v [3]exactInterval) exactInterval {
+	return a.add(a.add(a.square(v[0]), a.square(v[1])), a.square(v[2]))
 }

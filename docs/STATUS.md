@@ -32,6 +32,9 @@ retains its original knot boundaries, and exposes unresolved cells.
 Constructing a whole-face offset still needs seam and collision proofs.
 Exact source jets can also evaluate a signed normal offset point with
 directed rational coordinate bounds, even for irrational unit normals.
+A single smooth rational patch can also prove its normal offset remains
+one-to-one through two signed model axes at each fixed displacement.
+That proof does not cover a neighboring face or the swept volume.
 Full-domain curved pair isolation can also use a bounded exact control-hull
 support search. It can prove separation when the world axes and original
 center normals leave overlapping projections, and retains pairs it cannot

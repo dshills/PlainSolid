@@ -9,16 +9,7 @@ import (
 
 func TestSurfaceNormalOffsetRationalEnclosesIrrationalCoordinates(t *testing.T) {
 	ctx := context.Background()
-	var controls [][4]*big.Rat
-	for i, x := range []int64{-1, 0, 1} {
-		for _, y := range []int64{0, 1} {
-			controls = append(controls, [4]*big.Rat{big.NewRat(x, 1), big.NewRat(y, 1), big.NewRat([]int64{1, -1, 1}[i], 1), big.NewRat(1, 1)})
-		}
-	}
-	p, err := NewExactHomogeneousBezierSurface(ctx, 2, 1, controls, SurfacePatchOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	p := normalOffsetParabolicCylinder(t, false)
 	jet, err := p.EvaluateRational(ctx, big.NewRat(3, 4), big.NewRat(1, 3), SurfacePatchEvaluationOptions{})
 	if err != nil {
 		t.Fatal(err)

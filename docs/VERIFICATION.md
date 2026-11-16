@@ -54,6 +54,11 @@ encloses the independently derived irrational parabola normal, tightens
 the result as requested precision rises, and retains an exact planar
 offset even with a nonzero tangent cross product that underflows
 float64. Singular inputs and insufficient work do not publish a point.
+The projected normal offset embedding race passed in 9.172 seconds.
+Both a parabolic cylinder and its rotated signed-axis chart certify the
+full injective offset at positive and negative displacements. The
+focal line stays unresolved at the critical displacement, and a
+projection that drops an entire tangent direction cannot certify.
 The exact convex-hull separation race passed in geometry and intersection
 (25.901 and 1.207 seconds). A weighted curved pair separated on an exact
 new support direction, with the gap independently projected from the

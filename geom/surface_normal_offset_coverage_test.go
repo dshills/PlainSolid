@@ -9,16 +9,7 @@ import (
 
 func TestSurfaceNormalOffsetCoverageParabolicCylinder(t *testing.T) {
 	ctx := context.Background()
-	var h [][4]*big.Rat
-	for i, x := range []int64{-1, 0, 1} {
-		for _, y := range []int64{0, 1} {
-			h = append(h, [4]*big.Rat{big.NewRat(x, 1), big.NewRat(y, 1), big.NewRat([]int64{1, -1, 1}[i], 1), big.NewRat(1, 1)})
-		}
-	}
-	p, err := NewExactHomogeneousBezierSurface(ctx, 2, 1, h, SurfacePatchOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	p := normalOffsetParabolicCylinder(t, false)
 	// S(u,v)=(2u-1,v,(2u-1)^2). The minimum positive focal
 	// distance is 1/2 at u=1/2, for every v.
 	inside, err := p.CertifyNormalOffsetCoverage(ctx, big.NewRat(49, 100), NormalOffsetCoverageOptions{})
@@ -47,6 +38,25 @@ func TestSurfaceNormalOffsetCoverageParabolicCylinder(t *testing.T) {
 		}
 		checkNormalOffsetCover(t, p.Domain(), bounded)
 	}
+}
+
+func normalOffsetParabolicCylinder(t *testing.T, rotated bool) *SurfacePatch {
+	t.Helper()
+	var controls [][4]*big.Rat
+	for i, x := range []int64{-1, 0, 1} {
+		for _, y := range []int64{0, 1} {
+			a, b := x, y
+			if rotated {
+				a, b = -y, x
+			}
+			controls = append(controls, [4]*big.Rat{big.NewRat(a, 1), big.NewRat(b, 1), big.NewRat([]int64{1, -1, 1}[i], 1), big.NewRat(1, 1)})
+		}
+	}
+	p, err := NewExactHomogeneousBezierSurface(context.Background(), 2, 1, controls, SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
 }
 
 func TestSurfaceNormalOffsetCoverageRetainsOriginalKnotPieces(t *testing.T) {
