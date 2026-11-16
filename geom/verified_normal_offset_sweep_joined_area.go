@@ -62,7 +62,7 @@ func measureJoinedSweepBoundaryArea(ctx context.Context, sweeps []*VerifiedNorma
 	if a.err != nil {
 		return r, a.err
 	}
-	var sides [3]uint8
+	sides := make([]uint8, len(sweeps))
 	for _, face := range boundary {
 		sides[face.Owner] |= 1 << face.Side
 	}

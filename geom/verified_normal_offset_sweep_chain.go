@@ -123,13 +123,17 @@ func (c *VerifiedNormalOffsetSweepChain) Boundary() []VerifiedNormalOffsetSweepB
 	if c == nil || c.pairs[0] == nil {
 		return nil
 	}
-	omitted := [3]uint8{}
-	for i, pair := range c.pairs {
+	return verifiedSweepChainBoundary(c.sweeps[:], c.pairs[:])
+}
+
+func verifiedSweepChainBoundary(sweeps []*VerifiedNormalOffsetSweep, pairs []*VerifiedNormalOffsetSweepPair) []VerifiedNormalOffsetSweepBoundaryFace {
+	omitted := make([]uint8, len(sweeps))
+	for i, pair := range pairs {
 		omitted[i] |= 1 << pair.join.Edges[0]
 		omitted[i+1] |= 1 << pair.join.Edges[1]
 	}
-	result := make([]VerifiedNormalOffsetSweepBoundaryFace, 0, 14)
-	for owner, sweep := range c.sweeps {
+	result := make([]VerifiedNormalOffsetSweepBoundaryFace, 0, 6*len(sweeps)-2*len(pairs))
+	for owner, sweep := range sweeps {
 		for side := NormalOffsetSweepUMin; side <= NormalOffsetSweepUpper; side++ {
 			if omitted[owner]&(1<<side) == 0 {
 				result = append(result, VerifiedNormalOffsetSweepBoundaryFace{
