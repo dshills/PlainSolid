@@ -99,10 +99,16 @@ func proveParabolaCircleCrossingsPartition(ctx context.Context, sources [3]*geom
 	if err != nil {
 		return p, err
 	}
-	p.proof, err = geom.DiscoverSplineGraphParabolaCircleCrossings(ctx, patches[0], patches[1], axis, o.Proof)
+	proof, err := geom.DiscoverSplineGraphParabolaCircleCrossings(ctx, patches[0], patches[1], axis, o.Proof)
 	if err != nil {
 		return p, err
 	}
+	return buildParabolaCircleCrossingsPartition(proof)
+}
+
+func buildParabolaCircleCrossingsPartition(proof *geom.SplineGraphParabolaCircleCrossings) (p parabolaCircleCrossingsPartition, err error) {
+	p.proof = proof
+	axis := proof.FreeAxis
 	var control [3][3]*big.Rat
 	for i, c := range p.proof.ParabolaControls {
 		control[i] = [3]*big.Rat{c[0], c[1], big.NewRat(1, 1)}
@@ -194,12 +200,31 @@ func sameParabolaCircleCrossingTrim(actual, expected PCurve) bool {
 
 func bindParabolaCircleCrossingFace(ctx context.Context, face Face, roof *geom.BSplineSurface,
 	reversed bool, loop []openSectionPiece, witness [2]*big.Rat) error {
-	if face.Surface != roof || face.Reversed != reversed || len(face.Holes) != 0 || len(face.Outer) != len(loop) {
+	return bindParabolaCirclesRegionFace(ctx, face, roof, reversed, openGraphRegion{loop: loop}, witness)
+}
+
+func bindParabolaCirclesRegionFace(ctx context.Context, face Face, roof *geom.BSplineSurface,
+	reversed bool, region openGraphRegion, witness [2]*big.Rat) error {
+	if face.Surface != roof || face.Reversed != reversed || len(face.Holes) != len(region.holes) {
 		return geom.ErrConvergence
 	}
-	for i, piece := range loop {
-		use := face.Outer[i]
-		if use.UVStart != piece.a || use.UVEnd != piece.b || !sameParabolaCircleCrossingTrim(use.Curve, piece.c) {
+	bindsLoop := func(uses []Use, loop []openSectionPiece) bool {
+		if len(uses) != len(loop) {
+			return false
+		}
+		for i, piece := range loop {
+			use := uses[i]
+			if use.UVStart != piece.a || use.UVEnd != piece.b || !sameParabolaCircleCrossingTrim(use.Curve, piece.c) {
+				return false
+			}
+		}
+		return true
+	}
+	if !bindsLoop(face.Outer, region.loop) {
+		return geom.ErrConvergence
+	}
+	for i, hole := range face.Holes {
+		if !bindsLoop(hole, region.holes[i]) {
 			return geom.ErrConvergence
 		}
 	}
@@ -222,6 +247,12 @@ func bindParabolaCircleCrossingsEnvelope(ctx context.Context, solid Solid, assem
 		assembly.Base != 4 || len(assembly.WallFaces) != 6 || len(assembly.ContourEdges) != 7 {
 		return h, geom.ErrConvergence
 	}
+	return bindParabolaCrossingEnvelopeRegions(ctx, solid, assembly, p, sources, op, opts, false)
+}
+
+func bindParabolaCrossingEnvelopeRegions(ctx context.Context, solid Solid, assembly SplineGraphBooleanHistory,
+	p parabolaCircleCrossingsPartition, sources [3]*geom.BSplineSurface, op parametric.BooleanOp,
+	opts geom.GraphPointContactOptions, includeInnerWires bool) (h ParabolaCircleCrossingsHistory, err error) {
 	h.Base = assembly.Base
 	base := solid.faces[h.Base]
 	if base.Surface != sources[0] || !base.Reversed {
@@ -233,7 +264,7 @@ func bindParabolaCircleCrossingsEnvelope(ctx context.Context, solid Solid, assem
 		if (region.sign > 0) != (op == parametric.Union) {
 			h.RoofOwners[i] = 1
 		}
-		if err := bindParabolaCircleCrossingFace(ctx, solid.faces[i], sources[1+h.RoofOwners[i]], false, region.loop, p.proof.RegionWitnesses[i]); err != nil {
+		if err := bindParabolaCirclesRegionFace(ctx, solid.faces[i], sources[1+h.RoofOwners[i]], false, region, p.proof.RegionWitnesses[i]); err != nil {
 			return h, fmt.Errorf("trimmed: parabola-circle crossing roof %d: %w", i, err)
 		}
 	}
@@ -302,7 +333,7 @@ func bindParabolaCircleCrossingsEnvelope(ctx context.Context, solid Solid, assem
 		}
 		h.Junctions[i] = junction
 	}
-	if err := affineMaterialVertexLinks(ctx, solid); err != nil {
+	if err := materialVertexLinks(ctx, solid, includeInnerWires); err != nil {
 		return h, err
 	}
 	return h, validateExactGraphPartitionEdges(ctx, solid, opts)

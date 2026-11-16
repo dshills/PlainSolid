@@ -328,17 +328,29 @@ func (s *AffineShellPairedImprint) selectConvexMaterial(ctx context.Context, op 
 }
 
 func affineMaterialVertexLinks(ctx context.Context, s Solid) error {
+	return materialVertexLinks(ctx, s, false)
+}
+
+// materialVertexLinks also admits proved inner-wire incidence when the
+// source-specific caller has authenticated the original hole loops.
+func materialVertexLinks(ctx context.Context, s Solid, includeInnerWires bool) error {
 	uses := make([][]int, len(s.edges))
 	incident := make([]map[int]bool, len(s.vertices))
 	for i := range incident {
 		incident[i] = map[int]bool{}
 	}
 	for fi, f := range s.faces {
-		for _, u := range f.Outer {
-			uses[u.Edge] = append(uses[u.Edge], fi)
-			e := s.edges[u.Edge]
-			incident[e.Start][fi] = true
-			incident[e.End][fi] = true
+		loops := [][]Use{f.Outer}
+		if includeInnerWires {
+			loops = append(loops, f.Holes...)
+		}
+		for _, loop := range loops {
+			for _, u := range loop {
+				uses[u.Edge] = append(uses[u.Edge], fi)
+				e := s.edges[u.Edge]
+				incident[e.Start][fi] = true
+				incident[e.End][fi] = true
+			}
 		}
 	}
 	for vi, faces := range incident {
