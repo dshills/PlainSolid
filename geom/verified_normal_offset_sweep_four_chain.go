@@ -78,7 +78,7 @@ func NewVerifiedFourChartNormalOffsetSweepChain(ctx context.Context, pairs [3]*V
 		}
 		separator = copySweepChainSeparator(separator)
 		ends := [2]*VerifiedNormalOffsetSweep{sweeps[owners[0]], sweeps[owners[1]]}
-		ranges, gap, err := verifySweepChainEndSeparation(ctx, ends, separator, options, b)
+		ranges, gap, err := verifySweepChainEndSeparation(ctx, ends, separator, options, b, nil)
 		if err != nil {
 			return nil, r, err
 		}

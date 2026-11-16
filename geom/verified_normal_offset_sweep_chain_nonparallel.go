@@ -73,7 +73,7 @@ func NewVerifiedNonparallelNormalOffsetSweepChain(ctx context.Context, ab, bc *V
 	}
 	separator = copySweepChainSeparator(separator)
 	options.Patch = limits
-	ends, gap, err := verifySweepChainEndSeparation(ctx, [2]*VerifiedNormalOffsetSweep{ab.sweeps[0], bc.sweeps[1]}, separator, options, b)
+	ends, gap, err := verifySweepChainEndSeparation(ctx, [2]*VerifiedNormalOffsetSweep{ab.sweeps[0], bc.sweeps[1]}, separator, options, b, nil)
 	if err != nil {
 		return nil, r, err
 	}
@@ -87,9 +87,11 @@ func NewVerifiedNonparallelNormalOffsetSweepChain(ctx context.Context, ab, bc *V
 	}, r, nil
 }
 
+type sweepChainSeparationCells struct{ max, visited int }
+
 func verifySweepChainEndSeparation(ctx context.Context, sweeps [2]*VerifiedNormalOffsetSweep,
 	separator VerifiedNormalOffsetSweepChainSeparator, options NormalOffsetCoverageOptions,
-	b *polynomialBudget) (ends [2]exactInterval, gap *big.Rat, err error) {
+	b *polynomialBudget, cells *sweepChainSeparationCells) (ends [2]exactInterval, gap *big.Rat, err error) {
 	a := boundedRatArithmetic{b: b}
 	oneNorm := new(big.Rat)
 	for _, q := range separator.Covector {
@@ -103,8 +105,19 @@ func verifySweepChainEndSeparation(ctx context.Context, sweeps [2]*VerifiedNorma
 		if options.Patch.MaxOperations <= 0 {
 			return ends, nil, ErrConvergence
 		}
+		if cells != nil {
+			options.MaxCells = cells.max - cells.visited
+			if options.MaxCells <= 0 {
+				return ends, nil, ErrConvergence
+			}
+		}
 		coverage, err := sweep.source.certifyNormalOffsetCells(ctx, sweep.upper, options,
 			func(ctx context.Context, patch *SurfacePatch, upper *big.Rat, work *polynomialBudget) (bool, error) {
+				// A sealed original sweep is a single Bézier patch,
+				// so every visited projection cell reaches this test.
+				if cells != nil {
+					cells.visited++
+				}
 				projection, err := normalSweepEndProjection(ctx, patch, exactInterval{sweep.lower, upper}, separator.Covector, oneNorm, work)
 				if err != nil {
 					return false, err
