@@ -1,0 +1,481 @@
+{
+  "milestone": "Analytic STEP and IGES external readback of the source-proved native cuspidal Fuse and both Cut orders",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "sourceDirectory": ".worktrees/qualification/2026-11-15/cuspidal-cubic-neutral-evidence",
+  "isolateRevisions": [
+    "f455fb411c76a10572959293829dd573da424659",
+    "be8100b96a265d7efcdbbe1a23016352d280597a"
+  ],
+  "mainTest": {
+    "path": ".worktrees/qualification/2026-11-15/cuspidal-neutral-main-race.jsonl",
+    "elapsedSeconds": 7.222,
+    "sha256": "d7a9bfb4ad4285af3389f1b71925c9464dd3d7d511e7f427bafb8d68d362a7cb",
+    "mode": "race with 3 pinned OCCT probes enabled"
+  },
+  "transfers": [
+    {
+      "operation": "fuse",
+      "order": 0,
+      "format": "step",
+      "artifact": {
+        "path": "fuse-0.step",
+        "sha256": "ee28277098442f39a2cb30896f7b98b525e645d0ce1268b2240ea376ee9a4612"
+      },
+      "readback": {
+        "path": "fuse-0-step-readback.log",
+        "sha256": "fa70c0c68880dc173ecf3909e950fd331f9865f0fbcaf799504666d9f948f019"
+      },
+      "jets": {
+        "path": "fuse-0-step-jets.log",
+        "sha256": "c30e39ddd28567913e78e3c0e26c7112cb4c0dc71078d7e2bd63f1edac29a0a5"
+      },
+      "faces": 9,
+      "edges": 20,
+      "vertices": 13,
+      "signedVolume": 12.403364701704547,
+      "area": 32.868129138320214,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            4.499999999999997,
+            0.05273437500000533
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            -4.499999999999997,
+            -0.05273437500000533
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "fuse",
+      "order": 0,
+      "format": "iges",
+      "artifact": {
+        "path": "fuse-0.igs",
+        "sha256": "64efa525d3922388806f0510fc0fd9591704d0bf5e4d00e3b276847b2f7c6579"
+      },
+      "readback": {
+        "path": "fuse-0-iges-readback.log",
+        "sha256": "4ff16537d23571d7093c1aca8b6307a26f5d79966bee714f931ffa5b345c7aae"
+      },
+      "jets": {
+        "path": "fuse-0-iges-jets.log",
+        "sha256": "c7b29d7639363aed1642edebffdacd2b25cf0d6ac7ecae3e0492459a80f07204"
+      },
+      "faces": 9,
+      "edges": 20,
+      "vertices": 13,
+      "signedVolume": 12.403364701704547,
+      "area": 32.868129138320214,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            4.499999999999997,
+            0.05273437500000533
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            -4.499999999999997,
+            -0.05273437500000533
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "fuse",
+      "order": 1,
+      "format": "step",
+      "artifact": {
+        "path": "fuse-1.step",
+        "sha256": "e6edb83c900115d694070365c4a4986ca6356e14e72fb254ea0edd3d7a0279e0"
+      },
+      "readback": {
+        "path": "fuse-1-step-readback.log",
+        "sha256": "fa70c0c68880dc173ecf3909e950fd331f9865f0fbcaf799504666d9f948f019"
+      },
+      "jets": {
+        "path": "fuse-1-step-jets.log",
+        "sha256": "c30e39ddd28567913e78e3c0e26c7112cb4c0dc71078d7e2bd63f1edac29a0a5"
+      },
+      "faces": 9,
+      "edges": 20,
+      "vertices": 13,
+      "signedVolume": 12.403364701704547,
+      "area": 32.868129138320214,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            4.499999999999997,
+            0.05273437500000533
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            -4.499999999999997,
+            -0.05273437500000533
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "fuse",
+      "order": 1,
+      "format": "iges",
+      "artifact": {
+        "path": "fuse-1.igs",
+        "sha256": "64efa525d3922388806f0510fc0fd9591704d0bf5e4d00e3b276847b2f7c6579"
+      },
+      "readback": {
+        "path": "fuse-1-iges-readback.log",
+        "sha256": "4ff16537d23571d7093c1aca8b6307a26f5d79966bee714f931ffa5b345c7aae"
+      },
+      "jets": {
+        "path": "fuse-1-iges-jets.log",
+        "sha256": "c7b29d7639363aed1642edebffdacd2b25cf0d6ac7ecae3e0492459a80f07204"
+      },
+      "faces": 9,
+      "edges": 20,
+      "vertices": 13,
+      "signedVolume": 12.403364701704547,
+      "area": 32.868129138320214,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            4.499999999999997,
+            0.05273437500000533
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            -4.499999999999997,
+            -0.05273437500000533
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "cut",
+      "order": 0,
+      "format": "step",
+      "artifact": {
+        "path": "cut-0.step",
+        "sha256": "9fc1eabdad13794e53076a603cce66392500ce9fcb5ad10d174fbe272b0db7cf"
+      },
+      "readback": {
+        "path": "cut-0-step-readback.log",
+        "sha256": "7d66ef7c9ff49510b257112876eb6cfc50b5ab605e9f752bb5a12eea4e1864ca"
+      },
+      "jets": {
+        "path": "cut-0-step-jets.log",
+        "sha256": "c30e39ddd28567913e78e3c0e26c7112cb4c0dc71078d7e2bd63f1edac29a0a5"
+      },
+      "faces": 7,
+      "edges": 16,
+      "vertices": 11,
+      "signedVolume": 0.0752397017045455,
+      "area": 9.627582864590039,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            4.499999999999997,
+            0.05273437500000533
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            -4.499999999999997,
+            -0.05273437500000533
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "cut",
+      "order": 0,
+      "format": "iges",
+      "artifact": {
+        "path": "cut-0.igs",
+        "sha256": "809101c607486838f6a5ab0112fcc9d4a976cb38da58f05a751c73a83708b80a"
+      },
+      "readback": {
+        "path": "cut-0-iges-readback.log",
+        "sha256": "6a5a0a97eeadbc64a194d3d3f4b9c8377f905e1c1335f81a6abc7b610a9aac58"
+      },
+      "jets": {
+        "path": "cut-0-iges-jets.log",
+        "sha256": "5e519be0e800d23e659ef8979bc795a1dac256ffda21016ccc060292316d9da7"
+      },
+      "faces": 7,
+      "edges": 16,
+      "vertices": 11,
+      "signedVolume": 0.0752397017045455,
+      "area": 9.627582864590039,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            4.499999999999997,
+            0.05273437500000533
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            -4.499999999999997,
+            -0.05273437500000533
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "cut",
+      "order": 1,
+      "format": "step",
+      "artifact": {
+        "path": "cut-1.step",
+        "sha256": "0b771303cd5779d889271b028d59ee0842f31f88ce3528de78b48ec688688a70"
+      },
+      "readback": {
+        "path": "cut-1-step-readback.log",
+        "sha256": "430074b572424ea85244c1388af53bee0d608f2f62aee669a0d9de58d005d108"
+      },
+      "jets": {
+        "path": "cut-1-step-jets.log",
+        "sha256": "986c46422ad0486ec4755f72de476321321636cfc23388623da4b03ff7c245b7"
+      },
+      "faces": 4,
+      "edges": 7,
+      "vertices": 5,
+      "signedVolume": 0.010786576704545496,
+      "area": 2.735291942687066,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            -4.499999999999997,
+            -0.05273437500000533
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            4.499999999999997,
+            0.05273437500000533
+          ]
+        }
+      ]
+    },
+    {
+      "operation": "cut",
+      "order": 1,
+      "format": "iges",
+      "artifact": {
+        "path": "cut-1.igs",
+        "sha256": "8f7d0c827805b3bac330e895946013b02239aff755a85f2e205ca0440d8d62d0"
+      },
+      "readback": {
+        "path": "cut-1-iges-readback.log",
+        "sha256": "a194cbd98a7e53d0ddbc734fe50263ee69ce3e0ca6b9d68a033cf53487cae8ca"
+      },
+      "jets": {
+        "path": "cut-1-iges-jets.log",
+        "sha256": "1cd679633e19ca8299f21c58e9423f8e9177ca7e17dd78d0d5f6e80b0973c052"
+      },
+      "faces": 4,
+      "edges": 7,
+      "vertices": 5,
+      "signedVolume": 0.010786576704545496,
+      "area": 2.735291942687066,
+      "germs": [
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            -4.499999999999997,
+            -0.05273437500000533
+          ]
+        },
+        {
+          "First": [
+            0,
+            0,
+            0
+          ],
+          "Second": [
+            4.5,
+            0,
+            0.3515625
+          ],
+          "Third": [
+            5.329070518200751e-15,
+            4.499999999999997,
+            0.05273437500000533
+          ]
+        }
+      ]
+    }
+  ]
+}

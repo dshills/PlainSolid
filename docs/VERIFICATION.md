@@ -236,6 +236,16 @@ volume error. The exterior test confirms the generic preview returns an
 explicit error and no mesh when closure fails; finer probes exceeded the
 current budget. This is an unresolved display case.
 
+The [cuspidal Fuse and Cut exchange record](evidence/cuspidal-fuse-cut-neutral-2026-11-15.json)
+contains all eight transfer and derivative readbacks against pinned
+OCCT. Both formats preserve positive signed material and the original
+two zero-first-derivative germs on each shell. Fuse retains 9 faces,
+20 edges and 13 vertices. Exterior Cut retains 7/16/11 and pointed
+Cut 4/7/5. The main branch combined Common, Fuse and Cut race passed
+with the live pinned probes in 7.222 seconds. The writers consume the
+analytic native solids directly; their verification takes a typed source
+and does not reconstruct an independently authored foreign shell.
+
 The older full native race `491b18f1` reproduced the same five shaded
 signed-frame failures as ordinary `5181d219`. Its `packages.jsonl` is
 retained in `.worktrees/qualification/2026-11-15/go-491b18f1-race`.

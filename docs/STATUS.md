@@ -321,9 +321,10 @@ residual or an ambiguous cusp or node tangent. This is a section proof;
 support across those knots in native Boolean assembly and exchange needs
 its own qualification. Native Common (`fea3d0b4`) and Fuse (`750c9e80`)
 preserve this singularity in both source orders and in closed displays.
-[Independent STEP and IGES](../exchange/CUSPIDAL_CUBIC.md) (`5a296f9c`)
-retain the zero first, shared second and opposite third derivatives on
-the actual reopened model curves. Native cuspidal Cut qualifies in both
+[Independent STEP and IGES readback](../exchange/CUSPIDAL_CUBIC.md)
+now qualifies Common, Fuse and both Cut orders, with the zero first,
+shared second and opposite third derivatives on the actual reopened
+model curves. Native cuspidal Cut qualifies in both
 source orders with exact closed shells and original cusp derivatives.
 The pointed Cut has a closed preview at the documented settings;
 the exterior preview still needs a conforming mesh. Its exact material

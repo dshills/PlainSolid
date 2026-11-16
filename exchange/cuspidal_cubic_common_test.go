@@ -123,14 +123,30 @@ func checkCuspidalCubicReadbackJets(t *testing.T, ctx context.Context, format, e
 	if len(report.Germs) != 2 {
 		t.Fatalf("independent %s did not find both original germs", format)
 	}
-	a, b := report.Germs[0], report.Germs[1]
-	if a.First != ([3]float64{}) || b.First != ([3]float64{}) || a.Second[0] <= 0 ||
-		a.Third[1]*b.Third[1] >= 0 || math.Abs(a.Third[1]) < 4 {
-		t.Fatalf("independent %s changed the genuine singularity or its two third-jet sides: %+v", format, report.Germs)
-	}
-	for axis := range 3 {
-		if math.Abs(a.Second[axis]-b.Second[axis]) > 1e-12 || math.Abs(a.Third[axis]+b.Third[axis]) > 1e-12 {
-			t.Fatalf("independent %s changed a shared second or opposite third derivative at axis %d", format, axis)
+	// In the normalized outward edge parameter, the source chart gives
+	// second X=9/2 and third Y=±9/2. At the cusp the original common
+	// height law gives dZ/dX=5/64 and dZ/dY=3/256.
+	wantSecond := [3]float64{4.5, 0, 45.0 / 128}
+	wantThird := [3]float64{0, 4.5, 27.0 / 512}
+	var sided [2]bool
+	for _, germ := range report.Germs {
+		if germ.First != ([3]float64{}) {
+			t.Fatalf("independent %s regularized the original cusp: %+v", format, germ)
+		}
+		sign := math.Copysign(1, germ.Third[1])
+		side := 0
+		if sign > 0 {
+			side = 1
+		}
+		if sided[side] {
+			t.Fatalf("independent %s duplicated a cusp third-jet side: %+v", format, report.Germs)
+		}
+		sided[side] = true
+		for axis := range 3 {
+			if !(math.Abs(germ.Second[axis]-wantSecond[axis]) <= 1e-12) ||
+				!(math.Abs(germ.Third[axis]-sign*wantThird[axis]) <= 1e-12) {
+				t.Fatalf("independent %s changed the second or third derivative at axis %d: %+v", format, axis, germ)
+			}
 		}
 	}
 }
