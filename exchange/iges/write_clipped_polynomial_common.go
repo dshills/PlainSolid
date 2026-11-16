@@ -40,7 +40,7 @@ func VerifyClippedPolynomialCommonIGES(ctx context.Context, input io.Reader, com
 	if _, ok := common.ClippedFootprint(); !ok {
 		return geom.ErrInvalid
 	}
-	return verifyClippedCommonIGES(ctx, input, l, func(w io.Writer) error {
+	return verifyExactBezierSingleIGES(ctx, input, l, "clipped Common", func(w io.Writer) error {
 		return WriteClippedPolynomialCommon(ctx, w, common, unit, l, o)
 	})
 }
@@ -64,12 +64,15 @@ func VerifyClippedPolynomialThreeTransverseCommonIGES(ctx context.Context, input
 	if err := requireThreeTransverseClippedCommonIGES(common); err != nil {
 		return err
 	}
-	return verifyClippedCommonIGES(ctx, input, l, func(w io.Writer) error {
+	return verifyExactBezierSingleIGES(ctx, input, l, "clipped Common", func(w io.Writer) error {
 		return WriteClippedPolynomialThreeTransverseCommon(ctx, w, common, unit, l, o)
 	})
 }
 
-func verifyClippedCommonIGES(ctx context.Context, input io.Reader, l Limits, write func(io.Writer) error) error {
+func verifyExactBezierSingleIGES(ctx context.Context, input io.Reader, l Limits, family string, write func(io.Writer) error) error {
+	if ctx == nil || input == nil {
+		return geom.ErrInvalid
+	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -87,7 +90,7 @@ func verifyClippedCommonIGES(ctx context.Context, input io.Reader, l Limits, wri
 	}
 	if actual.unit != expected.unit || !reflect.DeepEqual(actual.entities, expected.entities) ||
 		!bytes.Equal(exactBezierIGESHeaderRecords(actual.bytes), exactBezierIGESHeaderRecords(expected.bytes)) {
-		return fmt.Errorf("iges: clipped Common topology, global records or directory differ from source proof: %w", geom.ErrConvergence)
+		return fmt.Errorf("iges: %s topology, global records or directory differ from source proof: %w", family, geom.ErrConvergence)
 	}
 	return ctx.Err()
 }

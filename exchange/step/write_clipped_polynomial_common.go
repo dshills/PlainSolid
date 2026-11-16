@@ -46,7 +46,7 @@ func VerifyClippedPolynomialCommonSTEP(ctx context.Context, input io.Reader, com
 	if _, ok := common.ClippedFootprint(); !ok {
 		return geom.ErrInvalid
 	}
-	return verifyClippedCommonSTEP(ctx, input, l, func(w io.Writer) error {
+	return verifyExactBezierSingleSTEP(ctx, input, l, "clipped Common", func(w io.Writer) error {
 		return WriteClippedPolynomialCommon(ctx, w, common, name, lengthUnit, l, o)
 	})
 }
@@ -67,12 +67,12 @@ func VerifyClippedPolynomialThreeTransverseCommonSTEP(ctx context.Context, input
 	if err := requireThreeTransverseClippedCommonSTEP(common); err != nil {
 		return err
 	}
-	return verifyClippedCommonSTEP(ctx, input, l, func(w io.Writer) error {
+	return verifyExactBezierSingleSTEP(ctx, input, l, "clipped Common", func(w io.Writer) error {
 		return WriteClippedPolynomialThreeTransverseCommonSTEP(ctx, w, common, name, lengthUnit, l, o)
 	})
 }
 
-func verifyClippedCommonSTEP(ctx context.Context, input io.Reader, l Limits, writeExpected func(io.Writer) error) error {
+func verifyExactBezierSingleSTEP(ctx context.Context, input io.Reader, l Limits, family string, writeExpected func(io.Writer) error) error {
 	if ctx == nil || input == nil {
 		return geom.ErrInvalid
 	}
@@ -92,7 +92,7 @@ func verifyClippedCommonSTEP(ctx context.Context, input io.Reader, l Limits, wri
 		return err
 	}
 	if !reflect.DeepEqual(actual.Entities, want.Entities) {
-		return fmt.Errorf("step: clipped Common DATA differs from its source proof: %w", geom.ErrConvergence)
+		return fmt.Errorf("step: %s DATA differs from its source proof: %w", family, geom.ErrConvergence)
 	}
 	return ctx.Err()
 }
