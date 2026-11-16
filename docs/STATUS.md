@@ -4,20 +4,19 @@ The full OCCT replacement is **not complete**. This document distinguishes the
 implemented, tested kernel from the much larger specification. Full replacement
 and general-purpose production use remain unqualified.
 
-The latest completed paired run is [Go](evidence/main-29563ead-qualification-2026-11-16.json)
-and [PlainCAD](evidence/plaincad-main-29563ead-2026-11-16.json) on
-`29563ead`. Go passed 6,086 cases with 603 explicit optional skips.
-PlainCAD passed all eight gates: 345 development, 66 production, 15
-cross-browser, four WASM contract and 1,691 unit cases. Vet and Linux and
-Windows amd64 cross-builds passed. The [native Linux ARM64 run](evidence/native-linux-946f7a04-qualification-2026-11-16.json)
-also passed on the earlier paired revision, `946f7a04`. The newer full
-macOS race on `52118ad9` is still running.
-The [PlainCAD run on `9f95a188`](evidence/plaincad-main-9f95a188-2026-11-16.json)
-also passed all eight gates, and its matching Go run remains in progress.
-The newer `d42af917` Go and PlainCAD runs are also underway.
-`d42af917` vet and Linux/Windows amd64 cross-builds passed. The full
-Go run on `f11354d2` has started; its PlainCAD run follows once the
-prior browser gates release the shared test ports.
+The latest completed paired run is [Go](evidence/main-9f95a188-qualification-2026-11-16.json)
+and [PlainCAD](evidence/plaincad-main-9f95a188-2026-11-16.json) on
+`9f95a188`. Go passed 6,121 cases with 608 explicit optional skips and
+zero failures. PlainCAD passed all eight gates: 345 development, 66
+production, 15 cross-browser, four WASM contract and 1,691 unit cases.
+Vet and Linux and Windows amd64 cross-builds passed on the same snapshot.
+The [native Linux ARM64 run](evidence/native-linux-946f7a04-qualification-2026-11-16.json)
+passed on the earlier paired revision, `946f7a04`. The newer full macOS
+race on `52118ad9` and native Linux run on `c7afb429` are still running.
+The [PlainCAD run on `d42af917`](evidence/plaincad-main-d42af917-2026-11-16.json)
+also passed all gates, and its matching Go run is underway. Vet and both
+amd64 cross-builds passed. Full Go and PlainCAD runs on `f11354d2` are
+underway; vet and both amd64 cross-builds also passed there.
 Type-144 exchange now independently qualifies convex affine outer loops
 on one U-periodic cell, including all original diagonal pcurves, model
 coedges and their cubic composition. Up to two strictly contained
