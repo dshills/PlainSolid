@@ -9,10 +9,14 @@ are exact decimals in their original, separate vertex records.
 directory records against the original native receipt. Start-section
 annotations may vary.
 
-The tests use the same three- and four-component source receipts as the STEP
-transfer. Their explicit pole tolerance is `1e-14` in the stored model and UV
-coordinates. It bounds rounding of derived interior Bézier poles. The
-serialized vertices, endpoints, weights and original support data are exact.
+`WriteClippedPolynomialThreeTransverseCut` and its corresponding verifier
+use the same group for the source-proved three-crossing family. Each of the
+three point contacts keeps its two component-local vertex references.
+
+The tests use the same source receipts as the STEP transfer. Their explicit
+pole tolerance is `1e-14` in the stored model and UV coordinates. It bounds
+rounding of derived interior Bézier poles. The serialized vertices,
+endpoints, weights and original support data are exact.
 
 ## Independent transfer
 
@@ -27,10 +31,14 @@ c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" -L"$OCCT_LIB" -Wl,-rpath,"$OCCT_LIB" \
   -lTKDEIGES -lTKXSBase -lTKTopAlgo -lTKBRep -lTKGeomBase -lTKG3d -lTKMath -lTKernel
 
 PLAINSOLID_OCCT_CLIPPED_CUT_IGES=/tmp/plainsolid-occt-clipped-cut-iges \
-  go test -race ./exchange/iges -run '^TestWriteClippedPolynomialCut$' -count=1 -v
+  go test -race ./exchange/iges -run '^TestWriteClippedPolynomial(Cut|ThreeTransverseCut)$' -count=1 -v
 ```
 
 The reader validates the transferred BRep, reports each solid's face and edge
 counts, and extracts its original exact vertex coordinates. The aggregate
 indexed vertex count equals the sum of the component counts, including the
-separate vertex records at the two contact points.
+separate vertex records at the original contacts. The two-contact fixtures
+reopen with 3 and 4 solids, respectively. The three-contact fixtures reopen
+with 4 solids and 29 vertices, and 5 solids and 26 vertices. The verifier
+rejects a third-contact edge redirected to the other component's vertex
+record at the same exact coordinate.
