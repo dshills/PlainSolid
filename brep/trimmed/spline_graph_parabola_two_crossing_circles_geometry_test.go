@@ -42,6 +42,18 @@ func parabolaTwoCrossingCirclesCoincidentProjection() parabolaTwoCrossingsSource
 	}
 }
 
+func parabolaTwoCrossingCirclesOverlappingProjections() parabolaTwoCrossingsSourceFixture {
+	// The disks overlap in free projection on [21/32,89/128].
+	// Their squared model-space center distance exceeds (23/64)².
+	return parabolaTwoCrossingsSourceFixture{
+		parabola: [3]*big.Rat{big.NewRat(171, 512), big.NewRat(119, 64), big.NewRat(-2, 1)},
+		discs:    [2]twoCircleStockProbe{twoCircleProbe(48, 55, 41, 128), twoCircleProbe(2848, 2543, 160, 4096)},
+		roots:    [2][2]*big.Rat{{big.NewRat(7, 128), big.NewRat(3, 8)}, {big.NewRat(89, 128), big.NewRat(47, 64)}},
+		scale:    big.NewRat(1225, 512),
+		order:    [2]int{0, 1},
+	}
+}
+
 func (f parabolaTwoCrossingsSourceFixture) stocks(t *testing.T, axis int, perturb bool) [3]*geom.BSplineSurface {
 	return parabolaCircleProductStock(t, axis, f.discs, f.parabola, f.scale, perturb)
 }
@@ -68,7 +80,7 @@ func (f parabolaTwoCrossingsSourceFixture) region(x, y *big.Rat) int {
 
 func TestParabolaTwoCrossingCirclesSource(t *testing.T) {
 	ctx := context.Background()
-	for layout, f := range []parabolaTwoCrossingsSourceFixture{parabolaTwoCrossingCirclesStaggered(), parabolaTwoCrossingCirclesCoincidentProjection()} {
+	for layout, f := range []parabolaTwoCrossingsSourceFixture{parabolaTwoCrossingCirclesStaggered(), parabolaTwoCrossingCirclesCoincidentProjection(), parabolaTwoCrossingCirclesOverlappingProjections()} {
 		for axis := range 2 {
 			stocks := f.stocks(t, axis, false)
 			for order := range 2 {

@@ -89,6 +89,11 @@ The independent native Cut race passes both axes/orders, all four
 paired contact identities, positive mass, canonical replay and explicit
 tamper/refinement refusals. The smallest admitted cap matches an
 independent volume near `7.00748e-10`.
+The same [audit](evidence/parabola-two-crossing-circles-2026-11-16.json)
+qualifies the native overlapping projection case in both axes and
+operand orders. Common and Fuse retain `13F/36E/25V`; the smallest Cut
+component agrees with an independent integral near `8.5630e-11`.
+The main race passes all four cases and the unavailable cap split control.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same

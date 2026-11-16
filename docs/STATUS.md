@@ -37,6 +37,10 @@ Native Common and Fuse now retain four exact original coedge fans on
 one closed shell for the representable staggered-junction cases.
 Both native Cut orders preserve three positive components and four
 exact original point contacts in the same staggered subset.
+Native topology also admits strictly overlapping circle projections
+when the original junction intervals remain separate and exact circle
+stations give positive cap fans. Completely coincident projections with
+nonbinary original junctions remain outside native storage.
 These osculation cases also support exact analytic STEP and IGES
 output with the original owner winding, contact jets and separate Cut
 components. General curved exchange remains open.

@@ -51,5 +51,17 @@
       "exact-volume.txt": "288433a3ef789121e1f2bef6d26a99788f08ed8f731c52c29bf862d538c93b8f",
       "previous-mixed-sha256.tsv": "a15845e534fbe04760fd1f805485cc9e92e8c02ef5a33775baef5f09720bb8af"
     }
+  },
+  "native_overlapping_projections": {
+    "isolated_revision": "2653bd71d0c3fba5fb53602b3165c8070c0471ce",
+    "patch_sha256": "5416ff0dd613ad0fc38dbff8528eb48432313cf60abb5733b8b9a6bda995dd81",
+    "main_base": "5eb83aa7",
+    "log": "parabola-two-crossing-overlapping-main-race.jsonl",
+    "sha256": "89356239a0945c741846d34f9d2d93d91fcd5872a7e47856ec114bce62c515ba",
+    "seconds": 1456.126,
+    "named_passes": ["TestNativeParabolaTwoCrossingCirclesOverlappingProjections", "TestNativeParabolaTwoCrossingCirclesUnavailableCapSubdivision"],
+    "variant_count": 4,
+    "envelope_topology": {"faces": 13, "edges": 36, "vertices": 25},
+    "smallest_cut_volume_reference": 8.5630010035837172e-11
   }
 }
