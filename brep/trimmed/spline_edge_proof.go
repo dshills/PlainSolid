@@ -239,6 +239,9 @@ func compareSplineWallUse(ctx context.Context, model parametric.Edge, surface ge
 		}
 		c, rev = q.differentiableTrim, !rev
 	}
+	if placed, ok := c.(placedParabolaCircleWallTrim); ok {
+		return placed.agrees(ctx, model, surface, use, rev, o)
+	}
 	w, identity := c.(wallTrim)
 	affine, aligned := c.(affineGraphWallTrim)
 	if aligned {

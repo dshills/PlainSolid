@@ -69,8 +69,18 @@ type CertifiedParabolaTwoCirclesComponentMesh struct {
 // display. Options default to .05 distance, .02 relative volume error, 64
 // subdivisions, and 100000 triangles for all components.
 func (r *ParabolaTwoCirclesGraphCut) TessellateCertified(ctx context.Context, o ParabolaTwoCirclesMeshOptions) ([]CertifiedParabolaTwoCirclesComponentMesh, error) {
+	return r.tessellateCertified(ctx, o, nil)
+}
+
+func (r *ParabolaTwoCirclesGraphCut) tessellateCertified(ctx context.Context, o ParabolaTwoCirclesMeshOptions,
+	world *PlacedParabolaTwoCirclesGraphCut) ([]CertifiedParabolaTwoCirclesComponentMesh, error) {
 	if ctx == nil || r == nil || len(r.components) == 0 || len(r.components) != len(r.history) {
 		return nil, geom.ErrInvalid
+	}
+	// The exact volume certificate below uses the same-side circle layout.
+	// Its positive Cut contains either one or three components.
+	if len(r.components) != 1 && len(r.components) != 3 {
+		return nil, geom.ErrConvergence
 	}
 	if o.Deflection == 0 {
 		o.Deflection = .05
@@ -137,7 +147,11 @@ func (r *ParabolaTwoCirclesGraphCut) TessellateCertified(ctx context.Context, o 
 		if o.MaxTriangles < len(part.faces) {
 			return nil, parametric.ErrBudget
 		}
-		result[i], err = parabolaTwoCirclesComponentDisplay(ctx, part, h, height, plane, volume[h.Region], o)
+		var placement *parabolaCircleDisplayPlacement
+		if world != nil {
+			placement = &parabolaCircleDisplayPlacement{chart: world.chart, part: world.world[i]}
+		}
+		result[i], err = parabolaTwoCirclesComponentDisplay(ctx, part, h, height, plane, volume[h.Region], o, placement)
 		if err != nil {
 			return nil, fmt.Errorf("trimmed: parabola and circles display region %d: %w", h.Region, err)
 		}
@@ -152,7 +166,7 @@ func (r *ParabolaTwoCirclesGraphCut) TessellateCertified(ctx context.Context, o 
 
 func parabolaTwoCirclesComponentDisplay(ctx context.Context, s Solid, h ParabolaCircleCutComponentHistory,
 	height [2]parabolaCircleMeshHeight, plane *geom.SurfacePatch, volume [2]*big.Rat,
-	o ParabolaTwoCirclesMeshOptions) (CertifiedParabolaTwoCirclesComponentMesh, error) {
+	o ParabolaTwoCirclesMeshOptions, placement *parabolaCircleDisplayPlacement) (CertifiedParabolaTwoCirclesComponentMesh, error) {
 	var empty CertifiedParabolaTwoCirclesComponentMesh
 	roof, below := s.faces[h.RoofFaces[0]], s.faces[h.RoofFaces[1]]
 	topUses := append([][]Use{roof.Outer}, roof.Holes...)
@@ -223,7 +237,7 @@ func parabolaTwoCirclesComponentDisplay(ctx context.Context, s Solid, h Parabola
 			}
 			return empty, err
 		}
-		display, err := parabolaTwoCirclesLiftFootprint(ctx, s, h, height, foot, topUses, bottomUses, n, o)
+		display, err := parabolaTwoCirclesLiftFootprint(ctx, s, h, height, foot, topUses, bottomUses, n, o, placement)
 		if err != nil {
 			if errors.Is(err, errRefine) {
 				continue
@@ -237,7 +251,11 @@ func parabolaTwoCirclesComponentDisplay(ctx context.Context, s Solid, h Parabola
 		if turnLimit != nil && (display.SquaredSourceNormalTurn == nil || display.SquaredSourceNormalTurn.Cmp(turnLimit) > 0) {
 			continue
 		}
-		if err := auditParabolaTwoCirclesMesh(ctx, s, display); err != nil {
+		native := s
+		if placement != nil {
+			native = placement.part
+		}
+		if err := auditParabolaTwoCirclesMesh(ctx, native, display); err != nil {
 			return empty, err
 		}
 		actual, report, err := checkClosedPeriodicMesh(ctx, display.Mesh, o.Collision)
