@@ -31,8 +31,7 @@ type nodalCubicCommonLedger struct {
 	NodeSectors []int   `json:"nodeSectors"`
 }
 
-func (r *NodalCubicCommon) recipeLedger() *nodalCubicCommonLedger {
-	h := r.history
+func makeNodalCubicEnvelopeLedger(h NodalCubicCommonHistory) *nodalCubicCommonLedger {
 	chains := make([][]int, len(h.Chains))
 	for i, edge := range h.Chains {
 		chains[i] = h.Chains[i][:]
@@ -52,12 +51,17 @@ func (r *NodalCubicCommon) WriteJSON(ctx context.Context, w io.Writer) error {
 	if ctx == nil || w == nil || r == nil || r.sources[0] == nil {
 		return geom.ErrInvalid
 	}
-	sources, err := encodePolynomialGraphSupports(ctx, r.sources)
+	return writeNodalCubicEnvelopeRecipe(ctx, w, nativeNodalCubicCommon, r.sources, r.axis, r.tolerance, r.history)
+}
+
+func writeNodalCubicEnvelopeRecipe(ctx context.Context, w io.Writer, kind string, stock [3]*geom.BSplineSurface, axis int,
+	tolerance float64, h NodalCubicCommonHistory) error {
+	sources, err := encodePolynomialGraphSupports(ctx, stock)
 	if err != nil {
 		return err
 	}
 	return writePolynomialGraphRecipe(ctx, w, nodalCubicCommonRecipe{
-		Version: 1, Kind: nativeNodalCubicCommon, Sources: sources, Axis: &r.axis, Tolerance: r.tolerance, Ledger: r.recipeLedger(),
+		Version: 1, Kind: kind, Sources: sources, Axis: &axis, Tolerance: tolerance, Ledger: makeNodalCubicEnvelopeLedger(h),
 	})
 }
 
@@ -65,15 +69,7 @@ func (r *NodalCubicCommon) WriteJSON(ctx context.Context, w io.Writer) error {
 // the same embedded native boundary before checking the recorded ledger.
 func ReadNodalCubicCommonJSON(ctx context.Context, r io.Reader, limits JSONLimits,
 	o NodalCubicCommonOptions) (*NodalCubicCommon, error) {
-	var recipe nodalCubicCommonRecipe
-	if err := readPolynomialGraphRecipe(ctx, r, limits, &recipe); err != nil {
-		return nil, err
-	}
-	if recipe.Version != 1 || recipe.Kind != nativeNodalCubicCommon || len(recipe.Sources) != 3 ||
-		recipe.Axis == nil || recipe.Ledger == nil {
-		return nil, geom.ErrInvalid
-	}
-	source, err := decodePolynomialGraphSupports(ctx, recipe.Sources, limits.MaxControlPoints)
+	recipe, source, err := readNodalCubicEnvelopeRecipe(ctx, r, limits, nativeNodalCubicCommon)
 	if err != nil {
 		return nil, err
 	}
@@ -81,12 +77,28 @@ func ReadNodalCubicCommonJSON(ctx context.Context, r io.Reader, limits JSONLimit
 	if err != nil {
 		return nil, err
 	}
-	if !reflect.DeepEqual(recipe.Ledger, out.recipeLedger()) ||
-		(limits.MaxEntities > 0 && polynomialGraphEntityCount([]Solid{out.solid}) > limits.MaxEntities) {
-		return nil, geom.ErrConvergence
-	}
-	if err := ctx.Err(); err != nil {
+	if err := recipe.verify(ctx, out.solid, out.history, limits); err != nil {
 		return nil, err
 	}
 	return out, nil
+}
+
+func readNodalCubicEnvelopeRecipe(ctx context.Context, r io.Reader, limits JSONLimits, kind string) (nodalCubicCommonRecipe, [3]*geom.BSplineSurface, error) {
+	var recipe nodalCubicCommonRecipe
+	if err := readPolynomialGraphRecipe(ctx, r, limits, &recipe); err != nil {
+		return recipe, [3]*geom.BSplineSurface{}, err
+	}
+	if recipe.Version != 1 || recipe.Kind != kind || len(recipe.Sources) != 3 || recipe.Axis == nil || recipe.Ledger == nil {
+		return recipe, [3]*geom.BSplineSurface{}, geom.ErrInvalid
+	}
+	source, err := decodePolynomialGraphSupports(ctx, recipe.Sources, limits.MaxControlPoints)
+	return recipe, source, err
+}
+
+func (r nodalCubicCommonRecipe) verify(ctx context.Context, solid Solid, history NodalCubicCommonHistory, limits JSONLimits) error {
+	if !reflect.DeepEqual(r.Ledger, makeNodalCubicEnvelopeLedger(history)) ||
+		(limits.MaxEntities > 0 && polynomialGraphEntityCount([]Solid{solid}) > limits.MaxEntities) {
+		return geom.ErrConvergence
+	}
+	return ctx.Err()
 }

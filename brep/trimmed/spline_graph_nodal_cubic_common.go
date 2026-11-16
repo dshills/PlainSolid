@@ -55,72 +55,112 @@ func (r *NodalCubicCommon) History() NodalCubicCommonHistory {
 // vertices. The base and both roof charts retain their original support laws.
 func CommonNodalCubicSplineGraphs(ctx context.Context, base, a, b *geom.BSplineSurface, freeAxis int,
 	tolerance float64, o NodalCubicCommonOptions) (*NodalCubicCommon, error) {
+	sources := [3]*geom.BSplineSurface{base, a, b}
+	solid, h, err := buildNodalCubicEnvelope(ctx, sources, freeAxis, tolerance, false, o)
+	if err != nil {
+		return nil, err
+	}
+	return &NodalCubicCommon{solid: solid, history: h, sources: sources, axis: freeAxis, tolerance: tolerance}, nil
+}
+
+type nodalCubicNativeSection struct {
+	proof     *geom.NodalCubicSection
+	domain    geom.ParameterRectangle
+	pieces    [4][]openSectionPiece
+	vertices  [4]geom.Vec3
+	regions   [4]graphEnvelopeRegion
+	seam      openSectionPiece
+	baseChart graphEnvelopeChart
+	charts    [2]graphEnvelopeChart
+}
+
+func prepareNodalCubicNativeSection(ctx context.Context, sources [3]*geom.BSplineSurface, freeAxis int,
+	tolerance float64, o NodalCubicCommonOptions) (r nodalCubicNativeSection, err error) {
+	base, a, b := sources[0], sources[1], sources[2]
 	if ctx == nil || base == nil || a == nil || b == nil || freeAxis < 0 || freeAxis > 1 || !finite(tolerance) ||
 		tolerance <= 0 || o.Section.Domain != (geom.ParameterRectangle{}) {
-		return nil, geom.ErrInvalid
+		return r, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return r, err
 	}
 	stock, err := prepareRectangularPolynomialStock(ctx, base, a, b, o)
 	if err != nil {
-		return nil, err
+		return r, err
 	}
-	proof, err := geom.DiscoverProjectedGraphNodalCubic(ctx, stock.roofs[0], stock.roofs[1], [2]int{0, 1}, freeAxis, o.Proof)
+	r.proof, err = geom.DiscoverProjectedGraphNodalCubic(ctx, stock.roofs[0], stock.roofs[1], [2]int{0, 1}, freeAxis, o.Proof)
 	if err != nil {
-		return nil, err
+		return r, err
 	}
-	domain := stock.reference.Domain()
-	pieces, xyz, err := nodalCubicCommonPieces(proof, domain)
+	r.domain = stock.reference.Domain()
+	r.pieces, r.vertices, err = nodalCubicNativePieces(r.proof, r.domain)
 	if err != nil {
-		return nil, err
+		return r, err
 	}
-	regions, seam, err := nodalCubicCommonRegions(proof, pieces, xyz, domain)
+	r.regions, r.seam, err = nodalCubicEnvelopeRegions(r.proof, r.pieces, r.vertices, r.domain)
 	if err != nil {
-		return nil, err
+		return r, err
 	}
-	baseChart, err := polynomialEnvelopeBaseChart(stock.base)
+	r.baseChart, err = polynomialEnvelopeBaseChart(stock.base)
 	if err != nil {
-		return nil, err
+		return r, err
 	}
-	var charts [2]graphEnvelopeChart
 	for i, roof := range stock.roofs {
 		alignment, err := geom.AlignAffineXYCharts(ctx, stock.reference, roof, o.Section.Patch)
 		if err != nil {
-			return nil, err
+			return r, err
 		}
-		charts[i], err = polynomialEnvelopeBaseChart(alignment)
+		r.charts[i], err = polynomialEnvelopeBaseChart(alignment)
 		if err != nil {
-			return nil, err
+			return r, err
 		}
 	}
-	reference := func(p geom.Vec3) (geom.Vec2, error) { return geom.Vec2{X: p.X, Y: p.Y}, nil }
-	solid, envelope, err := assembleSplineEnvelopeOnCharts(ctx, base, a, b, regions[:], domain, baseChart,
-		charts, reference, tolerance, exactGraphVertexEvaluator(ctx, o.Proof))
-	if err != nil {
-		return nil, err
-	}
-	if err := validateExactGraphPartitionEdges(ctx, solid, o.Proof); err != nil {
-		return nil, err
-	}
-	if err := bindPolynomialEnvelopeBase(solid, base, baseChart, envelope, reference); err != nil {
-		return nil, err
-	}
-	if err := affineMaterialVertexLinks(ctx, solid); err != nil {
-		return nil, err
-	}
-	history, err := bindNodalCubicCommon(solid, envelope, [2]*geom.BSplineSurface{a, b}, charts, proof, xyz, pieces, regions, seam)
-	if err != nil {
-		return nil, err
-	}
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	return &NodalCubicCommon{solid: solid, history: history, sources: [3]*geom.BSplineSurface{base, a, b},
-		axis: freeAxis, tolerance: tolerance}, nil
+	return r, nil
 }
 
-func nodalCubicCommonPieces(p *geom.NodalCubicSection, domain geom.ParameterRectangle) (pieces [4][]openSectionPiece,
+func nodalCubicReferenceXY(p geom.Vec3) (geom.Vec2, error) {
+	return geom.Vec2{X: p.X, Y: p.Y}, nil
+}
+
+func buildNodalCubicEnvelope(ctx context.Context, sources [3]*geom.BSplineSurface, freeAxis int,
+	tolerance float64, upper bool, o NodalCubicCommonOptions) (Solid, NodalCubicCommonHistory, error) {
+	var zero NodalCubicCommonHistory
+	section, err := prepareNodalCubicNativeSection(ctx, sources, freeAxis, tolerance, o)
+	if err != nil {
+		return Solid{}, zero, err
+	}
+	if upper {
+		for i := range section.regions {
+			section.regions[i].first = !section.regions[i].first
+		}
+	}
+	base, a, b := sources[0], sources[1], sources[2]
+	solid, envelope, err := assembleSplineEnvelopeOnCharts(ctx, base, a, b, section.regions[:], section.domain, section.baseChart,
+		section.charts, nodalCubicReferenceXY, tolerance, exactGraphVertexEvaluator(ctx, o.Proof))
+	if err != nil {
+		return Solid{}, zero, err
+	}
+	if err := validateExactGraphPartitionEdges(ctx, solid, o.Proof); err != nil {
+		return Solid{}, zero, err
+	}
+	if err := bindPolynomialEnvelopeBase(solid, base, section.baseChart, envelope, nodalCubicReferenceXY); err != nil {
+		return Solid{}, zero, err
+	}
+	if err := affineMaterialVertexLinks(ctx, solid); err != nil {
+		return Solid{}, zero, err
+	}
+	history, err := bindNodalCubicEnvelope(solid, envelope, [2]*geom.BSplineSurface{a, b}, section.charts,
+		section.proof, section.vertices, section.pieces, section.regions, section.seam)
+	if err != nil {
+		return Solid{}, zero, err
+	}
+	if err := ctx.Err(); err != nil {
+		return Solid{}, zero, err
+	}
+	return solid, history, nil
+}
+
+func nodalCubicNativePieces(p *geom.NodalCubicSection, domain geom.ParameterRectangle) (pieces [4][]openSectionPiece,
 	xyz [4]geom.Vec3, err error) {
 	for i, vertex := range p.Vertices {
 		xyz[i], err = geom.RepresentedExactPoint(vertex.Point)
@@ -195,7 +235,7 @@ func nodalCubicBezierControls(p *geom.NodalCubicSection, sx, sy *big.Rat, t [2]*
 	return h
 }
 
-func nodalCubicCommonRegions(p *geom.NodalCubicSection, branches [4][]openSectionPiece, xyz [4]geom.Vec3,
+func nodalCubicEnvelopeRegions(p *geom.NodalCubicSection, branches [4][]openSectionPiece, xyz [4]geom.Vec3,
 	d geom.ParameterRectangle) (regions [4]graphEnvelopeRegion, seam openSectionPiece, err error) {
 	toXY := func(p geom.Vec3) geom.Vec2 { return geom.Vec2{X: p.X, Y: p.Y} }
 	// In the open seam interval x<-LoopDepth, the exact residual

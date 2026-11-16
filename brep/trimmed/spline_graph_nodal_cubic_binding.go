@@ -7,7 +7,7 @@ import (
 	"plainsolid/geom"
 )
 
-func bindNodalCubicCommon(s Solid, envelope SplineGraphBooleanHistory, roofs [2]*geom.BSplineSurface,
+func bindNodalCubicEnvelope(s Solid, envelope SplineGraphBooleanHistory, roofs [2]*geom.BSplineSurface,
 	charts [2]graphEnvelopeChart, p *geom.NodalCubicSection, xyz [4]geom.Vec3, pieces [4][]openSectionPiece,
 	regions [4]graphEnvelopeRegion, seam openSectionPiece) (h NodalCubicCommonHistory, err error) {
 	t := s.Topology()
