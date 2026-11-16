@@ -56,32 +56,40 @@ func ReadPeriodicTrimmedFace(ctx context.Context, r io.Reader, l Limits) (Period
 	if err != nil {
 		return zero, err
 	}
-	if err := m.proveEdges(ctx, source.graph, cell, source.uv, source.model, source.remaining); err != nil {
+	if _, err := m.proveEdges(ctx, source.graph, cell, source.uv, source.model, source.remaining); err != nil {
 		return zero, err
 	}
 	if len(source.graph.claimed) != len(source.graph.records) {
 		return zero, geom.ErrUnrepresentable
 	}
+	if err := m.proveInjectivePatch(ctx, cell); err != nil {
+		return zero, err
+	}
+	return m, nil
+}
+
+func (m *PeriodicTrimmedFace) proveInjectivePatch(ctx context.Context, cell geom.ExactPeriodicSurfaceBezierCell) error {
+	var err error
 	m.Patch, err = cell.NormalizedPatch(ctx, geom.SurfacePatchOptions{})
 	if err != nil {
-		return zero, err
+		return err
 	}
 	for _, axes := range [3][2]int{{0, 1}, {0, 2}, {1, 2}} {
 		if err := ctx.Err(); err != nil {
-			return zero, err
+			return err
 		}
 		proof, err := geom.CertifySurfaceInjectivity(m.Patch, geom.SurfaceInjectivityOptions{
 			ProjectionAxes: axes, MaxDepth: 6, MaxCells: 64, MaxOperations: 200000,
 		})
 		if err == nil && proof.ProvenInjective {
 			if err := ctx.Err(); err != nil {
-				return zero, err
+				return err
 			}
 			m.ProjectionAxes, m.ProjectionOrientation = axes, proof.ProjectionOrientation
-			return m, nil
+			return nil
 		}
 	}
-	return zero, fmt.Errorf("iges: periodic trim projection is unproved: %w", geom.ErrUnrepresentable)
+	return fmt.Errorf("iges: periodic trim projection is unproved: %w", geom.ErrUnrepresentable)
 }
 
 type periodicTrimSource struct {
@@ -89,10 +97,15 @@ type periodicTrimSource struct {
 	support   *Surface
 	graph     periodicTrimGraph
 	uv, model []int
+	holes     []periodicTrimLoopSource
 	remaining int
 }
 
 func readPeriodicTrimSource(ctx context.Context, r io.Reader, l Limits, edgeCount int) (periodicTrimSource, error) {
+	return readPeriodicTrimSourceWithHoles(ctx, r, l, edgeCount, 0)
+}
+
+func readPeriodicTrimSourceWithHoles(ctx context.Context, r io.Reader, l Limits, edgeCount, maxHoles int) (periodicTrimSource, error) {
 	var zero periodicTrimSource
 	if ctx == nil {
 		return zero, geom.ErrInvalid
@@ -110,6 +123,16 @@ func readPeriodicTrimSource(ctx context.Context, r io.Reader, l Limits, edgeCoun
 		return zero, err
 	}
 	owners := 5 + 2*edgeCount
+	holeCount := 0
+	if maxHoles > 0 {
+		const holeOwners = 11 // three contour and eight direct curve records
+		extra := len(doc.entities) - owners
+		holeCount = extra / holeOwners
+		if holeCount < 1 || holeCount > maxHoles || extra%holeOwners != 0 {
+			return zero, fmt.Errorf("iges: expected one or two explicit periodic trim holes: %w", geom.ErrUnrepresentable)
+		}
+		owners += extra
+	}
 	if len(doc.entities) != owners {
 		return zero, fmt.Errorf("iges: expected one periodic trim with %d source owners: %w", owners, geom.ErrUnrepresentable)
 	}
@@ -124,32 +147,25 @@ func readPeriodicTrimSource(ctx context.Context, r io.Reader, l Limits, edgeCoun
 			m.FaceID = q.id
 		}
 	}
-	face, err := g.links(m.FaceID, 144, 5)
+	face, err := g.links(m.FaceID, 144, 5+holeCount)
 	if err != nil {
 		return zero, err
 	}
-	if face[2] != 1 || face[3] != 0 {
-		return zero, fmt.Errorf("iges: expected one explicit periodic trim with no inner curves: %w", geom.ErrUnrepresentable)
+	if face[2] != 1 || face[3] != holeCount {
+		return zero, fmt.Errorf("iges: inconsistent explicit periodic trim loop count: %w", geom.ErrUnrepresentable)
 	}
 	m.SupportID, m.ContourID = face[1], face[4]
-	contour, err := g.links(m.ContourID, 142, 6)
+	outer, err := readPeriodicTrimLoop(g, m.SupportID, m.ContourID, edgeCount)
 	if err != nil {
 		return zero, err
 	}
-	if contour[1] != 0 || contour[2] != m.SupportID || contour[5] != 3 {
-		return zero, fmt.Errorf("iges: mismatched periodic trim contour support or mode: %w", geom.ErrUnrepresentable)
-	}
-	m.UVCompositeID, m.ModelCompositeID = contour[3], contour[4]
-	uv, err := g.links(m.UVCompositeID, 102, 2+edgeCount)
-	if err != nil {
-		return zero, err
-	}
-	model, err := g.links(m.ModelCompositeID, 102, 2+edgeCount)
-	if err != nil {
-		return zero, err
-	}
-	if uv[1] != edgeCount || model[1] != edgeCount {
-		return zero, geom.ErrUnrepresentable
+	m.UVCompositeID, m.ModelCompositeID = outer.uvID, outer.modelID
+	holes := make([]periodicTrimLoopSource, holeCount)
+	for i, id := range face[5:] {
+		holes[i], err = readPeriodicTrimLoop(g, m.SupportID, id, 4)
+		if err != nil {
+			return zero, err
+		}
 	}
 
 	rec, err := g.take(m.SupportID, 128)
@@ -174,7 +190,35 @@ func readPeriodicTrimSource(ctx context.Context, r io.Reader, l Limits, edgeCoun
 		m.Bounds[i] = geom.ExactParameterInterval{Lower: bounds[2*i], Upper: bounds[2*i+1]}
 	}
 	m.LengthUnit, m.original = doc.unit, string(doc.bytes)
-	return periodicTrimSource{face: m, support: support.Surface, graph: g, uv: uv[2:], model: model[2:], remaining: remaining}, nil
+	return periodicTrimSource{face: m, support: support.Surface, graph: g, uv: outer.uv, model: outer.model, holes: holes, remaining: remaining}, nil
+}
+
+type periodicTrimLoopSource struct {
+	contourID, uvID, modelID int
+	uv, model                []int
+}
+
+func readPeriodicTrimLoop(g periodicTrimGraph, supportID, contourID, edgeCount int) (periodicTrimLoopSource, error) {
+	var zero periodicTrimLoopSource
+	contour, err := g.links(contourID, 142, 6)
+	if err != nil {
+		return zero, err
+	}
+	if contour[1] != 0 || contour[2] != supportID || contour[5] != 3 {
+		return zero, fmt.Errorf("iges: mismatched periodic trim contour support or mode: %w", geom.ErrUnrepresentable)
+	}
+	uv, err := g.links(contour[3], 102, 2+edgeCount)
+	if err != nil {
+		return zero, err
+	}
+	model, err := g.links(contour[4], 102, 2+edgeCount)
+	if err != nil {
+		return zero, err
+	}
+	if uv[1] != edgeCount || model[1] != edgeCount {
+		return zero, geom.ErrUnrepresentable
+	}
+	return periodicTrimLoopSource{contourID: contourID, uvID: contour[3], modelID: contour[4], uv: uv[2:], model: model[2:]}, nil
 }
 
 func (m *PeriodicTrimmedFace) proveOriginalKnotCell(ctx context.Context) (geom.ExactPeriodicSurfaceBezierCell, error) {

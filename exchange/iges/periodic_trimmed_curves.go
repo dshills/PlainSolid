@@ -8,40 +8,77 @@ import (
 	"plainsolid/geom"
 )
 
-func (m *PeriodicTrimmedFace) proveEdges(ctx context.Context, graph periodicTrimGraph, cell geom.ExactPeriodicSurfaceBezierCell, uvIDs, modelIDs []int, remaining int) error {
-	first, previous := -1, -1
-	for i, uvID := range uvIDs {
-		uv, err := graph.take(uvID, 110)
+func (m *PeriodicTrimmedFace) proveEdges(ctx context.Context, graph periodicTrimGraph, cell geom.ExactPeriodicSurfaceBezierCell, uvIDs, modelIDs []int, remaining int) (int, error) {
+	uv, _, err := readPeriodicTrimUVRectangle(graph, uvIDs)
+	if err != nil {
+		return 0, err
+	}
+	m.Edges, remaining, err = provePeriodicTrimRectangle(ctx, graph, cell, m.Bounds, uv, modelIDs, 1, remaining)
+	return remaining, err
+}
+
+type periodicTrimUVEdge struct {
+	id         int
+	start, end [2]*big.Rat
+}
+
+func readPeriodicTrimUVRectangle(graph periodicTrimGraph, ids []int) (uv [4]periodicTrimUVEdge, bounds [2]geom.ExactParameterInterval, err error) {
+	for i, uvID := range ids {
+		rec, err := graph.take(uvID, 110)
 		if err != nil {
-			return err
+			return uv, bounds, err
 		}
-		a, b, err := periodicTrimUVLine(uv)
+		a, b, err := periodicTrimUVLine(rec)
 		if err != nil {
-			return fmt.Errorf("iges: periodic UV line #%d: %w", uvID, err)
+			return uv, bounds, fmt.Errorf("iges: periodic UV line #%d: %w", uvID, err)
 		}
-		start, end := periodicTrimCorner(m.Bounds, a), periodicTrimCorner(m.Bounds, b)
-		if start < 0 || end != (start+1)%4 || i > 0 && start != previous {
-			return fmt.Errorf("iges: periodic trim UV line #%d does not follow the directed rectangle: %w", uvID, geom.ErrUnrepresentable)
+		uv[i] = periodicTrimUVEdge{id: uvID, start: a, end: b}
+		for _, p := range [2][2]*big.Rat{a, b} {
+			for axis, q := range p {
+				interval := &bounds[axis]
+				if interval.Lower == nil || q.Cmp(interval.Lower) < 0 {
+					interval.Lower = q
+				}
+				if interval.Upper == nil || q.Cmp(interval.Upper) > 0 {
+					interval.Upper = q
+				}
+			}
 		}
-		if i == 0 {
-			first = start
+	}
+	return uv, bounds, nil
+}
+
+func provePeriodicTrimRectangle(ctx context.Context, graph periodicTrimGraph, cell geom.ExactPeriodicSurfaceBezierCell,
+	bounds [2]geom.ExactParameterInterval, uv [4]periodicTrimUVEdge, modelIDs []int, winding, remaining int) ([4]PeriodicTrimEdge, int, error) {
+	var zero, pairs [4]PeriodicTrimEdge
+	first := periodicTrimCorner(bounds, uv[0].start)
+	for i, edge := range uv {
+		start, end := periodicTrimCorner(bounds, edge.start), periodicTrimCorner(bounds, edge.end)
+		if first < 0 || start != (first+i*winding+4)%4 || end != (start+winding+4)%4 {
+			return zero, 0, fmt.Errorf("iges: periodic trim UV line #%d does not follow the directed rectangle: %w", edge.id, geom.ErrUnrepresentable)
 		}
-		previous = end
-		expected, err := periodicTrimCellEdge(ctx, cell, start)
+		side := start
+		if winding < 0 {
+			side = end
+		}
+		expected, err := periodicTrimCellEdge(ctx, cell, side)
 		if err != nil {
-			return err
+			return zero, 0, err
 		}
-		edge, used, err := provePeriodicTrimEdge(ctx, graph, uvID, modelIDs[i], a, b, expected, remaining)
+		if winding < 0 {
+			expected, err = expected.Reparameterize(0, 1, true, geom.SurfacePatchOptions{})
+			if err != nil {
+				return zero, 0, err
+			}
+		}
+		pair, used, err := provePeriodicTrimEdge(ctx, graph, edge.id, modelIDs[i], edge.start, edge.end, expected, remaining)
 		if err != nil {
-			return err
+			return zero, 0, err
 		}
 		remaining -= used
-		m.Edges[i] = edge
+		pairs[i] = pair
 	}
-	if previous != first {
-		return geom.ErrUnrepresentable
-	}
-	return nil
+	return pairs, remaining, nil
 }
 
 func provePeriodicTrimEdge(ctx context.Context, graph periodicTrimGraph, uvID, modelID int,

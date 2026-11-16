@@ -115,6 +115,24 @@ file bytes, all source entity IDs, the full cyclic support, the finite UV
 bounds, original knot-cell owners and the model edge parameter ranges.
 The returned patch uses the normalized unit square.
 
+`ReadPeriodicTrimmedFaceWithHoles` admits one or two explicit rectangular
+inner type-142 contours in the same original knot cell as the outer loop.
+Each inner contour owns four directed type-110 UV lines and four complete
+type-126 model splines through its own two type-102 composites. It uses the
+same exact edge proof as the outer loop and requires clockwise inner UV
+winding. Strict containment and disjointness are checked in the common
+chart, and the projection certificate covers the entire outer rectangle.
+The returned `Holes` carry each removed rectangle's original bounds,
+contour and composite IDs, and directed edge owners. `Patch` evaluates the
+underlying outer rectangle, including the removed regions.
+
+The pinned low-level OCCT author and reader preserve one and two original
+inner wires with their directed UV and model owners and original model
+parameter ranges. The strict reader refuses touching and overlapping loops
+and reversed original winding. The pinned reader splits invalid touching
+and crossing contours and reverses the incorrectly wound inner contour on
+transfer.
+
 `ReadPeriodicSeamTrimmedFace` admits the lifted rectangular case at the
 upper U seam of the original full type-128 carrier. The two type-102
 composites each contain six directed pieces. The horizontal sides split
