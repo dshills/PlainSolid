@@ -1,0 +1,289 @@
+{
+  "milestone": "Original appearance on an independently authored shared mixed conical AP242 product DAG",
+  "plainSolidRevisions": [
+    "710c20c945c7b63cc41e1f92e1c4abb1cfa692a2",
+    "540b8b8bfe3524c87706b0cd792dbe92191af9b7"
+  ],
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "authorSource": "tools/occtref/author_ap242_mixed_conical_curved.cxx",
+  "authorSourceSHA256": "f95309a7ca470ba61d5f1441c70d85aa097a9dc883b1110fd4a57179af2020c0",
+  "fixture": "exchange/step/testdata/occt-dag-mixed-conical-ap242-appearance.step",
+  "fixtureSHA256": "0fcf026bef85519b752155e1dc0452347f2430cb20034d092963cbca63dd0c20",
+  "environment": {
+    "PLAINSOLID_OCCT_MIXED_CONICAL_AP242_DAG": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/mixed-ap242-curved-import/depth-three-dag/appearance/appearance-author",
+    "PLAINSOLID_OCCT_MIXED_CONICAL_AP242_APPEARANCE": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/mixed-ap242-curved-import/depth-three-dag/appearance/appearance-author"
+  },
+  "raceFilter": "^(TestMixedConicalAP242DAGAppearance.*|TestReadMixedConicalAP242DAG.*|TestMixedConicalAP242DAGPinnedAuthor|TestOCCTDeepSHUO|TestOCCTDeepSHUOReject|TestOCCTDeepSHUONative)$",
+  "liveVerification": {
+    "live-final-race.log": "75.195s",
+    "author-order-repeats.log": "7.197s",
+    "repeatedAuthorReopens": 5,
+    "freshAuthorVariesPresentationGroupOrdering": true,
+    "freshAuthorPreservesNonPresentationDataAndStyleOwnership": true,
+    "originalSourceReexposedByteForByte": true,
+    "priorStrictCorrectedCarrierAndRepairReceiptIdentical": true
+  },
+  "originalProductFills": [
+    {
+      "definitionID": 89,
+      "bodyID": 95,
+      "styledItemID": 484,
+      "presentationID": 483,
+      "assignmentID": 485,
+      "rgb": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "definitionID": 254,
+      "bodyID": 260,
+      "styledItemID": 501,
+      "presentationID": 500,
+      "assignmentID": 502,
+      "rgb": [
+        0,
+        1,
+        0
+      ]
+    }
+  ],
+  "originalFaceFill": {
+    "definitionID": 254,
+    "bodyID": 260,
+    "faceID": 336,
+    "nativeFaceIndex": 3,
+    "styledItemID": 509,
+    "presentationID": 500,
+    "assignmentID": 510,
+    "localPlaneZ": 2,
+    "rgb": [
+      1,
+      1,
+      0
+    ]
+  },
+  "originalContextualSurfaceFill": {
+    "path": [
+      54,
+      85,
+      251
+    ],
+    "unchangedSiblingPath": [
+      466,
+      472,
+      251
+    ],
+    "pinnedOrdinalPath": [
+      1,
+      1,
+      2
+    ],
+    "prefixSHUOID": 479,
+    "terminalSHUOID": 478,
+    "bodyID": 95,
+    "styledItemID": 492,
+    "baseStyledItemID": 484,
+    "assignmentID": 493,
+    "contextRepresentationID": 482,
+    "definitionRepresentationID": 480,
+    "productShapeID": 481,
+    "contextDependentShapeRepresentationID": 247,
+    "transformationID": 249,
+    "placementID": 68,
+    "rgb": [
+      0,
+      0,
+      1
+    ]
+  },
+  "pinnedReopen": [
+    {
+      "path": [
+        1,
+        1,
+        1
+      ],
+      "product": [
+        0.9999999999999999,
+        0,
+        0
+      ],
+      "override": null,
+      "faces": []
+    },
+    {
+      "path": [
+        1,
+        1,
+        2
+      ],
+      "product": [
+        0.9999999999999999,
+        0,
+        0
+      ],
+      "override": [
+        0,
+        0,
+        0.9999999999999999
+      ],
+      "faces": []
+    },
+    {
+      "path": [
+        1,
+        1,
+        3
+      ],
+      "product": [
+        0,
+        0.9999999999999999,
+        0
+      ],
+      "override": null,
+      "faces": [
+        {
+          "planeZ": 2,
+          "color": [
+            0.9999999999999999,
+            0.9999999999999999,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "path": [
+        2,
+        1,
+        1
+      ],
+      "product": [
+        0.9999999999999999,
+        0,
+        0
+      ],
+      "override": null,
+      "faces": []
+    },
+    {
+      "path": [
+        2,
+        1,
+        2
+      ],
+      "product": [
+        0.9999999999999999,
+        0,
+        0
+      ],
+      "override": null,
+      "faces": []
+    },
+    {
+      "path": [
+        2,
+        1,
+        3
+      ],
+      "product": [
+        0,
+        0.9999999999999999,
+        0
+      ],
+      "override": null,
+      "faces": [
+        {
+          "planeZ": 2,
+          "color": [
+            0.9999999999999999,
+            0.9999999999999999,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "path": [
+        3
+      ],
+      "product": [
+        0,
+        0.9999999999999999,
+        0
+      ],
+      "override": null,
+      "faces": [
+        {
+          "planeZ": 2,
+          "color": [
+            0.9999999999999999,
+            0.9999999999999999,
+            0
+          ]
+        }
+      ]
+    }
+  ],
+  "rotationControls": {
+    "positiveSelectedAncestorsUseTranslations": true,
+    "otherBranchContainsNontrivialRotations": true,
+    "rotationAtFirstAncestorOverridePaths": [
+      [
+        1,
+        1,
+        2
+      ]
+    ],
+    "rotationAtSecondAncestorOverridePaths": [
+      [
+        1,
+        1,
+        2
+      ]
+    ],
+    "rotationsAtBothAncestorsOverridePaths": [
+      [
+        1,
+        1,
+        2
+      ]
+    ],
+    "plainSolidAuthenticatesBothRotationSourceGraph": true
+  },
+  "artifactSHA256": {
+    "read-mixed-conical-ap242-dag-appearance.patch": "3f6a40fc0b3d5c665e27643d89c6ab7f382b26a013a2c2257cd8e149613e7759",
+    "qualify-mixed-conical-ap242-appearance-order.patch": "0835331793531f3dbbdfb15962f4a8403c9f25d54d6f2a500cc482dbc18cff46",
+    "appearance-author": "b83666326147d9722cca7482146d5710382c886cc9c6c57e008f4d6364ca7027",
+    "appearance.step": "0fcf026bef85519b752155e1dc0452347f2430cb20034d092963cbca63dd0c20",
+    "reopen.log": "933bc616b004f1452562c33ec34407be290314a8dfe2b2cd2abaef899caf844f",
+    "live-final-race.log": "7b1978adb49dea5dba2556742850fd0fefc9f3db66e7fbaaa40263c31e4697de",
+    "author-order-repeats.log": "8daa4feec5f2d936b68f413c52716e2c4ac1f3605dac2a112302738dd3f18cbe",
+    "unchanged-corrected.step": "ce658cfbf366dc1951a1571a1a85e9f2a16b22ab6c61bac6bbf5628ed2c14aa3",
+    "unchanged-part-proof.json": "067b1b89eef0dbd371edc6849b35b24d0351a4acc4c4344b6eed91ee3b64fd36",
+    "unchanged-repair-receipt.json": "573c6297c71b0382e1ae377be1628249fab9f4c6b246770fa12c8d03720fc18b",
+    "rational-path-counterpart.step": "3345d5358859e418d8a5d80c046c5c10022719c2f7af40b25acc07fc7f923f72",
+    "rational-path-reopen.log": "933bc616b004f1452562c33ec34407be290314a8dfe2b2cd2abaef899caf844f",
+    "rational-path-source-proof.log": "7df5a12c9b5600e9319515feb4ab23578e7ff041b20f57099db31445b1d32d34",
+    "root-rotation-reopen.log": "933bc616b004f1452562c33ec34407be290314a8dfe2b2cd2abaef899caf844f",
+    "middle-rotation-reopen.log": "933bc616b004f1452562c33ec34407be290314a8dfe2b2cd2abaef899caf844f"
+  },
+  "main_integration": {
+    "log": "mixed-conical-appearance-main-integration-race.jsonl",
+    "sha256": "fde596e8179bbd859e79237e3e7d57d1aadb4c02efa3feb277cb912ad0d1125b",
+    "elapsed_seconds": 118.638,
+    "passed_tests": {
+      "TestMixedConicalAP242DAGAppearance": 11.15,
+      "TestMixedConicalAP242DAGAppearanceReject": 22.4,
+      "TestMixedConicalAP242DAGAppearanceRetarget": 11.41,
+      "TestMixedConicalAP242DAGAppearancePinnedAuthor": 11.44,
+      "TestEditMixedConicalAP242DAG": 46.84,
+      "TestReadMixedConicalAP242DAG": 12.79,
+      "TestOCCTDeepSHUO": 0.17,
+      "TestOCCTDeepSHUOReject": 0.19,
+      "TestOCCTDeepSHUONative": 0.68
+    }
+  }
+}

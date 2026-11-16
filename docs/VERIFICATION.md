@@ -44,6 +44,15 @@ chart, linear scale five and volume scale 125. The `0.25` mm distance,
 reflection and changed coedge owners remain outside the proof. All 34
 earlier output digests still match.
 
+The [strict mixed conical AP242 appearance milestone](evidence/mixed-conical-ap242-dag-appearance-2026-11-16.json)
+passed a 118.638-second pinned main race. Independent XCAF reopens all
+seven leaves with their product colors, the original chamfer cap on all
+three of its instances, and the blue override on only relationship path
+`[54,85,251]`. Fresh XCAF ordering can change private presentation
+entity IDs; qualification compares the unchanged non-presentation graph
+and checks the style owners. The committed original STEP bytes and
+earlier corrected STEP and source receipt remain byte identical.
+
 The [explicit rounded conical STEP repair](evidence/conical-rim-fillet-default-step-repair-2026-11-15.json)
 was checked against independently pinned OCCT authoring and readback. The
 finite cone displacement bound is `2.82747187543142e-12` mm. The

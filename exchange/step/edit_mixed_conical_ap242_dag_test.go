@@ -74,6 +74,6 @@ func TestEditMixedConicalAP242DAG(t *testing.T) {
 		}
 	}
 	if oracle := os.Getenv("PLAINSOLID_OCCT_MIXED_CONICAL_AP242_DAG"); oracle != "" {
-		checkMixedConicalAP242DAGOracle(t, oracle, out.Bytes(), m.Instances, local)
+		checkMixedConicalAP242DAGOracle(t, oracle, out.Bytes(), m.Instances, local, 254)
 	}
 }

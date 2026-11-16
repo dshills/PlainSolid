@@ -7,6 +7,7 @@
 #include <BRepPrimAPI_MakeCone.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <GProp_GProps.hxx>
+#include <Quantity_Color.hxx>
 #include <NCollection_IndexedMap.hxx>
 #include <NCollection_Sequence.hxx>
 #include <Interface_EntityIterator.hxx>
@@ -37,10 +38,13 @@
 #include <TopTools_ShapeMapHasher.hxx>
 #include <TopoDS.hxx>
 #include <XCAFDoc_DocumentTool.hxx>
+#include <XCAFDoc_ColorTool.hxx>
+#include <XCAFDoc_GraphNode.hxx>
 #include <XCAFDoc_ShapeTool.hxx>
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <string_view>
@@ -354,16 +358,87 @@ static bool describeDAG(const occ::handle<XCAFDoc_ShapeTool>& shapes, const TDF_
     return true;
 }
 
+static void describeRGB(const Quantity_Color& color) {
+    double r, g, b;
+    color.Values(r, g, b, Quantity_TOC_sRGB);
+    std::cout << '[' << r << ',' << g << ',' << b << ']';
+}
+
+static bool describeDAGAppearance(const occ::handle<XCAFDoc_ShapeTool>& shapes,
+                                  const occ::handle<XCAFDoc_ColorTool>& colors, const TDF_Label& root) {
+    NCollection_Sequence<TDF_Label> labels;
+    std::vector<int> ordinals;
+    bool comma = false;
+    std::cout << std::setprecision(17) << "{\"styledPaths\":[";
+    std::function<bool(const TDF_Label&)> visit = [&](const TDF_Label& definition) {
+        if (ordinals.size() >= 8) return false;
+        NCollection_Sequence<TDF_Label> uses;
+        if (!shapes->GetComponents(definition, uses, false) || uses.IsEmpty()) return false;
+        for (int i = 1; i <= uses.Length(); ++i) {
+            TDF_Label child;
+            const auto use = uses.Value(i);
+            if (!shapes->GetReferredShape(use, child)) return false;
+            labels.Append(use);
+            ordinals.push_back(i);
+            if (shapes->IsAssembly(child)) {
+                if (!visit(child)) return false;
+            } else {
+                Quantity_Color body, override;
+                if (!colors->GetColor(child, XCAFDoc_ColorSurf, body)) return false;
+                occ::handle<XCAFDoc_GraphNode> shuo;
+                const bool overridden = shapes->FindSHUO(labels, shuo) &&
+                    colors->GetColor(shuo->Label(), XCAFDoc_ColorSurf, override);
+                if (comma) std::cout << ',';
+                comma = true;
+                std::cout << "{\"path\":[";
+                for (std::size_t j = 0; j < ordinals.size(); ++j) {
+                    if (j) std::cout << ',';
+                    std::cout << ordinals[j];
+                }
+                std::cout << "],\"product\":";
+                describeRGB(body);
+                std::cout << ",\"override\":";
+                if (overridden) describeRGB(override); else std::cout << "null";
+                std::cout << ",\"faces\":[";
+                bool faceComma = false;
+                NCollection_Sequence<TDF_Label> faces;
+                shapes->GetSubShapes(child, faces);
+                for (int j = 1; j <= faces.Length(); ++j) {
+                    Quantity_Color c;
+                    const auto face = shapes->GetShape(faces.Value(j));
+                    if (face.ShapeType() != TopAbs_FACE || !colors->GetColor(faces.Value(j), XCAFDoc_ColorSurf, c)) continue;
+                    const BRepAdaptor_Surface surface(TopoDS::Face(face));
+                    if (surface.GetType() != GeomAbs_Plane) return false;
+                    if (faceComma) std::cout << ',';
+                    faceComma = true;
+                    std::cout << "{\"planeZ\":" << surface.Plane().Location().Z() << ",\"color\":";
+                    describeRGB(c);
+                    std::cout << '}';
+                }
+                std::cout << "]}";
+            }
+            labels.Remove(labels.Length());
+            ordinals.pop_back();
+        }
+        return true;
+    };
+    if (!visit(root)) return false;
+    std::cout << "]}\n";
+    return true;
+}
+
 int main(int argc, char** argv) {
     if (argc != 3) return 1;
     occ::handle<TDocStd_Document> doc = new TDocStd_Document(TCollection_ExtendedString("BinXCAF"));
     auto shapes = XCAFDoc_DocumentTool::ShapeTool(doc->Main());
     const std::string_view mode(argv[1]);
     const bool nest = mode == "write-nested" || mode == "write-nested-exact" || mode == "read-nested";
-    const bool dag = mode == "write-dag" || mode == "write-dag-exact" || mode == "read-dag";
-    const bool exact = mode == "write-exact" || mode == "write-nested-exact" || mode == "write-dag-exact";
+    const bool appearance = mode == "write-dag-appearance" || mode == "read-dag-appearance";
+    const bool dag = mode == "write-dag" || mode == "write-dag-exact" || mode == "read-dag" || appearance;
+    auto colors = XCAFDoc_DocumentTool::ColorTool(doc->Main());
+    const bool exact = mode == "write-exact" || mode == "write-nested-exact" || mode == "write-dag-exact" || mode == "write-dag-appearance";
     if (mode == "write" || mode == "write-exact" || mode == "write-nested" || mode == "write-nested-exact" ||
-        mode == "write-dag" || mode == "write-dag-exact") {
+        mode == "write-dag" || mode == "write-dag-exact" || mode == "write-dag-appearance") {
         const auto fillet = rounded(), chamfer = chamfered();
         if (fillet.IsNull() || chamfer.IsNull() || !BRepCheck_Analyzer(fillet).IsValid() || !BRepCheck_Analyzer(chamfer).IsValid()) return 2;
         auto root = shapes->NewShape(), f = shapes->AddShape(fillet, false), c = shapes->AddShape(chamfer, false);
@@ -376,7 +451,7 @@ int main(int argc, char** argv) {
         d.SetValues(.6,-.8,0,0, .8,.6,0,-30, 0,0,1,8);
         const auto group = (nest || dag) ? shapes->NewShape() : root;
         shapes->AddComponent(group, f, TopLoc_Location(a));
-        shapes->AddComponent(group, f, TopLoc_Location(b));
+        const auto secondRollingUse = shapes->AddComponent(group, f, TopLoc_Location(b));
         shapes->AddComponent(group, c, TopLoc_Location(d));
         if (nest) {
             TDataStd_Name::Set(root,TCollection_ExtendedString("Repeated mixed conical AP242 subassembly"));
@@ -399,11 +474,37 @@ int main(int argc, char** argv) {
             direct.SetTranslation(gp_Vec(0,150,40));
             middleA.SetValues(0,0,1,12, 1,0,0,4, 0,1,0,-6);
             middleB.SetValues(.6,0,.8,-4, 0,1,0,7, -.8,0,.6,9);
-            shapes->AddComponent(branchA, group, TopLoc_Location(middleA));
+            if (appearance) {
+                first.SetTranslation(gp_Vec(100, 20, 12));
+                middleA.SetTranslation(gp_Vec(12, 4, -6));
+            }
+            const auto firstMiddleUse = shapes->AddComponent(branchA, group, TopLoc_Location(middleA));
             shapes->AddComponent(branchB, group, TopLoc_Location(middleB));
-            shapes->AddComponent(root, branchA, TopLoc_Location(first));
+            const auto firstOuterUse = shapes->AddComponent(root, branchA, TopLoc_Location(first));
             shapes->AddComponent(root, branchB, TopLoc_Location(second));
             shapes->AddComponent(root, c, TopLoc_Location(direct));
+            if (appearance) {
+                colors->SetColor(f, Quantity_Color(1, 0, 0, Quantity_TOC_sRGB), XCAFDoc_ColorSurf);
+                colors->SetColor(c, Quantity_Color(0, 1, 0, Quantity_TOC_sRGB), XCAFDoc_ColorSurf);
+                int coloredFaces = 0;
+                for (TopExp_Explorer faces(chamfer, TopAbs_FACE); faces.More(); faces.Next()) {
+                    const auto face = TopoDS::Face(faces.Current());
+                    const BRepAdaptor_Surface surface(face);
+                    if (surface.GetType() != GeomAbs_Plane || surface.Plane().Location().Z() != 2.) continue;
+                    const auto label = shapes->AddSubShape(c, face);
+                    if (label.IsNull()) return 8;
+                    colors->SetColor(label, Quantity_Color(1, 1, 0, Quantity_TOC_sRGB), XCAFDoc_ColorSurf);
+                    ++coloredFaces;
+                }
+                NCollection_Sequence<TDF_Label> path;
+                path.Append(firstOuterUse);
+                path.Append(firstMiddleUse);
+                path.Append(secondRollingUse);
+                occ::handle<XCAFDoc_GraphNode> shuo;
+                if (coloredFaces != 1 || !shapes->SetSHUO(path, shuo)) return 8;
+                colors->SetColor(shuo->Label(), Quantity_Color(0, 0, 1, Quantity_TOC_sRGB), XCAFDoc_ColorSurf);
+            }
+
         }
         shapes->UpdateAssemblies();
         STEPCAFControl_Writer writer;
@@ -413,17 +514,20 @@ int main(int argc, char** argv) {
         if (!writer.Transfer(doc,params) ||
             (exact && !selectExactCarriers(writer.ChangeWriter().Model())) ||
             writer.Write(argv[2]) != IFSelect_RetDone) return 3;
+        if (appearance) return describeDAGAppearance(shapes, colors, root) ? 0 : 8;
         if (dag) return describeDAG(shapes, root) ? 0 : 7;
         if (nest) return describeNested(shapes, root) ? 0 : 7;
         describe(shapes,root);
         return 0;
     }
-    if (mode != "read" && mode != "read-nested" && mode != "read-dag") return 4;
+    if (mode != "read" && mode != "read-nested" && mode != "read-dag" && mode != "read-dag-appearance") return 4;
     STEPCAFControl_Reader reader;
+    if (appearance) reader.SetSHUOMode(true);
     if (reader.ReadFile(argv[2]) != IFSelect_RetDone || !reader.Transfer(doc)) return 5;
     NCollection_Sequence<TDF_Label> roots;
     shapes->GetFreeShapes(roots);
     if (roots.Length() != 1) return 6;
+    if (appearance) return describeDAGAppearance(shapes, colors, roots.Value(1)) ? 0 : 8;
     if (dag) return describeDAG(shapes, roots.Value(1)) ? 0 : 7;
     if (nest) return describeNested(shapes, roots.Value(1)) ? 0 : 7;
     describe(shapes,roots.Value(1));

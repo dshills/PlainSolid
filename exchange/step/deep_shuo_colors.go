@@ -83,6 +83,90 @@ func ReadOCCTDeepSHUOAssembly(ctx context.Context, r io.Reader, l Limits) (OCCTD
 			}
 		}
 	}
+	source, e := proveDeepSHUOSource(f, incoming)
+	if e != nil {
+		return zero, e
+	}
+	prefix, terminal, pdsID, sdrID := source.prefix, source.terminal, source.pdsID, source.sdrID
+	path, defs, sdr := source.path, source.definitions, source.sdr
+	var leafPDS int64
+	for _, owner := range incoming[path[2]] {
+		q, e := simple(f, owner, "PRODUCT_DEFINITION_SHAPE", 3)
+		if e == nil && q.Args[2].Kind == Reference && q.Args[2].Ref == path[2] {
+			if leafPDS != 0 {
+				return zero, geom.ErrInvalid
+			}
+			leafPDS = owner
+		}
+	}
+	if leafPDS == 0 {
+		return zero, geom.ErrInvalid
+	}
+	sdr.Args = append([]Value(nil), sdr.Args...)
+	sdr.Args[0] = Value{Kind: Reference, Ref: leafPDS}
+	view.Entities[sdrID] = Entity{ID: sdrID, Records: []Record{sdr}}
+	remove := map[int64]bool{prefix: true, terminal: true, pdsID: true}
+	var order []int64
+	for _, id := range view.Order {
+		if remove[id] {
+			delete(view.Entities, id)
+		} else {
+			order = append(order, id)
+		}
+	}
+	view.Order = order
+	proofRaw, e := mappedPlanarSourceBytes(view)
+	if e != nil {
+		return zero, e
+	}
+	base, e := readOccurrenceColoredAssembly(bytes.NewReader(proofRaw), l, false)
+	if e != nil {
+		return zero, e
+	}
+	if e = ctx.Err(); e != nil {
+		return zero, e
+	}
+	if len(base.Overrides) != 1 {
+		return zero, geom.ErrInvalid
+	}
+	claim := base.Overrides[0]
+	if claim.OccurrenceID != path[2] || claim.ProductShapeID != leafPDS || claim.DefinitionRepresentationID != sdrID {
+		return zero, geom.ErrInvalid
+	}
+	paths, e := deepColorPaths(ctx, base)
+	if e != nil {
+		return zero, e
+	}
+	matches := 0
+	for i := range paths {
+		q := &paths[i]
+		if q.Path == path {
+			if q.Definitions != defs || q.BodyID != claim.BodyID {
+				return zero, geom.ErrInvalid
+			}
+			q.Color = claim.Color
+			q.Overridden = true
+			matches++
+		}
+	}
+	if matches != 1 {
+		return zero, geom.ErrInvalid
+	}
+	claim.ProductShapeID = pdsID
+	base.Overrides[0] = claim
+	base.Assembly.Assembly.Source = f
+	return OCCTDeepSHUOAssembly{base, paths, DeepSHUOColor{prefix, terminal, path, claim}}, nil
+}
+
+type deepSHUOSource struct {
+	prefix, terminal, pdsID, sdrID int64
+	path                           [3]int64
+	definitions                    [4]int64
+	sdr                            Record
+}
+
+func proveDeepSHUOSource(f *File, incoming map[int64][]int64) (deepSHUOSource, error) {
+	var zero deepSHUOSource
 	shuos := map[int64]Record{}
 	for _, id := range f.Order {
 		for _, r := range f.Entities[id].Records {
@@ -188,73 +272,7 @@ func ReadOCCTDeepSHUOAssembly(ctx context.Context, r io.Reader, l Limits) (OCCTD
 	if e != nil || sdr.Args[0].Kind != Reference || sdr.Args[0].Ref != pdsID {
 		return zero, geom.ErrInvalid
 	}
-	var leafPDS int64
-	for _, owner := range incoming[path[2]] {
-		q, e := simple(f, owner, "PRODUCT_DEFINITION_SHAPE", 3)
-		if e == nil && q.Args[2].Kind == Reference && q.Args[2].Ref == path[2] {
-			if leafPDS != 0 {
-				return zero, geom.ErrInvalid
-			}
-			leafPDS = owner
-		}
-	}
-	if leafPDS == 0 {
-		return zero, geom.ErrInvalid
-	}
-	sdr.Args = append([]Value(nil), sdr.Args...)
-	sdr.Args[0] = Value{Kind: Reference, Ref: leafPDS}
-	view.Entities[sdrID] = Entity{ID: sdrID, Records: []Record{sdr}}
-	remove := map[int64]bool{prefix: true, terminal: true, pdsID: true}
-	var order []int64
-	for _, id := range view.Order {
-		if remove[id] {
-			delete(view.Entities, id)
-		} else {
-			order = append(order, id)
-		}
-	}
-	view.Order = order
-	proofRaw, e := mappedPlanarSourceBytes(view)
-	if e != nil {
-		return zero, e
-	}
-	base, e := readOccurrenceColoredAssembly(bytes.NewReader(proofRaw), l, false)
-	if e != nil {
-		return zero, e
-	}
-	if e = ctx.Err(); e != nil {
-		return zero, e
-	}
-	if len(base.Overrides) != 1 {
-		return zero, geom.ErrInvalid
-	}
-	claim := base.Overrides[0]
-	if claim.OccurrenceID != path[2] || claim.ProductShapeID != leafPDS || claim.DefinitionRepresentationID != sdrID {
-		return zero, geom.ErrInvalid
-	}
-	paths, e := deepColorPaths(ctx, base)
-	if e != nil {
-		return zero, e
-	}
-	matches := 0
-	for i := range paths {
-		q := &paths[i]
-		if q.Path == path {
-			if q.Definitions != defs || q.BodyID != claim.BodyID {
-				return zero, geom.ErrInvalid
-			}
-			q.Color = claim.Color
-			q.Overridden = true
-			matches++
-		}
-	}
-	if matches != 1 {
-		return zero, geom.ErrInvalid
-	}
-	claim.ProductShapeID = pdsID
-	base.Overrides[0] = claim
-	base.Assembly.Assembly.Source = f
-	return OCCTDeepSHUOAssembly{base, paths, DeepSHUOColor{prefix, terminal, path, claim}}, nil
+	return deepSHUOSource{prefix, terminal, pdsID, sdrID, path, defs, sdr}, nil
 }
 
 func deepColorPaths(ctx context.Context, m OccurrenceColoredAssembly) ([]DeepSHUOColoredPath, error) {
