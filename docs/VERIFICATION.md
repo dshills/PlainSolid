@@ -59,6 +59,10 @@ builds and canonical replays with `13F/33E/22V`. Four directed physical
 ray cycles, exact stationary extrema and independent signed volumes
 agree. The nonbinary coincident-projection case still refuses native
 storage in this subset.
+The independent native Cut race passes both axes/orders, all four
+paired contact identities, positive mass, canonical replay and explicit
+tamper/refinement refusals. The smallest admitted cap matches an
+independent volume near `7.00748e-10`.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same

@@ -34,5 +34,22 @@
       "exact-volume.txt": "288433a3ef789121e1f2bef6d26a99788f08ed8f731c52c29bf862d538c93b8f",
       "exact-volume.py": "320858987924bec3128776535e384f3965de1283de708bfa135cee37763e2351"
     }
+  },
+  "main_cut": {
+    "agent_commit": "e5425c3979bc4921567b6aa16349b2272ca3f8bf",
+    "log": "parabola-two-crossing-circles-cut-main-race.jsonl",
+    "named_passes": [
+      "TestNativeParabolaTwoCrossingCirclesCut",
+      "TestNativeParabolaTwoCrossingCirclesCutRefusal"
+    ],
+    "main_race_seconds": [
+      534.666
+    ],
+    "digests": {
+      "parabola-two-crossing-circles-cut-main-race.jsonl": "bc4db41b23865f4b0c5d57891f80f905958f39333a5ffbbd3349f86cac04d23e",
+      "parabola-two-crossing-circles-cut.patch": "f52623b3eebca88d84b767814abe804babb1aab1c5d14f966c65377b3a413949",
+      "exact-volume.txt": "288433a3ef789121e1f2bef6d26a99788f08ed8f731c52c29bf862d538c93b8f",
+      "previous-mixed-sha256.tsv": "a15845e534fbe04760fd1f805485cc9e92e8c02ef5a33775baef5f09720bb8af"
+    }
   }
 }

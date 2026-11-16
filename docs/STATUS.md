@@ -35,6 +35,8 @@ six signed regions, including a source case with coincident free-coordinate
 projections. Native coverage is qualified separately.
 Native Common and Fuse now retain four exact original coedge fans on
 one closed shell for the representable staggered-junction cases.
+Both native Cut orders preserve three positive components and four
+exact original point contacts in the same staggered subset.
 These osculation cases also support exact analytic STEP and IGES
 output with the original owner winding, contact jets and separate Cut
 components. General curved exchange remains open.
