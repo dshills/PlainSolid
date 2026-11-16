@@ -145,6 +145,11 @@ variants, retaining all three roof fragments and both section edges.
 Their independent volumes are 53/6 and 32/3. The base uses physical
 coordinates to preserve exact whole stations 1 and 2; every native
 result reopens byte-identically and automatic dispatch is qualified.
+Parallel-band Cut independently qualifies one interior solid of volume
+1/6 and, in the reverse order, two separate outer solids of volume 5/6
+each. All six native bodies replay identically. The two-ended cavity
+closes from original walls split at the positive exact midpoint, and
+a short sewing budget publishes no component prefix.
 An independent oblique adjacent-side seam also qualifies both Cut
 orders with exact volumes 25/48 and 1/48 and separate native pentagonal
 and triangular original footprints. Both axis orders pass.

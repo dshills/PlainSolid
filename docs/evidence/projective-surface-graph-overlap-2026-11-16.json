@@ -899,5 +899,51 @@
     "native_identical_replays": 8,
     "automatic_dispatch": true,
     "short_sewing_refuses": true
+  },
+  "native_parallel_band_cut": {
+    "main_base": "314c7ed3",
+    "main_race_log": "projective-roof-band-difference-main-race.jsonl",
+    "main_race_sha256": "55f33a6a953b67223dcfcf06519a3b12d499ba61cbf7134283c340f0821075a8",
+    "main_race_seconds": 24.468,
+    "original_axis_order_cases": 4,
+    "components_by_operand_order": [
+      1,
+      2
+    ],
+    "independent_volumes": [
+      [
+        "1/6"
+      ],
+      [
+        "5/6",
+        "5/6"
+      ]
+    ],
+    "independent_centroid_x": [
+      [
+        "3/2"
+      ],
+      [
+        "3/10",
+        "27/10"
+      ]
+    ],
+    "topology_inner": [
+      8,
+      14,
+      8
+    ],
+    "topology_each_exterior": [
+      5,
+      9,
+      6
+    ],
+    "original_section_edge_counts": [
+      2,
+      1
+    ],
+    "real_midpoint_split": "3/2",
+    "identical_native_component_replays": 6,
+    "short_sewing_refuses_all_components": true
   }
 }

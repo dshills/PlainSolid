@@ -305,6 +305,9 @@ The source graph also proves all signed material bands between
 multiple full parallel contours, preserving each exact section and
 both original chart clocks. Closed Common and Fuse retain the full
 original band ownership and exact parallel section models.
+A separate multi-component Cut closes only the positive original
+bands. It retains a separate body for each disconnected material region
+and splits a two-ended interior band at an exact positive midpoint.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows
