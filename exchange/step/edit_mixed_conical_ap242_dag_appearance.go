@@ -17,7 +17,7 @@ type MixedConicalAP242SurfaceColorEdit struct {
 }
 
 // WriteMixedConicalAP242DAGAppearanceEdits updates occurrence names and
-// translations and paints existing style owners. The original SHUO continues
+// rigid placements and paints existing style owners. The original SHUO continues
 // to select the same full path, including when its terminal use moves. The
 // writer re-proves the edited graph and appearance before writing any bytes.
 func WriteMixedConicalAP242DAGAppearanceEdits(ctx context.Context, w io.Writer, original io.Reader, occurrences []MixedConicalAP242OccurrenceEdit, colors []MixedConicalAP242SurfaceColorEdit, l MixedConicalAP242DAGLimits, options geom.SurfacePatchOptions) error {

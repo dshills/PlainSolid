@@ -14,9 +14,10 @@ import (
 )
 
 // WriteNestedMixedConicalAP242STEP transfers document occurrence names and
-// translations to a re-proved original AP242 source. Shared relationships
+// placements to a re-proved original AP242 source. Shared relationships
 // must have consistent edits across all their expanded document nodes.
-// Product assets, parentage, rotations and the source units must match.
+// Rotations require an explicit exact edit. Product assets, parentage and
+// source units must match.
 func (s State) WriteNestedMixedConicalAP242STEP(ctx context.Context, w io.Writer, original io.Reader, limits STEPAssemblyOptions, geometry geom.SurfacePatchOptions) error {
 	if ctx == nil || w == nil || original == nil || len(s.Features) != 0 || limits.MaxNodes < 0 || limits.MaxDepth < 0 || limits.MaxDepth > 256 {
 		return geom.ErrInvalid
@@ -41,8 +42,8 @@ func (s State) WriteNestedMixedConicalAP242STEP(ctx context.Context, w io.Writer
 	return step.WriteNestedMixedConicalAP242Edits(ctx, w, &source, edits, limits.Geometry, geometry)
 }
 
-// WriteMixedConicalAP242DAGSTEP transfers names and translations in an
-// edited document to its original proved STEP DAG. Repeated relationships
+// WriteMixedConicalAP242DAGSTEP transfers names, translations and explicit
+// exact rotations to an original proved STEP DAG. Repeated relationships
 // must agree in every expanded use; unmodified local solids stay shared.
 func (s State) WriteMixedConicalAP242DAGSTEP(ctx context.Context, w io.Writer, original io.Reader, limits MixedConicalAP242DAGDocumentLimits, geometry geom.SurfacePatchOptions) error {
 	if ctx == nil || w == nil || original == nil || len(s.Features) != 0 || limits.MaxNodes < 0 || limits.MaxNodes > mixedConicalDAGDocumentNodeCap {
@@ -91,6 +92,10 @@ func (s State) mixedConicalDocumentEdits(ctx context.Context, base State, occurr
 	}
 	// Use the immutable source labels from the re-proved baseline. Current
 	// document labels are editable user data, not authority to retarget a use.
+	rotations, err := readMixedConicalRotationEdits(s.Labels)
+	if err != nil {
+		return nil, err
+	}
 	uses := make(map[int64]Node, len(occurrences))
 	oldUses := make(map[int64]Node, len(occurrences))
 	for key, before := range base.Nodes {
@@ -107,17 +112,26 @@ func (s State) mixedConicalDocumentEdits(ctx context.Context, base State, occurr
 			}
 			continue
 		}
-		for i, row := range after.Transform {
-			if [3]float64(row[:3]) != [3]float64(before.Transform[i][:3]) || math.IsNaN(row[3]) || math.IsInf(row[3], 0) {
-				return nil, geom.ErrUnrepresentable
-			}
-		}
-		id := base.Labels["source-node:"+key].Attributes["step.source.nauo"].Integer
+		source := base.Labels["source-node:"+key].Attributes
+		id := source["step.source.nauo"].Integer
 		if id <= 0 {
 			return nil, geom.ErrUnrepresentable
 		}
 		if prev, exists := uses[id]; exists && (prev.Name != after.Name || prev.Transform != after.Transform) {
 			return nil, fmt.Errorf("document: conflicting edits to shared STEP occurrence %d: %w", id, geom.ErrUnrepresentable)
+		}
+		rotation, rotated := rotations[id]
+		if rotated && rotation.relationship != source["step.source.relationship"].Integer {
+			return nil, geom.ErrUnrepresentable
+		}
+		for i, row := range after.Transform {
+			expected := [3]float64(before.Transform[i][:3])
+			if rotated {
+				expected = rotation.display[i]
+			}
+			if [3]float64(row[:3]) != expected || math.IsNaN(row[3]) || math.IsInf(row[3], 0) {
+				return nil, geom.ErrUnrepresentable
+			}
 		}
 		uses[id], oldUses[id] = after, before
 	}
@@ -135,7 +149,11 @@ func (s State) mixedConicalDocumentEdits(ctx context.Context, base State, occurr
 			}
 			ed.Name = &after.Name
 		}
-		if after.Transform != before.Transform {
+		shifted := false
+		for i := range after.Transform {
+			shifted = shifted || after.Transform[i][3] != before.Transform[i][3]
+		}
+		if shifted {
 			var origin [3]*big.Rat
 			local := o.Matrix()
 			for i := range origin {
@@ -146,9 +164,16 @@ func (s State) mixedConicalDocumentEdits(ctx context.Context, base State, occurr
 			}
 			ed.Translation = &origin
 		}
-		if ed.Name != nil || ed.Translation != nil {
+		if rotation, ok := rotations[o.NAUOID]; ok {
+			ed.Rotation = &rotation.exact
+			delete(rotations, o.NAUOID)
+		}
+		if ed.Name != nil || ed.Translation != nil || ed.Rotation != nil {
 			edits = append(edits, ed)
 		}
+	}
+	if len(rotations) != 0 {
+		return nil, geom.ErrUnrepresentable
 	}
 	return edits, nil
 }

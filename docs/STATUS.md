@@ -77,6 +77,9 @@ face fills and an occurrence override authenticated on its full original
 SHUO path. The strict editable document retains paint and provenance through
 native save/load. STEP writeback can repaint those same original styles and
 edit placement while keeping the contextual override bound to its exact path.
+The existing mixed conical hierarchy also supports explicit exact rational
+rotation of an original occurrence relationship. It recomposes all expanded
+uses, preserves their style paths, and saves the orientation intent natively.
 The independently rounded styled input has explicit repair with an
 original STEP receipt. Both styles and source owners survive corrected
 strict exchange. The repaired file also opens as an editable native

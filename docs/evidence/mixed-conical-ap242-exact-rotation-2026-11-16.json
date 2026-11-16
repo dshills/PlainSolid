@@ -1,0 +1,479 @@
+{
+  "milestone": "Exact proper rational rotation and native edit intent for shared conical AP242 occurrences",
+  "baseRevision": "5ee0af6c71d12a036b555261276ef7b9d5a67f9a",
+  "exchangeRevision": "b13fac1ed8c8e29ff8d029b894035fe009a6ef04",
+  "documentRevision": "5c54b48e17d07041e5ee015caab51f233c62f935",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "pinnedExecutable": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/mixed-ap242-curved-import/depth-three-dag/appearance/rounded-repair/author",
+  "verification": {
+    "exchange-live-final.log": {
+      "filter": "^TestEdit.*MixedConicalAP242.*$",
+      "package": "plainsolid/exchange/step",
+      "duration": "71.712s",
+      "race": false
+    },
+    "exchange-race.log": {
+      "filter": "^TestEditMixedConicalAP242DAG.*RationalRotation.*$",
+      "package": "plainsolid/exchange/step",
+      "duration": "192.279s",
+      "race": true
+    },
+    "document-live.log": {
+      "filter": "^Test.*MixedConicalAP242.*Document.*$",
+      "package": "plainsolid/document",
+      "duration": "328.501s",
+      "race": false
+    },
+    "document-race.log": {
+      "filter": "^TestMixedConicalAP242DAGDocumentExactRotation.*$",
+      "package": "plainsolid/document",
+      "duration": "148.565s",
+      "race": true
+    }
+  },
+  "originalRelationship": 248,
+  "originalNAUO": 251,
+  "rotation": "5/13,-12/13,0,12/13,5/13,0,0,0,1",
+  "sourceRotationRecordChanges": [
+    70,
+    71
+  ],
+  "pinnedRotatedStyledWorlds": [
+    {
+      "originalNAUOPath": [
+        54,
+        85,
+        245
+      ],
+      "pinnedOrdinalPath": [
+        1,
+        1,
+        1
+      ],
+      "exactWorldMatrix": [
+        [
+          "1",
+          "0",
+          "0",
+          "142"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "26"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "10"
+        ]
+      ],
+      "pinnedWorldMatrix": [
+        1,
+        0,
+        0,
+        142,
+        0,
+        1,
+        0,
+        26,
+        0,
+        0,
+        1,
+        10
+      ],
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "positiveVolume": 2282.4014040828897,
+      "area": 1182.6440976399515
+    },
+    {
+      "originalNAUOPath": [
+        54,
+        85,
+        251
+      ],
+      "pinnedOrdinalPath": [
+        1,
+        1,
+        2
+      ],
+      "exactWorldMatrix": [
+        [
+          "5/13",
+          "-12/13",
+          "0",
+          "82"
+        ],
+        [
+          "12/13",
+          "5/13",
+          "0",
+          "48"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "9"
+        ]
+      ],
+      "pinnedWorldMatrix": [
+        0.38461538461538464,
+        -0.9230769230769231,
+        0,
+        82,
+        0.9230769230769231,
+        0.38461538461538464,
+        0,
+        48,
+        0,
+        0,
+        1,
+        9
+      ],
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "positiveVolume": 2282.4014040828893,
+      "area": 1182.6440976399517
+    },
+    {
+      "originalNAUOPath": [
+        54,
+        85,
+        443
+      ],
+      "pinnedOrdinalPath": [
+        1,
+        1,
+        3
+      ],
+      "exactWorldMatrix": [
+        [
+          "3/5",
+          "-4/5",
+          "0",
+          "112"
+        ],
+        [
+          "4/5",
+          "3/5",
+          "0",
+          "-6"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "14"
+        ]
+      ],
+      "pinnedWorldMatrix": [
+        0.6,
+        -0.8,
+        0,
+        112,
+        0.8,
+        0.6,
+        0,
+        -6,
+        0,
+        0,
+        1,
+        14
+      ],
+      "topology": [
+        1,
+        8,
+        14,
+        8
+      ],
+      "positiveVolume": 726.988268498145,
+      "area": 593.8973269066951
+    },
+    {
+      "originalNAUOPath": [
+        466,
+        472,
+        245
+      ],
+      "pinnedOrdinalPath": [
+        2,
+        1,
+        1
+      ],
+      "exactWorldMatrix": [
+        [
+          "3/5",
+          "0",
+          "4/5",
+          "-414/5"
+        ],
+        [
+          "16/25",
+          "3/5",
+          "-12/25",
+          "-113/25"
+        ],
+        [
+          "-12/25",
+          "4/5",
+          "9/25",
+          "741/25"
+        ]
+      ],
+      "pinnedWorldMatrix": [
+        0.6,
+        0,
+        0.8,
+        -82.8,
+        0.6400000000000001,
+        0.6,
+        -0.48,
+        -4.519999999999996,
+        -0.48,
+        0.8,
+        0.36,
+        29.64
+      ],
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "positiveVolume": 2282.40140408289,
+      "area": 1182.6440976399515
+    },
+    {
+      "originalNAUOPath": [
+        466,
+        472,
+        251
+      ],
+      "pinnedOrdinalPath": [
+        2,
+        1,
+        2
+      ],
+      "exactWorldMatrix": [
+        [
+          "3/13",
+          "-36/65",
+          "4/5",
+          "-598/5"
+        ],
+        [
+          "4/5",
+          "-9/25",
+          "-12/25",
+          "-731/25"
+        ],
+        [
+          "36/65",
+          "244/325",
+          "9/25",
+          "1892/25"
+        ]
+      ],
+      "pinnedWorldMatrix": [
+        0.23076923076923078,
+        -0.5538461538461539,
+        0.8,
+        -119.6,
+        0.8,
+        -0.36000000000000015,
+        -0.48,
+        -29.240000000000006,
+        0.5538461538461539,
+        0.7507692307692307,
+        0.36,
+        75.68
+      ],
+      "topology": [
+        1,
+        6,
+        10,
+        6
+      ],
+      "positiveVolume": 2282.4014040828897,
+      "area": 1182.6440976399517
+    },
+    {
+      "originalNAUOPath": [
+        466,
+        472,
+        443
+      ],
+      "pinnedOrdinalPath": [
+        2,
+        1,
+        3
+      ],
+      "exactWorldMatrix": [
+        [
+          "9/25",
+          "-12/25",
+          "4/5",
+          "-488/5"
+        ],
+        [
+          "108/125",
+          "-19/125",
+          "-12/25",
+          "-1121/25"
+        ],
+        [
+          "44/125",
+          "108/125",
+          "9/25",
+          "497/25"
+        ]
+      ],
+      "pinnedWorldMatrix": [
+        0.36,
+        -0.48,
+        0.8,
+        -97.6,
+        0.864,
+        -0.15200000000000014,
+        -0.48,
+        -44.84,
+        0.35200000000000015,
+        0.864,
+        0.36,
+        19.88
+      ],
+      "topology": [
+        1,
+        8,
+        14,
+        8
+      ],
+      "positiveVolume": 726.988268498145,
+      "area": 593.897326906695
+    },
+    {
+      "originalNAUOPath": [
+        477
+      ],
+      "pinnedOrdinalPath": [
+        3
+      ],
+      "exactWorldMatrix": [
+        [
+          "1",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "150"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "40"
+        ]
+      ],
+      "pinnedWorldMatrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        150,
+        0,
+        0,
+        1,
+        40
+      ],
+      "topology": [
+        1,
+        8,
+        14,
+        8
+      ],
+      "positiveVolume": 726.988268498145,
+      "area": 593.897326906695
+    }
+  ],
+  "pinnedAppearanceMatchesOriginalBytes": true,
+  "rotatedNativeExportMatchesExchangeBytes": true,
+  "translationOnlyBytesMatchBaseline": true,
+  "legacyStrictAndRepairedStyledDocumentAndExportBytesUnchanged": true,
+  "atomicRefusals": [
+    "reflection",
+    "ordinary frame projection disagrees for proper 20/29 and 21/29",
+    "duplicate shared relationship edit",
+    "affine-only change",
+    "false original relationship",
+    "falsified exact rotation label",
+    "unbounded numerical exponent",
+    "conflicting expanded sibling"
+  ],
+  "artifactSHA256": {
+    "probe.go": "e78208c87c97a792cb27021e07f436d6193b84921eac469a7ffc55cd3b394fc9",
+    "probe.log": "cf30284a8eaae0e0347f682aa903afd5cfdee55f4ec4b6d9f5f25a056d9a4e7d",
+    "document-snapshot.go": "0e45032d62ef47defd4fc4dcac8a69b2a8b1d0816660c887f6f598d83c530e4f",
+    "rotated-native.json": "efbbb46349f66c35ee9a34ac0f742340976c1c73f722b2e541da9d531745b3ca",
+    "rotated-native.step": "ac168d6ed207e741e29bb62a0fc51cffeac8fe2b328f8d6c244c5f1e37044871",
+    "occt-dag-mixed-conical-curved-ap242-exact.step--5-12.step": "a0e70b15ab3139c26e3fa88ae40cdb32cb7308cd83e1d8c0804ea94247110832",
+    "pinned-rotated-dag.log": "f68cc85eb446238d88c542da9419cdc98f159dea1eae7e6ec530062e9da8f0b9",
+    "pinned-rotated-native-appearance.log": "933bc616b004f1452562c33ec34407be290314a8dfe2b2cd2abaef899caf844f",
+    "pinned-rotated-native-geometry.log": "33618be96ed33f05fa10a97471b2c9b040ee4c4fa5451710470f95d672a0ed99",
+    "rotated-changed-records.log": "a38c26b64657b88ac877f2539eaf0eca3a192ec274160a5f62a51222edb5a6dc",
+    "legacy-translation.go": "aefd7237b2b4e8b7a61af2f5d32209e120c9aa7358137e269747dfbbd976da11",
+    "legacy-translation-before.step": "2c55e09b2d84f19fa2d3da4b7cff3c388bb22eb4dfcb85d9768ed6c2deaaf9ae",
+    "legacy-translation-after.step": "2c55e09b2d84f19fa2d3da4b7cff3c388bb22eb4dfcb85d9768ed6c2deaaf9ae",
+    "legacy-strict/edited-document.json": "7d32d2a2d20c2213b268749d5214adbe7bd4a2549862b7cccb0fcffc6e39108b",
+    "legacy-strict/edited-document.step": "77503752d4e2aa308f6ab03a41b8a5a482a2e024c63ac58d9f5fef2ba24d4138",
+    "legacy-repaired/edited-document.json": "258d2c951828bfd9a95c72b847b484c6ff552bd5c4160c678c73cc111c188e77",
+    "legacy-repaired/edited-document.step": "6118f0164166dc02e236267d9fcf4e6cc00445ef165f39c67fadfe496a409d46",
+    "legacy-repaired/source-receipt.json": "8e23a20c2ed1efd3d2aa39acf27c5af0131ae3fc9c61f86ce1a799779076ad53",
+    "rotate-mixed-conical-ap242-exchange.patch": "fb2a9ff20b7330262865fba375885fc791df6dfcae0804705ae3aa454eee9b99",
+    "rotate-mixed-conical-ap242-document.patch": "40418d43847115448b66a718f34bd7f56a1993b28a1e209c32e3b997eee818a0",
+    "exchange-live-final.log": "4ee0be301517c5305ce5b2d2e2558ca38138d187b7e6e3e01748c480fbee901a",
+    "exchange-race.log": "fd9100d1d88e4223ec113970ef9e561cd8e472e7b5c51413aade7466d5aaa277",
+    "document-live.log": "a33915f767247bcc93cc0369f841c03a37fb5da6984e7e054bce441232de8201",
+    "document-race.log": "4266c75ed12467b0c4026c18d3c0e06a61684cbf33ce96b1cc54f7668a580a59"
+  },
+  "main_integration": {
+    "exchange": {
+      "log": "mixed-conical-ap242-rotation-main-race.jsonl",
+      "sha256": "254eee0f193e1b580c807b64a6f28b9bb55b31f0d4ef2135801122dfc656ce9b",
+      "seconds": 557.913,
+      "required_passes": {
+        "TestEditMixedConicalAP242DAGRationalRotation": 149.79,
+        "TestEditMixedConicalAP242DAGStyledTerminalRationalRotation": 83.16,
+        "TestEditMixedConicalAP242DAGRationalRotationReject": 49.65,
+        "TestEditNestedMixedConicalAP242STEP": 43.77
+      }
+    },
+    "document": {
+      "log": "mixed-conical-ap242-native-rotation-main-race.jsonl",
+      "sha256": "1d2f07964040d1ac410aee1c7edff2980d4930e699d804f4567bbcb6a4c57093",
+      "seconds": 232.504,
+      "required_passes": {
+        "TestMixedConicalAP242DAGDocumentExactRotation": 111.57,
+        "TestMixedConicalAP242DAGDocumentExactRotationReject": 119.7
+      }
+    }
+  }
+}

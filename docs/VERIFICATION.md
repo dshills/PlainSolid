@@ -199,6 +199,13 @@ state byte for byte and stays unchanged after recolor, exact movement,
 native save/load and corrected STEP export. Pinned XCAF independently
 reopens all seven edited occurrences. Short budgets and forged or
 conflicting source/style labels publish no output.
+The [exact rational rotation milestone](evidence/mixed-conical-ap242-exact-rotation-2026-11-16.json)
+passed the main exchange and document races in 557.913 and 232.504
+seconds. A shared original relationship retains the `5/13,12/13` frame
+through native save/load and strict STEP export, with pinned XCAF checks
+on both exact worlds and paint ownership. Translation-only replay and
+the prior strict and repaired files remain byte identical. Reflections,
+unsupported projections, false labels and conflicting shared edits refuse.
 
 The [explicit rounded conical STEP repair](evidence/conical-rim-fillet-default-step-repair-2026-11-15.json)
 was checked against independently pinned OCCT authoring and readback. The

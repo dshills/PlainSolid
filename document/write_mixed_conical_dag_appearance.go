@@ -10,7 +10,8 @@ import (
 )
 
 // WriteMixedConicalAP242DAGAppearanceSTEP transfers occurrence names,
-// translations and repainted fills to the original styled STEP. The original
+// placements and repainted fills to the original styled STEP. Rotations
+// require an explicit exact edit. The original
 // source, full style owner paths, local geometry and units are re-proved.
 // Unchanged documents write the original byte sequence.
 func (s State) WriteMixedConicalAP242DAGAppearanceSTEP(ctx context.Context, w io.Writer, original io.Reader, l MixedConicalAP242DAGDocumentLimits, geometry geom.SurfacePatchOptions) error {
