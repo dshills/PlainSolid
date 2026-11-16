@@ -338,6 +338,13 @@ orders and chart axes replay byte-identically. A second arrangement
 puts the circle below the branch. A changed coefficient, intersecting
 or tangent circle, nonrepresentable native radius, forged ledger and
 short budget all refuse. Main's native race passed in 24.333 seconds.
+Native Cut keeps the cap and lens as two separately indexed closed shells
+with volumes `335081/27525120` and `4317π/134217728`. Reversing the
+operands gives one through-hole shell with volume
+`368009/27525120 + 4317π/134217728` and Euler characteristic 0. Both
+chart axes and the circle-below fixture pass. Short proof budgets or
+a ledger that omits the small lens return neither component. Main's
+sealed native Cut and envelope race passed in 50.279 seconds.
 
 A separate isolated real double-point proof passes with and without a
 disjoint regular branch, including source order swaps and rotated
