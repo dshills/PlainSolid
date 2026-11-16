@@ -11,6 +11,11 @@ across 6,413 inventoried cases. The eight trimmed lanes account for
 1,586 passes and 51 skips. All 53 tested packages passed; eight packages
 have no tests. Vet and Linux and Windows amd64 builds also passed on the
 same immutable kernel.
+The [newer PlainCAD run on `946f7a04`](evidence/plaincad-main-946f7a04-2026-11-15.json)
+passed all eight gates (345 development, 66 production, 15 cross-browser,
+four WASM contract and 1,691 unit cases). Three browser reports contain
+zero skipped, flaky or unexpected cases. The saved production and built
+WASM artifacts match and the Playwright driver is pristine.
 The [full native macOS race on `ab33a412`](evidence/native-main-ab33a412-race-2026-11-15.json)
 passed all nine lanes, with 5,557 passes and 580 optional skips among
 6,137 recorded cases, including 1,468 passes in the eight trimmed lanes.
