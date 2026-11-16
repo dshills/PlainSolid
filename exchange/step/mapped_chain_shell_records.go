@@ -2,6 +2,7 @@ package step
 
 import (
 	"math/big"
+	"slices"
 
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
@@ -99,6 +100,7 @@ func decodeMappedChainStepSurface(f *File, id int64, maxInterior int) (*geom.BSp
 	}
 	k, _ := component(f.Entities[id], "B_SPLINE_SURFACE_WITH_KNOTS")
 	var rows, ku, kv Value
+	var weights []float64
 	if len(k.Args) == 13 {
 		rows, ku, kv = k.Args[3], k.Args[10], k.Args[11]
 	} else {
@@ -107,9 +109,11 @@ func decodeMappedChainStepSurface(f *File, id int64, maxInterior int) (*geom.BSp
 		rows, ku, kv = b.Args[2], k.Args[2], k.Args[3]
 		for _, row := range w.Args[0].Items {
 			for _, v := range row.Items {
-				if _, err := wrappedIsoSourceNumber(v); err != nil {
+				value, err := wrappedIsoSourceNumber(v)
+				if err != nil {
 					return nil, err
 				}
+				weights = append(weights, value)
 			}
 		}
 	}
@@ -128,6 +132,19 @@ func decodeMappedChainStepSurface(f *File, id int64, maxInterior int) (*geom.BSp
 			}
 			if _, err := geom.RepresentedExactPoint([3]*big.Rat(x)); err != nil {
 				return nil, err
+			}
+		}
+	}
+	if len(weights) != 0 {
+		data := s.Geometry.Data()
+		scale := mappedChainStepRat(slices.Max(weights))
+		for i, original := range weights {
+			represented := new(big.Rat).Mul(mappedChainStepRat(data.Weights[i]), scale)
+			if represented.Cmp(mappedChainStepRat(original)) != 0 {
+				// Mapped source identities need the original homogeneous
+				// ratios. Retain the legacy normalized net when exact.
+				return geom.NewBSplineSurfaceWithExactWeights(data.DegreeU, data.DegreeV, data.CountU, data.CountV,
+					data.Poles, data.KnotsU, data.KnotsV, weights)
 			}
 		}
 	}

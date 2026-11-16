@@ -13,7 +13,7 @@ import (
 
 func TestMappedChainSupportKnotNativeRecordCompatibilityV8(t *testing.T) {
 	ctx := context.Background()
-	// Native and canonical STEP bytes from the earlier inferred v3/v4 and the v7 through v11 proofs,
+	// Native and canonical STEP bytes from the earlier inferred v3/v4 and the v7 through v12 proofs,
 	// captured before their support-cut bounds or cell scopes were extended.
 	for _, tc := range []struct {
 		path, nativeSHA256, stepSHA256 string
@@ -55,6 +55,8 @@ func TestMappedChainSupportKnotNativeRecordCompatibilityV8(t *testing.T) {
 			"7130079d677d382266dda1a9be4b8ae16bcbe3d9dd2ae07a95ade7ebbe1e10e2", joinedRationalCellOptions()},
 		{threeJoinedRoofPath, "41e3887cb210ac13073c170cac6648633cf9ab5306dc91decc0dec3b40b43d39",
 			"634997f655acc45748473c9e4d5ff5836009ec076b8ec3285f01c34996bc6ac6", threeJoinedRoofOptions()},
+		{asymmetricJoinedRoofPath, "813a0c47c3d0d8f45f132b2b92abba1661bcc0a68951cdeb9f90257c63bace9d",
+			"b319d7c8059b526da02090507520f13b18909dfca3a214885918ac2ba4c2e25a", threeJoinedRoofOptions()},
 	} {
 		raw, err := os.ReadFile(tc.path)
 		if err != nil {

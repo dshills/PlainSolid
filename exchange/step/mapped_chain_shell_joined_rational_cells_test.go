@@ -315,40 +315,40 @@ func rejectJoinedRationalMissingJoint(t *testing.T, ctx context.Context, raw, ba
 
 func rejectChangedJoinedRationalNativeSupport(t *testing.T, ctx context.Context, raw, badSource []byte, diagnosis string) {
 	t.Helper()
-	rejectChangedJoinedRationalNativeSupportWithOptions(t, ctx, raw, badSource, joinedRationalCellOptions(), diagnosis)
+	rejectChangedJoinedRationalNativeSupportWithOptions(t, ctx, raw, badSource, joinedRationalCellOptions(), false, diagnosis)
 }
 
-func rejectChangedJoinedRationalNativeSupportWithOptions(t *testing.T, ctx context.Context, raw, badSource []byte, o MappedChainShellSTEPOptions, diagnosis string) {
+func rejectChangedJoinedRationalNativeSupportWithOptions(t *testing.T, ctx context.Context, raw, badSource []byte, o MappedChainShellSTEPOptions, north bool, diagnosis string) {
 	t.Helper()
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, o)
 	if err != nil {
 		t.Fatal(err)
 	}
-	south := 0
-	if m.Shell.IndependentOwnerBases()[0] {
-		south = 1
+	owner := 0
+	if m.Shell.IndependentOwnerBases()[0] != north {
+		owner = 1
 	}
 	changedFile, err := Parse(bytes.NewReader(badSource), Limits{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	changedID := rationalRoofSupportID(t, changedFile, m.FaceIDs[south])
-	changed, err := DecodeBSplineSurface(changedFile, changedID, 81)
+	changedID := rationalRoofSupportID(t, changedFile, m.FaceIDs[owner])
+	changed, err := decodeMappedChainStepSurface(changedFile, changedID, 4)
 	if err != nil {
 		t.Fatal(err)
 	}
-	before, err := parametric.EncodeSurface(m.Native.Solid.Faces()[south].Surface)
+	before, err := parametric.EncodeSurface(m.Native.Solid.Faces()[owner].Surface)
 	if err != nil {
 		t.Fatal(err)
 	}
-	after, err := parametric.EncodeSurface(changed.Geometry)
+	after, err := parametric.EncodeSurface(changed)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var recipe bytes.Buffer
 	nativeOptions := trimmed.MappedChainShellNativeOptions{}
 	if err := m.Shell.WriteJSON(ctx, &recipe, nativeOptions); err != nil || !bytes.Contains(recipe.Bytes(), before) {
-		t.Fatal("the exact original south chart must be present in the native recipe", err)
+		t.Fatal("the exact original owner chart must be present in the native recipe", err)
 	}
 	altered := bytes.Replace(recipe.Bytes(), before, after, 1)
 	reopened, err := trimmed.ReadMappedSplineChainShellJSON(ctx, bytes.NewReader(altered), nativeOptions)
