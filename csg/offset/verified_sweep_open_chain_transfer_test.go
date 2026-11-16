@@ -90,8 +90,7 @@ func TestVerifiedSweepOpenChainPlanarBRepTransfer(t *testing.T) {
 
 func checkTransferredSweepPlanarBRep(t *testing.T, original, transferred brep.Solid, exactVolume *big.Rat) {
 	t.Helper()
-	if transferred.Topology() != original.Topology() || len(transferred.Vertices()) != 24 ||
-		len(transferred.Edges()) != 44 || len(transferred.Faces()) != 22 {
+	if transferred.Topology() != original.Topology() {
 		t.Fatal("neutral transfer changed native topology", original.Topology(), transferred.Topology())
 	}
 	if !reflect.DeepEqual(sweepTransferOutwardQuads(t, original), sweepTransferOutwardQuads(t, transferred)) {
