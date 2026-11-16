@@ -253,5 +253,31 @@
     "common_nonbinary_cut": "9/10",
     "lift_scale": "2^-120",
     "placements": 2
+  },
+  "local_contact_cover": {
+    "log": "projective-surface-contact-cover-main-race.jsonl",
+    "sha256": "9ff2b8cf2bf35d78f5da2aa3995fe1e7def784d771a1eae433d755de56f2a56d",
+    "main_passes": [
+      "TestCompareExactCurvesFractionalOriginalClockAndKnot",
+      "TestTransformProjectiveUVKeepsOriginalCurveKnotsAndPhysicalDerivatives",
+      "TestProjectiveSurfaceGraphOverlapMapsAnOriginalUVCurve",
+      "TestExactSurfaceComparisonFractionalOriginalKnotMaps",
+      "TestProjectiveSurfaceContactCoverPreservesOriginalArcPieces",
+      "TestProjectiveGraphBoundaryContactAuthenticatesCompleteEdge",
+      "TestProjectiveGraphBoundaryContactSeparatesOnePointFromNoContact",
+      "TestProjectiveGraphBoundaryEventsRetainSimpleAndTangentOriginalRoots",
+      "TestProjectiveGraphBoundaryEventsKeepAnIrrationalRootOnBothOwners",
+      "TestProjectiveGraphBoundaryEventsSeparateCoincidentRunAndIsolatedPoint",
+      "TestProjectiveGraphContactBoundaryKeepsBothDirectedOriginalCurves",
+      "TestProjectiveGraphContactBoundaryRefusesPartialProof",
+      "TestProjectiveSurfaceGraphOverlapDiscoversOriginalPartialMap",
+      "TestProjectiveSurfaceGraphOverlapRejectsAProjectionThatOnlyMatchesSamples",
+      "TestSurfaceSurfaceProjectiveCoincidenceKeepsExactCompleteContact",
+      "TestProjectiveSurfaceHeightDifferencePreservesOriginalUnionAndTinySigns",
+      "TestSurfaceNormalOffsetSeamAuthenticatesExactFractionalStation",
+      "TestVerticalProjectiveChartPreservesWholeSurface"
+    ],
+    "original_arc_pieces": 2,
+    "common_nonbinary_cut": "9/10"
   }
 }

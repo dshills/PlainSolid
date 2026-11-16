@@ -110,6 +110,8 @@ For a positive-area common projection, an exact height residual atlas
 now retains both original knot owners and nonbinary common cuts. It
 provides the scalar residual for contour discovery; it does not yet
 assemble all contours into a global contact graph.
+The local cover now isolates contacts on each residual cell while
+retaining both original owners and any cells left unresolved.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows
@@ -117,7 +119,7 @@ that cross the seam even at a distant cycle.
 Standalone IGES type 128 import now proves expanded periodic knot and
 control ownership before exposing exact cyclic geometry. U, V and both
 periodic directions are supported for full active rectangles in this
-bounded import. Periodic trim/topology import remains open.
+bounded import. General periodic trim/topology import remains open.
 One strict periodic type 144 import subset now covers an original
 rectangular U-periodic face inside one knot cell, proving all four
 original directed model/UV edges. Valid seam-crossing topology and
