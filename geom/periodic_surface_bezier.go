@@ -177,6 +177,10 @@ func (s *PeriodicBSplineSurface) tensorSplineAxis(direction int) (degree, count 
 // output Bernstein pole. Using the clipped arguments applies restriction
 // directly, avoiding a second tensor split.
 func exactAxisBernsteinWeights(ctx context.Context, knots []float64, degree, span int, lower, upper *big.Rat, b *polynomialBudget) ([][]*big.Rat, error) {
+	return rationalAxisBernsteinWeights(ctx, func(i int) *big.Rat { return new(big.Rat).SetFloat64(knots[i]) }, degree, span, lower, upper, b)
+}
+
+func rationalAxisBernsteinWeights(ctx context.Context, knot func(int) *big.Rat, degree, span int, lower, upper *big.Rat, b *polynomialBudget) ([][]*big.Rat, error) {
 	rows := make([][]*big.Rat, degree+1)
 	one := big.NewRat(1, 1)
 	for right := range rows {
@@ -194,8 +198,8 @@ func exactAxisBernsteinWeights(ctx context.Context, knots []float64, degree, spa
 				argument = upper
 			}
 			for j := level; j <= degree; j++ {
-				lo := new(big.Rat).SetFloat64(knots[span-degree+j])
-				hi := new(big.Rat).SetFloat64(knots[span+j-level+1])
+				lo := knot(span - degree + j)
+				hi := knot(span + j - level + 1)
 				alpha := new(big.Rat).Quo(new(big.Rat).Sub(argument, lo), new(big.Rat).Sub(hi, lo))
 				left := new(big.Rat).Mul(new(big.Rat).Sub(one, alpha), row[j])
 				row[j-1].Add(row[j-1], left)
@@ -235,6 +239,11 @@ func (s *PeriodicBSplineSurface) exactTensorWindowControls(ctx context.Context, 
 			}
 		}
 	}
+	return exactTensorBernsteinNet(ctx, active, u, v, b)
+}
+
+func exactTensorBernsteinNet(ctx context.Context, active [][4]*big.Rat, u, v periodicTensorWindow, b *polynomialBudget) ([][4]*big.Rat, error) {
+	nu, nv := len(u.weights), len(v.weights)
 	intermediate, controls := make([][4]*big.Rat, nu*nv), make([][4]*big.Rat, nu*nv)
 	for i, row := range u.weights {
 		for j := 0; j < nv; j++ {

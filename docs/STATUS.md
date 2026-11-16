@@ -3196,5 +3196,7 @@ The operation preserves the homogeneous curve and its physical jets
 without rounding the refined coefficients. The same operation now applies
 to either cyclic direction of an exact tensor, including mixed domains
 with a discontinuous ordinary axis. Exact tensor queries preserve the
-original physical partials and cycle ownership. Periodic seam
-multiplicity changes and exchange of these edited splines remain open.
+original physical partials and cycle ownership. Exact Bézier extraction
+also preserves the inserted knots, seams, discontinuities and clipped
+physical ranges for curves and tensors. Periodic seam multiplicity
+changes and exchange of these edited splines remain open.

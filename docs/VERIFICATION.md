@@ -254,6 +254,13 @@ cycles of magnitude `2^100`. A mixed tensor retains its discontinuous
 ordinary station and the correct upper endpoint limit. Invalid domain
 or short resource limits deliver no partial result. All 34 periodic
 tests passed under the race detector in 7.499 seconds.
+Exact nonuniform Bézier extraction retains occupied span IDs across a
+seam at cycle `2^100`, skips repeated zero-width slots and agrees with
+the independent original curve at interior rational coordinates. A
+mixed tensor returns all six clipped cells, matches the original
+physical point and partials, and preserves the two distinct ordinary
+limits. A one-short work or output budget returns no partial net.
+All 36 periodic tests passed under the race detector in 9.706 seconds.
 
 The [full ordinary Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
 later passed all nine lanes on macOS ARM64. The independent inventory

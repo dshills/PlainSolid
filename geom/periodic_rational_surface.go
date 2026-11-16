@@ -296,20 +296,28 @@ func (s *ExactPeriodicSplineSurface) EvaluateRational(ctx context.Context, u, v 
 }
 
 func (a exactTensorSplineAxis) window(t *big.Rat, b *polynomialBudget) (ExactSurfaceKnotSpan, func(j, r int) (*big.Rat, *big.Rat), error) {
+	owner, local, knot, err := a.selectSpan(t, b)
+	if err != nil {
+		return owner, nil, err
+	}
+	return owner, rationalSplineBlend(a.degree, owner.Span, local, knot), nil
+}
+
+func (a exactTensorSplineAxis) selectSpan(t *big.Rat, b *polynomialBudget) (ExactSurfaceKnotSpan, *big.Rat, func(int) *big.Rat, error) {
 	if a.period != nil {
 		owner, local, err := a.owner(t, b)
 		if err != nil {
-			return ExactSurfaceKnotSpan{}, nil, err
+			return ExactSurfaceKnotSpan{}, nil, nil, err
 		}
-		return owner, rationalSplineBlend(a.degree, owner.Span, local, a.knot), nil
+		return owner, local, a.knot, nil
 	}
 	var owner ExactSurfaceKnotSpan
 	if err := b.check(t); err != nil {
-		return owner, nil, err
+		return owner, nil, nil, err
 	}
 	relation := t.Cmp(a.knots[a.count])
 	if t.Cmp(a.knots[a.degree]) < 0 || relation > 0 {
-		return owner, nil, ErrDomain
+		return owner, nil, nil, ErrDomain
 	}
 	span := sort.Search(a.count-a.degree, func(i int) bool {
 		cmp := a.knots[i+a.degree+1].Cmp(t)
@@ -317,12 +325,12 @@ func (a exactTensorSplineAxis) window(t *big.Rat, b *polynomialBudget) (ExactSur
 	})
 	for _, k := range a.knots[span : span+2*a.degree+1] {
 		if err := b.check(k); err != nil {
-			return owner, nil, err
+			return owner, nil, nil, err
 		}
 	}
 	owner = ExactSurfaceKnotSpan{Span: span, Domain: ExactParameterInterval{
 		Lower: new(big.Rat).Set(a.knots[span+a.degree]), Upper: new(big.Rat).Set(a.knots[span+a.degree+1]),
 	}}
 	knot := func(i int) *big.Rat { return a.knots[i+a.degree] }
-	return owner, rationalSplineBlend(a.degree, span, t, knot), nil
+	return owner, t, knot, nil
 }
