@@ -342,3 +342,68 @@ func TestOrderedMappedSTEPFiniteAngleDisplay(t *testing.T) {
 	t.Logf("shell triangles=%d distance²=%s tangent²<=%s pairs=%d seam rounds=%d", len(out.Mesh.Triangles),
 		out.SquaredDistance.FloatString(12), out.SquaredNormalTangent.FloatString(12), out.DisplayCollision.BroadPhasePairs, out.RefinementRounds)
 }
+
+func TestOrderedMappedSTEPNormalTurnDisplay(t *testing.T) {
+	ctx := context.Background()
+	model := orderedMappedDisplaySTEP(t, ctx)
+	fill := trimmed.MixedExactMultiSpanMeshOptions{
+		Span: trimmed.MultiSpanTriangleBoundOptions{MaxDegree: 4}, MaxResidualOperations: 1000000000,
+		Face: trimmed.MixedExactCurvedMeshOptions{
+			BoundaryModelBudget: .065,
+			Interior:            trimmed.CurvedQuadraticTrimMeshOptions{Deflection: .30, MaxSubdivisions: 128},
+		},
+	}
+	out, err := model.Shell.TessellateClosedCertified(ctx, nil, trimmed.MappedChainClosedMeshOptions{
+		AlignSupportKnots: true, MaxKnotCellFlips: 100000, NormalTurn: .35, MaxTriangles: 10000,
+		Boundary:  trimmed.MappedChainPolylineOptions{Deflection: .01875},
+		Curved:    [2]trimmed.MixedExactMultiSpanMeshOptions{fill, fill},
+		Collision: collision.Options{MaxPairs: 4_000_000},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	half := big.NewRat(7, 40)
+	tanHalf := new(big.Rat).Mul(new(big.Rat).Mul(half, half), half)
+	tanHalf.Quo(tanHalf, big.NewRat(3, 1))
+	tanHalf.Add(tanHalf, half)
+	q := new(big.Rat).Mul(tanHalf, tanHalf)
+	d := new(big.Rat).Sub(big.NewRat(1, 1), q)
+	limit := new(big.Rat).Quo(new(big.Rat).Mul(big.NewRat(4, 1), q), d.Mul(d, d))
+	if out.SquaredNormalTurnTangent == nil || out.SquaredNormalTurnTangent.Cmp(limit) > 0 ||
+		out.SquaredDistance.Cmp(big.NewRat(9, 100)) > 0 || len(out.ChainJoints) != 3 ||
+		len(out.Planar) != 5 || !out.DisplayCollision.Complete || len(out.DisplayCollision.Contacts) != 0 ||
+		out.Mesh.ValidateSolid() != nil {
+		t.Fatal("original two-sided distance and full source normal-turn bounds must form one verified closed shell")
+	}
+
+	roof := out.Curved[1]
+	closing := roof.UVRegion.Samples[len(roof.UVRegion.Samples)-1]
+	wall := model.Native.Embedding.WallFaces[0]
+	wallVertices := make(map[int]bool)
+	for _, id := range out.FaceVertices[wall] {
+		wallVertices[id] = true
+	}
+	want := []*big.Rat{big.NewRat(13, 16), big.NewRat(7, 8), big.NewRat(15, 16)}
+	for _, station := range want {
+		found := false
+		for k, actual := range closing.Parameters {
+			if station.Cmp(actual) != 0 {
+				continue
+			}
+			local := closing.Vertices[k]
+			global := out.FaceVertices[1][local]
+			x, y := roof.ExactUV[local][0], roof.ExactUV[local][1]
+			s := new(big.Rat).Sub(big.NewRat(3, 4), new(big.Rat).Quo(station, big.NewRat(2, 1)))
+			if x.Sign() != 0 || y.Cmp(s) != 0 || !wallVertices[global] {
+				t.Fatal("the original closing station and its planar mate must share one exact physical vertex", station, global)
+			}
+			found = true
+		}
+		if !found {
+			t.Fatal("lost the obstructing closing edge's original station", station)
+		}
+	}
+	t.Logf("shell triangles=%d distance²=%s normal-turn tangent²<=%s contacts=%d seam rounds=%d",
+		len(out.Mesh.Triangles), out.SquaredDistance.FloatString(12), out.SquaredNormalTurnTangent.FloatString(12),
+		out.DisplayCollision.BroadPhasePairs, out.RefinementRounds)
+}

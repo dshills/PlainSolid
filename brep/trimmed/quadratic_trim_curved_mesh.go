@@ -31,7 +31,10 @@ type CurvedQuadraticTrimMeshOptions struct {
 type CertifiedCurvedQuadraticTrimMesh struct {
 	// SquaredNormalTangent is the upper bound for an explicitly certified
 	// mapped roof. It is nil on the existing distance-only paths.
-	SquaredNormalTangent                                                                          *big.Rat `json:",omitempty"`
+	SquaredNormalTangent *big.Rat `json:",omitempty"`
+	// SquaredNormalTurnTangent bounds across-facet original source normal
+	// angles, set only on an explicitly certified mapped roof.
+	SquaredNormalTurnTangent                                                                      *big.Rat `json:",omitempty"`
 	InteriorRefinementPasses                                                                      int      // Fixed-boundary refinement only; Subdivisions stays 1.
 	SpanCellChecks, SpanPieceChecks                                                               int      // Zero for the single-span API.
 	Mesh                                                                                          mesh.Mesh
@@ -183,27 +186,40 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 	}
 	passes := 0
 	var quality *mappedRoofQuality
-	var normals *mappedRoofNormals
+	var normals, turns *mappedRoofNormals
 	var distanceByTriangle map[[3]int]*big.Rat
-	if spans != nil && spans.maxKnotCellFlips > 0 {
+	if spans != nil && spans.mappedDisplay.maxFlips > 0 {
 		var err error
-		quality, err = newMappedRoofQuality(ctx, p, spans.maxKnotCellFlips)
+		quality, err = newMappedRoofQuality(ctx, p, spans.mappedDisplay.maxFlips)
 		if err != nil {
 			return empty, fmt.Errorf("mapped roof projected quality: %w", err)
 		}
-		if spans.mappedNormalAngle > 0 {
+		display := spans.mappedDisplay
+		if display.facetAngle > 0 || display.normalTurn > 0 {
 			distanceByTriangle = make(map[[3]int]*big.Rat)
 			trimDistance := boundary.Region.FillSquaredDistance
 			if spans.mappedStraightTrimImage {
 				trimDistance = new(big.Rat)
 			}
-			normals, err = newMappedRoofNormals(ctx, p, spans.mappedNormalAngle, trimDistance)
-			if err != nil {
-				return empty, fmt.Errorf("mapped roof normal cells: %w", err)
+			if display.facetAngle > 0 {
+				normals, err = newMappedRoofNormals(ctx, p, display.facetAngle, trimDistance)
+				if err != nil {
+					return empty, fmt.Errorf("mapped roof normal cells: %w", err)
+				}
+			}
+			if display.normalTurn > 0 {
+				turns, err = newMappedRoofNormals(ctx, p, display.normalTurn/2, trimDistance)
+				if err != nil {
+					return empty, fmt.Errorf("mapped roof turning cells: %w", err)
+				}
+				if err := turns.enableTurn(ctx, p, display.normalTurn); err != nil {
+					return empty, fmt.Errorf("mapped roof turning chart: %w", err)
+				}
 			}
 		}
 	}
-	for n := 1; n <= o.MaxSubdivisions; n *= 2 {
+	angularPasses := 0
+	for n := 1; ; {
 		if len(result.Mesh.Triangles) > o.MaxTriangleChecks-result.TriangleChecks {
 			return empty, geom.ErrConvergence
 		}
@@ -257,7 +273,14 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 				return empty, fmt.Errorf("mapped roof normal cone: %w", e)
 			}
 		}
-		if distanceReady && (normals == nil || result.SquaredNormalTangent != nil) {
+		if distanceReady && angleRetries == nil && turns != nil {
+			var e error
+			result.SquaredNormalTurnTangent, angleRetries, e = turns.certify(ctx, p, result)
+			if e != nil {
+				return empty, fmt.Errorf("mapped roof normal turn: %w", e)
+			}
+		}
+		if distanceReady && angleRetries == nil {
 			if e := result.Mesh.Validate(); e != nil {
 				return empty, e
 			}
@@ -273,8 +296,13 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 			}
 			return result, nil
 		}
-		if n == o.MaxSubdivisions || len(result.Mesh.Triangles) > o.MaxTriangles/4 || len(result.Mesh.Triangles) > (o.MaxTriangleChecks-result.TriangleChecks)/4 {
-			if distanceReady && normals != nil {
+		// Selective angular retries do not create a uniform subdivision
+		// level. Bound their extra passes separately while preserving all
+		// cumulative triangle, flip and exact work limits.
+		angularRetry := angleRetries != nil
+		if !angularRetry && n == o.MaxSubdivisions || angularRetry && angularPasses == 12 ||
+			len(result.Mesh.Triangles) > o.MaxTriangles/4 || len(result.Mesh.Triangles) > (o.MaxTriangleChecks-result.TriangleChecks)/4 {
+			if distanceReady && angularRetry {
 				unresolved := 0
 				for _, retry := range angleRetries {
 					if retry {
@@ -285,6 +313,11 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 					passes, unresolved, len(result.Mesh.Triangles), geom.ErrConvergence)
 			}
 			return empty, geom.ErrConvergence
+		}
+		if angularRetry {
+			angularPasses++
+		} else {
+			n *= 2
 		}
 		mids := map[edge]int{}
 		midpoint := func(a, b int) (int, error) {
@@ -413,7 +446,6 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 		}
 		result.BoundaryLoops = loops
 	}
-	return empty, geom.ErrConvergence
 }
 
 // Frobenius norm bounds the Jacobian operator norm on the convex rectangle.

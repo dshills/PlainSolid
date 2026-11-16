@@ -761,6 +761,17 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   disprove a 0.35 radian facet angle on the unsplit closing edge;
   synchronized closing-edge subdivision is necessary. This proof is
   distinct from PlainCAD's normal-turn control across a facet.
+- The [typed Chromium normal-turn gate](evidence/plaincad-v13-normal-turn-chromium-2026-11-15.json)
+  exercises that separate control on pinned PlainCAD `efae4d2` with
+  Go WASM. At 0.35 radians it returned 2,716 facets, 4,074 opposed edge
+  uses and Euler characteristic 2. The native source proof took
+  294.190 seconds, checked 122,105 possible collision pairs with zero
+  unintended contacts, and added only `13/16`, `7/8` and `15/16` on
+  the obstructing original closing edge. The actual fresh Chromium
+  mesh took 537.171 seconds and matched the exact native receipt.
+  A 0.34-radian request and generic import refused even after caching.
+  The earlier distance mesh bytes match. The combined main native
+  race and a separate runtime improvement remain in progress.
 - The native variable-count clipped Cut (`0091b243`) independently
   checks one, four and five contacts across two axes and two original
   footprint layouts. It agrees with the older two- and three-contact

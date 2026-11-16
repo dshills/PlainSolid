@@ -3,7 +3,7 @@ import type { RenderMesh } from "./KernelAdapter";
 import type { NativeStepExport } from "./nativeStep";
 
 export type OrderedMappedStepRequest = {
-  operation: "repair" | "reopen";
+  operation: "repair" | "reopen" | "turn";
   source: string;
 };
 
@@ -20,6 +20,7 @@ export type OrderedMappedStepReply = {
     display: ReturnType<typeof proveClosedDisplay>;
     exported: NativeStepExport;
   } | { operation: "reopen"; exported: NativeStepExport }
+  | { operation: "turn"; angularFailure: string; display: ReturnType<typeof proveClosedDisplay>; durationMs: number }
 ) | { ok: false; error: string };
 
 const worker = globalThis as unknown as {
@@ -89,7 +90,15 @@ async function run(request: OrderedMappedStepRequest) {
     if (!evidence?.nativeProofJSON || kernel.nativeStepSourceUnit(shape) !== undefined) {
       throw new Error("Missing native receipt or unexpected source unit");
     }
-    if (operation === "repair") {
+    if (operation === "turn") {
+      const started = performance.now();
+      const display = proveClosedDisplay(kernel.tessellate(shape,
+        { linearDeflection: 1, angularDeflection: .35, analyticNormals: true }));
+      const durationMs = performance.now() - started;
+      const angularFailure = rejected(() => kernel.tessellate(shape,
+        { linearDeflection: 1, angularDeflection: .34, analyticNormals: true }));
+      worker.postMessage({ ok: true, operation, evidence, genericFailure, angularFailure, display, durationMs });
+    } else if (operation === "repair") {
       const legacyFailure = rejected(() => kernel.disposeShape(kernel.importStep(source,
         { stepRepair: { maxDistance: repair.stepRepair.maxDistance } })));
       const distanceFailure = rejected(() => kernel.tessellate(shape, { linearDeflection: .35, angularDeflection: Math.PI }));

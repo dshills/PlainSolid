@@ -288,8 +288,12 @@ four-cell source and three different joint masks. Its closed exact display
 is qualified (`821b8bcd`). The opt-in native path also proves a
 0.35 radian facet-to-source angle and a distance below 0.09 mm after
 refining the original closing edges and their neighboring spline cells.
-The PlainCAD angular control measures normal turning across a facet and
-needs a separate proof. Four original eccentric frustum rim chamfers
+The separate PlainCAD angular control measures normal turning across a
+facet. The [typed v13 worker proof](evidence/plaincad-v13-normal-turn-chromium-2026-11-15.json)
+qualifies 0.35 radians on the authored source with 2,716 closed facets
+and three exact new stations on the obstructing closing coedge. The
+initial fresh worker took about nine minutes, so faster routine use
+remains in progress. Four original eccentric frustum rim chamfers
 now preserve both circular axes and prove the shell gap at all runouts
 ([independent evidence](evidence/eccentric-frustum-rim-chamfer-2026-11-15.json),
 `b600bde2`). The [diagonal cap fallback](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
@@ -321,7 +325,8 @@ The [explicit PlainCAD v13 repair](evidence/plaincad-v13-ordered-step-2026-11-15
 strict STEP export and fresh reopen. [Two typed Chromium workers](evidence/plaincad-v13-worker-chromium-2026-11-15.json)
 (`0debedd8`) independently passed the same strict reopen on the pinned
 app. Both loaded Go WASM, with no OCCT asset requests. The public route
-currently certifies distance, with no finite normal-angle claim.
+keeps that earlier distance-only mode and now also supports the separate
+opt-in 0.35-radian authored v13 turn proof.
 An [opt-in native knot-aligned mesh](evidence/mapped-v13-knot-aligned-native-2026-11-15.json)
 (`66d273d2`) proves a tighter distance in the original one-sided roof
 cells. It retains the previously qualified public route and mesh bytes.

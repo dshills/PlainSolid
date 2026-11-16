@@ -427,9 +427,11 @@ const exported = kernel.exportStep([shape]);
 const reopened = kernel.importStep(new TextDecoder().decode(exported.bytes), options);
 ```
 
-The display is a closed mesh with a certified linear distance of at most
-0.36 mm. Request a linear deflection of at least 0.36 mm and use π if setting
-an angular deflection. The bridge supports canonical STEP export for a single
+The distance-only display certifies a linear distance of at most 0.36 mm.
+Request at least 0.36 mm of linear deflection for either display path. Use π
+for the distance-only path. Finite angular requests from 0.35 radians up to π
+use a separate closed mesh that certifies the original source normal turn
+across each facet. The bridge supports canonical STEP export for a single
 mapped source body and certifies its analytic measures and bounds on readback.
 
 Run the focused Node qualification with the Go WASM runtime.
@@ -440,10 +442,14 @@ node tools/plaincad/ordered-mapped-step.mjs /tmp/plaincad-ordered-mapped.wasm "$
 ```
 
 Use `--suite development --ordered-mapped-step-worker-fixture` with the
-pinned PlainCAD checkout to run one supplemental Chromium test. Two fresh
+pinned PlainCAD checkout to run the supplemental Chromium checks. Two fresh
 typed module workers use the explicit `mapped-chain-v13` option to import
 the authored four-cell source and strictly reopen its canonical STEP. The
 test checks the same native receipt and canonical bytes in both workers.
 It checks oriented edge closure at 0.36 mm, rejection of a finer distance
 or a tighter angular request, and rejection through ordinary STEP import.
-The source, worker and WASM hashes accompany the fixture result.
+Use `--grep 'normal turn'` to run just the finite angular case. Its typed
+worker requests the 0.35-radian interaction profile and verifies edge closure
+and the same native receipt. It also checks that a 0.34-radian request fails
+after the 0.35-radian mesh has been cached. The source, worker and WASM hashes
+accompany both fixture results.

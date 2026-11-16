@@ -35,10 +35,10 @@ type MixedExactMultiSpanMeshOptions struct {
 // crease nor approximate knot placement is assumed. This is an image-distance
 // certificate, not a topology or embedding proof of the source surface.
 func TessellateMixedExactMultiSpanRegionCertified(ctx context.Context, p *geom.SurfacePatch, outer []PCurve, holes [][]PCurve, o MixedExactMultiSpanMeshOptions) (CertifiedMixedExactCurvedMesh, error) {
-	return tessellateMixedExactMultiSpanRegionCertified(ctx, p, outer, holes, o, false, 0, 0)
+	return tessellateMixedExactMultiSpanRegionCertified(ctx, p, outer, holes, o, mappedRoofDisplayOptions{})
 }
 
-func tessellateMixedExactMultiSpanRegionCertified(ctx context.Context, p *geom.SurfacePatch, outer []PCurve, holes [][]PCurve, o MixedExactMultiSpanMeshOptions, alignSupportKnots bool, maxFlips int, angle float64) (CertifiedMixedExactCurvedMesh, error) {
+func tessellateMixedExactMultiSpanRegionCertified(ctx context.Context, p *geom.SurfacePatch, outer []PCurve, holes [][]PCurve, o MixedExactMultiSpanMeshOptions, display mappedRoofDisplayOptions) (CertifiedMixedExactCurvedMesh, error) {
 	if o.Span.MaxDegree < 0 || o.Span.MaxDegree > 8 {
 		return CertifiedMixedExactCurvedMesh{}, geom.ErrInvalid
 	}
@@ -46,9 +46,9 @@ func tessellateMixedExactMultiSpanRegionCertified(ctx context.Context, p *geom.S
 	if e != nil {
 		return CertifiedMixedExactCurvedMesh{}, e
 	}
-	work.maxKnotCellFlips, work.mappedNormalAngle = maxFlips, angle
-	if angle > 0 && len(holes) == 0 {
+	work.mappedDisplay = display
+	if (display.facetAngle > 0 || display.normalTurn > 0) && len(holes) == 0 {
 		work.mappedStraightTrimImage = mappedRoofStraightTrimImage(outer)
 	}
-	return tessellateMixedExactCurvedRegion(ctx, p, outer, holes, o.Face, &work, alignSupportKnots)
+	return tessellateMixedExactCurvedRegion(ctx, p, outer, holes, o.Face, &work, display.alignSupportKnots)
 }

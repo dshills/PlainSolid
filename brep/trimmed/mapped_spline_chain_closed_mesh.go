@@ -44,9 +44,14 @@ type MappedChainClosedMeshOptions struct {
 	MaxKnotCellFlips int
 	// NormalAngle optionally certifies each represented facet against its
 	// original one-sided support normals in radians (0,1].
-	// It requires the projected quality route. The normal proof uses at most
-	// 100000 exact evaluations and hull tests per roof lift.
-	NormalAngle  float64
+	// It requires the projected quality route. Each requested normal bound
+	// uses at most 100000 exact evaluations and hull tests per roof lift.
+	NormalAngle float64
+	// NormalTurn optionally bounds the angle between any two original
+	// one-sided normals associated with the same display facet, in radians
+	// (0,1]. It uses one-sided source normal cones, with direct pairwise
+	// bounds when one source-centered cone is insufficient.
+	NormalTurn   float64
 	Boundary     MappedChainPolylineOptions
 	Curved       [2]MixedExactMultiSpanMeshOptions
 	ClosingProof edgecheck.Options
@@ -84,9 +89,12 @@ type CertifiedMappedChainClosedMesh struct {
 	// SquaredNormalTangent bounds the complete shell's one-sided facet angles
 	// when NormalAngle is requested.
 	SquaredNormalTangent *big.Rat `json:",omitempty"`
-	DisplayVolume        *big.Rat
-	DisplayCollision     collision.Report
-	RefinementRounds     int
+	// SquaredNormalTurnTangent bounds the complete across-facet source
+	// normal turn when NormalTurn is requested.
+	SquaredNormalTurnTangent *big.Rat `json:",omitempty"`
+	DisplayVolume            *big.Rat
+	DisplayCollision         collision.Report
+	RefinementRounds         int
 }
 
 type mappedChainClosedFaceMesh struct {
@@ -108,7 +116,8 @@ func (r MappedSplineChainAgreement) TessellateClosedCertified(ctx context.Contex
 	if ctx == nil || o.Collision.MaxPairs < 0 || o.Collision.MaxContacts < 0 ||
 		o.MaxKnotCellFlips < 0 || o.MaxKnotCellFlips > 100000 || o.MaxKnotCellFlips > 0 && !o.AlignSupportKnots ||
 		!finite(o.NormalAngle) || o.NormalAngle < 0 || o.NormalAngle > 1 ||
-		o.NormalAngle > 0 && o.MaxKnotCellFlips == 0 {
+		!finite(o.NormalTurn) || o.NormalTurn < 0 || o.NormalTurn > 1 ||
+		(o.NormalAngle > 0 || o.NormalTurn > 0) && o.MaxKnotCellFlips == 0 {
 		return zero, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -154,17 +163,27 @@ func (r MappedSplineChainAgreement) TessellateClosedCertified(ctx context.Contex
 		ClosingVertices: make([][]int, len(seams)),
 	}
 	var curved [2]CertifiedMappedChainFace
+	roofDisplay := mappedRoofDisplayOptions{
+		alignSupportKnots: o.AlignSupportKnots, maxFlips: o.MaxKnotCellFlips,
+		facetAngle: o.NormalAngle, normalTurn: o.NormalTurn,
+	}
 	build := func(cuts [][][]*big.Rat) error {
 		out.SquaredDistance.SetInt64(0)
 		for owner := range curved {
-			x, err := r.tessellateFaceWithBoundary(ctx, owner, closing[owner], boundary, cuts[owner], o.Curved[owner], o.AlignSupportKnots, o.MaxKnotCellFlips, o.NormalAngle)
-			if err != nil {
-				return fmt.Errorf("chain owner %d: %w", owner, err)
+			f := &faces[owner]
+			// A planar mate can receive additional closing stations without
+			// changing this roof's final certified partition. Reuse its
+			// continuous normal-turn proof when every exact cut still agrees.
+			if o.NormalTurn == 0 || !mappedChainDisplayCutsUnchanged(cuts[owner], f.samples) {
+				x, err := r.tessellateFaceWithBoundary(ctx, owner, closing[owner], boundary, cuts[owner], o.Curved[owner], roofDisplay)
+				if err != nil {
+					return fmt.Errorf("chain owner %d: %w", owner, err)
+				}
+				curved[owner], out.Curved[owner] = x, x.Face
+				out.RoofSupportCells[owner] = x.supportCells
+				f.mesh, f.points, f.samples = x.Face.Mesh, x.Face.ExactPoints, x.Face.UVRegion.Samples
 			}
-			curved[owner], out.Curved[owner] = x, x.Face
-			out.RoofSupportCells[owner] = x.supportCells
-			faces[owner].mesh, faces[owner].points, faces[owner].samples = x.Face.Mesh, x.Face.ExactPoints, x.Face.UVRegion.Samples
-			if bound := x.Face.FillSquaredDistance; bound.Cmp(out.SquaredDistance) > 0 {
+			if bound := curved[owner].Face.FillSquaredDistance; bound.Cmp(out.SquaredDistance) > 0 {
 				out.SquaredDistance.Set(bound)
 			}
 		}
@@ -329,7 +348,32 @@ func stitchMappedChainClosed(ctx context.Context, out CertifiedMappedChainClosed
 			return zero, fmt.Errorf("closed mapped chain display normals: %w", err)
 		}
 	}
+	if o.NormalTurn > 0 {
+		limit := mappedNormalTurnLimit(o.NormalTurn)
+		out.SquaredNormalTurnTangent = new(big.Rat)
+		for _, roof := range out.Curved {
+			bound := roof.SquaredNormalTurnTangent
+			if bound == nil || bound.Cmp(limit) > 0 {
+				return zero, geom.ErrConvergence
+			}
+			if bound.Cmp(out.SquaredNormalTurnTangent) > 0 {
+				out.SquaredNormalTurnTangent.Set(bound)
+			}
+		}
+	}
 	return out, nil
+}
+
+func mappedChainDisplayCutsUnchanged(cuts [][]*big.Rat, samples []MixedExactTrimSamples) bool {
+	if len(cuts) == 0 || len(cuts) != len(samples) {
+		return false
+	}
+	for i, use := range samples {
+		if use.Trim != i || !slices.EqualFunc(cuts[i], use.Parameters, func(a, b *big.Rat) bool { return a.Cmp(b) == 0 }) {
+			return false
+		}
+	}
+	return true
 }
 
 // Copy both ordered sample sets to the first use's direction before taking the

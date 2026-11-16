@@ -9,6 +9,12 @@ import (
 	"plainsolid/geom"
 )
 
+type mappedRoofDisplayOptions struct {
+	alignSupportKnots      bool
+	maxFlips               int
+	facetAngle, normalTurn float64
+}
+
 type mappedRoofNormalVertex struct {
 	cell [2]int
 	id   int
@@ -20,6 +26,9 @@ type mappedRoofNormals struct {
 	cells             map[[2]int]*geom.SurfacePatch
 	limit, trimRadius *big.Rat
 	remaining         int
+	sourceCentered    bool
+	turnLimit         *big.Rat
+	turnChart         *geom.AffineXYGraph
 }
 
 func newMappedRoofNormals(ctx context.Context, p *geom.SurfacePatch, angle float64, trimDistance *big.Rat) (*mappedRoofNormals, error) {
@@ -59,6 +68,17 @@ func mappedAngleTangentLimit(angle float64) *big.Rat {
 	return lower.Mul(lower, lower)
 }
 
+func (r *mappedRoofNormals) enableTurn(ctx context.Context, p *geom.SurfacePatch, angle float64) error {
+	graph, err := geom.NewAffineXYGraph(ctx, p, geom.SurfacePatchOptions{})
+	if err != nil {
+		return err
+	}
+	r.turnChart = graph
+	r.sourceCentered = true
+	r.turnLimit = mappedNormalTurnLimit(angle)
+	return nil
+}
+
 func (r *mappedRoofNormals) charge(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -79,9 +99,11 @@ func (r *mappedRoofNormals) certify(ctx context.Context, p *geom.SurfacePatch, f
 		return nil, nil, err
 	}
 	maximum := new(big.Rat)
-	facets := make([][3]*big.Rat, len(face.Mesh.Triangles))
-	retry := make([]bool, len(facets))
+	directions := make([][3]*big.Rat, len(face.Mesh.Triangles))
+	retry := make([]bool, len(directions))
+	centerOutside := make([]bool, len(directions))
 	needsRefinement := false
+	var outsideCount int
 	for i, tri := range face.Mesh.Triangles {
 		if proof := r.certified[tri]; proof != nil {
 			if proof.Cmp(maximum) > 0 {
@@ -91,9 +113,27 @@ func (r *mappedRoofNormals) certify(ctx context.Context, p *geom.SurfacePatch, f
 		}
 		c := r.cells[cells[i]]
 		a, b, d := exactBoundPoint(face.Mesh.Vertices[tri[0]]), exactBoundPoint(face.Mesh.Vertices[tri[1]]), exactBoundPoint(face.Mesh.Vertices[tri[2]])
-		facet := ddCross(ddSub(b, a), ddSub(d, a))
-		facets[i] = facet
-		for _, id := range tri {
+		direction := ddCross(ddSub(b, a), ddSub(d, a))
+		if r.sourceCentered {
+			if err := r.charge(ctx); err != nil {
+				return nil, nil, err
+			}
+			u, v := new(big.Rat), new(big.Rat)
+			for _, id := range tri {
+				u.Add(u, face.ExactUV[id][0])
+				v.Add(v, face.ExactUV[id][1])
+			}
+			u.Quo(u, big.NewRat(3, 1))
+			v.Quo(v, big.NewRat(3, 1))
+			middle, err := c.EvaluateRational(ctx, u, v, geom.SurfacePatchEvaluationOptions{})
+			if err != nil {
+				return nil, nil, err
+			}
+			direction = ddCross(middle.Du, middle.Dv)
+		}
+		directions[i] = direction
+		var rays [3][3]*big.Rat
+		for j, id := range tri {
 			key := mappedRoofNormalVertex{cells[i], id}
 			n, exists := r.vertices[key]
 			if !exists {
@@ -108,43 +148,95 @@ func (r *mappedRoofNormals) certify(ctx context.Context, p *geom.SurfacePatch, f
 				n = ddCross(j.Du, j.Dv)
 				r.vertices[key] = n
 			}
-			if t, ok := ddTanSquared(facet, n); !ok || t.Cmp(r.limit) > 0 {
-				retry[i], needsRefinement = true, true
-				break
+			if t, ok := ddTanSquared(direction, n); !ok || t.Cmp(r.limit) > 0 {
+				if !centerOutside[i] {
+					centerOutside[i] = true
+					outsideCount++
+				}
+				if !r.sourceCentered {
+					retry[i], needsRefinement = true, true
+					break
+				}
+			}
+			if r.sourceCentered {
+				for _, other := range rays[:j] {
+					if q, ok := ddTanSquared(other, n); !ok || q.Cmp(r.turnLimit) > 0 {
+						retry[i], needsRefinement = true, true
+						break
+					}
+				}
+				if retry[i] {
+					break
+				}
+				rays[j] = n
 			}
 		}
 	}
 	if needsRefinement {
 		return nil, retry, nil
 	}
+	// Prefer a cheaper conforming refinement while many triangles still
+	// miss their source-centered cone. The direct pairwise check resolves
+	// the few borderline facets that remain, including protected edges.
+	if r.sourceCentered && outsideCount > 8 {
+		return nil, centerOutside, nil
+	}
+	unproved := 0
 	for i, t := range face.Mesh.Triangles {
 		if r.certified[t] != nil {
 			continue
 		}
 		uv := [3][2]*big.Rat{face.ExactUV[t[0]], face.ExactUV[t[1]], face.ExactUV[t[2]]}
-		q, err := r.bound(ctx, r.cells[cells[i]], facets[i], uv, 3)
-		if err != nil {
-			return nil, nil, err
+		var q *big.Rat
+		var err error
+		cell := r.cells[cells[i]]
+		if !centerOutside[i] {
+			q, err = r.bound(ctx, cell, directions[i], uv, 3)
+			if err != nil {
+				return nil, nil, err
+			}
 		}
 		if q == nil {
-			retry[i], needsRefinement = true, true
+			retry[i] = true
+			unproved++
 			continue
+		}
+		if r.sourceCentered {
+			q = doubledNormalTangent(q)
 		}
 		r.certified[t] = q
 		if q.Cmp(maximum) > 0 {
 			maximum.Set(q)
 		}
 	}
-	if needsRefinement {
+	if r.sourceCentered && unproved > 0 && unproved <= 8 {
+		for i, missing := range retry {
+			if !missing {
+				continue
+			}
+			t := face.Mesh.Triangles[i]
+			uv := [3][2]*big.Rat{face.ExactUV[t[0]], face.ExactUV[t[1]], face.ExactUV[t[2]]}
+			q, err := r.boundPairwiseTurn(ctx, r.cells[cells[i]], uv)
+			if err != nil {
+				return nil, nil, err
+			}
+			if q != nil {
+				retry[i] = false
+				unproved--
+				r.certified[t] = q
+				if q.Cmp(maximum) > 0 {
+					maximum.Set(q)
+				}
+			}
+		}
+	}
+	if unproved > 0 {
 		return nil, retry, nil
 	}
 	return maximum, nil, nil
 }
 
-func (r *mappedRoofNormals) bound(ctx context.Context, p *geom.SurfacePatch, facet [3]*big.Rat, uv [3][2]*big.Rat, depth int) (*big.Rat, error) {
-	if err := r.charge(ctx); err != nil {
-		return nil, err
-	}
+func (r *mappedRoofNormals) normalRectangle(p *geom.SurfacePatch, uv [3][2]*big.Rat) geom.ParameterRectangle {
 	// Every trim chord lies in its original convex support cell. The
 	// source/chord winding deformation inside that cell lies within the
 	// certified UV trim distance of the chord. Include that neighborhood
@@ -180,14 +272,34 @@ func (r *mappedRoofNormals) bound(ctx context.Context, p *geom.SurfacePatch, fac
 		}
 		bounds[axis] = [2]float64{a, b}
 	}
-	rect := geom.ParameterRectangle{UMin: bounds[0][0], UMax: bounds[0][1], VMin: bounds[1][0], VMax: bounds[1][1]}
+	return geom.ParameterRectangle{UMin: bounds[0][0], UMax: bounds[0][1], VMin: bounds[1][0], VMax: bounds[1][1]}
+}
+
+func (r *mappedRoofNormals) normalBox(ctx context.Context, p *geom.SurfacePatch, rect geom.ParameterRectangle) ([3]geom.CertifiedScalarRange, bool, error) {
+	var empty [3]geom.CertifiedScalarRange
+	if err := r.charge(ctx); err != nil {
+		return empty, false, err
+	}
 	child, err := p.Trim(rect)
+	if err != nil {
+		return empty, false, err
+	}
+	proof, err := geom.CertifySurfaceRegularity(child, geom.SurfaceRegularityOptions{MaxDepth: 1, MaxCells: 1})
+	if err != nil && !errors.Is(err, geom.ErrConvergence) {
+		return empty, false, err
+	}
+	if err != nil || !proof.Complete || len(proof.Certified) != 1 {
+		return empty, false, nil
+	}
+	return proof.Certified[0].ScaledNormal, true, nil
+}
+
+func (r *mappedRoofNormals) bound(ctx context.Context, p *geom.SurfacePatch, direction [3]*big.Rat, uv [3][2]*big.Rat, depth int) (*big.Rat, error) {
+	c, present, err := r.normalBox(ctx, p, r.normalRectangle(p, uv))
 	if err != nil {
 		return nil, err
 	}
-	proof, err := geom.CertifySurfaceRegularity(child, geom.SurfaceRegularityOptions{MaxDepth: 1, MaxCells: 1})
-	if err == nil && proof.Complete && len(proof.Certified) == 1 {
-		c := proof.Certified[0].ScaledNormal
+	if present {
 		maximum := new(big.Rat)
 		for corner := 0; corner < 8; corner++ {
 			var vector [3]*big.Rat
@@ -201,7 +313,7 @@ func (r *mappedRoofNormals) bound(ctx context.Context, p *geom.SurfacePatch, fac
 				}
 				vector[axis] = ratInset(value)
 			}
-			q, ok := ddTanSquared(facet, vector)
+			q, ok := ddTanSquared(direction, vector)
 			if !ok || q.Cmp(r.limit) > 0 {
 				maximum = nil
 				break
@@ -215,8 +327,6 @@ func (r *mappedRoofNormals) bound(ctx context.Context, p *geom.SurfacePatch, fac
 		if maximum != nil {
 			return maximum, nil
 		}
-	} else if err != nil && !errors.Is(err, geom.ErrConvergence) {
-		return nil, err
 	}
 	if depth == 0 {
 		return nil, nil
@@ -232,7 +342,7 @@ func (r *mappedRoofNormals) bound(ctx context.Context, p *geom.SurfacePatch, fac
 	for _, sub := range [4][3][2]*big.Rat{
 		{uv[0], mid[0], mid[2]}, {mid[0], uv[1], mid[1]}, {mid[2], mid[1], uv[2]}, mid,
 	} {
-		q, err := r.bound(ctx, p, facet, sub, depth-1)
+		q, err := r.bound(ctx, p, direction, sub, depth-1)
 		if err != nil || q == nil {
 			return nil, err
 		}
