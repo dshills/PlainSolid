@@ -115,7 +115,10 @@ Projectively related graph surfaces can also prove strict original
 height order or exact coincidence over their entire shared projection.
 Neighboring projective stocks with one complete coincident roof edge
 can now Fuse into one positive native shell while retaining both original
-roof supports and edge clocks. Unequal lifts still need a step wall.
+roof supports and edge clocks. Strictly ordered unequal neighboring lifts
+also Fuse with a single wall between the original rims and exact split
+corners on the two higher exterior walls. Crossing or partial step sides
+are still open.
 The same full-footprint ordered proof builds closed Common, Fuse and
 Cut results without a synthetic intersection seam. A contained or
 coincident stock reports an explicitly empty Cut.

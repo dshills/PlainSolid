@@ -11,8 +11,8 @@ import (
 // BuildProjectiveSplineRoofBoolean builds a regularized material result
 // from two complete original graphs above a shared planar base. A Common
 // uses the exact rectangular overlap. Fuse also accepts fully contained
-// material or a complete coincident shared wall. Cut accepts a tool whose footprint covers the entire
-// stock or has no positive area in common with it. Material uses proven
+// material or a complete adjacent wall. Cut accepts a tool whose footprint
+// covers the stock or shares no positive area with it. Material uses proven
 // exact height order, one complete open analytic section, or a family
 // of complete parallel sections for Common and Fuse.
 func BuildProjectiveSplineRoofBoolean(ctx context.Context, a, b Face, axes [2]int, baseHeight float64,
@@ -74,7 +74,11 @@ func buildProjectiveSplineRoofContainedMaterial(ctx context.Context, a, b Face, 
 		if op == parametric.Difference {
 			return originalStock(0)
 		}
-		return buildProjectiveRoofAdjacentFuse(ctx, p, axes, baseHeight, o)
+		q, err := buildProjectiveRoofAdjacentFuse(ctx, p, axes, baseHeight, o)
+		if err == nil || !errors.Is(err, geom.ErrConvergence) {
+			return q, err
+		}
+		return buildProjectiveRoofAdjacentStepFuse(ctx, p, axes, baseHeight, o)
 	}
 	covered := [2]bool{p.covers(0), p.covers(1)}
 	if covered[0] == covered[1] || op == parametric.Difference && !covered[0] {

@@ -26,6 +26,15 @@ type ProjectiveRoofWall struct {
 	Source      ProjectiveSplineImprintUse
 }
 
+// ProjectiveRoofStep retains a wall between two original adjacent roof
+// rims. Owners, Uses and Edges are ordered lower rim, then higher rim.
+type ProjectiveRoofStep struct {
+	Face   int
+	Owners [2]int
+	Uses   [2]ProjectiveSplineImprintUse
+	Edges  [2]int
+}
+
 // ProjectiveRoofSolid is a regularized Boolean of two solids defined
 // between the same constant-height base and the original faces.
 // Roofs and Walls retain their original face/edge sources.
@@ -33,6 +42,7 @@ type ProjectiveRoofSolid struct {
 	Solid Solid
 	Roofs [2]int // -1 for an absent owner in a completed result.
 	Walls []ProjectiveRoofWall
+	Steps []ProjectiveRoofStep
 	// RoofFragments retains every original roof face in a band result.
 	RoofFragments [2][]int
 	// FloorSources is ordered like Walls for Cut; it retains original B uses.

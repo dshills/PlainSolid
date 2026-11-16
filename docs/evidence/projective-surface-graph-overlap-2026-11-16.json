@@ -960,5 +960,21 @@
     "identical_native_replays": 4,
     "automatic_dispatch": true,
     "refusals": ["unequal original lifts", "partial coedge", "disjoint footprint"]
+  },
+  "native_adjacent_stepped_roof_fuse": {
+    "main_base": "c87019f4",
+    "main_race_log": "projective-roof-adjacent-step-main-final-race.jsonl",
+    "main_race_sha256": "b7d29e524ea2d5b3f7c5dc922c49158d05e748c563abdcf9079ae3d996eba883",
+    "main_race_seconds": {"geom": 1.536, "brep/trimmed": 25.438},
+    "axis_order_and_curved_controls": 5,
+    "topology": [14, 22, 10],
+    "ordinary_exterior_walls": 6,
+    "higher_exterior_walls_split_at_lower_exact_corner": 2,
+    "parabolic_rim_original_midpoint_stations": ["1/2", "2/3"],
+    "independent_volumes": ["23/4", "27/4"],
+    "independent_projected_centroids": [["40/23", "13/23"], ["46/27", "16/27"]],
+    "identical_native_replays": 4,
+    "automatic_dispatch": true,
+    "refusals": ["strict order crosses zero", "partial original side", "coincident or disjoint rims", "short exact arithmetic", "short sewing budget", "cancellation"]
   }
 }

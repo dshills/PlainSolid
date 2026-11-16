@@ -156,6 +156,13 @@ projective clocks. It cancels the interior wall, retains six exterior
 walls and both original roofs, and reproduces independent volume 21/4
 and projected centroid (12/7, 4/7). All four native shells replay
 byte-identically; unequal lifts, partial edges and disjoint stocks refuse.
+The strictly ordered adjacent seam now has a separate native step
+construction. Four axis and operand orders retain 14 vertices, 22
+edges and 10 faces, including the two exact tall-wall split corners.
+Independent integrals give volume 23/4; the additional originally
+parabolic pair gives 27/4 and retains its independent 1/2 and 2/3
+physical stations at the original half clock. Both branch guards and
+native replay pass along with the existing coincident and overlap cases.
 An independent oblique adjacent-side seam also qualifies both Cut
 orders with exact volumes 25/48 and 1/48 and separate native pentagonal
 and triangular original footprints. Both axis orders pass.
