@@ -111,7 +111,7 @@ func VerifyClippedPolynomialCutIGES(ctx context.Context, input io.Reader, cut *t
 		return err
 	}
 	if actual.unit != want.unit || !reflect.DeepEqual(actual.entities, want.entities) ||
-		!bytes.Equal(clippedCutIGESHeaderRecords(actual.bytes), clippedCutIGESHeaderRecords(want.bytes)) {
+		!bytes.Equal(exactBezierIGESHeaderRecords(actual.bytes), exactBezierIGESHeaderRecords(want.bytes)) {
 		return fmt.Errorf("iges: clipped Cut topology, global records or directory differ from source proof: %w", geom.ErrConvergence)
 	}
 	return ctx.Err()
@@ -123,7 +123,7 @@ func readClippedPolynomialCutIGES(input io.Reader, l Limits) (topologySource, er
 
 // Global precision and member visibility affect transfer. Authenticate the
 // global and directory records, which the parsed entities omit.
-func clippedCutIGESHeaderRecords(raw []byte) []byte {
+func exactBezierIGESHeaderRecords(raw []byte) []byte {
 	var header []byte
 	for len(raw) > 0 {
 		var line []byte

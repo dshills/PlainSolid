@@ -117,7 +117,7 @@ func TestWriteClippedPolynomialCut(t *testing.T) {
 			for _, contact := range cut.Contacts() {
 				for j, body := range contact.Components {
 					changed := bytes.Clone(raw)
-					mutateClippedCutIGESVertex(t, changed, byType[502][body].id, contact.Vertices[j])
+					replaceExactBezierIGESParameterDigit(t, changed, byType[502][body].id, 2+3*contact.Vertices[j])
 					if _, err := readClippedPolynomialCutIGES(bytes.NewReader(changed), Limits{}); err != nil {
 						t.Fatal("negative must retain a valid IGES record structure", err)
 					}
@@ -159,17 +159,17 @@ func TestWriteClippedPolynomialCut(t *testing.T) {
 	}
 }
 
-func mutateClippedCutIGESVertex(t *testing.T, raw []byte, list, index int) {
+func replaceExactBezierIGESParameterDigit(t *testing.T, raw []byte, entity, parameter int) {
 	t.Helper()
-	coordinate, current := 2+3*index, 0
+	current := 0
 	for _, line := range bytes.Split(raw, []byte{10}) {
-		if len(line) != 80 || line[72] != 'P' || strings.TrimSpace(string(line[64:72])) != strconv.Itoa(list) {
+		if len(line) != 80 || line[72] != 'P' || strings.TrimSpace(string(line[64:72])) != strconv.Itoa(entity) {
 			continue
 		}
 		for i, c := range line[:64] {
 			if c == ',' {
 				current++
-			} else if current == coordinate && c >= '0' && c <= '9' {
+			} else if current == parameter && c >= '0' && c <= '9' {
 				if c == '0' {
 					line[i] = '1'
 				} else {
@@ -179,28 +179,36 @@ func mutateClippedCutIGESVertex(t *testing.T, raw []byte, list, index int) {
 			}
 		}
 	}
-	t.Fatalf("no contact coordinate in list %d at index %d", list, index)
+	t.Fatalf("no parameter %d in IGES entity %d", parameter, entity)
 }
 
-func verifyOCCTClippedCutIGES(t *testing.T, ctx context.Context, oracle string, data []byte, cut *trimmed.ClippedPolynomialCut, faces int) {
+type occtExactBezierIGESReport struct {
+	Faces, Solids, TransferredRoots, IndexedVertices int
+	Components                                       []struct {
+		Faces, Edges, Shells int
+		Area, Volume         float64
+		Vertices             [][3]float64
+	}
+}
+
+func readOCCTExactBezierIGES(t *testing.T, ctx context.Context, oracle string, data []byte) occtExactBezierIGESReport {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "clipped-cut.igs")
+	path := filepath.Join(t.TempDir(), "exact-bezier.igs")
 	if err := os.WriteFile(path, data, 0600); err != nil {
 		t.Fatal(err)
 	}
 	raw, err := exec.CommandContext(ctx, oracle, path).CombinedOutput()
-	var result struct {
-		Faces, Solids, TransferredRoots, IndexedVertices int
-		Components                                       []struct {
-			Faces, Edges, Shells int
-			Volume               float64
-			Vertices             [][3]float64
-		}
-	}
+	var result occtExactBezierIGESReport
 	start := bytes.Index(raw, []byte("{\"TransferredRoots\":"))
 	if err != nil || start < 0 || json.Unmarshal(raw[start:], &result) != nil {
 		t.Fatalf("independent OCCT IGES reader: %v\n%s", err, raw)
 	}
+	return result
+}
+
+func verifyOCCTClippedCutIGES(t *testing.T, ctx context.Context, oracle string, data []byte, cut *trimmed.ClippedPolynomialCut, faces int) {
+	t.Helper()
+	result := readOCCTExactBezierIGES(t, ctx, oracle, data)
 	parts := cut.Components()
 	vertices := 0
 	for _, part := range parts {
