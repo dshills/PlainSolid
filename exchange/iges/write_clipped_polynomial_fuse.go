@@ -39,6 +39,10 @@ func writeExactBezierSingleIGES(ctx context.Context, w io.Writer, s trimmed.Soli
 }
 
 func writeExactBezierSingleIGESMode(ctx context.Context, w io.Writer, s trimmed.Solid, unit float64, l Limits, o ClippedPolynomialFuseIGESOptions, splitKnots bool) error {
+	return writeExactBezierSingleIGESWithBoundary(ctx, w, s, unit, l, o, splitKnots, nil)
+}
+
+func writeExactBezierSingleIGESWithBoundary(ctx context.Context, w io.Writer, s trimmed.Solid, unit float64, l Limits, o ClippedPolynomialFuseIGESOptions, splitKnots bool, prepare func(context.Context, trimmed.ExactBezierBoundary, edgecheck.Options) error) error {
 	bound := new(big.Rat).SetFloat64(o.PoleTolerance)
 	if ctx == nil || w == nil || bound == nil || bound.Sign() < 0 {
 		return geom.ErrInvalid
@@ -57,6 +61,11 @@ func writeExactBezierSingleIGESMode(ctx context.Context, w io.Writer, s trimmed.
 	b, err := extract(ctx, o.Proof)
 	if err != nil {
 		return err
+	}
+	if prepare != nil && o.PoleTolerance == 0 {
+		if err := prepare(ctx, b, o.Proof); err != nil {
+			return err
+		}
 	}
 	a := topologyAuthor{}
 	controls := 0

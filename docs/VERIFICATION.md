@@ -307,6 +307,18 @@ tolerance. Exterior Cut and Fuse use explicit `1e-14` interior pole
 rounding for their nonterminating wall pcurves, with strict refusal
 before any bytes otherwise. Main's native and live reference race
 groups passed in 13.565 and 29.517 seconds respectively.
+A zero-rounding path now elevates only the eligible cubic wall pcurves
+to an exactly equal quartic with terminating decimal controls. Both
+roof knots and exact departure controls gate the transformation, and
+the original curve geometry and parameter clocks stay fixed. The
+pinned byte matrix matches all 54 previous successful files; six
+earlier refusals become supported while 12 other refusals stay closed.
+Short degree, bit, byte and control budgets publish no bytes. Main's
+live exchange and exact helper races passed in 45.790 and 1.119
+seconds; the generic writer regressions passed in 74.519 seconds for
+STEP and 155.961 seconds for IGES. The first live attempt used an older
+IGES comparator without edge incidence. The pinned comparator with
+that inventory passes unchanged tests, including the old uncreased cases.
 
 A separate isolated real double-point proof passes with and without a
 disjoint regular branch, including source order swaps and rotated

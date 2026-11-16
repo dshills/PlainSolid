@@ -397,11 +397,11 @@ Common now also qualifies with the original longitudinal C0 crease at
 the cusp. Both original owner orders replay natively and transfer in
 STEP and IGES with the exact one-sided cusp derivatives and volume.
 Fuse and both Cut orders also replay and transfer the crease-at-cusp
-input. The pointed Cut transfers exactly at zero pole rounding;
-Fuse and exterior Cut currently use a `1e-14` allowance only for
-interior decimal control coordinates. Their original roofs, cusp and
-stock knot stations remain exact. Zero-tolerance wall pcurves for
-those larger results are in progress.
+input. All four cases transfer at zero pole rounding: at the proved
+original cusp knot only, eligible stock-wall pcurves are elevated
+exactly from cubic to quartic when needed for terminating decimal
+coordinates. The original roofs, model curves, cusp derivatives and
+stock knot stations remain exact.
 Full ordinary Go on `01d12dab` and PlainCAD on `a3b7548d` have passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,

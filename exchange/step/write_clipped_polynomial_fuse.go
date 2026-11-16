@@ -39,6 +39,10 @@ func writeExactBezierSingleSTEP(ctx context.Context, w io.Writer, s trimmed.Soli
 }
 
 func writeExactBezierSingleSTEPMode(ctx context.Context, w io.Writer, s trimmed.Solid, name string, lengthUnit float64, l Limits, o ClippedPolynomialFuseSTEPOptions, splitKnots bool) error {
+	return writeExactBezierSingleSTEPWithBoundary(ctx, w, s, name, lengthUnit, l, o, splitKnots, nil)
+}
+
+func writeExactBezierSingleSTEPWithBoundary(ctx context.Context, w io.Writer, s trimmed.Solid, name string, lengthUnit float64, l Limits, o ClippedPolynomialFuseSTEPOptions, splitKnots bool, prepare func(context.Context, trimmed.ExactBezierBoundary, edgecheck.Options) error) error {
 	if ctx == nil || w == nil || !utf8.ValidString(name) || len(name) > 1024 || !validLengthUnit(lengthUnit) ||
 		!finiteNumber(o.PoleTolerance) || o.PoleTolerance < 0 {
 		return geom.ErrInvalid
@@ -60,6 +64,11 @@ func writeExactBezierSingleSTEPMode(ctx context.Context, w io.Writer, s trimmed.
 	}
 	if len(b.Vertices) > l.MaxVertices || len(b.Edges) > l.MaxEdgeUses/2 {
 		return geom.ErrConvergence
+	}
+	if prepare != nil && o.PoleTolerance == 0 {
+		if err := prepare(ctx, b, o.Proof); err != nil {
+			return err
+		}
 	}
 	staged := clippedFuseSTEPStage{limit: l.MaxBytes}
 	var geometryErr error
