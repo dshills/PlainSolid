@@ -506,6 +506,16 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   768, 768 and 1,280 triangles and pass the complete exact collision
   checks. Tangency, insufficient axial span and a changed interior
   meridian reject. Main focused native and the isolated live race passed.
+- The [strict eccentric bore fillet STEP import](evidence/eccentric-bore-rim-step-import-2026-11-15.json)
+  accepts an untouched, model-only pinned OCCT upper fillet, with 5
+  source faces/8 edges/5 vertices. It keeps 23 native edges and 20
+  vertices, with every subdivided rim mapped to its source edge. The
+  independent signed volume is 879.5727456807722. The exact reader
+  rejects original foreign off-support and opposite-owner controls,
+  along with changed torus radius, meridian and unit. All three
+  PlainSolid STEP writer variants re-export byte-identically. Main
+  exchange and STEP pinned race runs passed in 28.040 and 46.356
+  seconds. No generic reader dispatch was changed.
 - The [diagonal circle cap and wall proof](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
   (`a296b700`) qualifies the independent offset `(1.5,2)` with exact
   circular rim laws and shell-wide clearance. A targeted raw constructor

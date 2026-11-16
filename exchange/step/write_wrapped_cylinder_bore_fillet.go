@@ -54,7 +54,7 @@ func wrappedCylinderBoreRimFilletSTEP(g borefillet.Graph, name string, unit floa
 		return s
 	}
 	var raw bytes.Buffer
-	err := writeStandalone(&raw, unit, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
+	err := writeStandaloneWithUnit(&raw, unit, 0, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
 		xyz := func(kind string, v [3]*big.Rat) int64 {
 			return emit(fmt.Sprintf("%s('',(%s,%s,%s))", kind, number(v[0]), number(v[1]), number(v[2])))
 		}
@@ -118,7 +118,7 @@ func wrappedCylinderBoreRimFilletSTEP(g borefillet.Graph, name string, unit floa
 		}
 		shell := emit("CLOSED_SHELL(''," + references(fids) + ")")
 		return []int64{emit(fmt.Sprintf("MANIFOLD_SOLID_BREP(%s,#%d)", quote(name), shell))}
-	})
+	}, emitExactPlanarLengthUnit)
 	if err != nil {
 		return nil, err
 	}

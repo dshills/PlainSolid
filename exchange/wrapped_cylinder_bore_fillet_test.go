@@ -80,6 +80,16 @@ func TestWrappedCylinderBoreRimFilletNeutralTransfer(t *testing.T) {
 					if err := format.write(ctx, &repeated, replay, o); err != nil || !bytes.Equal(raw.Bytes(), repeated.Bytes()) {
 						t.Fatalf("output changed after exact native replay: %v", err)
 					}
+					if format.ext == "step" {
+						imported, err := step.ReadWrappedCylinderBoreRimFillet(ctx, bytes.NewReader(raw.Bytes()), step.Limits{}, o)
+						if err != nil || imported.LengthUnit != .001 || len(imported.NativeEdgeSourceIDs) != len(solid.Edges()) {
+							t.Fatalf("strict STEP reopen: %v", err)
+						}
+						repeated.Reset()
+						if err := format.write(ctx, &repeated, imported.Solid, o); err != nil || !bytes.Equal(raw.Bytes(), repeated.Bytes()) {
+							t.Fatalf("STEP bytes changed after strict neutral round trip: %v", err)
+						}
+					}
 					if oracle := os.Getenv("PLAINSOLID_OCCT_ECCENTRIC_BORE_RIM_TRANSFER"); oracle != "" {
 						checkOCCTWrappedBoreFilletTransfer(t, ctx, oracle, format.ext, raw.Bytes(), replay, c.lower, c.upper, mass)
 					}

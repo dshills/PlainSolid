@@ -284,6 +284,11 @@ now preserve both circular axes and prove the shell gap at all runouts
 the rings. The [eccentric bore inner rim fillets](evidence/eccentric-cylinder-bore-rim-fillet-2026-11-15.json)
 (`d930469f`) retain the unchanged outer cylinder, original axes and cap
 planes with exact quarter-toroid transitions and positive clearance.
+The [strict independent STEP reader](evidence/eccentric-bore-rim-step-import-2026-11-15.json)
+now reconstructs the pinned upper fillet from the original analytic
+STEP curves and incidence, preserving source IDs through exact circular
+subdivision. It also reopens all three existing STEP exports with
+byte-identical re-export. Independent IGES reconstruction is open.
 The [explicit PlainCAD v13 repair](evidence/plaincad-v13-ordered-step-2026-11-15.json)
 (`399957cd`) passed the native and actual Node/WASM source, closed mesh,
 strict STEP export and fresh reopen. [Two typed Chromium workers](evidence/plaincad-v13-worker-chromium-2026-11-15.json)

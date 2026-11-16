@@ -12,6 +12,11 @@
 #include <TopoDS.hxx>
 #include <gp_Ax2.hxx>
 
+#ifdef PLAINSOLID_OCCT_STEP
+#include <Interface_Static.hxx>
+#include <STEPControl_Writer.hxx>
+#endif
+
 #include <array>
 #include <cmath>
 #include <iomanip>
@@ -21,12 +26,22 @@
 using ShapeMap = NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>;
 
 int main(int argc, char** argv) {
+    double dy = 0;
+#ifdef PLAINSOLID_OCCT_STEP
+    const bool writeStep = argc == 4;
+    if (argc != 2 && !writeStep) return 1;
+    const std::string_view writeMode = writeStep ? argv[3] : "";
+    if (writeStep && writeMode != "exact-model" && writeMode != "origin-model" && writeMode != "default") return 1;
+    if (writeMode == "exact-model") dy = 64;
+#else
     if (argc != 2) return 1;
+#endif
     const std::string_view mode(argv[1]);
     if (mode != "lower" && mode != "upper" && mode != "both") return 1;
-    constexpr double cx = 1.5, cy = 2, z0 = 2, height = 8, outerRadius = 6.25, boreRadius = 2;
+    constexpr double cx = 1.5, z0 = 2, height = 8, outerRadius = 6.25, boreRadius = 2;
+    const double cy = 2 + dy;
     const std::array<double, 2> radii{{mode == "upper" ? 0. : .5, mode == "lower" ? 0. : .75}};
-    const auto outer = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0, 0, z0), gp::DZ()), outerRadius, height).Shape();
+    const auto outer = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0, dy, z0), gp::DZ()), outerRadius, height).Shape();
     const auto tool = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(cx, cy, z0), gp::DZ()), boreRadius, height).Shape();
     BRepAlgoAPI_Cut cut(outer, tool);
     const auto source = cut.Shape();
@@ -53,6 +68,15 @@ int main(int argc, char** argv) {
     if (!fillet.IsDone()) return 5;
     const auto shape = fillet.Shape();
     if (shape.IsNull() || !BRepCheck_Analyzer(shape).IsValid()) return 6;
+
+#ifdef PLAINSOLID_OCCT_STEP
+    if (writeStep) {
+        STEPControl_Writer writer;
+        if (writeMode != "default" && !Interface_Static::SetIVal("write.surfacecurve.mode", 0)) return 7;
+        if (writer.Transfer(shape, STEPControl_AsIs) != IFSelect_RetDone ||
+            writer.Write(argv[2]) != IFSelect_RetDone) return 8;
+    }
+#endif
 
     ShapeMap solids, faces, edges;
     TopExp::MapShapes(shape, TopAbs_SOLID, solids);
