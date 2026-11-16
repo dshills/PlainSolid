@@ -130,7 +130,7 @@ func bindParabolaThreeCirclesEnvelope(ctx context.Context, s Solid, assembly Spl
 const nativeParabolaThreeCirclesEnvelope = "trimmed-spline-graph-parabola-three-circles-envelope"
 
 type parabolaThreeCirclesEnvelopeRecipe struct {
-	parabolaTwoCrossingCirclesEnvelopeRecipe
+	parabolaCrossingCirclesEnvelopeRecipe
 	Arrangement *parabolaThreeCirclesEnvelopeLedger `json:"arrangement"`
 }
 
@@ -161,7 +161,7 @@ func (r *ParabolaThreeCirclesEnvelope) WriteJSON(ctx context.Context, w io.Write
 		return err
 	}
 	return writePolynomialGraphRecipe(ctx, w, parabolaThreeCirclesEnvelopeRecipe{
-		parabolaTwoCrossingCirclesEnvelopeRecipe: parabolaTwoCrossingCirclesEnvelopeRecipe{
+		parabolaCrossingCirclesEnvelopeRecipe: parabolaCrossingCirclesEnvelopeRecipe{
 			Version: 1, Kind: nativeParabolaThreeCirclesEnvelope, Sources: sources, Axis: &r.axis,
 			Operation: &r.op, Tolerance: r.tolerance, Ledger: twoCrossingCirclesEnvelopeLedgerFor(r.history.ParabolaTwoCrossingCirclesHistory),
 		},

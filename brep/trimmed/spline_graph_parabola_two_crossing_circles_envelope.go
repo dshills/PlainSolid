@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/big"
 	"reflect"
 	"slices"
 
@@ -104,63 +105,84 @@ func bindTwoCrossingCirclesEnvelope(ctx context.Context, solid Solid, assembly S
 func bindTwoCrossingCircleEnvelopeRegions(ctx context.Context, solid Solid, assembly SplineGraphBooleanHistory,
 	p parabolaTwoCrossingCirclesPartition, sources [3]*geom.BSplineSurface, op parametric.BooleanOp) (h ParabolaTwoCrossingCirclesHistory, err error) {
 	h.Base = assembly.Base
-	if solid.faces[h.Base].Surface != sources[0] || !solid.faces[h.Base].Reversed {
-		return h, geom.ErrConvergence
+	copy(h.WallFaces[:], assembly.WallFaces)
+	for i := range h.RoofFaces {
+		h.RoofFaces[i] = i
 	}
-	if err := validateGraphEnvelopeSplineTrims(ctx, solid.faces[h.Base:h.Base+1]); err != nil {
+	if err := bindCrossingCircleEnvelopeFaces(ctx, solid, assembly, sources, op, p.regions[:], p.proof.RegionWitnesses[:], h.RoofOwners[:]); err != nil {
 		return h, err
 	}
-	copy(h.WallFaces[:], assembly.WallFaces)
-	for i, region := range p.regions {
-		h.RoofFaces[i] = i
+	part := parabolaCrossingCirclesPartition{pieces: p.pieces, circles: p.circles[:], rays: p.rays[:]}
+	edges, err := bindCrossingCircleEnvelopeContours(solid, assembly, part, p.proof.Nodes[:], h.CircleEdges[:], h.Junctions[:])
+	if err != nil {
+		return h, err
+	}
+	h.ParabolaEdges = [twoCrossingCirclesParabolaPieces]int(edges[:twoCrossingCirclesParabolaPieces])
+	return h, nil
+}
+
+func bindCrossingCircleEnvelopeFaces(ctx context.Context, solid Solid, assembly SplineGraphBooleanHistory,
+	sources [3]*geom.BSplineSurface, op parametric.BooleanOp, regions []openGraphRegion,
+	witnesses [][2]*big.Rat, owners []int) error {
+	if solid.faces[assembly.Base].Surface != sources[0] || !solid.faces[assembly.Base].Reversed {
+		return geom.ErrConvergence
+	}
+	if err := validateGraphEnvelopeSplineTrims(ctx, solid.faces[assembly.Base:assembly.Base+1]); err != nil {
+		return err
+	}
+	for i, region := range regions {
 		if (region.sign > 0) != (op == parametric.Union) {
-			h.RoofOwners[i] = 1
+			owners[i] = 1
 		}
-		if err := bindParabolaCirclesRegionFace(ctx, solid.faces[i], sources[1+h.RoofOwners[i]], false, region, p.proof.RegionWitnesses[i]); err != nil {
-			return h, fmt.Errorf("trimmed: original roof region %d: %w", i, err)
+		if err := bindParabolaCirclesRegionFace(ctx, solid.faces[i], sources[1+owners[i]], false, region, witnesses[i]); err != nil {
+			return fmt.Errorf("trimmed: original roof region %d: %w", i, err)
 		}
 	}
-	for _, id := range h.WallFaces {
+	for _, id := range assembly.WallFaces {
 		wall := solid.faces[id]
 		if len(wall.Outer) != 4 {
-			return h, geom.ErrConvergence
+			return geom.ErrConvergence
 		}
 		bottom, hasBase := graphWallSourceTrim(wall.Outer[0].Curve, false, false)
 		top, hasRoof := graphWallSourceTrim(wall.Outer[2].Curve, true, false)
 		if !hasBase || !hasRoof || bottom.surface != sources[0] || bottom.a != top.a || bottom.b != top.b {
-			return h, geom.ErrConvergence
+			return geom.ErrConvergence
 		}
 		ownerFound := false
-		for i, region := range p.regions[:2] {
+		for i, region := range regions[:2] {
 			for _, piece := range region.loop {
-				if piece.side >= 0 && top.a == piece.a && top.b == piece.b && top.surface == sources[1+h.RoofOwners[i]] {
+				if piece.side >= 0 && top.a == piece.a && top.b == piece.b && top.surface == sources[1+owners[i]] {
 					ownerFound = true
 				}
 			}
 		}
 		if !ownerFound {
-			return h, geom.ErrConvergence
+			return geom.ErrConvergence
 		}
 	}
-	edges, err := bindParabolaCircleCrossingEdges(solid, assembly.ContourEdges, p.pieces)
+	return nil
+}
+
+func bindCrossingCircleEnvelopeContours(solid Solid, assembly SplineGraphBooleanHistory, part parabolaCrossingCirclesPartition,
+	nodes [][2]geom.ParabolaCircleCrossing, circleEdges [][]int, junctions [][2]ParabolaCircleCrossingsJunction) ([]int, error) {
+	edges, err := bindParabolaCircleCrossingEdges(solid, assembly.ContourEdges, part.pieces)
 	if err != nil {
-		return h, err
+		return nil, err
 	}
-	h.ParabolaEdges = [twoCrossingCirclesParabolaPieces]int(edges[:twoCrossingCirclesParabolaPieces])
-	for i, ring := range p.circles {
+	for i, ring := range part.circles {
 		for _, piece := range ring {
-			h.CircleEdges[i] = append(h.CircleEdges[i], edges[piece])
+			circleEdges[i] = append(circleEdges[i], edges[piece])
 		}
-		for j, node := range p.proof.Nodes[i] {
-			rays := p.rays[i][j]
+		for j, node := range nodes[i] {
+			rays := part.rays[i][j]
 			ordered := [4]int{edges[rays[0]], edges[rays[1]], edges[rays[2]], edges[rays[3]]}
-			h.Junctions[i][j], err = bindTwoCrossingCirclesEnvelopeJunction(solid, node, ordered)
+			junctions[i][j], err = bindTwoCrossingCirclesEnvelopeJunction(solid, node, ordered)
 			if err != nil {
-				return h, err
+				return nil, err
 			}
 		}
 	}
-	return h, nil
+	return edges, nil
 }
 
 func bindTwoCrossingCirclesEnvelopeJunction(solid Solid, node geom.ParabolaCircleCrossing,
@@ -198,17 +220,17 @@ func bindTwoCrossingCirclesEnvelopeJunction(solid Solid, node geom.ParabolaCircl
 
 const nativeParabolaTwoCrossingCirclesEnvelope = "trimmed-spline-graph-parabola-two-crossing-circles-envelope"
 
-type parabolaTwoCrossingCirclesEnvelopeRecipe struct {
-	Version   int                                       `json:"version"`
-	Kind      string                                    `json:"kind"`
-	Sources   []json.RawMessage                         `json:"sources"`
-	Axis      *int                                      `json:"freeAxis"`
-	Operation *parametric.BooleanOp                     `json:"operation"`
-	Tolerance float64                                   `json:"tolerance"`
-	Ledger    *parabolaTwoCrossingCirclesEnvelopeLedger `json:"ledger"`
+type parabolaCrossingCirclesEnvelopeRecipe struct {
+	Version   int                                    `json:"version"`
+	Kind      string                                 `json:"kind"`
+	Sources   []json.RawMessage                      `json:"sources"`
+	Axis      *int                                   `json:"freeAxis"`
+	Operation *parametric.BooleanOp                  `json:"operation"`
+	Tolerance float64                                `json:"tolerance"`
+	Ledger    *parabolaCrossingCirclesEnvelopeLedger `json:"ledger"`
 }
 
-type parabolaTwoCrossingCirclesEnvelopeLedger struct {
+type parabolaCrossingCirclesEnvelopeLedger struct {
 	Base          *int                                        `json:"base"`
 	RoofFaces     []int                                       `json:"roofFaces"`
 	RoofOwners    []int                                       `json:"roofOwners"`
@@ -218,10 +240,15 @@ type parabolaTwoCrossingCirclesEnvelopeLedger struct {
 	Junctions     [][]parabolaCircleCrossingsEnvelopeJunction `json:"junctions"`
 }
 
-func twoCrossingCirclesEnvelopeLedgerFor(h ParabolaTwoCrossingCirclesHistory) *parabolaTwoCrossingCirclesEnvelopeLedger {
-	out := &parabolaTwoCrossingCirclesEnvelopeLedger{Base: &h.Base, RoofFaces: h.RoofFaces[:], RoofOwners: h.RoofOwners[:],
-		ParabolaEdges: h.ParabolaEdges[:], CircleEdges: h.CircleEdges[:], WallFaces: h.WallFaces[:]}
-	for _, circle := range h.Junctions {
+func twoCrossingCirclesEnvelopeLedgerFor(h ParabolaTwoCrossingCirclesHistory) *parabolaCrossingCirclesEnvelopeLedger {
+	return crossingCirclesEnvelopeLedgerFor(h.Base, h.RoofFaces[:], h.RoofOwners[:], h.ParabolaEdges[:], h.WallFaces[:], h.CircleEdges[:], h.Junctions[:])
+}
+
+func crossingCirclesEnvelopeLedgerFor(base int, roofFaces, owners, parabolaEdges, walls []int, circleEdges [][]int,
+	junctions [][2]ParabolaCircleCrossingsJunction) *parabolaCrossingCirclesEnvelopeLedger {
+	out := &parabolaCrossingCirclesEnvelopeLedger{Base: &base, RoofFaces: roofFaces, RoofOwners: owners,
+		ParabolaEdges: parabolaEdges, CircleEdges: circleEdges, WallFaces: walls}
+	for _, circle := range junctions {
 		nodes := make([]parabolaCircleCrossingsEnvelopeJunction, 0, len(circle))
 		for _, node := range circle {
 			nodes = append(nodes, parabolaCircleCrossingsEnvelopeJunction{Vertex: &node.Vertex, Rays: node.Rays[:], Sectors: node.Sectors[:]})
@@ -241,7 +268,7 @@ func (r *ParabolaTwoCrossingCirclesEnvelope) WriteJSON(ctx context.Context, w io
 	if err != nil {
 		return err
 	}
-	return writePolynomialGraphRecipe(ctx, w, parabolaTwoCrossingCirclesEnvelopeRecipe{
+	return writePolynomialGraphRecipe(ctx, w, parabolaCrossingCirclesEnvelopeRecipe{
 		Version: 1, Kind: nativeParabolaTwoCrossingCirclesEnvelope, Sources: src, Axis: &r.axis, Operation: &r.op,
 		Tolerance: r.tolerance, Ledger: twoCrossingCirclesEnvelopeLedgerFor(r.history),
 	})
@@ -251,7 +278,7 @@ func (r *ParabolaTwoCrossingCirclesEnvelope) WriteJSON(ctx context.Context, w io
 // and re-proves every source and all four vertex links before publication.
 func ReadParabolaTwoCrossingCirclesEnvelopeJSON(ctx context.Context, in io.Reader, limits JSONLimits,
 	o ParabolaCircleGraphOptions) (*ParabolaTwoCrossingCirclesEnvelope, error) {
-	var recipe parabolaTwoCrossingCirclesEnvelopeRecipe
+	var recipe parabolaCrossingCirclesEnvelopeRecipe
 	if err := readPolynomialGraphRecipe(ctx, in, limits, &recipe); err != nil {
 		return nil, err
 	}

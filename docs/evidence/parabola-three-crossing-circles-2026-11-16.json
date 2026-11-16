@@ -6,11 +6,50 @@
   "main_race_log": "parabola-three-crossing-circles-main-race.jsonl",
   "main_race_sha256": "460821ede43b9b47d5ba4c52bd4721af47bff3ac835ad64298472cdc2657233c",
   "main_race_seconds": 82.266,
-  "named_passes": ["TestParabolaThreeCrossingCirclesSource", "TestParabolaThreeCrossingCirclesSourceRefusals"],
+  "named_passes": [
+    "TestParabolaThreeCrossingCirclesSource",
+    "TestParabolaThreeCrossingCirclesSourceRefusals"
+  ],
   "variants": 8,
-  "per_variant": {"original_junctions": 6, "directed_rays": 24, "cyclic_sectors": 24, "signed_regions": 8},
-  "independent_central_crossing_stations": ["3/8", "5/8"],
+  "per_variant": {
+    "original_junctions": 6,
+    "directed_rays": 24,
+    "cyclic_sectors": 24,
+    "signed_regions": 8
+  },
+  "independent_central_crossing_stations": [
+    "3/8",
+    "5/8"
+  ],
   "independent_central_quartic_minimum": "15/16",
-  "independent_material_references": {"common": 1.99296076130920104, "fuse": 2.21604990559600581, "smallest_positive_layer": 1.07368103148e-7},
-  "prior_native_receipts_unchanged": 18
+  "independent_material_references": {
+    "common": 1.992960761309201,
+    "fuse": 2.2160499055960057,
+    "smallest_positive_layer": 1.07368103148e-07
+  },
+  "prior_native_receipts_unchanged": 18,
+  "native_common_fuse": {
+    "isolated_revision": "65595b7d78ffd2635d88e9bd7cf6a663c5cd72f5",
+    "patch_sha256": "f7eaa9eb8ff37c91ed1f8caafae20c9f0000f159b2a7b6c9c6779f824d933e40",
+    "main_base": "955964b6",
+    "main_log": "parabola-three-crossing-envelope-main.jsonl",
+    "main_log_sha256": "1e159a8ff9a3a06636a71155c2b3780fc77f7ed171ac877d0fe5efce7e0f93b6",
+    "main_seconds": 179.991,
+    "isolated_seconds": 126.17,
+    "explicit_variant_count": 16,
+    "per_solid": {
+      "faces": 15,
+      "edges": 40,
+      "vertices": 27,
+      "exact_four_ray_junctions": 6,
+      "original_contour_edges": 22,
+      "source_walls": 6
+    },
+    "maximum_absolute_independent_error": {
+      "volume": 4.49e-14,
+      "area": 3.02e-11
+    },
+    "prior_native_receipts_unchanged": 18,
+    "negative_original_station": "7/24"
+  }
 }

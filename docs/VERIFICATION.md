@@ -188,6 +188,11 @@ passes both axes and original operand orders for reflected and unreflected
 profiles. All eight signed regions agree with independent exact integrals.
 Missing, tangent and irrational crossings, overlap, wall contact and
 changed coefficients refuse. Prior native receipts retain their bytes.
+The same audit now covers 16 native Common and Fuse cases: all 15 faces,
+40 edges, 27 vertices and six original junction fans per shell. Native
+material and physical areas follow independent original source integrals.
+The exact nonbinary junction at 7/24 refuses native vertices, and recipe
+replay verifies original owners without changing 18 predecessor receipts.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same

@@ -38,19 +38,54 @@ func proveParabolaTwoCrossingCirclesPartition(ctx context.Context, sources [3]*g
 
 func buildParabolaTwoCrossingCirclesPartition(proof *geom.SplineGraphParabolaTwoCrossingCircles) (p parabolaTwoCrossingCirclesPartition, err error) {
 	p.proof = proof
-	axis := proof.FreeAxis
+	part, err := buildParabolaCrossingCirclesPartition(crossingCirclePartitionSource{
+		axis: proof.FreeAxis, parabola: proof.ParabolaControls, circles: proof.Circles[:], radii: proof.CircleRadii[:],
+		order: proof.CircleOrder[:], nodes: proof.Nodes[:], ccw: proof.CircleCCWRays[:], signs: proof.RegionSides[:],
+	})
+	if err != nil {
+		return p, err
+	}
+	p.pieces, p.circles, p.rays, p.regions = part.pieces, [2][]int(part.circles), [2][2][4]int(part.rays), [6]openGraphRegion(part.regions)
+	return p, nil
+}
+
+type crossingCirclePartitionSource struct {
+	axis     int
+	parabola [3][2]*big.Rat
+	circles  []geom.GraphContactCircle
+	radii    []*big.Rat
+	order    []int
+	nodes    [][2]geom.ParabolaCircleCrossing
+	ccw      [][2]int
+	signs    []int
+}
+
+type parabolaCrossingCirclesPartition struct {
+	pieces  []openSectionPiece
+	circles [][]int
+	rays    [][2][4]int
+	regions []openGraphRegion
+}
+
+func buildParabolaCrossingCirclesPartition(proof crossingCirclePartitionSource) (p parabolaCrossingCirclesPartition, err error) {
+	p.circles = make([][]int, len(proof.circles))
+	p.rays = make([][2][4]int, len(proof.circles))
+	p.regions = make([]openGraphRegion, len(proof.signs))
+	axis := proof.axis
 	var control [3][3]*big.Rat
-	for i, c := range proof.ParabolaControls {
+	for i, c := range proof.parabola {
 		control[i] = [3]*big.Rat{c[0], c[1], big.NewRat(1, 1)}
 	}
 	parabola, err := NewExactQuadraticUV(control)
 	if err != nil {
 		return p, err
 	}
-	stations := [twoCrossingCirclesParabolaPieces + 1]*big.Rat{0: new(big.Rat), 7: big.NewRat(1, 1)}
-	for order, i := range proof.CircleOrder {
+	parabolaPieces := 3*len(proof.circles) + 1
+	stations := make([]*big.Rat, parabolaPieces+1)
+	stations[0], stations[parabolaPieces] = new(big.Rat), big.NewRat(1, 1)
+	for order, i := range proof.order {
 		rank := 3*order + 1
-		for j, node := range proof.Nodes[i] {
+		for j, node := range proof.nodes[i] {
 			position := rank + 2*j
 			stations[position] = node.Parameters[axis]
 			p.rays[i][j][0], p.rays[i][j][2] = position, position-1
@@ -60,7 +95,7 @@ func buildParabolaTwoCrossingCirclesPartition(proof *geom.SplineGraphParabolaTwo
 		// parabola in its original clock at an exact midpoint.
 		stations[rank+1] = new(big.Rat).Quo(new(big.Rat).Add(stations[rank], stations[rank+2]), big.NewRat(2, 1))
 	}
-	for i := range twoCrossingCirclesParabolaPieces {
+	for i := range parabolaPieces {
 		part, err := parabola.Restrict(stations[i], stations[i+1])
 		if err != nil {
 			return p, fmt.Errorf("trimmed: original parabola segment %d: %w", i, err)
@@ -68,9 +103,9 @@ func buildParabolaTwoCrossingCirclesPartition(proof *geom.SplineGraphParabolaTwo
 		p.pieces = append(p.pieces, openSectionPiece{a: part.ends[0], b: part.ends[1], c: part, side: -1})
 	}
 	var exterior [2][]openSectionPiece
-	for order, i := range proof.CircleOrder {
+	for order, i := range proof.order {
 		chord := p.pieces[3*order+1 : 3*order+3]
-		arcs, nodes, err := exactTwoCrossingCircleRing(proof, i, chord[0].b)
+		arcs, nodes, err := exactCrossingCircleRing(proof.circles[i], proof.radii[i], proof.nodes[i], chord[0].b)
 		if err != nil {
 			return p, fmt.Errorf("trimmed: original circle %d: %w", i, err)
 		}
@@ -79,7 +114,7 @@ func buildParabolaTwoCrossingCirclesPartition(proof *geom.SplineGraphParabolaTwo
 			p.circles[i] = append(p.circles[i], offset+j)
 		}
 		for j, n := range nodes {
-			direction := proof.CircleCCWRays[i][j]
+			direction := proof.ccw[i][j]
 			p.rays[i][j][direction] = offset + n
 			p.rays[i][j][(direction+2)%4] = offset + (n+len(arcs)-1)%len(arcs)
 		}
@@ -103,7 +138,7 @@ func buildParabolaTwoCrossingCirclesPartition(proof *geom.SplineGraphParabolaTwo
 				closing = reversedTwoCrossingCircleChain(chord)
 			}
 			cap := 2 + 2*i + side
-			p.regions[cap] = openGraphRegion{loop: append(slices.Clone(chain), closing...), sign: proof.RegionSides[cap]}
+			p.regions[cap] = openGraphRegion{loop: append(slices.Clone(chain), closing...), sign: proof.signs[cap]}
 			if j == 1 {
 				chain = reversedTwoCrossingCircleChain(chain)
 			}
@@ -112,7 +147,7 @@ func buildParabolaTwoCrossingCirclesPartition(proof *geom.SplineGraphParabolaTwo
 		}
 	}
 	for side, chain := range exterior {
-		chain = append(chain, p.pieces[twoCrossingCirclesParabolaPieces-1])
+		chain = append(chain, p.pieces[parabolaPieces-1])
 		if side == axis {
 			chain = reversedTwoCrossingCircleChain(chain)
 		}
@@ -123,7 +158,7 @@ func buildParabolaTwoCrossingCirclesPartition(proof *geom.SplineGraphParabolaTwo
 		if len(walls) != 3 {
 			return p, geom.ErrConvergence
 		}
-		p.regions[side] = openGraphRegion{loop: append(chain, walls...), sign: proof.RegionSides[side]}
+		p.regions[side] = openGraphRegion{loop: append(chain, walls...), sign: proof.signs[side]}
 	}
 	for _, region := range p.regions {
 		for i, piece := range region.loop {
@@ -163,10 +198,8 @@ func twoCrossingCircleArcSide(piece openSectionPiece, parabola ExactQuadraticUV,
 	}
 }
 
-func exactTwoCrossingCircleRing(proof *geom.SplineGraphParabolaTwoCrossingCircles, index int, chordMidpoint geom.Vec2) (
-	[]openSectionPiece, [2]int, error) {
-	circle := proof.Circles[index]
-	r := proof.CircleRadii[index]
+func exactCrossingCircleRing(circle geom.GraphContactCircle, r *big.Rat, junctions [2]geom.ParabolaCircleCrossing,
+	chordMidpoint geom.Vec2) ([]openSectionPiece, [2]int, error) {
 	center := circle.Center
 	type anchor struct {
 		point, radial [2]*big.Rat
@@ -182,7 +215,7 @@ func exactTwoCrossingCircleRing(proof *geom.SplineGraphParabolaTwoCrossingCircle
 		}
 		anchors = append(anchors, a)
 	}
-	for j, node := range proof.Nodes[index] {
+	for j, node := range junctions {
 		a := anchor{point: node.Parameters, node: j}
 		for i := range a.radial {
 			a.radial[i] = new(big.Rat).Sub(a.point[i], center[i])
