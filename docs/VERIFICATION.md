@@ -93,6 +93,11 @@ Directed contour composition independently preserves the shared
 knot at original stations 3/8 and 3/13. A modified display ledger does
 not change the sealed traversal; unsupported chord approximations and
 insufficient shared work leave the output unpublished.
+Representable native contour imprint also passes both projection axes.
+The two original section edges join at (1/2,3/8,19/16). Both fragments
+of each owner retain opposite original coedge directions; only the
+owner with the interior knot acquires original exterior subranges.
+Nonbinary native UV and a short imprint budget refuse atomically.
 The [ordinary exact spline jet audit](evidence/exact-spline-rational-evaluation-2026-11-16.json)
 passes a nonbinary station, a right-hand interior derivative and a
 left-hand final derivative. Its outward boxes and short work refusal

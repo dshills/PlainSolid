@@ -15,6 +15,9 @@ macOS race on `52118ad9` is still running.
 The [PlainCAD run on `9f95a188`](evidence/plaincad-main-9f95a188-2026-11-16.json)
 also passed all eight gates, and its matching Go run remains in progress.
 The newer `d42af917` Go and PlainCAD runs are also underway.
+`d42af917` vet and Linux/Windows amd64 cross-builds passed. The full
+Go run on `f11354d2` has started; its PlainCAD run follows once the
+prior browser gates release the shared test ports.
 Type-144 exchange now independently qualifies convex affine outer loops
 on one U-periodic cell, including all original diagonal pcurves, model
 coedges and their cubic composition. Up to two strictly contained
@@ -243,6 +246,10 @@ roof, discard the canceled base and preserve exact side walls. They
 reopen byte-identically and certify an embedded original-face display.
 A complete contact contour can also preserve all exact analytic
 section pieces and both original clocks across a source knot.
+For exactly representable endpoints, both original faces now split
+their native wires across that full contour and retain the original
+model pieces and boundary coedge ranges. Shared material sewing is a
+separate stage.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

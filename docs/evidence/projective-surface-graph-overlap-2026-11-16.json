@@ -631,5 +631,33 @@
       "single work budget across both pieces",
       "unsupported parabolic common-chart chord produces no partial result"
     ]
+  },
+  "native_contour_imprint": {
+    "main_base": "5365843a",
+    "includes_sealed_contour_patch": "bb03de7c",
+    "main_race_log": "projective-contour-imprint-final-race.jsonl",
+    "main_race_sha256": "a4d526929fb844f9d140ada79488114a6e9c883babe881a8796a4d48d88b7ae3",
+    "main_race_seconds": {
+      "geom": 1.368,
+      "brep/trimmed": 44.358
+    },
+    "axis_orders": 2,
+    "fragments": 4,
+    "section_pieces_per_fragment": 2,
+    "shared_knot_model": [
+      "1/2",
+      "3/8",
+      "19/16"
+    ],
+    "native_wire_lengths": [
+      6,
+      6,
+      5,
+      5
+    ],
+    "refusals": [
+      "one-short shared work",
+      "nonbinary second-owner UV endpoint"
+    ]
   }
 }
