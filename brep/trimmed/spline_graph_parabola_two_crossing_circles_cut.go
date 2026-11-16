@@ -170,7 +170,13 @@ func bindCrossingCircleCutRings(edges [][]int, rings [][]int, sourceToNative []i
 
 func bindCrossingCircleCutComponent(ctx context.Context, part Solid, assembly OpenSectionHistory,
 	pieces []openSectionPiece, region int, reg openGraphRegion, witness [2]*big.Rat,
-	roofs [2]*geom.BSplineSurface, opts geom.GraphPointContactOptions) (mapped []int, err error) {
+	roofs [2]*geom.BSplineSurface, opts geom.GraphPointContactOptions) ([]int, error) {
+	return bindCrossingCircleCutComponentWithHole(ctx, part, assembly, pieces, region, reg, witness, roofs, opts, region < 2)
+}
+
+func bindCrossingCircleCutComponentWithHole(ctx context.Context, part Solid, assembly OpenSectionHistory,
+	pieces []openSectionPiece, region int, reg openGraphRegion, witness [2]*big.Rat, roofs [2]*geom.BSplineSurface,
+	opts geom.GraphPointContactOptions, allowExactCircleHole bool) (mapped []int, err error) {
 	roofFaces := [2]int{assembly.SplineFace, assembly.PlaneFace}
 	wallCount, additionalVertices, additionalEdges := 0, 0, 0
 	if region < 2 {
@@ -178,7 +184,7 @@ func bindCrossingCircleCutComponent(ctx context.Context, part Solid, assembly Op
 	}
 	count := len(reg.loop) - wallCount
 	holes := len(reg.holes)
-	if holes > 1 || (holes == 1 && (region >= 2 || len(reg.holes[0]) != 4)) {
+	if holes > 1 || (holes == 1 && (!allowExactCircleHole || len(reg.holes[0]) != 4)) {
 		return nil, geom.ErrConvergence
 	}
 	topo := part.Topology()

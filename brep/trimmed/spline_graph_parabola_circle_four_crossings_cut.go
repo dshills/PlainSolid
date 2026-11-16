@@ -113,7 +113,19 @@ func CutParabolaCircleFourCrossingsSplineGraphs(ctx context.Context, base, a, b 
 		return nil, geom.ErrConvergence
 	}
 	binding.material.components = out.components
-	binding.used = make([][]int, len(out.components))
+	out.contacts, err = bindParabolaCircleFourCrossingCutContacts(p, binding, regionComponent[:])
+	if err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func bindParabolaCircleFourCrossingCutContacts(p parabolaCircleFourCrossingPartition, binding crossingCircleCutBinding,
+	regionComponent []int) (contacts [4]ParabolaTwoCrossingCirclesCutContact, err error) {
+	binding.used = make([][]int, len(binding.material.components))
 	for i, node := range p.proof.Nodes {
 		pair := [2]int{-1, -1}
 		count := 0
@@ -123,27 +135,21 @@ func CutParabolaCircleFourCrossingsSplineGraphs(ctx context.Context, base, a, b 
 				continue
 			}
 			if count >= len(pair) {
-				return nil, geom.ErrConvergence
+				return contacts, geom.ErrConvergence
 			}
 			pair[count] = id
 			count++
 		}
 		if count != len(pair) || pair[0] == pair[1] {
-			return nil, geom.ErrConvergence
+			return contacts, geom.ErrConvergence
 		}
 		if pair[0] > pair[1] {
 			pair[0], pair[1] = pair[1], pair[0]
 		}
-		out.contacts[i], err = binding.contact(node, p.rays[i], pair)
+		contacts[i], err = binding.contact(node, p.rays[i], pair)
 		if err != nil {
-			return nil, fmt.Errorf("trimmed: four crossings of one circle Cut contact %d: %w", i, err)
+			return contacts, fmt.Errorf("trimmed: four crossings of one circle Cut contact %d: %w", i, err)
 		}
 	}
-	if err := binding.material.validateContactIdentities(); err != nil {
-		return nil, err
-	}
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	return out, nil
+	return contacts, binding.material.validateContactIdentities()
 }
