@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "scope": "Exact conical grid-triangle arithmetic and two fresh typed Chromium workers through ordinary STEP.",
+  "geometryOptimizationCommit": "24f7d1a1476213edf1fd93eac9d82eb13f7e7f89",
+  "audit": {
+    "status": "passed",
+    "kernel": {
+      "revision": "e9effd57dbf7731c769e88d753e18a24e80ea946",
+      "manifestEntries": 2905,
+      "byteIdentical": 2905
+    },
+    "app": {
+      "revision": "efae4d2ffa6065875d3a76fc5926f358b5936a29",
+      "manifestEntries": 849,
+      "byteIdentical": 849,
+      "stagedVerified": 849,
+      "providerLabelAdaptations": 55,
+      "replacedKernelAdapter": "src/cad/kernel/OpenCascadeKernel.ts",
+      "additionalRootFilesVerified": [
+        "vite.config.ts",
+        "playwright.config.ts",
+        "tsconfig.json",
+        "tsconfig.e2e.json",
+        "package.json",
+        "package-lock.json"
+      ]
+    },
+    "supplement": {
+      "manifestEntries": 4,
+      "byteIdentical": 4,
+      "stagedVerified": 4,
+      "pageSha256": "5dbe4c6b755e17a1bef8bd4ef40128300dd248380b861861c19d061741aace78"
+    },
+    "wasmSha256": "25570239e266d6623504901028111f7d5c43fc4e4bf330eecc66eba4e625e9b7",
+    "wasmRuntimeSha256": "0c949f4996f9a89698e4b5c586de32249c3b69b7baadb64d220073cc04acba14",
+    "playwright": {
+      "startTime": "2026-11-16T04:32:27.779Z",
+      "duration": 41470.244,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  },
+  "worker": {
+    "sourceSHA256": "af7b2221489a2edef6c4535233c8786826519787e9e326639e984bea0bd871a9",
+    "meshSHA256": "1958b4d1365d8c2fa1d09f838601e4dc4139aeb5f18fe83d77676414892d1edb",
+    "linearDeflection": 0.05,
+    "angularDeflection": 0.2,
+    "workers": [
+      "/src/cad/kernel/plainSolidConicalBoreProbe.ts",
+      "/src/cad/kernel/plainSolidConicalBoreProbe.ts"
+    ],
+    "wasmLoads": [
+      200,
+      200
+    ],
+    "occtRequests": [],
+    "display": {
+      "triangles": 10496,
+      "vertices": 5248,
+      "edges": 15744,
+      "eulerCharacteristic": 0,
+      "signedVolume": 2277.843268907193,
+      "source": "plainsolid",
+      "operation": "stepImport",
+      "geometryAssertions": {
+        "valid": true,
+        "volume": 2282.401400976394,
+        "surfaceArea": 1182.6440976399517,
+        "solidCount": 1
+      }
+    },
+    "originalBytes": 6973,
+    "nativeProof": {
+      "valid": true,
+      "volume": 2282.401400976394,
+      "surfaceArea": 1182.6440976399517,
+      "solidCount": 1,
+      "bounds": {
+        "min": [
+          -12.250000001000176,
+          -10.250000001000204,
+          -1.0000852651282915e-09
+        ],
+        "max": [
+          12.250000001000176,
+          14.250000001000204,
+          6.000000001000086
+        ]
+      }
+    },
+    "roundedRejection": "PlainSolid UNSUPPORTED: STEP source is not a supported complete planar or analytic solid",
+    "meshMs": 24621.5,
+    "importMs": 3182.6999999955297,
+    "exportMs": 3077.5,
+    "reopenMs": 3121.39999999851,
+    "reopenedExportMs": 3047.6999999955297,
+    "workflowMs": 38075.80000000447
+  },
+  "pairedNodeTiming": [
+    {
+      "family": "conical",
+      "triangles": 10496,
+      "vertices": 5248,
+      "edges": 15744,
+      "eulerCharacteristic": 0,
+      "volume": 2282.401400976394,
+      "signedVolume": 2277.843268907193,
+      "meshMs": 72482.979708,
+      "meshSHA256": "1958b4d1365d8c2fa1d09f838601e4dc4139aeb5f18fe83d77676414892d1edb",
+      "originalSHA256": "af7b2221489a2edef6c4535233c8786826519787e9e326639e984bea0bd871a9",
+      "path": ".worktrees/qualification/2026-11-15/conical-bore-default-baseline-wasm.log",
+      "sha256": "1b6195b0657b167cee8677328134bee958f8c668985e57a1a4b18fa27ebcfd05"
+    },
+    {
+      "family": "conical",
+      "triangles": 10496,
+      "vertices": 5248,
+      "edges": 15744,
+      "eulerCharacteristic": 0,
+      "volume": 2282.401400976394,
+      "signedVolume": 2277.843268907193,
+      "meshMs": 36013.627625,
+      "meshSHA256": "1958b4d1365d8c2fa1d09f838601e4dc4139aeb5f18fe83d77676414892d1edb",
+      "originalSHA256": "af7b2221489a2edef6c4535233c8786826519787e9e326639e984bea0bd871a9",
+      "path": ".worktrees/qualification/2026-11-15/conical-bore-default-grid-fast-repeat-wasm.log",
+      "sha256": "8d2bde138714109d114f22af51970be74bce12ef2d107bce31c075225d8cfcb8"
+    }
+  ],
+  "worktreeFiles": {
+    "readiness.json": {
+      "path": ".worktrees/qualification/2026-11-15/plaincad-conical-bore-grid-chromium/readiness.json",
+      "sha256": "42c81f8295e94c8a6d238c91dcc2579163d2d725ea7a4d28f43531b6bf8c921d"
+    },
+    "playwright-results.json": {
+      "path": ".worktrees/qualification/2026-11-15/plaincad-conical-bore-grid-chromium/playwright-results.json",
+      "sha256": "2bbfcec26c97b8f6f4e07bd00a3d6ada2062a01211ce56dc7dca05fee5e9d4fa"
+    },
+    "worker-proof.json": {
+      "path": ".worktrees/qualification/2026-11-15/plaincad-conical-bore-grid-chromium/worker-proof.json",
+      "sha256": "60ca20d096b4c7d21dd4633e11f38f20c0bf33dddd0a581eebf34001574f703e"
+    },
+    "source-manifest-audit.json": {
+      "path": ".worktrees/qualification/2026-11-15/plaincad-conical-bore-grid-chromium/source-manifest-audit.json",
+      "sha256": "eeaddb3acab0e83148932e4a3b9a83afb554a3d974cc14aae427d347034c332b"
+    }
+  },
+  "mainRace": {
+    "path": ".worktrees/qualification/2026-11-15/conical-fast-main-sealed-race.jsonl",
+    "sha256": "db832f5a1cbf7e7acc6d8a4cd9692a8b255bb38e58caa8cf8d7db8eef0ae73b0",
+    "elapsedSeconds": 141.012
+  }
+}

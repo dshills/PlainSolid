@@ -323,8 +323,10 @@ replays the same native body and both formats now expose a certified
 distance and angular display path on their authenticated geometry.
 The [ordinary PlainCAD conical route](evidence/conical-bore-angular-plaincad-2026-11-15.json)
 now uses the exact mesh and supports byte-preserving STEP replay in the
-original placement. At the proved default tolerance it took 65 seconds
-in a fresh Go WASM dispatcher.
+original placement. An [exact grid optimization and typed Chromium gate](evidence/plaincad-conical-bore-grid-chromium-2026-11-15.json)
+now qualifies its ordinary 0.05 mm and 0.2-radian workflow. The fresh
+typed mesh took 24.6 seconds, and the full workflow with a fresh reopen
+took 38.1 seconds.
 The [independent mixed AP242 assembly](evidence/mixed-conical-ap242-assembly-2026-11-15.json)
 uses a shared conical part twice and the chamfered annulus once. Both
 local parts re-prove byte-identically to their standalone native bodies,

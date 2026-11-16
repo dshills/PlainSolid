@@ -469,3 +469,6 @@ node tools/plaincad/proved-revolution-step.mjs /tmp/plaincad-revolution.wasm "$(
 
 Use `annular` for the chamfered annulus control. The conical probe checks
 0.05 mm distance with a 0.2-radian source normal turn request.
+Use `--suite development --conical-bore-worker-fixture` with the pinned
+PlainCAD checkout for ordinary import, display, export and fresh worker
+reopen. It checks exact source replay and closed signed display incidence.

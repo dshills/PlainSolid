@@ -58,6 +58,15 @@ func rationalBiquadraticRationalCorrespondenceBound(p *geom.SurfacePatch, uv [3]
 		return nil, false
 	}
 	d := p.Domain()
+	if half, grid := rationalBiquadraticGridHalf(d, uv); grid {
+		if bound, ok := rationalBiquadraticGridTriangleBound(coefficients, minimumWeight, model, half); ok {
+			return bound, true
+		}
+	}
+	return rationalBiquadraticGeneralTriangleBound(d, coefficients, minimumWeight, uv, model), true
+}
+
+func rationalBiquadraticGeneralTriangleBound(d geom.ParameterRectangle, coefficients [3][3][4]*big.Rat, minimumWeight *big.Rat, uv [3][2]*big.Rat, model [3][3]*big.Rat) *big.Rat {
 	du := new(big.Rat).Sub(ratInset(d.UMax), ratInset(d.UMin))
 	dv := new(big.Rat).Sub(ratInset(d.VMax), ratInset(d.VMin))
 	var powers [2][3]trianglePower5
@@ -148,7 +157,7 @@ func rationalBiquadraticRationalCorrespondenceBound(p *geom.SurfacePatch, uv [3]
 			}
 		}
 	}
-	return bound.Quo(bound, new(big.Rat).Mul(minimumWeight, minimumWeight)), true
+	return bound.Quo(bound, new(big.Rat).Mul(minimumWeight, minimumWeight))
 }
 
 // Read-only exact power-to-Bernstein factors for total degree five. Receivers

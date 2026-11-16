@@ -842,6 +842,16 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   exported and reopened the exact original STEP bytes. The preceding
   annular bridge returned its same 1,024 facets. Main's sealed native
   and bridge race groups passed in 150.430 and 213.927 seconds.
+  The [exact grid arithmetic and typed worker](evidence/plaincad-conical-bore-grid-chromium-2026-11-15.json)
+  retain that complete mesh payload. The paired same-driver Node/WASM
+  timing improves from 72.483 to 36.014 seconds. Two freshly loaded
+  Chromium workers complete the ordinary workflow in 38.076 seconds,
+  including a 24.622-second mesh. Both export the 6,973 original STEP
+  bytes and the reopened material and bounds match. The raw rounded
+  file remains refused. There are no OCCT asset requests. The worktree
+  audit verifies all 2,905 kernel and 849 original app manifest files.
+  Main's sealed exact grid, conical display and original distance race
+  passed in 141.012 seconds.
 - The [mixed AP242 source proof](evidence/mixed-conical-ap242-assembly-2026-11-15.json)
   keeps distinct conical uses `191` and `197` on one original local
   definition `35`. Chamfered definition `200` retains the exact rational
