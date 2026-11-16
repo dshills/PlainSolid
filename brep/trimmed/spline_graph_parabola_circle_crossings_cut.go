@@ -63,8 +63,12 @@ func (r *ParabolaCircleCrossingsCut) Contacts() [2]ParabolaCircleCrossingsCutCon
 	if r == nil || r.sources[0] == nil {
 		return [2]ParabolaCircleCrossingsCutContact{}
 	}
-	out := r.contacts
-	for i, contact := range r.contacts {
+	return cloneParabolaCrossingCutContacts(r.contacts)
+}
+
+func cloneParabolaCrossingCutContacts(contacts [2]ParabolaCircleCrossingsCutContact) [2]ParabolaCircleCrossingsCutContact {
+	out := contacts
+	for i, contact := range contacts {
 		for j, q := range contact.Parameters {
 			out[i].Parameters[j] = new(big.Rat).Set(q)
 		}
@@ -110,25 +114,39 @@ func CutParabolaCircleCrossingsSplineGraphs(ctx context.Context, base, a, b *geo
 		}
 		out.components[part], out.history[part], walls[part] = body, history, assembly
 	}
-	material := polynomialNodeCutMaterial{components: out.components[:]}
+	out.contacts, err = bindParabolaCrossingCutContacts(p, out.components[:], out.history, walls)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func bindParabolaCrossingCutContacts(p parabolaCircleCrossingsPartition, parts []Solid,
+	histories [2]ParabolaCircleCrossingsCutHistory, walls [2]OpenSectionHistory) (contacts [2]ParabolaCircleCrossingsCutContact, err error) {
+	material := polynomialNodeCutMaterial{components: parts}
 	for i, node := range p.proof.Nodes {
 		contact := ParabolaCircleCrossingsCutContact{Parameters: node.Parameters, Point: node.Point}
 		sourceRays := p.rayPieces(i)
 		var sectors [2]int
-		for part, region := range regions {
+		for part, history := range histories {
+			region := history.Region
 			sector := slices.Index(node.SectorRegions[:], region)
 			if sector < 0 {
-				return nil, geom.ErrConvergence
+				return contacts, geom.ErrConvergence
 			}
 			sectors[part] = sector
-			body, history := out.components[part], out.history[part]
+			body := parts[part]
 			v, err := exactParabolaCircleCrossingVertex(body, node.Point)
 			if err != nil {
-				return nil, err
+				return contacts, err
 			}
 			index, err := polynomialCutContactVertex(body, walls[part], body.vertices[v])
 			if err != nil || index != v {
-				return nil, geom.ErrConvergence
+				return contacts, geom.ErrConvergence
 			}
 			contact.Vertices[part] = v
 			native := [7]int{history.ParabolaEdges[0], history.ParabolaEdges[1], history.ParabolaEdges[2],
@@ -136,27 +154,24 @@ func CutParabolaCircleCrossingsSplineGraphs(ctx context.Context, base, a, b *geo
 			for j, ray := range [2]int{sector, (sector + 1) % 4} {
 				id := native[sourceRays[ray]]
 				if id < 0 || !matchesParabolaCircleCrossingRay(body, id, v, node.Rays[ray]) {
-					return nil, geom.ErrConvergence
+					return contacts, geom.ErrConvergence
 				}
 				contact.Rays[part][j] = id
 			}
 		}
 		if (sectors[0]+2)%4 != sectors[1] || (i > 0 &&
-			(contact.Vertices[0] == out.contacts[0].Vertices[0] || contact.Vertices[1] == out.contacts[0].Vertices[1])) {
-			return nil, geom.ErrConvergence
+			(contact.Vertices[0] == contacts[0].Vertices[0] || contact.Vertices[1] == contacts[0].Vertices[1])) {
+			return contacts, geom.ErrConvergence
 		}
-		out.contacts[i] = contact
+		contacts[i] = contact
 		material.contacts = append(material.contacts, TwoPolynomialNodeComponentContact{
 			Parameters: node.Parameters, Point: node.Point, Components: [2]int{0, 1}, Vertices: contact.Vertices,
 		})
 	}
 	if err := material.validateContactIdentities(); err != nil {
-		return nil, err
+		return contacts, err
 	}
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	return out, nil
+	return contacts, nil
 }
 
 func bindParabolaCircleCrossingsCutComponent(ctx context.Context, part Solid, assembly OpenSectionHistory,
@@ -166,18 +181,25 @@ func bindParabolaCircleCrossingsCutComponent(ctx context.Context, part Solid, as
 		CircleEdges: [4]int{-1, -1, -1, -1}, WallFaces: [3]int{-1, -1, -1}, DomainSides: [3]int{-1, -1, -1},
 	}
 	topo := part.Topology()
+	reg := p.regions[region]
+	holes := len(reg.holes)
 	want, wallCount := [3]int{3, 3, 2}, 0
 	if region < 2 {
 		want, wallCount = [3]int{9, 12, 5}, 3
 	}
+	if holes > 1 || (holes == 1 && (region >= 2 || len(reg.holes[0]) != 4)) {
+		return h, geom.ErrConvergence
+	}
+	want[0] += 4 * holes
+	want[1] += 4 * holes
 	sourceEdges := [4][]int{{0, 2, 5, 6}, {0, 2, 3, 4}, {1, 5, 6}, {1, 3, 4}}[region]
-	if ([3]int{topo.Vertices, topo.Edges, topo.Faces}) != want || topo.InnerWires != 0 ||
-		len(assembly.WallFaces) != wallCount || len(assembly.DomainSides) != wallCount || len(assembly.ContourEdges) != len(sourceEdges) {
+	if ([3]int{topo.Vertices, topo.Edges, topo.Faces}) != want || topo.InnerWires != 2*holes ||
+		len(assembly.WallFaces) != wallCount || len(assembly.DomainSides) != wallCount || len(assembly.ContourEdges) != len(sourceEdges)+4*holes {
 		return h, geom.ErrConvergence
 	}
 	loop := p.regions[region].loop
 	for owner, id := range h.RoofFaces {
-		if err := bindParabolaCircleCrossingFace(ctx, part.faces[id], roofs[owner], owner == 1, loop, p.proof.RegionWitnesses[region]); err != nil {
+		if err := bindParabolaCirclesRegionFace(ctx, part.faces[id], roofs[owner], owner == 1, reg, p.proof.RegionWitnesses[region]); err != nil {
 			return h, err
 		}
 	}
@@ -232,5 +254,14 @@ func bindParabolaCircleCrossingsCutComponent(ctx context.Context, part Solid, as
 			return h, geom.ErrConvergence
 		}
 	}
-	return h, validatePolynomialCutBoundary(ctx, part, assembly, opts)
+	if holes == 0 {
+		return h, validatePolynomialCutBoundary(ctx, part, assembly, opts)
+	}
+	if len(topo.Shells) != 1 || topo.EulerCharacteristic != 0 || topo.CollapsedEdges != 0 {
+		return h, geom.ErrConvergence
+	}
+	if err := materialVertexLinks(ctx, part, true); err != nil {
+		return h, err
+	}
+	return h, validateExactGraphPartitionEdges(ctx, part, opts)
 }

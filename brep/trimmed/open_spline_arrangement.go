@@ -290,6 +290,11 @@ func insertInteriorGraphLoops(ctx context.Context, regions []openGraphRegion, co
 }
 
 func assembleGraphRegionDifference(a, b *geom.BSplineSurface, r openGraphRegion, tolerance float64, evaluate ...graphVertexEvaluator) (Solid, OpenSectionHistory, error) {
+	return assembleGraphRegionDifferenceWithHoleBuilder(a, b, r, tolerance, NewSolid, evaluate...)
+}
+
+func assembleGraphRegionDifferenceWithHoleBuilder(a, b *geom.BSplineSurface, r openGraphRegion, tolerance float64,
+	buildHole func([]geom.Vec3, []parametric.Edge, []Face, float64) (Solid, error), evaluate ...graphVertexEvaluator) (Solid, OpenSectionHistory, error) {
 	s, h, e := assembleOpenSplineGraphPair(a, b, 0, true, tolerance, r.loop, evaluate...)
 	if e != nil || len(r.holes) == 0 {
 		return s, h, e
@@ -319,6 +324,6 @@ func assembleGraphRegionDifference(a, b *geom.BSplineSurface, r openGraphRegion,
 		faces[h.SplineFace].Holes = append(faces[h.SplineFace].Holes, uses)
 		faces[h.PlaneFace].Holes = append(faces[h.PlaneFace].Holes, uses)
 	}
-	s, e = NewSolid(v, edges, faces, tolerance)
+	s, e = buildHole(v, edges, faces, tolerance)
 	return s, h, e
 }
