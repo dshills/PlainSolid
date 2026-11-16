@@ -83,6 +83,10 @@ patches with opposite normal conventions retain the exact shared edge
 on the separating plane. Their original projected derivative bounds
 prove opposite open interior halfspaces. Same-side geometry, a wrong
 signed offset and insufficient proof work do not certify adjacency.
+The offset cell bounds race passed in 2.791 seconds. Restricted positive
+and negative parabolic offsets enclose the independent algebraic
+coordinate values over the sample grid and retain the exact longitudinal
+interval. Out-of-domain rectangles and insufficient work refuse.
 The exact convex-hull separation race passed in geometry and intersection
 (25.901 and 1.207 seconds). A weighted curved pair separated on an exact
 new support direction, with the gap independently projected from the
