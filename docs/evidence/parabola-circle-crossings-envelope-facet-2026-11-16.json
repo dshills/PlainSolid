@@ -1,0 +1,44 @@
+{
+  "isolate_commit": "1eb40db011f1a33e61af827d01f1f57cd67fe67b",
+  "artifacts": {
+    "parabola-circle-crossings-certified-envelope-facet.patch": "0319eb5bacb249f6c8df519938683caf0c9fb3083df5d58e5a2b7740f4e89291",
+    "envelope-facet-grid-qualification.md": "8b52dd850216417bc95033868b1de3bc0c7acaf1557331d6e0a96d430946d484",
+    "envelope-facet-grid-coarse-strict.log": "3f7340682b5d83655dc69058fd2449f3eb46c11ba8955fb2f64048b59d9f0d1b",
+    "envelope-facet-grid-tight-strict.log": "928de2c860e92d4c25b34a9e50fae892551d88222bed13587f205758be869543",
+    "envelope-facet-grid-race.jsonl": "e8367d2ce82bf04deba43b5d17d6d2732d4f054cefb76b46a218e60ac7f49371",
+    "envelope-facet-grid-distance-and-cut.log": "6be43c97b926e31d5ba5218fd55ec9506c4f42292bc9c53ea7ef8e77bd28cf10",
+    "envelope-facet-grid-turn-and-cut.log": "b78d0d79eb470efa0fe7cf7240457581b80efb33ee8c9b0b3cf6dc0cbdb8dddc",
+    "envelope-facet-grid-cut-and-placed-regression.log": "e40e1a7f30443aedd98b54fdb051d0cd17f31cabaf07746b5eb6f83aa3c988d4"
+  },
+  "main_integration": {
+    "log": "parabola-transverse-envelope-facet-main-race.jsonl",
+    "sha256": "3cb661ab2de19aba9b0e17ff04b3a314ed545349ce228b87002d63ebd09a4c05",
+    "elapsed_seconds": 285.086,
+    "required_passes": {
+      "TestCertifiedParabolaCircleCrossingsEnvelopeFacetAngle": 216.49,
+      "TestCertifiedParabolaCircleCrossingsEnvelope": 67.12
+    },
+    "live_readbacks": 0
+  },
+  "qualification": {
+    "cases": 8,
+    "facet_radians": [
+      0.2,
+      0.1
+    ],
+    "triangles_with_angle": [
+      1622,
+      5302
+    ],
+    "max_tight_facet": 0.060267027178,
+    "max_tight_physical_distance": 0.001246691984247,
+    "max_tight_normal_turn": 0.114368248126,
+    "max_wall_facet_angle": 0,
+    "refusal_request_and_segments": [
+      0.115,
+      16
+    ],
+    "prior_distance_or_turn_only_cases_byte_identical": 8,
+    "previous_cut_cases_byte_identical": 4
+  }
+}

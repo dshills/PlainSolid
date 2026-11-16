@@ -114,12 +114,6 @@ func checkCrossingsEnvelopeDisplayReplay(t *testing.T, ctx context.Context, resu
 	if !errors.Is(err, parametric.ErrBudget) || !reflect.DeepEqual(short, CertifiedParabolaCircleCrossingsEnvelopeMesh{}) {
 		t.Fatal("insufficient triangles published a partial display", err)
 	}
-	unsupported := o
-	unsupported.MaxTriangles, unsupported.NormalAngle = 0, .35
-	short, err = result.TessellateCertified(ctx, unsupported)
-	if !errors.Is(err, geom.ErrInvalid) || !reflect.DeepEqual(short, CertifiedParabolaCircleCrossingsEnvelopeMesh{}) {
-		t.Fatal("unproved facet angle published a partial display", err)
-	}
 	o.MaxTriangles, o.MaxSubdivisions, o.NormalTurn = 0, 1, .001
 	short, err = result.TessellateCertified(ctx, o)
 	if !errors.Is(err, parametric.ErrBudget) || !reflect.DeepEqual(short, CertifiedParabolaCircleCrossingsEnvelopeMesh{}) {

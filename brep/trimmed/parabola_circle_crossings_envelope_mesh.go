@@ -23,13 +23,13 @@ type CertifiedParabolaCircleCrossingsEnvelopeMesh struct {
 
 // TessellateCertified displays the original identity-XY polynomial roof
 // regions, original base, and planar stock walls. It certifies two-sided
-// physical distance, positive signed volume, and optional source turn.
-// NormalTurn applies separately to each original face at a crease.
-// NormalAngle is unsupported and a positive request returns geom.ErrInvalid.
+// physical distance, positive signed volume, and optional angular bounds.
+// NormalTurn and NormalAngle both apply separately to each original face.
+// NormalAngle bounds each represented facet against its continuous source.
 func (r *ParabolaCircleCrossingsEnvelope) TessellateCertified(ctx context.Context,
 	o ParabolaTwoCirclesMeshOptions) (CertifiedParabolaCircleCrossingsEnvelopeMesh, error) {
 	var empty CertifiedParabolaCircleCrossingsEnvelopeMesh
-	if ctx == nil || r == nil || r.sources[0] == nil || o.NormalAngle != 0 {
+	if ctx == nil || r == nil || r.sources[0] == nil {
 		return empty, geom.ErrInvalid
 	}
 	o, err := checkedParabolaCircleMeshOptions(o)
@@ -149,6 +149,7 @@ func parabolaCircleCrossingsEnvelopeVolume(height [3]parabolaCircleMeshHeight, o
 type crossingEnvelopeDisplay struct {
 	CertifiedParabolaCircleCrossingsEnvelopeMesh
 	exact []exactBoundVector
+	facet *parabolaCircleFacetCone
 }
 
 func (r *ParabolaCircleCrossingsEnvelope) displayEnvelope(ctx context.Context, plane *geom.SurfacePatch,
@@ -169,6 +170,9 @@ func (r *ParabolaCircleCrossingsEnvelope) displayEnvelope(ctx context.Context, p
 		turnLimit = ratInset(o.NormalTurn)
 		turnLimit.Mul(turnLimit, turnLimit)
 		d.SquaredSourceNormalTurn = new(big.Rat)
+	}
+	if o.NormalAngle > 0 {
+		d.facet = &parabolaCircleFacetCone{limit: mappedAngleTangentLimit(o.NormalAngle), maximum: new(big.Rat)}
 	}
 	cuts := make([]*big.Rat, n+1)
 	for i := range cuts {
@@ -199,6 +203,9 @@ func (r *ParabolaCircleCrossingsEnvelope) displayEnvelope(ctx context.Context, p
 		if err := d.addWall(r.solid, id, o.MaxTriangles); err != nil {
 			return empty, err
 		}
+	}
+	if d.facet != nil {
+		d.SquaredFacetNormalTangent = d.facet.maximum
 	}
 	return d.CertifiedParabolaCircleCrossingsEnvelopeMesh, nil
 }
@@ -245,7 +252,12 @@ func (d *crossingEnvelopeDisplay) addGraphFace(ctx context.Context, s Solid, id 
 			boundary[parabolaCircleMeshEdgeKey(sample.Vertices[j-1], sample.Vertices[j])] = true
 		}
 	}
-	uv, triangles, err := refineParabolaCircleFootprint(ctx, foot.ExactUV, foot.Mesh.Triangles, boundary, nil, len(cuts)-1, remaining, true)
+	uv, triangles := foot.ExactUV, foot.Mesh.Triangles
+	if d.facet == nil {
+		uv, triangles, err = refineParabolaCircleFootprint(ctx, uv, triangles, boundary, nil, len(cuts)-1, remaining, true)
+	} else {
+		uv, triangles, err = insertCrossingEnvelopeFacetGrid(ctx, uv, triangles, len(cuts)-1, remaining)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -268,6 +280,10 @@ func (d *crossingEnvelopeDisplay) addGraphFace(ctx context.Context, s Solid, id 
 	}
 	rounding := new(big.Rat)
 	represented := make([][2]*big.Rat, len(uv))
+	var facetPoints []exactBoundVector
+	if d.facet != nil {
+		facetPoints = make([]exactBoundVector, len(uv))
+	}
 	for i, p := range points {
 		if ids[i] < 0 {
 			ids[i], err = d.addVertex(p)
@@ -277,6 +293,9 @@ func (d *crossingEnvelopeDisplay) addGraphFace(ctx context.Context, s Solid, id 
 		}
 		back := exactBoundPoint(d.Mesh.Vertices[ids[i]])
 		represented[i] = [2]*big.Rat{back[0], back[1]}
+		if facetPoints != nil {
+			facetPoints[i] = back
+		}
 		errorSum := new(big.Rat)
 		for axis := range p {
 			delta := new(big.Rat).Sub(p[axis], back[axis])
@@ -314,10 +333,26 @@ func (d *crossingEnvelopeDisplay) addGraphFace(ctx context.Context, s Solid, id 
 	distance.Add(distance, h.residual(width[0], width[1]))
 	distance.Add(distance, rounding)
 	d.DistanceUpper.Set(maxRat(d.DistanceUpper, distance))
+	pad := new(big.Rat).Add(trimError, rounding)
 	if o.NormalTurn > 0 {
-		pad := new(big.Rat).Add(trimError, rounding)
 		turn := parabolaCircleMeshSourceTurnSquared([2]parabolaCircleMeshHeight{h, h}, width, pad)
 		d.SquaredSourceNormalTurn.Set(maxRat(d.SquaredSourceNormalTurn, turn))
+	}
+	if d.facet != nil {
+		for _, t := range triangles {
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
+			center, radius := parabolaCircleFacetSourceBox(uv, t, pad)
+			a, b, c := facetPoints[t[0]], facetPoints[t[1]], facetPoints[t[2]]
+			if f.Reversed {
+				b, c = c, b
+			}
+			facet := ddCross(boundSubtract(b, a), boundSubtract(c, a))
+			if !d.facet.addGraph(facet, h, f.Reversed, center, radius) {
+				return nil, errRefine
+			}
+		}
 	}
 	return area, nil
 }
@@ -411,6 +446,7 @@ func (d *crossingEnvelopeDisplay) addWall(s Solid, id, budget int) error {
 	if len(d.Mesh.Triangles)+2*(len(lower)-1) > budget {
 		return parametric.ErrBudget
 	}
+	firstTriangle := len(d.Mesh.Triangles)
 	for i, a := range lower {
 		b := upper[i]
 		p, q := d.exact[a], d.exact[b]
@@ -421,6 +457,19 @@ func (d *crossingEnvelopeDisplay) addWall(s Solid, id, budget int) error {
 		if i > 0 {
 			d.emit(id, face.Reversed, [3]int{lower[i-1], a, b})
 			d.emit(id, face.Reversed, [3]int{lower[i-1], b, upper[i-1]})
+		}
+	}
+	if d.facet != nil {
+		if face.Reversed {
+			normal = normal.Scale(-1)
+		}
+		source := exactBoundPoint(normal)
+		for _, t := range d.Mesh.Triangles[firstTriangle:] {
+			a, b, c := exactBoundPoint(d.Mesh.Vertices[t[0]]), exactBoundPoint(d.Mesh.Vertices[t[1]]), exactBoundPoint(d.Mesh.Vertices[t[2]])
+			facet := ddCross(boundSubtract(b, a), boundSubtract(c, a))
+			if !d.facet.add(facet, source) {
+				return errRefine
+			}
 		}
 	}
 	for _, j := range [...]int{1, 3} {

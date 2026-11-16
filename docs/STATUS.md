@@ -84,7 +84,8 @@ axes. Each component keeps its own vertex identities; the complete
 assembly proves exactly the two original paired point contacts.
 The corresponding transverse Common and Fuse each produce one certified
 closed display shell across both axes and operand orders. Their distance
-and continuous normal-turn options qualify; facet-angle support is in work.
+and continuous normal-turn options qualify, along with an optional
+facet-angle bound against the original continuous source normal.
 The strict separation proof for parabola and circle no longer requires
 globally disjoint ordinate ranges. It certifies the original quartic over
 the local circle projection, so overlapping ranges can still support

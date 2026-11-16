@@ -101,6 +101,12 @@ Eight curved results each have one positive Euler-2 shell and retain the
 original rays at both nodes. Distance is below `0.016655` mm and continuous
 normal turn below `0.333092` radians with the stated options. All four
 previous Cut display hashes and all eight new source replays match.
+The [transversal Common/Fuse facet normal race](evidence/parabola-circle-crossings-envelope-facet-2026-11-16.json)
+passed in 285.086 seconds. All eight layouts pass `0.2` and `0.1`
+radian facet bounds, with maximum tight certificate below `0.060268`.
+The `0.115` request with 16 segments refuses atomically. Protected
+original graph and wall stations stay fixed; distance-only, turn-only
+and prior Cut results reproduce byte for byte.
 The [native local separation milestone](evidence/parabola-circle-local-separation-native-2026-11-16.json)
 passed a 515.792-second focused race on main. Both axes and operand
 orders produce 16 positive bodies across 12 cases, including the
