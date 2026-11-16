@@ -7,8 +7,8 @@ replacement.** The full target and outstanding work are recorded in the
 For an OCCT-to-Go API map, see the [migration guide](docs/MIGRATION.md).
 
 Requires Go 1.23 or newer. No CGo, native libraries, or third-party Go modules.
-The module path `plainsolid` is provisional; a public import path and project
-license must be selected before distribution.
+The Go module path `plainsolid` is provisional. PlainSolid is available under
+the [MIT License](LICENSE).
 
 ## Current capabilities
 
