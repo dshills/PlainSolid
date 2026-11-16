@@ -353,6 +353,16 @@ operands gives one through-hole shell with volume
 chart axes and the circle-below fixture pass. Short proof budgets or
 a ledger that omits the small lens return neither component. Main's
 sealed native Cut and envelope race passed in 50.279 seconds.
+The [mixed curved neutral proof](evidence/parabola-circle-neutral-2026-11-15.json)
+keeps the original rational conic and directed trim clocks in both
+formats without pole rounding. Pinned OCCT reopens 24 primary files
+with 28 positive solids and 12 circle-below files with 14 positive
+solids, including a lens of `2.1076992227e-6` model-volume units.
+The primary control checks exact conic equations, original owner
+curves and source vertices. All 12 previous native recipes keep
+their bytes. Short component or control budgets return no bytes.
+Main's sealed native and live exchange race passed in 42.764 and
+45.462 seconds respectively.
 
 A separate isolated real double-point proof passes with and without a
 disjoint regular branch, including source order swaps and rotated

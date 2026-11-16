@@ -425,7 +425,9 @@ the true circular hole. Opposite stock sides and two chart orientations
 pass. Native Cut in one direction gives two separately closed positive
 shells with a proved footprint gap; the other direction retains a single
 through-hole shell. Both source orders replay. Independent neutral
-exchange for the mixed family is in progress.
+exchange reopens the [exact mixed parabola/circle result](evidence/parabola-circle-neutral-2026-11-15.json)
+with the original indexed positions, both conic trims and separately
+positive signed material for every component.
 Full ordinary Go on `01d12dab` and PlainCAD on `a3b7548d` have passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,
