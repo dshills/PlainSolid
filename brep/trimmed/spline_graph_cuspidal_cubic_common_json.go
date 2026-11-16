@@ -39,21 +39,27 @@ type cuspidalCubicCommonGerm struct {
 }
 
 func makeCuspidalCubicEnvelopeLedger(h CuspidalCubicCommonHistory, section *geom.CuspidalCubicSection) *cuspidalCubicCommonLedger {
+	point, uv, germs := cuspidalCubicSeamLedger(h.Germs, section)
+	return &cuspidalCubicCommonLedger{
+		Base: h.Base, RoofFaces: h.RoofFaces[:], RoofOwners: h.RoofOwners[:], Vertices: h.Vertices[:],
+		Point: point, UV: uv, Germs: germs,
+	}
+}
+
+func cuspidalCubicSeamLedger(edges [2]int, section *geom.CuspidalCubicSection) ([]string, [][]string, []cuspidalCubicCommonGerm) {
 	cusp := section.Vertices[0]
 	stringPair := func(v [2]*big.Rat) []string { return []string{v[0].RatString(), v[1].RatString()} }
-	l := &cuspidalCubicCommonLedger{
-		Base: h.Base, RoofFaces: h.RoofFaces[:], RoofOwners: h.RoofOwners[:], Vertices: h.Vertices[:],
-		Point: []string{cusp.Point[0].RatString(), cusp.Point[1].RatString(), cusp.Point[2].RatString()},
-		UV:    [][]string{stringPair(cusp.UV[0]), stringPair(cusp.UV[1])},
-	}
+	point := []string{cusp.Point[0].RatString(), cusp.Point[1].RatString(), cusp.Point[2].RatString()}
+	uv := [][]string{stringPair(cusp.UV[0]), stringPair(cusp.UV[1])}
+	germs := make([]cuspidalCubicCommonGerm, 0, len(section.Germs))
 	for i, g := range section.Germs {
-		l.Germs = append(l.Germs, cuspidalCubicCommonGerm{
-			Edge: h.Germs[i], Range: stringPair(g.Range),
+		germs = append(germs, cuspidalCubicCommonGerm{
+			Edge: edges[i], Range: stringPair(g.Range),
 			UVSecond: [][]string{stringPair(g.UVSecond[0]), stringPair(g.UVSecond[1])},
 			UVThird:  [][]string{stringPair(g.UVThird[0]), stringPair(g.UVThird[1])},
 		})
 	}
-	return l
+	return point, uv, germs
 }
 
 // WriteJSON records the original stocks, both signed faces, and the exact
