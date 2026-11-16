@@ -79,6 +79,11 @@ source and its rotated chart are injective across the complete
 `[-0.1,0.1]` displacement interval. Positive definiteness at both ends
 proves all intermediate layers together. The focal line stays unresolved,
 and a wrong displacement direction or short work refuses.
+The verified sweep object race passed in 3.482 seconds. A planar sweep
+keeps an exact `-1/3` displacement endpoint, all six outward boundary
+normals and matching shared-edge evaluations. Directed bounds on a
+curved subvolume retain both exact signed layers and refuse an
+unverified layer.
 The verified offset surface race passed in 2.921 seconds. Its position
 and first partials agree with independent rational and irrational values
 on the parabolic cylinder. A focal-line input cannot construct a usable

@@ -44,6 +44,9 @@ That proof does not cover a neighboring face or the swept volume.
 For some smooth charts a separate three-dimensional monotonicity
 certificate proves that the entire signed normal sweep is one-to-one,
 including points on different displacement layers.
+Verified normal sweeps retain an exact signed domain and expose six
+analytic boundary faces with their outward winding. They also provide
+directed rational bounds over a complete swept subvolume.
 When the proof is complete, the resulting offset can be used as a
 `geom.Surface`, with directed rational bounds for positions and first
 partials in the original parameters.
