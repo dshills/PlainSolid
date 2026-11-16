@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 
 	"plainsolid/brep/parametric"
@@ -22,6 +23,13 @@ type ParabolaTwoCirclesMeshOptions struct {
 	Deflection, RelativeVolumeTolerance float64
 	MaxSubdivisions, MaxTriangles       int
 	Collision                           collision.Options
+
+	// NormalTurn optionally bounds the pairwise turn in radians of
+	// original source normals over each display triangle's chart footprint,
+	// enlarged by the boundary transport and rounding bounds.
+	// It compares normals from one original face at a time. Zero selects
+	// the distance and volume path without an angular certificate.
+	NormalTurn float64
 }
 
 // ParabolaTwoCirclesMeshEdge records the original model edge and the exact
@@ -46,6 +54,10 @@ type CertifiedParabolaTwoCirclesComponentMesh struct {
 	SourceVolume         [2]*big.Rat
 	SignedDisplayVolume  *big.Rat
 	Collision            collision.Report
+
+	// SquaredSourceNormalTurn bounds the requested pairwise turn in
+	// radians squared. Nil when NormalTurn is zero.
+	SquaredSourceNormalTurn *big.Rat `json:",omitempty"`
 }
 
 // TessellateCertified displays the sealed native Cut on its original
@@ -75,7 +87,8 @@ func (r *ParabolaTwoCirclesGraphCut) TessellateCertified(ctx context.Context, o 
 	if !finite(o.Deflection) || o.Deflection <= 0 || !finite(o.RelativeVolumeTolerance) ||
 		o.RelativeVolumeTolerance <= 0 || o.RelativeVolumeTolerance >= 1 ||
 		o.MaxSubdivisions < 1 || o.MaxSubdivisions > 128 || o.MaxTriangles < 1 || o.MaxTriangles > collision.MaxTriangles ||
-		o.Collision.MaxPairs < 0 || o.Collision.MaxContacts < 0 {
+		o.Collision.MaxPairs < 0 || o.Collision.MaxContacts < 0 ||
+		!finite(o.NormalTurn) || o.NormalTurn < 0 || o.NormalTurn > math.Pi {
 		return nil, geom.ErrInvalid
 	}
 	var height [2]parabolaCircleMeshHeight
@@ -85,6 +98,9 @@ func (r *ParabolaTwoCirclesGraphCut) TessellateCertified(ctx context.Context, o 
 		height[i], patches[i], err = parabolaCircleDisplayHeight(ctx, r.sources[i+1])
 		if err != nil {
 			return nil, err
+		}
+		if o.NormalTurn > 0 {
+			height[i].normalHessian = parabolaCircleMeshHessian(r.sources[i+1])
 		}
 	}
 	source, err := geom.DiscoverSplineGraphParabolaTwoCircles(ctx, patches[0], patches[1], r.axis, geom.GraphPointContactOptions{})
@@ -179,6 +195,11 @@ func parabolaTwoCirclesComponentDisplay(ctx context.Context, s Solid, h Parabola
 	tolerance := ratInset(o.RelativeVolumeTolerance)
 	minimum := new(big.Rat).Mul(volume[1], new(big.Rat).Sub(big.NewRat(1, 1), tolerance))
 	maximum := new(big.Rat).Mul(volume[0], new(big.Rat).Add(big.NewRat(1, 1), tolerance))
+	var turnLimit *big.Rat
+	if o.NormalTurn > 0 {
+		turnLimit = ratInset(o.NormalTurn)
+		turnLimit.Mul(turnLimit, turnLimit)
+	}
 	for n := 1; n <= o.MaxSubdivisions; n *= 2 {
 		cuts := make([]*big.Rat, n+1)
 		for i := range cuts {
@@ -211,6 +232,9 @@ func parabolaTwoCirclesComponentDisplay(ctx context.Context, s Solid, h Parabola
 		}
 		if display.DistanceUpper.Cmp(ratInset(o.Deflection)) > 0 ||
 			display.SignedDisplayVolume.Cmp(minimum) < 0 || display.SignedDisplayVolume.Cmp(maximum) > 0 {
+			continue
+		}
+		if turnLimit != nil && (display.SquaredSourceNormalTurn == nil || display.SquaredSourceNormalTurn.Cmp(turnLimit) > 0) {
 			continue
 		}
 		if err := auditParabolaTwoCirclesMesh(ctx, s, display); err != nil {

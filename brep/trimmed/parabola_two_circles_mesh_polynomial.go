@@ -8,10 +8,11 @@ import (
 )
 
 type parabolaCircleMeshHeight struct {
-	coefficients [9][9]*big.Rat
-	degree       [2]int
-	slope        [2]*big.Rat
-	hessian      [3]*big.Rat // uu, uv, vv
+	coefficients  [9][9]*big.Rat
+	degree        [2]int
+	slope         [2]*big.Rat
+	hessian       [3]*big.Rat // uu, uv, vv
+	normalHessian [3]*big.Rat // Bernstein bounds for the optional turn proof
 }
 
 func parabolaCircleDisplayHeight(ctx context.Context, s *geom.BSplineSurface) (parabolaCircleMeshHeight, *geom.SurfacePatch, error) {

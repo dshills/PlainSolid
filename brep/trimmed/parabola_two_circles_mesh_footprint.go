@@ -224,6 +224,10 @@ func parabolaTwoCirclesLiftFootprint(ctx context.Context, s Solid, h ParabolaCir
 	if err != nil {
 		return empty, err
 	}
+	if o.NormalTurn > 0 {
+		pad := new(big.Rat).Add(trimError, rounding)
+		display.SquaredSourceNormalTurn = parabolaCircleMeshSourceTurnSquared(height, width, pad)
+	}
 	display.DistanceUpper = new(big.Rat)
 	for _, surface := range height {
 		// The XY chord homotopy has distance at most trimError. The L1
