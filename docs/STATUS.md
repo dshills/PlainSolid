@@ -44,7 +44,9 @@ normals on its original walls and layers. Two independently embedded
 sweeps can also prove an exact shared wall and disjoint interiors when
 the wall stays on one Cartesian separator. Their ten original outer
 faces retain their chart owners and windings. Multi-chart display and
-general offset joins remain open.
+general offset joins remain open beyond the proved pair. The pair now
+has a closed stitched display mesh that retains both original parameter
+owners at shared vertices, with optional continuous facet-angle proof.
 The analytic single-sweep volume can also certify exact point membership
 and bound its unique original inverse. Queries retain possible cells
 when a boundary point or an exhausted work budget prevents a proof.

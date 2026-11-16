@@ -75,6 +75,14 @@ fractional station maps with nonbinary displacements. Wrong interior
 maps, same-side overlap, changes in the seam normal, and walls that
 leave the separator all refuse. Native package and main race runs passed.
 
+The [paired sweep display](evidence/verified-normal-offset-sweep-pair-mesh-2026-11-16.json)
+retains ten original faces and both sets of exact stations at 72 curved
+seam vertices, including 62 nonbinary stations on the reversed chart.
+It passed exact whole-shell collision, closure and positive volume.
+Independent samples confirm continuous spatial and angular bounds.
+All six single-sweep output digests match, and main race checks passed
+the planar, curved, budget and output precision cases.
+
 [Exact normal sweep membership](evidence/verified-normal-sweep-query-2026-11-16.json)
 passed rational slab interior, boundary and near-exterior controls and
 independently known points on a curved sweep, including a split station
