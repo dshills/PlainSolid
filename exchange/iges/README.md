@@ -166,6 +166,13 @@ The pinned reader reopens the independent source with twelve original
 edges. For the outer-touch control it splits two outer edges and reports
 a valid transferred face. The strict source proof refuses the contact.
 
+`WritePeriodicSeamTrimmedFaceWithHole` replays that complete proof and
+strictly reopens the canonical carrier before writing. It retains the
+original support interval and both original contour graphs and their twelve edge pairs,
+including the split stations, edge directions and model curve ranges.
+Both contours and the original seam share the exact decimal and binary64
+station separation checks used for canonical emission.
+
 `WritePeriodicSeamTrimmedFace` emits a canonical carrier for an original
 face proved by `ReadPeriodicSeamTrimmedFace`. It replays the source proof
 and strictly reopens the complete output before writing to the stream.

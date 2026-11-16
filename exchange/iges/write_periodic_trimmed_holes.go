@@ -32,7 +32,11 @@ func WritePeriodicTrimmedFaceWithHoles(ctx context.Context, w io.Writer, face Pe
 	if !reflect.DeepEqual(face, proved) {
 		return fmt.Errorf("iges: trim with holes no longer matches its original proof: %w", geom.ErrUnrepresentable)
 	}
-	if err := checkPeriodicHoleTransferStations(proved); err != nil {
+	bounds := [][2]geom.ExactParameterInterval{proved.Bounds}
+	for _, hole := range proved.Holes {
+		bounds = append(bounds, hole.Bounds)
+	}
+	if err := checkPeriodicTrimTransferStations(nil, bounds...); err != nil {
 		return err
 	}
 	carrier, err := writePeriodicTrimRecords(source)
@@ -59,11 +63,14 @@ func WritePeriodicTrimmedFaceWithHoles(ctx context.Context, w io.Writer, face Pe
 
 // A distinct station on another wire can collapse even when every individual
 // edge interval survives transfer. Check all contour bounds in the shared chart.
-func checkPeriodicHoleTransferStations(f PeriodicTrimmedFaceWithHoles) error {
-	for i, outer := range f.Bounds {
-		stations := []*big.Rat{outer.Lower, outer.Upper}
-		for _, hole := range f.Holes {
-			stations = append(stations, hole.Bounds[i].Lower, hole.Bounds[i].Upper)
+func checkPeriodicTrimTransferStations(seamU *big.Rat, boxes ...[2]geom.ExactParameterInterval) error {
+	for axis := range 2 {
+		var stations []*big.Rat
+		if axis == 0 && seamU != nil {
+			stations = append(stations, seamU)
+		}
+		for _, box := range boxes {
+			stations = append(stations, box[axis].Lower, box[axis].Upper)
 		}
 		slices.SortFunc(stations, (*big.Rat).Cmp)
 		for j, q := range stations[1:] {

@@ -31,11 +31,15 @@ type PeriodicSeamTrimmedFaceWithHole struct {
 // Each loop must have six complete paired edges in the same chart and the
 // original inner winding must be opposite to the outer winding.
 func ReadPeriodicSeamTrimmedFaceWithHole(ctx context.Context, r io.Reader, l Limits) (PeriodicSeamTrimmedFaceWithHole, error) {
-	var zero PeriodicSeamTrimmedFaceWithHole
 	source, err := readPeriodicTrimSourceWithHoles(ctx, r, l, 6, 6, 1)
 	if err != nil {
-		return zero, err
+		return PeriodicSeamTrimmedFaceWithHole{}, err
 	}
+	return provePeriodicSeamTrimmedFaceWithHole(ctx, source)
+}
+
+func provePeriodicSeamTrimmedFaceWithHole(ctx context.Context, source periodicTrimSource) (PeriodicSeamTrimmedFaceWithHole, error) {
+	var zero PeriodicSeamTrimmedFaceWithHole
 	outer, err := provePeriodicSeamTrimmedOuter(ctx, &source)
 	if err != nil {
 		return zero, err
