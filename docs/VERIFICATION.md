@@ -456,6 +456,14 @@ control pass independent strip and disk volume integrals. A second
 irrational native radius, incomplete coefficients or a forged lens
 order return no partial material. Main's sealed one- and two-circle
 native race passed in 411.825 seconds.
+The [two-circle STEP and IGES proof](evidence/parabola-two-circles-neutral-2026-11-15.json)
+retains original polynomial and rational trim owners at zero rounding
+tolerance. Pinned OCCT reopened all 48 separately positive solids from
+36 primary and circle-below files; the smallest component measures
+`1.0789252198379594e-8`. The same pinned author also constructed and
+operated on the original stock independently. All 36 earlier
+single-circle neutral files retained their bytes. The complete main
+paired-format race, including earlier controls, passed in 896.359 seconds.
 
 A separate isolated real double-point proof passes with and without a
 disjoint regular branch, including source order swaps and rotated

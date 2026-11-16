@@ -454,8 +454,9 @@ positive signed material for every component.
 Native Common, Fuse and both Cut orders also support two disjoint
 circles on one side of the same open parabola. One Cut keeps the cap
 and two separately positive lenses. The other keeps a single shell
-with two through holes. Independent neutral qualification is running
-for this degree-eight source family.
+with two through holes. Exact STEP and IGES now reproduce the
+[original two-circle results](evidence/parabola-two-circles-neutral-2026-11-15.json),
+including both separate lenses and the reverse through-hole layer.
 Full ordinary Go and PlainCAD on `a3b7548d` have passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,
