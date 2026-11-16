@@ -35,6 +35,7 @@ type ProjectiveSplineImprint struct {
 	Section         geom.ProjectiveContactSpline
 	ExactOperations int
 	Complete        bool
+	contact         ProjectiveSplineFaceContacts
 }
 
 type projectiveImprintBoundary struct {
@@ -228,7 +229,7 @@ func ImprintProjectiveSplineFacePair(ctx context.Context, a, b Face, axes [2]int
 	if err := ctx.Err(); err != nil {
 		return r, err
 	}
-	r.Fragments, r.Sources, r.Section, r.Complete = fragments, origins, section, true
+	r.Fragments, r.Sources, r.Section, r.contact, r.Complete = fragments, origins, section, contacts, true
 	return r, nil
 }
 

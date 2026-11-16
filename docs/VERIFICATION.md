@@ -68,6 +68,11 @@ passes byte-identical save and reopen for both shells, preserving
 topology and independent volume. The exact model codec separately
 retains nonbinary homogeneous controls and the original `[-2,3]` clock;
 noncanonical coefficients, zero weights and short control limits refuse.
+The same audit passes exact signed heights of order `2^-120` on both
+original charts and distinguishes hole boundary, overlap edge and hole
+interior. The original lower and upper roof choices retain their exact
+sign witnesses, source coedges and opposed shared seam. Partial footprints
+and short classification work publish no roof fragments.
 The [ordinary exact spline jet audit](evidence/exact-spline-rational-evaluation-2026-11-16.json)
 passes a nonbinary station, a right-hand interior derivative and a
 left-hand final derivative. Its outward boxes and short work refusal

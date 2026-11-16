@@ -456,5 +456,14 @@
     "result_topology_each": {"faces": 8, "edges": 18, "vertices": 12},
     "propagated_stations_each": 4,
     "independent_volume_each": "1"
+  },
+  "signed_height_and_original_roof_selection": {
+    "geometry_main_log": "projective-contact-height-main-race.jsonl",
+    "geometry_main_sha256": "ddee989bde035b8eea25f4e5158b55d3a212e14cad434ba10fc2bfd2167c06d6",
+    "native_main_log": "projective-face-envelope-main-race.jsonl",
+    "native_main_sha256": "1af25083007bbeeaac8f1aea5dc986b98ffbf9412a37b19adcf06a3fb9890e03",
+    "named_passes": ["TestProjectiveContactHeightClassifiesBothOriginalLifts", "TestSelectProjectiveSplineFaceEnvelopeRetainsOriginalMaterialSides"],
+    "exact_lift_difference_scale": "2^-120",
+    "original_signs_retained": {"lower": [-1, 1], "upper": [1, -1]}
   }
 }

@@ -10,6 +10,7 @@ type projectiveContactGraphProof struct {
 	overlap ProjectiveSurfaceGraphOverlap
 	holes   []ExactSurfaceRectangle
 	sources [2]*SurfacePatch
+	cells   []ProjectiveSurfaceHeightCell
 }
 
 type projectiveContactArcProof struct {
@@ -56,6 +57,10 @@ func sealProjectiveContactGraph(cover ProjectiveSurfaceContactCover, arcs []Proj
 	}
 	for _, hole := range cover.CommonHoles {
 		p.holes = append(p.holes, clone(hole))
+	}
+	for _, cell := range cover.Atlas.Cells {
+		cell.Common = clone(cell.Common)
+		p.cells = append(p.cells, cell)
 	}
 	return p
 }
