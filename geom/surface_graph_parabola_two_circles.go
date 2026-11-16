@@ -117,60 +117,12 @@ func unitParabolaTwoCircleFactors(ctx context.Context, a, c *SurfacePatch, freeA
 
 func factorParabolaTwoCircles(law []rationalPolynomial, b *polynomialBudget) (
 	parabola rationalPolynomial, circles [2]GraphContactCircle, sign int, err error) {
-	if len(law[5]) != 1 || len(law[4]) != 3 || len(law[3]) > 3 {
-		return nil, circles, 0, ErrConvergence
-	}
-	scale := law[5][0]
-	sign = scale.Sign()
-	for _, column := range law[:5] {
-		for _, x := range column {
-			x.Quo(x, scale)
-			if err = b.check(x); err != nil {
-				return
-			}
-		}
-	}
-	// The monic residual has h4=-2*(d0+d1)-p. Its h3[u²]
-	// coefficient is 2-2*(d0+d1)*h4[u²], even for different ordinates.
-	// The nonzero curvature makes recovery unique.
-	h32 := new(big.Rat)
-	if len(law[3]) == 3 {
-		h32.Set(law[3][2])
-	}
-	twiceCenterSum := new(big.Rat).Quo(new(big.Rat).Sub(big.NewRat(2, 1), h32), law[4][2])
-	if err = b.check(twiceCenterSum); err != nil {
-		return
-	}
-	parabola = rationalPolynomial{new(big.Rat).Neg(new(big.Rat).Add(law[4][0], twiceCenterSum)),
-		new(big.Rat).Neg(law[4][1]), new(big.Rat).Neg(law[4][2])}
-
-	// Synthetic division in y by y-p(x), including the full constant
-	// remainder. The quotient is stored in ascending powers of y.
-	var quotient [5]rationalPolynomial
-	quotient[4] = rationalPolynomial{big.NewRat(1, 1)}
-	for i := 4; i > 0; i-- {
-		p, e := polynomialProduct(parabola, quotient[i], b)
-		if e != nil {
-			return nil, circles, 0, e
-		}
-		quotient[i-1], e = graphPolynomialSum(law[i], p, 1, b)
-		if e != nil {
-			return nil, circles, 0, e
-		}
-	}
-	product, err := polynomialProduct(parabola, quotient[0], b)
+	p, quotient, sign, err := divideGraphParabolaCircleProduct(law, 2, b)
 	if err != nil {
-		return
+		return nil, circles, 0, err
 	}
-	remainder, err := graphPolynomialSum(law[0], product, 1, b)
-	if err != nil {
-		return
-	}
-	if len(remainder) != 0 {
-		return nil, circles, 0, ErrConvergence
-	}
-	circles, err = factorCircleQuartic(quotient, b)
-	return
+	circles, err = factorCircleQuartic([5]rationalPolynomial(quotient), b)
+	return p, circles, sign, err
 }
 
 func bindSeparatedParabolaCircles(out *SplineGraphParabolaTwoCircles, p rationalPolynomial, b *polynomialBudget) ([2]int, error) {

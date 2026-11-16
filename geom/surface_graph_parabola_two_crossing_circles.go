@@ -60,16 +60,21 @@ func DiscoverSplineGraphParabolaTwoCrossingCircles(ctx context.Context, a, c *Su
 	if err := proveDisjointGraphCircles(circles[0], circles[1], b); err != nil {
 		return nil, err
 	}
+	var visits int
+	return proveTwoCrossingCirclePartition(ctx, [2]*SurfacePatch{a, c}, freeAxis, p, circles, sign, nil, o.MaxCells, &visits, b)
+}
+
+func proveTwoCrossingCirclePartition(ctx context.Context, patches [2]*SurfacePatch, freeAxis int, p rationalPolynomial,
+	circles [2]GraphContactCircle, sign int, otherProjectionLeft *big.Rat, maxCells int, visits *int,
+	b *polynomialBudget) (*SplineGraphParabolaTwoCrossingCircles, error) {
 	out := &SplineGraphParabolaTwoCrossingCircles{
 		FreeAxis: freeAxis, CircleOrder: [2]int{0, 1}, RegionSides: [6]int{-sign, sign, sign, -sign, sign, -sign},
 	}
-	patches := [2]*SurfacePatch{a, c}
 	if err := out.bindOriginalParabola(ctx, patches, p, b); err != nil {
 		return nil, err
 	}
-	var visits int
 	for i, circle := range circles {
-		if err := out.bindCrossingCircle(ctx, patches, p, circle, i, o.MaxCells, &visits, b); err != nil {
+		if err := out.bindCrossingCircle(ctx, patches, p, circle, i, maxCells, visits, b); err != nil {
 			return nil, err
 		}
 	}
@@ -84,6 +89,9 @@ func DiscoverSplineGraphParabolaTwoCrossingCircles(ctx context.Context, a, c *Su
 	x := out.CircleProjections[0][0]
 	if end := out.CircleProjections[1][0]; end.Cmp(x) < 0 {
 		x = end
+	}
+	if otherProjectionLeft != nil && otherProjectionLeft.Cmp(x) < 0 {
+		x = otherProjectionLeft
 	}
 	x = new(big.Rat).Quo(x, big.NewRat(2, 1))
 	if err := b.check(x); err != nil {
@@ -152,30 +160,14 @@ func (out *SplineGraphParabolaTwoCrossingCircles) bindOriginalParabola(ctx conte
 
 func (out *SplineGraphParabolaTwoCrossingCircles) bindCrossingCircle(ctx context.Context, patches [2]*SurfacePatch,
 	p rationalPolynomial, circle GraphContactCircle, index, maxCells int, visits *int, b *polynomialBudget) error {
-	r, err := graphCircleSquareRoot(circle.RadiusSquared, b)
+	r, projection, err := graphCircleStockProjection(circle, b)
 	if err != nil {
 		return err
 	}
-	out.CircleRadii[index] = r
+	out.CircleRadii[index], out.CircleProjections[index] = r, projection
 	out.Circles[index] = GraphContactCircle{
 		Center:        parabolaTwoCrossingCirclesUV(out.FreeAxis, circle.Center[0], circle.Center[1]),
 		RadiusSquared: circle.RadiusSquared,
-	}
-	one := big.NewRat(1, 1)
-	for i, coordinate := range circle.Center {
-		lo, hi := new(big.Rat).Sub(coordinate, r), new(big.Rat).Add(coordinate, r)
-		if err := b.check(lo); err != nil {
-			return err
-		}
-		if err := b.check(hi); err != nil {
-			return err
-		}
-		if lo.Sign() <= 0 || hi.Cmp(one) >= 0 {
-			return ErrConvergence
-		}
-		if i == 0 {
-			out.CircleProjections[index] = [2]*big.Rat{lo, hi}
-		}
 	}
 	q, err := parabolaCircleRestriction(p, circle.Center, circle.RadiusSquared, b)
 	if err != nil {

@@ -55,7 +55,7 @@ func parabolaTwoCrossingCirclesOverlappingProjections() parabolaTwoCrossingsSour
 }
 
 func (f parabolaTwoCrossingsSourceFixture) stocks(t *testing.T, axis int, perturb bool) [3]*geom.BSplineSurface {
-	return parabolaCircleProductStock(t, axis, f.discs, f.parabola, f.scale, perturb)
+	return parabolaCircleProductStock(t, axis, f.discs[:], f.parabola, f.scale, perturb)
 }
 
 func (f parabolaTwoCrossingsSourceFixture) ordinate(x *big.Rat) *big.Rat {
@@ -199,7 +199,7 @@ func TestParabolaTwoCrossingCirclesSourceRefusals(t *testing.T) {
 		// are x=1/2±3/20 and x=1/2±1/5.
 		parabola := [3]*big.Rat{big.NewRat(231, 280), big.NewRat(-20, 7), big.NewRat(20, 7)}
 		discs := [2]twoCircleStockProbe{twoCircleProbe(4, 3, 2, 8), twoCircleProbe(28, 24, 1, 32)}
-		stocks := parabolaCircleProductStock(t, 0, discs, parabola, big.NewRat(8575, 32768), false)
+		stocks := parabolaCircleProductStock(t, 0, discs[:], parabola, big.NewRat(8575, 32768), false)
 		p := parabolaTwoCirclesPatches(t, stocks[1], stocks[2])
 		got, err := geom.DiscoverSplineGraphParabolaTwoCrossingCircles(ctx, p[0], p[1], 0, geom.GraphPointContactOptions{})
 		if got != nil || !errors.Is(err, geom.ErrConvergence) {
