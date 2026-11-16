@@ -33,7 +33,7 @@ func VerifyParabolaTwoCirclesGraphEnvelopeIGES(ctx context.Context, in io.Reader
 }
 
 // WriteParabolaTwoCirclesGraphCut transfers the exact positive source layers as
-// one solid with two through holes or three disjoint type 186 solids in a group.
+// one type 186 solid or a group of separate type 186 solids.
 func WriteParabolaTwoCirclesGraphCut(ctx context.Context, w io.Writer, body *trimmed.ParabolaTwoCirclesGraphCut,
 	unit float64, l Limits, proof edgecheck.Options) error {
 	parts := body.Components()
@@ -41,7 +41,7 @@ func WriteParabolaTwoCirclesGraphCut(ctx context.Context, w io.Writer, body *tri
 	switch len(parts) {
 	case 1:
 		return writeExactBezierSingleIGES(ctx, w, parts[0], unit, l, o)
-	case 3:
+	case 2, 3:
 		return writeClippedCutIGESBodies(ctx, w, parts, nil, unit, l, o)
 	default:
 		return geom.ErrInvalid
@@ -58,7 +58,7 @@ func VerifyParabolaTwoCirclesGraphCutIGES(ctx context.Context, in io.Reader, bod
 	switch len(body.Components()) {
 	case 1:
 		return verifyExactBezierSingleIGES(ctx, in, l, "parabola and two circles graph Cut", write)
-	case 3:
+	case 2, 3:
 		return verifyClippedCutIGESBodies(ctx, in, l, write)
 	default:
 		return geom.ErrInvalid
