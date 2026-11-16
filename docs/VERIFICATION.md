@@ -223,6 +223,11 @@ The matching native Common and Fuse run verifies 16 closed shells:
 section pieces per case. Independent original volume and area agree;
 eight canonical replays and 22 prior byte receipts pass. A valid
 source whose cap has no representable subdivision refuses native sewing.
+Both Cut orders pass the native race on eight cases and 24 positive
+components. The exact two-body and four-cycle point contact ledgers
+replay; a forged cycle chord and an unrepresentable cap refuse. The
+smallest independent positive cap is about 3.52e-10, and all sixteen
+previous Cut receipts match byte for byte.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same

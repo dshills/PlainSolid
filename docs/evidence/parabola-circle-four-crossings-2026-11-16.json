@@ -63,5 +63,35 @@
     "canonical_replays": 8,
     "predecessor_bytes_unchanged": 22,
     "unrepresentable_original_cap_control_radius": "205/512"
+  },
+  "native_cut": {
+    "main_base": "91b15071",
+    "isolated_revision": "55ee72df78360d2ca9e6ea8d57d8279e53d36eb6",
+    "patch_sha256": "ae9135907bbabbbd48c8b06dea217e11d32059cba85a84dca08eadfe1b94941a",
+    "main_race_log": "parabola-four-junction-cut-main-race.jsonl",
+    "main_race_sha256": "044d193ebe43021270d4a605949b0f624aa8fe84d55af07994ae0354dec549f3",
+    "main_race_seconds": 89.808,
+    "isolated_race_sha256": "0cae1ae2cd5c6414a32f793ec81611fd81090ecb005e37ba193ad98c01f413f6",
+    "isolated_race_seconds": 63.535,
+    "variant_count": 8,
+    "positive_components": 24,
+    "components_by_order": [
+      2,
+      4
+    ],
+    "reverse_contact_cycle": [
+      "bulk",
+      "first cap",
+      "pocket",
+      "second cap",
+      "bulk"
+    ],
+    "minimum_qualified_volume": 3.51553088e-10,
+    "maximum_independent_errors": {
+      "relative_volume": 3.3e-12,
+      "absolute_volume": 9.72e-17,
+      "centroid": 1.33e-13
+    },
+    "unchanged_earlier_cut_recipes": 16
   }
 }
