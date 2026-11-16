@@ -41,6 +41,12 @@ at and above the first focal distance `0.5` the focal line remains
 unresolved. A nonconstant-weight planar chart and two original knot pieces
 also qualify. The exact UV cover remains intact when work, cell or pole
 limits are exhausted.
+The exact convex-hull separation race passed in geometry and intersection
+(25.901 and 1.207 seconds). A weighted curved pair separated on an exact
+new support direction, with the gap independently projected from the
+original poles. A sub-ULP gap stayed strict. Touching, overlapping and
+three-dimensional containing hulls were never excluded; short work
+retained the complete untested pair for contact isolation.
 
 The [transversal parabola/circle neutral exchange milestone](evidence/parabola-circle-crossings-neutral-2026-11-16.json)
 passed its pinned main race in 33.929 seconds. The 24 STEP and IGES outputs

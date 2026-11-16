@@ -176,7 +176,7 @@ func offsetCellFocalFree(ctx context.Context, p *SurfacePatch, distance *big.Rat
 	displacement, zero := exactInterval{distance, distance}, offsetZeroInterval()
 	// A lower bound for E*sqrt(area2) - distance*L.
 	first := a.sub(zero, a.mul(displacement, l))
-	scalars := offsetPointArithmetic{b: b}
+	scalars := boundedRatArithmetic{b: b}
 	if a.err != nil || scalars.radicalSign(first.lo, e.lo, area2.lo) <= 0 || scalars.err != nil {
 		return false, errors.Join(a.err, scalars.err)
 	}

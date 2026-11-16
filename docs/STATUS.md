@@ -32,6 +32,10 @@ Exact second derivatives now support a focal point check for a signed
 normal offset. The bounded coverage proof partitions a spline patch,
 retains its original knot boundaries, and exposes unresolved cells.
 Constructing a whole-face offset still needs seam and collision proofs.
+Full-domain curved pair isolation can also use a bounded exact control-hull
+support search. It can prove separation when the world axes and original
+center normals leave overlapping projections, and retains pairs it cannot
+exclude.
 The nested conical AP242 reader now materializes an editable document with
 two shared local solids, six leaf occurrences, original face labels, and
 exact original local and world pose labels. Native save/load preserves

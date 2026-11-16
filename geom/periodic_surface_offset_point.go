@@ -44,7 +44,7 @@ func (s RationalPeriodicSurfaceSecondJet) CheckNormalOffset(ctx context.Context,
 			}
 		}
 	}
-	a := offsetPointArithmetic{b: b}
+	a := boundedRatArithmetic{b: b}
 	var normal [3]*big.Rat
 	for i := range normal {
 		j, k := (i+1)%3, (i+2)%3
@@ -83,12 +83,12 @@ func (s RationalPeriodicSurfaceSecondJet) CheckNormalOffset(ctx context.Context,
 	return NormalOffsetPointProof{FirstMinorSign: first, DeterminantSign: det, FocalFree: first > 0 && det > 0}, nil
 }
 
-type offsetPointArithmetic struct {
+type boundedRatArithmetic struct {
 	b   *polynomialBudget
 	err error
 }
 
-func (a *offsetPointArithmetic) op(f func(*big.Rat, *big.Rat, *big.Rat) *big.Rat, x, y *big.Rat) *big.Rat {
+func (a *boundedRatArithmetic) op(f func(*big.Rat, *big.Rat, *big.Rat) *big.Rat, x, y *big.Rat) *big.Rat {
 	out := new(big.Rat)
 	if a.err == nil {
 		a.err = a.b.check(f(out, x, y))
@@ -96,13 +96,14 @@ func (a *offsetPointArithmetic) op(f func(*big.Rat, *big.Rat, *big.Rat) *big.Rat
 	return out
 }
 
-func (a *offsetPointArithmetic) add(x, y *big.Rat) *big.Rat { return a.op((*big.Rat).Add, x, y) }
-func (a *offsetPointArithmetic) sub(x, y *big.Rat) *big.Rat { return a.op((*big.Rat).Sub, x, y) }
-func (a *offsetPointArithmetic) mul(x, y *big.Rat) *big.Rat { return a.op((*big.Rat).Mul, x, y) }
+func (a *boundedRatArithmetic) add(x, y *big.Rat) *big.Rat { return a.op((*big.Rat).Add, x, y) }
+func (a *boundedRatArithmetic) sub(x, y *big.Rat) *big.Rat { return a.op((*big.Rat).Sub, x, y) }
+func (a *boundedRatArithmetic) mul(x, y *big.Rat) *big.Rat { return a.op((*big.Rat).Mul, x, y) }
+func (a *boundedRatArithmetic) quo(x, y *big.Rat) *big.Rat { return a.op((*big.Rat).Quo, x, y) }
 
 // radicalSign returns the sign of x+y*sqrt(d) for strictly positive d.
 // Squaring is valid only when the summands have opposing signs.
-func (a *offsetPointArithmetic) radicalSign(x, y, d *big.Rat) int {
+func (a *boundedRatArithmetic) radicalSign(x, y, d *big.Rat) int {
 	sx, sy := x.Sign(), y.Sign()
 	switch {
 	case sx == 0:

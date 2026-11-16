@@ -14,6 +14,10 @@ type SurfaceSurfaceIsolationOptions struct {
 	// SeparatingProjections uses exact projected hulls after AABB overlap.
 	// The additional work counts against MaxOperations.
 	SeparatingProjections bool
+	// ConvexHullIterations enables an additional exact support search for
+	// each overlapping pair. Zero keeps the prior search. Exact work also
+	// counts against MaxOperations.
+	ConvexHullIterations int
 }
 
 // SurfaceSurfaceCell covers possible contact between two parameter rectangles.
@@ -37,6 +41,7 @@ type SurfaceSurfaceIsolation struct {
 	Candidates, Coincident, Pending []SurfaceSurfaceCell
 	VisitedPairs, ExactOperations   int
 	ProjectionExclusions            int
+	ConvexHullExclusions            int
 	Complete                        bool
 }
 
@@ -96,7 +101,8 @@ func BoundSurfaceSurfaceContext(ctx context.Context, a, b *SurfacePatch, options
 	if o.MaxCoefficientBits == 0 {
 		o.MaxCoefficientBits = 16384
 	}
-	if !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 || o.MaxDepth < 1 || o.MaxDepth > 128 || o.MaxPairs < 1 || o.MaxQueuedPoles < 8 || o.MaxOperations < 1 || o.MaxCoefficientBits < 64 {
+	if !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 || o.MaxDepth < 1 || o.MaxDepth > 128 || o.MaxPairs < 1 || o.MaxQueuedPoles < 8 ||
+		o.MaxOperations < 1 || o.MaxCoefficientBits < 64 || o.ConvexHullIterations < 0 || o.ConvexHullIterations > 1024 {
 		return result, ErrInvalid
 	}
 	budget := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
@@ -164,6 +170,25 @@ func BoundSurfaceSurfaceContext(ctx context.Context, a, b *SurfacePatch, options
 			}
 			if p.Separated {
 				result.ProjectionExclusions++
+				continue
+			}
+		}
+		if o.ConvexHullIterations > 0 {
+			left := budget.maxOperations - budget.operations
+			if left <= 0 {
+				pending(&n)
+				return result, ErrConvergence
+			}
+			p, err := SeparateSurfacePatchesConvexHull(ctx, n.a, n.b, SurfaceConvexHullSeparationOptions{
+				MaxIterations: o.ConvexHullIterations, MaxOperations: left, MaxCoefficientBits: budget.maxBits,
+			})
+			budget.operations += p.ExactOperations
+			if err != nil {
+				pending(&n)
+				return result, err
+			}
+			if p.Separated {
+				result.ConvexHullExclusions++
 				continue
 			}
 		}
