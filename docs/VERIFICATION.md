@@ -54,6 +54,11 @@ coincident free-coordinate disk projections. Independent rational
 division proves positive remaining whole-stock factors. The source race
 also covers the previous mixed arrangement and explicit refusal of
 altered coefficients, extra roots, tangency and overlapping disks.
+The matching native Common/Fuse race passes eight original axis/order
+builds and canonical replays with `13F/33E/22V`. Four directed physical
+ray cycles, exact stationary extrema and independent signed volumes
+agree. The nonbinary coincident-projection case still refuses native
+storage in this subset.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same

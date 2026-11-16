@@ -17,5 +17,22 @@
   ],
   "main_race_seconds": [
     11.59
-  ]
+  ],
+  "main_envelope": {
+    "agent_commit": "a062e7039054dc0864c634d63ec2bd7b11cb19c1",
+    "log": "parabola-two-crossing-circles-envelope-main-race.jsonl",
+    "named_passes": [
+      "TestNativeParabolaTwoCrossingCirclesEnvelope",
+      "TestNativeParabolaTwoCrossingCirclesUnrepresentableJunction"
+    ],
+    "main_race_seconds": [
+      661.239
+    ],
+    "digests": {
+      "parabola-two-crossing-circles-envelope-main-race.jsonl": "90421a4043fe56c34032e7b81f73b9ed110e77da49c0f4595c8b37d1bbadfaa2",
+      "parabola-two-crossing-circles-envelope.patch": "9a38e0632bf1481144a469e73dd48419decdcb6d7abf86b4bae2bda181902c59",
+      "exact-volume.txt": "288433a3ef789121e1f2bef6d26a99788f08ed8f731c52c29bf862d538c93b8f",
+      "exact-volume.py": "320858987924bec3128776535e384f3965de1283de708bfa135cee37763e2351"
+    }
+  }
 }

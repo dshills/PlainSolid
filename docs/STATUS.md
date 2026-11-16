@@ -33,6 +33,8 @@ The source proof also covers two disjoint circles that each cross the
 original parabola twice. It reports four exact directed junctions and
 six signed regions, including a source case with coincident free-coordinate
 projections. Native coverage is qualified separately.
+Native Common and Fuse now retain four exact original coedge fans on
+one closed shell for the representable staggered-junction cases.
 These osculation cases also support exact analytic STEP and IGES
 output with the original owner winding, contact jets and separate Cut
 components. General curved exchange remains open.
