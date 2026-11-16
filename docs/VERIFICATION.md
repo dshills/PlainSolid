@@ -266,6 +266,41 @@ snapshots separate from the refreshed ordinary, race and PlainCAD runs.
   full pinned isolate race passed (744.966 seconds); native source and
   live STEP ran together on main in 227.259 seconds. Native volume and
   area agree with the pre-transfer `0.64045099678815 / 4.655759693110`.
+- Native v12 (`b6335d3c`) retains the two original v11 joint stations
+  with change masks `[both, north]`. Missing and false masks, a moved
+  source support event, and relabeling the receipt as v11 reject. The
+  pinned isolate race including the 1,890-triangle closed mesh took
+  613.811 seconds; the main source, live and legacy v8 race passed in
+  463.855 seconds. Independent original chart volume and area are
+  `0.643137172506171 / 4.65101745648361`; original and canonical OCCT
+  STEP readbacks agree at `0.643141460766049 / 4.6510825384331`.
+- Analytic Cut STEP (`56fc65ef`) opens in pinned OCCT as three separate
+  solids with 17 faces, or four with 16 faces. Independent native total
+  volume agrees, and each declared shared point appears as two separate
+  exact vertex entities. A changed coordinate rejects even when the STEP
+  graph still parses. The combined main pinned Cut and Fuse race passed
+  in 111.743 seconds.
+- The exact projection collision filter (`d883a33f`) passed the full
+  main collision race in 14.171 seconds. The same 4,932-triangle mesh
+  and 658,508 charged pairs, including 394,339 narrow pairs, produced a
+  complete zero-contact result in 0.194 seconds versus 62.951 seconds.
+  Regenerated source display has identical bytes. The full pinned
+  isolate STEP recalculation passed under race in 266.65 seconds.
+- The [helical mesher performance result](evidence/plaincad-lead-mesher-performance-2026-11-15.json)
+  (`61ee3e80`) preserves the exact four-start screw and nut WASM responses
+  while reducing direct meshing time from 19.505 to 13.213 seconds. The
+  [clean lead fixture](evidence/plaincad-lead-fit-committed-2026-11-15.json)
+  separately ran the three original typed app geometry tests through the
+  actual Go provider in 13.674, 13.577 and 13.472 seconds. It asserts the
+  provider without changing the ordinary OCCT control or its deadline.
+- Two-transverse native Cut, Fuse and Common cases and Cut display
+  (`ace75343`, `5d6a15c1`, `3eac2245`, `a25a8fc8`) passed the final
+  integrated focused run in 83.483 seconds. The transverse strip display
+  that differed by 0.613% now differs by 0.229% while using the same
+  error and resource budgets; tight budgets retain the verified original
+  display. Three-transverse native Fuse (`0c8baacf`) passed the main race
+  in 301.390 seconds with 12 exact source cases and explicit negative
+  controls. All 50 prior Fuse recipes stayed byte-identical in isolation.
 - The [tilted through-bore bridge](evidence/plaincad-tilted-bore-bridge-2026-11-15.json)
   (`8e9cae2c`) keeps both cap openings in a closed 644-triangle display and
   re-proves the original source graph on native reopen. The integrated

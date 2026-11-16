@@ -74,9 +74,14 @@ Vitest suite runs OCCT explicitly and timed out in its four-start lead
 screw and nut test. The same unmodified test passed on a fresh focused
 run in 39.644 seconds under the unchanged 45-second deadline. The actual
 PlainSolid adapter passed the same body in 13.793 seconds with the first
-candidate mesher optimization. The [failure record](evidence/plaincad-main-ab33a412-lead-control-2026-11-15.json)
-remains separate from the full ordinary suite rerun. Repeat the full
-browser and unit gates on a later pinned main snapshot after qualification.
+candidate mesher optimization. The separate [lead fixture](evidence/plaincad-lead-fit-committed-2026-11-15.json)
+now qualifies all three original one-, two- and four-start tests through
+typed Go WASM at their original 45-second limit. The [failure record](evidence/plaincad-main-ab33a412-lead-control-2026-11-15.json)
+remains separate from the full ordinary suite rerun. Both full Go and
+PlainCAD now also run against `b6335d3c`; vet and Windows amd64 build passed.
+The browser suites on that snapshot required scoped loopback access after
+the default sandbox denied their local test servers; preserve those startup
+logs separately from the browser results.
 Vet and the Windows amd64 cross-build on `016354ee` pass; native
 Windows execution remains unqualified.
 
@@ -187,8 +192,11 @@ and measure across one- and two-axis layouts. Cut previews (`9fa3ce82`)
 prove that each displayed shell is outward and embedded and that the shells
 meet only at the original points. The existing Common preview passed all 32
 checked layouts (`81308396`). Exact two-transverse Cut (`ace75343`) now
-builds separate closed native components; tighter preview volume and
-matching transverse Common and Fuse are under integration verification. Adjacent
+builds separate closed native components with the qualified tighter preview
+(`5d6a15c1`). Two transverse contacts also qualify exact clipped Fuse
+(`3eac2245`) and Common (`a25a8fc8`), with their original wall and source
+recipes. Three exact transverse contacts qualify native Fuse (`0c8baacf`);
+separate three-contact Cut and Common results are in progress. Adjacent
 rational STEP model cells (`8672cf02`) retain inferred roots and both
 independently authored sides of a stored joint through native replay,
 strict STEP and closed display. Distinct transverse rational roof weights
@@ -196,9 +204,13 @@ passed independently authored transfer and display (`cb3bcd42`). The
 stepped Fuse transfers through analytic STEP (`936ef7be`) and IGES
 (`67db7b54`) with an explicit decimal pole bound where needed. Three original
 rational model cells (`c3fb8b82`) now retain two original support joints.
-The case with only one roof changing support at the second joint, the exact
-collision performance improvement and the helical mesher optimization are
-under main-branch verification.
+Native v12 (`b6335d3c`) independently authenticates one shared and one
+unilateral support change. Separate clipped Cut components transfer to
+analytic STEP (`56fc65ef`), retaining distinct exact vertex occurrences
+at their original shared points. The exact projection filter (`d883a33f`)
+and helical mesher (`61ee3e80`) reduce qualification and display time.
+Current focused work covers Common STEP, Cut IGES and an actual kink at
+the original unilateral support joint.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
