@@ -42,7 +42,7 @@ type VerifiedNormalOffsetSweepPair struct {
 }
 
 // VerifiedNormalOffsetSweepBoundaryFace retains an outer analytic face,
-// its original owner (A=0 or B=1), and original sweep side.
+// its zero-based original chart owner and original sweep side.
 type VerifiedNormalOffsetSweepBoundaryFace struct {
 	Owner int
 	Side  NormalOffsetSweepSide

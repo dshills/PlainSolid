@@ -109,6 +109,13 @@ rotated curved charts. The corresponding main mesh race retains 68
 shared stations and one embedded positive shell. Both previous
 Cartesian receipts and original proof work counts are unchanged.
 
+[Three-chart sweep composition](evidence/verified-normal-offset-sweep-chain-2026-11-16.json)
+passes the rotated curved chain, independent nonbinary station laws and
+the exact positive end-chart separation. The planar reversed order has
+volume `3/5`. Folded overlap, a different middle owner, nonparallel walls,
+cancellation and short work refuse atomically. Main and isolated race
+checks pass the chain and previous two-chart controls.
+
 [Exact normal sweep membership](evidence/verified-normal-sweep-query-2026-11-16.json)
 passed rational slab interior, boundary and near-exterior controls and
 independently known points on a curved sweep, including a split station
