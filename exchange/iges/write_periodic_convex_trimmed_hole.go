@@ -30,7 +30,7 @@ func WritePeriodicConvexTrimmedFaceWithHole(ctx context.Context, w io.Writer, fa
 	if !reflect.DeepEqual(face, proved) {
 		return fmt.Errorf("iges: convex periodic trim with hole no longer matches its original proof: %w", geom.ErrUnrepresentable)
 	}
-	if err := checkPeriodicConvexTransfer(proved.PeriodicConvexTrimmedFace, &proved.Hole); err != nil {
+	if err := checkPeriodicConvexTransfer(proved.PeriodicConvexTrimmedFace, proved.Hole); err != nil {
 		return err
 	}
 	carrier, err := writePeriodicTrimRecords(source)

@@ -160,7 +160,7 @@ func TestPeriodicConvexTransferRejectsRoundedContainment(t *testing.T) {
 	for i, p := range outer {
 		f.Edges[i].UVStart, hole.Edges[i].UVStart = p, inner[i]
 	}
-	if err := checkPeriodicConvexTransfer(f, &hole); err == nil || !strings.Contains(err.Error(), "loses strict containment") {
+	if err := checkPeriodicConvexTransfer(f, hole); err == nil || !strings.Contains(err.Error(), "loses strict containment") {
 		t.Fatal("positive exact clearance collapsed into boundary contact in binary64 transfer", err)
 	}
 }

@@ -159,6 +159,15 @@ qualified eight directed edge pairs and original model ranges. Pinned
 transfer splits the independent slanted-edge touching and crossing
 controls. The strict source reader refuses both.
 
+`ReadPeriodicConvexTrimmedFaceWithHoles` admits two such inner
+quadrilaterals in their original contour order. Exact projections onto
+the edge normals of both holes must have strictly disjoint intervals on
+a separating axis. The proof applies when their UV bounding boxes
+overlap. `WritePeriodicConvexTrimmedFaceWithHoles` replays this proof and
+rechecks separation after binary64 conversion. The independent pinned
+fixture retains all twelve directed pairs. The strict reader refuses
+two independent controls with a shared edge and with crossing holes.
+
 `ReadPeriodicTrimmedFaceWithHoles` admits one or two explicit rectangular
 inner type-142 contours in the same original knot cell as the outer loop.
 Each inner contour owns four directed type-110 UV lines and four complete

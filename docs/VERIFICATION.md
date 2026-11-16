@@ -507,6 +507,11 @@ reader agrees on original and canonical topology, owner stations and
 physical jets. A contacting or crossing inner wire refuses even within
 the outer bounding rectangle; wrong original winding and rounded cubic
 controls also refuse. Main race, full IGES and 23 prior outputs pass.
+Two independently authored holes retain all twelve original directed
+coedges. Their axis-aligned boxes overlap, but the exact separation
+along v-4u is 1/2. A shared edge, crossing, or a gap that disappears
+in binary64 refuses. Both pinned reports and macOS architecture
+exports match; the full IGES suite and 24 prior outputs pass.
 The [valid periodic seam trim](evidence/iges-periodic-seam-trimmed-2026-11-16.json)
 passes independently authored type 144, the pinned reopen and main race.
 The reader retains six original directed pairs, distinct seam stations,

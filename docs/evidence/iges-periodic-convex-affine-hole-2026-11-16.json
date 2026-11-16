@@ -63,5 +63,30 @@
     "counterclockwise inner wire",
     "sub-ULP change to a model control",
     "independently rounded unscaled cubic"
-  ]
+  ],
+  "two_original_holes": {
+    "isolated_revision": "ea0ef20ecd21d6afd685bf28fefc600c7f88158c",
+    "patch_sha256": "09759b9b689d24a42c56b92037cad38898ea5999a0fc2fec671e9c2abe7919f9",
+    "source_qualification_sha256": "182ba77c4f2cb9a53bd6da9138026d2f213ab1b0631e0df0e38ea6e571dd4f61",
+    "main_base": "2a196388",
+    "main_race_log": "iges-periodic-two-convex-holes-main-race.jsonl",
+    "main_race_sha256": "1ee296996a602f01d67a3620702cacc5485cb7ce15f29de812a223160879e704",
+    "main_race_seconds": 4.827,
+    "isolated_full_iges_seconds": 136.499,
+    "pinned_original_reopen_counts": {
+      "faces": 1,
+      "wires": 3,
+      "edges": 12,
+      "vertices": 12
+    },
+    "exact_separating_direction": "v-4u",
+    "exact_separating_gap": "1/2",
+    "prior_bytes_unchanged": 24,
+    "maximum_observed_pinned_uv_endpoint_ulp": 1,
+    "refusals": [
+      "exact shared edge",
+      "exact intersection",
+      "binary64 rounding closes exact positive gap"
+    ]
+  }
 }
