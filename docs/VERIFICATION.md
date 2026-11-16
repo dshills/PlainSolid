@@ -223,8 +223,17 @@ in both owners and across both source orders. A physically creased
 pair reproduces the exact cusp and the changed original exit heights.
 Changing only the later knot cell's residual, placing an ambiguous
 crease at the cusp, or constraining the cell budget produces no result.
-The native solid and neutral paths require separate evidence for this
-class of sources.
+
+The native shared-crease follow-up retains the two original cusp roof
+charts, one closed Euler-2 shell and byte-identical native replay for all
+six Common/Fuse/Cut results. The original unsplit mass correction strips
+exhausted the budget on these shapes. Splitting at exact represented knot
+events now gives independently calculated volumes 12.49531693892045 for
+Common and 12.58134321732954 for Fuse in both orders, and the unchanged
+1695/22528 and 243/22528 for the two Cuts. The combined trimmed race run
+including existing cuspidal, nodal and knot integration cases passed in
+38.010 seconds. Geometry and algebraic cell regressions passed under race
+in 2.562 seconds. Neutral exchange of the creased shell is separate.
 
 Both native cuspidal Cut orders passed the main branch race run alongside
 the existing Common, Fuse and nodal regressions (25.450 seconds). Exact

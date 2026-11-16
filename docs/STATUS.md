@@ -321,9 +321,12 @@ zero first jet, a shared second jet and opposite third jets in the
 original owner charts. Nodal and cuspidal discovery also prove the same
 signed equation on each original knot cell. This accepts an actual
 shared carrier crease away from the required jets and refuses a changed
-residual or an ambiguous cusp or node tangent. This is a section proof;
-support across those knots in native Boolean assembly and exchange needs
-its own qualification. Native Common (`fea3d0b4`) and Fuse (`750c9e80`)
+residual or an ambiguous cusp or node tangent. Native cuspidal Common,
+Fuse and both Cut orders now also qualify on an actual shared carrier
+crease in reversed charts, including native replay and independent
+volume checks. Curved trim quadrature splits at the certified rational
+source knots. Creased neutral transfer still needs qualification.
+Native Common (`fea3d0b4`) and Fuse (`750c9e80`)
 preserve this singularity in both source orders and in closed displays.
 [Independent STEP and IGES readback](../exchange/CUSPIDAL_CUBIC.md)
 now qualifies Common, Fuse and both Cut orders, with the zero first,

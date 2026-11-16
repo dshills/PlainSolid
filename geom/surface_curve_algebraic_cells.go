@@ -30,6 +30,16 @@ func (c *ExactComposedCurveCell) EndpointIntervals() [2]ExactParameterInterval {
 	return [2]ExactParameterInterval{c.endpoints[0].Interval(), c.endpoints[1].Interval()}
 }
 
+// ClassifyEndpoint determines whether an exact cell endpoint is rational,
+// using the retained root identity rather than its display enclosure.
+func (c *ExactComposedCurveCell) ClassifyEndpoint(ctx context.Context, endpoint int, o ExactCurvePlaneEventOptions) (ExactRootClassification, error) {
+	if c == nil || endpoint < 0 || endpoint > 1 || c.endpoints[endpoint] == nil {
+		return ExactRootClassification{}, ErrInvalid
+	}
+	root := ExactAlgebraicRoot{root: c.endpoints[endpoint]}
+	return root.Classify(ctx, o)
+}
+
 // HomogeneousPower returns caller-owned ascending power coefficients of
 // (w*x,w*y,w*z,w) in the original global parameter. These do not make irrational
 // endpoint parameters representable in an exchange format.

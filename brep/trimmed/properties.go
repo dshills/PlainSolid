@@ -27,9 +27,9 @@ type differentiableTrim interface {
 // cache avoids reevaluating trim points/derivatives within this call. Neither
 // optimization changes topology or replaces curved trims with chord geometry.
 // Spline-supported chord triangles are clipped at U/V knot lines before
-// quadrature, so derivative creases do not trigger futile adaptive refinement.
-// This preprocessing is bounded to 8192 integration pieces; curved correction
-// strips retain their existing adaptive integration behavior.
+// quadrature. Exact Bézier trims and spline wall trims can also split their
+// correction strips at exactly represented knot events. The integration
+// preprocessing is bounded to 8192 pieces.
 func (s Solid) MassProperties(ctx context.Context, o parametric.IntegrationOptions) (parametric.Properties, error) {
 	if len(s.vertices) == 0 {
 		return parametric.Properties{}, geom.ErrDegenerate
@@ -44,6 +44,7 @@ func (s Solid) MassProperties(ctx context.Context, o parametric.IntegrationOptio
 		return parametric.Properties{}, fmt.Errorf("trimmed: invalid integration options")
 	}
 	proofs := massAffineProofs{left: 4000000, values: map[massProofKey]geom.TubeAffineLineCertificate{}}
+	stripProofs := massKnotStripProofs{left: 4000000}
 	memo := massTrimMemo{values: map[massTrimKey]massTrimSample{}}
 	trimID := 0
 	var faces []parametric.Face
@@ -122,9 +123,35 @@ func (s Solid) MassProperties(ctx context.Context, o parametric.IntegrationOptio
 				if !ok {
 					return parametric.Properties{}, fmt.Errorf("trimmed: direct integration needs trim derivatives")
 				}
-				t := triangleSurface{surface: f.Surface, p: [3]geom.Vec2{side.UVStart, side.UVEnd}, strip: massMemoTrim{source: c, cache: &memo, id: trimID}}
-				trimID++
-				appendTriangle(f, t)
+				strips, e := stripProofs.split(ctx, f.Surface, side, c, [2][]float64{uKnots, vKnots})
+				if e != nil {
+					return parametric.Properties{}, e
+				}
+				for j, strip := range strips {
+					if j > 0 {
+						fan := [3]geom.Vec2{side.UVStart, strip.p[0], strip.p[1]}
+						sign, err := geom.Orient2D(fan[0], fan[1], fan[2])
+						if err != nil {
+							return parametric.Properties{}, err
+						}
+						if sign != 0 {
+							pieces, err := splitMassTriangleAtKnots(ctx, fan, uKnots, vKnots, 8192-len(faces))
+							if err != nil {
+								return parametric.Properties{}, err
+							}
+							for _, p := range pieces {
+								appendTriangle(f, triangleSurface{surface: f.Surface, p: p})
+							}
+						}
+					}
+					if len(faces) >= 8192 {
+						return parametric.Properties{}, parametric.ErrBudget
+					}
+					strip.surface = f.Surface
+					strip.strip = massMemoTrim{source: strip.strip, cache: &memo, id: trimID}
+					trimID++
+					appendTriangle(f, strip)
+				}
 			}
 		}
 	}
