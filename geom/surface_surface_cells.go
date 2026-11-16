@@ -58,9 +58,18 @@ func patchSplitChoice(p *SurfacePatch) (parameter float64, uDirection bool, knot
 	}
 	d := p.Domain()
 	if d.UMax-d.UMin >= d.VMax-d.VMin {
-		return d.UMin + (d.UMax-d.UMin)/2, true, false
+		return parameterMidpoint(d.UMin, d.UMax), true, false
 	}
-	return d.VMin + (d.VMax-d.VMin)/2, false, false
+	return parameterMidpoint(d.VMin, d.VMax), false, false
+}
+
+func parameterMidpoint(lo, hi float64) float64 {
+	mid := lo + (hi-lo)/2
+	if finite(mid) {
+		return mid
+	}
+	// Finite opposite-signed endpoints can have a width that overflows.
+	return lo/2 + hi/2
 }
 func patchParameterWidth(p *SurfacePatch) float64 {
 	d := p.Domain()

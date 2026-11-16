@@ -101,9 +101,9 @@ func (p *SurfacePatch) certifyNormalOffsetCells(ctx context.Context, distance *b
 			// parameters, try the other direction before giving up.
 			d := c.patch.Domain()
 			if direction && !(d.UMin < t && t < d.UMax) {
-				t, direction = d.VMin/2+d.VMax/2, false
+				t, direction = parameterMidpoint(d.VMin, d.VMax), false
 			} else if !direction && !(d.VMin < t && t < d.VMax) {
-				t, direction = d.UMin/2+d.UMax/2, true
+				t, direction = parameterMidpoint(d.UMin, d.UMax), true
 			}
 			if (direction && !(d.UMin < t && t < d.UMax)) || (!direction && !(d.VMin < t && t < d.VMax)) {
 				result.Unresolved = append(result.Unresolved, d)

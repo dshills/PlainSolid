@@ -1,12 +1,38 @@
 package geom
 
 import (
+	"context"
 	"errors"
+	"math"
 	"testing"
 )
 
 func pairCovers(c SurfaceSurfaceCell, u, v, s, t float64) bool {
 	return u >= c.DomainA.UMin && u <= c.DomainA.UMax && v >= c.DomainA.VMin && v <= c.DomainA.VMax && s >= c.DomainB.UMin && s <= c.DomainB.UMax && t >= c.DomainB.VMin && t <= c.DomainB.VMax
+}
+
+func TestSurfaceSurfaceCoverSplitsFiniteRangesWhoseWidthOverflows(t *testing.T) {
+	a := arcTestPatch(t, func(u, v float64) Vec3 { return Vec3{u, v, 0} })
+	recipe, err := a.ExportExactBezierRecipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	recipe.Domain.UMin, recipe.Domain.UMax = -1e308, 1e308
+	a, err = ImportExactBezierSurfaceRecipe(context.Background(), recipe, SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := arcTestPatch(t, func(u, v float64) Vec3 { return Vec3{u + .125, v, 0} })
+	got, err := BoundSurfaceSurface(a, b, SurfaceSurfaceIsolationOptions{ParameterTolerance: math.MaxFloat64, MaxDepth: 1})
+	if err != nil || !got.Complete || len(got.Candidates) != 2 || len(got.Pending) != 0 {
+		t.Fatal("finite parameter box must split into two finite halves", got, err)
+	}
+	left, right := got.Candidates[0], got.Candidates[1]
+	if left.DomainA.UMin != recipe.Domain.UMin || left.DomainA.UMax != 0 ||
+		right.DomainA.UMin != 0 || right.DomainA.UMax != recipe.Domain.UMax ||
+		left.DomainB != b.Domain() || right.DomainB != b.Domain() {
+		t.Fatal("split did not cover the original parameter pair", left, right)
+	}
 }
 func TestSurfaceSurfaceCoverCrossingAndSymmetry(t *testing.T) {
 	a := arcTestPatch(t, func(u, v float64) Vec3 { return Vec3{u, v, 0} })
