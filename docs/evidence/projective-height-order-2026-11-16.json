@@ -1,0 +1,21 @@
+{
+  "scope": "Certified exact ordering of original projectively related spline lifts over their closed common projection",
+  "main_base": "6baf96c6",
+  "main_race_log": "projective-height-order-main-race.jsonl",
+  "main_race_sha256": "ff274579f1f36535d5a870a71f72a4cbd25d66396bbeda6efc0e158f86aa9d9d",
+  "main_race_seconds": 1.661,
+  "named_passes": [
+    "TestCertifyProjectiveSurfaceHeightOrderSubULPAndCoincidence",
+    "TestCertifyProjectiveSurfaceHeightOrderOppositeInterior"
+  ],
+  "exact_difference_controls": [
+    "0",
+    "2^-120",
+    "-2^-120"
+  ],
+  "interior_crossing_controls": [
+    "positive original corners",
+    "negative interior midpoint -1/2"
+  ],
+  "work_limit": "single budget for original common atlas and complete exact enclosure"
+}

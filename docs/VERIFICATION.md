@@ -391,6 +391,11 @@ nonbinary original overlap bounds, exact map ratios and four union
 knot cells. A nonseparable chart that fits the proposal samples is
 rejected by the full coefficient proof. A `2^-100` lift difference,
 edge-only overlap and insufficient work do not establish coincidence.
+The [height-order audit](evidence/projective-height-order-2026-11-16.json)
+proves exact original coincidence and both signs of a constant 2^-120
+lift across differently clocked surfaces. Positive corners with a
+negative interior only produce a conservative difference interval.
+The origin atlas and all coefficient checks share one work limit.
 The related UV-curve race preserves original nonuniform knots and exact
 physical derivatives. A transported original curve lifts to identical
 rational model points on both charts. A denominator with a pole and an

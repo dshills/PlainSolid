@@ -69,6 +69,8 @@ original parabola, with six original junctions and eight signed regions.
 Its native Common and Fuse now each close one positive shell with six
 original four-ray junctions. Independent signed volumes and surface
 areas qualify both input orders and both axis layouts.
+Projectively related graph surfaces can also prove strict original
+height order or exact coincidence over their entire shared projection.
 These osculation cases also support exact analytic STEP and IGES
 output with the original owner winding, contact jets and separate Cut
 components. General curved exchange remains open.
