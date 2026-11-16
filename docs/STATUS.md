@@ -7,8 +7,9 @@ and general-purpose production use remain unqualified.
 The latest completed paired run is [Go](evidence/main-b6335d3c-qualification-2026-11-15.json)
 and [PlainCAD](evidence/plaincad-main-b6335d3c-2026-11-15.json) on
 `b6335d3c`. Newer independent runs passed full Go on `01d12dab`
-and full PlainCAD on `a296b700`. The next paired run pins both to
-`a3b7548d`; vet and Linux/Windows amd64 builds pass that revision.
+and all eight [PlainCAD gates on `a3b7548d`](evidence/plaincad-main-a3b7548d-2026-11-15.json).
+The refreshed Go run on `a3b7548d` is still in progress; vet and
+Linux/Windows amd64 builds pass that revision.
 The native Linux ARM64 run pins `7569bd36`. Native Windows runtime,
 broader curved modeling, independent exchange and the full release
 matrix remain unqualified.
@@ -124,6 +125,9 @@ build; the Playwright driver is pristine.
 The [newer uninterrupted PlainCAD run on `a296b700`](evidence/plaincad-main-a296b700-2026-11-15.json)
 passed all eight gates and all 1,691 ordinary cases in the same staged
 run, with scoped loopback available from the start.
+The [refresh on `a3b7548d`](evidence/plaincad-main-a3b7548d-2026-11-15.json)
+also passed all eight gates without a rerun: 345 development, 66 production,
+15 cross-browser, 4 Go WASM and 1,691 ordinary cases.
 Vet and the Windows amd64 cross-build on `016354ee` pass; native
 Windows execution remains unqualified.
 
@@ -383,7 +387,7 @@ qualified polynomial roofs, retaining the exact cusp vertices and
 enforcing a source volume bound. The generic solid preview remains
 separate. Broader contact discovery, creased-source display and advanced
 edge modifications remain in progress.
-Full ordinary Go on `01d12dab` and PlainCAD on `a296b700` have passed.
+Full ordinary Go on `01d12dab` and PlainCAD on `a3b7548d` have passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.

@@ -209,6 +209,14 @@ WASM and 1,691 ordinary cases. The unchanged one-, two- and four-start
 OCCT controls took 3.218, 10.861 and 16.776 seconds. The bundle WASM again
 matched the Go build byte for byte and the Playwright driver was pristine.
 
+The [uninterrupted PlainCAD refresh on `a3b7548d`](evidence/plaincad-main-a3b7548d-2026-11-15.json)
+also passed all eight gates with the same pinned app and staged test
+corrections. It passed 345 development, 66 production, 15 cross-browser,
+4 actual Go WASM and 1,691 ordinary cases. The unchanged one-, two- and
+four-start OCCT controls took 3.925, 9.748 and 19.138 seconds. Production
+served the identical Go WASM bytes and the Playwright driver hash matched
+the pristine install.
+
 The [full ordinary Go run on the same kernel `b6335d3c`](evidence/main-b6335d3c-qualification-2026-11-15.json)
 finished all nine lanes: 5,630 passes, 586 optional skips and no
 failures across 6,216 top-level cases. Its eight trimmed lanes passed
