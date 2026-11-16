@@ -1,0 +1,213 @@
+package trimmed
+
+import (
+	"context"
+	"fmt"
+	"math/big"
+	"slices"
+
+	"plainsolid/brep/parametric"
+	"plainsolid/brep/trimvalidate"
+	"plainsolid/geom"
+	"plainsolid/intersect"
+)
+
+// ParabolaCircleGraphOptions bounds the original shared-base and mixed
+// contact proofs.
+type ParabolaCircleGraphOptions struct {
+	Stock intersect.SplinePlaneOptions
+	Proof geom.GraphPointContactOptions
+}
+
+// ParabolaCircleGraphHistory binds the original roof regions, the proper
+// open branch and the interior loop to the native envelope.
+type ParabolaCircleGraphHistory struct {
+	Base         int
+	RoofFaces    [3]int // below, above, interior circle
+	RoofOwners   [3]int // 0 for original A, 1 for original B
+	ParabolaEdge int
+	CircleEdges  [4]int
+	WallFaces    [6]int
+}
+
+// ParabolaCircleGraphEnvelope is one closed Common or Fuse shell over
+// the original positive unit stock, with the original graph supports.
+type ParabolaCircleGraphEnvelope struct {
+	solid     Solid
+	history   ParabolaCircleGraphHistory
+	sources   [3]*geom.BSplineSurface
+	axis      int
+	op        parametric.BooleanOp
+	tolerance float64
+}
+
+func (r *ParabolaCircleGraphEnvelope) Boundary() Solid {
+	if r == nil {
+		return Solid{}
+	}
+	return r.solid
+}
+
+func (r *ParabolaCircleGraphEnvelope) History() ParabolaCircleGraphHistory {
+	if r == nil {
+		return ParabolaCircleGraphHistory{}
+	}
+	return r.history
+}
+
+// CombineParabolaCircleSplineGraphs builds Common or Fuse of two original
+// positive graph stocks sharing an identity unit XY chart and a spline base.
+// Their exact contact consists of one wall-to-wall parabola and a disjoint
+// interior circle. Circle radius, UV endpoints and model vertices must be
+// representable exactly.
+func CombineParabolaCircleSplineGraphs(ctx context.Context, base, a, b *geom.BSplineSurface,
+	freeAxis int, op parametric.BooleanOp, tolerance float64, o ParabolaCircleGraphOptions) (*ParabolaCircleGraphEnvelope, error) {
+	if ctx == nil || base == nil || a == nil || b == nil || freeAxis < 0 || freeAxis > 1 ||
+		(op != parametric.Intersection && op != parametric.Union) || tolerance <= 0 || !finite(tolerance) ||
+		o.Stock.Domain != (geom.ParameterRectangle{}) {
+		return nil, geom.ErrInvalid
+	}
+	patches, err := prepareSharedBaseGraphContact(ctx, base, a, b, o.Stock)
+	if err != nil {
+		return nil, err
+	}
+	proof, err := geom.DiscoverSplineGraphParabolaCircle(ctx, patches[0], patches[1], freeAxis, o.Proof)
+	if err != nil {
+		return nil, err
+	}
+	regions, err := parabolaCircleGraphRegions(proof)
+	if err != nil {
+		return nil, err
+	}
+	s, assembly, err := combineOpenGraphRegions(ctx, base, a, b, regions[:], op, tolerance, exactGraphVertexEvaluator(ctx, o.Proof))
+	if err != nil {
+		return nil, err
+	}
+	if err := validateExactGraphPartitionEdges(ctx, s, o.Proof); err != nil {
+		return nil, err
+	}
+	history, err := bindParabolaCircleGraphEnvelope(ctx, s, assembly, proof, [3]*geom.BSplineSurface{base, a, b}, op)
+	if err != nil {
+		return nil, err
+	}
+	return &ParabolaCircleGraphEnvelope{solid: s, history: history, sources: [3]*geom.BSplineSurface{base, a, b},
+		axis: freeAxis, op: op, tolerance: tolerance}, nil
+}
+
+func parabolaCircleGraphRegions(proof *geom.SplineGraphParabolaCircle) (out [3]openGraphRegion, err error) {
+	var controls [3][3]*big.Rat
+	for i, c := range proof.ParabolaControls {
+		controls[i] = [3]*big.Rat{c[0], c[1], big.NewRat(1, 1)}
+	}
+	geometry, err := newExactQuadraticUV(controls, false)
+	if err != nil {
+		return out, err
+	}
+	start, err := exactGraphPartitionUV(proof.ParabolaControls[0])
+	if err != nil {
+		return out, err
+	}
+	end, err := exactGraphPartitionUV(proof.ParabolaControls[2])
+	if err != nil {
+		return out, err
+	}
+	forward := openSectionPiece{a: start, b: end, c: geometry, side: -1}
+	backward := openSectionPiece{a: end, b: start, c: reversePCurve(geometry), side: -1}
+	zero, br, tr, tl := geom.Vec2{}, geom.Vec2{X: 1}, geom.Vec2{X: 1, Y: 1}, geom.Vec2{Y: 1}
+	if proof.FreeAxis == 0 {
+		out[0].loop = []openSectionPiece{{a: zero, b: br, side: 0}, {a: br, b: end, side: 1}, backward, {a: start, b: zero, side: 3}}
+		out[1].loop = []openSectionPiece{forward, {a: end, b: tr, side: 1}, {a: tr, b: tl, side: 2}, {a: tl, b: start, side: 3}}
+	} else {
+		out[0].loop = []openSectionPiece{{a: zero, b: start, side: 0}, forward, {a: end, b: tl, side: 2}, {a: tl, b: zero, side: 3}}
+		out[1].loop = []openSectionPiece{{a: start, b: br, side: 0}, {a: br, b: tr, side: 1}, {a: tr, b: end, side: 2}, backward}
+	}
+	circle, err := ellipseGraphContactLoop(geom.GraphEllipseHint{Center: proof.CircleCenter,
+		RadiusSquared: [2]*big.Rat{proof.RadiusSquared, proof.RadiusSquared}})
+	if err != nil {
+		return out, err
+	}
+	reversed := make([]openSectionPiece, len(circle))
+	for i, piece := range circle {
+		reversed[len(circle)-1-i] = openSectionPiece{a: piece.b, b: piece.a, c: reversePCurve(piece.c), side: -1}
+	}
+	enclosing := 0
+	if proof.CircleAbove {
+		enclosing = 1
+	}
+	out[enclosing].holes = [][]openSectionPiece{reversed}
+	out[2].loop = circle
+	for i, sign := range proof.RegionSides {
+		out[i].sign = sign
+	}
+	return out, nil
+}
+
+func bindParabolaCircleGraphEnvelope(ctx context.Context, s Solid, assembly SplineGraphBooleanHistory, proof *geom.SplineGraphParabolaCircle,
+	stock [3]*geom.BSplineSurface, op parametric.BooleanOp) (ParabolaCircleGraphHistory, error) {
+	topo := s.Topology()
+	if len(topo.Shells) != 1 || topo.EulerCharacteristic != 2 || topo.CollapsedEdges != 0 ||
+		len(s.faces) != 10 || len(s.edges) != 23 || len(s.vertices) != 16 || assembly.Base != 3 ||
+		len(assembly.ContourEdges) != 5 || len(assembly.WallFaces) != 6 {
+		return ParabolaCircleGraphHistory{}, fmt.Errorf("trimmed: mixed graph envelope topology: %w", geom.ErrConvergence)
+	}
+	h := ParabolaCircleGraphHistory{Base: assembly.Base, RoofFaces: [3]int{0, 1, 2}, ParabolaEdge: assembly.ContourEdges[0]}
+	copy(h.CircleEdges[:], assembly.ContourEdges[1:])
+	copy(h.WallFaces[:], assembly.WallFaces)
+	if s.faces[h.Base].Surface != stock[0] || !s.faces[h.Base].Reversed {
+		return ParabolaCircleGraphHistory{}, geom.ErrConvergence
+	}
+	for i, face := range h.RoofFaces {
+		if (proof.RegionSides[i] > 0) != (op == parametric.Union) {
+			h.RoofOwners[i] = 1
+		}
+		if s.faces[face].Surface != stock[1+h.RoofOwners[i]] {
+			return ParabolaCircleGraphHistory{}, geom.ErrConvergence
+		}
+	}
+	enclosing := 0
+	if proof.CircleAbove {
+		enclosing = 1
+	}
+	for i, face := range h.RoofFaces {
+		wantHoles := 0
+		if i == enclosing {
+			wantHoles = 1
+		}
+		if len(s.faces[face].Holes) != wantHoles {
+			return ParabolaCircleGraphHistory{}, geom.ErrConvergence
+		}
+	}
+	// Each contact model edge has exactly the two opposing original roof
+	// uses in the expected outer ring or hole.
+	find := func(uses []Use, edge int) (Use, bool) {
+		i := slices.IndexFunc(uses, func(u Use) bool { return u.Edge == edge })
+		if i < 0 {
+			return Use{}, false
+		}
+		return uses[i], true
+	}
+	opposed := func(a, b []Use, edge int) bool {
+		first, okA := find(a, edge)
+		second, okB := find(b, edge)
+		return okA && okB && first.Reversed != second.Reversed &&
+			first.UVStart == second.UVEnd && first.UVEnd == second.UVStart
+	}
+	if !opposed(s.faces[0].Outer, s.faces[1].Outer, h.ParabolaEdge) {
+		return ParabolaCircleGraphHistory{}, geom.ErrConvergence
+	}
+	for _, edge := range h.CircleEdges {
+		if !opposed(s.faces[enclosing].Holes[0], s.faces[2].Outer, edge) {
+			return ParabolaCircleGraphHistory{}, geom.ErrConvergence
+		}
+	}
+	for _, face := range s.faces[:h.Base+1] {
+		proved, err := ValidateFaceTrimLoops(ctx, face, trimvalidate.Options{})
+		if err != nil {
+			return ParabolaCircleGraphHistory{}, err
+		}
+		if proved.Status != trimvalidate.Certified {
+			return ParabolaCircleGraphHistory{}, geom.ErrConvergence
+		}
+	}
+	return h, nil
+}
