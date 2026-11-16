@@ -291,6 +291,9 @@ coedge ranges. Edge-only or disjoint footprint intersections are empty.
 Fuse also keeps a proved containing original stock unchanged. Cut
 accepts a covering tool, retains the original clipped floor, and
 keeps an unchanged stock against a tool with no shared projected area.
+The source graph also proves all signed material bands between
+multiple full parallel contours, preserving each exact section and
+both original chart clocks. Native assembly of those bands follows.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows
