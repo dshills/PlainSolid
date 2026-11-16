@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"errors"
+	"math/big"
 )
 
 // VerifiedNormalOffsetSeparationOptions bounds exact pair subdivision.
@@ -11,6 +12,9 @@ import (
 type VerifiedNormalOffsetSeparationOptions struct {
 	Patch              SurfacePatchOptions
 	MaxDepth, MaxPairs int
+	// Directions optionally tries up to eight exact projections of the
+	// full pair before subdividing axis-aligned bounds.
+	Directions [][3]*big.Rat
 }
 
 // VerifiedNormalOffsetPairCell covers a still possible contact between the
@@ -27,6 +31,8 @@ type VerifiedNormalOffsetSeparation struct {
 	Complete                    bool
 	Unresolved                  []VerifiedNormalOffsetPairCell
 	VisitedPairs, ExcludedPairs int
+	ProjectedGap                *big.Rat
+	ProjectionDirection         [3]*big.Rat
 	ExactOperations             int
 }
 
@@ -38,8 +44,20 @@ type VerifiedNormalOffsetSeparation struct {
 func CertifyVerifiedNormalOffsetSeparation(ctx context.Context, a, b *VerifiedNormalOffsetPatch,
 	o VerifiedNormalOffsetSeparationOptions) (r VerifiedNormalOffsetSeparation, err error) {
 	if ctx == nil || a == nil || b == nil || !a.Domain().Valid() || !b.Domain().Valid() ||
-		o.MaxDepth < 0 || o.MaxDepth > 64 || o.MaxPairs < 0 || o.MaxPairs > 1<<20 {
+		o.MaxDepth < 0 || o.MaxDepth > 64 || o.MaxPairs < 0 || o.MaxPairs > 1<<20 || len(o.Directions) > 8 {
 		return r, ErrInvalid
+	}
+	for _, direction := range o.Directions {
+		nonzero := false
+		for _, q := range direction {
+			if q == nil {
+				return r, ErrInvalid
+			}
+			nonzero = nonzero || q.Sign() != 0
+		}
+		if !nonzero {
+			return r, ErrInvalid
+		}
 	}
 	if o.MaxDepth == 0 {
 		o.MaxDepth = 28
@@ -74,6 +92,53 @@ func CertifyVerifiedNormalOffsetSeparation(ctx context.Context, a, b *VerifiedNo
 			keep(stack[i])
 		}
 	}()
+	for _, direction := range o.Directions {
+		var ranges [2]RationalOffsetProjection
+		ok := true
+		for k, part := range parts {
+			limit := o.Patch
+			limit.MaxOperations -= r.ExactOperations
+			if limit.MaxOperations < 1 {
+				return r, ErrConvergence
+			}
+			projection, err := part.ProjectionBoundsRational(ctx, global[k], direction, limit)
+			r.ExactOperations += min(projection.ExactOperations, limit.MaxOperations)
+			if err != nil {
+				if !errors.Is(err, ErrConvergence) || projection.ExactOperations >= limit.MaxOperations {
+					return r, err
+				}
+				ok = false
+				break
+			}
+			ranges[k] = projection
+		}
+		if !ok {
+			continue
+		}
+		limit := o.Patch.MaxOperations - r.ExactOperations
+		if limit < 1 {
+			return r, ErrConvergence
+		}
+		count := &polynomialBudget{maxOperations: limit, maxBits: o.Patch.MaxCoefficientBits}
+		arithmetic := boundedRatArithmetic{b: count}
+		gap := arithmetic.sub(ranges[1].Lower, ranges[0].Upper)
+		if gap.Sign() <= 0 {
+			gap = arithmetic.sub(ranges[0].Lower, ranges[1].Upper)
+		}
+		r.ExactOperations += min(count.operations, limit)
+		if arithmetic.err != nil {
+			return r, arithmetic.err
+		}
+		if gap.Sign() > 0 {
+			r.Complete, r.VisitedPairs, r.ExcludedPairs = true, 1, 1
+			r.ProjectedGap = gap
+			for i, value := range direction {
+				r.ProjectionDirection[i] = new(big.Rat).Set(value)
+			}
+			stack = nil
+			return r, nil
+		}
+	}
 	for len(stack) != 0 {
 		if err := ctx.Err(); err != nil {
 			return r, err

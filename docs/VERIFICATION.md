@@ -91,6 +91,10 @@ The final offset image separation race passed in 3.053 seconds. Parallel
 tilted offsets with overlapping initial boxes separate under exact
 subdivision. Coincident controls never separate, and cell, work and
 cancellation limits retain the original possible contacts in the cover.
+The offset projection race passed in 2.934 seconds. Projecting the
+original homogeneous controls preserves a strict gap of `2^-80`
+between two oblique offset planes. A single directed pair test proves
+separation while the same axis-aligned budget leaves the pair unresolved.
 The exact convex-hull separation race passed in geometry and intersection
 (25.901 and 1.207 seconds). A weighted curved pair separated on an exact
 new support direction, with the gap independently projected from the

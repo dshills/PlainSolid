@@ -53,6 +53,8 @@ over a complete parameter cell, for certified mesh and collision checks.
 Nonadjacent offset pairs can use those bounds to prove strict separation.
 Unexcluded original parameter pairs remain available to later contact
 analysis when limits or overlapping enclosures prevent a decision.
+An exact noncardinal projection can preserve small gaps hidden by the
+axis-aligned boxes, and can exclude the full pair before subdivision.
 Full-domain curved pair isolation can also use a bounded exact control-hull
 support search. It can prove separation when the world axes and original
 center normals leave overlapping projections, and retains pairs it cannot

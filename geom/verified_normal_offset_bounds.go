@@ -12,51 +12,12 @@ import (
 // degeneracy needs subdivision; it returns ErrConvergence.
 func (p *VerifiedNormalOffsetPatch) BoundsRational(ctx context.Context, rectangle ParameterRectangle,
 	o SurfacePatchOptions) (r RationalSurfaceOffsetPoint, err error) {
-	if ctx == nil || p == nil || p.source == nil || p.distance == nil || !rectangle.Valid() {
-		return r, ErrInvalid
+	cell, budget, err := p.offsetBoundsCell(ctx, rectangle, o)
+	if budget != nil {
+		defer func() { r.ExactOperations = budget.operations }()
 	}
-	if err := ctx.Err(); err != nil {
-		return r, err
-	}
-	domain := p.source.Domain()
-	if rectangle.UMin < domain.UMin || rectangle.UMax > domain.UMax ||
-		rectangle.VMin < domain.VMin || rectangle.VMax > domain.VMax {
-		return r, ErrDomain
-	}
-	o, err = patchOptions(o)
 	if err != nil {
 		return r, err
-	}
-	if len(p.source.net) > o.MaxPoles {
-		return r, ErrConvergence
-	}
-	source := *p.source
-	source.options.MaxPoles = min(source.options.MaxPoles, o.MaxPoles)
-	budget := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
-	defer func() { r.ExactOperations = budget.operations }()
-	if err := budget.check(p.distance); err != nil {
-		return r, err
-	}
-	cell := &source
-	for _, side := range []struct {
-		parameter, original float64
-		u, low              bool
-	}{{rectangle.UMin, domain.UMin, true, true}, {rectangle.UMax, domain.UMax, true, false},
-		{rectangle.VMin, domain.VMin, false, true}, {rectangle.VMax, domain.VMax, false, false}} {
-		if side.parameter == side.original {
-			continue
-		}
-		if err := ctx.Err(); err != nil {
-			return r, err
-		}
-		l, h, err := cell.split(side.parameter, side.u, budget)
-		if err != nil {
-			return r, err
-		}
-		cell = l
-		if side.low {
-			cell = h
-		}
 	}
 	jet, err := offsetCartesianRanges(ctx, cell, budget)
 	if err != nil {
@@ -83,6 +44,56 @@ func (p *VerifiedNormalOffsetPatch) BoundsRational(ctx context.Context, rectangl
 	r.Lower, r.Upper = lower, upper
 	r.Bounds = Box{Min: rationalSurfaceVectorBounds(lower).Min, Max: rationalSurfaceVectorBounds(upper).Max}
 	return r, nil
+}
+
+func (p *VerifiedNormalOffsetPatch) offsetBoundsCell(ctx context.Context, rectangle ParameterRectangle,
+	o SurfacePatchOptions) (cell *SurfacePatch, budget *polynomialBudget, err error) {
+	if ctx == nil || p == nil || p.source == nil || p.distance == nil || !rectangle.Valid() {
+		return nil, nil, ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
+	domain := p.source.Domain()
+	if rectangle.UMin < domain.UMin || rectangle.UMax > domain.UMax ||
+		rectangle.VMin < domain.VMin || rectangle.VMax > domain.VMax {
+		return nil, nil, ErrDomain
+	}
+	o, err = patchOptions(o)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(p.source.net) > o.MaxPoles {
+		return nil, nil, ErrConvergence
+	}
+	source := *p.source
+	source.options.MaxPoles = min(source.options.MaxPoles, o.MaxPoles)
+	budget = &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
+	if err := budget.check(p.distance); err != nil {
+		return nil, budget, err
+	}
+	cell = &source
+	for _, side := range []struct {
+		parameter, original float64
+		u, low              bool
+	}{{rectangle.UMin, domain.UMin, true, true}, {rectangle.UMax, domain.UMax, true, false},
+		{rectangle.VMin, domain.VMin, false, true}, {rectangle.VMax, domain.VMax, false, false}} {
+		if side.parameter == side.original {
+			continue
+		}
+		if err := ctx.Err(); err != nil {
+			return nil, budget, err
+		}
+		l, h, err := cell.split(side.parameter, side.u, budget)
+		if err != nil {
+			return nil, budget, err
+		}
+		cell = l
+		if side.low {
+			cell = h
+		}
+	}
+	return cell, budget, nil
 }
 
 // scaledOffsetNormalLength divides the interval normals by one positive
