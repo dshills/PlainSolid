@@ -19,16 +19,17 @@ type PeriodicSeamTrimCell struct {
 }
 
 // PeriodicSeamTrimmedFace retains the periodic carrier and one lifted
-// type-144 rectangular face crossing its U seam. The two normalized
-// patches are in ascending lifted U order. The six paired edges retain
-// the original outer-wire order and each original model parameter range.
+// type-144 rectangle crossing its U or V seam. Only the occupied seam
+// coordinate is set. The normalized patches follow increasing lifted
+// parameter on that axis. The six pairs retain the original outer-wire
+// order and each original model parameter range.
 type PeriodicSeamTrimmedFace struct {
 	LengthUnit                      float64
 	FaceID, SupportID, ContourID    int
 	UVCompositeID, ModelCompositeID int
 	Support                         *geom.ExactPeriodicSplineSurface
 	CarrierBounds, Bounds           [2]geom.ExactParameterInterval
-	SeamU                           *big.Rat
+	SeamU, SeamV                    *big.Rat
 	Cells                           [2]PeriodicSeamTrimCell
 	Edges                           [6]PeriodicTrimEdge
 	ProjectionAxes                  [2]int
@@ -40,14 +41,14 @@ type PeriodicSeamTrimmedFace struct {
 func (f PeriodicSeamTrimmedFace) OriginalIGES() string { return f.original }
 
 // ReadPeriodicSeamTrimmedFace proves one rectangular type-144 face whose
-// directed UV and model composites both split at the upper U seam of the
+// directed UV and model composites both split at the upper seam of the
 // original full type-128 carrier. The lift must meet exactly the two
-// adjacent U knot cells and one ordinary V cell. Both sides must share
-// the entire seam, and one fixed projection must prove injectivity over
-// the complete lifted rectangle.
+// adjacent knot cells along the periodic axis and one ordinary span
+// along the opposite axis. Both sides must share the entire seam, and
+// one fixed projection must prove injectivity over the lifted rectangle.
 func ReadPeriodicSeamTrimmedFace(ctx context.Context, r io.Reader, l Limits) (PeriodicSeamTrimmedFace, error) {
 	var zero PeriodicSeamTrimmedFace
-	source, err := readPeriodicTrimSource(ctx, r, l, 6)
+	source, err := readPeriodicTrimSourceForAxes(ctx, r, l, 6, true)
 	if err != nil {
 		return zero, err
 	}
@@ -74,32 +75,48 @@ func provePeriodicSeamTrimmedOuter(ctx context.Context, source *periodicTrimSour
 		Support: base.Support, CarrierBounds: base.Bounds, original: base.original,
 	}
 	u, v, _ := m.Support.Data()
-	period := new(big.Rat).Sub(u.Knots[u.Count], u.Knots[0])
-	for i, expected := range [2][2]*big.Rat{{u.Knots[0], u.Knots[u.Count]}, {v.Knots[v.Degree], v.Knots[v.Count]}} {
-		if m.CarrierBounds[i].Lower.Cmp(expected[0]) != 0 || m.CarrierBounds[i].Upper.Cmp(expected[1]) != 0 {
+	axis := 0
+	if v.Periodic {
+		axis = 1
+	}
+	basis := [2]geom.ExactTensorSplineAxis{u, v}
+	for i, b := range basis {
+		first := b.Degree
+		if i == axis {
+			first = 0
+		}
+		if m.CarrierBounds[i].Lower.Cmp(b.Knots[first]) != 0 || m.CarrierBounds[i].Upper.Cmp(b.Knots[b.Count]) != 0 {
 			return zero, fmt.Errorf("iges: seam trim requires the full original carrier intervals: %w", geom.ErrUnrepresentable)
 		}
 	}
-	m.SeamU = u.Knots[u.Count]
+	carrier := m.CarrierBounds[axis]
+	seam := new(big.Rat).Set(carrier.Upper)
+	period := new(big.Rat).Sub(seam, carrier.Lower)
+	if axis == 0 {
+		m.SeamU = seam
+	} else {
+		m.SeamV = seam
+	}
 	var uv [6]periodicTrimUVEdge
 	var err error
 	m.Bounds, err = readPeriodicTrimUVEdges(source.graph, source.uv, uv[:])
 	if err != nil {
 		return zero, err
 	}
-	if m.Bounds[0].Lower.Cmp(u.Knots[0]) <= 0 || m.Bounds[0].Lower.Cmp(m.SeamU) >= 0 ||
-		m.Bounds[0].Upper.Cmp(m.SeamU) <= 0 || new(big.Rat).Sub(m.Bounds[0].Upper, m.Bounds[0].Lower).Cmp(period) >= 0 {
-		return zero, fmt.Errorf("iges: expected one lift crossing the upper original U seam: %w", geom.ErrUnrepresentable)
+	lift := m.Bounds[axis]
+	if lift.Lower.Cmp(carrier.Lower) <= 0 || lift.Lower.Cmp(seam) >= 0 ||
+		lift.Upper.Cmp(seam) <= 0 || new(big.Rat).Sub(lift.Upper, lift.Lower).Cmp(period) >= 0 {
+		return zero, fmt.Errorf("iges: expected one lift crossing the upper original %s seam: %w", [2]string{"U", "V"}[axis], geom.ErrUnrepresentable)
 	}
 	cells, err := m.proveSeamCells(ctx)
 	if err != nil {
 		return zero, err
 	}
-	m.Edges, source.remaining, err = proveLiftedTrimEdges(ctx, source.graph, m.Bounds, m.SeamU, uv, source.model, cells, 1, source.remaining)
+	m.Edges, source.remaining, err = proveLiftedTrimEdges(ctx, source.graph, m.Bounds, axis, seam, uv, source.model, cells, 1, source.remaining)
 	if err != nil {
 		return zero, err
 	}
-	if err := m.proveLiftInjectivity(ctx, period); err != nil {
+	if err := m.proveLiftInjectivity(ctx, axis, period); err != nil {
 		return zero, err
 	}
 	return m, nil
@@ -110,19 +127,28 @@ func (m *PeriodicSeamTrimmedFace) proveSeamCells(ctx context.Context) ([]geom.Ex
 	if err != nil {
 		return nil, fmt.Errorf("iges: split lifted trim at two original knot cells: %w", err)
 	}
-	if len(cells) != 2 || cells[0].U.Domain.Upper.Cmp(m.SeamU) != 0 || cells[1].U.Domain.Lower.Cmp(m.SeamU) != 0 {
+	if len(cells) != 2 {
 		return nil, fmt.Errorf("iges: lifted rectangle must occupy the two seam-adjacent cells: %w", geom.ErrUnrepresentable)
 	}
+	axis, seam := 0, m.SeamU
+	if m.SeamV != nil {
+		axis, seam = 1, m.SeamV
+	}
+	ordinary := 1 - axis
 	for i, cell := range cells {
 		box := [2]geom.ExactParameterInterval{cell.U.Domain, cell.V.Domain}
+		if (i == 0 && box[axis].Upper.Cmp(seam) != 0) || (i == 1 && box[axis].Lower.Cmp(seam) != 0) {
+			return nil, fmt.Errorf("iges: lifted rectangle must occupy the two seam-adjacent cells: %w", geom.ErrUnrepresentable)
+		}
 		owners, err := periodicTrimKnotOwners(ctx, m.Support, box)
 		if err != nil {
 			return nil, err
 		}
-		if owners[0].Cycle.Cmp(big.NewInt(int64(i))) != 0 ||
-			i == 0 && box[0].Lower.Cmp(owners[0].Domain.Lower) <= 0 ||
-			i == 1 && box[0].Upper.Cmp(owners[0].Domain.Upper) >= 0 ||
-			box[1].Lower.Cmp(owners[1].Domain.Lower) <= 0 || box[1].Upper.Cmp(owners[1].Domain.Upper) >= 0 {
+		if owners[axis].Cycle.Cmp(big.NewInt(int64(i))) != 0 ||
+			i == 0 && box[axis].Lower.Cmp(owners[axis].Domain.Lower) <= 0 ||
+			i == 1 && box[axis].Upper.Cmp(owners[axis].Domain.Upper) >= 0 ||
+			box[ordinary].Lower.Cmp(owners[ordinary].Domain.Lower) <= 0 ||
+			box[ordinary].Upper.Cmp(owners[ordinary].Domain.Upper) >= 0 {
 			return nil, fmt.Errorf("iges: lifted rectangle touches an additional original knot station: %w", geom.ErrUnrepresentable)
 		}
 		patch, err := cell.NormalizedPatch(ctx, geom.SurfacePatchOptions{})
@@ -131,19 +157,20 @@ func (m *PeriodicSeamTrimmedFace) proveSeamCells(ctx context.Context) ([]geom.Ex
 		}
 		m.Cells[i] = PeriodicSeamTrimCell{box, owners, patch}
 	}
-	left, err := periodicTrimCellEdge(ctx, cells[0], 1)
+	seamSides := [2][2]int{{1, 3}, {2, 0}}[axis]
+	lower, err := periodicTrimCellEdge(ctx, cells[0], seamSides[0])
 	if err != nil {
 		return nil, err
 	}
-	right, err := periodicTrimCellEdge(ctx, cells[1], 3)
+	upper, err := periodicTrimCellEdge(ctx, cells[1], seamSides[1])
 	if err != nil {
 		return nil, err
 	}
-	right, err = right.Reparameterize(0, 1, true, geom.SurfacePatchOptions{})
+	upper, err = upper.Reparameterize(0, 1, true, geom.SurfacePatchOptions{})
 	if err != nil {
 		return nil, err
 	}
-	pair, err := geom.CompareExactCurvesContext(ctx, left, right, geom.ExactCurveComparisonOptions{MaxSpans: 1})
+	pair, err := geom.CompareExactCurvesContext(ctx, lower, upper, geom.ExactCurveComparisonOptions{MaxSpans: 1})
 	if err != nil {
 		return nil, err
 	}
@@ -154,12 +181,19 @@ func (m *PeriodicSeamTrimmedFace) proveSeamCells(ctx context.Context) ([]geom.Ex
 }
 
 func proveLiftedTrimEdges(ctx context.Context, graph periodicTrimGraph, bounds [2]geom.ExactParameterInterval,
-	seam *big.Rat, uv [6]periodicTrimUVEdge, model []int, cells []geom.ExactPeriodicSurfaceBezierCell,
+	axis int, seam *big.Rat, uv [6]periodicTrimUVEdge, model []int, cells []geom.ExactPeriodicSurfaceBezierCell,
 	winding, remaining int) ([6]PeriodicTrimEdge, int, error) {
 	var zero, pairs [6]PeriodicTrimEdge
 	u, v := bounds[0], bounds[1]
 	stations := [6][2]*big.Rat{{u.Lower, v.Lower}, {seam, v.Lower}, {u.Upper, v.Lower},
 		{u.Upper, v.Upper}, {seam, v.Upper}, {u.Lower, v.Upper}}
+	// Each CCW segment owns one side of one exact cell.
+	cellSides := [6][2]int{{0, 0}, {1, 0}, {1, 1}, {1, 2}, {0, 2}, {0, 3}}
+	if axis == 1 {
+		stations = [6][2]*big.Rat{{u.Lower, v.Lower}, {u.Upper, v.Lower}, {u.Upper, seam},
+			{u.Upper, v.Upper}, {u.Lower, v.Upper}, {u.Lower, seam}}
+		cellSides = [6][2]int{{0, 0}, {0, 1}, {1, 1}, {1, 2}, {1, 3}, {0, 3}}
+	}
 	station := func(q [2]*big.Rat) int {
 		for i, point := range stations {
 			if q[0].Cmp(point[0]) == 0 && q[1].Cmp(point[1]) == 0 {
@@ -168,8 +202,6 @@ func proveLiftedTrimEdges(ctx context.Context, graph periodicTrimGraph, bounds [
 		}
 		return -1
 	}
-	// Each CCW rectangle segment owns one side of one exact cell.
-	cellSides := [6][2]int{{0, 0}, {1, 0}, {1, 1}, {1, 2}, {0, 2}, {0, 3}}
 	first := station(uv[0].start)
 	for i, edge := range uv {
 		start := (first + i*winding + 6) % 6
@@ -201,20 +233,22 @@ func proveLiftedTrimEdges(ctx context.Context, graph periodicTrimGraph, bounds [
 	return pairs, remaining, nil
 }
 
-func (m *PeriodicSeamTrimmedFace) proveLiftInjectivity(ctx context.Context, period *big.Rat) error {
+func (m *PeriodicSeamTrimmedFace) proveLiftInjectivity(ctx context.Context, axis int, period *big.Rat) error {
 	fundamental, err := m.Support.ExactFundamentalPatch(ctx, geom.PeriodicSurfaceBezierOptions{MaxCells: 64})
 	if err != nil {
 		return err
 	}
-	source := [4]*big.Rat{m.Bounds[0].Lower, new(big.Rat).Sub(m.Bounds[0].Upper, period), m.Bounds[1].Lower, m.Bounds[1].Upper}
+	source := [4]*big.Rat{m.Bounds[0].Lower, m.Bounds[0].Upper, m.Bounds[1].Lower, m.Bounds[1].Upper}
+	wrappedUpper := 2*axis + 1
+	source[wrappedUpper] = new(big.Rat).Sub(source[wrappedUpper], period)
 	var mapped [4]float64
-	_, periodicSpans := fundamental.Coordinates[0].Breaks()
+	_, periodicSpans := fundamental.Coordinates[axis].Breaks()
 	for i, q := range source {
 		t, err := fundamental.Coordinates[i/2].ToWorking(q)
 		if err != nil {
 			return err
 		}
-		if i == 1 {
+		if i == wrappedUpper {
 			t.Add(t, big.NewRat(int64(len(periodicSpans)), 1))
 		}
 		mapped[i], err = geom.RepresentedExactScalar(t)

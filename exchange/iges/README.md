@@ -146,19 +146,24 @@ and crossing contours and reverses the incorrectly wound inner contour on
 transfer.
 
 `ReadPeriodicSeamTrimmedFace` admits the lifted rectangular case at the
-upper U seam of the original full type-128 carrier. The two type-102
-composites each contain six directed pieces. The horizontal sides split
-at the original seam station, with matching type-110 UV and complete
-type-126 model pieces. The reader retains each source owner and the two
-original knot cells, proves their complete shared seam, and certifies the
-whole lifted rectangle with one fixed projection. The lifted endpoints
-must map exactly to the working coordinates used for that proof.
+upper seam of a full type-128 carrier periodic in U or in V. The two
+type-102 composites each contain six directed pieces. The sides parallel
+to the periodic axis split at its original seam station, with matching
+type-110 UV and complete type-126 model pieces. The reader retains each
+source owner and the two original knot cells, proves their complete
+shared seam, and certifies the whole lifted rectangle with one fixed
+projection. The lifted endpoints must map exactly to the working
+coordinates used for that proof. `SeamU` or `SeamV` records the selected
+original station, with the other field unset.
 
 The independent `occt-periodic-exact-seam-trimmed-128.iges` fixture is
 written from explicitly paired lifted segments through OCCT's standard
 IGES entities. The pinned reader reopens its six directed edges with the
 same UV stations, model points, and model parameter ranges. It assigns each
 pcurve the parameter interval of its paired model spline on transfer.
+The independently authored V-seam fixture likewise retains its six
+directed source edges, split V stations and original model ranges.
+The pinned reports for its original and canonical carriers match.
 
 `ReadPeriodicSeamTrimmedFaceWithHole` admits one clockwise rectangular
 inner contour crossing the same original U seam as its outer loop. Both
