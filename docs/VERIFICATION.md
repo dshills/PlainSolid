@@ -346,6 +346,11 @@ the same U seam. The independently authored positive reopens with one
 face, two wires, 12 edges and 12 vertices. The touching source whose
 outer edges OCCT splits, mixed cycle stations and model perturbations
 refuse. The main race, full IGES, amd64 replay and eleven earlier files pass.
+The [periodic seam hole export audit](evidence/iges-periodic-seam-hole-outbound-2026-11-16.json)
+passes exact repeat emission, both executed macOS architectures, and
+identical pinned reports for the original source and exported carrier.
+All 12 directed pairs retain their original owners and ranges. A
+transfer-collapsing gap refuses atomically; eleven prior outputs match.
 
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips

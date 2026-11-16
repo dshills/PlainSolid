@@ -177,8 +177,9 @@ One original clockwise rectangular hole can cross the same upper seam.
 Its six directed model and UV pairs retain their original seam split,
 and the outer wire and inner wire stay strictly separated.
 Canonical export can emit that verified six-edge seam trim with its
-original identifiers, parameter ranges and geometry. General editable
-periodic trim construction and export remain open.
+original identifiers, parameter ranges and geometry. It can also emit
+the verified crossing inner wire. General editable periodic trim
+construction and export remain open.
 Standalone unplaced periodic type 128 export now reconstructs the
 original expanded owners from an exact cyclic tensor. Finite decimal
 encoding and transfer limits are enforced before any output is written.

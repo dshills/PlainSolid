@@ -1,0 +1,259 @@
+{
+  "implementationCommit": "4111429fba672851f399ab2c42b29275f45e8c25",
+  "readerDependency": "f38b815de204bac752d85c0e2e6700523e3ec4e5",
+  "patch": {
+    "name": "export-periodic-trimmed-iges-128-seam-hole.patch",
+    "sha256": "9bc50d1cc937c786d30e2f261a35d7283e5c2803c1a088c481f6d392997bf92b",
+    "bytes": 12985
+  },
+  "scope": "Source-bound exact type-144 canonical emission preserving all twelve original directed edge pairs at the joined seam chart.",
+  "originalSourceUnchanged": true,
+  "canonicalStrictReopenByteStable": true,
+  "source": {
+    "name": "exact-seam-hole.iges",
+    "sha256": "22968158cfe98e74e02fdb30a2c40fbbca82678b159f4ad8f2bd07d3bed3bcd6",
+    "bytes": 9477
+  },
+  "graph": {
+    "type144FaceID": 1,
+    "type128SupportID": 3,
+    "type142ContourIDs": [
+      5,
+      35
+    ],
+    "type102UVAndModelIDs": [
+      [
+        7,
+        21
+      ],
+      [
+        37,
+        51
+      ]
+    ],
+    "UVLineOwnerIDs": [
+      [
+        9,
+        11,
+        13,
+        15,
+        17,
+        19
+      ],
+      [
+        39,
+        41,
+        43,
+        45,
+        47,
+        49
+      ]
+    ],
+    "modelSplineOwnerIDs": [
+      [
+        23,
+        25,
+        27,
+        29,
+        31,
+        33
+      ],
+      [
+        53,
+        55,
+        57,
+        59,
+        61,
+        63
+      ]
+    ],
+    "modelRangeStarts": [
+      [
+        0,
+        2,
+        4,
+        6,
+        8,
+        10
+      ],
+      [
+        20,
+        22,
+        24,
+        26,
+        28,
+        30
+      ]
+    ]
+  },
+  "chart": {
+    "fileUnits": "mm",
+    "fullSupport": [
+      [
+        "0",
+        "5"
+      ],
+      [
+        "0",
+        "4"
+      ]
+    ],
+    "originalKnotOwnersU": [
+      [
+        "4",
+        "5"
+      ],
+      [
+        "5",
+        "6"
+      ]
+    ],
+    "originalKnotOwnersV": [
+      [
+        "0",
+        "4"
+      ],
+      [
+        "0",
+        "4"
+      ]
+    ],
+    "UStationCycles": [
+      0,
+      1
+    ],
+    "USeam": "5",
+    "outerBounds": [
+      [
+        "19/4",
+        "21/4"
+      ],
+      [
+        "1",
+        "3"
+      ]
+    ],
+    "projectionAxes": [
+      "Y",
+      "Z"
+    ],
+    "projectionOrientation": 1,
+    "holeBounds": [
+      [
+        "39/8",
+        "41/8"
+      ],
+      [
+        "3/2",
+        "5/2"
+      ]
+    ],
+    "leftAndRightNormalizedDuScale": "1/8",
+    "normalizedDvScale": "1"
+  },
+  "canonical": {
+    "name": "canonical.iges",
+    "sha256": "1a490104f5ea88187c2009ede8f62a33e2b59c3432f62d99ec99c737d6703727",
+    "bytes": 9477
+  },
+  "canonicalMatchesDarwinAMD64": true,
+  "pinnedOCCT": {
+    "revision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+    "binary": {
+      "name": "author",
+      "sha256": "f42655d8dfd74ac98999f4a0fe05f478ae5545d994fbd7d3b230cb165f101509",
+      "bytes": 130072
+    },
+    "source": {
+      "name": "iges_periodic_128_trim.cxx",
+      "sha256": "13a363a46be91fa2dd16f1e02a3d88335042d799135117f1dfef00b2a5c2bb7f",
+      "bytes": 13799
+    },
+    "readMode": "read-wires",
+    "report": {
+      "name": "canonical.reader.log",
+      "sha256": "2b97a710647888aead0be9b945b17015e8bd91a9bf3f2f74f97184a187369578",
+      "bytes": 2836
+    },
+    "sourceAndCanonicalReportByteIdentical": true,
+    "reopen": {
+      "valid": true,
+      "topology": [
+        1,
+        2,
+        12,
+        12
+      ],
+      "area": 3.067009869638307,
+      "perimeter": 12.123779934675332,
+      "periodicU": true,
+      "bounds": [
+        4.75,
+        5.25,
+        1,
+        3
+      ],
+      "samplesCount": 5,
+      "wiresCount": 2
+    }
+  },
+  "refusals": [
+    "Altered seam split, source owner, exact model bounds or trimmed cell",
+    "Forged touching original",
+    "Exact 1e-17 gap that collapses between individually representable wires",
+    "Cancelled write and short I/O"
+  ],
+  "tests": {
+    "focused": {
+      "name": "focused.log",
+      "sha256": "585b41dda87ea1b1498d60df3507d2a98788cba81ea4a27a971cfdbcdc97e3e3",
+      "bytes": 4688,
+      "seconds": 2.148,
+      "passed": true
+    },
+    "race": {
+      "name": "race.log",
+      "sha256": "b7e6efef5bbe9cba29505b76c53744e1d8034d18c2f8abbd030769ca9d3367bf",
+      "bytes": 13206,
+      "seconds": 8.821,
+      "passed": true
+    },
+    "raceFilter": "^(TestWritePeriodic(SeamTrimmedFace|TrimmedFaceWithHoles)|TestReadPeriodic(Seam)?TrimmedFace|TestPeriodicTrimmedFaceSeam|TestReadExactPeriodicSurface128|TestWriteExactPeriodicSurface128|TestNewExactPeriodicSurface128|TestSurfaceExchange|TestIndependentSurfaceParameters|TestExactCurveOnSurface|TestCurveOnSurfaceRejectsMismatch|TestCurveOnSurfacePointerAndLimits|TestMalformedRecordsAndPointers|TestLimits|TestOrthogonalSurface|TestPlacedRectangularSurface|TestQuadraticOvalSurface|TestCurvedOvalSurface|TestPlanarSolidIGES)",
+    "darwinAMD64": {
+      "name": "amd64.log",
+      "sha256": "fdc5643f733981e71c846002a7271cfb323557fd80aa0a8b5e97b6332f564480",
+      "bytes": 367,
+      "seconds": null,
+      "passed": true
+    },
+    "fullIGES": {
+      "name": "full.log",
+      "sha256": "302c085906c3e08229df07ee6bd0a10845793def6c21de3a2c88f2897972b378",
+      "bytes": 39,
+      "seconds": 128.845,
+      "passed": true
+    }
+  },
+  "unchangedPredecessorOutputs": {
+    "legacy/one-hole.iges": "deb74dcd6a9d28b5b5bf879596718e43746a801c1c1d06ae16007ab351ac772e",
+    "legacy/ordinary/curves.iges": "e7306c47f1c1b717d0b4dcbc988eb9f42ca22207962c334c8250cd9cc4fdbca3",
+    "legacy/ordinary/rectangular-spline-face.igs": "30b5dd8b91a26096740288382b4c2c8c0d514732cc0d165e5d1fdd5cec2fd26b",
+    "legacy/ordinary/translated-trimmed-rational-128.iges": "ab24c50ad001536723860888a87376f38b9be3a9e08e6aae46eac59d9ddba72d",
+    "legacy/periodic/native-rephased.iges": "2d7538bdad0be19a9f8181c8f71edf0a6a972b50642efe73e5dea93f25a8ca65",
+    "legacy/periodic/u.iges": "27caf6f5f36ba1a16050b139072f35e17a084b5641fcd33fccb4547eac752310",
+    "legacy/periodic/uv.iges": "8190bed840cf2723f44f2754f78fcdb8019deddbfe1a7f97f9f53f92e3cb3156",
+    "legacy/periodic/v.iges": "b543d8b06967e59cd06b20598c6bafeb1e918fe5d445bda36556a4cac6068b60",
+    "legacy/planar.iges": "992bbaa2bcd500dc22dc973966ede61632acb7c4b66eff90fedd0abaf18343cd",
+    "legacy/seam.iges": "c323d9b453c627dc16b42833d058d71cbd14313947c8d94d5fbdf4f1154b2b2e",
+    "legacy/two-holes.iges": "f8d62d3bccc673ebf24bdc404a26c69f3f3171b3dd446d42cab036a201eab359"
+  },
+  "sourceQualificationSHA256": "98629180ad64f17c9cfbd447209da347160ea9ef46798238afcf92e2e2a03471",
+  "mainRace": {
+    "sourceBase": "9f95a188",
+    "name": "iges-periodic-seam-hole-outbound-main-race.jsonl",
+    "sha256": "535e9f88cbc46175073f22bcd4939587c25174de0a63070406262393502074fd",
+    "seconds": 8.053,
+    "failures": 0,
+    "skips": 0
+  }
+}
