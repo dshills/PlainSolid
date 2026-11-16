@@ -37,6 +37,7 @@ static bool readRationalCone(const BRepAdaptor_Surface& face, Band& data) {
     const double x = (s->Pole(1, 1).X() + s->Pole(5, 1).X()) / 2;
     const double y = s->Pole(1, 1).Y();
     const double base = s->Weight(1, 1);
+    const double sign = s->Pole(1, 2).Z() > s->Pole(1, 1).Z() ? 1. : -1.;
     for (int u = 1; u <= 5; ++u) {
         const int multiplicity = !s->IsUPeriodic() && (u == 1 || u == 5) ? 3 : 2;
         if (s->UKnot(u) != u - 1 || s->UMultiplicity(u) != multiplicity) return false;
@@ -50,13 +51,18 @@ static bool readRationalCone(const BRepAdaptor_Surface& face, Band& data) {
         for (int u = 1; u <= s->NbUPoles(); ++u) {
             const auto p = s->Pole(u, v);
             const auto xy = azimuth[u - 1];
-            if (!close(p.X(), x + xy[0] * r) || !close(p.Y(), y + xy[1] * r) ||
+            if (!close(p.X(), x + xy[0] * r) || !close(p.Y(), y + sign * xy[1] * r) ||
                 !close(p.Z(), z) || !close(s->Weight(u, v), base * weights[u - 1])) return false;
         }
         data[2 * v] = z;
         data[2 * v + 1] = r;
     }
-    return data[2] < data[4];
+    if (data[2] == data[4]) return false;
+    if (sign < 0) {
+        std::swap(data[2], data[4]);
+        std::swap(data[3], data[5]);
+    }
+    return true;
 }
 
 static bool readRevolvedCone(const BRepAdaptor_Surface& s, Band& data) {

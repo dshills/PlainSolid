@@ -73,7 +73,7 @@ func ReadWrappedCylinderBoreRimFillet(ctx context.Context, r io.Reader, l Limits
 	}
 	l.MaxBytes, l.MaxRecords = min(l.MaxBytes, 128<<10), min(l.MaxRecords, 1024)
 	l.MaxEntities, l.MaxValues = min(l.MaxEntities, 128), min(l.MaxValues, 4096)
-	doc, err := readTopologyRecordPolicyWithBore(r, l, true, false, false, false, false, false, true, false, false, true)
+	doc, err := readTopologyRecordPolicyWithDirectory(r, l, true, false, false, false, false, false, true, false, false, igesBoreRimDirectory)
 	if err != nil {
 		return fail(err)
 	}
@@ -229,17 +229,24 @@ func (p *igesBoreRimSource) readFace(id, sense int) (igesBoreRimFace, error) {
 			return f, errIGESBoreRim
 		}
 	}
-	for _, loop := range rec[4:] {
+	if err := p.readFaceLoops(&f, rec[4:]); err != nil {
+		return f, err
+	}
+	return f, nil
+}
+
+func (p *igesBoreRimSource) readFaceLoops(f *igesBoreRimFace, refs []int) error {
+	for _, loop := range refs {
 		a, err := p.topology(loop, 508)
 		if err != nil || len(a) < 2 || a[1] < 1 || a[1] > 10 || len(a) != 2+5*a[1] {
-			return f, errIGESBoreRim
+			return errIGESBoreRim
 		}
 		wire := make([]igesBoreRimUse, a[1])
 		for i := range wire {
 			v := a[2+5*i:]
 			if v[0] != 0 || v[1] <= 0 || p.edges != 0 && p.edges != v[1] || v[2] < 1 ||
 				v[3] < 0 || v[3] > 1 || v[4] != 0 {
-				return f, errIGESBoreRim
+				return errIGESBoreRim
 			}
 			p.edges = v[1]
 			j := i
@@ -250,7 +257,7 @@ func (p *igesBoreRimSource) readFace(id, sense int) (igesBoreRimFace, error) {
 		}
 		f.loops = append(f.loops, wire)
 	}
-	return f, nil
+	return nil
 }
 
 func (p *igesBoreRimSource) vector(v parameter, kind int) (geom.Vec3, error) {

@@ -28,14 +28,36 @@ func (p *igesBoreRimSource) proveIncidence(ctx context.Context, s trimmed.Solid,
 	if err != nil {
 		return fail(err)
 	}
+	boundary, err := p.proveCircularBoundary(ctx, g, faces)
+	if err != nil {
+		return fail(err)
+	}
+	byID := make(map[int]igesBoreRimFace, len(faces))
+	for _, f := range faces {
+		byID[f.id] = f
+	}
+	for i, id := range faceSources {
+		if !matchIGESBoreRimFace(byID[id], g.Faces[i], boundary.pieces) {
+			return fail(errIGESBoreRim)
+		}
+	}
+	return boundary.curves, boundary.edges, boundary.vertices, nil
+}
+
+type igesCircularBoundary struct {
+	pieces                  [][]igesBoreRimUse
+	curves, edges, vertices []int
+}
+
+func (p *igesBoreRimSource) proveCircularBoundary(ctx context.Context, g borefillet.Graph, faces []igesBoreRimFace) (igesCircularBoundary, error) {
 	edges, err := p.topology(p.edges, 504)
 	if err != nil || len(edges) < 2 || edges[1] < 8 || edges[1] > len(g.Edges) || len(edges) != 2+5*edges[1] {
-		return fail(errIGESBoreRim)
+		return igesCircularBoundary{}, errIGESBoreRim
 	}
 	p.vertices = edges[3]
 	modelVertices, sourceVertices, err := p.readVertexIndices(g)
 	if err != nil {
-		return fail(err)
+		return igesCircularBoundary{}, err
 	}
 	n := edges[1]
 	directions := make([][]bool, n+1)
@@ -43,7 +65,7 @@ func (p *igesBoreRimSource) proveIncidence(ctx context.Context, s trimmed.Solid,
 		for _, loop := range f.loops {
 			for _, u := range loop {
 				if u.edge > n {
-					return fail(errIGESBoreRim)
+					return igesCircularBoundary{}, errIGESBoreRim
 				}
 				directions[u.edge] = append(directions[u.edge], u.forward)
 			}
@@ -54,47 +76,38 @@ func (p *igesBoreRimSource) proveIncidence(ctx context.Context, s trimmed.Solid,
 	usedVertices := make([]bool, len(modelVertices))
 	for i := 1; i <= n; i++ {
 		if err := ctx.Err(); err != nil {
-			return fail(err)
+			return igesCircularBoundary{}, err
 		}
 		t := edges[2+5*(i-1):]
 		if d := directions[i]; len(d) != 2 || d[0] == d[1] {
-			return fail(errIGESBoreRim)
+			return igesCircularBoundary{}, errIGESBoreRim
 		}
 		a, b := t[2], t[4]
 		if t[1] != p.vertices || t[3] != p.vertices || a < 1 || b < 1 || a > len(modelVertices) || b > len(modelVertices) {
-			return fail(errIGESBoreRim)
+			return igesCircularBoundary{}, errIGESBoreRim
 		}
 		usedVertices[a-1], usedVertices[b-1] = true, true
 		x, y := modelVertices[a-1], modelVertices[b-1]
 		curve, err := p.readCurve(t[0])
 		if err != nil || !curve.ends[0].equal(igesPlanarVec(g.Vertices[x])) || !curve.ends[1].equal(igesPlanarVec(g.Vertices[y])) {
-			return fail(errIGESBoreRim)
+			return igesCircularBoundary{}, errIGESBoreRim
 		}
 		pieces[i], err = inc.assignCurve(curve, i, t[0], x, y)
 		if err != nil {
-			return fail(err)
+			return igesCircularBoundary{}, err
 		}
 	}
 	for _, i := range inc.indices {
 		if i == 0 {
-			return fail(errIGESBoreRim)
+			return igesCircularBoundary{}, errIGESBoreRim
 		}
 	}
 	for _, used := range usedVertices {
 		if !used {
-			return fail(errIGESBoreRim)
+			return igesCircularBoundary{}, errIGESBoreRim
 		}
 	}
-	byID := make(map[int]igesBoreRimFace, len(faces))
-	for _, f := range faces {
-		byID[f.id] = f
-	}
-	for i, id := range faceSources {
-		if !matchIGESBoreRimFace(byID[id], g.Faces[i], pieces) {
-			return fail(errIGESBoreRim)
-		}
-	}
-	return inc.curves, inc.indices, sourceVertices, nil
+	return igesCircularBoundary{pieces, inc.curves, inc.indices, sourceVertices}, nil
 }
 
 func (p *igesBoreRimSource) readVertexIndices(g borefillet.Graph) ([]int, []int, error) {

@@ -656,6 +656,16 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   both fixture DATA sections byte for byte; changed support, seam,
   orientation and resource controls refuse. Main new and existing
   bore STEP races passed in 50.099 and 47.305 seconds respectively.
+- The [independent exact chamfer IGES import](evidence/eccentric-annular-chamfer-iges-import-2026-11-15.json)
+  recovers the same native JSON as the independent STEP fixture. It
+  verifies six rational type-128 supports, original full rims and seams,
+  the source edge and vertex lists, and both cap holes. Pinned OCCT
+  reopens the original and canonical IGES with signed volumes
+  `726.98826535488854` and `726.98826576241345`. The pinned author
+  regenerates the original directory and parameter sections. The default
+  rounded source and a hybrid with exact surfaces but the original
+  off-support seam both refuse. Main's focused IGES race including
+  existing bore rim regressions passed in 101.015 seconds.
 - The [diagonal circle cap and wall proof](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
   (`a296b700`) qualifies the independent offset `(1.5,2)` with exact
   circular rim laws and shell-wide clearance. A targeted raw constructor

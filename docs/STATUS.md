@@ -299,7 +299,10 @@ keeps both axes, the original four chamfers and all ten conical wall
 partitions for aligned and diagonal placements. [Strict independent
 STEP](evidence/eccentric-annular-chamfer-step-import-2026-11-15.json)
 also reconstructs the original full-rim variant with exactly authored
-generators and preserved source IDs. The [eccentric bore inner rim fillets](evidence/eccentric-cylinder-bore-rim-fillet-2026-11-15.json)
+generators and preserved source IDs. [Strict independent IGES](evidence/eccentric-annular-chamfer-iges-import-2026-11-15.json)
+reconstructs byte-identical native geometry from authored rational
+supports, original rims and seams, and both cap holes. The default
+rounded source and off-support seam refuse. The [eccentric bore inner rim fillets](evidence/eccentric-cylinder-bore-rim-fillet-2026-11-15.json)
 (`d930469f`) retain the unchanged outer cylinder, original axes and cap
 planes with exact quarter-toroid transitions and positive clearance.
 The [strict independent STEP reader](evidence/eccentric-bore-rim-step-import-2026-11-15.json)
