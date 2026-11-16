@@ -118,6 +118,8 @@ bridge in the corresponding results.
 The admitted apex Cuts also have certified closed display. The mesh
 keeps positive components with one registered apex between their
 separate vertex identities.
+The cusp-ended apex Common and Fuse envelopes also have certified closed
+display with original-owner loop, distance and normal-angle proofs.
 Certified display of the separated two-circle Cuts now accepts proper
 rational similarities. The proof uses the original world coedge owners
 and reports distance in physical units after rotation and scaling.

@@ -1,0 +1,32 @@
+{
+  "isolate_commit": "a0ed141f4a3a85b69878b529ffa36682a4a7f4b2",
+  "artifacts": {
+    "parabola-circle-apex-tangency-certified-envelope-display.patch": "5349e67296542f72507aad48d2868a497a70a8877800204307d304b70e770b42",
+    "apex-envelope-display-qualification.md": "ca49cd1c483baa65099e7b79b8938480e5871884cb131991c585f77742bc0332",
+    "apex-envelope-display-native.log": "95b80f19af93d523aeb91ea71bac3fb0bcbd9413c46c4c49ebcd32e270ec9bc9",
+    "apex-envelope-display-race.jsonl": "d7d5762491668d6e2ee8dad70a3f786d455e9165f5353fd4a334c96e2181b485",
+    "apex-envelope-display-distance-strict.log": "877c7a6dea197a789c8209ef3f075550b4e6822b6db1bcf8a97df374a17f2f7a",
+    "apex-envelope-display-angle-strict.log": "bd2d4f4562e167919ffd921c537b174027a3c861a78724c13835f255dc5d36fd",
+    "apex-envelope-display-tight-strict.log": "572c90bb01537f22e444c0aef7e2a3dad6f201cc9e1096d7fb63a67b8c5e8a23"
+  },
+  "main_integration": {
+    "log": "circle-apex-envelope-display-main-race.jsonl",
+    "sha256": "ff95976886cff56a0601b281338f6da3938d20f25060c306dd486883938337aa",
+    "elapsed_seconds": 197.616,
+    "required_passes": {
+      "TestCertifiedParabolaCircleApexTangencyEnvelope": 133.04,
+      "TestCertifiedParabolaCircleApexTangencyCut": 63.12
+    }
+  },
+  "qualification": {
+    "cases": 16,
+    "tight_triangles": 5430,
+    "max_tight_distance": 0.000954395335,
+    "max_tight_source_turn_radians": 0.117940455,
+    "max_tight_facet_radians": 0.062930427,
+    "max_relative_signed_volume_error": 3.7071e-05,
+    "prior_apex_cut_modes_identical": 8,
+    "prior_transverse_outputs_identical": 12,
+    "prior_local_cut_outputs_identical": 4
+  }
+}

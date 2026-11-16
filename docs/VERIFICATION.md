@@ -164,6 +164,13 @@ All four admitted Cuts keep exactly one paired apex and reprove the
 original lifted ray directions and second derivatives. Their distance
 is below `0.036549` mm, source turn below `0.325035` radians, and facet
 deviation below `0.165529` radians. All 16 older displayed outputs match.
+The [cusp-ended apex envelope display milestone](evidence/parabola-circle-apex-tangency-envelope-display-2026-11-16.json)
+passed its 197.616-second main race with the previous apex Cuts. All 16
+Common/Fuse layouts qualify at `0.1` radians facet and `0.35` radians
+continuous turn. The tight meshes are within `0.000955` mm and 0.004%
+of exact signed volume. Only the original source-authenticated cusp
+loops use the new proof, with prior mesh bytes and ordinary trim refusal
+unchanged.
 
 The [proper-similarity display milestone](evidence/parabola-circle-proper-similarity-2026-11-16.json)
 passed its main focused race in 322.877 seconds. Eight components from four
