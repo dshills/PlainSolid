@@ -187,6 +187,8 @@ Its six directed model and UV pairs retain their original seam split,
 and the outer wire and inner wire stay strictly separated.
 The same lifted chart can retain a second separately indexed rectangle
 inside one original span, preserving either original inner wire order.
+Canonical mixed-hole export retains that order and the exact two contour
+clocks, subject to the independently checked transfer separation.
 Canonical export can emit that verified six-edge seam trim with its
 original identifiers, parameter ranges and geometry. It can also emit
 the verified crossing inner wire. General editable periodic trim

@@ -25,11 +25,15 @@ type PeriodicSeamTrimmedFaceWithMixedHoles struct {
 // original inner contours must be strictly interior and disjoint within
 // the same injective lifted chart, with complete directed UV/model pairs.
 func ReadPeriodicSeamTrimmedFaceWithMixedHoles(ctx context.Context, r io.Reader, l Limits) (PeriodicSeamTrimmedFaceWithMixedHoles, error) {
-	var zero PeriodicSeamTrimmedFaceWithMixedHoles
 	source, err := readPeriodicTrimSource(ctx, r, l, 6, []int{4, 6})
 	if err != nil {
-		return zero, err
+		return PeriodicSeamTrimmedFaceWithMixedHoles{}, err
 	}
+	return provePeriodicSeamTrimmedFaceWithMixedHoles(ctx, source)
+}
+
+func provePeriodicSeamTrimmedFaceWithMixedHoles(ctx context.Context, source periodicTrimSource) (PeriodicSeamTrimmedFaceWithMixedHoles, error) {
+	var zero PeriodicSeamTrimmedFaceWithMixedHoles
 	outer, err := provePeriodicSeamTrimmedOuter(ctx, &source)
 	if err != nil {
 		return zero, err

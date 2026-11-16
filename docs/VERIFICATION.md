@@ -372,6 +372,11 @@ retains 16 original directed pairs with one seam-crossing and one
 single-span hole, in both independent source orders. The pinned reader
 validates the positives. Once-rounded model coefficients and original
 overlapping wires refuse. Main race, full IGES, amd64 and 12 earlier files pass.
+The [mixed periodic inner trim export](evidence/iges-periodic-mixed-holes-outbound-2026-11-16.json)
+passes both original owner orders. Each canonical source repeats and
+matches for both executed macOS architectures; matching pinned reports
+retain original geometry, winding and stations. A transfer-collapsing
+gap refuses before output. Main race, full IGES and 12 prior digests pass.
 
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips
