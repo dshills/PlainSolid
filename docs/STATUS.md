@@ -4,6 +4,15 @@ The full OCCT replacement is **not complete**. This document distinguishes the
 implemented, tested kernel from the much larger specification. Full replacement
 and general-purpose production use remain unqualified.
 
+The latest completed paired run is [Go](evidence/main-b6335d3c-qualification-2026-11-15.json)
+and [PlainCAD](evidence/plaincad-main-b6335d3c-2026-11-15.json) on
+`b6335d3c`. Newer independent runs passed full Go on `01d12dab`
+and full PlainCAD on `a296b700`. The next paired run pins both to
+`a3b7548d`; vet and Linux/Windows amd64 builds pass that revision.
+The native Linux ARM64 run pins `7569bd36`. Native Windows runtime,
+broader curved modeling, independent exchange and the full release
+matrix remain unqualified.
+
 The previous paired full runs used kernel `af569683` and PlainCAD `efae4d2`.
 The [Go run](evidence/main-af569683-qualification-2026-11-15.json)
 accounted for all 5,714 top-level tests: 5,199 passes and 515 explicit
@@ -345,6 +354,8 @@ can exit through any original stock side. Both operations re-prove source
 ownership on native replay. Independent STEP and IGES readback confirms
 the original signed material and classifies the isolated point in
 exactly one reopened face interior without placing a seam there.
+Native Cut retains the separate regular cap on all four exit sides.
+The reverse order is refused because it pinches at the isolated point.
 Curved trim quadrature splits at the certified rational source knots.
 [Creased cuspidal transfer](evidence/cuspidal-creased-neutral-2026-11-15.json)
 now qualifies both orders of Common, Fuse and Cut in STEP and IGES,

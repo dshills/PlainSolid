@@ -257,6 +257,14 @@ signed volume matches the source integrals, and the pinned
 point into exactly one reopened face interior and zero face boundaries.
 Altered STEP curve ownership and truncated writer budgets refuse.
 
+The native isolated-contact Cut race on main passed in 20.587 seconds
+with adjacent Common and Fuse. Cut keeps one 4-face, 7-edge, 5-vertex
+cap on any original stock side. Its exact source volume is
+`4703/1614807040`; doubling the original height difference doubles
+that result. The exterior order is refused at the isolated pinch, and
+native replay re-proves the original coedges and turns. The generic
+coarse preview closes but materially understates the volume.
+
 The native shared-crease follow-up retains the two original cusp roof
 charts, one closed Euler-2 shell and byte-identical native replay for all
 six Common/Fuse/Cut results. The original unsplit mass correction strips
@@ -567,6 +575,10 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   data and inconsistent shoulder use, meridian transformation and
   directory controls reject. The pinned main race runs passed in
   45.638 seconds for exchange and 78.688 seconds for IGES.
+  Both strict readers then passed 64-execution Go fuzz checks seeded by
+  the untouched foreign positives and structural negatives. A failing
+  read never returns partial material or source IDs. The same bounded
+  checks run in the Go fuzz CI lane.
 - The [diagonal circle cap and wall proof](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
   (`a296b700`) qualifies the independent offset `(1.5,2)` with exact
   circular rim laws and shell-wide clearance. A targeted raw constructor
