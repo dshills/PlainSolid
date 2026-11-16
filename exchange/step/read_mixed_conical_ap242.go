@@ -55,29 +55,12 @@ func readMixedConicalAP242Assembly(ctx context.Context, r io.Reader, l Limits, o
 	if err != nil {
 		return zero, err
 	}
-	a, err := ReadAssembly(r, l)
+	h, err := readMixedConicalAP242Hierarchy(r, l, nested)
 	if err != nil {
 		return zero, err
 	}
-	products, minUses := 3, 2
-	if nested {
-		products, minUses = 4, 4
-	}
-	if len(a.Products) != products || len(a.Roots) != 1 || len(a.Occurrences) < minUses || len(a.Occurrences) > 16 {
-		return zero, errMixedConicalAP242
-	}
+	a, layout, records := h.assembly, h.layout, h.records
 	f := a.Source
-	if !mixedConicalAP242Schema(f) {
-		return zero, errMixedConicalAP242
-	}
-	layout, err := mixedConicalAP242Parts(a, l, nested)
-	if err != nil {
-		return zero, err
-	}
-	records, err := proveMixedConicalAP242Records(a, layout, l)
-	if err != nil {
-		return zero, err
-	}
 	out := mixedConicalAP242Source{
 		MixedConicalAP242Assembly: MixedConicalAP242Assembly{Assembly: a, Occurrences: records.occurrences, Parts: map[int64]MixedConicalAP242Part{}},
 		group:                     layout.group,
@@ -137,6 +120,40 @@ func readMixedConicalAP242Assembly(ctx context.Context, r io.Reader, l Limits, o
 		return zero, errMixedConicalAP242
 	}
 	return out, nil
+}
+
+type mixedConicalAP242Hierarchy struct {
+	assembly Assembly
+	layout   mixedConicalAP242Layout
+	records  mixedConicalAP242Records
+}
+
+func readMixedConicalAP242Hierarchy(r io.Reader, l Limits, nested bool) (mixedConicalAP242Hierarchy, error) {
+	var zero mixedConicalAP242Hierarchy
+	a, err := ReadAssembly(r, l)
+	if err != nil {
+		return zero, err
+	}
+	products, minUses := 3, 2
+	if nested {
+		products, minUses = 4, 4
+	}
+	if len(a.Products) != products || len(a.Roots) != 1 || len(a.Occurrences) < minUses || len(a.Occurrences) > 16 {
+		return zero, errMixedConicalAP242
+	}
+	f := a.Source
+	if !mixedConicalAP242Schema(f) {
+		return zero, errMixedConicalAP242
+	}
+	layout, err := mixedConicalAP242Parts(a, l, nested)
+	if err != nil {
+		return zero, err
+	}
+	records, err := proveMixedConicalAP242Records(a, layout, l)
+	if err != nil {
+		return zero, err
+	}
+	return mixedConicalAP242Hierarchy{assembly: a, layout: layout, records: records}, nil
 }
 
 func mixedConicalAP242Schema(f *File) bool {
@@ -262,6 +279,14 @@ func hasMixedConicalToroid(f *File, id int64) bool {
 }
 
 func mixedConicalAP242View(f *File, roots []int64, l Limits) ([]byte, error) {
+	view, err := mixedConicalAP242ViewFile(f, roots, l)
+	if err != nil {
+		return nil, err
+	}
+	return mappedPlanarSourceBytes(view)
+}
+
+func mixedConicalAP242ViewFile(f *File, roots []int64, l Limits) (*File, error) {
 	owned, err := nauoClosure(f, roots, l.MaxDepth)
 	if err != nil {
 		return nil, err
@@ -273,5 +298,5 @@ func mixedConicalAP242View(f *File, roots []int64, l Limits) ([]byte, error) {
 			view.Entities[id] = f.Entities[id]
 		}
 	}
-	return mappedPlanarSourceBytes(view)
+	return view, nil
 }
