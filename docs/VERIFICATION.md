@@ -359,6 +359,11 @@ also passes an independently authored type 144 face with original UV
 orientation, directed model ranges and physical derivatives. The raw
 wrong-winding source refuses even though the pinned reader rewinds it.
 Main race, full IGES, amd64 and 14 predecessor outputs pass.
+The [original V-periodic seam audit](evidence/iges-periodic-v-seam-2026-11-16.json)
+passes six complete original pairs and two source cycles. The exact
+canonical file is identical across both executed macOS architectures,
+and the independent original and exported reports agree byte for byte.
+Main race and 14 predecessor digests pass.
 The [valid periodic seam trim](evidence/iges-periodic-seam-trimmed-2026-11-16.json)
 passes independently authored type 144, the pinned reopen and main race.
 The reader retains six original directed pairs, distinct seam stations,

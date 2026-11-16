@@ -67,7 +67,7 @@ func provePeriodicSeamHole(ctx context.Context, graph periodicTrimGraph, outer P
 	if err != nil {
 		return zero, 0, fmt.Errorf("iges: periodic hole #%d: %w", owner.contourID, err)
 	}
-	edges, remaining, err := proveLiftedTrimEdges(ctx, graph, bounds, outer.SeamU, uv, owner.model, cells, -1, remaining)
+	edges, remaining, err := proveLiftedTrimEdges(ctx, graph, bounds, 0, outer.SeamU, uv, owner.model, cells, -1, remaining)
 	if err != nil {
 		return zero, 0, fmt.Errorf("iges: periodic hole #%d: %w", owner.contourID, err)
 	}
