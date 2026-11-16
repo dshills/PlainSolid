@@ -3248,5 +3248,7 @@ tensor now reassembles as a wrapped patch with an exact piecewise
 physical coordinate map and supports a closed plane contour across
 the new seam. Exact knot removal succeeds only when reinsertion
 reproduces every original homogeneous ordinate, on every row of a
-tensor. General tensor trim arrangements, degree editing and neutral
-exchange of these edited splines remain open.
+tensor. Exact degree elevation on curves or either periodic tensor
+direction preserves the original continuity requirement and physical
+geometry. General tensor trim arrangements, degree reduction and
+neutral exchange of these edited splines remain open.
