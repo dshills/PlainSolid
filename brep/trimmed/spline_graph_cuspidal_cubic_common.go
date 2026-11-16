@@ -208,6 +208,10 @@ func cuspidalCubicBezierControls(point [3]*big.Rat, xScale, yScale *big.Rat, spa
 }
 
 func cuspidalCubicEnvelopeRegions(p *geom.CuspidalCubicSection, pieces [2]openSectionPiece, d geom.ParameterRectangle) (out [2]graphEnvelopeRegion, err error) {
+	return cubicOpenEnvelopeRegions(pieces, d, [2]bool{p.Regions[0].HeightSide < 0, p.Regions[1].HeightSide < 0})
+}
+
+func cubicOpenEnvelopeRegions(pieces [2]openSectionPiece, d geom.ParameterRectangle, owners [2]bool) (out [2]graphEnvelopeRegion, err error) {
 	for i, exit := range [2][2]geom.Vec2{{pieces[1].b, pieces[0].a}, {pieces[0].a, pieces[1].b}} {
 		perimeter, err := saddleRectangleArc(exit[0], exit[1], d)
 		if err != nil {
@@ -218,8 +222,7 @@ func cuspidalCubicEnvelopeRegions(p *geom.CuspidalCubicSection, pieces [2]openSe
 			first.a, first.b, first.c = last.b, last.a, reversePCurve(last.c)
 			last.a, last.b, last.c = pieces[1].b, pieces[1].a, reversePCurve(pieces[1].c)
 		}
-		out[i] = graphEnvelopeRegion{loop: append(append([]openSectionPiece{first}, perimeter...), last),
-			first: p.Regions[i].HeightSide < 0}
+		out[i] = graphEnvelopeRegion{loop: append(append([]openSectionPiece{first}, perimeter...), last), first: owners[i]}
 	}
 	return out, nil
 }

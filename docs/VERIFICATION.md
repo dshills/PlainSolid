@@ -238,6 +238,15 @@ turning point, exits and signed regions. A real crossing node, a cusp,
 boundary turning point, clipped arc, irrational exit and changed
 coefficient refuse. The main cubic geometry race passed in 2.716 seconds.
 
+The native isolated-contact Common and Fuse race passed in 6.670 seconds.
+Both operand orders keep one Euler-2 shell with both old source charts
+retained in their selected regions. The point remains interior to an
+original roof and the optional arc keeps its two original coedges with a
+nonzero turning tangent. Independent volume integrals match with and
+without the arc; rotations and reflections cover all four stock sides.
+Native replay reproduces the receipts and refuses altered contact,
+tangents, owner IDs, a missing regular arc and truncated entity budgets.
+
 The native shared-crease follow-up retains the two original cusp roof
 charts, one closed Euler-2 shell and byte-identical native replay for all
 six Common/Fuse/Cut results. The original unsplit mass correction strips

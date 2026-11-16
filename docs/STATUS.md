@@ -339,6 +339,10 @@ volume checks. The geometry also distinguishes an isolated real double
 point from both a crossing node and a cusp. When the same cubic has a
 separate regular branch in the footprint, the proof keeps its two
 original exits and shows the isolated point is not on that branch.
+Native Common and Fuse use the complete section and preserve the isolated
+contact inside an unsplit original face. The regular branch, when present,
+can exit through any original stock side. Both operations re-prove source
+ownership on native replay.
 Curved trim quadrature splits at the certified rational source knots.
 [Creased cuspidal transfer](evidence/cuspidal-creased-neutral-2026-11-15.json)
 now qualifies both orders of Common, Fuse and Cut in STEP and IGES,
