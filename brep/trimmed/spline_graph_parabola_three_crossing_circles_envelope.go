@@ -60,31 +60,18 @@ func (r *ParabolaThreeCrossingCirclesEnvelope) History() (h ParabolaThreeCrossin
 // transverse vertex links must be representable on the original supports.
 func CombineParabolaThreeCrossingCirclesSplineGraphs(ctx context.Context, base, a, b *geom.BSplineSurface,
 	axis int, op parametric.BooleanOp, tolerance float64, o ParabolaCircleGraphOptions) (*ParabolaThreeCrossingCirclesEnvelope, error) {
-	if ctx == nil || base == nil || a == nil || b == nil || axis < 0 || axis > 1 ||
-		tolerance <= 0 || !finite(tolerance) || o.Stock.Domain != (geom.ParameterRectangle{}) ||
-		(op != parametric.Intersection && op != parametric.Union) {
+	if op != parametric.Intersection && op != parametric.Union {
 		return nil, geom.ErrInvalid
 	}
-	patches, err := prepareSharedBaseGraphContact(ctx, base, a, b, o.Stock)
+	src := [3]*geom.BSplineSurface{base, a, b}
+	part, proof, err := proveParabolaThreeCrossingCirclesPartition(ctx, src, axis, tolerance, o)
 	if err != nil {
 		return nil, err
-	}
-	proof, err := geom.DiscoverSplineGraphParabolaThreeCrossingCircles(ctx, patches[0], patches[1], axis, o.Proof)
-	if err != nil {
-		return nil, fmt.Errorf("trimmed: three crossing circles source: %w", err)
-	}
-	part, err := buildParabolaCrossingCirclesPartition(crossingCirclePartitionSource{
-		axis: axis, parabola: proof.ParabolaControls, circles: proof.Circles[:], radii: proof.CircleRadii[:],
-		order: proof.CircleOrder[:], nodes: proof.Nodes[:], ccw: proof.CircleCCWRays[:], signs: proof.RegionSides[:],
-	})
-	if err != nil {
-		return nil, fmt.Errorf("trimmed: three crossing circles partition: %w", err)
 	}
 	s, assembly, err := combineOpenGraphRegions(ctx, base, a, b, part.regions, op, tolerance, exactGraphVertexEvaluator(ctx, o.Proof))
 	if err != nil {
 		return nil, fmt.Errorf("trimmed: three crossing circles shell: %w", err)
 	}
-	src := [3]*geom.BSplineSurface{base, a, b}
 	h, err := bindThreeCrossingCirclesEnvelope(ctx, s, assembly, part, proof, src, op, o.Proof)
 	if err != nil {
 		return nil, fmt.Errorf("trimmed: three crossing circles ownership: %w", err)
@@ -93,6 +80,30 @@ func CombineParabolaThreeCrossingCirclesSplineGraphs(ctx context.Context, base, 
 		return nil, err
 	}
 	return &ParabolaThreeCrossingCirclesEnvelope{solid: s, history: h, sources: src, axis: axis, op: op, tolerance: tolerance}, nil
+}
+
+func proveParabolaThreeCrossingCirclesPartition(ctx context.Context, src [3]*geom.BSplineSurface, axis int,
+	tolerance float64, o ParabolaCircleGraphOptions) (parabolaCrossingCirclesPartition, *geom.SplineGraphParabolaThreeCrossingCircles, error) {
+	if ctx == nil || src[0] == nil || src[1] == nil || src[2] == nil || axis < 0 || axis > 1 ||
+		tolerance <= 0 || !finite(tolerance) || o.Stock.Domain != (geom.ParameterRectangle{}) {
+		return parabolaCrossingCirclesPartition{}, nil, geom.ErrInvalid
+	}
+	patches, err := prepareSharedBaseGraphContact(ctx, src[0], src[1], src[2], o.Stock)
+	if err != nil {
+		return parabolaCrossingCirclesPartition{}, nil, err
+	}
+	proof, err := geom.DiscoverSplineGraphParabolaThreeCrossingCircles(ctx, patches[0], patches[1], axis, o.Proof)
+	if err != nil {
+		return parabolaCrossingCirclesPartition{}, nil, fmt.Errorf("trimmed: three crossing circles source: %w", err)
+	}
+	part, err := buildParabolaCrossingCirclesPartition(crossingCirclePartitionSource{
+		axis: axis, parabola: proof.ParabolaControls, circles: proof.Circles[:], radii: proof.CircleRadii[:],
+		order: proof.CircleOrder[:], nodes: proof.Nodes[:], ccw: proof.CircleCCWRays[:], signs: proof.RegionSides[:],
+	})
+	if err != nil {
+		return parabolaCrossingCirclesPartition{}, nil, fmt.Errorf("trimmed: three crossing circles partition: %w", err)
+	}
+	return part, proof, nil
 }
 
 func bindThreeCrossingCirclesEnvelope(ctx context.Context, s Solid, assembly SplineGraphBooleanHistory,

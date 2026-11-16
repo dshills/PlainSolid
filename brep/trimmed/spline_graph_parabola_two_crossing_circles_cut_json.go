@@ -11,17 +11,17 @@ import (
 
 const nativeParabolaTwoCrossingCirclesCut = "trimmed-spline-graph-parabola-two-crossing-circles-cut"
 
-type parabolaTwoCrossingCirclesCutRecipe struct {
-	Version    int                                            `json:"version"`
-	Kind       string                                         `json:"kind"`
-	Sources    []json.RawMessage                              `json:"sources"`
-	Axis       *int                                           `json:"freeAxis"`
-	Tolerance  float64                                        `json:"tolerance"`
-	Components []parabolaTwoCrossingCirclesCutRecipeLayer     `json:"components"`
-	Contacts   [][]parabolaTwoCrossingCirclesCutRecipeContact `json:"contacts"`
+type parabolaCrossingCirclesCutRecipe struct {
+	Version    int                                         `json:"version"`
+	Kind       string                                      `json:"kind"`
+	Sources    []json.RawMessage                           `json:"sources"`
+	Axis       *int                                        `json:"freeAxis"`
+	Tolerance  float64                                     `json:"tolerance"`
+	Components []parabolaCrossingCirclesCutRecipeLayer     `json:"components"`
+	Contacts   [][]parabolaCrossingCirclesCutRecipeContact `json:"contacts"`
 }
 
-type parabolaTwoCrossingCirclesCutRecipeLayer struct {
+type parabolaCrossingCirclesCutRecipeLayer struct {
 	Region        *int    `json:"region"`
 	RoofFaces     []int   `json:"roofFaces"`
 	ParabolaEdges []int   `json:"parabolaEdges"`
@@ -30,31 +30,36 @@ type parabolaTwoCrossingCirclesCutRecipeLayer struct {
 	DomainSides   []int   `json:"domainSides"`
 }
 
-type parabolaTwoCrossingCirclesCutRecipeContact struct {
+type parabolaCrossingCirclesCutRecipeContact struct {
 	parabolaCircleCrossingsCutRecipeContact
 	Components []int `json:"components"`
 }
 
-func twoCrossingCirclesCutRecipeLedger(r *ParabolaTwoCrossingCirclesCut) ([]parabolaTwoCrossingCirclesCutRecipeLayer,
-	[][]parabolaTwoCrossingCirclesCutRecipeContact) {
-	var components []parabolaTwoCrossingCirclesCutRecipeLayer
+func twoCrossingCirclesCutRecipeLedger(r *ParabolaTwoCrossingCirclesCut) ([]parabolaCrossingCirclesCutRecipeLayer,
+	[][]parabolaCrossingCirclesCutRecipeContact) {
+	var components []parabolaCrossingCirclesCutRecipeLayer
 	for _, h := range r.history {
 		components = append(components, twoCrossingCircleCutLayerLedger(h))
 	}
-	return components, twoCrossingCircleCutContactLedger(r.contacts)
+	return components, crossingCircleCutContactLedger(r.contacts[:])
 }
 
-func twoCrossingCircleCutLayerLedger(h ParabolaTwoCrossingCirclesCutHistory) parabolaTwoCrossingCirclesCutRecipeLayer {
-	return parabolaTwoCrossingCirclesCutRecipeLayer{Region: &h.Region, RoofFaces: h.RoofFaces[:],
-		ParabolaEdges: h.ParabolaEdges[:], CircleEdges: h.CircleEdges[:], WallFaces: h.WallFaces, DomainSides: h.DomainSides}
+func twoCrossingCircleCutLayerLedger(h ParabolaTwoCrossingCirclesCutHistory) parabolaCrossingCirclesCutRecipeLayer {
+	return crossingCircleCutLayerLedger(h.Region, h.RoofFaces[:], h.ParabolaEdges[:], h.WallFaces, h.DomainSides, h.CircleEdges[:])
 }
 
-func twoCrossingCircleCutContactLedger(items [2][2]ParabolaTwoCrossingCirclesCutContact) [][]parabolaTwoCrossingCirclesCutRecipeContact {
-	var contacts [][]parabolaTwoCrossingCirclesCutRecipeContact
+func crossingCircleCutLayerLedger(region int, roofFaces, parabolaEdges, walls, sides []int,
+	circleEdges [][]int) parabolaCrossingCirclesCutRecipeLayer {
+	return parabolaCrossingCirclesCutRecipeLayer{Region: &region, RoofFaces: roofFaces,
+		ParabolaEdges: parabolaEdges, CircleEdges: circleEdges, WallFaces: walls, DomainSides: sides}
+}
+
+func crossingCircleCutContactLedger(items [][2]ParabolaTwoCrossingCirclesCutContact) [][]parabolaCrossingCirclesCutRecipeContact {
+	var contacts [][]parabolaCrossingCirclesCutRecipeContact
 	for _, circle := range items {
-		var entries []parabolaTwoCrossingCirclesCutRecipeContact
+		var entries []parabolaCrossingCirclesCutRecipeContact
 		for _, contact := range circle {
-			entry := parabolaTwoCrossingCirclesCutRecipeContact{
+			entry := parabolaCrossingCirclesCutRecipeContact{
 				Components: contact.Components[:],
 				parabolaCircleCrossingsCutRecipeContact: parabolaCircleCrossingsCutRecipeContact{
 					Vertices: contact.Vertices[:], Rays: [][]int{contact.Rays[0][:], contact.Rays[1][:]},
@@ -84,7 +89,7 @@ func (r *ParabolaTwoCrossingCirclesCut) WriteJSON(ctx context.Context, w io.Writ
 		return err
 	}
 	components, contacts := twoCrossingCirclesCutRecipeLedger(r)
-	return writePolynomialGraphRecipe(ctx, w, parabolaTwoCrossingCirclesCutRecipe{Version: 1, Kind: nativeParabolaTwoCrossingCirclesCut,
+	return writePolynomialGraphRecipe(ctx, w, parabolaCrossingCirclesCutRecipe{Version: 1, Kind: nativeParabolaTwoCrossingCirclesCut,
 		Sources: src, Axis: &r.axis, Tolerance: r.tolerance, Components: components, Contacts: contacts})
 }
 
@@ -92,7 +97,7 @@ func (r *ParabolaTwoCrossingCirclesCut) WriteJSON(ctx context.Context, w io.Writ
 // wall ownership, and all four native contacts before returning components.
 func ReadParabolaTwoCrossingCirclesCutJSON(ctx context.Context, in io.Reader, limits JSONLimits,
 	o ParabolaCircleGraphOptions) (*ParabolaTwoCrossingCirclesCut, error) {
-	var recipe parabolaTwoCrossingCirclesCutRecipe
+	var recipe parabolaCrossingCirclesCutRecipe
 	if err := readPolynomialGraphRecipe(ctx, in, limits, &recipe); err != nil {
 		return nil, err
 	}
