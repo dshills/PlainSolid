@@ -1,0 +1,67 @@
+{
+  "agent_revision": "933b58cd1a378fda5a1cd89eb080fa319e7f658a",
+  "consumer_main_revision": "3c1a358d",
+  "distance_comment_only_context_adjustment": true,
+  "summary": "# Certified outward facet angles of a verified sweep\n\nIncremental commit `933b58cd1a378fda5a1cd89eb080fa319e7f658a` follows the closed sweep mesh and the committed open-grid facet cone. The geometry work is confined to new sweep-face-normal files. The shape remains a single original sweep.\n\nThe two outward layers use the original unit normal with the sign of their displacement boundary. On a wall, with free source-axis derivative indexed by f, the oriented normal is the normalized cross product `(S_f+tN_f)\u00d7N`. The proof evaluates its equivalent expression `(S_f\u00d7n)/|n| + t(n_f\u00d7n)/|n|\u00b2` with directed rational intervals on an original UV collar and an exact displacement interval. Applying the analytic face winding produces a directed outward normal box. The actual rounded facet vertices determine an exact facet normal. Strict positive dot products and acute-cone inequalities at each normal-box corner cover the entire continuous source cell.\n\nAn angle request refines displacement as well as U and V. Each cell can use either diagonal, preserving the shared stations. The full closed embedding and positive volume checks still run after the angular proof.\n\n| Control | Requested angle (rad) | Triangles | Proved deviation (rad) |\n|---|---:|---:|---:|\n| Bivariate roof with varying wall normals, original and signed-rotated placements | 0.2 | 192 | 0.045137341 |\n| Same two placements | 0.03 | 768 | 0.022550169 |\n| Planar slab with exact nonbinary displacement | 0.00000001 | 12 | 0 |\n\nAn independent analytic evaluator checks every signed face at each cell's parameter corners and displacement midpoint. Thin wall boxes at displacements 0 and 1/10 have disjoint second-coordinate intervals. The qualified negative-orientation sweep preserves the correct outward lower and upper layer signs. Any unproved angle or one-short work budget returns no shell.\n\nSix complete default/omitted-angle result and option hashes reproduced byte-for-byte for the slab and both original curved fixtures at two distance requests. Full mesh and CSG offset tests, focused geometry and race tests, and vet passed.\n\nEvidence is in `sweep-facet-final-native.log`, `sweep-facet-final-race.jsonl`, `sweep-facet-face-normals.log`, and `sweep-facet-zero-{baseline,current}.tsv`.\n",
+  "main_runs": [
+    {
+      "path": "closed-verified-sweep-facet-main-race.jsonl",
+      "sha256": "35943b696923322bd708acf92a1420c00a88815e89919c8bd9b4a31a3199f1a1",
+      "passed": [
+        "TestSurfaceNormalOffsetSweepCertifiesAllDisplacementLayers",
+        "TestSurfaceNormalOffsetSweepKeepsKnownFocalLineUnresolved",
+        "TestVerifiedNormalOffsetSweepFaceBoundsOutwardPlanes",
+        "TestVerifiedNormalOffsetSweepWallBoundsIncludeDisplacementDerivative",
+        "TestVerifiedNormalOffsetSweepLayerNormalsWithNegativeChartOrientation",
+        "TestVerifiedNormalOffsetSweepLocatesExactPlanarPoint",
+        "TestVerifiedNormalOffsetSweepLocatesCurvedPoint",
+        "TestVerifiedNormalOffsetSweepRetainsSixOriginalBoundaryFaces",
+        "TestVerifiedNormalOffsetSweepEnclosesCompleteRationalSubvolume",
+        "TestVerifiedNormalOffsetSweepVolumeExactSlab",
+        "TestVerifiedNormalOffsetSweepVolumeParabolicStrip",
+        "TestVerifiedNormalOffsetSweepVolumeSphericalSector",
+        "TestVerifiedSweepFacetAngleCurvedOriginalAndRotated",
+        "TestVerifiedSweepFacetAngleExactPlanarAndWorkLimit",
+        "TestTessellateVerifiedNormalOffsetSweepPlanarRationalSlab",
+        "TestTessellateVerifiedNormalOffsetSweepCurved",
+        "TestTessellateVerifiedNormalOffsetSweepAtomicRefusals"
+      ],
+      "elapsed": {
+        "plainsolid/geom": 29.503,
+        "plainsolid/csg/offset": 17.935
+      }
+    },
+    {
+      "path": "closed-verified-sweep-prior-open-facet-main-race.jsonl",
+      "sha256": "ab6b33e6133f2bfd7eb0837def750ee6465726a32a5a506ad3bba0556aad36bb",
+      "passed": [
+        "TestVerifiedNormalOffsetFacetAngle",
+        "TestVerifiedNormalOffsetFacetConeRejectsBackFacingBox",
+        "TestVerifiedNormalOffsetFacetExactPlanarAndWorkLimit",
+        "TestVerifiedNormalOffsetFacetBivariateRational",
+        "TestVerifiedNormalOffsetFacetChoosesAlternateDiagonal"
+      ],
+      "elapsed": {
+        "plainsolid/mesh": 24.946
+      }
+    }
+  ],
+  "artifacts": {
+    "sweep-facet-baseline-test": "19886c0fa3da350de7f56b46f27a860f87ebdd19fd4003fd5a3fbc5bd7923071",
+    "sweep-facet-face-normals.log": "99eb84ad21bae2eac666623e7c50d69b0ecf8de37404cf478de0f2828daaa3af",
+    "sweep-facet-final-native.log": "5ebec424ee3d70e02123f06c600d4e60aa9ec0bfa3d67e3747272c58c9637ad0",
+    "sweep-facet-final-race.jsonl": "766289a35e2cae626c9d72c3dff5f7d388af91aac9e6df10add7d535a981db53",
+    "sweep-facet-native-focused.log": "31174ae2bcb4082202044a6185c8b1b09a4738564fbef2dcc750cf51277a21eb",
+    "sweep-facet-native-probe.log": "3383a18d78ae86eacd5213833c1b44b0b748b1a112ce9534f8d0c3ff1f500cf0",
+    "sweep-facet-qualification.md": "a5d1f706ebfb5ebd3f7193d2c0fa29baf660842290483c87491903f2ce8904f3",
+    "sweep-facet-vet.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sweep-facet-zero-baseline.log": "792bc6123c94a14c3d2c8e8713fc172f5df614ebf5e5a79f18d01f385dfc998e",
+    "sweep-facet-zero-baseline.tsv": "76be96db84e63a5f6d82807b824037b924e5bded7cbc00dc7f8af6751ef92ecd",
+    "sweep-facet-zero-current.log": "a42a52e0ab0d01bd0eacf8aca5b3f84da261ddeeace85eaf33b9bb18d8c47e61",
+    "sweep-facet-zero-current.tsv": "76be96db84e63a5f6d82807b824037b924e5bded7cbc00dc7f8af6751ef92ecd",
+    "sweep-facet-zero-digest-overlay.json": "76ee8cef0908c28499157f2b17eb53f72c8b284f05afa0071129834438b3f5d3",
+    "sweep-facet-zero-digest_test.go": "00af965c6d34e83b5cc8f4cbbdedbcb3418432edecf41f70ab5c05c928ef23b0",
+    "verified-normal-offset-sweep-facet.patch": "4fdda8af7cdb6200fc6f0cf3d06442ef0a3581b643d44d2d19fc070882c485be",
+    "closed-verified-sweep-facet-main.patch": "dbd15ae9cf669817d65789fa3959bfb147da656df89b0c17bfc4bf4708d41bf4"
+  }
+}

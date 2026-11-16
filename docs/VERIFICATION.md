@@ -48,6 +48,13 @@ the independent analytic value within 0.014%. All eight previous grid
 digests matched. Main race controls cover the new meshes, atomic resource
 and precision refusals, and the existing stitched atlas.
 
+[Closed sweep facet certification](evidence/closed-sweep-facet-angle-2026-11-16.json)
+passed all six original faces in both curved placements, including
+walls whose normals vary with displacement. The proved angular bound
+at a 0.03 radian request is below 0.022551 radians; the planar slab
+certifies zero. Six omitted-angle digests match exactly. Main race also
+passed the preceding five open-offset facet cases.
+
 [Exact normal sweep membership](evidence/verified-normal-sweep-query-2026-11-16.json)
 passed rational slab interior, boundary and near-exterior controls and
 independently known points on a curved sweep, including a split station

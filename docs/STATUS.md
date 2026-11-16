@@ -32,7 +32,9 @@ instances of the shared STEP relationship keep their original identities,
 and the raw replay receipt remains separate from the edited carrier.
 A single verified normal sweep now has a closed, outward, embedded
 display mesh with a proved spatial error and original face and station
-identities. Closed multi-chart sweeps and general offset joins remain open.
+identities. An optional angular limit also certifies continuous outward
+normals on its original walls and layers. Closed multi-chart sweeps and
+general offset joins remain open.
 The analytic single-sweep volume can also certify exact point membership
 and bound its unique original inverse. Queries retain possible cells
 when a boundary point or an exhausted work budget prevents a proof.
