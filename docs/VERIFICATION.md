@@ -1,10 +1,14 @@
 # Verification record
 
-The [full PlainCAD run on `29563ead`](evidence/plaincad-main-29563ead-2026-11-16.json)
-passed all eight gates on the original pinned app: 345 development,
-66 production, 15 cross-browser, four WASM contract and 1,691 unit cases.
-The source driver and production WASM digests match. The same-source
-full Go run has not yet finished.
+The [full Go run on `29563ead`](evidence/main-29563ead-qualification-2026-11-16.json)
+passes all nine lanes: 6,086 passes, 603 optional skips, zero failures,
+and all 6,689 cases accounted for. All 54 tested packages passed; eight
+have no tests. The trimmed lanes contribute 1,654 passes and 51 skips.
+Vet and Linux and Windows amd64 cross-builds passed on the same source.
+The matching [full PlainCAD run](evidence/plaincad-main-29563ead-2026-11-16.json)
+passed all eight gates: 345 development, 66 production, 15 cross-browser,
+four WASM contract and 1,691 unit cases. Its pinned driver and production
+WASM digests match.
 
 The [projective contact evaluation audit](evidence/projective-surface-graph-overlap-2026-11-16.json)
 passes the main geometry race at rational stations on open and closed
