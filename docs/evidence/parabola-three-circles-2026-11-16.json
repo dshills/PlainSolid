@@ -28,5 +28,20 @@
     "variants": 16,
     "topology_each": {"faces": 14, "edges": 37, "vertices": 26, "original_inner_wires": 1, "exact_contour_edges": 19, "junction_cycles": 4},
     "max_independent_volume_absolute_error": 4.5e-16
+  },
+  "native_cut": {
+    "isolated_revision": "fbc10df7469e756391455d878ae3fccfb5bf2a9f",
+    "patch_sha256": "e94d1837bf22a2d9fc3a276a9e2186788651eef456a4504236e322a719071a6b",
+    "main_base": "20987eda",
+    "main_log": "parabola-three-circles-cut-main.jsonl",
+    "main_log_sha256": "f2eeb0a069d086fa367f8813c80978687323875c107ed1545de14890302de7ab",
+    "seconds": 181.994,
+    "named_passes": ["TestNativeParabolaThreeCirclesCut", "TestNativeParabolaThreeCirclesCutSeparatedIndex"],
+    "variants": 8,
+    "positive_components": 28,
+    "component_contacts_each": 4,
+    "max_independent_volume_absolute_error": 2.33e-16,
+    "max_independent_centroid_absolute_error": 3.2553e-13,
+    "native_receipts_sha256": "bb86b82c7ef1f34a367066315078eafe0d24bff8a128b1e6668c9efc4a367137"
   }
 }

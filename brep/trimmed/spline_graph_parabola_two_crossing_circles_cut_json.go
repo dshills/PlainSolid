@@ -39,11 +39,19 @@ func twoCrossingCirclesCutRecipeLedger(r *ParabolaTwoCrossingCirclesCut) ([]para
 	[][]parabolaTwoCrossingCirclesCutRecipeContact) {
 	var components []parabolaTwoCrossingCirclesCutRecipeLayer
 	for _, h := range r.history {
-		components = append(components, parabolaTwoCrossingCirclesCutRecipeLayer{Region: &h.Region, RoofFaces: h.RoofFaces[:],
-			ParabolaEdges: h.ParabolaEdges[:], CircleEdges: h.CircleEdges[:], WallFaces: h.WallFaces, DomainSides: h.DomainSides})
+		components = append(components, twoCrossingCircleCutLayerLedger(h))
 	}
+	return components, twoCrossingCircleCutContactLedger(r.contacts)
+}
+
+func twoCrossingCircleCutLayerLedger(h ParabolaTwoCrossingCirclesCutHistory) parabolaTwoCrossingCirclesCutRecipeLayer {
+	return parabolaTwoCrossingCirclesCutRecipeLayer{Region: &h.Region, RoofFaces: h.RoofFaces[:],
+		ParabolaEdges: h.ParabolaEdges[:], CircleEdges: h.CircleEdges[:], WallFaces: h.WallFaces, DomainSides: h.DomainSides}
+}
+
+func twoCrossingCircleCutContactLedger(items [2][2]ParabolaTwoCrossingCirclesCutContact) [][]parabolaTwoCrossingCirclesCutRecipeContact {
 	var contacts [][]parabolaTwoCrossingCirclesCutRecipeContact
-	for _, circle := range r.contacts {
+	for _, circle := range items {
 		var entries []parabolaTwoCrossingCirclesCutRecipeContact
 		for _, contact := range circle {
 			entry := parabolaTwoCrossingCirclesCutRecipeContact{
@@ -62,7 +70,7 @@ func twoCrossingCirclesCutRecipeLedger(r *ParabolaTwoCrossingCirclesCut) ([]para
 		}
 		contacts = append(contacts, entries)
 	}
-	return components, contacts
+	return contacts
 }
 
 // WriteJSON records the original stocks, all three ordered components and

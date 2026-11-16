@@ -145,6 +145,10 @@ one original inner wire, four original junction cycles, and canonical
 replay. Independent material integrals agree within `4.5e-16`. A valid
 source whose hole intersects the current chord through the exterior
 domain still refuses native assembly.
+The three-circle native Cut audit passes eight main axis, side and order
+cases and all 28 positive original components. Independent signed volumes
+and centroids agree; the compact recipe reproves each contact, raw owner
+and component incidence. Prior two-crossing Cut recipes retain their bytes.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same

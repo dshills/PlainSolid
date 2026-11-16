@@ -53,6 +53,9 @@ third strictly separated circle. It verifies every original factor,
 all four junctions and seven signed regions, before native assembly.
 Native Common and Fuse now assemble that subset with one original inner
 wire on a positive closed shell. Unproved chord arrangements still refuse.
+Both native Cut orders also preserve the original four junction contacts
+while returning either a holed exterior with two caps or a separate
+isolated disk with the exterior and two caps.
 These osculation cases also support exact analytic STEP and IGES
 output with the original owner winding, contact jets and separate Cut
 components. General curved exchange remains open.
