@@ -26,7 +26,9 @@ type ClippedPolynomialCommonHistory struct {
 
 // ClippedPolynomialThreeTransverseCommon retains one embedded intersection
 // shell, all three exact crossing records, and the original chart restrictions.
-type ClippedPolynomialThreeTransverseCommon struct {
+type ClippedPolynomialThreeTransverseCommon clippedPolynomialTransverseCommonProof
+
+type clippedPolynomialTransverseCommonProof struct {
 	solid     Solid
 	sources   [3]*geom.BSplineSurface
 	axis      int
@@ -49,7 +51,10 @@ func (r *ClippedPolynomialThreeTransverseCommon) History() ClippedPolynomialComm
 	if r == nil {
 		return ClippedPolynomialCommonHistory{}
 	}
-	out := r.history
+	return copyClippedPolynomialCommonHistory(r.history)
+}
+
+func copyClippedPolynomialCommonHistory(out ClippedPolynomialCommonHistory) ClippedPolynomialCommonHistory {
 	out.Vertices = slices.Clone(out.Vertices)
 	out.Edges = slices.Clone(out.Edges)
 	out.Midpoints = slices.Clone(out.Midpoints)
@@ -64,8 +69,12 @@ func (r *ClippedPolynomialThreeTransverseCommon) Contacts() []PolynomialMixedEnv
 	if r == nil {
 		return nil
 	}
-	out := make([]PolynomialMixedEnvelopeContact, len(r.contacts))
-	for i, c := range r.contacts {
+	return copyClippedPolynomialCommonContacts(r.contacts)
+}
+
+func copyClippedPolynomialCommonContacts(contacts []PolynomialMixedEnvelopeContact) []PolynomialMixedEnvelopeContact {
+	out := make([]PolynomialMixedEnvelopeContact, len(contacts))
+	for i, c := range contacts {
 		out[i] = c.copy()
 	}
 	return out
@@ -85,20 +94,27 @@ func (r *ClippedPolynomialThreeTransverseCommon) ClippedFootprint() (ClippedPoly
 // physical overlap. The base and both roof charts remain original.
 func CommonClippedPolynomialThreeTransverseEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface,
 	axis int, tolerance float64, o PolynomialCubicCrossingTangencyEnvelopeOptions) (*ClippedPolynomialThreeTransverseCommon, error) {
-	sources := [3]*geom.BSplineSurface{base, a, b}
+	proof, err := buildClippedPolynomialTransverseCommon(ctx, [3]*geom.BSplineSurface{base, a, b}, axis, tolerance, 3, o)
+	return (*ClippedPolynomialThreeTransverseCommon)(proof), err
+}
+
+func buildClippedPolynomialTransverseCommon(ctx context.Context, sources [3]*geom.BSplineSurface, axis int,
+	tolerance float64, requiredCount int, o PolynomialCubicCrossingTangencyEnvelopeOptions) (*clippedPolynomialTransverseCommonProof, error) {
 	proof, e := prepareClippedPolynomialCommon(ctx, sources, axis, tolerance, o)
 	if e != nil {
 		return nil, e
 	}
 	p := proof.Projection
-	if !isNativeClippedTransverseArrangement(p.Arrangement, axis, 3) {
+	n := len(p.Arrangement.ContactOrder)
+	if n < 1 || n > maxClippedPolynomialTransverseNodes || requiredCount > 0 && n != requiredCount ||
+		!isNativeClippedTransverseArrangement(p.Arrangement, axis, n) {
 		return nil, geom.ErrConvergence
 	}
 	bc, e := polynomialEnvelopeBaseChart(proof.BaseAlignment)
 	if e != nil {
 		return nil, e
 	}
-	bound, e := assembleBoundPolynomialEnvelope(ctx, base, [2]*geom.BSplineSurface{a, b}, parametric.Intersection, tolerance, o,
+	bound, e := assembleBoundPolynomialEnvelope(ctx, sources[0], [2]*geom.BSplineSurface{sources[1], sources[2]}, parametric.Intersection, tolerance, o,
 		p.Arrangement, p.Owners, bc, projectedPolynomialCharts(p), nil)
 	if e != nil {
 		return nil, e
@@ -112,13 +128,17 @@ func CommonClippedPolynomialThreeTransverseEnvelope(ctx context.Context, base, a
 			history.Midpoints = append(history.Midpoints, id)
 		}
 	}
-	return &ClippedPolynomialThreeTransverseCommon{
+	return &clippedPolynomialTransverseCommonProof{
 		solid: bound.solid, sources: sources, axis: axis, tolerance: tolerance,
 		history: history, contacts: bound.contacts, footprint: clippedCommonFootprint(proof),
 	}, nil
 }
 
 func (r *ClippedPolynomialThreeTransverseCommon) recipeLedger() polynomialEnvelopeLedger {
+	return (*clippedPolynomialTransverseCommonProof)(r).recipeLedger()
+}
+
+func (r *clippedPolynomialTransverseCommonProof) recipeLedger() polynomialEnvelopeLedger {
 	h := r.history
 	return makePolynomialEnvelopeLedger(h.Edges, h.Vertices, h.Midpoints, h.RoofFaces, h.RoofOwners, h.Base, r.contacts)
 }
