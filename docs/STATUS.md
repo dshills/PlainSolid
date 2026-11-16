@@ -97,7 +97,9 @@ holes. Arbitrary wire refinements under projective maps remain open.
 For graph projections that meet without positive area, the boundary
 query distinguishes no contact, one exact point, and a complete original
 edge. Unequal edge traces may still meet and are retained for further
-classification.
+classification. For bounded polynomial residuals, the algebraic query
+now separates every isolated root from coincident intervals and retains
+both owners' exact original parameters and one-sided root orders.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

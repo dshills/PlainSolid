@@ -178,5 +178,46 @@
       "TestVerticalProjectiveChartPreservesWholeSurface"
     ],
     "complete_edge_clock": "3/2"
+  },
+  "boundary_algebraic_events": {
+    "log": "projective-boundary-events-main-race.jsonl",
+    "sha256": "812b1587c86308d0f505126d39c0d1389c3797aea1e1e122cefa37860addb686",
+    "main_passes": [
+      "TestCompareExactCurvesFractionalOriginalClockAndKnot",
+      "TestTransformProjectiveUVKeepsOriginalCurveKnotsAndPhysicalDerivatives",
+      "TestProjectiveSurfaceGraphOverlapMapsAnOriginalUVCurve",
+      "TestExactSurfaceComparisonFractionalOriginalKnotMaps",
+      "TestProjectiveGraphBoundaryContactAuthenticatesCompleteEdge",
+      "TestProjectiveGraphBoundaryContactSeparatesOnePointFromNoContact",
+      "TestProjectiveGraphBoundaryEventsRetainSimpleAndTangentOriginalRoots",
+      "TestProjectiveGraphBoundaryEventsKeepAnIrrationalRootOnBothOwners",
+      "TestProjectiveGraphBoundaryEventsSeparateCoincidentRunAndIsolatedPoint",
+      "TestProjectiveGraphContactBoundaryKeepsBothDirectedOriginalCurves",
+      "TestProjectiveGraphContactBoundaryRefusesPartialProof",
+      "TestProjectiveSurfaceGraphOverlapDiscoversOriginalPartialMap",
+      "TestProjectiveSurfaceGraphOverlapRejectsAProjectionThatOnlyMatchesSamples",
+      "TestSurfaceSurfaceProjectiveCoincidenceKeepsExactCompleteContact",
+      "TestSurfaceNormalOffsetSeamAuthenticatesExactFractionalStation",
+      "TestSurfaceSurfaceCoverSplitsFiniteRangesWhoseWidthOverflows",
+      "TestSurfaceSurfaceCoverCrossingAndSymmetry",
+      "TestSurfaceSurfaceDisjointAndIdentical",
+      "TestSurfaceSurfaceTangencyAndLimits",
+      "TestSurfaceSurfaceRationalContactCover",
+      "TestSurfaceSurfaceCoplanarIsNotEqualityProof",
+      "TestVerticalProjectiveChartPreservesWholeSurface"
+    ],
+    "rational_A_stations": [
+      "1/2",
+      "2/3"
+    ],
+    "rational_B_stations": [
+      "3/5",
+      "3/4"
+    ],
+    "irrational_B_polynomial": [
+      "-9",
+      "6",
+      "7"
+    ]
   }
 }

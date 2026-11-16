@@ -195,6 +195,11 @@ The graph boundary-only query passes both directions of a complete edge
 whose second owner has an original interior knot. Exact point contact
 and a projected point with unequal model lifts are distinguished. The
 unequal edge control preserves a real crossing for later classification.
+The algebraic continuation passes a simple root, a double root on an
+original B knot, and an irrational root checked by its defining
+polynomial in both owner clocks. A coincident run with a separate
+isolated point is reported without duplicating its endpoint. Short work
+retains original traces and publishes no partial algebraic claims.
 
 [Periodic IGES type 128 import](evidence/iges-periodic-128-2026-11-16.json)
 passed three independently authored pinned OCCT inputs and 54 original
