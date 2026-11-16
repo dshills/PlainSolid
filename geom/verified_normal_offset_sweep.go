@@ -12,6 +12,7 @@ type VerifiedNormalOffsetSweep struct {
 	source       *SurfacePatch
 	lower, upper *big.Rat
 	orientation  int
+	projection   NormalOffsetSweepProjection
 }
 
 // NewVerifiedNormalOffsetSweep constructs a normal sweep only after the
@@ -33,7 +34,19 @@ func NewVerifiedNormalOffsetSweep(ctx context.Context, source *SurfacePatch, low
 			}
 		}
 	}
-	return &VerifiedNormalOffsetSweep{source, new(big.Rat).Set(lower), new(big.Rat).Set(upper), orientation}, proof, nil
+	return &VerifiedNormalOffsetSweep{
+		source: source, lower: new(big.Rat).Set(lower), upper: new(big.Rat).Set(upper),
+		orientation: orientation, projection: projection,
+	}, proof, nil
+}
+
+// OriginalSource returns the immutable original reference chart and the
+// signed coordinate projection used to prove the sweep.
+func (s *VerifiedNormalOffsetSweep) OriginalSource() (*SurfacePatch, NormalOffsetSweepProjection) {
+	if s == nil {
+		return nil, NormalOffsetSweepProjection{}
+	}
+	return s.source, s.projection
 }
 
 // Domain gives the original UV rectangle and an owned copy of the exact

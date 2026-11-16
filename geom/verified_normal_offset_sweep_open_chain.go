@@ -8,8 +8,9 @@ import (
 // VerifiedNormalOffsetSweepOpenChain is an embedded open chain of two
 // through eight original sweep charts joined along complete swept walls.
 type VerifiedNormalOffsetSweepOpenChain struct {
-	sweeps []*VerifiedNormalOffsetSweep
-	joins  []*VerifiedNormalOffsetSweepPair
+	sweeps     []*VerifiedNormalOffsetSweep
+	joins      []*VerifiedNormalOffsetSweepPair
+	separators []VerifiedNormalOffsetSweepNonadjacentSeparator
 }
 
 // VerifiedNormalOffsetSweepNonadjacentSeparator supplies the original
@@ -116,8 +117,14 @@ func NewVerifiedNormalOffsetSweepOpenChain(ctx context.Context, joins []*Verifie
 	if err := ctx.Err(); err != nil {
 		return nil, r, err
 	}
+	originals := make([]VerifiedNormalOffsetSweepNonadjacentSeparator, len(proofs))
+	for i, proof := range proofs {
+		originals[i] = VerifiedNormalOffsetSweepNonadjacentSeparator{
+			Owners: proof.Owners, Separator: copySweepChainSeparator(proof.Separator),
+		}
+	}
 	r.Complete, r.Nonadjacent = true, proofs
-	return &VerifiedNormalOffsetSweepOpenChain{sweeps: sweeps, joins: slices.Clone(joins)}, r, nil
+	return &VerifiedNormalOffsetSweepOpenChain{sweeps: sweeps, joins: slices.Clone(joins), separators: originals}, r, nil
 }
 
 // Sweeps returns the immutable original charts in order. The caller owns
@@ -141,6 +148,21 @@ func (c *VerifiedNormalOffsetSweepOpenChain) Joins() []VerifiedNormalOffsetSweep
 		r[i] = VerifiedNormalOffsetSweepChainJoin{Owners: [2]int{i, i + 1}, Original: join, Coordinate: coordinate}
 	}
 	return r
+}
+
+// NonadjacentSeparators returns the exact original separator planes in
+// lexicographic owner order. The caller owns the returned values.
+func (c *VerifiedNormalOffsetSweepOpenChain) NonadjacentSeparators() []VerifiedNormalOffsetSweepNonadjacentSeparator {
+	if c == nil {
+		return nil
+	}
+	result := make([]VerifiedNormalOffsetSweepNonadjacentSeparator, len(c.separators))
+	for i, entry := range c.separators {
+		result[i] = VerifiedNormalOffsetSweepNonadjacentSeparator{
+			Owners: entry.Owners, Separator: copySweepChainSeparator(entry.Separator),
+		}
+	}
+	return result
 }
 
 // Boundary returns the retained outer faces in original chart and side
