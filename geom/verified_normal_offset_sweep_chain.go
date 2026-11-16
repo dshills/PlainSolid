@@ -6,10 +6,11 @@ import (
 )
 
 // VerifiedNormalOffsetSweepChain is an embedded joined volume of three
-// original sweep charts with two distinct parallel swept walls.
+// original sweep charts with two disjoint swept walls.
 type VerifiedNormalOffsetSweepChain struct {
-	sweeps [3]*VerifiedNormalOffsetSweep
-	pairs  [2]*VerifiedNormalOffsetSweepPair
+	sweeps       [3]*VerifiedNormalOffsetSweep
+	pairs        [2]*VerifiedNormalOffsetSweepPair
+	endSeparator *VerifiedNormalOffsetSweepChainSeparator
 }
 
 // VerifiedNormalOffsetSweepChainProof records the positive gap between
