@@ -5,6 +5,8 @@
 #include <BRep_Tool.hxx>
 #include <GProp_GProps.hxx>
 #include <Geom_BSplineCurve.hxx>
+#include <Geom_BSplineSurface.hxx>
+#include <IGESControl_Reader.hxx>
 #include <NCollection_IndexedMap.hxx>
 #include <STEPControl_Reader.hxx>
 #include <TopExp.hxx>
@@ -12,17 +14,70 @@
 #include <TopTools_ShapeMapHasher.hxx>
 #include <TopoDS.hxx>
 #include <algorithm>
+#include <array>
+#include <string_view>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
 
 using ShapeMap = NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>;
 
+using Band = std::array<double, 6>;
+
+static bool readRationalCone(const BRepAdaptor_Surface& face, Band& data) {
+    const auto s = face.BSpline();
+    if (s.IsNull() || s->UDegree() != 2 || s->VDegree() != 1 ||
+        s->NbUPoles() != (s->IsUPeriodic() ? 8 : 9) || s->NbVPoles() != 2 ||
+        (!s->IsURational() && !s->IsVRational()) || s->NbUKnots() != 5 || s->NbVKnots() != 2) return false;
+    const std::array<std::array<int, 2>, 9> azimuth{{
+        {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}, {1, 0},
+    }};
+    constexpr std::array<int, 9> weights{{1, 1, 2, 2, 4, 2, 2, 1, 1}};
+    auto close = [](double a, double b) { return std::abs(a - b) < 1e-10; };
+    const double x = (s->Pole(1, 1).X() + s->Pole(5, 1).X()) / 2;
+    const double y = s->Pole(1, 1).Y();
+    const double base = s->Weight(1, 1);
+    const double sign = s->Pole(1, 2).Z() > s->Pole(1, 1).Z() ? 1. : -1.;
+    for (int u = 1; u <= 5; ++u) {
+        const int multiplicity = !s->IsUPeriodic() && (u == 1 || u == 5) ? 3 : 2;
+        if (s->UKnot(u) != u - 1 || s->UMultiplicity(u) != multiplicity) return false;
+    }
+    if (s->VKnot(1) != 0 || s->VKnot(2) != 1 || s->VMultiplicity(1) != 2 || s->VMultiplicity(2) != 2) return false;
+    data[0] = x;
+    data[1] = y;
+    for (int v = 1; v <= 2; ++v) {
+        const double z = s->Pole(1, v).Z(), r = s->Pole(1, v).X() - x;
+        if (r <= 0) return false;
+        for (int u = 1; u <= s->NbUPoles(); ++u) {
+            const auto p = s->Pole(u, v);
+            const auto xy = azimuth[u - 1];
+            if (!close(p.X(), x + xy[0] * r) || !close(p.Y(), y + sign * xy[1] * r) ||
+                !close(p.Z(), z) || !close(s->Weight(u, v), base * weights[u - 1])) return false;
+        }
+        data[2 * v] = z;
+        data[2 * v + 1] = r;
+    }
+    if (data[2] == data[4]) return false;
+    if (sign < 0) {
+        std::swap(data[2], data[4]);
+        std::swap(data[3], data[5]);
+    }
+    return true;
+}
+
 int main(int argc, char** argv) {
     if (argc != 2) return 1;
-    STEPControl_Reader reader;
-    if (reader.ReadFile(argv[1]) != IFSelect_RetDone || reader.TransferRoots() != 1) return 2;
-    const auto shape = reader.OneShape();
+    const std::string_view path(argv[1]);
+    TopoDS_Shape shape;
+    if (path.size() >= 4 && path.substr(path.size() - 4) == ".igs") {
+        IGESControl_Reader reader;
+        if (reader.ReadFile(argv[1]) != IFSelect_RetDone || reader.TransferRoots() != 1) return 2;
+        shape = reader.OneShape();
+    } else {
+        STEPControl_Reader reader;
+        if (reader.ReadFile(argv[1]) != IFSelect_RetDone || reader.TransferRoots() != 1) return 2;
+        shape = reader.OneShape();
+    }
     if (shape.IsNull() || !BRepCheck_Analyzer(shape).IsValid()) return 3;
     ShapeMap solids, faces, edges, vertices;
     TopExp::MapShapes(shape, TopAbs_SOLID, solids);
@@ -99,6 +154,14 @@ int main(int argc, char** argv) {
             const auto c = axis.Location();
             std::cout << "[3," << c.X() << ',' << c.Y() << ',' << a.Z() << ',' << a.X()-c.X()
                       << ',' << b.Z() << ',' << b.X()-c.X() << ']';
+            break;
+        }
+        case GeomAbs_BSplineSurface: {
+            Band band{};
+            if (!readRationalCone(s, band)) return 6;
+            std::cout << "[3";
+            for (double scalar : band) std::cout << ',' << scalar;
+            std::cout << ']';
             break;
         }
         default:

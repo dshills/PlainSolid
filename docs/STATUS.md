@@ -312,7 +312,10 @@ unchanged millimetre source after independent handle-free replay.
 The [conical outer double fillet STEP reader](evidence/conical-rim-fillet-bore-step-import-2026-11-15.json)
 also proves the original eccentric bore, both unequal toroidal bands,
 their acute and obtuse meridians, and both cap holes. Its default rounded
-source does not meet the strict support contract. The [eccentric bore inner rim fillets](evidence/eccentric-cylinder-bore-rim-fillet-2026-11-15.json)
+source does not meet the strict support contract. The [matching independent IGES reader](evidence/conical-rim-fillet-bore-iges-import-2026-11-15.json)
+replays the same native body and both formats now expose a certified
+distance and closed-display path on their authenticated geometry.
+The [eccentric bore inner rim fillets](evidence/eccentric-cylinder-bore-rim-fillet-2026-11-15.json)
 (`d930469f`) retain the unchanged outer cylinder, original axes and cap
 planes with exact quarter-toroid transitions and positive clearance.
 The [strict independent STEP reader](evidence/eccentric-bore-rim-step-import-2026-11-15.json)

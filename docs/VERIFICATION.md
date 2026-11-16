@@ -724,6 +724,16 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   lower edge uses; the raw rounded cone angle, wrong lower bound and
   complementary upper arc each refuse. Main's live race passed in
   59.237 seconds and regenerated both original author DATA sections.
+- The [matching independent IGES reader](evidence/conical-rim-fillet-bore-iges-import-2026-11-15.json)
+  verifies the exact type-128 cone, both original type-198 toroids,
+  six exact model vertices and the two cap holes. It rejects the raw
+  rounded angle and a carrier with the raw off-axis meridian retained.
+  Pinned IGES reopen gives positive signed volume `2282.4014007011251`.
+  Both readers produce the same native bytes. They also return the same
+  2,160-triangle closed source-owned mesh with a 0.2 mm distance bound,
+  4,808 patch checks and 9,045 predicates. Main race passed the cross-format
+  display and the independent STEP/IGES files in 94.156, 52.518 and
+  50.405 seconds. This display proof has no finite angular claim yet.
 - The [diagonal circle cap and wall proof](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
   (`a296b700`) qualifies the independent offset `(1.5,2)` with exact
   circular rim laws and shell-wide clearance. A targeted raw constructor
