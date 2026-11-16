@@ -73,6 +73,9 @@ original four-ray junctions. Independent signed volumes and surface
 areas qualify both input orders and both axis layouts.
 Both native Cut orders now retain four separate positive components
 and six exact point contacts with the original directed source rays.
+One original circle can also cross a parabola four times on the same
+semicircle. Exact source discovery preserves all four directed junctions,
+six signed regions, and the distinct pocket between the two caps.
 Projectively related graph surfaces can also prove strict original
 height order or exact coincidence over their entire shared projection.
 The same full-footprint ordered proof builds closed Common, Fuse and

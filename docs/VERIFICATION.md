@@ -204,6 +204,11 @@ components and all six original point contacts per case. Independent
 signed-region volume and centroid agree down to the smallest positive
 component (about 5.37e-8). Four canonical replays pass, a forged contact
 refuses, and eight prior Cut recipes retain their bytes.
+The [single-circle four-crossing source audit](evidence/parabola-circle-four-crossings-2026-11-16.json)
+certifies the original quartic and its four transverse junctions on the
+lower or upper semicircle. Independent rational, pi and arctangent
+integrals qualify all six signed regions, including the intervening
+pocket. Main race covers both axis and roof orders and eight refusals.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same

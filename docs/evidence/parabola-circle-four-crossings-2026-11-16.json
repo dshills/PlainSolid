@@ -1,0 +1,42 @@
+{
+  "scope": "Exact original source proof for a single circle crossing one original parabola four times",
+  "main_base": "2a196388",
+  "isolated_revision": "1e83880912eaf6bb5d2577ff4650a27ec0bd3604",
+  "patch_sha256": "00deb76f1166aa6b56e5d36078b8c5f28b2ca8d6c4c12713b91718a34f4a7835",
+  "main_race_log": "parabola-four-junction-trimmed-main-race.jsonl",
+  "main_race_sha256": "11b81f645cdba1e61fad345353df935e4108294a456ccf58d40fd59bf5c572da",
+  "main_race_seconds": 14.564,
+  "isolated_source_race_seconds": 95.953,
+  "per_variant": {
+    "original_junctions": 4,
+    "directed_rays": 16,
+    "signed_regions": 6
+  },
+  "original_junctions": [
+    [
+      "15/64",
+      "77/256"
+    ],
+    [
+      "23/64",
+      "51/256"
+    ],
+    [
+      "41/64",
+      "51/256"
+    ],
+    [
+      "49/64",
+      "77/256"
+    ]
+  ],
+  "independent_quartic": "4*(t^2-(9/64)^2)*(t^2-(17/64)^2)",
+  "independent_reference": {
+    "common_volume": 1.9904462736296447,
+    "fuse_volume": 2.008815400934687,
+    "pocket_area": 0.0014989277972646889,
+    "smallest_positive_cap_volume": 3.515530877804706e-10
+  },
+  "negative_source_controls": 8,
+  "old_native_receipts_unchanged": 6
+}

@@ -14,6 +14,11 @@ import (
 // p(x)=vertexY+(x-1/2)^2/8, Q=(x-1/2)^2+(y-cy)^2-r².
 func parabolaCircleCrossingsTestStock(t *testing.T, axis int, cy, vertexY, radiusSquared *big.Rat, perturb bool) [3]*geom.BSplineSurface {
 	t.Helper()
+	return parabolaCircleCurvatureStock(t, axis, cy, vertexY, radiusSquared, big.NewRat(1, 8), perturb)
+}
+
+func parabolaCircleCurvatureStock(t *testing.T, axis int, cy, vertexY, radiusSquared, curvature *big.Rat, perturb bool) [3]*geom.BSplineSurface {
+	t.Helper()
 	circleConstant := new(big.Rat).Mul(cy, cy)
 	circleConstant.Add(circleConstant, big.NewRat(1, 4)).Sub(circleConstant, radiusSquared)
 	circle := map[[2]int]*big.Rat{
@@ -21,8 +26,8 @@ func parabolaCircleCrossingsTestStock(t *testing.T, axis int, cy, vertexY, radiu
 		{0, 1}: new(big.Rat).Mul(cy, big.NewRat(-2, 1)), {0, 2}: big.NewRat(1, 1),
 	}
 	branch := map[[2]int]*big.Rat{
-		{0, 0}: new(big.Rat).Sub(big.NewRat(-1, 32), vertexY), {1, 0}: big.NewRat(1, 8),
-		{2, 0}: big.NewRat(-1, 8), {0, 1}: big.NewRat(1, 1),
+		{0, 0}: new(big.Rat).Sub(new(big.Rat).Quo(curvature, big.NewRat(-4, 1)), vertexY),
+		{1, 0}: curvature, {2, 0}: new(big.Rat).Neg(curvature), {0, 1}: big.NewRat(1, 1),
 	}
 	power := make(map[[2]int]*big.Rat)
 	for i, c := range circle {
