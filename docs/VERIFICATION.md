@@ -72,6 +72,11 @@ stepped and hollow operations. The exact volumes are 63, 5, 1720 and
 296, with surface areas 102, 22, 888 and 600. A neck collapse separates
 two positive volumes; an edge-only boundary contact and short budgets
 refuse atomically. The pinned main race passed in 1.313 seconds.
+The [closed orthogonal wall proof](evidence/orthogonal-volume-wall-2026-11-15.json)
+checks exact subtraction before coordinate conversion. The independent
+pinned stepped wall measures 19 with area 78 and two boundary shells.
+The hollow shape keeps two material bodies and four boundary shells with
+volume 640 and area 1,296. The main pinned race passed in 1.434 seconds.
 
 ## Full Go and PlainCAD rerun (2026-11-15)
 

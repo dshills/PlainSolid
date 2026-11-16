@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "scope": "Exact closed wall layers on orthogonal solids with independent pinned OCCT reference",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "elapsedSeconds": 1.435,
+  "referenceResults": [
+    {
+      "fixture": "step-wall",
+      "volume": 19,
+      "surfaceArea": 78,
+      "shells": 2,
+      "bodies": 1
+    },
+    {
+      "fixture": "cavity-wall",
+      "volume": 640,
+      "surfaceArea": 1296,
+      "shells": 4,
+      "bodies": 2
+    }
+  ],
+  "files": {
+    ".worktrees/qualification/2026-11-15/orthogonal-closed-wall-occt-main-race.jsonl": "f54d99c80cf0ce46b88ea063e81a7bd7edb6e897149fa7a4062a640555febf90",
+    ".worktrees/qualification/2026-11-15/orthogonal-volume-wall-reference": "e74c450e0bdae75b160801d598e024449146356cb45121894639727bf295d1ff",
+    "tools/occtref/orthogonal_volume_offset.cxx": "f66fdb89cfa36488dd43437b26591324772d1187e067b38140ad7d8f4a3cec61"
+  }
+}

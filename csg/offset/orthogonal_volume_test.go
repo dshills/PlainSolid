@@ -146,7 +146,13 @@ func TestOrthogonalVolumeOffsetPinnedOCCT(t *testing.T) {
 		name     string
 		source   solid.Solid
 		distance float64
-	}{{"step-outward", stepped, .5}, {"step-inward", stepped, -.5}, {"cavity-outward", cavity, 1}, {"cavity-inward", cavity, -1}} {
+		wall     bool
+		bodies   int
+	}{
+		{"step-outward", stepped, .5, false, 1}, {"step-inward", stepped, -.5, false, 1},
+		{"cavity-outward", cavity, 1, false, 1}, {"cavity-inward", cavity, -1, false, 1},
+		{"step-wall", stepped, .5, true, 1}, {"cavity-wall", cavity, 1, true, 2},
+	} {
 		t.Run(c.name, func(t *testing.T) {
 			out, err := exec.Command(oracle, c.name).CombinedOutput()
 			if err != nil {
@@ -154,10 +160,14 @@ func TestOrthogonalVolumeOffsetPinnedOCCT(t *testing.T) {
 			}
 			var valid, bodies, shells int
 			var volume, area float64
-			if n, err := fmt.Fscan(strings.NewReader(string(out)), &valid, &bodies, &shells, &volume, &area); err != nil || n != 5 || valid != 1 || bodies != 1 {
-				t.Fatal("pinned OCCT did not publish one valid solid", string(out), err)
+			if n, err := fmt.Fscan(strings.NewReader(string(out)), &valid, &bodies, &shells, &volume, &area); err != nil || n != 5 || valid != 1 || bodies != c.bodies {
+				t.Fatal("unexpected valid-body count in pinned OCCT", string(out), err)
 			}
-			result, err := ComputeVolume(ctx, c.source, c.distance, VolumeOptions{})
+			op := ComputeVolume
+			if c.wall {
+				op = ThickenVolume
+			}
+			result, err := op(ctx, c.source, c.distance, VolumeOptions{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -169,7 +179,64 @@ func TestOrthogonalVolumeOffsetPinnedOCCT(t *testing.T) {
 			if err != nil || len(ss) != shells {
 				t.Fatal("native offset differs from independent OCCT shell count", len(ss), shells, err)
 			}
-			t.Logf("pinned valid solid with %d shells, volume %.16g, area %.16g", shells, volume, area)
+			positive := 0
+			for _, sh := range ss {
+				mass, err := sh.MassProperties()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if mass.Volume > 0 {
+					positive++
+				}
+			}
+			if positive != bodies {
+				t.Fatal("native offset has a different number of positively oriented material shells", positive, bodies)
+			}
+			t.Logf("pinned valid body count %d, shells %d, volume %.16g, area %.16g", bodies, shells, volume, area)
 		})
+	}
+}
+
+func TestOrthogonalVolumeClosedWallLayer(t *testing.T) {
+	ctx := context.Background()
+	box := volumeCells(t, volumeBox(0, 6, 0, 6, 0, 6))
+	step := volumeCells(t, volumeBox(0, 4, 0, 2, 0, 2), volumeBox(0, 2, 0, 2, 2, 4))
+	neck := volumeCells(t, volumeBox(0, 2, 0, 3, 0, 3), volumeBox(2, 4, 1, 2, 1, 2), volumeBox(4, 6, 0, 3, 0, 3))
+	outer := volumeCells(t, volumeBox(0, 10, 0, 10, 0, 10))
+	inner := volumeCells(t, volumeBox(3, 7, 3, 7, 3, 7))
+	cavity, err := outer.Difference(inner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		name      string
+		source    solid.Solid
+		thickness float64
+		volume    int64
+		shells    int
+	}{
+		{"box", box, 1, 152, 2}, {"full collapse", box, 3, 216, 1},
+		{"step", step, .5, 19, 2}, {"split core", neck, .5, 30, 3}, {"separate cavity walls", cavity, 1, 640, 4},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			original, err := c.source.BRep(solid.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			r, err := ThickenOrthogonalVolume(ctx, original, c.thickness, VolumeOptions{})
+			checkOffsetVolume(t, r, err, c.volume)
+			ss, err := r.Solid.Shells()
+			if err != nil || len(ss) != c.shells {
+				t.Fatal("wrong number of closed inward or outward wall shells", len(ss), err)
+			}
+		})
+	}
+	for _, options := range []VolumeOptions{{MaxGridEntries: 20}, {MaxWork: 10}} {
+		if r, err := ThickenVolume(ctx, box, .5, options); !errors.Is(err, ErrLimit) || r.ExactVolume != nil || len(r.Cells) != 0 {
+			t.Fatal("short closed wall budget returned partial material", err)
+		}
+	}
+	if r, err := ThickenVolume(ctx, box, 0, VolumeOptions{}); !errors.Is(err, ErrInvalid) || r.ExactVolume != nil {
+		t.Fatal("zero thickness published a wall layer", err)
 	}
 }

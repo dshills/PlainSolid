@@ -3179,6 +3179,8 @@ The orthogonal offset now also operates on full variable-height volumes.
 It retains exact rational cuboid coverage through cavity growth or
 closure, and regularizes a collapsed neck to two positive components.
 This is a cubical offset; general Euclidean offsets remain open.
+Closed wall thickening retains the exact original material minus its
+cubical erosion, including split cores and separate enclosed walls.
 
 ### Original curved loops and STEP cavities
 

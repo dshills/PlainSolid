@@ -47,7 +47,7 @@ func ComputeVolume(ctx context.Context, source solid.Solid, distance float64, o 
 	if err != nil {
 		return VolumeResult{}, err
 	}
-	return computeVolumeOffset(ctx, source, distance, o)
+	return computeVolumeOffset(ctx, source, distance, o, false)
 }
 
 // FromOrthogonalVolume proves an outward axis-aligned B-rep and offsets its
@@ -57,14 +57,54 @@ func FromOrthogonalVolume(ctx context.Context, source brep.Solid, distance float
 	if err != nil {
 		return VolumeResult{}, err
 	}
+	cells, err := orthogonalVolumeSource(source, o)
+	if err != nil {
+		return VolumeResult{}, err
+	}
+	return computeVolumeOffset(ctx, cells, distance, o, false)
+}
+
+// ThickenVolume retains the wall layer of positive thickness inside an
+// orthogonal cell solid. It subtracts the complete cubical erosion from
+// the original material in one exact arrangement. A vanished inner volume
+// leaves the corresponding original material solid. No opening is cut.
+func ThickenVolume(ctx context.Context, source solid.Solid, thickness float64, o VolumeOptions) (VolumeResult, error) {
+	if !(thickness > 0) {
+		return VolumeResult{}, ErrInvalid
+	}
+	o, err := volumeOffsetOptions(ctx, thickness, o)
+	if err != nil {
+		return VolumeResult{}, err
+	}
+	return computeVolumeOffset(ctx, source, -thickness, o, true)
+}
+
+// ThickenOrthogonalVolume first proves a native outward orthogonal B-rep
+// before retaining its closed wall layer. Original cavities are allowed.
+func ThickenOrthogonalVolume(ctx context.Context, source brep.Solid, thickness float64, o VolumeOptions) (VolumeResult, error) {
+	if !(thickness > 0) {
+		return VolumeResult{}, ErrInvalid
+	}
+	o, err := volumeOffsetOptions(ctx, thickness, o)
+	if err != nil {
+		return VolumeResult{}, err
+	}
+	cells, err := orthogonalVolumeSource(source, o)
+	if err != nil {
+		return VolumeResult{}, err
+	}
+	return computeVolumeOffset(ctx, cells, -thickness, o, true)
+}
+
+func orthogonalVolumeSource(source brep.Solid, o VolumeOptions) (solid.Solid, error) {
 	cells, err := solid.FromOrthogonal(source, solid.Options{MaxCells: o.MaxGridEntries, MaxWork: o.MaxWork})
 	if errors.Is(err, solid.ErrLimit) {
-		return VolumeResult{}, ErrLimit
+		return solid.Solid{}, ErrLimit
 	}
 	if err != nil {
-		return VolumeResult{}, fmt.Errorf("%w: %v", ErrInvalid, err)
+		return solid.Solid{}, fmt.Errorf("%w: %v", ErrInvalid, err)
 	}
-	return computeVolumeOffset(ctx, cells, distance, o)
+	return cells, nil
 }
 
 func volumeOffsetOptions(ctx context.Context, distance float64, o VolumeOptions) (VolumeOptions, error) {
@@ -154,7 +194,7 @@ func (g volumeGrid) accumulate(b *budget) error {
 	return nil
 }
 
-func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float64, o VolumeOptions) (VolumeResult, error) {
+func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float64, o VolumeOptions, keepWall bool) (VolumeResult, error) {
 	var zero VolumeResult
 	result := VolumeResult{ExactVolume: new(big.Rat)}
 	b := &budget{ctx: ctx, remaining: o.MaxWork}
@@ -189,6 +229,7 @@ func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float
 	erode := distance < 0
 	var shifted [3][]q
 	var expandedLow, expandedHigh [3][]q
+	var vanished bool
 	for a, axis := range exact {
 		exact[a] = unique(axis)
 		axis = exact[a]
@@ -202,9 +243,18 @@ func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float
 			shifted[a] = append(shifted[a], lo, hi)
 		}
 		if erode && expandedHigh[a][0].Cmp(expandedLow[a][len(axis)-1]) >= 0 {
-			return result, nil
+			if !keepWall {
+				return result, nil
+			}
+			vanished = true
+		}
+		if keepWall {
+			shifted[a] = append(shifted[a], axis...)
 		}
 		shifted[a] = unique(shifted[a])
+	}
+	if vanished {
+		return unchangedVolumeLayer(cells, exact, b, o)
 	}
 	g, err := newVolumeGrid(shifted, b, o.MaxGridEntries)
 	if err != nil {
@@ -243,12 +293,54 @@ func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float
 	if err := g.accumulate(b); err != nil {
 		return zero, err
 	}
-	boxes, err := collectVolumeRuns(g, lo, hi, erode, b)
+	var take func(i, j, k int) bool
+	if keepWall {
+		original, err := newVolumeGrid(shifted, b, o.MaxGridEntries)
+		if err != nil {
+			return zero, err
+		}
+		if err := populateVolumeSource(cells, original, b); err != nil {
+			return zero, err
+		}
+		insetLo, insetHi := lo, hi
+		for a, axis := range exact {
+			lo[a] = g.position(a, axis[0])
+			hi[a] = g.position(a, axis[len(axis)-1])
+		}
+		take = func(i, j, k int) bool {
+			index := g.index(i, j, k)
+			if original.delta[index] == 0 {
+				return false
+			}
+			// The core is occupied only inside the inset limits and outside
+			// every expanded complementary box.
+			inside := i >= insetLo[0] && i < insetHi[0] && j >= insetLo[1] && j < insetHi[1] && k >= insetLo[2] && k < insetHi[2]
+			return !inside || g.delta[index] > 0
+		}
+	} else {
+		take = func(i, j, k int) bool { return (g.delta[g.index(i, j, k)] > 0) != erode }
+	}
+	boxes, err := collectVolumeRuns(lo, hi, take, b)
 	if err != nil {
 		return zero, err
 	}
 	if len(boxes) == 0 {
 		return result, nil
+	}
+	return volumeResult(boxes, g, b, o)
+}
+
+func unchangedVolumeLayer(cells []geom.Box, axis [3][]q, b *budget, o VolumeOptions) (VolumeResult, error) {
+	g, err := newVolumeGrid(axis, b, o.MaxGridEntries)
+	if err != nil {
+		return VolumeResult{}, err
+	}
+	if err := populateVolumeSource(cells, g, b); err != nil {
+		return VolumeResult{}, err
+	}
+	boxes, err := collectVolumeRuns([3]int{}, g.n, func(i, j, k int) bool { return g.delta[g.index(i, j, k)] > 0 }, b)
+	if err != nil {
+		return VolumeResult{}, err
 	}
 	return volumeResult(boxes, g, b, o)
 }
@@ -297,7 +389,7 @@ func markErodedComplement(g, original volumeGrid, lows, highs [3][]q, b *budget)
 	return nil
 }
 
-func collectVolumeRuns(g volumeGrid, lo, hi [3]int, erode bool, b *budget) ([]volumeGridBox, error) {
+func collectVolumeRuns(lo, hi [3]int, occupied func(i, j, k int) bool, b *budget) ([]volumeGridBox, error) {
 	var result []volumeGridBox
 	previousSlab := map[[4]int]int{}
 	for i := lo[0]; i < hi[0]; i++ {
@@ -307,16 +399,14 @@ func collectVolumeRuns(g volumeGrid, lo, hi [3]int, erode bool, b *budget) ([]vo
 			if err := b.tick(hi[2] - lo[2]); err != nil {
 				return nil, err
 			}
-			row := g.index(i, j, 0)
-			filled := func(k int) bool { return (g.delta[row+k] > 0) != erode }
 			currentRow := map[[2]int]int{}
 			for k := lo[2]; k < hi[2]; {
-				if !filled(k) {
+				if !occupied(i, j, k) {
 					k++
 					continue
 				}
 				start := k
-				for k++; k < hi[2] && filled(k); k++ {
+				for k++; k < hi[2] && occupied(i, j, k); k++ {
 				}
 				key := [2]int{start, k}
 				n, exists := previousRow[key]
