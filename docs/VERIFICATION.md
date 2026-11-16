@@ -247,6 +247,16 @@ without the arc; rotations and reflections cover all four stock sides.
 Native replay reproduces the receipts and refuses altered contact,
 tangents, owner IDs, a missing regular arc and truncated entity budgets.
 
+The isolated-contact Common and Fuse STEP and IGES race passed with all
+three live pinned comparators in 7.475 seconds. Both operand orders and
+both branch configurations reopen in both formats (16 transfers).
+The isolated-only cases have 6 faces, 12 edges and 8 vertices; the
+regular-arc cases have 9 faces, 20 edges and 13 vertices. Independent
+signed volume matches the source integrals, and the pinned
+`acnodal_cubic_interior_contact` probe projects the exact original model
+point into exactly one reopened face interior and zero face boundaries.
+Altered STEP curve ownership and truncated writer budgets refuse.
+
 The native shared-crease follow-up retains the two original cusp roof
 charts, one closed Euler-2 shell and byte-identical native replay for all
 six Common/Fuse/Cut results. The original unsplit mass correction strips
