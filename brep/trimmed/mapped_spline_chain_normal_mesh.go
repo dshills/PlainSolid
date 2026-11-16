@@ -20,7 +20,19 @@ type mappedRoofNormalVertex struct {
 	id   int
 }
 
+type mappedRoofNormalBox struct {
+	patch *geom.SurfacePatch
+	rect  geom.ParameterRectangle
+}
+
+type mappedRoofNormalRange struct {
+	normal  [3]geom.CertifiedScalarRange
+	present bool
+}
+
 type mappedRoofNormals struct {
+	trimWorkspace     geom.SurfacePatchTrimWorkspace
+	normalBoxes       map[mappedRoofNormalBox]mappedRoofNormalRange
 	vertices          map[mappedRoofNormalVertex][3]*big.Rat
 	certified         map[[3]int]*big.Rat
 	cells             map[[2]int]*geom.SurfacePatch
@@ -35,6 +47,7 @@ func newMappedRoofNormals(ctx context.Context, p *geom.SurfacePatch, angle float
 	r := &mappedRoofNormals{
 		cells: make(map[[2]int]*geom.SurfacePatch), vertices: make(map[mappedRoofNormalVertex][3]*big.Rat),
 		certified: make(map[[3]int]*big.Rat), remaining: 100000,
+		normalBoxes: make(map[mappedRoofNormalBox]mappedRoofNormalRange),
 	}
 	r.limit = mappedAngleTangentLimit(angle)
 	_, radius, err := graphAreaSqrt(trimDistance, 64, 16384)
@@ -112,8 +125,7 @@ func (r *mappedRoofNormals) certify(ctx context.Context, p *geom.SurfacePatch, f
 			continue
 		}
 		c := r.cells[cells[i]]
-		a, b, d := exactBoundPoint(face.Mesh.Vertices[tri[0]]), exactBoundPoint(face.Mesh.Vertices[tri[1]]), exactBoundPoint(face.Mesh.Vertices[tri[2]])
-		direction := ddCross(ddSub(b, a), ddSub(d, a))
+		var direction [3]*big.Rat
 		if r.sourceCentered {
 			if err := r.charge(ctx); err != nil {
 				return nil, nil, err
@@ -130,6 +142,9 @@ func (r *mappedRoofNormals) certify(ctx context.Context, p *geom.SurfacePatch, f
 				return nil, nil, err
 			}
 			direction = ddCross(middle.Du, middle.Dv)
+		} else {
+			a, b, d := exactBoundPoint(face.Mesh.Vertices[tri[0]]), exactBoundPoint(face.Mesh.Vertices[tri[1]]), exactBoundPoint(face.Mesh.Vertices[tri[2]])
+			direction = ddCross(ddSub(b, a), ddSub(d, a))
 		}
 		directions[i] = direction
 		var rays [3][3]*big.Rat
@@ -280,7 +295,11 @@ func (r *mappedRoofNormals) normalBox(ctx context.Context, p *geom.SurfacePatch,
 	if err := r.charge(ctx); err != nil {
 		return empty, false, err
 	}
-	child, err := p.Trim(rect)
+	key := mappedRoofNormalBox{p, rect}
+	if box, ok := r.normalBoxes[key]; ok {
+		return box.normal, box.present, nil
+	}
+	child, err := p.TrimWithWorkspace(rect, &r.trimWorkspace)
 	if err != nil {
 		return empty, false, err
 	}
@@ -288,10 +307,14 @@ func (r *mappedRoofNormals) normalBox(ctx context.Context, p *geom.SurfacePatch,
 	if err != nil && !errors.Is(err, geom.ErrConvergence) {
 		return empty, false, err
 	}
-	if err != nil || !proof.Complete || len(proof.Certified) != 1 {
-		return empty, false, nil
+	box := mappedRoofNormalRange{present: err == nil && proof.Complete && len(proof.Certified) == 1}
+	if box.present {
+		box.normal = proof.Certified[0].ScaledNormal
 	}
-	return proof.Certified[0].ScaledNormal, true, nil
+	if r.normalBoxes != nil && len(r.normalBoxes) < 8192 {
+		r.normalBoxes[key] = box
+	}
+	return box.normal, box.present, nil
 }
 
 func (r *mappedRoofNormals) bound(ctx context.Context, p *geom.SurfacePatch, direction [3]*big.Rat, uv [3][2]*big.Rat, depth int) (*big.Rat, error) {

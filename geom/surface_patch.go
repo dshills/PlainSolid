@@ -230,6 +230,12 @@ func (p *SurfacePatch) split(t float64, uDirection bool, budget *polynomialBudge
 	first = sort.SearchFloat64s(newKnots, t)
 	leftCount, rightCount := first, newCount-first
 	leftNet, rightNet := make([]exactHomogeneous, leftCount*other), make([]exactHomogeneous, rightCount*other)
+	// Short knot plans are shared by all tensor strips. Keep generic
+	// high-degree refinement incremental under its original work limit.
+	var steps []exactKnotInsertion
+	if degree <= 8 {
+		steps = exactKnotRefinement(knots, degree, t, insertions)
+	}
 	for strip := 0; strip < other; strip++ {
 		source := make([]exactHomogeneous, count)
 		for i := range source {
@@ -239,7 +245,13 @@ func (p *SurfacePatch) split(t float64, uDirection bool, budget *polynomialBudge
 				source[i] = p.net[strip*p.countV+i]
 			}
 		}
-		refined, e := refineExactNet(source, knots, degree, t, insertions, budget)
+		var refined []exactHomogeneous
+		var e error
+		if steps != nil {
+			refined, e = applyExactKnotRefinement(source, steps, budget)
+		} else {
+			refined, e = refineExactNet(source, knots, degree, t, insertions, budget)
+		}
 		if e != nil {
 			return nil, nil, e
 		}
@@ -297,17 +309,80 @@ func (p *SurfacePatch) SplitV(t float64) (*SurfacePatch, *SurfacePatch, error) {
 // Positive rational weights make its refined control hull an enclosure; no
 // sampling or unverified geometric epsilon is used to form the returned box.
 func (p *SurfacePatch) Trim(rectangle ParameterRectangle) (*SurfacePatch, error) {
+	return p.TrimWithWorkspace(rectangle, nil)
+}
+
+// SurfacePatchTrimWorkspace reuses exact split results when successive
+// restrictions share a prefix. Its zero value is ready for use. It holds at
+// most 1024 splits and 32768 control points for one operation and is used serially.
+type SurfacePatchTrimWorkspace struct {
+	splits map[surfacePatchTrimSplit]surfacePatchTrimChildren
+	poles  int
+}
+
+type surfacePatchTrimSplit struct {
+	patch         *SurfacePatch
+	parameterBits uint64
+	uDirection    bool
+}
+
+type surfacePatchTrimChildren struct {
+	left, right *SurfacePatch
+	work        int
+}
+
+func (w *SurfacePatchTrimWorkspace) split(p *SurfacePatch, t float64, u bool, budget *polynomialBudget) (*SurfacePatch, *SurfacePatch, error) {
+	if w == nil {
+		return p.split(t, u, budget)
+	}
+	// Signed zero is numerically the same cut, but child knots retain
+	// the supplied parameter representation.
+	key := surfacePatchTrimSplit{p, math.Float64bits(t), u}
+	if split, ok := w.splits[key]; ok {
+		// A completed split used the same coefficient limit on the same
+		// immutable input. Charge its original work even on reuse. When
+		// the full charge cannot fit, replay the split to preserve errors.
+		if split.work <= budget.maxOperations-budget.operations {
+			budget.operations += split.work
+			return split.left, split.right, nil
+		}
+		return p.split(t, u, budget)
+	}
+	before := budget.operations
+	left, right, err := p.split(t, u, budget)
+	if err != nil {
+		return nil, nil, err
+	}
+	poles := len(left.net) + len(right.net)
+	if len(w.splits) < 1024 && poles <= 32768-w.poles {
+		if w.splits == nil {
+			w.splits = make(map[surfacePatchTrimSplit]surfacePatchTrimChildren)
+		}
+		w.splits[key] = surfacePatchTrimChildren{left, right, budget.operations - before}
+		w.poles += poles
+	}
+	return left, right, nil
+}
+
+// TrimWithWorkspace exactly restricts a patch like Trim, with optional reuse
+// across restrictions in a serial operation. Each prefix charges the same
+// work to the patch's construction limits as an uncached restriction.
+func (p *SurfacePatch) TrimWithWorkspace(rectangle ParameterRectangle, workspace *SurfacePatchTrimWorkspace) (*SurfacePatch, error) {
 	if p == nil {
 		return nil, ErrInvalid
 	}
-	out, _, e := p.TrimWithWorkLimit(rectangle, p.options.MaxOperations)
-	return out, e
+	out, _, err := p.trim(rectangle, p.options.MaxOperations, workspace)
+	return out, err
 }
 
 // TrimWithWorkLimit exactly restricts a patch like Trim, with an explicit
 // operation limit for this call. It reports the work charged even on failure
 // and preserves the patch's original limits for subsequent calls.
-func (p *SurfacePatch) TrimWithWorkLimit(rectangle ParameterRectangle, maxOperations int) (_ *SurfacePatch, work int, err error) {
+func (p *SurfacePatch) TrimWithWorkLimit(rectangle ParameterRectangle, maxOperations int) (*SurfacePatch, int, error) {
+	return p.trim(rectangle, maxOperations, nil)
+}
+
+func (p *SurfacePatch) trim(rectangle ParameterRectangle, maxOperations int, workspace *SurfacePatchTrimWorkspace) (_ *SurfacePatch, work int, err error) {
 	if p == nil || len(p.net) == 0 || !rectangle.Valid() {
 		return nil, 0, ErrInvalid
 	}
@@ -323,25 +398,25 @@ func (p *SurfacePatch) TrimWithWorkLimit(rectangle ParameterRectangle, maxOperat
 	current := p
 	var e error
 	if rectangle.UMin > domain.UMin {
-		_, current, e = current.split(rectangle.UMin, true, budget)
+		_, current, e = workspace.split(current, rectangle.UMin, true, budget)
 		if e != nil {
 			return nil, 0, e
 		}
 	}
 	if rectangle.UMax < domain.UMax {
-		current, _, e = current.split(rectangle.UMax, true, budget)
+		current, _, e = workspace.split(current, rectangle.UMax, true, budget)
 		if e != nil {
 			return nil, 0, e
 		}
 	}
 	if rectangle.VMin > domain.VMin {
-		_, current, e = current.split(rectangle.VMin, false, budget)
+		_, current, e = workspace.split(current, rectangle.VMin, false, budget)
 		if e != nil {
 			return nil, 0, e
 		}
 	}
 	if rectangle.VMax < domain.VMax {
-		current, _, e = current.split(rectangle.VMax, false, budget)
+		current, _, e = workspace.split(current, rectangle.VMax, false, budget)
 		if e != nil {
 			return nil, 0, e
 		}

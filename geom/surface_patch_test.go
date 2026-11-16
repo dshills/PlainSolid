@@ -114,6 +114,106 @@ func TestExactSurfacePatchTrimBounds(t *testing.T) {
 		t.Fatal(rangeResult, e)
 	}
 }
+func TestSurfacePatchKnotPlanMatchesIncrementalRefinement(t *testing.T) {
+	knots := []float64{0, 0, 0, 0, .37, .6, .6, 1, 1, 1, 1}
+	source := make([]exactHomogeneous, len(knots)-4)
+	for i := range source {
+		for axis := range source[i] {
+			source[i][axis] = big.NewRat(int64((i-2)*(axis+1)), int64(i+axis+1))
+		}
+	}
+	for _, test := range []struct {
+		cut        float64
+		insertions int
+	}{{.4, 4}, {.6, 2}} {
+		for _, limit := range []int{11, 1000} {
+			incremental := &polynomialBudget{maxOperations: limit, maxBits: 16384}
+			planned := &polynomialBudget{maxOperations: limit, maxBits: 16384}
+			want, wantErr := refineExactNet(source, knots, 3, test.cut, test.insertions, incremental)
+			steps := exactKnotRefinement(knots, 3, test.cut, test.insertions)
+			got, err := applyExactKnotRefinement(source, steps, planned)
+			if err != wantErr || planned.operations != incremental.operations || len(got) != len(want) {
+				t.Fatalf("cut %g, limit %d: got %v, work %d and %d controls, want %v, work %d and %d controls",
+					test.cut, limit, err, planned.operations, len(got), wantErr, incremental.operations, len(want))
+			}
+			for i, h := range got {
+				for axis, q := range h {
+					if q.Cmp(want[i][axis]) != 0 {
+						t.Fatalf("cut %g, homogeneous control %d,%d differs", test.cut, i, axis)
+					}
+				}
+			}
+		}
+	}
+}
+
+func TestExactSurfacePatchTrimWorkspaceKeepsCoefficientsAndWork(t *testing.T) {
+	knots := []float64{0, 0, 0, 1, 1, 1}
+	poles := []Vec3{{0, 0, 0}, {0, .5, .25}, {0, 1, 0}, {.5, 0, 0}, {.5, .5, 1}, {.5, 1, .25}, {1, 0, 0}, {1, .5, .25}, {1, 1, 0}}
+	surface, err := NewBSplineSurface(2, 2, 3, 3, poles, knots, knots, []float64{1, 1.5, 1, 1.125, 1.25, 1, 1, 2, 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	patch, err := NewSurfacePatch(surface, SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var workspace SurfacePatchTrimWorkspace
+	first := ParameterRectangle{.19, .71, .31, .82}
+	second := ParameterRectangle{.19, .71, .37, .93}
+	for _, rect := range []ParameterRectangle{first, second, first} {
+		want, work, err := patch.TrimWithWorkLimit(rect, patch.options.MaxOperations)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := patch.TrimWithWorkspace(rect, &workspace)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Domain() != rect || got.bounds != want.bounds || got.ExactOperations() != work {
+			t.Fatalf("cached trim domain, bounds or work changed: %v, %v, %d", got.Domain(), got.bounds, got.ExactOperations())
+		}
+		for i, row := range got.net {
+			for axis, q := range row {
+				if q.Cmp(want.net[i][axis]) != 0 {
+					t.Fatalf("cached homogeneous control %d,%d differs", i, axis)
+				}
+			}
+		}
+	}
+	if len(workspace.splits) != 6 {
+		t.Fatalf("wanted two reused split prefixes and two pairs of distinct final splits, have %d splits", len(workspace.splits))
+	}
+	_, wantWork, wantErr := patch.TrimWithWorkLimit(first, 9)
+	got, work, err := patch.trim(first, 9, &workspace)
+	if got != nil || !errors.Is(wantErr, ErrConvergence) || !errors.Is(err, ErrConvergence) || work != wantWork {
+		t.Fatalf("cached trim changed budget failure: %v, %d, %v; uncached %d, %v", got, work, err, wantWork, wantErr)
+	}
+}
+
+func TestExactSurfacePatchTrimWorkspaceKeepsKnotEncoding(t *testing.T) {
+	knots := []float64{-1, -1, 1, 1}
+	poles := []Vec3{{-1, -1, 0}, {-1, 1, .25}, {1, -1, .25}, {1, 1, 0}}
+	surface, err := NewBSplineSurface(1, 1, 2, 2, poles, knots, knots, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	patch, err := NewSurfacePatch(surface, SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var workspace SurfacePatchTrimWorkspace
+	for _, maxU := range []float64{0, math.Copysign(0, -1), 0} {
+		trimmed, err := patch.TrimWithWorkspace(ParameterRectangle{-1, maxU, -1, 1}, &workspace)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if math.Float64bits(trimmed.Domain().UMax) != math.Float64bits(maxU) {
+			t.Fatalf("cached cut %x changed original knot encoding to %x", math.Float64bits(maxU), math.Float64bits(trimmed.Domain().UMax))
+		}
+	}
+}
+
 func TestRandomExactSurfacePatchBounds(t *testing.T) {
 	random := rand.New(rand.NewSource(8861))
 	for trial := 0; trial < 30; trial++ {
