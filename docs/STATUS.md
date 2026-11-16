@@ -25,6 +25,9 @@ that cross the seam even at a distant cycle.
 Exact curve evaluation also provides physical derivatives through order 16.
 It retains the original right-hand knot span at repeated knots and lets the
 caller inspect the exact cycle and amount of work used.
+Exact periodic tensor surfaces now also expose both pure second partials
+and the mixed partial in physical units, retaining the same original knot
+owners as first-order evaluation.
 The nested conical AP242 reader now materializes an editable document with
 two shared local solids, six leaf occurrences, original face labels, and
 exact original local and world pose labels. Native save/load preserves

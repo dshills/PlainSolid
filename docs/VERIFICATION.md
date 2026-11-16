@@ -25,6 +25,11 @@ curve derivatives through order 16 match the independently differentiated
 rational law in a distant negative cycle and scale in physical parameter
 units. A repeated knot selects the right-hand velocity and acceleration;
 exhausted work and an order beyond the supported bound refuse.
+The periodic surface second-jet race passed in 5.284 seconds. An independent
+rational bilinear quotient gives the exact two pure and mixed second
+partials along axes of widths two and three. Uniform, exact and
+knot-inserted forms agree in a distant cycle, preserve the derivative
+sign at the original corner, and return no partial jet if work runs out.
 
 The [transversal parabola/circle neutral exchange milestone](evidence/parabola-circle-crossings-neutral-2026-11-16.json)
 passed its pinned main race in 33.929 seconds. The 24 STEP and IGES outputs

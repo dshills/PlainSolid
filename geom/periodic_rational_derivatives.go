@@ -103,6 +103,17 @@ func periodicDerivativeBudget(ctx context.Context, order, poles int, o SurfacePa
 func evaluatePeriodicDerivatives(ctx context.Context, controls []exactHomogeneous, blend func(j, r int) (*big.Rat, *big.Rat), order int,
 	owner ExactSurfaceKnotSpan, b *polynomialBudget) (RationalPeriodicCurveDerivatives, error) {
 	var zero RationalPeriodicCurveDerivatives
+	h, err := homogeneousSplineDerivatives(ctx, controls, blend, order, b)
+	if err != nil {
+		return zero, err
+	}
+	return dehomogenizePeriodicCurve(ctx, h, order, owner, b)
+}
+
+// The homogeneous derivative nets used for mixed tensor derivatives may
+// contain zero or negative weight components.
+func homogeneousSplineDerivatives(ctx context.Context, controls []exactHomogeneous, blend func(j, r int) (*big.Rat, *big.Rat),
+	order int, b *polynomialBudget) ([]exactHomogeneous, error) {
 	degree := len(controls) - 1
 	homOrder := min(degree, order)
 	jet := make([][]exactHomogeneous, len(controls))
@@ -111,7 +122,7 @@ func evaluatePeriodicDerivatives(ctx context.Context, controls []exactHomogeneou
 		jet[i] = make([]exactHomogeneous, homOrder+1)
 		jet[i][0] = c
 		if err := checkRationalSplinePole(c, b); err != nil {
-			return zero, err
+			return nil, err
 		}
 		for k := 1; k <= homOrder; k++ {
 			jet[i][k] = exactHomogeneous{zeroScalar, zeroScalar, zeroScalar, zeroScalar}
@@ -120,14 +131,14 @@ func evaluatePeriodicDerivatives(ctx context.Context, controls []exactHomogeneou
 	one := big.NewRat(1, 1)
 	for r := 1; r <= degree; r++ {
 		if err := ctx.Err(); err != nil {
-			return zero, err
+			return nil, err
 		}
 		for j := degree; j >= r; j-- {
 			a, slope := blend(j, r)
 			q := new(big.Rat).Sub(one, a)
 			for _, x := range []*big.Rat{a, q, slope} {
 				if err := b.check(x); err != nil {
-					return zero, err
+					return nil, err
 				}
 			}
 			left, right := jet[j-1], jet[j]
@@ -141,14 +152,20 @@ func evaluatePeriodicDerivatives(ctx context.Context, controls []exactHomogeneou
 						v.Add(v, d.Mul(d, slope).Mul(d, big.NewRat(int64(k), 1)))
 					}
 					if err := b.check(v); err != nil {
-						return zero, err
+						return nil, err
 					}
 					right[k][axis] = v
 				}
 			}
 		}
 	}
-	h := jet[degree]
+	return jet[degree], nil
+}
+
+func dehomogenizePeriodicCurve(ctx context.Context, h []exactHomogeneous, order int, owner ExactSurfaceKnotSpan,
+	b *polynomialBudget) (RationalPeriodicCurveDerivatives, error) {
+	var zero RationalPeriodicCurveDerivatives
+	homOrder := len(h) - 1
 	if h[0][3].Sign() <= 0 {
 		return zero, ErrInvalid
 	}
