@@ -39,6 +39,14 @@ keeps a map of all 58 emitted directory IDs back to the original. Native
 material, original source receipt and repeated carrier bytes are stable.
 The complete pinned main IGES race passed in 127.704 seconds.
 
+The [rounded annular chamfer STEP repair](evidence/eccentric-annular-chamfer-default-step-repair-2026-11-15.json)
+reopens in strict PlainSolid and pinned OCCT at a `2e-12` mm budget.
+The `1e-12` mm gate refuses on the cone and `1.6e-12` mm on the
+finite seam. All eight original vertices and 14 edges survive. Native
+material matches the independently authored exact carrier byte for
+byte. The main annular and previous conical repair race passed in
+206.686 seconds.
+
 The nested conical AP242 document passed its focused main race in 42.320
 seconds. Two exact local assets supply six leaf paths and fourteen
 original face labels. Moving one group moves only its descendants and

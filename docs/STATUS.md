@@ -3247,6 +3247,9 @@ has an explicit Go repair and source receipt. It preserves exact source
 vertices, the seam and directed loop ownership. The emitted corrected
 carrier passes both strict PlainSolid and pinned OCCT readback and maps
 every emitted directory entry to the corresponding original ID.
+The original rounded eccentric annular chamfer STEP also has an
+explicit repair. Its six signed conical band proofs preserve the
+original rims, edge endpoints and directed loop owners.
 
 ### Periodic spline geometry
 
