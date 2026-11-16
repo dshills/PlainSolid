@@ -12,6 +12,10 @@ contract and 1,691 unit cases.
 The [full PlainCAD run on `d42af917`](evidence/plaincad-main-d42af917-2026-11-16.json)
 passed those same eight gates. Its matching Go qualification remains
 in progress. Vet and Linux and Windows amd64 cross-builds passed.
+The [native Linux ARM64 run on `c7afb429`](evidence/native-linux-c7afb429-qualification-2026-11-16.json)
+reconciled all 6,617 inventoried cases: 6,018 passes and 599 declared
+skips, with zero failures. A pinned offline Linux ARM64 runner executed
+Go 1.26.0 natively on the exact source archive.
 
 The [full Go run on `29563ead`](evidence/main-29563ead-qualification-2026-11-16.json)
 passes all nine lanes: 6,086 passes, 603 optional skips, zero failures,

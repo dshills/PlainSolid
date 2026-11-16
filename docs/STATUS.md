@@ -10,9 +10,9 @@ and [PlainCAD](evidence/plaincad-main-9f95a188-2026-11-16.json) on
 zero failures. PlainCAD passed all eight gates: 345 development, 66
 production, 15 cross-browser, four WASM contract and 1,691 unit cases.
 Vet and Linux and Windows amd64 cross-builds passed on the same snapshot.
-The [native Linux ARM64 run](evidence/native-linux-946f7a04-qualification-2026-11-16.json)
-passed on the earlier paired revision, `946f7a04`. The newer full macOS
-race on `52118ad9` and native Linux run on `c7afb429` are still running.
+The [native Linux ARM64 run](evidence/native-linux-c7afb429-qualification-2026-11-16.json)
+passed 6,018 cases on the earlier paired revision `c7afb429`. The full
+macOS race on `52118ad9` is still running.
 The [PlainCAD run on `d42af917`](evidence/plaincad-main-d42af917-2026-11-16.json)
 also passed all gates, and its matching Go run is underway. Vet and both
 amd64 cross-builds passed. Full Go and PlainCAD runs on `f11354d2` are
