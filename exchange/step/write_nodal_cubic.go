@@ -51,3 +51,28 @@ func VerifyNodalCubicFuseSTEP(ctx context.Context, input io.Reader, fuse *trimme
 		return WriteNodalCubicFuse(ctx, w, fuse, name, unit, l, o)
 	})
 }
+
+// WriteNodalCubicCut transfers the separate original loop and arm solids.
+// The shared point keeps two exact component-local vertex entities.
+func WriteNodalCubicCut(ctx context.Context, w io.Writer, cut *trimmed.NodalCubicCut, name string, unit float64, l Limits, o NodalCubicSTEPOptions) error {
+	parts := cut.Components()
+	if len(parts) != 2 {
+		return geom.ErrInvalid
+	}
+	p := cut.Contact()
+	contacts := []trimmed.PolynomialMixedCutContact{{TwoPolynomialNodeComponentContact: trimmed.TwoPolynomialNodeComponentContact{
+		Point: p.Point, Components: [2]int{0, 1}, Vertices: p.Vertices,
+	}}}
+	return writeClippedCutSTEPBodies(ctx, w, parts, contacts, name, unit, l, o)
+}
+
+// VerifyNodalCubicCutSTEP authenticates both separate components and their
+// distinct contact occurrences against the same native source proof.
+func VerifyNodalCubicCutSTEP(ctx context.Context, input io.Reader, cut *trimmed.NodalCubicCut, name string, unit float64, l Limits, o NodalCubicSTEPOptions) error {
+	if cut == nil {
+		return geom.ErrInvalid
+	}
+	return verifyClippedCutSTEPBodies(ctx, input, l, func(w io.Writer) error {
+		return WriteNodalCubicCut(ctx, w, cut, name, unit, l, o)
+	})
+}

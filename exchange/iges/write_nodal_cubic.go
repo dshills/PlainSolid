@@ -51,3 +51,28 @@ func VerifyNodalCubicFuseIGES(ctx context.Context, input io.Reader, fuse *trimme
 		return WriteNodalCubicFuse(ctx, w, fuse, unit, l, o)
 	})
 }
+
+// WriteNodalCubicCut transfers the separate original loop and arm solids
+// with one type 186 entity and one vertex table for each component.
+func WriteNodalCubicCut(ctx context.Context, w io.Writer, cut *trimmed.NodalCubicCut, unit float64, l Limits, o NodalCubicIGESOptions) error {
+	parts := cut.Components()
+	if len(parts) != 2 {
+		return geom.ErrInvalid
+	}
+	p := cut.Contact()
+	contacts := []trimmed.PolynomialMixedCutContact{{TwoPolynomialNodeComponentContact: trimmed.TwoPolynomialNodeComponentContact{
+		Point: p.Point, Components: [2]int{0, 1}, Vertices: p.Vertices,
+	}}}
+	return writeClippedCutIGESBodies(ctx, w, parts, contacts, unit, l, o)
+}
+
+// VerifyNodalCubicCutIGES authenticates the grouped topology and exact
+// component-local contact occurrences against the native Cut proof.
+func VerifyNodalCubicCutIGES(ctx context.Context, input io.Reader, cut *trimmed.NodalCubicCut, unit float64, l Limits, o NodalCubicIGESOptions) error {
+	if cut == nil {
+		return geom.ErrInvalid
+	}
+	return verifyClippedCutIGESBodies(ctx, input, l, func(w io.Writer) error {
+		return WriteNodalCubicCut(ctx, w, cut, unit, l, o)
+	})
+}

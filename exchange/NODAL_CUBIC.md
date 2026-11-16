@@ -1,4 +1,4 @@
-# Original nodal cubic Common and Fuse transfer
+# Original nodal cubic Boolean transfer
 
 `step.WriteNodalCubicCommon`, `step.WriteNodalCubicFuse`,
 `iges.WriteNodalCubicCommon`, and `iges.WriteNodalCubicFuse` transfer the
@@ -7,6 +7,14 @@ family. Each result has the two original roof charts, all four original
 node rays, and the seam on the original exterior owner chart. STEP
 retains both owner pcurves for each model edge. Both formats retain the
 original coordinates for every vertex.
+
+`step.WriteNodalCubicCut` and `iges.WriteNodalCubicCut` transfer the
+admitted Cut order as two separate positive closed bodies. The shared
+node keeps one exact occurrence in each body's vertex table. The
+original loop and arm parts have two and four faces, respectively,
+with exact positive volumes `1/100925440` and `4619/100925440`. The
+independent pinned readers retain both vertex occurrences, two rays
+per occurrence and nine total indexed vertices.
 
 The verifiers take the native Common or Fuse proof and the intended
 physical units. They authenticate the canonical exchange graph, including
@@ -28,7 +36,7 @@ Then run:
 ```sh
 PLAINSOLID_OCCT_CLIPPED_CUT_STEP_COMPONENTS=/tmp/plainsolid-occt-clipped-cut-step \
 PLAINSOLID_OCCT_CLIPPED_CUT_IGES=/tmp/plainsolid-occt-clipped-cut-iges \
-  go test ./exchange -run '^TestNodalCubicEnvelopeExchange$' -count=1 -v
+  go test ./exchange -run '^TestNodalCubic(Envelope|Cut)Exchange$' -count=1 -v
 ```
 
 Strict verification rejects changes to the STEP curve master and the

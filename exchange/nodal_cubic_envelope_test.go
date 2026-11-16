@@ -126,11 +126,20 @@ func TestNodalCubicEnvelopeExchange(t *testing.T) {
 	}
 }
 
-func checkNodalCubicReadback(t *testing.T, ctx context.Context, format string, data []byte, reader string, source exactNodalTransfer, volume, area float64) {
+type nodalCubicComponentReport struct {
+	Faces, Edges, Shells int
+	Volume, Area         float64
+	Vertices             [][3]float64
+	EdgeVertices         [][2]int
+}
+
+type nodalCubicReadbackReport struct {
+	Solids, IndexedVertices int
+	Components              []nodalCubicComponentReport
+}
+
+func readNodalCubicComponents(t *testing.T, ctx context.Context, format string, data []byte, reader string) nodalCubicReadbackReport {
 	t.Helper()
-	if reader == "" {
-		return
-	}
 	file := filepath.Join(t.TempDir(), "nodal-envelope."+format)
 	if err := os.WriteFile(file, data, 0600); err != nil {
 		t.Fatal(err)
@@ -145,18 +154,19 @@ func checkNodalCubicReadback(t *testing.T, ctx context.Context, format string, d
 			payload = line
 		}
 	}
-	var out struct {
-		Solids, IndexedVertices int
-		Components              []struct {
-			Faces, Edges, Shells int
-			Volume, Area         float64
-			Vertices             [][3]float64
-			EdgeVertices         [][2]int
-		}
-	}
+	var out nodalCubicReadbackReport
 	if err := json.Unmarshal(payload, &out); err != nil {
 		t.Fatalf("independent %s material report: %v\n%s", format, err, raw)
 	}
+	return out
+}
+
+func checkNodalCubicReadback(t *testing.T, ctx context.Context, format string, data []byte, reader string, source exactNodalTransfer, volume, area float64) {
+	t.Helper()
+	if reader == "" {
+		return
+	}
+	out := readNodalCubicComponents(t, ctx, format, data, reader)
 	if out.Solids != 1 || len(out.Components) != 1 || out.IndexedVertices != 18 {
 		t.Fatalf("independent %s changed native material topology", format)
 	}
