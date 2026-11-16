@@ -73,5 +73,5 @@ func mixedConicalRotationProjectsExactly(f *File, id int64, want mappedRationalB
 		}
 	}
 	frame, err := placement(f, id)
-	return err == nil && mixedConicalFrameProjection(frame, exact)
+	return err == nil && mixedConicalFrameProjection(f, id, frame, exact)
 }

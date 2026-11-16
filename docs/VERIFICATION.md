@@ -295,6 +295,12 @@ directions give the `20/29,21/29` rotation and byte-identical styled
 and repaired files on ARM64 and amd64 Go (the latter ran under Rosetta).
 Pinned ARM64 XCAF independently reopened both outputs. Nonproper,
 ambiguous and unproved three-dimensional projection entries still refuse.
+The [spatial rational frame milestone](evidence/mixed-conical-ap242-spatial-rational-frame-2026-11-16.json)
+qualifies a rotation with no invariant Cartesian axis through strict
+STEP and native replay. ARM64 and amd64 produce the same canonical
+integer directions and files. Pinned XCAF checks the shared world frames
+and paint. Scaled carriers and independently rounded nonorthogonal
+directions still refuse, and older fixed-axis bytes remain unchanged.
 
 The [explicit rounded conical STEP repair](evidence/conical-rim-fillet-default-step-repair-2026-11-15.json)
 was checked against independently pinned OCCT authoring and readback. The

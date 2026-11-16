@@ -106,6 +106,8 @@ rotation of an original occurrence relationship. It recomposes all expanded
 uses, preserves their style paths, and saves the orientation intent natively.
 For the bounded fixed-axis case, strict placement relies on the original
 exact frame when ordinary normalization differs by one floating-point bit.
+The bounded strict path also accepts a fully spatial frame when its
+original X and Z axes are authenticated primitive integer directions.
 The independently rounded styled input has explicit repair with an
 original STEP receipt. Both styles and source owners survive corrected
 strict exchange. The repaired file also opens as an editable native

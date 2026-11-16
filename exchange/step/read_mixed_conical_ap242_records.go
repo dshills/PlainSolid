@@ -191,7 +191,7 @@ func mixedConicalOccurrence(f *File, id int64, uses map[int64]AssemblyOccurrence
 		// The ordinary assembly must refer to this same target entity.
 		// The exact neutral child frame has already been proved above.
 		ordinary, err := placement(f, tr.Args[3].Ref)
-		if err != nil || use.Transform != frameTransform(ordinary) || !mixedConicalFrameProjection(ordinary, to) {
+		if err != nil || use.Transform != frameTransform(ordinary) || !mixedConicalFrameProjection(f, tr.Args[3].Ref, ordinary, to) {
 			return zero, errMixedConicalAP242
 		}
 	}
