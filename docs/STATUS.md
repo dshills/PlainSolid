@@ -69,6 +69,8 @@ axis-aligned boxes, and can exclude the full pair before subdivision.
 One verified offset face can produce a conforming mesh with certified
 two-sided distance and one-to-one projection of the rounded triangles.
 The certificate covers its original open parameter rectangle.
+The same grid can certify optional facet deviation against the
+continuous original surface normal.
 A bounded connected offset atlas can verify every declared full-edge
 join, consistent winding and separation of all nonadjacent face pairs.
 It reports remaining boundary edges without assigning solid material.

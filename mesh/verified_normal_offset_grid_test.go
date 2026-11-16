@@ -60,32 +60,7 @@ func TestCertifiedVerifiedNormalOffsetGrid(t *testing.T) {
 
 func TestVerifiedNormalOffsetGridBivariateRationalRoof(t *testing.T) {
 	ctx := context.Background()
-	// Original homogeneous degree-(2,2) controls for (u, v, f/w),
-	// f=(u²+v²)/4 and w=1+(u+v)/8. The non-constant weights and both
-	// independent height derivatives are used by the exact normal proof.
-	var controls [][4]*big.Rat
-	eighth := big.NewRat(1, 8)
-	for i := int64(0); i < 3; i++ {
-		for j := int64(0); j < 3; j++ {
-			u, v := big.NewRat(i, 2), big.NewRat(j, 2)
-			uu, vv := big.NewRat(i*(i-1), 2), big.NewRat(j*(j-1), 2)
-			uv := new(big.Rat).Mul(u, v)
-			x := new(big.Rat).Add(uu, uv)
-			y := new(big.Rat).Add(vv, uv)
-			x.Mul(x, eighth).Add(x, u)
-			y.Mul(y, eighth).Add(y, v)
-			z := new(big.Rat).Add(uu, vv)
-			z.Quo(z, big.NewRat(4, 1))
-			w := new(big.Rat).Add(u, v)
-			w.Mul(w, eighth).Add(w, big.NewRat(1, 1))
-			controls = append(controls, [4]*big.Rat{x, y, z, w})
-		}
-	}
-	source, err := geom.NewExactHomogeneousBezierSurface(ctx, 2, 2, controls, geom.SurfacePatchOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	p := gridTestVerifiedOffset(t, source, big.NewRat(-1, 10), geom.NormalOffsetProjection{Axes: [2]int{0, 1}})
+	p := gridTestBivariateRationalOffset(t)
 	m, err := TessellateVerifiedNormalOffsetGrid(ctx, p, NormalOffsetGridOptions{})
 	if err != nil {
 		t.Fatal(err)
@@ -202,16 +177,47 @@ func TestNormalOffsetGridCellUsesPositiveSymmetricJacobian(t *testing.T) {
 	}
 	projection := geom.NormalOffsetProjection{Axes: [2]int{0, 1}}
 	one := big.NewRat(1, 1)
-	alternate, margin := normalOffsetGridCellJacobian(makeCorners([4][2]int64{{0, 0}, {1, 0}, {1, 3}, {0, 1}}), projection, one, one)
-	if !alternate || margin == nil || margin.Sign() <= 0 {
-		t.Fatal("failed to use the diagonal with two strictly positive proofs", alternate, margin)
+	diagonal, margin, _ := certifyNormalOffsetGridCell(makeCorners([4][2]int64{{0, 0}, {1, 0}, {1, 3}, {0, 1}}), projection, one, one, nil, nil)
+	if diagonal != 1 || margin == nil || margin.Sign() <= 0 {
+		t.Fatal("failed to use the diagonal with two strictly positive proofs", diagonal, margin)
 	}
 	// This shear has positive ordinary determinant and an indefinite
 	// symmetric part. Orientation alone cannot prove monotone embedding.
-	_, margin = normalOffsetGridCellJacobian(makeCorners([4][2]int64{{0, 0}, {1, 0}, {4, 1}, {3, 1}}), projection, one, one)
+	_, margin, _ = certifyNormalOffsetGridCell(makeCorners([4][2]int64{{0, 0}, {1, 0}, {4, 1}, {3, 1}}), projection, one, one, nil, nil)
 	if margin != nil {
 		t.Fatal("accepted an indefinite symmetric Jacobian", margin)
 	}
+}
+
+func gridTestBivariateRationalOffset(t *testing.T) *geom.VerifiedNormalOffsetPatch {
+	t.Helper()
+	ctx := context.Background()
+	// Original homogeneous degree-(2,2) controls for (u, v, f/w),
+	// f=(u²+v²)/4 and w=1+(u+v)/8. The non-constant weights and both
+	// independent height derivatives are used by the exact normal proof.
+	var controls [][4]*big.Rat
+	eighth := big.NewRat(1, 8)
+	for i := int64(0); i < 3; i++ {
+		for j := int64(0); j < 3; j++ {
+			u, v := big.NewRat(i, 2), big.NewRat(j, 2)
+			uu, vv := big.NewRat(i*(i-1), 2), big.NewRat(j*(j-1), 2)
+			uv := new(big.Rat).Mul(u, v)
+			x := new(big.Rat).Add(uu, uv)
+			y := new(big.Rat).Add(vv, uv)
+			x.Mul(x, eighth).Add(x, u)
+			y.Mul(y, eighth).Add(y, v)
+			z := new(big.Rat).Add(uu, vv)
+			z.Quo(z, big.NewRat(4, 1))
+			w := new(big.Rat).Add(u, v)
+			w.Mul(w, eighth).Add(w, big.NewRat(1, 1))
+			controls = append(controls, [4]*big.Rat{x, y, z, w})
+		}
+	}
+	source, err := geom.NewExactHomogeneousBezierSurface(ctx, 2, 2, controls, geom.SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return gridTestVerifiedOffset(t, source, big.NewRat(-1, 10), geom.NormalOffsetProjection{Axes: [2]int{0, 1}})
 }
 
 func gridTestParabolicOffset(t *testing.T, rotated bool) *geom.VerifiedNormalOffsetPatch {

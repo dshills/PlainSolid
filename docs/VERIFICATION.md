@@ -122,6 +122,11 @@ request with 8,192 triangles and a certified upper bound of `0.037986`
 mm. Exact projected triangle determinants and symmetric derivative
 bounds prove injectivity in the delivered rounded mesh. Cancellation,
 work exhaustion and rounding collapse refuse atomically.
+The [optional offset grid facet milestone](evidence/verified-normal-offset-grid-facet-2026-11-16.json)
+passed the main mesh and stitched atlas races. The `0.1` radian request
+gives certified deviations below `0.070347` on the parabolic chart
+and `0.089774` on the rational roof. Angle limits use exact normals of
+the delivered triangles and preserve all eight omitted-angle digests.
 The connected offset atlas race passed in 3.276 seconds. Three curved
 patches of different widths prove two oriented seams and the disjoint
 non-neighbor pair, leaving eight boundary edges. Reversed traversal is
