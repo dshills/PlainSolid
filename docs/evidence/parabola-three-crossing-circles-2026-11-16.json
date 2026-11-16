@@ -71,6 +71,16 @@
     "maximum_absolute_volume_error": 4.44e-16,
     "maximum_centroid_error": 1.11e-12,
     "canonical_replays": 4,
-    "prior_cut_receipts_unchanged": 8
+    "prior_cut_receipts_unchanged": 8,
+    "split_race_evidence": {
+      "whole_invocation_timed_out": true,
+      "whole_measured_components_before_timeout": 28,
+      "whole_log_sha256": "3472387b292e12206f9ff8fa856c82db38e099c19137e79b778bbbe8edaaa57d",
+      "last_case_measured_four_components": true,
+      "last_case_combined_timed_out_in_extra_forgery": true,
+      "last_case_log_sha256": "07ebab388c89760ddc537c5a394d95f3b35f9b5f09beb7d75f0442cfc68ab305",
+      "last_case_canonical_replay_log_sha256": "de8ce97ceabfaf94c5d54477ec5f839376c71a8ea1a1cee53fc6a64c6cc4ac63",
+      "last_case_forged_refusal_log_sha256": "ebacd7825b49ce95776dbfea3d15c2f474e9a3e036474cf11625dffb9e5ad337"
+    }
   }
 }

@@ -15,10 +15,10 @@ passed 6,018 cases on the earlier paired revision `c7afb429`. The full
 macOS race on `52118ad9` is still running.
 The [PlainCAD run on `d42af917`](evidence/plaincad-main-d42af917-2026-11-16.json)
 also passed all gates, and its matching Go run is underway. Vet and both
-amd64 cross-builds passed. Full Go and PlainCAD runs on `f11354d2` are
-underway; vet and both amd64 cross-builds also passed there.
-Full Go qualification has started on `84f9e5b7`; its PlainCAD run
-follows the browser gates on `f11354d2`.
+amd64 cross-builds passed. The [PlainCAD run on `f11354d2`](evidence/plaincad-main-f11354d2-2026-11-16.json)
+also passed all eight gates. Its full Go run is underway, and vet and
+both amd64 cross-builds passed. Full Go and PlainCAD qualification
+are both underway on `84f9e5b7`.
 Type-144 exchange now independently qualifies convex affine outer loops
 on one U-periodic cell, including all original diagonal pcurves, model
 coedges and their cubic composition. Up to two strictly contained

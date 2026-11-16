@@ -16,6 +16,9 @@ The [native Linux ARM64 run on `c7afb429`](evidence/native-linux-c7afb429-qualif
 reconciled all 6,617 inventoried cases: 6,018 passes and 599 declared
 skips, with zero failures. A pinned offline Linux ARM64 runner executed
 Go 1.26.0 natively on the exact source archive.
+The [full PlainCAD run on `f11354d2`](evidence/plaincad-main-f11354d2-2026-11-16.json)
+passed all eight gates and the same pinned browser and unit inventories.
+The matching Go run is underway; vet and both amd64 cross-builds passed.
 
 The [full Go run on `29563ead`](evidence/main-29563ead-qualification-2026-11-16.json)
 passes all nine lanes: 6,086 passes, 603 optional skips, zero failures,
@@ -255,6 +258,10 @@ components and all six original point contacts per case. Independent
 signed-region volume and centroid agree down to the smallest positive
 component (about 5.37e-8). Four canonical replays pass, a forged contact
 refuses, and eight prior Cut recipes retain their bytes.
+The original full race invocation timed out after measuring 28
+of 32 components. Its remaining four independent mass checks and
+separate canonical replay and forged-contact refusal were observed
+under race instrumentation. The original combined race is not a pass.
 The [single-circle four-crossing source audit](evidence/parabola-circle-four-crossings-2026-11-16.json)
 certifies the original quartic and its four transverse junctions on the
 lower or upper semicircle. Independent rational, pi and arctangent
