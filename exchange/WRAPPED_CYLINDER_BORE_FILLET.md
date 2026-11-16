@@ -27,3 +27,32 @@ c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" tools/occtref/read_wrapped_cylinder_bore_fi
 PLAINSOLID_OCCT_ECCENTRIC_BORE_RIM_TRANSFER="$PWD/read-wrapped-cylinder-bore-fillets" \
   go test ./exchange -run '^TestWrappedCylinderBoreRimFilletNeutralTransfer$' -count=1 -v
 ```
+
+## Strict model-only STEP import
+
+`ReadWrappedCylinderBoreRimFillet` reads one standalone analytic STEP
+solid with explicit physical units. It checks the independent stock and
+bore axes, annular cap bounds, toroidal meridian arcs and exact model
+vertices. Every edge must have two opposite effective coedge uses. Full
+circular rims use the same proof as the four-quadrant form. The imported
+body records the original STEP face, edge and vertex IDs, and each native
+quarter retains the source ID of its original full circle.
+
+The pinned OCCT positive is a Boolean-cut tube with a 0.75 upper fillet
+authored at stock Y=64 and bore Y=66. The author's model-only writer records
+its seam line and vertices exactly at their analytic support. The origin
+control records the outer seam at Y=-1.530808498934E-15 on a cylinder
+centered at Y=0. The shifted lower control has two same-direction effective
+uses of the shared shoulder. Both controls fail the strict import.
+
+Compile `tools/occtref/eccentric_cylinder_bore_rim_fillets.cxx` with
+`-DPLAINSOLID_OCCT_STEP` and link `TKDESTEP`, `TKXSBase`, `TKFillet`,
+`TKBool`, `TKBO`, `TKPrim` and their geometry dependencies to regenerate
+the independent author fixtures.
+
+```sh
+"$OCCT_BORE_RIM_AUTHOR" upper "$PWD/occt-upper.step" exact-model
+"$OCCT_BORE_RIM_AUTHOR" upper "$PWD/occt-off-support.step" origin-model
+"$OCCT_BORE_RIM_AUTHOR" lower "$PWD/occt-conflicting-bound.step" exact-model
+go test ./exchange/step -run '^TestReadWrappedCylinderBoreRimFillet' -count=1 -v
+```
