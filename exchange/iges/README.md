@@ -124,6 +124,16 @@ survive pinned OCCT transfer. The strict proof refuses its independently
 authored clockwise control, which OCCT transfers as a larger doubly
 periodic face with an added outer wire.
 
+`WritePeriodicTrimmedFace` emits an exact canonical carrier for these
+single-cell faces. It replays the retained original and strictly reopens
+the encoded result before writing. The clipped type-128 interval, cyclic
+axes, original knot rectangle, contour direction, directory owners and all
+four model ranges are retained. Exact decimals and distinct binary64
+stations are required, including the gaps between each trim bound and
+its adjacent original knot. Pinned OCCT reopens the U-only, V-only and
+doubly periodic fixtures with matching edge data and physical surface
+derivatives.
+
 `ReadPeriodicTrimmedFaceWithHoles` admits one or two explicit rectangular
 inner type-142 contours in the same original knot cell as the outer loop.
 Each inner contour owns four directed type-110 UV lines and four complete

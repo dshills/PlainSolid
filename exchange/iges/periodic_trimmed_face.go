@@ -45,15 +45,19 @@ func (f PeriodicTrimmedFace) OriginalIGES() string { return f.original }
 // ReadPeriodicTrimmedFace proves one standalone unplaced type-144 face with
 // an explicit outer type-142 contour, four ordered type-110 UV edges and
 // four type-126 model edges. The CCW rectangle must be strictly inside one
-// original knot cell of the cyclic support. Each
-// UV/model correspondence is proved over the entire oriented edge under
-// its normalized affine parameter in the original source orientation.
+// original knot cell of the cyclic support. Each UV/model correspondence
+// is proved over the entire oriented edge under its normalized affine
+// parameter in the original source orientation.
 func ReadPeriodicTrimmedFace(ctx context.Context, r io.Reader, l Limits) (PeriodicTrimmedFace, error) {
-	var zero PeriodicTrimmedFace
 	source, err := readPeriodicTrimSourceForAxes(ctx, r, l, 4, periodicTrimAnyAxes)
 	if err != nil {
-		return zero, err
+		return PeriodicTrimmedFace{}, err
 	}
+	return provePeriodicTrimmedFace(ctx, source)
+}
+
+func provePeriodicTrimmedFace(ctx context.Context, source periodicTrimSource) (PeriodicTrimmedFace, error) {
+	var zero PeriodicTrimmedFace
 	m := source.face
 	cell, err := m.proveOriginalKnotCell(ctx)
 	if err != nil {
