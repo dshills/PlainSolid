@@ -38,14 +38,16 @@ def artifact(path):
     return {"path": str(path), "bytes": path.stat().st_size, "sha256": h.hexdigest()}
 
 
-def read_inventory(stage, packages):
+def read_inventory(stage, packages, progress=False):
     files = sorted(stage.glob("inventory*.jsonl"))
-    require(files, "missing independently enumerated Go inventory")
+    require(files or progress, "missing independently enumerated Go inventory")
     cases = set()
     terminal = {}
     for path in files:
-        for event in events(path):
+        for event in events(path, progress):
             pkg, action = event.get("Package"), event["Action"]
+            if action == "build-fail":
+                raise ValueError(f"Go inventory build failed for {event.get('ImportPath')}")
             name = event.get("Output", "").strip()
             if pkg and action == "output" and NAME.fullmatch(name):
                 require((pkg, name) not in cases, f"duplicate inventory test {pkg}/{name}")
@@ -53,8 +55,14 @@ def read_inventory(stage, packages):
             if pkg and action in TERMINAL and not event.get("Test"):
                 require(pkg not in terminal, f"duplicate inventory package {pkg}")
                 terminal[pkg] = action
-    require(set(terminal) == packages, f"inventory package mismatch: {sorted(set(terminal) ^ packages)}")
     require("fail" not in terminal.values(), "inventory command reported failed packages")
+    unexpected = set(terminal) - packages
+    missing = packages - set(terminal)
+    require(not unexpected, f"inventory reported unexpected packages: {sorted(unexpected)}")
+    if missing and progress:
+        print(f"inventory: {len(terminal)}/{len(packages)} packages enumerated", file=sys.stderr)
+        return files, cases, terminal
+    require(not missing, f"inventory package mismatch: {sorted(missing)}")
     return files, cases, terminal
 
 
@@ -123,9 +131,18 @@ def main():
     opts = parser.parse_args()
     stage = opts.stage.resolve()
     package_list = stage / "packages.list"
+    if opts.progress and stage.is_dir() and not package_list.is_file():
+        print("inventory: preparing the source and Go package list", file=sys.stderr)
+        return
     pkgs = package_list.read_text().splitlines()
     require(TRIMMED in pkgs and len(set(pkgs)) == len(pkgs), "invalid Go package list")
-    files, cases, packages = read_inventory(stage, set(pkgs))
+    files, cases, packages = read_inventory(stage, set(pkgs), opts.progress)
+    if opts.progress:
+        if set(packages) != set(pkgs):
+            return
+        if not (stage / "run-commands.json").is_file() and not (stage / "run.sh").is_file():
+            print("inventory complete: preparing Go lanes", file=sys.stderr)
+            return
     schedules, lanes = read_shards(stage, cases)
     status_path = stage / "status.tsv"
     statuses = {}
