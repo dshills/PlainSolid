@@ -3,7 +3,6 @@ package geom
 import (
 	"context"
 	"math/big"
-	"slices"
 )
 
 // GraphContactCircle stores exact squared radius and original chart center.
@@ -13,8 +12,8 @@ type GraphContactCircle struct {
 }
 
 // SplineGraphParabolaTwoCircles proves the complete zero set of two original
-// graphs. The circles are ordered by increasing free center and lie on the
-// same side of the regular wall-to-wall parabola. RegionSides gives A-minus-B
+// graphs. Circle centers are ordered by free coordinate and then by dependent
+// coordinate. Both circles lie on the same side of the regular wall-to-wall parabola. RegionSides gives A-minus-B
 // for the lower open side, upper open side, and both interiors in circle order.
 type SplineGraphParabolaTwoCircles struct {
 	FreeAxis         int
@@ -27,10 +26,10 @@ type SplineGraphParabolaTwoCircles struct {
 }
 
 // DiscoverSplineGraphParabolaTwoCircles recovers a complete factorization
-// K*(y-p(x))*((x-c0)^2+(y-d)^2-r0²)*((x-c1)^2+(y-d)^2-r1²) on one
+// K*(y-p(x))*((x-c0)^2+(y-d0)^2-r0²)*((x-c1)^2+(y-d1)^2-r1²) on one
 // common original unit-domain residual cell (tensor degree at most eight).
-// The two circular centers must have the same dependent coordinate,
-// the radii can differ, and all three contacts must be strictly separated.
+// Both circles must be strictly interior, mutually separated, and on the
+// same side of the parabola. Their centers and radii may vary independently.
 // Positivity of the original homogeneous denominator retains the signs.
 // No factor, endpoint or contact proposal is supplied by the caller.
 func DiscoverSplineGraphParabolaTwoCircles(ctx context.Context, a, c *SurfacePatch, freeAxis int,
@@ -107,18 +106,18 @@ func factorParabolaTwoCircles(law []rationalPolynomial, b *polynomialBudget) (
 			}
 		}
 	}
-	// In the monic residual, h4=-4*d-p, while h3 has u²
-	// coefficient 2-4*d*h4[u²]. The curvature makes recovery unique.
+	// The monic residual has h4=-2*(d0+d1)-p. Its h3[u²]
+	// coefficient is 2-2*(d0+d1)*h4[u²], even for different ordinates.
+	// The nonzero curvature makes recovery unique.
 	h32 := new(big.Rat)
 	if len(law[3]) == 3 {
 		h32.Set(law[3][2])
 	}
-	fourD := new(big.Rat).Quo(new(big.Rat).Sub(big.NewRat(2, 1), h32), law[4][2])
-	d := new(big.Rat).Quo(fourD, big.NewRat(4, 1))
-	if err = b.check(d); err != nil {
+	twiceCenterSum := new(big.Rat).Quo(new(big.Rat).Sub(big.NewRat(2, 1), h32), law[4][2])
+	if err = b.check(twiceCenterSum); err != nil {
 		return
 	}
-	parabola = rationalPolynomial{new(big.Rat).Neg(new(big.Rat).Add(law[4][0], fourD)),
+	parabola = rationalPolynomial{new(big.Rat).Neg(new(big.Rat).Add(law[4][0], twiceCenterSum)),
 		new(big.Rat).Neg(law[4][1]), new(big.Rat).Neg(law[4][2])}
 
 	// Synthetic division in y by y-p(x), including the full constant
@@ -146,84 +145,8 @@ func factorParabolaTwoCircles(law []rationalPolynomial, b *polynomialBudget) (
 	if len(remainder) != 0 {
 		return nil, circles, 0, ErrConvergence
 	}
-	circles, err = factorCircleQuartic(quotient, d, b)
+	circles, err = factorCircleQuartic(quotient, b)
 	return
-}
-
-func factorCircleQuartic(q [5]rationalPolynomial, d *big.Rat, b *polynomialBudget) (circles [2]GraphContactCircle, err error) {
-	// q = (y-d)^4 + S(u)*(y-d)^2 + P(u), where S and P
-	// are respectively the sum and product of the two quadratic offsets.
-	d2 := new(big.Rat).Mul(d, d)
-	d4 := new(big.Rat).Mul(d2, d2)
-	sum, err := graphPolynomialSum(q[2], rationalPolynomial{new(big.Rat).Mul(big.NewRat(6, 1), d2)}, -1, b)
-	if err != nil {
-		return circles, err
-	}
-	if len(sum) != 3 || sum[2].Cmp(big.NewRat(2, 1)) != 0 {
-		return circles, ErrConvergence
-	}
-	linear, err := polynomialProduct(sum, rationalPolynomial{new(big.Rat).Mul(big.NewRat(-2, 1), d)}, b)
-	if err != nil {
-		return circles, err
-	}
-	linear, err = graphPolynomialSum(linear, rationalPolynomial{new(big.Rat).Mul(big.NewRat(-4, 1), new(big.Rat).Mul(d2, d))}, 1, b)
-	if err != nil {
-		return circles, err
-	}
-	if !slices.EqualFunc(linear, q[1], func(a, c *big.Rat) bool { return a.Cmp(c) == 0 }) {
-		return circles, ErrConvergence
-	}
-	offset, err := polynomialProduct(sum, rationalPolynomial{d2}, b)
-	if err != nil {
-		return circles, err
-	}
-	offset, err = graphPolynomialSum(offset, rationalPolynomial{d4}, 1, b)
-	if err != nil {
-		return circles, err
-	}
-	product, err := graphPolynomialSum(q[0], offset, -1, b)
-	if err != nil {
-		return circles, err
-	}
-	discriminant, err := polynomialProduct(sum, sum, b)
-	if err != nil {
-		return circles, err
-	}
-	product4, err := polynomialProduct(product, rationalPolynomial{big.NewRat(4, 1)}, b)
-	if err != nil {
-		return circles, err
-	}
-	discriminant, err = graphPolynomialSum(discriminant, product4, -1, b)
-	if err != nil {
-		return circles, err
-	}
-	delta, err := graphExactPolynomialSqrt(discriminant, b)
-	if err != nil {
-		return circles, err
-	}
-	if len(delta) != 2 {
-		return circles, ErrConvergence
-	}
-	// Positive leading coefficient of the square root makes the plus
-	// branch the smaller free center. The quadratic coefficient is one.
-	for i, side := range [2]int{1, -1} {
-		p, err := graphPolynomialSum(sum, delta, side, b)
-		if err != nil {
-			return circles, err
-		}
-		x := new(big.Rat).Quo(new(big.Rat).Neg(p[1]), big.NewRat(4, 1))
-		r2 := new(big.Rat).Sub(new(big.Rat).Mul(x, x), new(big.Rat).Quo(p[0], big.NewRat(2, 1)))
-		for _, value := range []*big.Rat{x, r2} {
-			if err := b.check(value); err != nil {
-				return circles, err
-			}
-		}
-		if r2.Sign() <= 0 {
-			return circles, ErrConvergence
-		}
-		circles[i] = GraphContactCircle{Center: [2]*big.Rat{x, new(big.Rat).Set(d)}, RadiusSquared: r2}
-	}
-	return circles, nil
 }
 
 func bindSeparatedParabolaCircles(out *SplineGraphParabolaTwoCircles, p rationalPolynomial, b *polynomialBudget) (bool, error) {
@@ -251,8 +174,12 @@ func bindSeparatedParabolaCircles(out *SplineGraphParabolaTwoCircles, p rational
 		}
 	}
 	first, second := out.Circles[0], out.Circles[1]
-	separation := new(big.Rat).Sub(second.Center[0], first.Center[0])
-	margin := new(big.Rat).Mul(separation, separation)
+	var separationSquared big.Rat
+	for axis := range 2 {
+		delta := new(big.Rat).Sub(second.Center[axis], first.Center[axis])
+		separationSquared.Add(&separationSquared, delta.Mul(delta, delta))
+	}
+	margin := new(big.Rat).Set(&separationSquared)
 	margin.Sub(margin, first.RadiusSquared).Sub(margin, second.RadiusSquared)
 	cross := new(big.Rat).Mul(big.NewRat(4, 1), new(big.Rat).Mul(first.RadiusSquared, second.RadiusSquared))
 	square := new(big.Rat).Mul(margin, margin)
@@ -262,17 +189,16 @@ func bindSeparatedParabolaCircles(out *SplineGraphParabolaTwoCircles, p rational
 	if err := b.check(cross); err != nil {
 		return false, err
 	}
-	if separation.Sign() <= 0 || margin.Sign() <= 0 || square.Cmp(cross) <= 0 {
+	if margin.Sign() <= 0 || square.Cmp(cross) <= 0 {
 		return false, ErrConvergence
 	}
-	y := first.Center[1]
-	gap := new(big.Rat).Sub(y, maximum)
-	above := gap.Sign() > 0
-	if !above {
-		gap.Sub(minimum, y)
-	}
+	above := first.Center[1].Cmp(maximum) > 0
 	for i, circle := range out.Circles {
-		x := circle.Center[0]
+		x, y := circle.Center[0], circle.Center[1]
+		gap := new(big.Rat).Sub(minimum, y)
+		if above {
+			gap.Sub(y, maximum)
+		}
 		for _, distance := range []*big.Rat{x, y, new(big.Rat).Sub(one, x), new(big.Rat).Sub(one, y), gap} {
 			square := new(big.Rat).Mul(distance, distance)
 			if err := b.check(square); err != nil {
