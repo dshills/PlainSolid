@@ -28,6 +28,10 @@ type WrappedCylinderRimFilletHistory struct {
 // The original U chart must use canonical unit quadrants and agree exactly
 // with the toroid rim parametrization. All seams and quadrant edges are shared.
 func FilletWrappedCylinderRims(ctx context.Context, s Solid, lower, upper float64, o geom.SurfacePatchOptions) (Solid, WrappedCylinderRimFilletHistory, error) {
+	return filletWrappedCylinderRims(ctx, s, lower, upper, false, o)
+}
+
+func filletWrappedCylinderRims(ctx context.Context, s Solid, lower, upper float64, boreTool bool, o geom.SurfacePatchOptions) (Solid, WrappedCylinderRimFilletHistory, error) {
 	h := WrappedCylinderRimFilletHistory{Blends: [2]int{-1, -1}}
 	if ctx == nil || !finite(lower) || !finite(upper) || lower < 0 || upper < 0 || lower == 0 && upper == 0 {
 		return Solid{}, h, geom.ErrInvalid
@@ -43,7 +47,7 @@ func FilletWrappedCylinderRims(ctx context.Context, s Solid, lower, upper float6
 	z := [2]*big.Rat{p.LowerZ, p.UpperZ}
 	r := [2]*big.Rat{ratInset(lower), ratInset(upper)}
 	for _, d := range r {
-		if new(big.Rat).Mul(d, big.NewRat(2, 1)).Cmp(R) >= 0 {
+		if !boreTool && new(big.Rat).Mul(d, big.NewRat(2, 1)).Cmp(R) >= 0 {
 			return Solid{}, h, geom.ErrDomain
 		}
 	}
@@ -64,17 +68,6 @@ func FilletWrappedCylinderRims(ctx context.Context, s Solid, lower, upper float6
 	faces := []Face{cloneFace(core.faces[0])}
 	var caps [2]Face
 	height := [2]*big.Rat{a, b}
-	values := func(x ...*big.Rat) ([]float64, error) {
-		v := make([]float64, len(x))
-		for i, q := range x {
-			f, e := geom.RepresentedExactScalar(q)
-			if e != nil {
-				return nil, e
-			}
-			v[i] = f
-		}
-		return v, nil
-	}
 	for end, d := range r {
 		if e := ctx.Err(); e != nil {
 			return Solid{}, h, e
@@ -88,25 +81,15 @@ func FilletWrappedCylinderRims(ctx context.Context, s Solid, lower, upper float6
 			continue
 		}
 		major := new(big.Rat).Sub(R, d)
-		data, e := values(p.CenterX, p.CenterY, height[end], major, d)
+		if boreTool {
+			major.Add(R, d)
+		}
+		patch, e := wrappedCylinderRimBlendPatch(ctx, [3]*big.Rat{p.CenterX, p.CenterY, height[end]}, major, d, end, boreTool, o)
 		if e != nil {
 			return Solid{}, h, e
 		}
-		torus, e := geom.NewCanonicalWrappedCircularToroid(ctx, geom.Vec3{X: data[0], Y: data[1], Z: data[2]}, data[3], data[4], data[4], o)
-		if e != nil {
-			return Solid{}, h, e
-		}
-		td := torus.Domain()
-		if end == 0 {
-			td.VMin = 3
-		} else {
-			td.VMax = 1
-		}
-		q, e := torus.FundamentalPatch().Trim(td)
-		if e != nil {
-			return Solid{}, h, e
-		}
-		blend, _, e := geom.NewWrappedSurfacePatch(ctx, q, geom.WrappedSurfaceOptions{WrapU: true, ContinuityOrder: 1,
+		td := patch.Domain()
+		blend, _, e := geom.NewWrappedSurfacePatch(ctx, patch, geom.WrappedSurfaceOptions{WrapU: true, ContinuityOrder: 1,
 			MaxPoles: o.MaxPoles, MaxOperations: o.MaxOperations, MaxCoefficientBits: o.MaxCoefficientBits})
 		if e != nil {
 			return Solid{}, h, e
@@ -117,10 +100,13 @@ func FilletWrappedCylinderRims(ctx context.Context, s Solid, lower, upper float6
 			return Solid{}, h, geom.ErrConvergence
 		}
 		vCap, vSide := td.VMin, td.VMax
-		if end == 1 {
+		if (end == 1) != boreTool {
 			vCap, vSide = td.VMax, td.VMin
 		}
-		face := Face{Surface: blend}
+		// The inner half of a toroid has an inward chart normal. The
+		// standalone flared tool needs an outward wall; grafting it into
+		// the bore later reverses this face along with the cylindrical wall.
+		face := Face{Surface: blend, Reversed: boreTool}
 		f, e := geom.RepresentedExactScalar(z[end])
 		if e != nil {
 			return Solid{}, h, e
@@ -216,4 +202,33 @@ func FilletWrappedCylinderRims(ctx context.Context, s Solid, lower, upper float6
 		return Solid{}, WrappedCylinderRimFilletHistory{}, geom.ErrConvergence
 	}
 	return out, h, nil
+}
+
+func wrappedCylinderRimBlendPatch(ctx context.Context, center [3]*big.Rat, major, minor *big.Rat, end int, interior bool,
+	o geom.SurfacePatchOptions) (*geom.SurfacePatch, error) {
+	p, err := geom.RepresentedExactPoint(center)
+	if err != nil {
+		return nil, err
+	}
+	R, err := geom.RepresentedExactScalar(major)
+	if err != nil {
+		return nil, err
+	}
+	r, err := geom.RepresentedExactScalar(minor)
+	if err != nil {
+		return nil, err
+	}
+	torus, err := geom.NewCanonicalWrappedCircularToroid(ctx, p, R, r, r, o)
+	if err != nil {
+		return nil, err
+	}
+	d := torus.Domain()
+	if interior {
+		d.VMin, d.VMax = float64(2-end), float64(3-end)
+	} else if end == 0 {
+		d.VMin = 3
+	} else {
+		d.VMax = 1
+	}
+	return torus.FundamentalPatch().Trim(d)
 }

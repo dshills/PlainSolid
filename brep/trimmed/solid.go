@@ -495,6 +495,12 @@ func (s Solid) tessellateWithTrimMemo(ctx context.Context, o parametric.Tessella
 	if err != nil {
 		return mesh.Mesh{}, err
 	}
+	if !s.sampledAnnularCaps && !o.AnalyticBound && s.hasCircularBoreRimBlend() {
+		if _, proofErr := s.ValidateWrappedCylinderBoreRimFillet(ctx, geom.SurfacePatchOptions{}); proofErr == nil {
+			s.sampledAnnularCaps = true
+			s.minimumLevel = max(s.minimumLevel, 1)
+		}
+	}
 	s = s.withTessellationTrimMemo(memo)
 	if s.sampledAnnularCaps {
 		return s.tessellateCircularAnnularSeeds(ctx, o)
