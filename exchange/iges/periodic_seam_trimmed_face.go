@@ -51,6 +51,11 @@ func ReadPeriodicSeamTrimmedFace(ctx context.Context, r io.Reader, l Limits) (Pe
 	if err != nil {
 		return zero, err
 	}
+	return provePeriodicSeamTrimmedFace(ctx, source)
+}
+
+func provePeriodicSeamTrimmedFace(ctx context.Context, source periodicTrimSource) (PeriodicSeamTrimmedFace, error) {
+	var zero PeriodicSeamTrimmedFace
 	base := source.face
 	m := PeriodicSeamTrimmedFace{
 		LengthUnit: base.LengthUnit, FaceID: base.FaceID, SupportID: base.SupportID, ContourID: base.ContourID,
