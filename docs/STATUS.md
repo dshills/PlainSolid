@@ -100,6 +100,9 @@ Verified sweeps also clip exact rational lines against affine charts
 and against proved perpendicular rulings of a curved chart when the
 original transverse station is authenticated. The result retains exact
 line parameters and original face and displacement identities.
+For qualified quadratic and cubic rulings, the line query now isolates
+that station without a seed. Algebraic stations keep their defining
+equation and directed bounds; exact rational line endpoints still replay.
 An exact surface-pair distance query retains both rational model sample
 points and the squared distance enclosure below float64 range, including
 when an oblique gap is invisible in the outward axis boxes.

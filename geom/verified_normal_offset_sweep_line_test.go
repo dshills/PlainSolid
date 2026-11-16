@@ -84,6 +84,8 @@ func TestVerifiedNormalOffsetSweepIntersectsOriginalCurvedRuling(t *testing.T) {
 	}{
 		{"nonbinary original transverse and displacement stations", atHeight(q(3, 8), q(-9, 41), q(40, 41), q(1, 17)),
 			q(11, 34), q(11, 34), q(1, 17), nil},
+		{"automatic nonbinary rational recovery", atHeight(q(3, 8), q(-9, 41), q(40, 41), q(1, 17)),
+			nil, q(11, 34), q(1, 17), nil},
 		{"automatic source midpoint", atHeight(q(1, 10), q(0, 1), q(0, 1), q(0, 1)),
 			nil, q(0, 1), q(0, 1), nil},
 		{"original curved cap ruling", atHeight(q(0, 1), q(0, 1), q(1, 1), q(2, 13)),
@@ -92,7 +94,7 @@ func TestVerifiedNormalOffsetSweepIntersectsOriginalCurvedRuling(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			p, d := placedSweepLine(world, c.point, ruling)
 			r, err := sweep.IntersectRationalLine(ctx, p, d, NormalOffsetSweepLineOptions{ProfileParameter: c.seed})
-			if err != nil || !r.Complete || r.Span == nil {
+			if err != nil || !r.Complete || r.Span == nil || r.Span.AlgebraicStation != nil {
 				t.Fatal("exact original curved ruling intersection should finish", r, err)
 			}
 			span := r.Span
@@ -138,6 +140,7 @@ func TestVerifiedNormalOffsetSweepIntersectsOriginalCurvedRuling(t *testing.T) {
 	if err != nil || !miss.Complete || miss.Span != nil {
 		t.Fatal("transverse rational hull should certify a full curved miss", miss, err)
 	}
+	checkIndependentAlgebraicRuling(t, sweep, world, ruling)
 }
 
 func sweepLineCurvedFixture(t *testing.T, shear bool) *VerifiedNormalOffsetSweep {

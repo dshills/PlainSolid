@@ -8,7 +8,9 @@ import (
 // NormalOffsetSweepLineOptions bounds exact work for a verified normal
 // sweep line intersection. ProfileParameter optionally supplies an exact
 // original transverse station for a curved perpendicular extrusion.
-// With no station, the original profile midpoint and endpoints are tried.
+// With no station, original midpoint and endpoints are tried before
+// isolating the normal-foot roots of an original profile of degree at
+// most three.
 type NormalOffsetSweepLineOptions struct {
 	Patch            SurfacePatchOptions
 	ProfileParameter *big.Rat
@@ -16,7 +18,8 @@ type NormalOffsetSweepLineOptions struct {
 
 // NormalOffsetSweepLineEndpoint records a point of origin+Parameter*direction
 // and the exact original (U,V,displacement) station. Faces lists all original
-// analytic boundary faces incident to that point.
+// analytic boundary faces incident to that point. A nil Station entry
+// refers to the corresponding algebraic coordinate in the span.
 type NormalOffsetSweepLineEndpoint struct {
 	Parameter *big.Rat
 	Point     [3]*big.Rat
@@ -28,8 +31,22 @@ type NormalOffsetSweepLineEndpoint struct {
 // queried line. Endpoints can coincide at an isolated boundary contact.
 // BoundaryFaces lists the original faces containing the entire span.
 type NormalOffsetSweepLineSpan struct {
-	Start, End    NormalOffsetSweepLineEndpoint
-	BoundaryFaces []NormalOffsetSweepSide
+	Start, End       NormalOffsetSweepLineEndpoint
+	BoundaryFaces    []NormalOffsetSweepSide
+	AlgebraicStation *NormalOffsetSweepLineAlgebraicStation `json:",omitempty"`
+}
+
+// NormalOffsetSweepLineAlgebraicStation records one isolated root of
+// the original profile equation on normalized Bernstein [0,1] and its
+// directed original raw parameter and signed displacement bounds. Exact
+// material endpoints can accompany coarse station bounds when refinement
+// uses its allotted work.
+type NormalOffsetSweepLineAlgebraicStation struct {
+	ProfileAxis        int
+	OriginalProfile    ExactParameterInterval
+	ProfileRoot        ExactRootRecipe
+	ProfileParameter   ExactParameterInterval
+	SignedDisplacement ExactParameterInterval
 }
 
 // NormalOffsetSweepLineIntersection returns one complete interval or a
@@ -44,7 +61,8 @@ type NormalOffsetSweepLineIntersection struct {
 // IntersectRationalLine clips the entire exact line against the original
 // verified sweep. It supports affine frames with rational unit normals
 // and ruling-parallel lines through verified perpendicular extrusions
-// with a proved exact transverse source station. A line outside the
+// with a proved rational or isolated algebraic transverse source station.
+// A line outside the
 // extrusion's transverse hull is a certified miss. Unsupported frames
 // and line directions return ErrDomain. A ruling query with neither
 // an exact transverse witness nor an exclusion returns ErrConvergence.

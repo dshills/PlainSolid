@@ -235,6 +235,11 @@ rotated curved ruling and a reversed, negative-Jacobian original chart
 replay exact intervals and nonbinary source stations. Unsupported or
 unauthenticated lines refuse; main race and four earlier distance
 receipt comparisons passed.
+The [seed-free sweep line audit](evidence/verified-normal-offset-sweep-line-algebraic-2026-11-16.json)
+passes independent cubic root identities, a weighted cubic profile with
+a degree-seven equation, an exact cap overlap with an irrational profile
+station, and a separate miss. Bounds may stay coarse after exact
+membership is proved. Main race and five earlier line receipts pass.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They
