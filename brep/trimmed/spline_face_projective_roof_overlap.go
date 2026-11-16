@@ -19,6 +19,35 @@ import (
 // clipping edge have Source.OriginalEdge and OriginalUse equal to -1.
 func BuildProjectiveSplineRoofOverlapCommon(ctx context.Context, a, b Face, axes [2]int, baseHeight float64,
 	o ProjectiveRoofSolidOptions) (r ProjectiveRoofSolid, err error) {
+	p, err := proveProjectiveRoofFootprints(ctx, a, b, axes, baseHeight, o)
+	if err != nil {
+		return r, err
+	}
+	if p.overlap.NoArea {
+		return emptyProjectiveRoofBoolean(), nil
+	}
+	faces, ledger, err := p.clip()
+	if err != nil {
+		return r, err
+	}
+	q, err := buildProjectiveSplineRoofBooleanOnEqualFootprints(ctx, faces[0], faces[1], axes, baseHeight, parametric.Intersection, o)
+	if err != nil {
+		return r, err
+	}
+	if err := restoreProjectiveRoofCoedges(ctx, &q, ledger); err != nil {
+		return r, err
+	}
+	return q, nil
+}
+
+type projectiveRoofFootprintProof struct {
+	owners   [2]Face
+	supports [2]*geom.SurfacePatch
+	overlap  geom.ProjectiveSurfaceGraphOverlap
+}
+
+func proveProjectiveRoofFootprints(ctx context.Context, a, b Face, axes [2]int, baseHeight float64,
+	o ProjectiveRoofSolidOptions) (r projectiveRoofFootprintProof, err error) {
 	if ctx == nil || !finite(baseHeight) || axes[0] < 0 || axes[0] > 2 || axes[1] < 0 || axes[1] > 2 ||
 		axes[0] == axes[1] || o.Sew.RepairOrientation {
 		return r, geom.ErrInvalid
@@ -59,28 +88,29 @@ func BuildProjectiveSplineRoofOverlapCommon(ctx context.Context, a, b Face, axes
 			return r, geom.ErrConvergence
 		}
 	}
-	if proj.NoArea {
-		return ProjectiveRoofSolid{Roofs: [2]int{-1, -1}, BaseFace: -1, Section: -1, Complete: true, Empty: true}, nil
-	}
+	return projectiveRoofFootprintProof{owners, supports, proj}, nil
+}
 
+func (p projectiveRoofFootprintProof) clip() ([2]Face, [2][4]ProjectiveSplineImprintUse, error) {
 	var faces [2]Face
 	var ledger [2][4]ProjectiveSplineImprintUse
-	for i := range owners {
-		faces[i], ledger[i], err = projectiveClipGraphFace(owners[i], supports[i].Domain(), proj.Areas[i])
+	for i := range p.owners {
+		f, record, err := projectiveClipGraphFace(p.owners[i], p.supports[i].Domain(), p.overlap.Areas[i])
 		if err != nil {
-			return r, err
+			return [2]Face{}, [2][4]ProjectiveSplineImprintUse{}, err
 		}
+		faces[i], ledger[i] = f, record
 	}
-	q, err := buildProjectiveSplineRoofBooleanOnEqualFootprints(ctx, faces[0], faces[1], axes, baseHeight, parametric.Intersection, o)
-	if err != nil {
-		return r, err
-	}
-	for i, wall := range q.Walls {
-		clip := wall.Source
-		if wall.Owner < 0 || wall.Owner >= len(ledger) || clip.OriginalUse < 0 || clip.OriginalUse >= 4 {
-			return r, geom.ErrConvergence
+	return faces, ledger, nil
+}
+
+func restoreProjectiveRoofCoedges(ctx context.Context, q *ProjectiveRoofSolid, ledger [2][4]ProjectiveSplineImprintUse) error {
+	restore := func(owner int, clip ProjectiveSplineImprintUse) (ProjectiveSplineImprintUse, error) {
+		if owner < 0 || owner >= len(ledger) || clip.OriginalUse < 0 || clip.OriginalUse >= 4 ||
+			clip.OriginalRange[0] == nil || clip.OriginalRange[1] == nil {
+			return ProjectiveSplineImprintUse{}, geom.ErrConvergence
 		}
-		old := ledger[wall.Owner][clip.OriginalUse]
+		old := ledger[owner][clip.OriginalUse]
 		if old.OriginalUse < 0 {
 			old.OriginalRange = clip.OriginalRange
 		} else {
@@ -90,12 +120,23 @@ func BuildProjectiveSplineRoofOverlapCommon(ctx context.Context, a, b Face, axes
 				old.OriginalRange[j] = new(big.Rat).Add(x, new(big.Rat).Mul(w, t))
 			}
 		}
-		q.Walls[i].Source = old
+		return old, nil
 	}
-	if err := ctx.Err(); err != nil {
-		return r, err
+	for i, wall := range q.Walls {
+		updated, err := restore(wall.Owner, wall.Source)
+		if err != nil {
+			return err
+		}
+		q.Walls[i].Source = updated
 	}
-	return q, nil
+	for i, floor := range q.FloorSources {
+		updated, err := restore(1, floor)
+		if err != nil {
+			return err
+		}
+		q.FloorSources[i] = updated
+	}
+	return ctx.Err()
 }
 
 func projectiveClipGraphFace(f Face, domain geom.ParameterRectangle, wanted geom.ExactSurfaceRectangle) (

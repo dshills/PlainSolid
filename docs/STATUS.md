@@ -17,6 +17,8 @@ The [PlainCAD run on `d42af917`](evidence/plaincad-main-d42af917-2026-11-16.json
 also passed all gates, and its matching Go run is underway. Vet and both
 amd64 cross-builds passed. Full Go and PlainCAD runs on `f11354d2` are
 underway; vet and both amd64 cross-builds also passed there.
+Full Go qualification has started on `84f9e5b7`; its PlainCAD run
+follows the browser gates on `f11354d2`.
 Type-144 exchange now independently qualifies convex affine outer loops
 on one U-periodic cell, including all original diagonal pcurves, model
 coedges and their cubic composition. Up to two strictly contained
@@ -286,6 +288,9 @@ a seam or source-height sign.
 Common also accepts unequal footprints, clips their exact projected
 rectangle, and distinguishes generated walls from surviving original
 coedge ranges. Edge-only or disjoint footprint intersections are empty.
+Fuse also keeps a proved containing original stock unchanged. Cut
+accepts a covering tool, retains the original clipped floor, and
+keeps an unchanged stock against a tool with no shared projected area.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

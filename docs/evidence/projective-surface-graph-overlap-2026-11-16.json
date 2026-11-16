@@ -796,5 +796,26 @@
       "disjoint projection"
     ],
     "unrepresentable_original_clip": "1/3"
+  },
+  "unequal_footprint_containment": {
+    "main_base": "84f9e5b7",
+    "main_race_log": "projective-roof-contained-main-race.jsonl",
+    "main_race_sha256": "90b9143f9cd013ba1d57078f548c330d244f75f9cf9788a4625680acb169aec4",
+    "main_race_seconds": 11.022,
+    "contained_fuse": {
+      "original_owner_retained": true,
+      "volume": "57/16",
+      "both_orders": true,
+      "nonbinary_covered_owner_clipping_not_needed": "1/3"
+    },
+    "covering_tool_cut": {
+      "original_floor_retained": true,
+      "new_floor_boundary_count": 1,
+      "volume": "1/32",
+      "centroid_x": "11/12"
+    },
+    "empty_contained_cut": true,
+    "unchanged_projectedly_disjoint_or_touching_cut": true,
+    "unproved_smaller_tool_partial_stock_refuses": true
   }
 }

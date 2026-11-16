@@ -124,6 +124,11 @@ canceled proof still publish no result. Exact partial-footprint Common
 passes both ordered and crossing lifts, with independent volumes 11/16
 and 21/32 and original coedge ancestry intact. Two empty overlap
 controls pass and a nonbinary original clipping station refuses.
+The unequal-footprint containment controls retain the original
+containing Fuse stock (volume 57/16), prove truly empty contained Cut,
+and clip a covering tool without replacing its original floor (volume
+1/32). The edge-only/disjoint tool preserves its original stock. A
+smaller tool with exterior material to rebuild remains unqualified.
 An independent oblique adjacent-side seam also qualifies both Cut
 orders with exact volumes 25/48 and 1/48 and separate native pentagonal
 and triangular original footprints. Both axis orders pass.
