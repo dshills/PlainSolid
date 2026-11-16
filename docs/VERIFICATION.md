@@ -136,6 +136,14 @@ source apex. Four pinched reverse Cuts refuse atomically. Independently
 authored pinned lenses corroborate the exact volume; direct OCCT drops
 the lens in three of four cases and reports two shared vertices in the
 fourth. All 24 prior native recipes and 48 neutral files match.
+The [apex tangency neutral exchange milestone](evidence/parabola-circle-apex-tangency-neutral-2026-11-16.json)
+passed a 36.271-second pinned race. The complete 40-file matrix contains
+48 positive solids. Eight grouped Cuts keep separate local IDs at the
+single exact apex. All 32 envelope files retain their original roof
+bridge and topology. Pinned audits observed 480 directed conic uses, 320
+original-law apex jets and 64 bridge uses; their signed volumes differ
+from exact source integrals by at most `4.45e-16`. Short budgets publish
+no bytes and the 48 earlier files match.
 
 The [proper-similarity display milestone](evidence/parabola-circle-proper-similarity-2026-11-16.json)
 passed its main focused race in 322.877 seconds. Eight components from four

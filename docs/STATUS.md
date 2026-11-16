@@ -100,6 +100,9 @@ A single interior parabola and circle apex tangency now also qualifies
 original contact and native material. Common and Fuse are connected;
 the eligible Cut preserves two positive shells touching at one original
 vertex. The reverse orientation that pinches one shell refuses.
+The apex Common, Fuse and admitted Cut also transfer through exact
+STEP and IGES, preserving the directed apex rays and original roof
+bridge in the corresponding results.
 Certified display of the separated two-circle Cuts now accepts proper
 rational similarities. The proof uses the original world coedge owners
 and reports distance in physical units after rotation and scaling.
