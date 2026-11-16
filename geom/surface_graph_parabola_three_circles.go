@@ -47,27 +47,8 @@ func DiscoverSplineGraphParabolaThreeCircles(ctx context.Context, a, c *SurfaceP
 		o.MaxCells = 4096
 	}
 	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
-	if err := validateUnitGraphCircleCharts(ctx, a, c, 8, b); err != nil {
-		return nil, err
-	}
-	diff, err := orderingDifference(ctx, a, c, 1, b)
-	if err != nil {
-		return nil, err
-	}
-	if diff.Domain() != (ParameterRectangle{UMax: 1, VMax: 1}) || diff.countU != diff.degreeU+1 ||
-		diff.countV != diff.degreeV+1 || diff.degreeU > 8 || diff.degreeV > 8 {
-		return nil, ErrConvergence
-	}
-	law, err := graphMixedPowerColumns(diff, freeAxis, 8, 7, b)
-	if err != nil {
-		return nil, err
-	}
-	p, circleProduct, sign, err := divideGraphParabolaCircleProduct(law, 3, b)
-	if err != nil {
-		return nil, err
-	}
 	var visits int
-	circles, err := factorGraphCircleProduct(ctx, circleProduct, 3, o.MaxCells, &visits, b)
+	p, circles, sign, err := unitParabolaThreeCircleFactors(ctx, a, c, freeAxis, o.MaxCells, &visits, b)
 	if err != nil {
 		return nil, err
 	}
@@ -150,4 +131,32 @@ func DiscoverSplineGraphParabolaThreeCircles(ctx context.Context, a, c *SurfaceP
 	}
 	out.ExactOperations = b.operations
 	return out, nil
+}
+
+func unitParabolaThreeCircleFactors(ctx context.Context, a, c *SurfacePatch, freeAxis, maxCells int, visits *int,
+	b *polynomialBudget) (rationalPolynomial, []GraphContactCircle, int, error) {
+	if err := validateUnitGraphCircleCharts(ctx, a, c, 8, b); err != nil {
+		return nil, nil, 0, err
+	}
+	diff, err := orderingDifference(ctx, a, c, 1, b)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	if diff.Domain() != (ParameterRectangle{UMax: 1, VMax: 1}) || diff.countU != diff.degreeU+1 ||
+		diff.countV != diff.degreeV+1 || diff.degreeU > 8 || diff.degreeV > 8 {
+		return nil, nil, 0, ErrConvergence
+	}
+	law, err := graphMixedPowerColumns(diff, freeAxis, 8, 7, b)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	p, circleProduct, sign, err := divideGraphParabolaCircleProduct(law, 3, b)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	circles, err := factorGraphCircleProduct(ctx, circleProduct, 3, maxCells, visits, b)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	return p, circles, sign, nil
 }

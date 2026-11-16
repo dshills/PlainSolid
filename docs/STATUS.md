@@ -58,6 +58,9 @@ while returning either a holed exterior with two caps or a separate
 isolated disk with the exterior and two caps.
 The same native Common, Fuse and Cut profiles transfer through both
 STEP and IGES with independently verified original material and owners.
+Source discovery can now also certify all three circles crossing the
+original parabola, with six original junctions and eight signed regions.
+Native material for that profile is qualified independently.
 These osculation cases also support exact analytic STEP and IGES
 output with the original owner winding, contact jets and separate Cut
 components. General curved exchange remains open.

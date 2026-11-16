@@ -1,0 +1,16 @@
+{
+  "scope": "Exact source arrangement for one original parabola with three disjoint independently crossing circles",
+  "isolated_revision": "58d07fef6085424bb31a4300ea86ff48de1007e0",
+  "patch_sha256": "799568cce53284ff8def8d6c249d878aad189ef282985d2fb56df62daa2ef964",
+  "main_base": "d05d9118",
+  "main_race_log": "parabola-three-crossing-circles-main-race.jsonl",
+  "main_race_sha256": "460821ede43b9b47d5ba4c52bd4721af47bff3ac835ad64298472cdc2657233c",
+  "main_race_seconds": 82.266,
+  "named_passes": ["TestParabolaThreeCrossingCirclesSource", "TestParabolaThreeCrossingCirclesSourceRefusals"],
+  "variants": 8,
+  "per_variant": {"original_junctions": 6, "directed_rays": 24, "cyclic_sectors": 24, "signed_regions": 8},
+  "independent_central_crossing_stations": ["3/8", "5/8"],
+  "independent_central_quartic_minimum": "15/16",
+  "independent_material_references": {"common": 1.99296076130920104, "fuse": 2.21604990559600581, "smallest_positive_layer": 1.07368103148e-7},
+  "prior_native_receipts_unchanged": 18
+}

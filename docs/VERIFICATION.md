@@ -173,6 +173,11 @@ passes 48 STEP/IGES files with 88 independently reopened positive bodies.
 Pinned readers retain 38 directed original coedges, 32 crossing rays,
 16 isolated jets and the original roof nets. The prior 12 transfer
 digests match.
+The [six-junction source audit](evidence/parabola-three-crossing-circles-2026-11-16.json)
+passes both axes and original operand orders for reflected and unreflected
+profiles. All eight signed regions agree with independent exact integrals.
+Missing, tangent and irrational crossings, overlap, wall contact and
+changed coefficients refuse. Prior native receipts retain their bytes.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same
