@@ -1,0 +1,234 @@
+{
+  "plainSolidRevision": "95c411254a1d88a5dff39fc51daaac48adfeb61b",
+  "baseRevision": "8beccae7b471fa71773afb43184a87619fc6f773",
+  "fixtureCommit": "1478182f",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "occtOraclePath": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/clipped-common-iges-evidence/read_components",
+  "occtOracleSha256": "871f917396b593b15810b941c330bd3616be2fa77861dfdcf5167febadf96554",
+  "lengthUnitMetres": 0.001,
+  "derivedPoleTolerance": 1e-14,
+  "fixtures": {
+    "partial": {
+      "sourcePath": "exchange/testdata/native_clipped_polynomial_three_cut_partial.json",
+      "sourceSha256": "3bf10a48f07e45b6f980786d0f1268fc20f8589f0fef390ace379c07bebcec13",
+      "output": {
+        "name": "three-cut-partial.igs",
+        "sha256": "ebb87f3bd3ce7a965521adefc5b4cd386f33a1b28feb3022a060496f75f88002"
+      },
+      "occtReport": {
+        "name": "occt-partial.json",
+        "sha256": "8e68f5811a998809ed38d9b6c613d37aeb4759264e5853f4acababe89fe2a23b"
+      },
+      "transferredRoots": 1,
+      "solidCount": 4,
+      "faceCount": 19,
+      "distinctVertexIDs": 29,
+      "occtComponentVolumes": [
+        1.1208344437578025e-08,
+        7.732517595485525e-10,
+        1.3467803904142984e-09,
+        1.915649461694588
+      ],
+      "sourceComponentVolumes": [
+        "225573097/20125460834811904",
+        "243157/314460325543936",
+        "423509/314460325543936",
+        "616853251433007029/322007373356990464"
+      ],
+      "sourceTotal": "4313659130942955/2251799813685248",
+      "largestComponentVolumeError": 1.1148988450173473e-19,
+      "sourceContacts": [
+        {
+          "parameters": [
+            "5/2",
+            "-17/512"
+          ],
+          "point": [
+            "5/2",
+            "-17/512",
+            "393381/131072"
+          ],
+          "components": [
+            0,
+            1
+          ],
+          "vertices": [
+            1,
+            0
+          ]
+        },
+        {
+          "parameters": [
+            "3",
+            "5/64"
+          ],
+          "point": [
+            "3",
+            "5/64",
+            "24599/8192"
+          ],
+          "components": [
+            1,
+            2
+          ],
+          "vertices": [
+            2,
+            0
+          ]
+        },
+        {
+          "parameters": [
+            "7/2",
+            "61/512"
+          ],
+          "point": [
+            "7/2",
+            "61/512",
+            "393789/131072"
+          ],
+          "components": [
+            2,
+            3
+          ],
+          "vertices": [
+            2,
+            1
+          ]
+        }
+      ]
+    },
+    "dependent": {
+      "sourcePath": "exchange/testdata/native_clipped_polynomial_three_cut_dependent.json",
+      "sourceSha256": "e071b03899b0ad2648e9464b4c92cdfa8c3525fe4cb294c32278f88e0c04a1f9",
+      "output": {
+        "name": "three-cut-dependent.igs",
+        "sha256": "602f4c5907c13ed7909d5baa84b38db2f5ceadc0f3d8a172b938de018545a3d2"
+      },
+      "occtReport": {
+        "name": "occt-dependent.json",
+        "sha256": "e3b96797bbd456ce404e4d745341a4f85ff34dffc6b7912829502df20d0dfbc8"
+      },
+      "transferredRoots": 1,
+      "solidCount": 5,
+      "faceCount": 18,
+      "distinctVertexIDs": 26,
+      "occtComponentVolumes": [
+        4.6828863623897404e-07,
+        7.732517593586451e-10,
+        1.3467803906178808e-09,
+        3.193579868184998e-06,
+        1.9361572265625
+      ],
+      "sourceComponentVolumes": [
+        "147258197/314460325543936",
+        "243157/314460325543936",
+        "423509/314460325543936",
+        "1004254165/314460325543936",
+        "15861/8192"
+      ],
+      "sourceTotal": "1064415706203/549755813888",
+      "largestComponentVolumeError": 7.428478947420214e-19,
+      "sourceContacts": [
+        {
+          "parameters": [
+            "5/2",
+            "-17/512"
+          ],
+          "point": [
+            "5/2",
+            "-17/512",
+            "393381/131072"
+          ],
+          "components": [
+            0,
+            1
+          ],
+          "vertices": [
+            1,
+            0
+          ]
+        },
+        {
+          "parameters": [
+            "3",
+            "5/64"
+          ],
+          "point": [
+            "3",
+            "5/64",
+            "24599/8192"
+          ],
+          "components": [
+            1,
+            2
+          ],
+          "vertices": [
+            2,
+            0
+          ]
+        },
+        {
+          "parameters": [
+            "7/2",
+            "61/512"
+          ],
+          "point": [
+            "7/2",
+            "61/512",
+            "393789/131072"
+          ],
+          "components": [
+            2,
+            3
+          ],
+          "vertices": [
+            2,
+            1
+          ]
+        }
+      ]
+    }
+  },
+  "legacyByteIdentical": [
+    {
+      "name": "fuse-after.igs",
+      "sha256": "c66d5e2fb70df740c13f8dd45c6ae1571c16e15c713083946275031ebe766795"
+    },
+    {
+      "name": "cut-partial-after.igs",
+      "sha256": "5ce461921e9ff679bf4de6f30a7fe1dafc5e517bf67a62e3b6c640ab1d6db459"
+    },
+    {
+      "name": "cut-dependent-after.igs",
+      "sha256": "0b522f5f6b484e3e3e4e5e5c733c987fc079b8fa23dee6caf5f7d877d77c95c2"
+    },
+    {
+      "name": "common-after.igs",
+      "sha256": "a0edad01ea1d65edf4577239331570fca4f6c20a60dc012747a6f1cfefdc973e"
+    }
+  ],
+  "focusedLive": {
+    "name": "focused-live.log",
+    "sha256": "7ca1b21db1cfee05b34308d919550ca5e5752fcab69b254b07a86ec329d21d40"
+  },
+  "suites": {
+    "full-iges.jsonl": {
+      "sha256": "ea0a59f075ff9d92662921f2f5226625eab1659fe30b9c4bb5dd756c0a7d66a2",
+      "passedSeconds": 123.182
+    },
+    "focused-live-race.jsonl": {
+      "sha256": "92d2d34d8be0e4073a2c0529cc2227c561008b32faaba0fd893f11d17b862bbe",
+      "passedSeconds": 141.91
+    }
+  },
+  "integratedMainRun": {
+    "file": "clipped-three-cut-iges-main-live.jsonl",
+    "sha256": "6cd5218f3ad01b30ad774d9ddb7c440416905a5afbbf1ca223767567aaeca559",
+    "elapsedSeconds": 33.953,
+    "liveReaders": [
+      "Common",
+      "Cut",
+      "ThreeTransverseCut"
+    ]
+  }
+}
