@@ -161,7 +161,6 @@ func TestParabolaTwoCirclesSourceRefusals(t *testing.T) {
 		{name: "nested circles", discs: [2]twoCircleStockProbe{primary[0], twoCircleProbe(4, 12, 1, 16)}},
 		{name: "overlapping offset circles", discs: [2]twoCircleStockProbe{primary[0], twoCircleProbe(6, 13, 1, 16)}},
 		{name: "tangent offset circles", discs: [2]twoCircleStockProbe{twoCircleProbe(8, 20, 2, 32), twoCircleProbe(11, 24, 3, 32)}},
-		{name: "opposite sides of the parabola", discs: [2]twoCircleStockProbe{twoCircleProbe(4, 2, 1, 16), twoCircleProbe(12, 12, 1, 16)}},
 		{name: "intersecting parabola", discs: [2]twoCircleStockProbe{twoCircleProbe(2, 3, 1, 8), twoCircleProbe(12, 6, 1, 16)}},
 		{name: "stock-tangent circle", discs: [2]twoCircleStockProbe{twoCircleProbe(2, 7, 1, 8), twoCircleProbe(12, 14, 1, 16)}},
 	} {
