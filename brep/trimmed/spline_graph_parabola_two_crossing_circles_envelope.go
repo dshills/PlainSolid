@@ -1,0 +1,269 @@
+package trimmed
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"reflect"
+	"slices"
+
+	"plainsolid/brep/parametric"
+	"plainsolid/geom"
+)
+
+// ParabolaTwoCrossingCirclesHistory binds the six signed regions to the
+// original roof owners. Parabola edges follow increasing free parameter.
+// Each circle's edges begin at physical +X and follow counterclockwise.
+type ParabolaTwoCrossingCirclesHistory struct {
+	Base          int
+	RoofFaces     [6]int
+	RoofOwners    [6]int
+	WallFaces     [6]int
+	ParabolaEdges [twoCrossingCirclesParabolaPieces]int
+	CircleEdges   [2][]int
+	Junctions     [2][2]ParabolaCircleCrossingsJunction
+}
+
+// ParabolaTwoCrossingCirclesEnvelope is an exact original-source Common or
+// Fuse with six roof regions and four transverse junctions.
+type ParabolaTwoCrossingCirclesEnvelope struct {
+	solid     Solid
+	history   ParabolaTwoCrossingCirclesHistory
+	sources   [3]*geom.BSplineSurface
+	axis      int
+	op        parametric.BooleanOp
+	tolerance float64
+}
+
+func (r *ParabolaTwoCrossingCirclesEnvelope) Boundary() Solid {
+	if r == nil {
+		return Solid{}
+	}
+	return r.solid
+}
+
+func (r *ParabolaTwoCrossingCirclesEnvelope) History() (h ParabolaTwoCrossingCirclesHistory) {
+	if r == nil {
+		return h
+	}
+	h = r.history
+	for i, edges := range h.CircleEdges {
+		h.CircleEdges[i] = slices.Clone(edges)
+	}
+	return h
+}
+
+// CombineParabolaTwoCrossingCirclesSplineGraphs builds one native Common or
+// Fuse shell. All four junctions must be exactly representable as native
+// vertices, and the original oriented coedges must close in physical XY.
+func CombineParabolaTwoCrossingCirclesSplineGraphs(ctx context.Context, base, a, b *geom.BSplineSurface,
+	axis int, op parametric.BooleanOp, tolerance float64, o ParabolaCircleGraphOptions) (*ParabolaTwoCrossingCirclesEnvelope, error) {
+	if op != parametric.Intersection && op != parametric.Union {
+		return nil, geom.ErrInvalid
+	}
+	sources := [3]*geom.BSplineSurface{base, a, b}
+	p, err := proveParabolaTwoCrossingCirclesPartition(ctx, sources, axis, tolerance, o)
+	if err != nil {
+		return nil, fmt.Errorf("trimmed: two crossing circles partition: %w", err)
+	}
+	solid, assembly, err := combineOpenGraphRegions(ctx, base, a, b, p.regions[:], op, tolerance, exactGraphVertexEvaluator(ctx, o.Proof))
+	if err != nil {
+		return nil, fmt.Errorf("trimmed: two crossing circles shell: %w", err)
+	}
+	h, err := bindTwoCrossingCirclesEnvelope(ctx, solid, assembly, p, sources, op, o.Proof)
+	if err != nil {
+		return nil, fmt.Errorf("trimmed: two crossing circles envelope: %w", err)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return &ParabolaTwoCrossingCirclesEnvelope{solid: solid, history: h, sources: sources, axis: axis, op: op, tolerance: tolerance}, nil
+}
+
+func bindTwoCrossingCirclesEnvelope(ctx context.Context, solid Solid, assembly SplineGraphBooleanHistory,
+	p parabolaTwoCrossingCirclesPartition, sources [3]*geom.BSplineSurface, op parametric.BooleanOp,
+	opts geom.GraphPointContactOptions) (h ParabolaTwoCrossingCirclesHistory, err error) {
+	topo := solid.Topology()
+	n := len(p.pieces)
+	if len(topo.Shells) != 1 || topo.EulerCharacteristic != 2 || topo.CollapsedEdges != 0 ||
+		topo.Faces != 13 || topo.Edges != n+18 || topo.Vertices != n+7 || topo.InnerWires != 0 ||
+		assembly.Base != 6 || len(assembly.WallFaces) != len(h.WallFaces) || len(assembly.ContourEdges) != n {
+		return h, geom.ErrConvergence
+	}
+	h.Base = assembly.Base
+	if solid.faces[h.Base].Surface != sources[0] || !solid.faces[h.Base].Reversed {
+		return h, geom.ErrConvergence
+	}
+	if err := validateGraphEnvelopeSplineTrims(ctx, solid.faces[h.Base:h.Base+1]); err != nil {
+		return h, err
+	}
+	copy(h.WallFaces[:], assembly.WallFaces)
+	for i, region := range p.regions {
+		h.RoofFaces[i] = i
+		if (region.sign > 0) != (op == parametric.Union) {
+			h.RoofOwners[i] = 1
+		}
+		if err := bindParabolaCirclesRegionFace(ctx, solid.faces[i], sources[1+h.RoofOwners[i]], false, region, p.proof.RegionWitnesses[i]); err != nil {
+			return h, fmt.Errorf("trimmed: original roof region %d: %w", i, err)
+		}
+	}
+	for _, id := range h.WallFaces {
+		wall := solid.faces[id]
+		if len(wall.Outer) != 4 {
+			return h, geom.ErrConvergence
+		}
+		bottom, hasBase := graphWallSourceTrim(wall.Outer[0].Curve, false, false)
+		top, hasRoof := graphWallSourceTrim(wall.Outer[2].Curve, true, false)
+		if !hasBase || !hasRoof || bottom.surface != sources[0] || bottom.a != top.a || bottom.b != top.b {
+			return h, geom.ErrConvergence
+		}
+		ownerFound := false
+		for i, region := range p.regions[:2] {
+			for _, piece := range region.loop {
+				if piece.side >= 0 && top.a == piece.a && top.b == piece.b && top.surface == sources[1+h.RoofOwners[i]] {
+					ownerFound = true
+				}
+			}
+		}
+		if !ownerFound {
+			return h, geom.ErrConvergence
+		}
+	}
+	edges, err := bindParabolaCircleCrossingEdges(solid, assembly.ContourEdges, p.pieces)
+	if err != nil {
+		return h, err
+	}
+	h.ParabolaEdges = [twoCrossingCirclesParabolaPieces]int(edges[:twoCrossingCirclesParabolaPieces])
+	for i, ring := range p.circles {
+		for _, piece := range ring {
+			h.CircleEdges[i] = append(h.CircleEdges[i], edges[piece])
+		}
+		for j, node := range p.proof.Nodes[i] {
+			rays := p.rays[i][j]
+			ordered := [4]int{edges[rays[0]], edges[rays[1]], edges[rays[2]], edges[rays[3]]}
+			h.Junctions[i][j], err = bindTwoCrossingCirclesEnvelopeJunction(solid, node, ordered)
+			if err != nil {
+				return h, err
+			}
+		}
+	}
+	if err := materialVertexLinks(ctx, solid, false); err != nil {
+		return h, err
+	}
+	return h, validateExactGraphPartitionEdges(ctx, solid, opts)
+}
+
+func bindTwoCrossingCirclesEnvelopeJunction(solid Solid, node geom.ParabolaCircleCrossing,
+	rays [4]int) (h ParabolaCircleCrossingsJunction, err error) {
+	vertex, err := exactParabolaCircleCrossingVertex(solid, node.Point)
+	if err != nil {
+		return h, err
+	}
+	for i, id := range rays {
+		before, after := node.SectorRegions[(i+3)%4], node.SectorRegions[i]
+		if !slices.Equal(nodalCubicIncidentFaces(solid, id), []int{min(before, after), max(before, after)}) ||
+			!opposedGraphContourUses(solid.faces[before].Outer, solid.faces[after].Outer, id) ||
+			!matchesParabolaCircleCrossingRay(solid, id, vertex, node.Rays[i]) {
+			return h, geom.ErrConvergence
+		}
+		model := solid.edges[id].Curve.(surfaceTrimCurve)
+		boundOwner := false
+		for _, face := range []Face{solid.faces[before], solid.faces[after]} {
+			boundOwner = boundOwner || (face.Surface == model.surface && slices.ContainsFunc(face.Outer, func(use Use) bool {
+				return use.Edge == id && !use.Reversed && use.UVStart == model.a && use.UVEnd == model.b &&
+					sameParabolaCircleCrossingTrim(use.Curve, model.curve)
+			}))
+		}
+		if !boundOwner {
+			return h, geom.ErrConvergence
+		}
+	}
+	for id, edge := range solid.edges {
+		if (edge.Start == vertex || edge.End == vertex) && !slices.Contains(rays[:], id) {
+			return h, geom.ErrConvergence
+		}
+	}
+	return ParabolaCircleCrossingsJunction{Vertex: vertex, Rays: rays, Sectors: node.SectorRegions}, nil
+}
+
+const nativeParabolaTwoCrossingCirclesEnvelope = "trimmed-spline-graph-parabola-two-crossing-circles-envelope"
+
+type parabolaTwoCrossingCirclesEnvelopeRecipe struct {
+	Version   int                                       `json:"version"`
+	Kind      string                                    `json:"kind"`
+	Sources   []json.RawMessage                         `json:"sources"`
+	Axis      *int                                      `json:"freeAxis"`
+	Operation *parametric.BooleanOp                     `json:"operation"`
+	Tolerance float64                                   `json:"tolerance"`
+	Ledger    *parabolaTwoCrossingCirclesEnvelopeLedger `json:"ledger"`
+}
+
+type parabolaTwoCrossingCirclesEnvelopeLedger struct {
+	Base          *int                                        `json:"base"`
+	RoofFaces     []int                                       `json:"roofFaces"`
+	RoofOwners    []int                                       `json:"roofOwners"`
+	ParabolaEdges []int                                       `json:"parabolaEdges"`
+	CircleEdges   [][]int                                     `json:"circleEdges"`
+	WallFaces     []int                                       `json:"wallFaces"`
+	Junctions     [][]parabolaCircleCrossingsEnvelopeJunction `json:"junctions"`
+}
+
+func twoCrossingCirclesEnvelopeLedgerFor(h ParabolaTwoCrossingCirclesHistory) *parabolaTwoCrossingCirclesEnvelopeLedger {
+	out := &parabolaTwoCrossingCirclesEnvelopeLedger{Base: &h.Base, RoofFaces: h.RoofFaces[:], RoofOwners: h.RoofOwners[:],
+		ParabolaEdges: h.ParabolaEdges[:], CircleEdges: h.CircleEdges[:], WallFaces: h.WallFaces[:]}
+	for _, circle := range h.Junctions {
+		nodes := make([]parabolaCircleCrossingsEnvelopeJunction, 0, len(circle))
+		for _, node := range circle {
+			nodes = append(nodes, parabolaCircleCrossingsEnvelopeJunction{Vertex: &node.Vertex, Rays: node.Rays[:], Sectors: node.Sectors[:]})
+		}
+		out.Junctions = append(out.Junctions, nodes)
+	}
+	return out
+}
+
+// WriteJSON records the original stocks and the complete native contour and
+// vertex incidence ledger.
+func (r *ParabolaTwoCrossingCirclesEnvelope) WriteJSON(ctx context.Context, w io.Writer) error {
+	if ctx == nil || w == nil || r == nil || r.sources[0] == nil {
+		return geom.ErrInvalid
+	}
+	src, err := encodePolynomialGraphSupports(ctx, r.sources)
+	if err != nil {
+		return err
+	}
+	return writePolynomialGraphRecipe(ctx, w, parabolaTwoCrossingCirclesEnvelopeRecipe{
+		Version: 1, Kind: nativeParabolaTwoCrossingCirclesEnvelope, Sources: src, Axis: &r.axis, Operation: &r.op,
+		Tolerance: r.tolerance, Ledger: twoCrossingCirclesEnvelopeLedgerFor(r.history),
+	})
+}
+
+// ReadParabolaTwoCrossingCirclesEnvelopeJSON rebuilds the native envelope
+// and re-proves every source and all four vertex links before publication.
+func ReadParabolaTwoCrossingCirclesEnvelopeJSON(ctx context.Context, in io.Reader, limits JSONLimits,
+	o ParabolaCircleGraphOptions) (*ParabolaTwoCrossingCirclesEnvelope, error) {
+	var recipe parabolaTwoCrossingCirclesEnvelopeRecipe
+	if err := readPolynomialGraphRecipe(ctx, in, limits, &recipe); err != nil {
+		return nil, err
+	}
+	if recipe.Version != 1 || recipe.Kind != nativeParabolaTwoCrossingCirclesEnvelope || len(recipe.Sources) != 3 ||
+		recipe.Axis == nil || recipe.Operation == nil || recipe.Ledger == nil {
+		return nil, geom.ErrInvalid
+	}
+	src, err := decodePolynomialGraphSupports(ctx, recipe.Sources, limits.MaxControlPoints)
+	if err != nil {
+		return nil, err
+	}
+	r, err := CombineParabolaTwoCrossingCirclesSplineGraphs(ctx, src[0], src[1], src[2], *recipe.Axis, *recipe.Operation, recipe.Tolerance, o)
+	if err != nil {
+		return nil, err
+	}
+	if !reflect.DeepEqual(recipe.Ledger, twoCrossingCirclesEnvelopeLedgerFor(r.history)) ||
+		(limits.MaxEntities > 0 && polynomialGraphEntityCount([]Solid{r.solid}) > limits.MaxEntities) {
+		return nil, geom.ErrConvergence
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
