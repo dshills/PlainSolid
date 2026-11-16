@@ -34,6 +34,10 @@ func (s Solid) ValidateWrappedRationalStationBore(ctx context.Context, o geom.Su
 }
 
 func (s Solid) validateWrappedProfileStationBore(ctx context.Context, o geom.SurfacePatchOptions, circular bool) (WrappedStationBoreProof, error) {
+	return s.validateWrappedStationBore(ctx, o, circular, true)
+}
+
+func (s Solid) validateWrappedStationBore(ctx context.Context, o geom.SurfacePatchOptions, circular, coaxial bool) (WrappedStationBoreProof, error) {
 	if ctx == nil {
 		return WrappedStationBoreProof{}, geom.ErrInvalid
 	}
@@ -98,7 +102,14 @@ func (s Solid) validateWrappedProfileStationBore(ctx context.Context, o geom.Sur
 		}
 		solids[i], proofs[i] = q, p
 	}
-	ref, h, e := combineCoaxialWrappedStationLofts(ctx, solids[0], solids[1], parametric.Difference, o, circular)
+	var ref Solid
+	var h WrappedStationBooleanHistory
+	var e error
+	if coaxial {
+		ref, h, e = combineCoaxialWrappedStationLofts(ctx, solids[0], solids[1], parametric.Difference, o, circular)
+	} else {
+		ref, h, e = cutProvedEccentricCircularStationLofts(ctx, solids[0], solids[1], proofs[0], proofs[1], o)
+	}
 	if e != nil {
 		return WrappedStationBoreProof{}, e
 	}

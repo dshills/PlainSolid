@@ -22,6 +22,21 @@ import (
 // nonrepresentable geometry and unresolved proofs fail atomically. No normal
 // length square root is required for these radial/axial authored bevels.
 func ChamferWrappedFrustumTubeRims(ctx context.Context, source trimmed.Solid, selection CircularTubeChamfers, o geom.SurfacePatchOptions) (WrappedTubeChamfer, error) {
+	return chamferWrappedFrustumTubeRims(ctx, source, selection, o, true)
+}
+
+// ChamferWrappedEccentricFrustumTubeRims applies independent outer and inner
+// radial/axial rim bevels to a canonical circular through-bore with parallel
+// axes. Each center and original cap plane is retained. A positive radial
+// gap whose square exceeds the squared axis separation is proved at every
+// cap and runout, with affine interpolation proving strict nesting between
+// them. Invalid runouts, tangent walls, or nonrepresentable geometry fail
+// without a partial result. Ancestry and options match the coaxial operation.
+func ChamferWrappedEccentricFrustumTubeRims(ctx context.Context, source trimmed.Solid, selection CircularTubeChamfers, o geom.SurfacePatchOptions) (WrappedTubeChamfer, error) {
+	return chamferWrappedFrustumTubeRims(ctx, source, selection, o, false)
+}
+
+func chamferWrappedFrustumTubeRims(ctx context.Context, source trimmed.Solid, selection CircularTubeChamfers, o geom.SurfacePatchOptions, coaxial bool) (WrappedTubeChamfer, error) {
 	fail := func(e error) (WrappedTubeChamfer, error) { return WrappedTubeChamfer{}, e }
 	if ctx == nil {
 		return fail(geom.ErrInvalid)
@@ -47,7 +62,8 @@ func ChamferWrappedFrustumTubeRims(ctx context.Context, source trimmed.Solid, se
 			return fail(geom.ErrConvergence)
 		}
 	}
-	if proofs[0].CenterX.Cmp(proofs[1].CenterX) != 0 || proofs[0].CenterY.Cmp(proofs[1].CenterY) != 0 || proofs[0].LowerZ.Cmp(proofs[1].LowerZ) != 0 || proofs[0].UpperZ.Cmp(proofs[1].UpperZ) != 0 {
+	if coaxial && (proofs[0].CenterX.Cmp(proofs[1].CenterX) != 0 || proofs[0].CenterY.Cmp(proofs[1].CenterY) != 0) ||
+		proofs[0].LowerZ.Cmp(proofs[1].LowerZ) != 0 || proofs[0].UpperZ.Cmp(proofs[1].UpperZ) != 0 {
 		return fail(geom.ErrConvergence)
 	}
 	slopes := [2]*big.Rat{}
@@ -152,7 +168,13 @@ func ChamferWrappedFrustumTubeRims(ctx context.Context, source trimmed.Solid, se
 			roles[side][face] = ends[i]
 		}
 	}
-	out, h, e := trimmed.CombineCoaxialWrappedStationLofts(ctx, solids[0], solids[1], parametric.Difference, o)
+	var out trimmed.Solid
+	var h trimmed.WrappedStationBooleanHistory
+	if coaxial {
+		out, h, e = trimmed.CombineCoaxialWrappedStationLofts(ctx, solids[0], solids[1], parametric.Difference, o)
+	} else {
+		out, h, e = trimmed.CutWrappedEccentricCircularStationLofts(ctx, solids[0], solids[1], o)
+	}
 	if e != nil {
 		return fail(e)
 	}
