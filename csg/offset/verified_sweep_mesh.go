@@ -25,6 +25,9 @@ type VerifiedSweepMeshOptions struct {
 	MaxDepth, MaxTriangles       int
 	MaxWork, MaxSourceOperations int
 	MaxCollisionPairs            int
+	// NormalAngle optionally limits facet deviation in radians from the
+	// continuous outward normal over the whole source cell.
+	NormalAngle float64 `json:",omitempty"`
 }
 
 // CertifiedVerifiedSweepMesh is an outward, embedded, closed boundary of
@@ -42,13 +45,16 @@ type CertifiedVerifiedSweepMesh struct {
 	SignedDisplayVolume  *big.Rat
 	GeometryWork         int
 	Collision            collision.Report
+	// SquaredFacetNormalTangent is nil without the angular option.
+	SquaredFacetNormalTangent *big.Rat `json:",omitempty"`
 }
 
 // TessellateVerifiedNormalOffsetSweep gives both directed distances from
 // the analytic boundary to the display using enclosing boxes shared by
 // each continuous source cell and its rounded facets. Exact indexed
 // collision and shell validation certify one positive boundary. Failure
-// is atomic.
+// is atomic. A positive NormalAngle also checks the actual represented
+// facet directions against continuous outward normals on all analytic sides.
 func TessellateVerifiedNormalOffsetSweep(ctx context.Context, sweep *geom.VerifiedNormalOffsetSweep,
 	o VerifiedSweepMeshOptions) (CertifiedVerifiedSweepMesh, error) {
 	var empty CertifiedVerifiedSweepMesh
@@ -68,13 +74,13 @@ func TessellateVerifiedNormalOffsetSweep(ctx context.Context, sweep *geom.Verifi
 	halfLimit := new(big.Rat).Quo(limit, big.NewRat(2, 1))
 	limit.Mul(limit, limit)
 	span := new(big.Rat).Sub(displacement.Upper, displacement.Lower)
-	var winding [6]bool
-	for i := range winding {
+	var faces [6]geom.VerifiedNormalOffsetSweepFace
+	for i := range faces {
 		face, err := sweep.Boundary(geom.NormalOffsetSweepSide(i))
 		if err != nil {
 			return empty, err
 		}
-		winding[i] = face.ReverseWinding()
+		faces[i] = face
 	}
 	// In the displacement direction the original derivative has unit
 	// length. Stop refining that direction once its trace is at most
@@ -92,6 +98,11 @@ func TessellateVerifiedNormalOffsetSweep(ctx context.Context, sweep *geom.Verifi
 		}
 		n := 1 << depth
 		nT := min(n, maxT)
+		if o.NormalAngle > 0 {
+			// A wall's normal can change with displacement even
+			// though its trace length is already below deflection.
+			nT = n
+		}
 		triangles := 4*n*n + 8*n*nT
 		if triangles > o.MaxTriangles || work.remaining() == 0 {
 			return empty, ErrLimit
@@ -100,7 +111,7 @@ func TessellateVerifiedNormalOffsetSweep(ctx context.Context, sweep *geom.Verifi
 		if err != nil {
 			return empty, err
 		}
-		out, err := work.sample(ctx, sweep, grid, winding, limit, triangles)
+		out, err := work.sample(ctx, sweep, grid, faces, limit, triangles)
 		if errors.Is(err, geom.ErrConvergence) {
 			continue
 		}
@@ -151,7 +162,8 @@ func checkedVerifiedSweepMeshOptions(o VerifiedSweepMeshOptions) (VerifiedSweepM
 	if !finite(o.Deflection) || o.Deflection <= 0 ||
 		o.MaxDepth < 1 || o.MaxDepth > 9 || o.MaxTriangles < 1 || o.MaxTriangles > collision.MaxTriangles ||
 		o.MaxWork < 1 || o.MaxWork > 1_000_000_000 || o.MaxSourceOperations < 1 ||
-		o.MaxSourceOperations > 1_000_000_000 || o.MaxCollisionPairs < 1 {
+		o.MaxSourceOperations > 1_000_000_000 || o.MaxCollisionPairs < 1 ||
+		!finite(o.NormalAngle) || o.NormalAngle < 0 || o.NormalAngle >= math.Pi/2 {
 		return o, geom.ErrInvalid
 	}
 	return o, nil
@@ -219,11 +231,14 @@ func (w *verifiedSweepMeshWork) remaining() int { return w.options.MaxWork - w.o
 func (w *verifiedSweepMeshWork) charge(work int) { w.operations += min(work, w.remaining()) }
 
 func (w *verifiedSweepMeshWork) sample(ctx context.Context, sweep *geom.VerifiedNormalOffsetSweep, g verifiedSweepGrid,
-	winding [6]bool, limit *big.Rat, triangles int) (CertifiedVerifiedSweepMesh, error) {
+	faces [6]geom.VerifiedNormalOffsetSweepFace, limit *big.Rat, triangles int) (CertifiedVerifiedSweepMesh, error) {
 	var empty CertifiedVerifiedSweepMesh
 	out := CertifiedVerifiedSweepMesh{
 		UStations: g.uv[0], VStations: g.uv[1], DisplacementStations: g.stations[2],
 		DistanceUpperSquared: new(big.Rat),
+	}
+	if w.options.NormalAngle > 0 {
+		out.SquaredFacetNormalTangent = new(big.Rat)
 	}
 	vertexIDs := make(map[[3]int]int, triangles/2+2)
 	represented := make([][3]*big.Rat, 0, triangles/2+2)
@@ -231,7 +246,8 @@ func (w *verifiedSweepMeshWork) sample(ctx context.Context, sweep *geom.Verified
 	out.Mesh.Vertices = make([]geom.Vec3, 0, triangles/2+2)
 	out.VertexStations = make([][3]int, 0, triangles/2+2)
 	out.OriginalFace = make([]geom.NormalOffsetSweepSide, 0, triangles)
-	for side, reverse := range winding {
+	for side, face := range faces {
+		reverse := face.ReverseWinding()
 		fixed := side / 2
 		free := [3][2]int{{1, 2}, {0, 2}, {0, 1}}[fixed]
 		for i := 0; i < g.segments[free[0]]; i++ {
@@ -287,10 +303,30 @@ func (w *verifiedSweepMeshWork) sample(ctx context.Context, sweep *geom.Verified
 				if bound.Cmp(out.DistanceUpperSquared) > 0 {
 					out.DistanceUpperSquared = bound
 				}
-				for _, tri := range [2][3]int{{ids[0], ids[1], ids[2]}, {ids[0], ids[2], ids[3]}} {
-					if reverse {
-						tri[1], tri[2] = tri[2], tri[1]
+				triangles := verifiedSweepCellTriangles(ids, reverse, false)
+				if w.options.NormalAngle > 0 {
+					if w.remaining() == 0 {
+						return empty, ErrLimit
 					}
+					box, err := face.NormalBoundsRational(ctx, rect, g.stations[2][lo[2]], g.stations[2][hi[2]],
+						geom.SurfacePatchOptions{MaxOperations: w.remaining()})
+					w.charge(box.ExactOperations)
+					if err != nil {
+						return empty, err
+					}
+					angle, err := verifiedSweepFacetBound(box.Bounds, triangles, out.Mesh.Vertices, w.options.NormalAngle)
+					if errors.Is(err, geom.ErrConvergence) {
+						triangles = verifiedSweepCellTriangles(ids, reverse, true)
+						angle, err = verifiedSweepFacetBound(box.Bounds, triangles, out.Mesh.Vertices, w.options.NormalAngle)
+					}
+					if err != nil {
+						return empty, err
+					}
+					if angle.Cmp(out.SquaredFacetNormalTangent) > 0 {
+						out.SquaredFacetNormalTangent = angle
+					}
+				}
+				for _, tri := range triangles {
 					out.Mesh.Triangles = append(out.Mesh.Triangles, tri)
 					out.OriginalFace = append(out.OriginalFace, geom.NormalOffsetSweepSide(side))
 				}
@@ -301,6 +337,29 @@ func (w *verifiedSweepMeshWork) sample(ctx context.Context, sweep *geom.Verified
 		return empty, geom.ErrConvergence
 	}
 	return out, nil
+}
+
+func verifiedSweepCellTriangles(ids [4]int, reverse, alternate bool) [2][3]int {
+	triangles := [2][3]int{{ids[0], ids[1], ids[2]}, {ids[0], ids[2], ids[3]}}
+	if alternate {
+		triangles = [2][3]int{{ids[0], ids[1], ids[3]}, {ids[1], ids[2], ids[3]}}
+	}
+	if reverse {
+		for i := range triangles {
+			triangles[i][1], triangles[i][2] = triangles[i][2], triangles[i][1]
+		}
+	}
+	return triangles
+}
+
+func verifiedSweepFacetBound(box geom.Box, triangles [2][3]int, vertices []geom.Vec3, angle float64) (*big.Rat, error) {
+	var facets [2][3]geom.Vec3
+	for i, tri := range triangles {
+		for j, id := range tri {
+			facets[i][j] = vertices[id]
+		}
+	}
+	return mesh.CertifyFacetNormalBox(box, facets[:], angle)
 }
 
 func (g verifiedSweepGrid) cellRectangle(lo, hi [3]int, side int) geom.ParameterRectangle {
