@@ -27,7 +27,7 @@ func (m Model) exactContourWeights(c CurveOnSurface) bool {
 			return false
 		}
 		e := m.Entities[index]
-		if e.sourceWeightsRounded {
+		if e.sourceWeightsRounded || e.Surface != nil && e.Surface.periodic != nil {
 			return false
 		}
 		if e.Composite != nil {
