@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/big"
 	"reflect"
 	"strings"
 
@@ -59,12 +60,15 @@ func checkPeriodicConcaveTransfer(face PeriodicConcavePolygonTrimmedFace) error 
 	if err != nil {
 		return err
 	}
-	rounded := wires[0]
+	return checkPeriodicConcaveRoundedOuter(face.Edges, wires[0])
+}
+
+func checkPeriodicConcaveRoundedOuter(edges []PeriodicTrimEdge, rounded [][2]*big.Rat) error {
 	if err := provePeriodicUVConcavity(rounded); err != nil {
 		return fmt.Errorf("iges: concave trim loses its original simple winding in binary64 transfer: %w", err)
 	}
 	n := len(rounded)
-	original := periodicAffineWireVertices(face.Edges)
+	original := periodicAffineWireVertices(edges)
 	for i, a := range original {
 		j, k := (i+1)%n, (i+2)%n
 		if periodicUVTurn(a, original[j], original[k]) != periodicUVTurn(rounded[i], rounded[j], rounded[k]) {

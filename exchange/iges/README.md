@@ -194,6 +194,18 @@ before writing the canonical carrier. Pinned OCCT reopens the concave
 pentagon with the same five directed edge pairs and original model ranges.
 The reader refuses touching, crossing and clockwise originals.
 
+`ReadPeriodicConcavePolygonTrimmedFaceWithHole` admits one clockwise
+convex affine inner loop with at least one nonisoparametric edge.
+It first proves that no closed outer edge
+meets any closed inner edge, then establishes winding number one
+around an inner vertex in the original chart. This certifies the whole
+hole against the actual concave domain. A hole in the notch and a hole
+that crosses the notch with all vertices inside both fail the proof.
+`WritePeriodicConcavePolygonTrimmedFaceWithHole` rechecks both source
+contours and their strict containment after binary64 conversion.
+Pinned OCCT reopens the original and canonical carriers with all eight
+directed pairs and unchanged parameter ranges.
+
 `ReadPeriodicTrimmedFaceWithHoles` admits one or two explicit rectangular
 inner type-142 contours in the same original knot cell as the outer loop.
 Each inner contour owns four directed type-110 UV lines and four complete

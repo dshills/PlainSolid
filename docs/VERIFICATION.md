@@ -592,6 +592,12 @@ signed UV area 75/128 and all model ranges. The raw and canonical
 pinned reports match. Crossing and touching controls change topology
 in pinned OCCT and refuse original transfer here; winding and rounded
 clearance controls also refuse. Twenty-eight prior carriers match.
+The nested concave-face probe proves a winding-one inner witness
+outside an outer-edge half-plane, retains all eight original pairs,
+and matches both pinned and macOS architecture readbacks. A notch
+and a boundary contact refuse. A third fixture has all three hole
+vertices inside, but one chord crosses the notch twice; the complete
+edge proof refuses it. Twenty-nine earlier carriers match.
 The [valid periodic seam trim](evidence/iges-periodic-seam-trimmed-2026-11-16.json)
 passes independently authored type 144, the pinned reopen and main race.
 The reader retains six original directed pairs, distinct seam stations,

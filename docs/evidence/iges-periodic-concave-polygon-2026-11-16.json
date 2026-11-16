@@ -35,5 +35,43 @@
     "crossing or touching nonadjacent original closed edges",
     "clockwise outer loop",
     "binary64 rounding eliminates disjointness"
-  ]
+  ],
+  "one_strict_inner_polygon": {
+    "main_base": "3db8f1b1",
+    "isolated_revision": "74f26f829d3d7fa3681247e333481af9867326a0",
+    "patch_sha256": "2e7ffd8d1cbd7df772f36f5b7d9551cb272c2610fea0fbd809f5439b808a3d90",
+    "source_qualification_sha256": "c55421be539cdcf2101fd2f65f5008527b09a6897277db96a4c5e8ebf12db18f",
+    "main_race_log": "iges-periodic-concave-polygon-hole-main-race.jsonl",
+    "main_race_sha256": "ff6c9b91a4c57a2349fa5a1d82e7e5ace8c7813c2a9c6213e8241fa974129065",
+    "main_race_seconds": 8.866,
+    "isolated_race_seconds": 24.187,
+    "isolated_full_iges_seconds": 120.221,
+    "original_directed_pairs": 8,
+    "original_model_ranges": [
+      [
+        144,
+        153
+      ],
+      [
+        160,
+        165
+      ]
+    ],
+    "positive_witness": {
+      "winding": 1,
+      "second_outside_edge_determinant": "-1/32"
+    },
+    "all_vertices_inside_crossing_points": [
+      [
+        "13/8",
+        "19/12"
+      ],
+      [
+        "13/8",
+        "13/6"
+      ]
+    ],
+    "pinned_raw_canonical_reports_byte_identical": true,
+    "predecessor_carriers_unchanged": 29
+  }
 }

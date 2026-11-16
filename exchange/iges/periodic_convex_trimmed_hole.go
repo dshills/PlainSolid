@@ -64,22 +64,30 @@ func provePeriodicConvexHole(ctx context.Context, graph periodicTrimGraph, outer
 func provePeriodicConvexInnerGeometry(ctx context.Context, graph periodicTrimGraph, patch *geom.SurfacePatch,
 	outerBounds [2]geom.ExactParameterInterval, outer []PeriodicTrimEdge,
 	owner periodicTrimLoopSource, remaining int) (PeriodicConvexPolygonTrimLoop, int, error) {
+	loop, remaining, err := provePeriodicConvexInnerWire(ctx, graph, patch, outerBounds, owner, remaining)
+	if err != nil {
+		return PeriodicConvexPolygonTrimLoop{}, 0, err
+	}
+	if !periodicUVStrictlyContains(periodicAffineWireVertices(outer), periodicAffineWireVertices(loop.Edges)) {
+		return PeriodicConvexPolygonTrimLoop{}, 0, fmt.Errorf("iges: convex trim hole #%d is not strictly contained in its outer loop: %w", owner.contourID, geom.ErrUnrepresentable)
+	}
+	return loop, remaining, nil
+}
+
+func provePeriodicConvexInnerWire(ctx context.Context, graph periodicTrimGraph, patch *geom.SurfacePatch,
+	outerBounds [2]geom.ExactParameterInterval, owner periodicTrimLoopSource, remaining int) (PeriodicConvexPolygonTrimLoop, int, error) {
 	var zero PeriodicConvexPolygonTrimLoop
 	uv := make([]periodicTrimUVEdge, len(owner.uv))
 	bounds, err := readPeriodicTrimUVEdges(graph, owner.uv, uv)
 	if err != nil {
 		return zero, 0, err
 	}
-	inner, err := provePeriodicConvexLoop(uv, -1)
-	if err != nil {
+	if _, err := provePeriodicConvexLoop(uv, -1); err != nil {
 		return zero, 0, fmt.Errorf("iges: convex trim hole #%d: %w", owner.contourID, err)
 	}
 	edges, remaining, err := provePeriodicAffineEdges(ctx, graph, uv, owner.model, patch, outerBounds, remaining)
 	if err != nil {
 		return zero, 0, fmt.Errorf("iges: convex trim hole #%d: %w", owner.contourID, err)
-	}
-	if !periodicUVStrictlyContains(periodicAffineWireVertices(outer), inner) {
-		return zero, 0, fmt.Errorf("iges: convex trim hole #%d is not strictly contained in its outer loop: %w", owner.contourID, geom.ErrUnrepresentable)
 	}
 	return PeriodicConvexPolygonTrimLoop{ContourID: owner.contourID, UVCompositeID: owner.uvID, ModelCompositeID: owner.modelID,
 		Bounds: bounds, Edges: edges}, remaining, nil

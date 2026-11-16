@@ -28,6 +28,8 @@ affine edges, including independently checked triangle and pentagon
 combinations, with the same strict model pairing and winding rules.
 The standalone reader and canonical writer also qualify a single
 simple concave affine outer polygon inside one original periodic cell.
+One independently authored affine hole also qualifies inside that
+actual concave domain, with exact noncontact and winding proofs.
 The [full native macOS race on `ab33a412`](evidence/native-main-ab33a412-race-2026-11-15.json)
 passed 5,557 cases with 580 explicit optional skips.
 The [native Linux ARM64 run](evidence/native-linux-7569bd36-qualification-2026-11-15.json)

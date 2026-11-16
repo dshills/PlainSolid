@@ -509,8 +509,25 @@ static bool writeExactConcavePolygon(const char* path, std::string_view mode)
     } else if (mode == "write-exact-concave-polygon-clockwise") {
         std::reverse(corners.begin()+1,corners.end());
     }
+
+    using Contours = NCollection_HArray1<occ::handle<IGESGeom_CurveOnSurface>>;
+    occ::handle<Contours> inner;
+    if (mode == "write-exact-concave-polygon-hole" || mode == "write-exact-concave-polygon-hole-notch" ||
+        mode == "write-exact-concave-polygon-hole-crossing" || mode == "write-exact-concave-polygon-hole-touching") {
+        const auto uv = [](int u, int v) { return gp_XY(u/16.,v/16.); };
+        std::array<gp_XY,3> hole{uv(23,36),uv(24,40),uv(25,37)};
+        if (mode == "write-exact-concave-polygon-hole-notch") {
+            hole = {uv(26,27),uv(26,30),uv(27,29)};
+        } else if (mode == "write-exact-concave-polygon-hole-crossing") {
+            hole = {uv(26,24),uv(24,29),uv(26,38)};
+        } else if (mode == "write-exact-concave-polygon-hole-touching") {
+            hole = {uv(24,25),uv(24,31),uv(25,28)};
+        }
+        inner = new Contours(1,1);
+        inner->SetValue(1,exactContour(native,support,hole,160));
+    }
     occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
-    face->Init(support,1,exactContour(native,support,corners,144),nullptr);
+    face->Init(support,1,exactContour(native,support,corners,144),inner);
     const auto reference = BRepBuilderAPI_MakeFace(native,1.25,1.75,1.,3.,1e-9).Face();
     if (reference.IsNull() || !report(reference)) return false;
     IGESControl_Writer writer("MM",0);
@@ -558,7 +575,9 @@ int main(int argc,char** argv)
             return writeExactConvexPolygon(argv[2],mode) ? 0 : 8;
         }
         if (mode == "write-exact-concave-polygon" || mode == "write-exact-concave-polygon-crossing" ||
-            mode == "write-exact-concave-polygon-touching" || mode == "write-exact-concave-polygon-clockwise") {
+            mode == "write-exact-concave-polygon-touching" || mode == "write-exact-concave-polygon-clockwise" ||
+            mode == "write-exact-concave-polygon-hole" || mode == "write-exact-concave-polygon-hole-notch" ||
+            mode == "write-exact-concave-polygon-hole-crossing" || mode == "write-exact-concave-polygon-hole-touching") {
             return writeExactConcavePolygon(argv[2],mode) ? 0 : 8;
         }
         if (mode == "write" || mode == "write-seam") {
