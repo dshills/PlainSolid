@@ -90,7 +90,11 @@ ordinary Go run on `ab33a412`](evidence/main-ab33a412-qualification-2026-11-15.j
 passed all nine lanes, with 5,557 passes and 580 explicit optional skips
 across 6,137 listed cases. All eight trimmed lanes passed, with 1,468
 passes and 51 optional skips. The newer ordinary and corrected race
-runs remain in progress.
+runs were then refreshed separately. The [full ordinary run on `b6335d3c`](evidence/main-b6335d3c-qualification-2026-11-15.json)
+passed 5,630 of 6,216 listed cases, with 586 optional skips and no
+failures. It includes 1,502 trimmed passes and 51 optional skips. It
+pairs with the full PlainCAD pass on that same kernel. The `01d12dab`
+ordinary run and corrected `ab33a412` race remain in progress.
 The browser suites on `b6335d3c` required scoped loopback access after
 the default sandbox denied their local test servers; preserve those startup
 logs separately from the browser results. Scoped browser reruns then
@@ -267,7 +271,10 @@ now preserve both circular axes and prove the shell gap at all runouts
 ([independent evidence](evidence/eccentric-frustum-rim-chamfer-2026-11-15.json),
 `b600bde2`). The [diagonal cap fallback](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
 (`a296b700`) proves both whole wall chains stay separated before filling
-the rings. The [explicit PlainCAD v13 repair](evidence/plaincad-v13-ordered-step-2026-11-15.json)
+the rings. The [eccentric bore inner rim fillets](evidence/eccentric-cylinder-bore-rim-fillet-2026-11-15.json)
+(`d930469f`) retain the unchanged outer cylinder, original axes and cap
+planes with exact quarter-toroid transitions and positive clearance.
+The [explicit PlainCAD v13 repair](evidence/plaincad-v13-ordered-step-2026-11-15.json)
 (`399957cd`) passed the native and actual Node/WASM source, closed mesh,
 strict STEP export and fresh reopen. [Two typed Chromium workers](evidence/plaincad-v13-worker-chromium-2026-11-15.json)
 (`0debedd8`) independently passed the same strict reopen on the pinned
@@ -280,7 +287,9 @@ cells. It retains the previously qualified public route and mesh bytes.
 Native variable-count Cut (`0091b243`), Common (`548ee371`) and Fuse
 (`72f5b907`) discover one through five original transverse contacts.
 Exact material and original-source replay pass, and Cut refuses
-a contact inside a single connected component. The shared Cut
+a contact inside a single connected component. Single-body Common
+and Fuse transfer through STEP and IGES (`b8364dae`), preserving the
+original four rays at every accepted junction. The shared Cut
 STEP and IGES writers (`5a03aaca`) qualify one through three. Higher
 counts still need [thin-shell orientation portability](evidence/variable-transverse-cut-transfer-2026-11-15.json):
 pinned default readback automatically reversed some separate positive
@@ -302,8 +311,13 @@ admitted order now also transfers through STEP and IGES (`bffac9bc`),
 with independent positive signed volume for both separate components.
 Exact cuspidal cubic discovery (`ffc10247`) separately proves a genuine
 zero first jet, a shared second jet and opposite third jets in the
-original owner charts. Native cusp assembly, broader contact discovery,
-finite angle display and advanced edge modifications remain in progress.
+original owner charts. Native Common (`fea3d0b4`) and Fuse (`750c9e80`)
+preserve this singularity in both source orders and in closed displays.
+[Independent STEP and IGES](../exchange/CUSPIDAL_CUBIC.md) (`5a296f9c`)
+retain the zero first, shared second and opposite third derivatives on
+the actual reopened model curves. Cuspidal Cut, broader contact
+discovery, finite angle display and advanced edge modifications remain
+in progress.
 Ordinary Go is also running on
 `01d12dab` and a fresh full PlainCAD run uses `a296b700`.
 Wider independent STEP and IGES graphs are still required.

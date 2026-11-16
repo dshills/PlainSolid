@@ -201,6 +201,13 @@ or app assertion changed, the Playwright driver is pristine and the
 production WASM matches the build. The evidence distinguishes the
 original attempts from each passing phase.
 
+The [full ordinary Go run on the same kernel `b6335d3c`](evidence/main-b6335d3c-qualification-2026-11-15.json)
+finished all nine lanes: 5,630 passes, 586 optional skips and no
+failures across 6,216 top-level cases. Its eight trimmed lanes passed
+1,502 tests with 51 optional skips. Vet and Linux/Windows amd64
+cross-builds also passed on this snapshot; these do not substitute
+for native runtime qualification on those platforms.
+
 The older full native race `491b18f1` reproduced the same five shaded
 signed-frame failures as ordinary `5181d219`. Its `packages.jsonl` is
 retained in `.worktrees/qualification/2026-11-15/go-491b18f1-race`.
@@ -438,6 +445,14 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   volume `726.98826561019723` and area `593.89732690669496`. Main
   focused material and wall-contact tests passed, and the isolated
   modeling and trimmed races passed in 83.948 and 7.942 seconds.
+- The [eccentric bore inner rim fillets](evidence/eccentric-cylinder-bore-rim-fillet-2026-11-15.json)
+  (`d930469f`) retain the original axis placement and both cap planes
+  while adding exact quarter-toroidal transitions. Pinned BRepFilletAPI
+  matches all three original lower, upper and paired selections in
+  topology, material and rim dimensions. Sampled closed displays use
+  768, 768 and 1,280 triangles and pass the complete exact collision
+  checks. Tangency, insufficient axial span and a changed interior
+  meridian reject. Main focused native and the isolated live race passed.
 - The [diagonal circle cap and wall proof](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
   (`a296b700`) qualifies the independent offset `(1.5,2)` with exact
   circular rim laws and shell-wide clearance. A targeted raw constructor
@@ -540,6 +555,21 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   isolate geometry and focused intersection races. An ordinary node,
   wrong footprint, irrational or clipped exits and altered original
   coefficients all reject.
+- Native cuspidal Common (`fea3d0b4`) and Fuse (`750c9e80`) preserve
+  the true singularity through exact original coedges, jet binding and
+  source replay in both roof orders. Exact volumes are `277485/22528`
+  and `279423/22528`, with independently integrated areas
+  `32.5442218530794` and `32.8681291383202`. Both 352-triangle
+  displays are closed and pass all exact contact checks. The main
+  Fuse/Common and nodal regressions passed in 5.391 seconds and both
+  earlier Common receipt digests stayed identical.
+- [Cuspidal Common STEP and IGES](../exchange/CUSPIDAL_CUBIC.md)
+  (`5a296f9c`) reopen one valid solid with nine faces, 20 edges and
+  13 exact original vertices. An independent pinned derivative probe
+  measured two zero first jets, identical second jets and opposed
+  third jets on the actual reopened germs in both formats and roof
+  orders. The main scoped neutral-format and nodal regression passed
+  in 2.832 seconds.
 - The [tilted through-bore bridge](evidence/plaincad-tilted-bore-bridge-2026-11-15.json)
   (`8e9cae2c`) keeps both cap openings in a closed 644-triangle display and
   re-proves the original source graph on native reopen. The integrated
