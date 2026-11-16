@@ -93,5 +93,27 @@
       "centroid": 1.33e-13
     },
     "unchanged_earlier_cut_recipes": 16
+  },
+  "neutral_exchange": {
+    "main_base": "3db8f1b1",
+    "isolated_revision": "7a8cd68315507ed62319c735ef0addfa5183cb12",
+    "patch_sha256": "adaca78b9a26c586a82d430dcfe1fd81d207f3ca21c88d4bb9ac2d8ef246302e",
+    "main_pinned_log": "parabola-four-junction-neutral-main-pinned-full.jsonl",
+    "main_pinned_sha256": "2d342433b82766833eeb791b2dbd1cd589eca9c98076d33bfc4e41caed4055aa",
+    "main_pinned_seconds": 51.681,
+    "isolated_pinned_race_seconds": 195.263,
+    "isolated_pinned_race_sha256": "f4941f41e915655c25e033d1fafa79ccaa228bc6f466f0d989a24dc8781dca79",
+    "neutral_files": 48,
+    "positive_body_readbacks": 80,
+    "directed_original_coedge_audit": 36,
+    "original_node_ray_audit": 32,
+    "exact_point_contact_count": 4,
+    "original_jet_checks_per_subdivision": 4,
+    "prior_neutral_files_unchanged": 12,
+    "least_independent_positive_volume": 3.51553088e-10,
+    "isolated_maximum_relative_volume_errors": {
+      "cut": 1.8e-10,
+      "envelopes": 3.49e-16
+    }
   }
 }

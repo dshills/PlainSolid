@@ -11,8 +11,18 @@ import (
 )
 
 func emitTwoCrossingCirclesIGESBody(ctx context.Context, rings [2][]int) exactBezierIGESBodyEmitter {
+	return emitParabolaCircleIGESBody(ctx, rings, false)
+}
+
+func emitParabolaCircleIGESBody(ctx context.Context, rings [2][]int, anchored bool) exactBezierIGESBodyEmitter {
 	return func(a *topologyAuthor, b trimmed.ExactBezierBoundary, bound *big.Rat, consume func(int) error) (int, error) {
-		windows, err := parabolacircle.PrepareCardinalCircleWindows(ctx, b, rings, exactIGESSplineDecimal)
+		var windows map[int]parabolacircle.CardinalCircleWindow
+		var err error
+		if anchored {
+			windows, err = parabolacircle.PrepareAnchoredCircleWindows(ctx, b, rings[0], exactIGESSplineDecimal)
+		} else {
+			windows, err = parabolacircle.PrepareCardinalCircleWindows(ctx, b, rings, exactIGESSplineDecimal)
+		}
 		if err != nil {
 			return 0, err
 		}

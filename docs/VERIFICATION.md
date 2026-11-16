@@ -251,6 +251,11 @@ components. The exact two-body and four-cycle point contact ledgers
 replay; a forged cycle chord and an unrepresentable cap refuse. The
 smallest independent positive cap is about 3.52e-10, and all sixteen
 previous Cut receipts match byte for byte.
+Exact STEP and IGES transfer passes all original winding and pocket
+controls on 48 files and 80 positive bodies. Pinned OCCT verifies the
+36 directed original coedges, 32 rays, both cap vertices and the pocket
+midpoint. The exact rotated quarter carriers retain the original trim
+clock; twelve prior neutral carriers are unchanged.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same

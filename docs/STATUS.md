@@ -89,6 +89,8 @@ Native Common and Fuse close both same-semicircle layouts, retaining
 all four original junctions, the two exact cap splits and the pocket.
 Native Cut now retains two components sharing four point contacts in
 one order, and the four-component contact cycle in the other.
+Both neutral formats preserve these four-contact materials, their
+original coedges and cap/pocket subdivisions through pinned readback.
 Projectively related graph surfaces can also prove strict original
 height order or exact coincidence over their entire shared projection.
 The same full-footprint ordered proof builds closed Common, Fuse and
