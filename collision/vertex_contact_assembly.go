@@ -31,6 +31,9 @@ type VertexContactAssemblyOptions struct {
 	// AllowCavities permits one exterior and directly enclosed void shells
 	// per component. Each shell gets an independent containment witness.
 	AllowCavities bool
+	// CrossBVH selects a 3D hierarchy for cross-component contacts.
+	// MaxCrossPairs then counts visited tree pairs, including leaves.
+	CrossBVH bool
 }
 
 // VertexContactAssemblyReport contains the proved, canonicalized contact
@@ -196,7 +199,7 @@ func prepareVertexContactMeshes(ctx context.Context, count int, source func(int)
 			if remaining <= 0 {
 				return zero, ErrLimit
 			}
-			cross, err := sweepIntersections(ctx, a.mesh, b.mesh, false, Options{MaxPairs: remaining, MaxContacts: remaining}, func(ta, tb int, k Kind, points []point) error {
+			visit := func(ta, tb int, k Kind, points []point) error {
 				if (p != nil || discover) && k == Touching && len(points) == 1 {
 					if p == nil {
 						p = newVertexContactPair()
@@ -230,7 +233,14 @@ func prepareVertexContactMeshes(ctx context.Context, count int, source func(int)
 					}
 				}
 				return fmt.Errorf("%w: undeclared or nonvertex contact between components %d and %d", ErrInvalid, i, j)
-			})
+			}
+			options := Options{MaxPairs: remaining, MaxContacts: remaining}
+			var cross Report
+			if o.CrossBVH {
+				cross, err = vertexContactCrossBVH(ctx, a.mesh, b.mesh, options, visit)
+			} else {
+				cross, err = sweepIntersections(ctx, a.mesh, b.mesh, false, options, visit)
+			}
 			if err != nil {
 				return zero, err
 			}

@@ -19,7 +19,7 @@ func parabolaCircleMeshEdgeKey(a, b int) [2]int { return [2]int{min(a, b), max(a
 
 func parabolaTwoCirclesLiftFootprint(ctx context.Context, s Solid, h ParabolaCircleCutComponentHistory, height [2]parabolaCircleMeshHeight,
 	foot CertifiedMixedExactAffineMesh, topUses, bottomUses [][]Use, n int, o ParabolaTwoCirclesMeshOptions,
-	placement *parabolaCircleDisplayPlacement) (CertifiedParabolaTwoCirclesComponentMesh, error) {
+	placement *parabolaCircleDisplayPlacement, boundaryAware bool) (CertifiedParabolaTwoCirclesComponentMesh, error) {
 	var empty CertifiedParabolaTwoCirclesComponentMesh
 	uv := slices.Clone(foot.ExactUV)
 	seam := make([]bool, len(uv))
@@ -49,11 +49,11 @@ func parabolaTwoCirclesLiftFootprint(ctx context.Context, s Solid, h ParabolaCir
 		}
 		sides = append(sides, part)
 	}
-	uv, triangles, err := refineParabolaCircleFootprint(ctx, uv, foot.Mesh.Triangles, boundary, seam, n, o.MaxTriangles/2)
+	uv, triangles, err := refineParabolaCircleFootprint(ctx, uv, foot.Mesh.Triangles, boundary, seam, n, o.MaxTriangles/2, boundaryAware)
 	if err != nil {
 		return empty, err
 	}
-	if o.NormalAngle > 0 {
+	if o.NormalAngle > 0 || boundaryAware {
 		if err := improveParabolaCircleFacetGrid(ctx, uv, triangles, seam); err != nil {
 			return empty, err
 		}
@@ -272,7 +272,7 @@ func parabolaTwoCirclesLiftFootprint(ctx context.Context, s Solid, h ParabolaCir
 }
 
 func refineParabolaCircleFootprint(ctx context.Context, uv [][2]*big.Rat, tris [][3]int, boundary map[[2]int]bool, seam []bool,
-	n, budget int) ([][2]*big.Rat, [][3]int, error) {
+	n, budget int, boundaryAware bool) ([][2]*big.Rat, [][3]int, error) {
 	width := [2]*big.Rat{}
 	for axis := range width {
 		lo, hi := uv[0][axis], uv[0][axis]
@@ -285,6 +285,22 @@ func refineParabolaCircleFootprint(ctx context.Context, uv [][2]*big.Rat, tris [
 			}
 		}
 		width[axis] = new(big.Rat).Quo(new(big.Rat).Sub(hi, lo), big.NewRat(int64(n), 1))
+	}
+	if boundaryAware {
+		// The independently protected source cuts can span substantial
+		// portions of a cap's short axis. Refinement at an incompatible
+		// target keeps bisecting other edges beside a fixed coedge.
+		// Floor the targets by the actual protected spans. The analytic
+		// error proof still measures the final full triangle widths.
+		for edge := range boundary {
+			for axis := range width {
+				d := new(big.Rat).Sub(uv[edge[1]][axis], uv[edge[0]][axis])
+				d.Abs(d)
+				if d.Cmp(width[axis]) > 0 {
+					width[axis].Set(d)
+				}
+			}
+		}
 	}
 	isSeam := func(i int) bool { return i < len(seam) && seam[i] }
 	for range 32 {

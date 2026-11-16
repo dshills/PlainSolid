@@ -59,6 +59,9 @@ SHUO path. Editable appearance and appearance writeback remain in progress.
 One transversal circle/parabola family now exports its exact Common, Fuse
 and both Cut orders through STEP and IGES. Each Cut keeps its two material
 shells separate and retains the two original contact pairs.
+That native Cut also has a certified closed mesh for both operands and
+axes. Each component keeps its own vertex identities; the complete
+assembly proves exactly the two original paired point contacts.
 Certified display of the separated two-circle Cuts now accepts proper
 rational similarities. The proof uses the original world coedge owners
 and reports distance in physical units after rotation and scaling.

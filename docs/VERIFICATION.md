@@ -50,6 +50,13 @@ Pinned OCCT audits verified 336 directed conic roof uses and matched the
 exact source volume within `4.45e-16` absolute. The prior 108 neutral
 files are byte identical. The direct OCCT Boolean's distinct vertex
 ownership and measured volume differences are recorded separately.
+The [transversal Cut display race](evidence/parabola-circle-crossings-display-2026-11-16.json)
+passed in 367.861 seconds on main with the proper-similarity regression.
+All four layouts have two closed positive components, exactly two
+registered node pairs, and bounded signed volumes, distance and angles.
+Exact cross-component checks refuse an unregistered intersection. The
+reverse axis-zero cap needs an explicit 1.25 million self-candidate limit.
+All 34 previous distance, turn and facet output digests match.
 
 The [proper-similarity display milestone](evidence/parabola-circle-proper-similarity-2026-11-16.json)
 passed its main focused race in 322.877 seconds. Eight components from four
