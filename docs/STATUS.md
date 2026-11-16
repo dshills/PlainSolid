@@ -204,6 +204,8 @@ Exact signed height queries classify the original lifts on either side
 of the section, retaining both original UV coordinates and trim flags.
 One open section on equal projected rectangles can now select the
 two original lower or upper roof fragments with a common model seam.
+For a positive common planar base, those fragments now form closed
+Common and Fuse solids with exact original roof and wall ownership.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

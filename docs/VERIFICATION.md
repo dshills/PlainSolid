@@ -73,6 +73,10 @@ original charts and distinguishes hole boundary, overlap edge and hole
 interior. The original lower and upper roof choices retain their exact
 sign witnesses, source coedges and opposed shared seam. Partial footprints
 and short classification work publish no roof fragments.
+The closed Common/Fuse audit passes both projection-axis orders, with
+`9F/19E/12V`, two retained original roofs and six exact adjoining walls.
+Independent integrals give volumes `9/8` and `11/8` and matching planar
+centroids. A roof touching the base refuses before topology is published.
 The [ordinary exact spline jet audit](evidence/exact-spline-rational-evaluation-2026-11-16.json)
 passes a nonbinary station, a right-hand interior derivative and a
 left-hand final derivative. Its outward boxes and short work refusal

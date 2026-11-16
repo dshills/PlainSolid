@@ -465,5 +465,14 @@
     "named_passes": ["TestProjectiveContactHeightClassifiesBothOriginalLifts", "TestSelectProjectiveSplineFaceEnvelopeRetainsOriginalMaterialSides"],
     "exact_lift_difference_scale": "2^-120",
     "original_signs_retained": {"lower": [-1, 1], "upper": [1, -1]}
+  },
+  "closed_projective_roof_boolean": {
+    "main_base": "87a48d65",
+    "log": "projective-roof-solid-main-race.jsonl",
+    "sha256": "1b7e740d3fd75820680d0e78e15ba7caeee722d104fd67da21c247a7e88e588e",
+    "pass": "TestBuildProjectiveSplineRoofSolidClosesExactCommonAndFuse",
+    "topology_each": {"faces": 9, "edges": 19, "vertices": 12},
+    "independent_material": {"common": {"volume": "9/8", "projected_centroid": ["31/54", "29/54"]}, "fuse": {"volume": "11/8", "projected_centroid": ["37/66", "35/66"]}},
+    "projection_axis_orders": 2
   }
 }
