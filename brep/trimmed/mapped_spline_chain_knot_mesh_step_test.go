@@ -12,8 +12,8 @@ import (
 	"plainsolid/geom"
 )
 
-func TestOrderedMappedSTEPKnotAlignedDisplay(t *testing.T) {
-	ctx := context.Background()
+func orderedMappedDisplaySTEP(t *testing.T, ctx context.Context) step.MappedChainSTEPModel {
+	t.Helper()
 	in, err := os.Open("../../exchange/step/testdata/occt_mapped_chain_ordered_joined_independent_roofs.step")
 	if err != nil {
 		t.Fatal(err)
@@ -26,6 +26,12 @@ func TestOrderedMappedSTEPKnotAlignedDisplay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return model
+}
+
+func TestOrderedMappedSTEPKnotAlignedDisplay(t *testing.T) {
+	ctx := context.Background()
+	model := orderedMappedDisplaySTEP(t, ctx)
 	fill := trimmed.MixedExactMultiSpanMeshOptions{
 		Span: trimmed.MultiSpanTriangleBoundOptions{MaxDegree: 4}, MaxResidualOperations: 512 << 20,
 		Face: trimmed.MixedExactCurvedMeshOptions{
@@ -177,4 +183,74 @@ func exactMeshDot(a, b [3]*big.Rat) *big.Rat {
 		out.Add(out, new(big.Rat).Mul(a[i], b[i]))
 	}
 	return out
+}
+
+func TestOrderedMappedSTEPProjectedQuality(t *testing.T) {
+	ctx := context.Background()
+	model := orderedMappedDisplaySTEP(t, ctx)
+	fill := trimmed.MixedExactMultiSpanMeshOptions{
+		Span: trimmed.MultiSpanTriangleBoundOptions{MaxDegree: 4}, MaxResidualOperations: 512 << 20,
+		Face: trimmed.MixedExactCurvedMeshOptions{
+			BoundaryModelBudget: .065,
+			Interior:            trimmed.CurvedQuadraticTrimMeshOptions{Deflection: .30, MaxSubdivisions: 64},
+		},
+	}
+	out, err := model.Shell.TessellateClosedCertified(ctx, nil, trimmed.MappedChainClosedMeshOptions{
+		AlignSupportKnots: true, MaxKnotCellFlips: 100000, MaxTriangles: 3000,
+		Boundary:  trimmed.MappedChainPolylineOptions{Deflection: .01875},
+		Curved:    [2]trimmed.MixedExactMultiSpanMeshOptions{fill, fill},
+		Collision: collision.Options{MaxPairs: 4_000_000},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := out.Mesh.ValidateSolid(); err != nil {
+		t.Fatal(err)
+	}
+	if len(out.Mesh.Triangles) != 1914 || len(out.ChainJoints) != 3 ||
+		!out.DisplayCollision.Complete || len(out.DisplayCollision.Contacts) != 0 ||
+		out.SquaredDistance.Cmp(big.NewRat(1, 25)) >= 0 {
+		t.Fatal("projected triangulation must retain the closed source with distance below .2 and fewer facets", len(out.Mesh.Triangles))
+	}
+	t.Logf("triangles=%d distance²=%s pairs=%d", len(out.Mesh.Triangles), out.SquaredDistance.FloatString(12), out.DisplayCollision.BroadPhasePairs)
+	owner := 1
+	roof := out.Curved[owner]
+	p, err := geom.NewSurfacePatch(model.Native.Solid.Faces()[owner].Surface.(*geom.BSplineSurface), geom.SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, v := p.KnotBreaks()
+	cells := make(map[[2]int]*geom.SurfacePatch)
+	for i, tri := range roof.Mesh.Triangles {
+		cell := out.RoofSupportCells[owner][i]
+		original, found := cells[cell]
+		if !found {
+			original, err = p.Trim(geom.ParameterRectangle{
+				UMin: u[cell[0]], UMax: u[cell[0]+1], VMin: v[cell[1]], VMax: v[cell[1]+1],
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			cells[cell] = original
+		}
+		a, b, c := exactMeshVector(roof.Mesh.Vertices[tri[0]]), exactMeshVector(roof.Mesh.Vertices[tri[1]]), exactMeshVector(roof.Mesh.Vertices[tri[2]])
+		facet := exactMeshCross(exactMeshSub(b, a), exactMeshSub(c, a))
+		for _, id := range tri {
+			uv := roof.ExactUV[id]
+			j, err := original.EvaluateRational(ctx, uv[0], uv[1], geom.SurfacePatchEvaluationOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			normal := exactMeshCross(j.Du, j.Dv)
+			dot := exactMeshDot(facet, normal)
+			off := exactMeshCross(facet, normal)
+			// sin(.35) <= .35 and cos(.35) >= 1-.35²/2 bound tan(.35) above by 280/751.
+			upper := new(big.Rat).Mul(big.NewRat(280*280, 751*751), new(big.Rat).Mul(dot, dot))
+			if dot.Sign() <= 0 || exactMeshDot(off, off).Cmp(upper) > 0 {
+				t.Logf("roof %d original cell %v triangle %d exact .35-radian counterexample at %s,%s", owner, cell, i, uv[0], uv[1])
+				return
+			}
+		}
+	}
+	t.Fatal("the distance-only projected mesh must still exercise an exact excessive angle")
 }

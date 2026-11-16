@@ -49,9 +49,11 @@ func TessellateMultiSpanCurvedTrimRegionCertified(ctx context.Context, p *geom.S
 }
 
 type multiSpanMeshWork struct {
-	options       MultiSpanCurvedTrimMeshOptions
-	cells, pieces int
-	operations    int
+	options           MultiSpanCurvedTrimMeshOptions
+	cells, pieces     int
+	operations        int
+	maxKnotCellFlips  int
+	mappedNormalAngle float64
 }
 
 // A segment crossing finitely many C0 knot cells is absolutely continuous.

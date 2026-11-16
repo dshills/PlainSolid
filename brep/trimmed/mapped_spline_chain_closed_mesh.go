@@ -38,12 +38,21 @@ type MappedChainClosedMeshOptions struct {
 	// support cell. Closing trims crossing a knot must have an exact rational
 	// source parameter, and both seam owners share the resulting point.
 	AlignSupportKnots bool
-	Boundary          MappedChainPolylineOptions
-	Curved            [2]MixedExactMultiSpanMeshOptions
-	ClosingProof      edgecheck.Options
-	MaxTriangles      int
-	MaxRounds         int
-	Collision         collision.Options
+	// MaxKnotCellFlips permits exact projected diagonal flips on graph roofs.
+	// Zero keeps the existing triangulation. A positive limit applies per roof
+	// lift, requires AlignSupportKnots, and is capped at 100000.
+	MaxKnotCellFlips int
+	// NormalAngle optionally certifies each represented roof facet against
+	// its continuous original one-sided support normals, in radians (0,1].
+	// It requires the projected quality route. The normal proof uses at most
+	// 100000 exact evaluations and hull tests per roof lift.
+	NormalAngle  float64
+	Boundary     MappedChainPolylineOptions
+	Curved       [2]MixedExactMultiSpanMeshOptions
+	ClosingProof edgecheck.Options
+	MaxTriangles int
+	MaxRounds    int
+	Collision    collision.Options
 }
 
 // CertifiedMappedChainClosedMesh covers one connected, oriented manifold
@@ -93,7 +102,10 @@ type mappedChainClosedFaceMesh struct {
 // certified seam incidence and returns no partial shell on any failure.
 func (r MappedSplineChainAgreement) TessellateClosedCertified(ctx context.Context, closing [2][]PCurve, reversed [2]bool, planar []MappedChainPlanarFace, seams [][2]MappedChainClosedUse, o MappedChainClosedMeshOptions) (CertifiedMappedChainClosedMesh, error) {
 	var zero CertifiedMappedChainClosedMesh
-	if ctx == nil || o.Collision.MaxPairs < 0 || o.Collision.MaxContacts < 0 {
+	if ctx == nil || o.Collision.MaxPairs < 0 || o.Collision.MaxContacts < 0 ||
+		o.MaxKnotCellFlips < 0 || o.MaxKnotCellFlips > 100000 || o.MaxKnotCellFlips > 0 && !o.AlignSupportKnots ||
+		!finite(o.NormalAngle) || o.NormalAngle < 0 || o.NormalAngle > 1 ||
+		o.NormalAngle > 0 && o.MaxKnotCellFlips == 0 {
 		return zero, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -142,7 +154,7 @@ func (r MappedSplineChainAgreement) TessellateClosedCertified(ctx context.Contex
 	build := func(cuts [][][]*big.Rat) error {
 		out.SquaredDistance.SetInt64(0)
 		for owner := range curved {
-			x, err := r.tessellateFaceWithBoundary(ctx, owner, closing[owner], boundary, cuts[owner], o.Curved[owner], o.AlignSupportKnots)
+			x, err := r.tessellateFaceWithBoundary(ctx, owner, closing[owner], boundary, cuts[owner], o.Curved[owner], o.AlignSupportKnots, o.MaxKnotCellFlips, o.NormalAngle)
 			if err != nil {
 				return fmt.Errorf("chain owner %d: %w", owner, err)
 			}

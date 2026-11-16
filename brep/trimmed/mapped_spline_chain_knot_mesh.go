@@ -147,7 +147,7 @@ func alignMappedChainUVSeed(ctx context.Context, p *geom.SurfacePatch, seed Cert
 // Interior UV refinement preserves the original one-sided cells of the
 // aligned seed. Independently check the retained final triangles before
 // assigning the span indexes used for one-sided differential evaluation.
-func mappedChainTriangleSupportCells(p *geom.SurfacePatch, face CertifiedMixedExactCurvedMesh) ([][2]int, error) {
+func mappedChainTriangleSupportCells(p *geom.SurfacePatch, face CertifiedCurvedQuadraticTrimMesh) ([][2]int, error) {
 	u, v := p.KnotBreaks()
 	breaks := [2][]*big.Rat{}
 	for axis, raw := range [2][]float64{u, v} {

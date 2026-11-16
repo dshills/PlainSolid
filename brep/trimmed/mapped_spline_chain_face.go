@@ -55,7 +55,7 @@ func (r MappedSplineChainAgreement) TessellateFaceCertified(ctx context.Context,
 	if e != nil {
 		return zero, e
 	}
-	out, e := r.tessellateFaceWithBoundary(ctx, owner, closing, boundary, nil, o.Face, false)
+	out, e := r.tessellateFaceWithBoundary(ctx, owner, closing, boundary, nil, o.Face, false, 0, 0)
 	if e != nil {
 		return zero, e
 	}
@@ -72,7 +72,7 @@ func (r MappedSplineChainAgreement) TessellateFaceCertified(ctx context.Context,
 
 // The caller supplies the shared boundary and checks represented contacts on
 // either the individual face or the complete assembled mesh.
-func (r MappedSplineChainAgreement) tessellateFaceWithBoundary(ctx context.Context, owner int, closing []PCurve, boundary CertifiedMappedChainPolyline, prescribed [][]*big.Rat, o MixedExactMultiSpanMeshOptions, alignSupportKnots bool) (CertifiedMappedChainFace, error) {
+func (r MappedSplineChainAgreement) tessellateFaceWithBoundary(ctx context.Context, owner int, closing []PCurve, boundary CertifiedMappedChainPolyline, prescribed [][]*big.Rat, o MixedExactMultiSpanMeshOptions, alignSupportKnots bool, maxFlips int, angle float64) (CertifiedMappedChainFace, error) {
 	var zero CertifiedMappedChainFace
 	if len(boundary.Vertices)+len(r.cuts)-2 > 2048 {
 		return zero, geom.ErrConvergence
@@ -108,13 +108,13 @@ func (r MappedSplineChainAgreement) tessellateFaceWithBoundary(ctx context.Conte
 		}
 	}
 	o.Face.Cuts = [][][]*big.Rat{cuts}
-	face, e := tessellateMixedExactMultiSpanRegionCertified(ctx, p, outer, nil, o, alignSupportKnots)
+	face, e := tessellateMixedExactMultiSpanRegionCertified(ctx, p, outer, nil, o, alignSupportKnots, maxFlips, angle)
 	if e != nil {
 		return zero, fmt.Errorf("mapped chain face fill: %w", e)
 	}
 	out := CertifiedMappedChainFace{Face: face, Boundary: boundary, Owner: owner, LedgerVertices: make([]int, len(boundary.Vertices))}
 	if alignSupportKnots {
-		out.supportCells, e = mappedChainTriangleSupportCells(p, face)
+		out.supportCells, e = mappedChainTriangleSupportCells(p, face.CertifiedCurvedQuadraticTrimMesh)
 		if e != nil {
 			return zero, fmt.Errorf("mapped chain triangle support cells: %w", e)
 		}
