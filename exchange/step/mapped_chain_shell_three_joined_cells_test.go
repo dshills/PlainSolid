@@ -362,13 +362,18 @@ func verifyThreeJoinedRoofDisplay(t *testing.T, raw []byte, maxDegree int, defle
 	fill := nonplanarInferredDisplayOptions()
 	fill.Span.MaxDegree = maxDegree
 	fill.Face.BoundaryModelBudget, fill.Face.Interior.Deflection = .03, deflection
+	verifyJoinedClosedDisplay(t, ctx, m, fill)
+}
+
+func verifyJoinedClosedDisplay(t *testing.T, ctx context.Context, m MappedChainSTEPModel, fill trimmed.MixedExactMultiSpanMeshOptions) {
+	t.Helper()
 	display := verifyMappedChainCutDisplayWithClosedOptions(t, ctx, m, trimmed.MappedChainClosedMeshOptions{
 		Boundary:  trimmed.MappedChainPolylineOptions{Deflection: .01875},
 		Curved:    [2]trimmed.MixedExactMultiSpanMeshOptions{fill, fill},
 		Collision: collision.Options{MaxPairs: 4_000_000},
 	})
-	if len(display.ChainJoints) != 2 {
-		t.Fatal("the closed display must retain both original coedge occurrences at both welded joints")
+	if len(display.ChainJoints) != len(m.SupportJoints) {
+		t.Fatal("the closed display must retain both original coedge occurrences at every welded joint")
 	}
 	for i, pair := range display.ChainJoints {
 		joint := m.SupportJoints[i]
