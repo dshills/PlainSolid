@@ -54,5 +54,27 @@
       "neutral": 12
     },
     "scope": "constant original height denominator for analytic disk measure; general volume remains open"
+  },
+  "native_cut": {
+    "main_base": "c87019f4",
+    "isolated_revision": "505f046f5398f84602faf8c806b26803d4451276",
+    "patch_sha256": "75019a584d71b30ba840e199fe4b077f79a15985b40bc12673982a5048e39658",
+    "main_log": "parabola-pocket-disk-cut-main.jsonl",
+    "main_log_sha256": "a834ce14ab12e42bb5a6c6055644c47148b3fe8825886fdc249f6ff838cd010c",
+    "main_seconds": 308.629,
+    "isolated_ordinary_seconds": 203.315,
+    "isolated_ordinary_log_sha256": "84fd7a79d705f264ad5afee387854ad4030776f83ea182eca7f16e002d9eab3a",
+    "axis_order_lift_cases": 8,
+    "positive_bodies": 28,
+    "smallest_independent_positive_volume": 1.93235079363241e-15,
+    "maximum_relative_discrepancy": 1.10388362e-8,
+    "positive_regions_by_order": [[0, 5, 6], [1, 2, 3, 4]],
+    "retained_original_contact_graphs": ["0-5 at four original nodes with 6 isolated", "1-3-2-4-1"],
+    "pocket_genus": 1,
+    "isolated_disk_genus": 0,
+    "identical_native_replays": 8,
+    "predecessor_bytes_unchanged": {"native_cut": 8, "neutral": 12},
+    "refusals": ["forged disk contact", "forged cycle chord", "changed exact disk measure", "short entity or exact arithmetic budget", "unrepresentable source cap"],
+    "pending": ["full native Cut race", "pinned exchange orientation of the isolated disk"]
   }
 }

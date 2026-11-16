@@ -100,8 +100,11 @@ certifies seven signed regions, and retains the exact tiny disk volume.
 Native Common and Fuse assemble the nested pocket as one closed shell,
 retain its original inner wire and disk owner, and certify the tiny
 volume directly from the exact original polynomial.
-The complete native Common/Fuse race passed; the nested native Cut and
-neutral transfer still need qualification.
+The complete native Common/Fuse race passed. Both nested native Cut
+orders also passed the sealed main ordinary run, retaining the exact
+isolated disk in one order and the genus-one pocket in the other.
+The full Cut race is running. The pinned neutral readers reversed the
+isolated disk in an early STEP and IGES read-back; it is not qualified.
 The planar open sweep chain also has a durable native receipt. Reload
 rebuilds the original chart, join and separation proofs before it accepts
 the native owners or exact positive volume.

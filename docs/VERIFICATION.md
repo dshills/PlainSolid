@@ -312,6 +312,14 @@ controls pass. The direct disk certificate requires a constant original
 height denominator; exact geometry alone can admit more. The complete
 native race in the sealed implementation snapshot also passed all 16
 variants, canonical replay and the unrepresentable-cap refusal.
+Both ordered native Cuts pass the sealed main ordinary run on eight
+axis, order and lift cases. It checks all 28 positive bodies against
+independent integrals, the genus-one two-rim pocket, the isolated disk,
+the four original point contacts, and canonical replay. A forged disk
+contact, cycle chord, changed signed measure, short budget or cap without
+an exact native subdivision refuses the whole result. Eight prior
+Cut receipts and twelve neutral files remain byte-identical. The full
+Cut race and correct pinned neutral orientation remain open.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same
