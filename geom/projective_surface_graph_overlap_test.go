@@ -84,6 +84,42 @@ func TestProjectiveSurfaceGraphOverlapRejectsAProjectionThatOnlyMatchesSamples(t
 	}
 }
 
+func TestSurfaceSurfaceProjectiveCoincidenceKeepsExactCompleteContact(t *testing.T) {
+	ctx := context.Background()
+	a := arcTestPatch(t, func(u, v float64) Vec3 { return Vec3{u, v, u * v} })
+	b := projectiveOverlapTestChart(t, false, false)
+	axes := [2]int{0, 1}
+	o := SurfaceSurfaceIsolationOptions{ProjectiveGraphAxes: &axes, MaxPairs: 1}
+	r, err := BoundSurfaceSurfaceContext(ctx, a, b, o)
+	if err != nil || !r.Complete || r.VisitedPairs != 1 || r.ProjectiveCoincidence == nil || len(r.Candidates)+len(r.Pending)+len(r.Coincident) != 0 {
+		t.Fatal("complete original contact must keep its own exact map", r, err)
+	}
+	if r.ProjectiveCoincidence.Areas[1].V.Lower.Cmp(big.NewRat(64, 13)) != 0 ||
+		r.ProjectiveCoincidence.Areas[1].V.Upper.Cmp(big.NewRat(128, 17)) != 0 || r.ProjectiveCoincidence.BStationRatios[0].Cmp(big.NewRat(13, 17)) != 0 {
+		t.Fatal("complete cover lost an exact original boundary or map", r.ProjectiveCoincidence)
+	}
+	limited := o
+	limited.ProjectiveGraphOperations = 10
+	r, err = BoundSurfaceSurfaceContext(ctx, a, b, limited)
+	if !errors.Is(err, ErrConvergence) || r.Complete || r.ProjectiveCoincidence != nil || len(r.Pending) == 0 {
+		t.Fatal("a short graph attempt must leave a conservative original covering", r, err)
+	}
+	b = projectiveOverlapTestChart(t, false, true)
+	r, err = BoundSurfaceSurfaceContext(ctx, a, b, o)
+	if !errors.Is(err, ErrConvergence) || r.Complete || r.ProjectiveCoincidence != nil || len(r.Pending) == 0 {
+		t.Fatal("nonidentical lifts must fall back to unresolved contact", r, err)
+	}
+
+	// A shared projected edge is still a possible contact even though it
+	// has no two-dimensional intersection of the original graph domains.
+	edge := arcTestPatch(t, func(u, v float64) Vec3 { return Vec3{1 + u, v, (1 + u) * v} })
+	o.ParameterTolerance = 2
+	r, err = BoundSurfaceSurfaceContext(ctx, a, edge, o)
+	if err != nil || !r.Complete || r.ProjectiveCoincidence != nil || len(r.Candidates) != 1 {
+		t.Fatal("the projective gate must retain shared edge contact", r, err)
+	}
+}
+
 func projectiveOverlapTestChart(t *testing.T, rotated, perturb bool) *SurfacePatch {
 	t.Helper()
 	// x=5/4−(3/2)φ_{2/3}(v), y=1/2+(3/4)φ_{3/2}(u), z=xy.

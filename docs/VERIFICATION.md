@@ -136,6 +136,9 @@ The related UV-curve race preserves original nonuniform knots and exact
 physical derivatives. A transported original curve lifts to identical
 rational model points on both charts. A denominator with a pole and an
 insufficient mapped control budget leave no curve.
+The surface-pair cover reports that complete contact in one visit with
+the exact original stations and map. Its short-budget and perturbed
+controls retain pending cells; an edge-only contact remains a candidate.
 
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips

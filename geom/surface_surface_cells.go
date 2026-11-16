@@ -1,6 +1,9 @@
 package geom
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 // SurfaceSurfaceIsolationOptions bounds a four-parameter candidate covering.
 // Zero fields select 0.05 parameter tolerance on all four axes, depth 32,
@@ -18,6 +21,13 @@ type SurfaceSurfaceIsolationOptions struct {
 	// each overlapping pair. Zero keeps the prior search. Exact work also
 	// counts against MaxOperations.
 	ConvexHullIterations int
+	// ProjectiveGraphAxes optionally attempts one complete coincidence
+	// proof on the original pair before subdivision. Unproved graph or
+	// lift identity falls back to ordinary coverage. The attempt uses
+	// at most ProjectiveGraphOperations (default 250,000) and is also
+	// charged to MaxOperations.
+	ProjectiveGraphAxes       *[2]int
+	ProjectiveGraphOperations int
 }
 
 // SurfaceSurfaceCell covers possible contact between two parameter rectangles.
@@ -34,15 +44,20 @@ type SurfaceSurfaceCell struct {
 // Coincident contains pairs with exactly identical knot vectors and
 // proportional homogeneous control nets, hence identical parameterizations.
 // No geometric equality is inferred merely from overlapping or planar hulls.
-// Complete means every possible contact is covered by resolved Candidates or
-// proven Coincident pairs. Candidates may contain no intersection or whole
-// overlapping surfaces. Pending preserves unprocessed contact on resource loss.
+// Complete means every possible contact is covered by Candidates, proven
+// Coincident pairs, or a ProjectiveCoincidence. Candidates may contain no
+// intersection or whole overlapping surfaces. Pending preserves unprocessed
+// contact on resource loss.
 type SurfaceSurfaceIsolation struct {
 	Candidates, Coincident, Pending []SurfaceSurfaceCell
 	VisitedPairs, ExactOperations   int
 	ProjectionExclusions            int
 	ConvexHullExclusions            int
 	Complete                        bool
+	// ProjectiveCoincidence, when present, is the complete contact of the
+	// original pair, with exact rational UV endpoints and correspondence.
+	// It is separate from same-parameter Coincident cells.
+	ProjectiveCoincidence *ProjectiveSurfaceGraphOverlap `json:",omitempty"`
 }
 
 func pairCell(a, b *SurfacePatch, depth int) (SurfaceSurfaceCell, bool) {
@@ -111,8 +126,14 @@ func BoundSurfaceSurfaceContext(ctx context.Context, a, b *SurfacePatch, options
 		o.MaxCoefficientBits = 16384
 	}
 	if !finite(o.ParameterTolerance) || o.ParameterTolerance <= 0 || o.MaxDepth < 1 || o.MaxDepth > 128 || o.MaxPairs < 1 || o.MaxQueuedPoles < 8 ||
-		o.MaxOperations < 1 || o.MaxCoefficientBits < 64 || o.ConvexHullIterations < 0 || o.ConvexHullIterations > 1024 {
+		o.MaxOperations < 1 || o.MaxCoefficientBits < 64 || o.ConvexHullIterations < 0 || o.ConvexHullIterations > 1024 || o.ProjectiveGraphOperations < 0 {
 		return result, ErrInvalid
+	}
+	if axes := o.ProjectiveGraphAxes; axes != nil && (axes[0] < 0 || axes[0] > 2 || axes[1] < 0 || axes[1] > 2 || axes[0] == axes[1]) {
+		return result, ErrInvalid
+	}
+	if o.ProjectiveGraphOperations == 0 {
+		o.ProjectiveGraphOperations = 250_000
 	}
 	budget := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	defer func() { result.ExactOperations = budget.operations }()
@@ -164,6 +185,31 @@ func BoundSurfaceSurfaceContext(ctx context.Context, a, b *SurfacePatch, options
 		if same {
 			result.Coincident = append(result.Coincident, cell)
 			continue
+		}
+		if n.depth == 0 && o.ProjectiveGraphAxes != nil {
+			left := budget.maxOperations - budget.operations
+			if left <= 0 {
+				pending(&n)
+				return result, ErrConvergence
+			}
+			proof, err := CertifyProjectiveSurfaceGraphOverlap(ctx, n.a, n.b, *o.ProjectiveGraphAxes, SurfacePatchOptions{
+				MaxOperations: min(left, o.ProjectiveGraphOperations), MaxCoefficientBits: budget.maxBits})
+			budget.operations += proof.ExactOperations
+			if err != nil && !errors.Is(err, ErrDomain) && !errors.Is(err, ErrConvergence) {
+				pending(&n)
+				return result, err
+			}
+			if err == nil && proof.Coincident {
+				// The original graph projections are one-to-one and the
+				// lifted identity covers their entire closed intersection.
+				result.ProjectiveCoincidence = &proof
+				result.Complete = true
+				return result, nil
+			}
+			if budget.operations >= budget.maxOperations {
+				pending(&n)
+				return result, ErrConvergence
+			}
 		}
 		if o.SeparatingProjections {
 			left := budget.maxOperations - budget.operations

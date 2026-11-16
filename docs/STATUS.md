@@ -70,6 +70,9 @@ linear-fractional functions, the kernel now discovers the original
 projection and proves the lift on the full overlapping rectangle.
 The proved physical chart map can transport exact UV trim curves while
 retaining their original curve clocks and break stations.
+The surface-pair cover can publish that exact rectangle as the complete
+original contact under the proved graph assumptions. If the proof does
+not conclude, ordinary coverage still retains all possible contacts.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows
