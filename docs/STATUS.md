@@ -48,7 +48,7 @@ Node WASM and Chromium qualification in their retained source units.
 The active release gaps include general curved Boolean and blend assembly,
 more complete STEP and IGES, current native race and runtime platform
 qualification, and end-to-end acceptance of the remaining specification.
-The latest paired runs use kernel `bafe7e81` and PlainCAD `efae4d2`.
+One earlier paired run used kernel `bafe7e81` and PlainCAD `efae4d2`.
 The [ordinary Go run](evidence/main-bafe7e81-qualification-2026-11-15.json)
 accounted for all 5,801 top-level cases, with 5,272 passes and 529 explicit
 optional skips. All 1,438 trimmed cases were accounted for, with 1,391
@@ -58,14 +58,14 @@ passed the build, typechecks, bundle budget, 345 development browser cases,
 WASM contracts. The [newer ordinary Go run on `509cdbd3`](evidence/main-509cdbd3-qualification-2026-11-15.json)
 accounted for all 5,921 top-level cases: 5,374 passes and 547 optional
 skips, including 1,411 trimmed passes and 47 optional trimmed skips.
-The [latest ordinary Go run on `a1030049`](evidence/main-a1030049-qualification-2026-11-15.json)
+The [ordinary Go run on `a1030049`](evidence/main-a1030049-qualification-2026-11-15.json)
 accounted for all 6,006 cases with 5,448 passes and 558 optional skips,
 including 1,433 trimmed passes and 48 optional trimmed skips. All nine
 lanes returned zero, with 52 tested packages and four without tests.
 The [full native race on `d5906fde`](evidence/native-main-d5906fde-race-2026-11-15.json)
 accounted for all 5,769 cases: 5,247 passed and 522 optional cases were
 skipped. All 52 tested packages and the eight trimmed groups finished.
-The [latest full PlainCAD run on `83e18008`](evidence/plaincad-main-83e18008-2026-11-15.json)
+The [previous full PlainCAD run on `83e18008`](evidence/plaincad-main-83e18008-2026-11-15.json)
 passed all eight stages: 345 development, 66 production, 15 cross-browser,
 1,691 ordinary unit and four real WASM cases. The production WASM is
 byte-identical to the build and the Playwright driver is pristine.
@@ -85,13 +85,26 @@ All 1,691 case identities are accounted for; an uninterrupted current
 ordinary suite pass is still open. Both full Go and
 PlainCAD now also run against `b6335d3c`; vet and Windows amd64 build passed.
 The Linux amd64 cross-build on that same source also passed; neither
-cross-build establishes native runtime coverage. The corrected
-`ab33a412` ordinary Go package lane finished with 4,089 passes and
-529 explicit optional skips. The eight separate trimmed lanes must
-finish before it can be recorded as a full rerun.
+cross-build establishes native runtime coverage. The [corrected full
+ordinary Go run on `ab33a412`](evidence/main-ab33a412-qualification-2026-11-15.json)
+passed all nine lanes, with 5,557 passes and 580 explicit optional skips
+across 6,137 listed cases. All eight trimmed lanes passed, with 1,468
+passes and 51 optional skips. The newer ordinary and corrected race
+runs remain in progress.
 The browser suites on `b6335d3c` required scoped loopback access after
 the default sandbox denied their local test servers; preserve those startup
-logs separately from the browser results.
+logs separately from the browser results. Scoped browser reruns then
+passed all 345 development, 66 production and 15 cross-browser cases;
+build, typechecks and all four actual WASM cases also passed. A full
+loopback ordinary run passed 1,690 cases and again timed out in the
+unchanged OCCT control. After stopping an older known-red race snapshot,
+the identical focused control passed in 25.214 seconds. A quieter full
+ordinary rerun then passed all 1,691 cases; its four-start control took
+23.028 seconds against the unchanged 45-second limit. The [reconciled full
+PlainCAD report on `b6335d3c`](evidence/plaincad-main-b6335d3c-2026-11-15.json)
+records all eight passing stages and preserves the original failures and
+actual scoped rerun inputs. The production WASM is byte-identical to the
+build; the Playwright driver is pristine.
 Vet and the Windows amd64 cross-build on `016354ee` pass; native
 Windows execution remains unqualified.
 
@@ -222,25 +235,38 @@ unilateral support change. Separate clipped Cut components transfer to
 analytic STEP (`56fc65ef`) and IGES (`c75fa2fd`), retaining distinct exact
 vertex occurrences at their original shared points. The STEP companion for
 three transverse Cut contacts (`1478182f`) preserves four or five separate
-closed solids, and three-contact Common (`2e5712a9`) transfers one valid
-15-face solid in both checked layouts. Three-contact Cut also passes
+closed solids, and three-contact Common (`2e5712a9`, `90fbc893`) transfers
+one valid 15-face solid in both checked STEP and IGES layouts. Three-contact Cut also passes
 [independent IGES transfer](evidence/clipped-three-transverse-cut-iges-2026-11-15.json)
 (`a6763a04`), preserving separate vertex occurrences and the exact third
 contact. Source-aware Cut and Common previews
 (`32b1df05`) retain the original vertices and closed incidence through
-native replay. The transverse two-contact Common transfers through STEP
+native replay. Three-contact Cut optionally proves a per-component
+display volume bound against its exact source integral (`effd488a`).
+Native four-contact Fuse (`7586a15c`) passes all 12 exact material and
+source reload cases, including closed original-source previews (`11e475fb`).
+Its two independent STEP and IGES readbacks also passed (`13f1d870`).
+The transverse two-contact Common transfers through STEP
 (`c705e026`) and [IGES](evidence/clipped-common-iges-2026-11-15.json)
 (`6e72ff02`) with original roof and wall charts and both owner pcurves.
-Both transfer APIs refuse higher-order mixed Common before writing. Pinned
-OCCT reports the same self-intersecting wire and unorientable face in raw
-probes of both formats; the separate exact native Common still passes.
+The higher-order mixed Common now transfers by adding one exact seam to
+the original lens roof (`a5df4358`, `80c3a768`, `fe3d5380`). STEP and
+IGES keep the same vertices, material and original supports. The pinned
+reader refused the old unsplit wire in both formats; those failures
+are preserved as negative controls.
 The exact projection filter (`d883a33f`)
 and helical mesher (`61ee3e80`) reduce qualification and display time.
 The original unilateral support kink now passes native v12 and strict
 STEP (`38d53120`), with a pinned closed solid and unchanged original
-homogeneous weight ratios. A moved original knot still rejects. Work
-continues on three-contact exchange and display, the portable cusp
-boundary, and more than three ordered original rational model cells.
+homogeneous weight ratios. A moved original knot still rejects. Native v13
+and strict STEP now retain ordered support changes across four to seven
+original cells (`7a196ec6`), including an independently authored
+four-cell source and three different joint masks. Its closed exact display
+is qualified (`821b8bcd`). Four original eccentric frustum rim chamfers
+now preserve both circular axes and prove the shell gap at all runouts
+([independent evidence](evidence/eccentric-frustum-rim-chamfer-2026-11-15.json),
+`b600bde2`). Work continues on PlainCAD v13 repair,
+broader closed-branch discovery and advanced edge modifications.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.

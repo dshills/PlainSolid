@@ -187,12 +187,31 @@ statuses are retained; case coverage across retries is not an uninterrupted
 suite pass. No deadline or geometry tolerance was increased. Raw phase records are in
 `.worktrees/qualification/2026-11-15/plaincad-lead-phase-evidence`.
 
+The [full PlainCAD report on `b6335d3c`](evidence/plaincad-main-b6335d3c-2026-11-15.json)
+reconciles passing build, type and bundle gates, four actual WASM
+contracts, 345 development, 66 production, 15 cross-browser and 1,691
+ordinary unit cases from the same immutable archive. An initial browser
+attempt could not open local test servers in the default sandbox; all
+three reruns with scoped loopback passed. The first full scoped unit run
+lost only the unchanged four-start OCCT timing control. A focused run
+after the superseded race stopped passed in 25.214 seconds. The next
+full scoped run passed every unit case; the original one-, two- and
+four-start controls took 5.397, 11.612 and 23.028 seconds. No deadline
+or app assertion changed, the Playwright driver is pristine and the
+production WASM matches the build. The evidence distinguishes the
+original attempts from each passing phase.
+
 The older full native race `491b18f1` reproduced the same five shaded
 signed-frame failures as ordinary `5181d219`. Its `packages.jsonl` is
 retained in `.worktrees/qualification/2026-11-15/go-491b18f1-race`.
-The renewed native race also uses `ab33a412`, with eight independently
-listed trimmed lanes and the ordinary package lane. Keep the failing
-snapshots separate from the refreshed ordinary, race and PlainCAD runs.
+The superseded race was stopped after recording all five signed-frame
+failures. Its unfinished lanes do not qualify. The renewed native race
+uses `ab33a412`, with eight independently listed trimmed lanes and the
+ordinary package lane. The [corrected ordinary report](evidence/main-ab33a412-qualification-2026-11-15.json)
+reconciles 6,137 top-level cases, with 5,557 passes, 580 optional skips,
+52 tested packages and five without tests. All eight trimmed lanes pass:
+1,468 tests and 51 optional cases. Keep the older failed snapshots
+separate from the refreshed ordinary, race and PlainCAD runs.
 
 - Exact one-axis stepped Fuse (`810e2014`) passed the main-branch race in
   336.976 seconds. The original planar wall atoms bind low and high roof
@@ -343,8 +362,20 @@ snapshots separate from the refreshed ordinary, race and PlainCAD runs.
   within a broader run whose distinct kinked-roof live test timed out.
   The raw higher-order mixed Common probes produced the same
   `SelfIntersectingWire` and `UnorientableShape` in pinned OCCT for both
-  formats. The public writers refuse that input before producing bytes;
-  the exact native mixed Common remains supported.
+  formats. The initial public writers therefore refused that input;
+  the exact seam below replaces the portability refusal.
+- An [exact original-roof seam](evidence/clipped-mixed-common-seam-2026-11-15.json)
+  (`a5df4358`) divides one lens into two wires, retaining all original
+  vertices, geometry and mass. Both independent formats and the public
+  STEP writer (`80c3a768`) pass all 16 chart, contact-order, footprint
+  and operand combinations. The public IGES writer (`fe3d5380`) also
+  passes the pinned mixed fixture with one 15-face solid, 33 edges and
+  all 20 original vertices, volume `11.97070312418097`, and area
+  `31.65512202993392`. The unsplit wire and truncated proof reject;
+  the earlier transverse STEP and IGES output bytes remain identical.
+  The main STEP live race passed in 95.137 seconds with three-contact
+  Common and the streamlined kink test. Main live IGES passed in
+  11.171 seconds with both transverse families.
 - The STEP three-transverse Common (`2e5712a9`) keeps each exact vertex,
   four incident source rays, and both pcurves for every model edge.
   Pinned OCCT reads one valid 15-face solid in each original fixture.
@@ -361,6 +392,23 @@ snapshots separate from the refreshed ordinary, race and PlainCAD runs.
   preview volume by under 0.3%, and Common by under 0.023%; default
   absolute deflection can still give about 13.7% relative error on a
   thin overlap-only shell.
+- The optional volume-qualified Cut display (`effd488a`) limits every
+  component to 2% against its exact rational source volume, including
+  components about `7.7e-10` cubic model units. The eight complete
+  assemblies use 410–2,316 total triangles; resource shortages return
+  no meshes. Thirty default display outputs stayed byte-identical.
+  Main focused opt-in/limit tests passed, and the isolate race passed
+  in 44.769 seconds.
+- Four-transverse native Fuse (`7586a15c`) passed 12 cases in 55.35
+  seconds on main. Independent rational integration, source area,
+  exact four-way contact binding and original recipe replay agree.
+  All 12 closed displays passed in 13.16 seconds (`11e475fb`).
+  In the [exchange test](../exchange/clipped_polynomial_four_fuse_test.go)
+  (`13f1d870`), pinned STEP and IGES each read one valid solid with
+  22 or 23 faces. Their respective volumes are `16.55526781814345`
+  and `16.35005710049252`; respective areas are `40.25608465715294`
+  and `39.78849337256642`. The main two-format test passed in 4.523
+  seconds.
 - The independently kinked original rational STEP (`38d53120`) retains
   one-sided seam slopes `(1/2,5/8)` and `(-1/2,1/4)` at a real
   unilateral support change. Original and canonical pinned transfer agree
@@ -371,6 +419,25 @@ snapshots separate from the refreshed ordinary, race and PlainCAD runs.
   A concurrent mixed main race reached its fixed 120-second live-test
   context after both standalone exact source assertions passed. Both raw
   main runs are kept; the contention timeout was not recorded as a pass.
+- Ordered v13 source/native/STEP (`7a196ec6`) proves four original
+  model cells, four separate interior cuts, and ordered joint masks for
+  both owners, north only and south only. Pinned original and canonical
+  measures agree with independent integration at volume
+  `0.6448671346810776` and area `4.651334753118443`. A moved authored
+  joint and forged source ledger reject. Five and seven model cells
+  pass the native bounds test; eight reject. The isolated live race
+  and the integrated main source cases passed. Exact UV fallback
+  (`821b8bcd`) returns a closed 2,822-triangle v13 display with every
+  original joint and no unintended pair contacts. Both the earlier
+  2,730-triangle kink and the v13 display passed on main. The dedicated
+  isolated v13 display race passed in 394.206 seconds.
+- [Eccentric frustum rim chamfers](evidence/eccentric-frustum-rim-chamfer-2026-11-15.json)
+  (`b600bde2`) retain both axes and prove original wall clearance at
+  every runout before assembling the complete tube. Pinned OCCT's
+  independent chamfer author returned one valid eight-face solid with
+  volume `726.98826561019723` and area `593.89732690669496`. Main
+  focused material and wall-contact tests passed, and the isolated
+  modeling and trimmed races passed in 83.948 and 7.942 seconds.
 - The [tilted through-bore bridge](evidence/plaincad-tilted-bore-bridge-2026-11-15.json)
   (`8e9cae2c`) keeps both cap openings in a closed 644-triangle display and
   re-proves the original source graph on native reopen. The integrated
