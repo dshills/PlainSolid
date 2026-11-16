@@ -59,58 +59,16 @@ type NodalCubicRegion struct {
 // terminal on a transverse side is outside this section family.
 func DiscoverProjectedGraphNodalCubic(ctx context.Context, a, c *SurfacePatch, axes [2]int, freeAxis int,
 	o GraphPointContactOptions) (*NodalCubicSection, error) {
-	if ctx == nil || a == nil || c == nil || freeAxis < 0 || freeAxis > 1 {
-		return nil, ErrInvalid
-	}
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	o, err := alignedPolynomialProofOptions(o)
+	projection, err := projectGraphCubicSource(ctx, a, c, axes, freeAxis, o)
 	if err != nil {
 		return nil, err
 	}
-	if o.MaxCells == 0 {
-		o.MaxCells = 4096
-	}
-	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
-	order, err := modelProjectionPermutation(axes)
+	law, err := recoverNodalCubic(projection.powers, projection.budget)
 	if err != nil {
 		return nil, err
 	}
-	pa, err := permuteGraphPatch(a, order, b)
-	if err != nil {
-		return nil, err
-	}
-	pc, err := permuteGraphPatch(c, order, b)
-	if err != nil {
-		return nil, err
-	}
-	remaining := b.maxOperations - b.operations
-	if remaining < 1 {
-		return nil, ErrConvergence
-	}
-	alignment, work, err := AlignAffineXYChartsWithWork(ctx, pa, pc, SurfacePatchOptions{MaxOperations: remaining, MaxCoefficientBits: b.maxBits})
-	b.operations += work
-	if err != nil {
-		return nil, err
-	}
-	residual, err := orderingDifference(ctx, pa, alignment.TargetOnSource(), o.MaxCells, b)
-	if err != nil {
-		return nil, err
-	}
-	if residual.countU != residual.degreeU+1 || residual.countV != residual.degreeV+1 ||
-		residual.degreeU > 6 || residual.degreeV > 6 {
-		return nil, ErrConvergence
-	}
-	powers, err := graphBivariateCoefficients(residual, freeAxis, b)
-	if err != nil {
-		return nil, err
-	}
-	law, err := recoverNodalCubic(powers, b)
-	if err != nil {
-		return nil, err
-	}
-	return bindNodalCubicSection(ctx, [2]*SurfacePatch{a, c}, axes, order[2], freeAxis, law, alignment.mapping, b)
+	return bindNodalCubicSection(ctx, [2]*SurfacePatch{a, c}, axes, projection.residualAxis, freeAxis,
+		law, projection.alignment, projection.budget)
 }
 
 type nodalCubicLaw struct {
@@ -120,26 +78,13 @@ type nodalCubicLaw struct {
 }
 
 func recoverNodalCubic(p [3]rationalPolynomial, b *polynomialBudget) (r nodalCubicLaw, err error) {
-	if len(p[0]) != 4 || len(p[1]) > 1 || len(p[2]) != 1 {
-		return r, ErrConvergence
+	c, err := recoverGraphCubicCoefficients(p, b)
+	if err != nil {
+		return r, err
 	}
-	// The dependent coefficients prove a constant quadratic of the form
-	// lambda*(v-s)². Remove its constant term before solving the free cubic.
-	lambda, lead := p[2][0], p[0][3]
-	s := new(big.Rat)
-	if len(p[1]) == 1 {
-		s.Quo(p[1][0], new(big.Rat).Mul(big.NewRat(-2, 1), lambda))
-	}
-	constant := new(big.Rat).Sub(p[0][0], new(big.Rat).Mul(lambda, new(big.Rat).Mul(s, s)))
-	constant.Quo(constant, lead)
-	linear := new(big.Rat).Quo(p[0][1], lead)
-	quadratic := new(big.Rat).Quo(p[0][2], lead)
-	monic := rationalPolynomial{constant, linear, quadratic, big.NewRat(1, 1)}
-	for _, q := range append(monic, s) {
-		if err = b.check(q); err != nil {
-			return r, err
-		}
-	}
+	monic, signedScale := c.monic, c.signedScale
+	constant, linear, quadratic := monic[0], monic[1], monic[2]
+
 	// For a monic cubic with one double root, the linear subresultant of
 	// P and P' gives r=(9d-ac)/(2(a²-3c)). A zero denominator includes a
 	// triple root and cannot describe a transverse node.
@@ -167,7 +112,6 @@ func recoverNodalCubic(p [3]rationalPolynomial, b *polynomialBudget) (r nodalCub
 	if len(remainder) != 0 || len(q) != 2 {
 		return r, ErrConvergence
 	}
-	signedScale := new(big.Rat).Quo(new(big.Rat).Neg(lead), lambda)
 	direction := signedScale.Sign()
 	depth := new(big.Rat).Mul(new(big.Rat).Add(q[0], x), big.NewRat(int64(direction), 1))
 	if depth.Sign() <= 0 {
@@ -179,7 +123,7 @@ func recoverNodalCubic(p [3]rationalPolynomial, b *polynomialBudget) (r nodalCub
 			return r, err
 		}
 	}
-	return nodalCubicLaw{center: [2]*big.Rat{x, s}, scale: scale, loopDepth: depth, direction: direction, side: lambda.Sign()}, nil
+	return nodalCubicLaw{center: [2]*big.Rat{x, c.dependentCenter}, scale: scale, loopDepth: depth, direction: direction, side: c.side}, nil
 }
 
 // The parametrization is injective except at the two preimages of the node.

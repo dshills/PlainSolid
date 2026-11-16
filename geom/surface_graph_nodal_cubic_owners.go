@@ -15,7 +15,7 @@ func bindNodalCubicSection(ctx context.Context, patches [2]*SurfacePatch, axes [
 		ProjectionAxes: axes, FreeAxis: free, SourceDirection: law.direction, Scale: law.scale, LoopDepth: law.loopDepth,
 		Domains: [2]ParameterRectangle{patches[0].Domain(), patches[1].Domain()}, Sectors: [4]int{0, 1, 0, 2},
 	}
-	out.ChartMaps, err = nodalCubicChartMaps(out.Domains[0], free, law, alignment, b)
+	out.ChartMaps, err = graphCubicChartMaps(out.Domains[0], free, law.direction, law.center, alignment, b)
 	if err != nil {
 		return nil, err
 	}
@@ -30,11 +30,11 @@ func bindNodalCubicSection(ctx context.Context, patches [2]*SurfacePatch, axes [
 	var nodeJets [2]RationalSurfacePatchJet
 	for i, point := range points {
 		v := &out.Vertices[i]
-		v.UV, err = applyNodalCubicChartMaps(out.ChartMaps, point, false, b)
+		v.UV, err = applyGraphCubicChartMaps(out.ChartMaps, point, false, b)
 		if err != nil {
 			return nil, err
 		}
-		jets, err := nodalCubicOriginalJets(ctx, patches, v.UV, b)
+		jets, err := graphCubicOriginalJets(ctx, patches, v.UV, b)
 		if err != nil {
 			return nil, err
 		}
@@ -45,7 +45,7 @@ func bindNodalCubicSection(ctx context.Context, patches [2]*SurfacePatch, axes [
 		}
 		v.Point = jets[0].Point
 		for owner := range patches {
-			v.Boundary[owner] = nodalCubicBoundary(out.Domains[owner], v.UV[owner])
+			v.Boundary[owner] = graphCubicBoundary(out.Domains[owner], v.UV[owner])
 			mask := v.Boundary[owner]
 			if i < 2 && mask != 0 || i >= 2 && (mask == 0 || mask&(mask-1) != 0) {
 				return nil, ErrConvergence
@@ -73,11 +73,11 @@ func bindNodalCubicSection(ctx context.Context, patches [2]*SurfacePatch, axes [
 	}
 	for i, x := range witness {
 		region := &out.Regions[i]
-		region.UV, err = applyNodalCubicChartMaps(out.ChartMaps, [2]*big.Rat{x, zero}, false, b)
+		region.UV, err = applyGraphCubicChartMaps(out.ChartMaps, [2]*big.Rat{x, zero}, false, b)
 		if err != nil {
 			return nil, err
 		}
-		jets, err := nodalCubicOriginalJets(ctx, patches, region.UV, b)
+		jets, err := graphCubicOriginalJets(ctx, patches, region.UV, b)
 		if err != nil {
 			return nil, err
 		}
@@ -96,22 +96,13 @@ func bindNodalCubicSection(ctx context.Context, patches [2]*SurfacePatch, axes [
 		ray := &out.Rays[i]
 		ray.Edge, ray.Reversed = edgeIDs[i], reversed[i]
 		direction := [2]*big.Rat{big.NewRat(signs[0], 1), new(big.Rat).Mul(big.NewRat(signs[1], 1), alpha)}
-		ray.UV, err = applyNodalCubicChartMaps(out.ChartMaps, direction, true, b)
+		ray.UV, err = applyGraphCubicChartMaps(out.ChartMaps, direction, true, b)
 		if err != nil {
 			return nil, err
 		}
-		for axis := range ray.Model {
-			var tangent [2]*big.Rat
-			for owner, jet := range nodeJets {
-				tangent[owner] = new(big.Rat).Add(new(big.Rat).Mul(ray.UV[owner][0], jet.Du[axis]), new(big.Rat).Mul(ray.UV[owner][1], jet.Dv[axis]))
-				if err = b.check(tangent[owner]); err != nil {
-					return nil, err
-				}
-			}
-			if tangent[0].Cmp(tangent[1]) != 0 {
-				return nil, ErrConvergence
-			}
-			ray.Model[axis] = tangent[0]
+		ray.Model, err = bindGraphCubicModelVector(ray.UV, nodeJets, b)
+		if err != nil {
+			return nil, err
 		}
 	}
 	first, second := out.Rays[0].Model, out.Rays[1].Model
@@ -128,79 +119,4 @@ func bindNodalCubicSection(ctx context.Context, patches [2]*SurfacePatch, axes [
 	}
 	out.ExactOperations = b.operations
 	return out, nil
-}
-
-func nodalCubicChartMaps(d ParameterRectangle, free int, law nodalCubicLaw, alignment [2][3]*big.Rat,
-	b *polynomialBudget) (out [2][2][3]*big.Rat, err error) {
-	limits := [2][2]float64{{d.UMin, d.UMax}, {d.VMin, d.VMax}}
-	for i, axis := range [2]int{free, 1 - free} {
-		lo, hi := new(big.Rat).SetFloat64(limits[axis][0]), new(big.Rat).SetFloat64(limits[axis][1])
-		width := new(big.Rat).Sub(hi, lo)
-		row := [3]*big.Rat{new(big.Rat), new(big.Rat), new(big.Rat).Add(lo, new(big.Rat).Mul(width, law.center[i]))}
-		row[i].Set(width)
-		if i == 0 && law.direction < 0 {
-			row[i].Neg(row[i])
-		}
-		for _, q := range []*big.Rat{row[i], row[2]} {
-			if err := b.check(q); err != nil {
-				return out, err
-			}
-		}
-		out[0][axis] = row
-	}
-	for axis := range alignment {
-		for i := range out[1][axis] {
-			x := new(big.Rat).Add(new(big.Rat).Mul(alignment[axis][0], out[0][0][i]), new(big.Rat).Mul(alignment[axis][1], out[0][1][i]))
-			if i == 2 {
-				x.Add(x, alignment[axis][2])
-			}
-			if err = b.check(x); err != nil {
-				return out, err
-			}
-			out[1][axis][i] = x
-		}
-	}
-	return out, nil
-}
-
-func applyNodalCubicChartMaps(m [2][2][3]*big.Rat, xy [2]*big.Rat, vector bool, b *polynomialBudget) (out [2][2]*big.Rat, err error) {
-	for owner := range m {
-		for axis, row := range m[owner] {
-			x := new(big.Rat).Add(new(big.Rat).Mul(row[0], xy[0]), new(big.Rat).Mul(row[1], xy[1]))
-			if !vector {
-				x.Add(x, row[2])
-			}
-			if err = b.check(x); err != nil {
-				return out, err
-			}
-			out[owner][axis] = x
-		}
-	}
-	return out, nil
-}
-
-func nodalCubicBoundary(d ParameterRectangle, uv [2]*big.Rat) (mask uint8) {
-	for i, edge := range [4]float64{d.UMin, d.UMax, d.VMin, d.VMax} {
-		if uv[i/2].Cmp(new(big.Rat).SetFloat64(edge)) == 0 {
-			mask |= 1 << uint(i)
-		}
-	}
-	return mask
-}
-
-func nodalCubicOriginalJets(ctx context.Context, patches [2]*SurfacePatch, uv [2][2]*big.Rat,
-	b *polynomialBudget) (jets [2]RationalSurfacePatchJet, err error) {
-	for owner, source := range patches {
-		remaining := b.maxOperations - b.operations
-		if remaining < 1 {
-			return jets, ErrConvergence
-		}
-		jets[owner], err = source.EvaluateRational(ctx, uv[owner][0], uv[owner][1],
-			SurfacePatchEvaluationOptions{MaxOperations: remaining, MaxCoefficientBits: b.maxBits})
-		b.operations += jets[owner].ExactOperations
-		if err != nil {
-			return jets, err
-		}
-	}
-	return jets, nil
 }
