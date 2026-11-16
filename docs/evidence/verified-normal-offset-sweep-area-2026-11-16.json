@@ -99,5 +99,41 @@
       "mesh": 8.159,
       "csg/offset": 45.247
     }
+  },
+  "joined_directed_boundary": {
+    "isolated_revision": "db25684db313d6718f26d555fd6ec4bf980c6641",
+    "patch_sha256": "4229f9bcfdc4704d5131cbe642b4e51fb71b0b5f75c5ae75532dd53835d97084",
+    "main_base": "f11354d2",
+    "main_race_log": "normal-sweep-area-directed-joined-main-race.jsonl",
+    "main_race_sha256": "6fa272f7e925b455ee71f030c4fb3696e7ea6e047fa3b86533d6307952f52bf5",
+    "main_race_seconds": 52.693,
+    "isolate_race_seconds": 48.408,
+    "independent_affine_totals": [
+      "26/5",
+      "38/5"
+    ],
+    "weighted_parabolic_pair_interval": [
+      "9.930917646501",
+      "9.970903303240"
+    ],
+    "weighted_parabolic_chain_interval": [
+      "14.416922429225",
+      "14.456906178614"
+    ],
+    "shared_width_target": "1/25",
+    "kept_original_faces": [
+      10,
+      14
+    ],
+    "exact_affine_visit_counts": [
+      10,
+      14
+    ],
+    "unchanged_prior_receipts": 23,
+    "isolate_full_packages_seconds": {
+      "geom": 91.039,
+      "mesh": 10.986,
+      "csg/offset": 52.431
+    }
   }
 }

@@ -8,7 +8,7 @@ import (
 )
 
 // NormalOffsetSweepAreaEnclosureOptions bounds adaptive integration over
-// the six original analytic faces. MaxDepth defaults to 32. MaxCells and
+// the retained original analytic faces. MaxDepth defaults to 32. MaxCells and
 // the patch limits apply to one common ledger across the complete boundary.
 type NormalOffsetSweepAreaEnclosureOptions struct {
 	NormalOffsetSweepAreaOptions
@@ -21,7 +21,28 @@ type NormalOffsetSweepAreaEnclosureOptions struct {
 // coarse total if available work cannot meet the requested width.
 func (s *VerifiedNormalOffsetSweep) EncloseBoundaryAreaRational(ctx context.Context,
 	o NormalOffsetSweepAreaEnclosureOptions) (r NormalOffsetSweepBoundaryArea, err error) {
-	if s == nil || s.source == nil || o.MaxDepth < 0 || o.MaxDepth > 64 {
+	if s == nil || s.source == nil {
+		return r, ErrInvalid
+	}
+	var boundary [6]VerifiedNormalOffsetSweepBoundaryFace
+	for side := NormalOffsetSweepUMin; side <= NormalOffsetSweepUpper; side++ {
+		boundary[side] = VerifiedNormalOffsetSweepBoundaryFace{
+			Side: side, Face: VerifiedNormalOffsetSweepFace{sweep: s, side: side},
+		}
+	}
+	cover, err := encloseDirectedSweepBoundaryArea(ctx, []*VerifiedNormalOffsetSweep{s}, boundary[:], o)
+	r.Bounds, r.Complete = cover.Bounds, cover.Complete
+	r.VisitedCells, r.ExactOperations = cover.VisitedCells, cover.ExactOperations
+	for _, face := range cover.Faces {
+		r.Faces = append(r.Faces, face.NormalOffsetSweepFaceArea)
+	}
+	return r, err
+}
+
+func encloseDirectedSweepBoundaryArea(ctx context.Context, sweeps []*VerifiedNormalOffsetSweep,
+	boundary []VerifiedNormalOffsetSweepBoundaryFace,
+	o NormalOffsetSweepAreaEnclosureOptions) (r NormalOffsetSweepJoinedBoundaryArea, err error) {
+	if o.MaxDepth < 0 || o.MaxDepth > 64 {
 		return r, ErrInvalid
 	}
 	options, err := normalizeSweepBoundaryAreaOptions(ctx, o.NormalOffsetSweepAreaOptions)
@@ -32,17 +53,34 @@ func (s *VerifiedNormalOffsetSweep) EncloseBoundaryAreaRational(ctx context.Cont
 		o.MaxDepth = 32
 	}
 	b := &polynomialBudget{maxOperations: options.Patch.MaxOperations, maxBits: options.Patch.MaxCoefficientBits}
-	root := *s.source
-	root.options.MaxPoles = min(root.options.MaxPoles, options.Patch.MaxPoles)
-	w := directedSweepAreaWork{budget: b, maxDepth: o.MaxDepth, maxCells: options.MaxCells}
-	defer func() { w.publish(&r) }()
-	if len(root.net) > root.options.MaxPoles {
-		return r, ErrConvergence
+	w := directedSweepAreaWork{
+		budget: b, maxDepth: o.MaxDepth, maxCells: options.MaxCells,
+		raw: make([]exactInterval, len(boundary)), best: make([]exactInterval, len(boundary)),
 	}
-	for _, q := range [3]*big.Rat{options.AbsoluteError, s.lower, s.upper} {
+	defer func() { w.publish(boundary, &r) }()
+	roots := make([]SurfacePatch, len(sweeps))
+	rulings := make([]*directedSweepRuling, len(sweeps))
+	for owner, sweep := range sweeps {
+		root := &roots[owner]
+		*root = *sweep.source
+		root.options.MaxPoles = min(root.options.MaxPoles, options.Patch.MaxPoles)
+		if len(root.net) > root.options.MaxPoles {
+			return r, ErrConvergence
+		}
+	}
+	// The pair and chain proofs require identical displacement domains.
+	displacement := exactInterval{sweeps[0].lower, sweeps[0].upper}
+	for _, q := range [3]*big.Rat{options.AbsoluteError, displacement.lo, displacement.hi} {
 		if err := b.check(q); err != nil {
 			return r, err
 		}
+	}
+	for owner, sweep := range sweeps {
+		ruling, err := certifyDirectedSweepRuling(ctx, sweep, b)
+		if err != nil {
+			return r, err
+		}
+		rulings[owner] = ruling
 	}
 	// A shared dyadic denominator bounds the accumulation cost and
 	// allocates a small fraction of the requested width to rounding.
@@ -55,19 +93,21 @@ func (s *VerifiedNormalOffsetSweep) EncloseBoundaryAreaRational(ctx context.Cont
 		return r, ErrConvergence
 	}
 	w.factor = new(big.Int).Lsh(big.NewInt(1), uint(precision))
-	for side := NormalOffsetSweepUMin; side <= NormalOffsetSweepUpper; side++ {
-		t := exactInterval{s.lower, s.upper}
-		switch side {
+	for i, original := range boundary {
+		t := displacement
+		switch original.Side {
 		case NormalOffsetSweepLower:
 			t.hi = t.lo
 		case NormalOffsetSweepUpper:
 			t.lo = t.hi
 		}
-		bounds, cells, err := w.cover(ctx, directedSweepAreaCell{patch: &root, displacement: t, side: side})
+		bounds, cells, err := w.cover(ctx, directedSweepAreaCell{
+			patch: &roots[original.Owner], displacement: t, side: original.Side, face: i, ruling: rulings[original.Owner],
+		})
 		if err != nil {
 			return r, err
 		}
-		if err := w.record(side, bounds); err != nil {
+		if err := w.record(i, bounds); err != nil {
 			return r, err
 		}
 		w.queue = append(w.queue, cells...)
@@ -81,7 +121,7 @@ type directedSweepAreaWork struct {
 	budget                     *polynomialBudget
 	factor                     *big.Int
 	maxDepth, maxCells, visits int
-	raw, best                  [6]exactInterval
+	raw, best                  []exactInterval
 	total                      exactInterval
 	queue                      directedSweepAreaQueue
 }
@@ -90,6 +130,8 @@ type directedSweepAreaCell struct {
 	patch        *SurfacePatch
 	displacement exactInterval
 	side         NormalOffsetSweepSide
+	face         int
+	ruling       *directedSweepRuling
 	depth        int
 	area         exactInterval
 	width        *big.Rat
@@ -97,11 +139,15 @@ type directedSweepAreaCell struct {
 	flatCapAxes  uint8
 }
 
-func (w *directedSweepAreaWork) publish(r *NormalOffsetSweepBoundaryArea) {
+func (w *directedSweepAreaWork) publish(boundary []VerifiedNormalOffsetSweepBoundaryFace, r *NormalOffsetSweepJoinedBoundaryArea) {
 	r.VisitedCells, r.ExactOperations = w.visits, w.budget.operations
-	for side, area := range w.best {
+	for i, area := range w.best {
 		if area.lo != nil {
-			r.Faces = append(r.Faces, NormalOffsetSweepFaceArea{Side: NormalOffsetSweepSide(side), Bounds: copySweepInterval(area)})
+			original := boundary[i]
+			r.Faces = append(r.Faces, NormalOffsetSweepJoinedFaceArea{
+				Owner:                     original.Owner,
+				NormalOffsetSweepFaceArea: NormalOffsetSweepFaceArea{Side: original.Side, Bounds: copySweepInterval(area)},
+			})
 		}
 	}
 	if len(r.Faces) == len(w.best) {
@@ -152,9 +198,9 @@ func (w *directedSweepAreaWork) cover(ctx context.Context, start directedSweepAr
 	return sum, leaves, nil
 }
 
-func (w *directedSweepAreaWork) record(side NormalOffsetSweepSide, current exactInterval) error {
+func (w *directedSweepAreaWork) record(face int, current exactInterval) error {
 	best := current
-	old := w.best[side]
+	old := w.best[face]
 	total := w.total
 	if total.lo == nil {
 		total = offsetZeroInterval()
@@ -176,7 +222,7 @@ func (w *directedSweepAreaWork) record(side NormalOffsetSweepSide, current exact
 	if a.err != nil {
 		return a.err
 	}
-	w.raw[side], w.best[side], w.total = current, best, total
+	w.raw[face], w.best[face], w.total = current, best, total
 	return nil
 }
 
@@ -215,13 +261,13 @@ func (w *directedSweepAreaWork) refine(ctx context.Context, tolerance *big.Rat) 
 		if err != nil {
 			return false, err
 		}
-		old := w.raw[parent.side]
+		old := w.raw[parent.face]
 		current := exactInterval{a.add(a.sub(old.lo, parent.area.lo), a.add(l.lo, h.lo)),
 			a.add(a.sub(old.hi, parent.area.hi), a.add(l.hi, h.hi))}
 		if a.err != nil {
 			return false, a.err
 		}
-		if err := w.record(parent.side, current); err != nil {
+		if err := w.record(parent.face, current); err != nil {
 			return false, err
 		}
 		for _, cell := range append(lCells, hCells...) {

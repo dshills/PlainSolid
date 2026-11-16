@@ -119,6 +119,8 @@ before integration and the result preserves each original owner and side.
 An adaptive directed integrator also encloses all six original faces of
 a single verified noncircular sweep, including a rotated parabolic strip
 and a doubly curved weighted spherical patch.
+Verified curved pairs and chains also use one shared directed area
+budget, measuring only their retained original faces.
 The analytic single-sweep volume can also certify exact point membership
 and bound its unique original inverse. Queries retain possible cells
 when a boundary point or an exhausted work budget prevents a proof.

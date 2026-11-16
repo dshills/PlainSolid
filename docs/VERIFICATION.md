@@ -377,6 +377,10 @@ Directed adaptive integration of one original sweep also passes independent
 per-face parabolic and doubly curved weighted spherical controls. It keeps
 valid coarse enclosures under exhausted refinement and retains 20 previous
 area, volume and original query receipts byte-for-byte.
+The joined directed query passes the rotated weighted parabolic pair
+and chain with width below 1/25 and every retained face independently
+checked. The affine controls visit exactly 10 and 14 faces, with no
+visits to omitted walls. Race and 23 predecessor receipts pass.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They
