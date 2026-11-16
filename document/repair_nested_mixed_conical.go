@@ -68,6 +68,16 @@ type conicalDocumentRepairSource interface {
 
 func conicalDocumentWithRepairProvenance(ctx context.Context, d *Document, m conicalDocumentRepairSource, historyLimit int) (*Document, error) {
 	s, _ := d.Snapshot()
+	if err := addConicalRepairProvenance(&s, m); err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return New(s, historyLimit)
+}
+
+func addConicalRepairProvenance(s *State, m conicalDocumentRepairSource) error {
 	str := func(x string) Attribute { return Attribute{Kind: "string", Text: x} }
 	digest := func(x string) Attribute {
 		q := sha256.Sum256([]byte(x))
@@ -80,7 +90,7 @@ func conicalDocumentWithRepairProvenance(ctx context.Context, d *Document, m con
 		key := fmt.Sprintf("source:step-product-%d", p.DefinitionID)
 		label, ok := s.Labels[key]
 		if !ok {
-			return nil, geom.ErrUnrepresentable
+			return geom.ErrUnrepresentable
 		}
 		label.Attributes["step.source.local-original-sha256"] = str(p.LocalSourceSHA256)
 		label.Attributes["step.source.local-corrected-sha256"] = str(p.LocalCorrectedSHA256)
@@ -88,8 +98,5 @@ func conicalDocumentWithRepairProvenance(ctx context.Context, d *Document, m con
 		label.Parent = "source:step-repair"
 		s.Labels[key] = label
 	}
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	return New(s, historyLimit)
+	return nil
 }
