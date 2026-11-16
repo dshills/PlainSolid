@@ -1,0 +1,180 @@
+package trimmed_test
+
+import (
+	"context"
+	"math/big"
+	"os"
+	"testing"
+
+	"plainsolid/brep/trimmed"
+	"plainsolid/collision"
+	"plainsolid/exchange/step"
+	"plainsolid/geom"
+)
+
+func TestOrderedMappedSTEPKnotAlignedDisplay(t *testing.T) {
+	ctx := context.Background()
+	in, err := os.Open("../../exchange/step/testdata/occt_mapped_chain_ordered_joined_independent_roofs.step")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer in.Close()
+	model, err := step.ReadOCCTMappedChainRectangularShell(ctx, in, step.Limits{}, step.MappedChainShellSTEPOptions{
+		AllowMultiSpanRoofs: true, AllowTwoInteriorRoofKnots: true, AllowUnsplitSupportKnot: true,
+		AllowMixedOwnerBases: true, AllowJoinedSupportKnotCells: true, AllowOrderedJoinedSupportKnotCells: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fill := trimmed.MixedExactMultiSpanMeshOptions{
+		Span: trimmed.MultiSpanTriangleBoundOptions{MaxDegree: 4}, MaxResidualOperations: 512 << 20,
+		Face: trimmed.MixedExactCurvedMeshOptions{
+			BoundaryModelBudget: .065,
+			Interior:            trimmed.CurvedQuadraticTrimMeshOptions{Deflection: .30, MaxSubdivisions: 64},
+		},
+	}
+	out, err := model.Shell.TessellateClosedCertified(ctx, nil, trimmed.MappedChainClosedMeshOptions{
+		AlignSupportKnots: true, MaxTriangles: 6000,
+		Boundary:  trimmed.MappedChainPolylineOptions{Deflection: .01875},
+		Curved:    [2]trimmed.MixedExactMultiSpanMeshOptions{fill, fill},
+		Collision: collision.Options{MaxPairs: 4_000_000},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out.Mesh.Triangles) != 4162 || len(out.ChainJoints) != 3 ||
+		out.SquaredDistance.Cmp(big.NewRat(9, 100)) > 0 ||
+		!out.DisplayCollision.Complete || len(out.DisplayCollision.Contacts) != 0 {
+		t.Fatal("authored knot geometry should be closed within the tighter bound", len(out.Mesh.Triangles), out.SquaredDistance.FloatString(9))
+	}
+	if err := out.Mesh.ValidateSolid(); err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("triangles=%d distance²=%s pairs=%d rounds=%d", len(out.Mesh.Triangles),
+		out.SquaredDistance.FloatString(12), out.DisplayCollision.BroadPhasePairs, out.RefinementRounds)
+	for owner, roof := range out.Curved {
+		patch, err := geom.NewSurfacePatch(model.Native.Solid.Faces()[owner].Surface.(*geom.BSplineSurface), geom.SurfacePatchOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		us, vs := patch.KnotBreaks()
+		axis, knots := 0, us
+		if len(vs) > len(us) {
+			axis, knots = 1, vs
+		}
+		cells := make([]*geom.SurfacePatch, len(knots)-1)
+		d := patch.Domain()
+		for i := range cells {
+			if axis == 0 {
+				d.UMin, d.UMax = knots[i], knots[i+1]
+			} else {
+				d.VMin, d.VMax = knots[i], knots[i+1]
+			}
+			cells[i], err = patch.Trim(d)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		edges := make(map[[2]int]int)
+		usedKnots := make(map[int]bool)
+		creased, exceedsDefault := false, false
+		for triangle, tri := range roof.Mesh.Triangles {
+			uv := [3][2]*big.Rat{roof.ExactUV[tri[0]], roof.ExactUV[tri[1]], roof.ExactUV[tri[2]]}
+			i := -1
+			for span := range cells {
+				lo, hi := new(big.Rat).SetFloat64(knots[span]), new(big.Rat).SetFloat64(knots[span+1])
+				if uv[0][axis].Cmp(lo) >= 0 && uv[1][axis].Cmp(lo) >= 0 && uv[2][axis].Cmp(lo) >= 0 &&
+					uv[0][axis].Cmp(hi) <= 0 && uv[1][axis].Cmp(hi) <= 0 && uv[2][axis].Cmp(hi) <= 0 {
+					i = span
+					break
+				}
+			}
+			if i < 0 || out.RoofSupportCells[owner][triangle][axis] != i ||
+				out.RoofSupportCells[owner][triangle][1-axis] != 0 {
+				t.Fatal("a geometric triangle crosses an original knot or lost its original support slot", owner, tri, i)
+			}
+			if !exceedsDefault {
+				a, b, c := exactMeshVector(roof.Mesh.Vertices[tri[0]]), exactMeshVector(roof.Mesh.Vertices[tri[1]]), exactMeshVector(roof.Mesh.Vertices[tri[2]])
+				facet := exactMeshCross(exactMeshSub(b, a), exactMeshSub(c, a))
+				u, v := new(big.Rat), new(big.Rat)
+				for _, p := range uv {
+					u.Add(u, p[0])
+					v.Add(v, p[1])
+				}
+				u.Quo(u, big.NewRat(3, 1))
+				v.Quo(v, big.NewRat(3, 1))
+				j, err := cells[i].EvaluateRational(ctx, u, v, geom.SurfacePatchEvaluationOptions{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				normal := exactMeshCross(j.Du, j.Dv)
+				dot := exactMeshDot(facet, normal)
+				off := exactMeshCross(facet, normal)
+				// sin(.2) <= .2 and cos(.2) >= .98 imply tan(.2) <= 10/49.
+				upper := new(big.Rat).Mul(big.NewRat(100, 2401), new(big.Rat).Mul(dot, dot))
+				exceedsDefault = dot.Sign() <= 0 || exactMeshDot(off, off).Cmp(upper) > 0
+			}
+			for side, a := range tri {
+				b := tri[(side+1)%3]
+				key := [2]int{min(a, b), max(a, b)}
+				other, paired := edges[key]
+				edges[key] = i
+				if !paired || other == i {
+					continue
+				}
+				knot := max(i, other)
+				station := new(big.Rat).SetFloat64(knots[knot])
+				p, q := roof.ExactUV[a], roof.ExactUV[b]
+				if p[axis].Cmp(station) != 0 || q[axis].Cmp(station) != 0 || max(i, other)-min(i, other) != 1 {
+					t.Fatal("disjoint source spans cannot share a display edge", owner, i, other)
+				}
+				if usedKnots[knot] {
+					continue
+				}
+				usedKnots[knot] = true
+				u := new(big.Rat).Quo(new(big.Rat).Add(p[0], q[0]), big.NewRat(2, 1))
+				v := new(big.Rat).Quo(new(big.Rat).Add(p[1], q[1]), big.NewRat(2, 1))
+				left, aErr := cells[knot-1].EvaluateRational(ctx, u, v, geom.SurfacePatchEvaluationOptions{})
+				right, bErr := cells[knot].EvaluateRational(ctx, u, v, geom.SurfacePatchEvaluationOptions{})
+				if aErr != nil || bErr != nil {
+					t.Fatal(aErr, bErr)
+				}
+				for k := range left.Point {
+					if left.Point[k].Cmp(right.Point[k]) != 0 {
+						t.Fatal("adjacent one-sided supports must lift the same edge point", owner, knot)
+					}
+				}
+				difference := exactMeshCross(exactMeshCross(left.Du, left.Dv), exactMeshCross(right.Du, right.Dv))
+				creased = creased || exactMeshDot(difference, difference).Sign() > 0
+			}
+		}
+		if len(usedKnots) != len(knots)-2 || !creased || !exceedsDefault {
+			t.Fatal("fixture must exercise every original cut, distinct one-sided derivatives and a truly excessive facet angle",
+				owner, usedKnots, creased, exceedsDefault)
+		}
+	}
+}
+
+func exactMeshVector(p geom.Vec3) [3]*big.Rat {
+	return [3]*big.Rat{new(big.Rat).SetFloat64(p.X), new(big.Rat).SetFloat64(p.Y), new(big.Rat).SetFloat64(p.Z)}
+}
+func exactMeshSub(a, b [3]*big.Rat) (out [3]*big.Rat) {
+	for k := range out {
+		out[k] = new(big.Rat).Sub(a[k], b[k])
+	}
+	return out
+}
+func exactMeshCross(a, b [3]*big.Rat) (out [3]*big.Rat) {
+	for k := range out {
+		i, j := (k+1)%3, (k+2)%3
+		out[k] = new(big.Rat).Sub(new(big.Rat).Mul(a[i], b[j]), new(big.Rat).Mul(a[j], b[i]))
+	}
+	return out
+}
+func exactMeshDot(a, b [3]*big.Rat) *big.Rat {
+	out := new(big.Rat)
+	for i := range a {
+		out.Add(out, new(big.Rat).Mul(a[i], b[i]))
+	}
+	return out
+}

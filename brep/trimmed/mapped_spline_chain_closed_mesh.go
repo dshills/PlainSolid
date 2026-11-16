@@ -34,12 +34,16 @@ type MappedChainPlanarFace struct {
 // defaults to 100000 and is capped at collision.MaxTriangles. At most 2048
 // sample occurrences across the shared seam partitions are accepted.
 type MappedChainClosedMeshOptions struct {
-	Boundary     MappedChainPolylineOptions
-	Curved       [2]MixedExactMultiSpanMeshOptions
-	ClosingProof edgecheck.Options
-	MaxTriangles int
-	MaxRounds    int
-	Collision    collision.Options
+	// AlignSupportKnots ties every curved display triangle to one original
+	// support cell. Closing trims crossing a knot must have an exact rational
+	// source parameter, and both seam owners share the resulting point.
+	AlignSupportKnots bool
+	Boundary          MappedChainPolylineOptions
+	Curved            [2]MixedExactMultiSpanMeshOptions
+	ClosingProof      edgecheck.Options
+	MaxTriangles      int
+	MaxRounds         int
+	Collision         collision.Options
 }
 
 // CertifiedMappedChainClosedMesh covers one connected, oriented manifold
@@ -58,10 +62,14 @@ type CertifiedMappedChainClosedMesh struct {
 	ChainSamples []MappedChainFaceSample
 	// ChainJoints contains incoming and outgoing samples at an original
 	// coedge boundary with one shared display vertex.
-	ChainJoints      [][2]MappedChainFaceSample
-	ClosingVertices  [][]int
-	Boundary         CertifiedMappedChainPolyline
-	Curved           [2]CertifiedMixedExactCurvedMesh
+	ChainJoints     [][2]MappedChainFaceSample
+	ClosingVertices [][]int
+	Boundary        CertifiedMappedChainPolyline
+	Curved          [2]CertifiedMixedExactCurvedMesh
+	// RoofSupportCells gives the original (u,v) span index for each triangle
+	// in Curved when AlignSupportKnots is enabled. A vertex on a crease
+	// keeps its separate one-sided support incidence in each triangle.
+	RoofSupportCells [2][][2]int
 	Planar           []CertifiedMixedExactAffineMesh
 	SquaredDistance  *big.Rat
 	DisplayVolume    *big.Rat
@@ -134,11 +142,12 @@ func (r MappedSplineChainAgreement) TessellateClosedCertified(ctx context.Contex
 	build := func(cuts [][][]*big.Rat) error {
 		out.SquaredDistance.SetInt64(0)
 		for owner := range curved {
-			x, err := r.tessellateFaceWithBoundary(ctx, owner, closing[owner], boundary, cuts[owner], o.Curved[owner])
+			x, err := r.tessellateFaceWithBoundary(ctx, owner, closing[owner], boundary, cuts[owner], o.Curved[owner], o.AlignSupportKnots)
 			if err != nil {
 				return fmt.Errorf("chain owner %d: %w", owner, err)
 			}
 			curved[owner], out.Curved[owner] = x, x.Face
+			out.RoofSupportCells[owner] = x.supportCells
 			faces[owner].mesh, faces[owner].points, faces[owner].samples = x.Face.Mesh, x.Face.ExactPoints, x.Face.UVRegion.Samples
 			if bound := x.Face.FillSquaredDistance; bound.Cmp(out.SquaredDistance) > 0 {
 				out.SquaredDistance.Set(bound)

@@ -52,10 +52,10 @@ type CertifiedMixedExactCurvedMesh struct {
 // added independently. Only interior edges refine: insufficient fixed boundary
 // sampling rejects atomically, without moving samples off their source trims.
 func TessellateMixedExactCurvedRegionCertified(ctx context.Context, p *geom.SurfacePatch, outer []PCurve, holes [][]PCurve, o MixedExactCurvedMeshOptions) (CertifiedMixedExactCurvedMesh, error) {
-	return tessellateMixedExactCurvedRegion(ctx, p, outer, holes, o, nil)
+	return tessellateMixedExactCurvedRegion(ctx, p, outer, holes, o, nil, false)
 }
 
-func tessellateMixedExactCurvedRegion(ctx context.Context, p *geom.SurfacePatch, outer []PCurve, holes [][]PCurve, o MixedExactCurvedMeshOptions, spans *multiSpanMeshWork) (CertifiedMixedExactCurvedMesh, error) {
+func tessellateMixedExactCurvedRegion(ctx context.Context, p *geom.SurfacePatch, outer []PCurve, holes [][]PCurve, o MixedExactCurvedMeshOptions, spans *multiSpanMeshWork, alignSupportKnots bool) (CertifiedMixedExactCurvedMesh, error) {
 	var empty CertifiedMixedExactCurvedMesh
 	if ctx == nil || p == nil || !finite(o.Interior.Deflection) || o.Interior.Deflection <= 0 {
 		return empty, geom.ErrInvalid
@@ -144,6 +144,12 @@ func tessellateMixedExactCurvedRegion(ctx context.Context, p *geom.SurfacePatch,
 				return empty, e
 			}
 			uv.CertifiedAffineQuadraticTrimMesh = seed
+		}
+	}
+	if alignSupportKnots {
+		uv.CertifiedAffineQuadraticTrimMesh, e = alignMappedChainUVSeed(ctx, p, uv.CertifiedAffineQuadraticTrimMesh, m.MaxTriangles)
+		if e != nil {
+			return empty, e
 		}
 	}
 	lifted, e := tessellateCertifiedTrimBoundaryMode(ctx, p, uv.CertifiedAffineQuadraticTrimMesh, m, 1, spans, l2, true)
