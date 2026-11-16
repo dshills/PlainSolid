@@ -178,5 +178,39 @@
       23552
     ],
     "old_display_receipts_unchanged": 12
+  },
+  "planar_native_brep": {
+    "main_base": "e0845470",
+    "isolated_revision": "9fb164cc1c7c60e9eb6996d1128da0670e377eca",
+    "patch_sha256": "5b4bea25b3c12e56748890702a7c3033229b0881c588c4cf50702aa4d63e3486",
+    "main_race_log": "normal-sweep-open-chain-brep-main-race.jsonl",
+    "main_race_sha256": "61b3f4a55510a92d6655cb3c995314290485ca334d56292f3ddefa99df0fe983",
+    "main_race_seconds": 1.613,
+    "isolated_race_seconds": 1.543,
+    "isolated_package_seconds": {
+      "geom": 86.53,
+      "brep": 0.814,
+      "collision": 1.037,
+      "mesh": 6.8,
+      "csg/offset": 52.964
+    },
+    "positive_five_chart_topology": [
+      24,
+      44,
+      22
+    ],
+    "exact_independent_volumes": [
+      "3/2",
+      "41/32"
+    ],
+    "seam_maps_checked": 4,
+    "support_scope": "original strictly convex planar positive-weight degree-(1,1) charts with rational normals and binary64 exact world corners",
+    "refusals": [
+      "curved original chart",
+      "nonbinary native world corner",
+      "source arithmetic limit",
+      "collision work limit",
+      "cancellation"
+    ]
   }
 }

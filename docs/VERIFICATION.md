@@ -479,6 +479,11 @@ five-chart control preserves all four original fractional seams and
 exact volume 41/32 in both distance-and-angle grids, including a
 0.04-radian certificate. Point and face coverage, closure, outward
 winding and 12 legacy outputs are independently checked.
+The exact native B-rep promotion audit retains 24 vertices, 44 edges
+and 22 original outer faces on both five-chart controls. Independent
+authored volumes are exactly 3/2 and 41/32, with reversible chart,
+wall and corner ancestry. Curved sources, nonbinary world corners,
+short work and cancellation refuse without a native body.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They
