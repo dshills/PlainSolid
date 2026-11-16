@@ -37,6 +37,9 @@ directed rational coordinate bounds, even for irrational unit normals.
 A single smooth rational patch can also prove its normal offset remains
 one-to-one through two signed model axes at each fixed displacement.
 That proof does not cover a neighboring face or the swept volume.
+When the proof is complete, the resulting offset can be used as a
+`geom.Surface`, with directed rational bounds for positions and first
+partials in the original parameters.
 For two smooth rational patches, an exact seam check now proves when
 one shared original edge has identical outward unit normals everywhere.
 The matched offset edge then remains continuous for a common distance.

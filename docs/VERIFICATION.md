@@ -64,6 +64,10 @@ Both a parabolic cylinder and its rotated signed-axis chart certify the
 full injective offset at positive and negative displacements. The
 focal line stays unresolved at the critical displacement, and a
 projection that drops an entire tangent direction cannot certify.
+The verified offset surface race passed in 2.921 seconds. Its position
+and first partials agree with independent rational and irrational values
+on the parabolic cylinder. A focal-line input cannot construct a usable
+surface, and insufficient derivative work publishes no partial result.
 The full edge normal offset seam race passed in 8.588 seconds. Two
 rational paraboloid charts with opposite station order and a different
 homogeneous scale prove the same oriented unit normals along their whole
