@@ -69,6 +69,26 @@ func VerifyClippedPolynomialThreeTransverseCommonIGES(ctx context.Context, input
 	})
 }
 
+// WriteClippedPolynomialTransverseCommon transfers an original single
+// Common body with one through five transverse four-ray junctions.
+func WriteClippedPolynomialTransverseCommon(ctx context.Context, w io.Writer, common *trimmed.ClippedPolynomialTransverseCommon, unit float64, l Limits, o ClippedPolynomialCommonIGESOptions) error {
+	if _, ok := common.ClippedFootprint(); !ok {
+		return geom.ErrInvalid
+	}
+	return writeExactBezierSingleIGES(ctx, w, common.Boundary(), unit, l, o)
+}
+
+// VerifyClippedPolynomialTransverseCommonIGES authenticates the native
+// Common body, all original owner coedges, and the intended physical units.
+func VerifyClippedPolynomialTransverseCommonIGES(ctx context.Context, input io.Reader, common *trimmed.ClippedPolynomialTransverseCommon, unit float64, l Limits, o ClippedPolynomialCommonIGESOptions) error {
+	if _, ok := common.ClippedFootprint(); !ok {
+		return geom.ErrInvalid
+	}
+	return verifyExactBezierSingleIGES(ctx, input, l, "clipped Common", func(w io.Writer) error {
+		return WriteClippedPolynomialTransverseCommon(ctx, w, common, unit, l, o)
+	})
+}
+
 func verifyExactBezierSingleIGES(ctx context.Context, input io.Reader, l Limits, family string, write func(io.Writer) error) error {
 	if ctx == nil || input == nil {
 		return geom.ErrInvalid

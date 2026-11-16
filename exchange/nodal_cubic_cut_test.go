@@ -54,7 +54,7 @@ func TestNodalCubicCutExchange(t *testing.T) {
 		if reader == "" {
 			return
 		}
-		out := readNodalCubicComponents(t, ctx, format, data, reader)
+		out := readPinnedExactComponents(t, ctx, format, data, reader)
 		if out.Solids != 2 || len(out.Components) != 2 || out.IndexedVertices != 9 {
 			t.Fatalf("independent %s changed the two components or original vertex occurrences", format)
 		}

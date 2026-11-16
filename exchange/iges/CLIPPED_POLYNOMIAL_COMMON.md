@@ -15,6 +15,13 @@ single-solid transfer for the three-crossing family. Each junction keeps one
 exact vertex record and all four original incident model edges, with the
 signed owner pcurves in their original charts.
 
+`WriteClippedPolynomialTransverseCommon` and its verifier transfer the
+single original Common shell with a discovered count from one through
+five transverse crossings. The same exact component readers qualify
+these single-body Common fixtures and the one- and five-contact Fuse
+fixtures. Each contact keeps its four original model-edge incidences.
+This single-body transfer does not change the separate thin Cut scope.
+
 The transverse fixture uses millimetres and an explicit `1e-14` maximum
 coordinate error for derived interior model and pcurve poles. Its type
 502 vertices, curve endpoints, weights and original support data keep

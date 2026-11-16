@@ -72,6 +72,27 @@ func VerifyClippedPolynomialThreeTransverseCommonSTEP(ctx context.Context, input
 	})
 }
 
+// WriteClippedPolynomialTransverseCommon transfers the original closed
+// Common with one through five transverse crossings. All four rays at
+// each exact original contact and both owner pcurves per edge remain.
+func WriteClippedPolynomialTransverseCommon(ctx context.Context, w io.Writer, common *trimmed.ClippedPolynomialTransverseCommon, name string, lengthUnit float64, l Limits, o ClippedPolynomialCommonSTEPOptions) error {
+	if _, ok := common.ClippedFootprint(); !ok {
+		return geom.ErrInvalid
+	}
+	return writeExactBezierSingleSTEP(ctx, w, common.Boundary(), name, lengthUnit, l, o)
+}
+
+// VerifyClippedPolynomialTransverseCommonSTEP authenticates the canonical
+// DATA graph against the variable-count native original-source Common.
+func VerifyClippedPolynomialTransverseCommonSTEP(ctx context.Context, input io.Reader, common *trimmed.ClippedPolynomialTransverseCommon, name string, lengthUnit float64, l Limits, o ClippedPolynomialCommonSTEPOptions) error {
+	if _, ok := common.ClippedFootprint(); !ok {
+		return geom.ErrInvalid
+	}
+	return verifyExactBezierSingleSTEP(ctx, input, l, "clipped Common", func(w io.Writer) error {
+		return WriteClippedPolynomialTransverseCommon(ctx, w, common, name, lengthUnit, l, o)
+	})
+}
+
 func verifyExactBezierSingleSTEP(ctx context.Context, input io.Reader, l Limits, family string, writeExpected func(io.Writer) error) error {
 	if ctx == nil || input == nil {
 		return geom.ErrInvalid
