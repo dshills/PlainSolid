@@ -438,6 +438,46 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   volume `726.98826561019723` and area `593.89732690669496`. Main
   focused material and wall-contact tests passed, and the isolated
   modeling and trimmed races passed in 83.948 and 7.942 seconds.
+- The [diagonal circle cap and wall proof](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
+  (`a296b700`) qualifies the independent offset `(1.5,2)` with exact
+  circular rim laws and shell-wide clearance. A targeted raw constructor
+  probe used to accept two nested caps with an interior crossing, an
+  interior tangent, or a crossing at an inner-only station; the final
+  proof rejects all three before returning geometry. The original
+  1,024-triangle and chamfered 1,536-triangle meshes have complete zero
+  self-contact and keep all native vertices. Four previous native and
+  four previous display streams are byte-identical. Main focused live
+  races passed both the modeling and trimmed packages.
+- The [explicit PlainCAD v13 bridge](evidence/plaincad-v13-ordered-step-2026-11-15.json)
+  (`399957cd`) qualified four exact interior cuts and three original
+  joints in a closed 2,822-triangle display. It certifies display distance
+  to 0.36 mm within its supported options. A fresh actual Node/WASM
+  import strictly reopened the canonical STEP and reproduced the same
+  native source receipt. Main focused native with the existing signed
+  and tilted controls passed in 136.648 seconds.
+- The native variable-count clipped Cut (`0091b243`) independently
+  checks one, four and five contacts across two axes and two original
+  footprint layouts. It agrees with the older two- and three-contact
+  APIs. The corrected whole-source reader refuses a structurally
+  consistent forged lower contact count, and a four-contact display
+  is closed. Main focused native passed in 32.925 seconds.
+  [STEP and IGES transfer](evidence/variable-transverse-cut-transfer-2026-11-15.json)
+  (`5a03aaca`) verifies 18 separately indexed vertices, 14 faces and
+  each positive component volume on the one-contact fixture with three
+  solids. Default pinned readers considered the raw higher-count shapes
+  valid but reversed the signed volumes of some thin lens shells. Both
+  public writers return a scope error with no bytes above three contacts.
+- Exact nodal cubic discovery (`9f054eb5`) recovers two arms, a closed
+  loop and all four original owner rays. It rejects a cusp, an isolated
+  acnode, a clipped loop, and irrational original endpoint examples.
+  Native Common (`4cf4205c`) retains a closed 12-face body in both
+  independently represented source orders, with exact volume
+  `807933/65536` and area `32.5713789018693` from independent
+  original-region integration. Its 128-triangle display passes exact
+  contact checks. Main native passed in 0.907 seconds; the isolated
+  nodal, clipped Common and cubic-tangency race passed in 150.237 seconds.
+  A separate broad intersect run reached its cumulative ten-minute
+  limit in the existing triple radial tube test.
 - The [tilted through-bore bridge](evidence/plaincad-tilted-bore-bridge-2026-11-15.json)
   (`8e9cae2c`) keeps both cap openings in a closed 644-triangle display and
   re-proves the original source graph on native reopen. The integrated

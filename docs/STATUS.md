@@ -265,8 +265,30 @@ four-cell source and three different joint masks. Its closed exact display
 is qualified (`821b8bcd`). Four original eccentric frustum rim chamfers
 now preserve both circular axes and prove the shell gap at all runouts
 ([independent evidence](evidence/eccentric-frustum-rim-chamfer-2026-11-15.json),
-`b600bde2`). Work continues on PlainCAD v13 repair,
-broader closed-branch discovery and advanced edge modifications.
+`b600bde2`). The [diagonal cap fallback](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
+(`a296b700`) proves both whole wall chains stay separated before filling
+the rings. The [explicit PlainCAD v13 repair](evidence/plaincad-v13-ordered-step-2026-11-15.json)
+(`399957cd`) passed the native and actual Node/WASM source, closed mesh,
+strict STEP export and fresh reopen; the typed browser worker
+qualification is in progress.
+
+The native variable-count Cut (`0091b243`) discovers one through five
+original transverse contacts. Exact component volume, source replay,
+and a separate contact-in-one-component refusal are checked. The shared
+STEP and IGES writers (`5a03aaca`) qualify one through three. Higher
+counts still need [thin-shell orientation portability](evidence/variable-transverse-cut-transfer-2026-11-15.json):
+pinned default readback automatically reversed some separate positive
+four- and five-contact lenses even though its topology validator passed.
+The public writers refuse those counts before they produce records.
+
+Nodal cubic discovery (`9f054eb5`) independently recovers a closed loop
+and two attached arms on original projected spline supports. Native
+Common (`4cf4205c`) closes the original roof sectors with one exact
+owner-chart seam where the exterior face needs separate wires. Both
+source orders retain the four node rays, exact material and display.
+Work continues on the matching Fuse and Cut, broader contact discovery
+and advanced edge modifications. Ordinary Go is also running on
+`01d12dab` and a fresh full PlainCAD run uses `a296b700`.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
