@@ -194,6 +194,8 @@ The one-cell rectangular face can also use an original V-periodic
 support. It retains the original UV orientation and derivative scales.
 The outer-only seam reader and writer now also preserve an original
 upper V seam, including both original cycle owners and trim ranges.
+A rectangle strictly inside one original knot cell can also retain both
+periodic directions and their independent original phases.
 The same original knot cell can now retain one or two strictly nested
 clockwise rectangular holes. Each keeps its raw support, paired curve
 owners and signed winding. Arbitrary periodic inner wires remain open.

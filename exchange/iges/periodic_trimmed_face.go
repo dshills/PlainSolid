@@ -21,7 +21,7 @@ type PeriodicTrimEdge struct {
 }
 
 // PeriodicTrimmedFace is one oriented, injective, exact rectangular face on a
-// type-128 support periodic only in U or only in V. Support uses physical
+// type-128 support periodic in U, V, or both. Support uses physical
 // file parameters. Patch maps the normalized unit square to the finite
 // trim. All coordinates are in original file length units. Bounds and
 // KnotOwners are in U,V order.
@@ -45,12 +45,12 @@ func (f PeriodicTrimmedFace) OriginalIGES() string { return f.original }
 // ReadPeriodicTrimmedFace proves one standalone unplaced type-144 face with
 // an explicit outer type-142 contour, four ordered type-110 UV edges and
 // four type-126 model edges. The CCW rectangle must be strictly inside one
-// original knot cell on a support periodic in one direction only. Each
+// original knot cell of the cyclic support. Each
 // UV/model correspondence is proved over the entire oriented edge under
 // its normalized affine parameter in the original source orientation.
 func ReadPeriodicTrimmedFace(ctx context.Context, r io.Reader, l Limits) (PeriodicTrimmedFace, error) {
 	var zero PeriodicTrimmedFace
-	source, err := readPeriodicTrimSourceForAxes(ctx, r, l, 4, true)
+	source, err := readPeriodicTrimSourceForAxes(ctx, r, l, 4, periodicTrimAnyAxes)
 	if err != nil {
 		return zero, err
 	}
@@ -104,11 +104,19 @@ type periodicTrimSource struct {
 	remaining int
 }
 
+type periodicTrimAxisPolicy uint8
+
+const (
+	periodicTrimUOnly periodicTrimAxisPolicy = iota
+	periodicTrimSingleAxis
+	periodicTrimAnyAxes
+)
+
 func readPeriodicTrimSource(ctx context.Context, r io.Reader, l Limits, edgeCount int, holeLayouts ...[]int) (periodicTrimSource, error) {
-	return readPeriodicTrimSourceForAxes(ctx, r, l, edgeCount, false, holeLayouts...)
+	return readPeriodicTrimSourceForAxes(ctx, r, l, edgeCount, periodicTrimUOnly, holeLayouts...)
 }
 
-func readPeriodicTrimSourceForAxes(ctx context.Context, r io.Reader, l Limits, edgeCount int, allowV bool, holeLayouts ...[]int) (periodicTrimSource, error) {
+func readPeriodicTrimSourceForAxes(ctx context.Context, r io.Reader, l Limits, edgeCount int, axes periodicTrimAxisPolicy, holeLayouts ...[]int) (periodicTrimSource, error) {
 	var zero periodicTrimSource
 	if ctx == nil {
 		return zero, geom.ErrInvalid
@@ -196,12 +204,16 @@ func readPeriodicTrimSourceForAxes(ctx context.Context, r io.Reader, l Limits, e
 	s := support.Surface
 	uOnly := s.PeriodicU && !s.PeriodicV && !s.ClosedV
 	vOnly := s.PeriodicV && !s.PeriodicU && !s.ClosedU
-	if !uOnly && !(allowV && vOnly) {
-		axes := "one U-periodic support"
-		if allowV {
-			axes += " or one V-periodic support"
+	both := s.PeriodicU && s.PeriodicV
+	if !uOnly && !(axes != periodicTrimUOnly && vOnly) && !(axes == periodicTrimAnyAxes && both) {
+		expected := "one U-periodic support with an open opposite axis"
+		if axes != periodicTrimUOnly {
+			expected = "one U-periodic support or one V-periodic support with an open opposite axis"
 		}
-		return zero, fmt.Errorf("iges: periodic trim requires %s with an open opposite axis: %w", axes, geom.ErrUnrepresentable)
+		if axes == periodicTrimAnyAxes {
+			expected += " or a doubly periodic support"
+		}
+		return zero, fmt.Errorf("iges: periodic trim requires %s: %w", expected, geom.ErrUnrepresentable)
 	}
 	m.Support, err = support.Surface.ExactPeriodicGeometry()
 	if err != nil {

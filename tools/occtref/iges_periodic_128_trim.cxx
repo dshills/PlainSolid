@@ -48,6 +48,26 @@ static occ::handle<Geom_BSplineSurface> periodicSupport()
     return new Geom_BSplineSurface(poles,ku,kv,mu,mv,2,1,true,false);
 }
 
+static occ::handle<Geom_BSplineSurface> doublyPeriodicSupport()
+{
+    const std::array<gp_XY,5> xy{gp_XY(6,0),gp_XY(5,4),gp_XY(1,7),gp_XY(-4,3),gp_XY(-2,-4)};
+    const std::array<int,5> radius{5,4,3,3,4}, height{0,2,3,-1,-2};
+    NCollection_Array2<gp_Pnt> poles(1,5,1,5);
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 5; ++j) {
+            poles(i+1,j+1) = gp_Pnt(radius[j]*xy[i].X(),radius[j]*xy[i].Y(),height[j]);
+        }
+    }
+    NCollection_Array1<double> ku(1,6), kv(1,6);
+    NCollection_Array1<int> mult(1,6);
+    for (int i = 1; i <= 6; ++i) {
+        ku(i) = i-1;
+        kv(i) = i+1;
+        mult(i) = 1;
+    }
+    return new Geom_BSplineSurface(poles,ku,kv,mult,mult,2,2,true,true);
+}
+
 static TopoDS_Face original(bool crossesSeam)
 {
     auto surface = periodicSupport();
@@ -59,23 +79,32 @@ static TopoDS_Face original(bool crossesSeam)
 static occ::handle<IGESGeom_BSplineSurface> exactCarrier(const occ::handle<Geom_BSplineSurface>& native,
                                                        double u0, double u1, double v0, double v1)
 {
-    const bool periodicU = native->IsUPeriodic();
-    auto periodicKnots = new NCollection_HArray1<double>(-2,7);
-    auto straightKnots = new NCollection_HArray1<double>(-1,2);
-    for (int i = -2; i <= 7; ++i) periodicKnots->SetValue(i, i);
-    for (int i = -1; i <= 2; ++i) straightKnots->SetValue(i, i <= 0 ? 0. : 4.);
-    const int lastU = periodicU ? 6 : 1, lastV = periodicU ? 1 : 6;
+    const auto fixtureKnots = [](bool periodic, double first, double last) -> occ::handle<NCollection_HArray1<double>> {
+        if (periodic) {
+            auto knots = new NCollection_HArray1<double>(-2,7);
+            for (int i = -2; i <= 7; ++i) knots->SetValue(i,first+i);
+            return knots;
+        }
+        auto knots = new NCollection_HArray1<double>(-1,2);
+        for (int i = -1; i <= 2; ++i) knots->SetValue(i,i <= 0 ? first : last);
+        return knots;
+    };
+    const bool periodicU = native->IsUPeriodic(), periodicV = native->IsVPeriodic();
+    const auto ku = fixtureKnots(periodicU,native->UKnot(1),native->UKnot(native->NbUKnots()));
+    const auto kv = fixtureKnots(periodicV,native->VKnot(1),native->VKnot(native->NbVKnots()));
+    const int countU = native->NbUPoles(), countV = native->NbVPoles();
+    const int lastU = countU-1 + (periodicU ? 2 : 0), lastV = countV-1 + (periodicV ? 2 : 0);
     auto weights = new NCollection_HArray2<double>(0,lastU,0,lastV);
     auto poles = new NCollection_HArray2<gp_XYZ>(0,lastU,0,lastV);
     for (int i = 0; i <= lastU; ++i) {
         for (int j = 0; j <= lastV; ++j) {
-            poles->SetValue(i,j,native->Pole(i%5+1,j%5+1).XYZ());
+            poles->SetValue(i,j,native->Pole(i%countU+1,j%countV+1).XYZ());
             weights->SetValue(i,j,1.);
         }
     }
     occ::handle<IGESGeom_BSplineSurface> support = new IGESGeom_BSplineSurface;
-    support->Init(lastU,lastV,native->UDegree(),native->VDegree(),periodicU,!periodicU,true,periodicU,!periodicU,
-                  periodicU?periodicKnots:straightKnots,periodicU?straightKnots:periodicKnots,weights,poles,u0,u1,v0,v1);
+    support->Init(lastU,lastV,native->UDegree(),native->VDegree(),periodicU,periodicV,true,periodicU,periodicV,
+                  ku,kv,weights,poles,u0,u1,v0,v1);
     support->InitStatus(0,1,0,0);
 
     return support;
@@ -96,8 +125,7 @@ static occ::handle<IGESGeom_CurveOnSurface> exactContour(const occ::handle<Geom_
         uv->InitStatus(0,1,0,0);
         uvMembers->SetValue(i+1,uv);
 
-        const bool curves = native->IsUPeriodic() ? a.X() != b.X() : a.Y() != b.Y();
-        const int degree = curves ? 2 : 1;
+        const int degree = a.X() == b.X() ? native->VDegree() : native->UDegree();
         const double first = station + 2.*i, last = first+1.;
         auto knots = new NCollection_HArray1<double>(-degree,degree+1);
         auto w = new NCollection_HArray1<double>(0,degree);
@@ -313,6 +341,20 @@ static bool report(const TopoDS_Shape& shape, bool boundary = false, bool allWir
     return valid;
 }
 
+static bool writeExactUVCell(const char* path, bool clockwise)
+{
+    const auto native = doublyPeriodicSupport();
+    const auto support = exactCarrier(native,1.25,1.75,2.25,2.75);
+    std::array<gp_XY,4> outer{gp_XY(1.25,2.25),gp_XY(1.75,2.25),gp_XY(1.75,2.75),gp_XY(1.25,2.75)};
+    if (clockwise) std::reverse(outer.begin(),outer.end());
+    occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
+    face->Init(support,1,exactContour(native,support,outer,32),nullptr);
+    const auto reference = BRepBuilderAPI_MakeFace(native,1.25,1.75,2.25,2.75,1e-9).Face();
+    if (reference.IsNull() || !report(reference)) return false;
+    IGESControl_Writer writer("MM",0);
+    return writer.AddEntity(face) && writer.Write(path);
+}
+
 int main(int argc,char** argv)
 {
     if (argc != 3) return 2;
@@ -334,6 +376,9 @@ int main(int argc,char** argv)
         }
         if (mode == "write-exact-v-cell" || mode == "write-exact-v-cell-clockwise" || mode == "write-exact-v-seam") {
             return writeExactVTrim(argv[2],mode) ? 0 : 8;
+        }
+        if (mode == "write-exact-uv-cell" || mode == "write-exact-uv-cell-clockwise") {
+            return writeExactUVCell(argv[2],mode == "write-exact-uv-cell-clockwise") ? 0 : 8;
         }
         if (mode == "write" || mode == "write-seam") {
             const TopoDS_Face face = original(mode == "write-seam");

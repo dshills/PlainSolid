@@ -22,7 +22,7 @@ func WritePeriodicSeamTrimmedFace(ctx context.Context, w io.Writer, face Periodi
 	if w == nil || face.original == "" {
 		return geom.ErrInvalid
 	}
-	source, err := readPeriodicTrimSourceForAxes(ctx, strings.NewReader(face.original), Limits{}, 6, true)
+	source, err := readPeriodicTrimSourceForAxes(ctx, strings.NewReader(face.original), Limits{}, 6, periodicTrimSingleAxis)
 	if err != nil {
 		return err
 	}

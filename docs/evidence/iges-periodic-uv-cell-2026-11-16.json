@@ -1,0 +1,297 @@
+{
+  "implementationCommit": "41b48edd773b9bcac53dc9dd8daf4de25a57872e",
+  "dependency": "98ef419f78f214120f69d39f5f131d584e37cf72",
+  "patch": {
+    "name": "import-double-periodic-iges-144-cell.patch",
+    "sha256": "0eb60c7534e777bae5b792f052cfd06eeba385343718c99483a7677d6e4da58f",
+    "bytes": 32870
+  },
+  "scope": "Type-144 outer-only counterclockwise rectangle strictly inside one original knot cell on a doubly periodic type-128 spline. Exact proof retains both cycles and all directed model/UV owners.",
+  "chart": {
+    "fileUnits": "mm",
+    "fullSupport": [
+      [
+        "0",
+        "5"
+      ],
+      [
+        "2",
+        "7"
+      ]
+    ],
+    "originalKnotOwners": [
+      [
+        "1",
+        "2"
+      ],
+      [
+        "2",
+        "3"
+      ]
+    ],
+    "originalCycles": [
+      0,
+      0
+    ],
+    "bounds": [
+      [
+        "5/4",
+        "7/4"
+      ],
+      [
+        "9/4",
+        "11/4"
+      ]
+    ],
+    "projection": [
+      "X",
+      "Y"
+    ],
+    "projectionOrientation": 1,
+    "normalizedPhysicalDerivativeFactors": [
+      "1/2",
+      "1/2"
+    ],
+    "wrappedPhysicalDerivativesExactlyEqual": true
+  },
+  "graph": {
+    "type144FaceID": 1,
+    "type128SupportID": 3,
+    "type142ContourID": 5,
+    "type102UVAndModelIDs": [
+      7,
+      17
+    ],
+    "UVLineOwnerIDs": [
+      9,
+      11,
+      13,
+      15
+    ],
+    "modelSplineOwnerIDs": [
+      19,
+      21,
+      23,
+      25
+    ],
+    "originalModelRangeStarts": [
+      32,
+      34,
+      36,
+      38
+    ],
+    "expandedSupportPoles": [
+      7,
+      7
+    ],
+    "cyclicSupportPoles": [
+      5,
+      5
+    ],
+    "directoryOwnerTotal": 13,
+    "poleBudgetTotal": 61
+  },
+  "pinnedOCCT": {
+    "revision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+    "binary": {
+      "name": "author",
+      "sha256": "f1eff62a7388adc0b247336e9e4dfd45ec3fe5b0546f9a8ff16465a93e7d2e5e",
+      "bytes": 148056
+    },
+    "source": {
+      "name": "iges_periodic_128_trim.cxx",
+      "sha256": "a22707b055f3c50b0192f1748c3dbd9596239376e70475a4fdb9732bd1f969f1",
+      "bytes": 19347
+    },
+    "readMode": "read-wires"
+  },
+  "fixtures": {
+    "exactCell": {
+      "source": {
+        "name": "exact-uv-cell.iges",
+        "sha256": "6aa5ebc47d646fe6cc763d03759a42701bbf9ec153d4533dcf9f8bc345ab5bc3",
+        "bytes": 5265
+      },
+      "exactOriginalUVSignedArea": "1/4",
+      "result": "All four pairs and native physical jet samples exactly preserved",
+      "independentAuthorReport": {
+        "name": "exact-uv-cell.author.log",
+        "sha256": "c3fd76ced14b8c4abee221caedd97063f12e5fd1f339c1c8b681b478525fc09c",
+        "bytes": 707
+      },
+      "pinnedTransferReport": {
+        "name": "exact-uv-cell.reader.log",
+        "sha256": "3c1c515c321ae44d1895b13556bb4958d5cf4f39616445e17e979a34990be555",
+        "bytes": 1687
+      },
+      "nativeShape": {
+        "valid": true,
+        "topology": [
+          1,
+          1,
+          4,
+          4
+        ],
+        "area": 28.33000495228164,
+        "perimeter": 24.786404231839146,
+        "periodicU": true,
+        "periodicV": true,
+        "bounds": [
+          1.25,
+          1.75,
+          2.25,
+          2.75
+        ],
+        "samplesCount": 5
+      },
+      "transferredShape": {
+        "valid": true,
+        "topology": [
+          1,
+          1,
+          4,
+          4
+        ],
+        "area": 28.330004952281637,
+        "perimeter": 24.786404260221083,
+        "periodicU": true,
+        "periodicV": true,
+        "bounds": [
+          1.25,
+          1.75,
+          2.25,
+          2.75
+        ],
+        "samplesCount": 5,
+        "wiresCount": 1
+      },
+      "nativeAndTransferredJetsMatch": true
+    },
+    "clockwiseControl": {
+      "source": {
+        "name": "exact-uv-cell-clockwise.iges",
+        "sha256": "95d3e34805e03767e97175cd9de0cde7d9d7547184cd09cd128c5d93f3d0dce4",
+        "bytes": 5265
+      },
+      "exactOriginalUVSignedArea": "-1/4",
+      "result": "Strict original winding refusal; pinned consumer creates another outer wire and rephases its chart",
+      "independentAuthorReport": {
+        "name": "exact-uv-cell-clockwise.author.log",
+        "sha256": "c3fd76ced14b8c4abee221caedd97063f12e5fd1f339c1c8b681b478525fc09c",
+        "bytes": 707
+      },
+      "pinnedTransferReport": {
+        "name": "exact-uv-cell-clockwise.reader.log",
+        "sha256": "456029d36952ad3b7ec8066945a6cc04695a539ebeeae828a794bd9e497f3ccc",
+        "bytes": 3023
+      },
+      "nativeShape": {
+        "valid": true,
+        "topology": [
+          1,
+          1,
+          4,
+          4
+        ],
+        "area": 28.33000495228164,
+        "perimeter": 24.786404231839146,
+        "periodicU": true,
+        "periodicV": true,
+        "bounds": [
+          1.25,
+          1.75,
+          2.25,
+          2.75
+        ],
+        "samplesCount": 5
+      },
+      "transferredShape": {
+        "valid": true,
+        "topology": [
+          1,
+          2,
+          6,
+          5
+        ],
+        "area": 1942.7121857846614,
+        "perimeter": 306.99103714951474,
+        "periodicU": true,
+        "periodicV": true,
+        "bounds": [
+          3.375,
+          8.375,
+          6.875,
+          11.875
+        ],
+        "samplesCount": 5,
+        "wiresCount": 2
+      },
+      "nativeAndTransferredJetsMatch": false
+    }
+  },
+  "atomicNegatives": [
+    "Original clockwise winding",
+    "U or V clipped bound touching original knot station",
+    "Sub-ULP disagreement of a repeated U or V periodic ghost pole",
+    "Duplicate curve owner",
+    "Sub-ULP off-support model control",
+    "One entity or control too few"
+  ],
+  "tests": {
+    "focused": {
+      "name": "focused.log",
+      "sha256": "b4346ea7bab7a1b1e6194b43acaa5c9e489d1795d91efd0f23b606152a8e7cd5",
+      "bytes": 638,
+      "seconds": 0.406,
+      "passed": true
+    },
+    "race": {
+      "name": "race.log",
+      "sha256": "d5bc8375bbc193001cf7414832dc69fbd9c72668fc83fd817633820c3fba476b",
+      "bytes": 17397,
+      "seconds": 13.638,
+      "passed": true
+    },
+    "raceFilter": "^(TestWritePeriodic(SeamTrimmedFace|TrimmedFaceWithHoles)|TestReadPeriodic(Seam)?TrimmedFace|TestPeriodicTrimmedFaceSeam|TestReadExactPeriodicSurface128|TestWriteExactPeriodicSurface128|TestNewExactPeriodicSurface128|TestSurfaceExchange|TestIndependentSurfaceParameters|TestExactCurveOnSurface|TestCurveOnSurfaceRejectsMismatch|TestCurveOnSurfacePointerAndLimits|TestMalformedRecordsAndPointers|TestLimits|TestOrthogonalSurface|TestPlacedRectangularSurface|TestQuadraticOvalSurface|TestCurvedOvalSurface|TestPlanarSolidIGES)",
+    "darwinAMD64": {
+      "name": "amd64.log",
+      "sha256": "56f0e9829266fd64e60d73850c9c651e5055a1ce873db61e9ba0e9f174cfc27a",
+      "bytes": 601,
+      "seconds": null,
+      "passed": true
+    },
+    "fullIGES": {
+      "name": "full.log",
+      "sha256": "ea28dd614bc49d180b51a90e77670d451eeb4b2d2327805cb6e5db404c061690",
+      "bytes": 39,
+      "seconds": 129.51,
+      "passed": true
+    }
+  },
+  "unchangedPredecessorOutputs": {
+    "legacy/exact-seam-mixed-reversed.iges": "bb6edfe352a29f242c4d1edf8d7e07a302f2d483887c143f2b3f5214b9db061c",
+    "legacy/exact-seam-mixed.iges": "bd61596d4d91a54e948877df5eb8328ba7297c5f09bd5c18f4e86848f7107691",
+    "legacy/one-hole.iges": "deb74dcd6a9d28b5b5bf879596718e43746a801c1c1d06ae16007ab351ac772e",
+    "legacy/ordinary/curves.iges": "e7306c47f1c1b717d0b4dcbc988eb9f42ca22207962c334c8250cd9cc4fdbca3",
+    "legacy/ordinary/rectangular-spline-face.igs": "30b5dd8b91a26096740288382b4c2c8c0d514732cc0d165e5d1fdd5cec2fd26b",
+    "legacy/ordinary/translated-trimmed-rational-128.iges": "ab24c50ad001536723860888a87376f38b9be3a9e08e6aae46eac59d9ddba72d",
+    "legacy/periodic/native-rephased.iges": "2d7538bdad0be19a9f8181c8f71edf0a6a972b50642efe73e5dea93f25a8ca65",
+    "legacy/periodic/u.iges": "27caf6f5f36ba1a16050b139072f35e17a084b5641fcd33fccb4547eac752310",
+    "legacy/periodic/uv.iges": "8190bed840cf2723f44f2754f78fcdb8019deddbfe1a7f97f9f53f92e3cb3156",
+    "legacy/periodic/v.iges": "b543d8b06967e59cd06b20598c6bafeb1e918fe5d445bda36556a4cac6068b60",
+    "legacy/planar.iges": "992bbaa2bcd500dc22dc973966ede61632acb7c4b66eff90fedd0abaf18343cd",
+    "legacy/seam-hole.iges": "1a490104f5ea88187c2009ede8f62a33e2b59c3432f62d99ec99c737d6703727",
+    "legacy/seam.iges": "c323d9b453c627dc16b42833d058d71cbd14313947c8d94d5fbdf4f1154b2b2e",
+    "legacy/two-holes.iges": "f8d62d3bccc673ebf24bdc404a26c69f3f3171b3dd446d42cab036a201eab359",
+    "legacy/v-seam.iges": "a80b7267e81775c437803c06d035c82ba4666521942c5552faf15390f5492637"
+  },
+  "sourceQualificationSHA256": "fd404e3ad18654ce2f0187d6e441a452d2058a07b22f320a53d3965115461a0c",
+  "mainRace": {
+    "sourceBase": "0119cbeb",
+    "name": "iges-periodic-uv-cell-main-race.jsonl",
+    "sha256": "a634222a87c5c93338aaed104e8d8bb067455b8c099a5cd8710604c196a928f5",
+    "seconds": 15.183,
+    "failures": 0,
+    "skips": 0
+  }
+}

@@ -386,6 +386,10 @@ passes six complete original pairs and two source cycles. The exact
 canonical file is identical across both executed macOS architectures,
 and the independent original and exported reports agree byte for byte.
 Main race and 14 predecessor digests pass.
+The [doubly periodic one-cell audit](evidence/iges-periodic-uv-cell-2026-11-16.json)
+matches five pinned original physical jets and all four directed pairs
+with both cyclic axes. Sub-ULP owner changes and the original clockwise
+loop refuse. Main race, full IGES, amd64 and 15 prior outputs pass.
 The [valid periodic seam trim](evidence/iges-periodic-seam-trimmed-2026-11-16.json)
 passes independently authored type 144, the pinned reopen and main race.
 The reader retains six original directed pairs, distinct seam stations,
