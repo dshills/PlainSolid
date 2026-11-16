@@ -62,6 +62,8 @@ owners at shared vertices, with optional continuous facet-angle proof.
 Three original sweeps can now compose along two oppositely oriented
 parallel walls, preserving both original join maps, fourteen analytic
 outer faces, and a strict exact gap between the nonadjacent ends.
+The proved three-chart chain also has an embedded closed display that
+propagates both original exact station maps across the middle chart.
 The analytic single-sweep volume can also certify exact point membership
 and bound its unique original inverse. Queries retain possible cells
 when a boundary point or an exhausted work budget prevents a proof.

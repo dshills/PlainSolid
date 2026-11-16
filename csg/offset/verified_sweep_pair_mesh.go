@@ -131,48 +131,61 @@ type verifiedSweepPairGrid struct {
 
 func makeVerifiedSweepPairGrids(domains [2]geom.ParameterRectangle, displacement geom.ExactParameterInterval,
 	join geom.VerifiedNormalOffsetSweepJoin, n, nT int) (grids [2]verifiedSweepPairGrid) {
-	ends := [2][2][2]float64{
-		{{domains[0].UMin, domains[0].UMax}, {domains[0].VMin, domains[0].VMax}},
-		{{domains[1].UMin, domains[1].UMax}, {domains[1].VMin, domains[1].VMax}},
-	}
-	t := sweepRationalStations(displacement.Lower, displacement.Upper, nT)
-	for owner := range grids {
-		g := &grids[owner]
-		g.segments = [3]int{n, n, nT}
-		g.stations[2] = t
-		for axis, interval := range ends[owner] {
-			lo, hi := sweepRat(interval[0]), sweepRat(interval[1])
-			if owner == 1 && axis == 1-int(join.Edges[1])/2 {
-				g.stations[axis] = verifiedSweepPairBStations(lo, hi, join, n)
-			} else {
-				g.stations[axis] = sweepRationalStations(lo, hi, n)
-			}
-			g.brackets[axis] = make([][2]float64, n+1)
-			for i, station := range g.stations[axis] {
-				g.brackets[axis][i] = verifiedSweepPairStationBracket(station, interval)
-			}
-			collar := new(big.Rat).Sub(hi, lo)
-			collar.Quo(collar, big.NewRat(int64(32*n), 1))
-			left, _ := new(big.Rat).Add(lo, collar).Float64()
-			right, _ := new(big.Rat).Sub(hi, collar).Float64()
-			if left <= interval[0] {
-				left = math.Nextafter(interval[0], interval[1])
-			}
-			if right >= interval[1] {
-				right = math.Nextafter(interval[1], interval[0])
-			}
-			g.interiorSide[axis] = [2]float64{left, right}
-		}
-	}
+	displacements := sweepRationalStations(displacement.Lower, displacement.Upper, nT)
+	grids[0] = makeVerifiedSweepChartGrid(domains[0], displacements, n, [2][]*big.Rat{})
+	mappedAxis := 1 - int(join.Edges[1])/2
+	domainB := sweepChartUVExtents(domains[1])[mappedAxis]
+	stationsA := grids[0].stations[1-int(join.Edges[0])/2]
+	var mapped [2][]*big.Rat
+	mapped[mappedAxis] = remapVerifiedSweepStations(stationsA, domainB, join)
+	grids[1] = makeVerifiedSweepChartGrid(domains[1], displacements, n, mapped)
 	return grids
 }
 
-func verifiedSweepPairBStations(lo, hi *big.Rat, join geom.VerifiedNormalOffsetSweepJoin, n int) []*big.Rat {
-	out := make([]*big.Rat, n+1)
+func sweepChartUVExtents(domain geom.ParameterRectangle) [2][2]float64 {
+	return [2][2]float64{{domain.UMin, domain.UMax}, {domain.VMin, domain.VMax}}
+}
+
+func makeVerifiedSweepChartGrid(domain geom.ParameterRectangle, displacements []*big.Rat,
+	n int, mapped [2][]*big.Rat) (g verifiedSweepPairGrid) {
+	g.segments = [3]int{n, n, len(displacements) - 1}
+	g.stations[2] = displacements
+	for axis, interval := range sweepChartUVExtents(domain) {
+		lo, hi := sweepRat(interval[0]), sweepRat(interval[1])
+		g.stations[axis] = mapped[axis]
+		if mapped[axis] == nil {
+			g.stations[axis] = sweepRationalStations(lo, hi, n)
+		}
+		g.brackets[axis] = make([][2]float64, n+1)
+		for i, station := range g.stations[axis] {
+			g.brackets[axis][i] = verifiedSweepPairStationBracket(station, interval)
+		}
+		collar := new(big.Rat).Sub(hi, lo)
+		collar.Quo(collar, big.NewRat(int64(32*n), 1))
+		left, _ := new(big.Rat).Add(lo, collar).Float64()
+		right, _ := new(big.Rat).Sub(hi, collar).Float64()
+		if left <= interval[0] {
+			left = math.Nextafter(interval[0], interval[1])
+		}
+		if right >= interval[1] {
+			right = math.Nextafter(interval[1], interval[0])
+		}
+		g.interiorSide[axis] = [2]float64{left, right}
+	}
+	return g
+}
+
+// The source stations may already have come from another original chart.
+func remapVerifiedSweepStations(source []*big.Rat, target [2]float64, join geom.VerifiedNormalOffsetSweepJoin) []*big.Rat {
+	out := make([]*big.Rat, len(source))
+	first, last := source[0], source[len(source)-1]
+	sourceWidth := new(big.Rat).Sub(last, first)
+	lo, hi := sweepRat(target[0]), sweepRat(target[1])
 	width := new(big.Rat).Sub(hi, lo)
 	one := big.NewRat(1, 1)
-	for i := range out {
-		s := big.NewRat(int64(i), int64(n))
+	for i, p := range source {
+		s := new(big.Rat).Sub(p, first)
+		s.Quo(s, sourceWidth)
 		if join.BStationRatio != nil {
 			scaled := new(big.Rat).Mul(s, join.BStationRatio)
 			denominator := new(big.Rat).Sub(scaled, s)
@@ -180,7 +193,7 @@ func verifiedSweepPairBStations(lo, hi *big.Rat, join geom.VerifiedNormalOffsetS
 		}
 		j := i
 		if join.ReverseB {
-			j = n - i
+			j = len(source) - 1 - i
 			s.Sub(one, s)
 		}
 		out[j] = s.Add(lo, s.Mul(width, s))
@@ -321,11 +334,42 @@ func (b *verifiedSweepPairMeshBuilder) vertex(ctx context.Context, w *verifiedSw
 func (b *verifiedSweepPairMeshBuilder) cell(ctx context.Context, w *verifiedSweepMeshWork,
 	sweep *geom.VerifiedNormalOffsetSweep, grid verifiedSweepPairGrid, face geom.VerifiedNormalOffsetSweepBoundaryFace,
 	lo [3]int, free [2]int, limit *big.Rat) error {
-	if err := ctx.Err(); err != nil {
+	cell, err := certifyVerifiedSweepOuterCell(ctx, w, sweep, grid, face, lo, free, limit, &b.out.Mesh.Vertices,
+		func(station [3]int) (int, [3]*big.Rat, error) {
+			id, err := b.vertex(ctx, w, sweep, grid, face.Owner, station)
+			if err != nil {
+				return 0, [3]*big.Rat{}, err
+			}
+			return id, b.represented[id], nil
+		})
+	if err != nil {
 		return err
 	}
+	if cell.distance.Cmp(b.out.DistanceUpperSquared) > 0 {
+		b.out.DistanceUpperSquared = cell.distance
+	}
+	if cell.angle != nil && cell.angle.Cmp(b.out.SquaredFacetNormalTangent) > 0 {
+		b.out.SquaredFacetNormalTangent = cell.angle
+	}
+	b.out.Mesh.Triangles = append(b.out.Mesh.Triangles, cell.triangles[:]...)
+	source := VerifiedSweepPairMeshFace{Owner: face.Owner, Side: face.Side}
+	b.out.OriginalFace = append(b.out.OriginalFace, source, source)
+	return nil
+}
+
+type certifiedVerifiedSweepOuterCell struct {
+	triangles       [2][3]int
+	distance, angle *big.Rat
+}
+
+func certifyVerifiedSweepOuterCell(ctx context.Context, w *verifiedSweepMeshWork, sweep *geom.VerifiedNormalOffsetSweep,
+	grid verifiedSweepPairGrid, face geom.VerifiedNormalOffsetSweepBoundaryFace, lo [3]int, free [2]int, limit *big.Rat,
+	vertices *[]geom.Vec3, vertex func([3]int) (int, [3]*big.Rat, error)) (c certifiedVerifiedSweepOuterCell, err error) {
+	if err := ctx.Err(); err != nil {
+		return c, err
+	}
 	if w.remaining() == 0 {
-		return ErrLimit
+		return c, ErrLimit
 	}
 	hi := lo
 	hi[free[0]]++
@@ -335,10 +379,10 @@ func (b *verifiedSweepPairMeshBuilder) cell(ctx context.Context, w *verifiedSwee
 	box, err := sweep.BoundsRational(ctx, rect, t0, t1, geom.SurfacePatchOptions{MaxOperations: w.remaining()})
 	w.charge(box.ExactOperations)
 	if err != nil {
-		return err
+		return c, err
 	}
 	if verifiedSweepBoxDiameterSquared(box, nil).Cmp(limit) > 0 {
-		return geom.ErrConvergence
+		return c, geom.ErrConvergence
 	}
 	corners := [4][3]int{lo, lo, hi, lo}
 	corners[1][free[0]]++
@@ -346,44 +390,35 @@ func (b *verifiedSweepPairMeshBuilder) cell(ctx context.Context, w *verifiedSwee
 	var ids [4]int
 	var rounded [4][3]*big.Rat
 	for i, station := range corners {
-		id, err := b.vertex(ctx, w, sweep, grid, face.Owner, station)
+		id, exact, err := vertex(station)
 		if err != nil {
-			return err
+			return c, err
 		}
-		ids[i], rounded[i] = id, b.represented[id]
+		ids[i], rounded[i] = id, exact
 	}
-	bound := verifiedSweepBoxDiameterSquared(box, rounded[:])
-	if bound.Cmp(limit) > 0 {
-		return geom.ErrConvergence
-	}
-	if bound.Cmp(b.out.DistanceUpperSquared) > 0 {
-		b.out.DistanceUpperSquared = bound
+	c.distance = verifiedSweepBoxDiameterSquared(box, rounded[:])
+	if c.distance.Cmp(limit) > 0 {
+		return c, geom.ErrConvergence
 	}
 	reverse := face.Face.ReverseWinding()
-	triangles := verifiedSweepCellTriangles(ids, reverse, false)
+	c.triangles = verifiedSweepCellTriangles(ids, reverse, false)
 	if w.options.NormalAngle > 0 {
 		if w.remaining() == 0 {
-			return ErrLimit
+			return c, ErrLimit
 		}
 		box, err := face.Face.NormalBoundsRational(ctx, rect, t0, t1, geom.SurfacePatchOptions{MaxOperations: w.remaining()})
 		w.charge(box.ExactOperations)
 		if err != nil {
-			return err
+			return c, err
 		}
-		angle, err := verifiedSweepFacetBound(box.Bounds, triangles, b.out.Mesh.Vertices, w.options.NormalAngle)
+		c.angle, err = verifiedSweepFacetBound(box.Bounds, c.triangles, *vertices, w.options.NormalAngle)
 		if errors.Is(err, geom.ErrConvergence) {
-			triangles = verifiedSweepCellTriangles(ids, reverse, true)
-			angle, err = verifiedSweepFacetBound(box.Bounds, triangles, b.out.Mesh.Vertices, w.options.NormalAngle)
+			c.triangles = verifiedSweepCellTriangles(ids, reverse, true)
+			c.angle, err = verifiedSweepFacetBound(box.Bounds, c.triangles, *vertices, w.options.NormalAngle)
 		}
 		if err != nil {
-			return err
-		}
-		if angle.Cmp(b.out.SquaredFacetNormalTangent) > 0 {
-			b.out.SquaredFacetNormalTangent = angle
+			return c, err
 		}
 	}
-	b.out.Mesh.Triangles = append(b.out.Mesh.Triangles, triangles[:]...)
-	source := VerifiedSweepPairMeshFace{Owner: face.Owner, Side: face.Side}
-	b.out.OriginalFace = append(b.out.OriginalFace, source, source)
-	return nil
+	return c, nil
 }

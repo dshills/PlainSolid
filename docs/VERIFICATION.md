@@ -122,6 +122,14 @@ volume `3/5`. Folded overlap, a different middle owner, nonparallel walls,
 cancellation and short work refuse atomically. Main and isolated race
 checks pass the chain and previous two-chart controls.
 
+The [three-chart display](evidence/verified-normal-offset-sweep-chain-mesh-2026-11-16.json)
+passes main race for two independent fractional seams in the rotated
+quartic chain. The 13,312-triangle shell retains 68 shared stations on
+each seam and all fourteen original outer faces. It passes exact collision
+and positive volume. An independent 0.30-radian request bounds the
+continuous normal deviation below 0.27354 radians. All eight prior
+single and paired mesh digests reproduce.
+
 [Exact normal sweep membership](evidence/verified-normal-sweep-query-2026-11-16.json)
 passed rational slab interior, boundary and near-exterior controls and
 independently known points on a curved sweep, including a split station

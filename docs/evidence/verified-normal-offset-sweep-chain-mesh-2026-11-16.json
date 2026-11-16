@@ -1,0 +1,28 @@
+{
+  "agent_commit": "d9fdcfe05124ba72bb7bdf20266800c2e4988b71",
+  "summary": "# Closed display of a three-chart normal sweep\n\nThe isolated mesh commit is `d9fdcfe05124ba72bb7bdf20266800c2e4988b71`. The portable patch SHA-256 is `afe11b79869644a8aefc6db192d5a1cd3f9073fd3282fcdf9b5bd5558f365c1f`. It builds on the separately qualified analytic chain and paired mesh.\n\nThe tessellator follows exact rational stations from the first original chart through both certified join maps. Each mapped owner retains its raw coordinates and increasing local station array. A shared perimeter vertex is evaluated once and indexed by both incident owners, with no triple owner because the two analytic walls have a strict plane gap. The mesh omits both common walls and retains all fourteen original outer faces, chart identities, local indices and outward windings.\n\nThe paired mesh helpers now accept an already mapped exact source station array. Each source cell uses a directed physical box covering the original continuous face and the delivered rounded facets. Exact rational stations select vertices and topology. Outward binary parameter brackets serve only cell bounds. The box diameter bounds both directed distances. Optional continuous source-normal cones check actual rounded facets using the original outer analytically oriented support. Indexed exact collision, closure and signed-volume checks certify a single embedded positive shell.\n\nThe primary control independently authors the three original rotated quartic cells. The middle original free parameter is reversed and projective. The third has an independent 5/4 projective clock on raw range `[5,7]`. The exact normalized join ratios are 3/2 and 15/8, so the third raw parameter is `5+8s/(5-s)` for the original first chart station `s`. An incorrectly regenerated uniform third grid fails the exact check. At distance request 0.43, the mesh has 13,312 triangles, 68 shared perimeter vertices on each wall and 62 nonbinary owner occurrences on each wall. There are no duplicated represented coordinates or extra contacts. The distance bound is 0.245468624889, and the exact represented mesh volume is approximately 1.4666604060901. Independent midpoint integration of the analytic offset determinant yields approximately 1.46666145480143. The distance result uses 42,738,088 geometry work units.\n\nThe planar control has exact represented slab volume and certified zero facet deviation. Atomic limits cover invalid headers, triangle, exact work and collision limits, insufficient distance or normal refinement, cancellation and a valid exact planar source that collapses after binary output rounding. Both prior paired full receipt digests and all six single-sweep mesh and option digests match exactly. The tessellator remains scoped to a sealed analytic three-chart chain and a bounded tensor grid.\n\nThe separately run curved angle overlay qualifies the same placed quartic at requested distance 0.43 and angle 0.30 rad. It emits 14,336 triangles and certifies 0.273537526871 rad and the same distance bound. A request of 0.25 rad reached the default resource budget on this fixture. The tighter request stays outside the qualified angle range.\n\nThe focused display tests passed in 22.896 seconds and under the race detector in 105.795 seconds. Full geometry, mesh and offset package tests took 42.291, 6.946 and 42.484 seconds. The legacy comparison, curved-angle positive and refusal logs are in this directory.\n",
+  "digests": {
+    "verified-normal-sweep-chain-mesh-main-race.jsonl": "cc45f84aa65826c17b5cb7ee35f72674dc53c0e21895bcf329b6d07a1ac3b17c",
+    "curved-angle-.25-refused.log": "a0d27d352225d04ba5be8d225daaab0695bb49326cf08e05e6abaaf3c38fc3f0",
+    "curved-angle-.30.log": "341ba3b969faa1f0d3922dec0a3a7da56d74787ce256e21e51f1a0765b7cd3e1",
+    "curved-angle-.65.log": "1b0b344ebc282fb3471b2b09706fd1d4e994aff8be8a2b750a2510b4aee3790f",
+    "focused.log": "30025fffb65181440c8b12ff0c81dd716b94a893206f34e5ca2e90c64deedc1f",
+    "legacy.log": "7080bd935a1644642fa8df1c12655356d453725a34fdbf77d5d4ae048e990206",
+    "packages.log": "7aa73a941294927013597842451397dee61278a8f005596f369817159b06cfbf",
+    "race.log": "1665469d59151572f3daeee887635cf16b827f0c3340f039036ca39ecd1bad06",
+    "legacy-pair.tsv": "171f0058005a57ee76d9b780f3b906818780089fd87fe48f3387d076468bc380",
+    "legacy-single.tsv": "76be96db84e63a5f6d82807b824037b924e5bded7cbc00dc7f8af6751ef92ecd",
+    "verified-normal-offset-sweep-chain-mesh.patch": "afe11b79869644a8aefc6db192d5a1cd3f9073fd3282fcdf9b5bd5558f365c1f"
+  },
+  "main_race_passes": [
+    "TestTessellateVerifiedNormalOffsetSweepChainPlacedClocks",
+    "TestTessellateVerifiedNormalOffsetSweepChainPlanarAndLimits",
+    "TestTessellateVerifiedNormalOffsetSweepPairPlanar",
+    "TestTessellateVerifiedNormalOffsetSweepPairCurvedProjective",
+    "TestTessellateVerifiedNormalOffsetSweepPairRefusesAtomically",
+    "TestVerifiedSweepPairStationBracketUsesOutwardAdjacentValues"
+  ],
+  "main_race_seconds": [
+    110.323
+  ]
+}
