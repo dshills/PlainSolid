@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/big"
 	"reflect"
+	"slices"
 
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
@@ -21,10 +22,35 @@ type nativeMappedChainOwner struct {
 	Weights, Stations []string
 }
 type nativeMappedChainBoundary struct {
-	Version             int
-	Kind                string
-	Owners              []nativeMappedChainOwner
-	JointSupportChanges json.RawMessage `json:",omitempty"`
+	Version              int
+	Kind                 string
+	Owners               []nativeMappedChainOwner
+	JointSupportChanges  json.RawMessage `json:",omitempty"`
+	OrderedSupportEvents json.RawMessage `json:",omitempty"`
+}
+
+type nativeMappedChainSupportEvent struct {
+	ModelStation string
+	Owners       uint8
+	Kind         string
+}
+
+func mappedChainNativeSupportEvents(proof MappedSplineChainAgreement) []nativeMappedChainSupportEvent {
+	out := make([]nativeMappedChainSupportEvent, len(proof.joinedSupportEvents))
+	for i, event := range proof.joinedSupportEvents {
+		kind := "interior"
+		if event.OriginalJoint {
+			kind = "joint"
+		}
+		var mask uint8
+		for owner, change := range event.OwnersChangingCells {
+			if change {
+				mask |= 1 << owner
+			}
+		}
+		out[i] = nativeMappedChainSupportEvent{event.ModelStation.RatString(), mask, kind}
+	}
+	return out
 }
 
 // MappedChainNativeOptions bounds this separate native boundary recipe, not a
@@ -40,7 +66,7 @@ type MappedChainNativeOptions struct {
 // per-cell correspondence are re-proved before any bytes are written. This is
 // a standalone boundary format. Version 2 retains independently authored
 // whole coedge bases in addition to version 1's whole owner spline.
-// Versions 3 through 12 rederive the original support-knot repairs.
+// Versions 3 through 13 rederive the original support-knot repairs.
 // Version 8 derives its bounded cut count from the original roof supports.
 // Version 9 rederives separate support events on two or three original cells.
 // Version 10 rederives two asynchronous owner events in one original cell.
@@ -48,6 +74,8 @@ type MappedChainNativeOptions struct {
 // support events at their original joints.
 // Version 12 retains and re-proves the owner change masks for one shared
 // and one unilateral original support joint.
+// Version 13 checks the ordered masks at retained original joints and at
+// paired interior cuts in four to seven original cells.
 func (r MappedSplineChainAgreement) WriteJSON(ctx context.Context, w io.Writer, o MappedChainNativeOptions) error {
 	if ctx == nil || w == nil || len(r.cuts) < 2 {
 		return geom.ErrInvalid
@@ -109,11 +137,14 @@ func (r MappedSplineChainAgreement) WriteJSON(ctx context.Context, w io.Writer, 
 	if e != nil {
 		return e
 	}
-	if r.knotRepair == mappedChainAsymmetricJoinedKnotsRepair {
-		record.JointSupportChanges, e = json.Marshal(proof.jointChanges)
-		if e != nil {
-			return e
-		}
+	switch r.knotRepair {
+	case mappedChainAsymmetricJoinedKnotsRepair:
+		record.JointSupportChanges, e = json.Marshal(proof.OriginalJointSupportChanges())
+	case mappedChainOrderedJoinedKnotsRepair:
+		record.OrderedSupportEvents, e = json.Marshal(mappedChainNativeSupportEvents(proof))
+	}
+	if e != nil {
+		return e
 	}
 	raw, e := json.Marshal(record)
 	if e != nil {
@@ -175,10 +206,11 @@ func ReadMappedSplineChainBoundaryJSON(ctx context.Context, r io.Reader, o Mappe
 	if e = decoder.Decode(&extra); e != io.EOF {
 		return zero, geom.ErrInvalid
 	}
-	if record.Version < 1 || record.Version > 12 || record.Kind != "mapped-spline-chain-boundary" || len(record.Owners) != 2 {
+	if record.Version < 1 || record.Version > 13 || record.Kind != "mapped-spline-chain-boundary" || len(record.Owners) != 2 {
 		return zero, geom.ErrInvalid
 	}
-	if record.Version < 12 && len(record.JointSupportChanges) != 0 {
+	if record.Version != 12 && len(record.JointSupportChanges) != 0 ||
+		record.Version != 13 && len(record.OrderedSupportEvents) != 0 {
 		return zero, geom.ErrInvalid
 	}
 	var chains [2]MappedSplineChain
@@ -258,12 +290,14 @@ func ReadMappedSplineChainBoundaryJSON(ctx context.Context, r io.Reader, o Mappe
 	if e != nil {
 		return zero, e
 	}
-	if repair == mappedChainAsymmetricJoinedKnotsRepair {
+	switch repair {
+	case mappedChainAsymmetricJoinedKnotsRepair:
+		jointChanges := proof.OriginalJointSupportChanges()
 		var declared [][]*bool
-		if e := json.Unmarshal(record.JointSupportChanges, &declared); e != nil || len(declared) != len(proof.jointChanges) {
+		if e := json.Unmarshal(record.JointSupportChanges, &declared); e != nil || len(declared) != len(jointChanges) {
 			return zero, geom.ErrInvalid
 		}
-		for i, changes := range proof.jointChanges {
+		for i, changes := range jointChanges {
 			if len(declared[i]) != len(changes) {
 				return zero, geom.ErrInvalid
 			}
@@ -272,6 +306,16 @@ func ReadMappedSplineChainBoundaryJSON(ctx context.Context, r io.Reader, o Mappe
 					return zero, geom.ErrConvergence
 				}
 			}
+		}
+	case mappedChainOrderedJoinedKnotsRepair:
+		var declared []nativeMappedChainSupportEvent
+		reader := json.NewDecoder(bytes.NewReader(record.OrderedSupportEvents))
+		reader.DisallowUnknownFields()
+		if e := reader.Decode(&declared); e != nil {
+			return zero, geom.ErrInvalid
+		}
+		if !slices.Equal(declared, mappedChainNativeSupportEvents(proof)) {
+			return zero, geom.ErrConvergence
 		}
 	}
 	return proof, nil

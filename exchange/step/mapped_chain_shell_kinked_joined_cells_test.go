@@ -50,33 +50,38 @@ func verifyKinkedJoinedRoofs(t *testing.T, ctx context.Context, native trimmed.M
 		if j == 0 {
 			verifyMappedRoofSlopeJump(t, ctx, roof, 0, .375, tc.y, big.NewRat(-45, 1408))
 		}
-		// The incoming and outgoing children use different original model
-		// curves. For each owner, take the exact lift on its own support
-		// patch and compare the Cartesian endpoint tangent directions.
-		for side, want := range [2][2]*big.Rat{{big.NewRat(1, 2), big.NewRat(5, 8)}, {big.NewRat(-1, 2), big.NewRat(1, 4)}} {
-			lift, err := trimmed.ExactTrimModelBezier(ctx, roof, face.Outer[3+side].Curve, false, geom.SurfacePatchOptions{})
-			if err != nil {
-				t.Fatal(err)
-			}
-			net, _, err := lift.BezierControlNet(ctx, geom.SurfacePatchOptions{})
-			if err != nil || len(net.Control) < 2 {
-				t.Fatal("each one-sided lift must be an exact original restriction", tc.face, side, err)
-			}
-			a, b := net.Control[0], net.Control[1]
-			if side == 0 {
-				a, b = net.Control[len(net.Control)-2], net.Control[len(net.Control)-1]
-			}
-			difference := func(axis int) *big.Rat {
-				return new(big.Rat).Sub(new(big.Rat).Quo(b[axis], b[3]), new(big.Rat).Quo(a[axis], a[3]))
-			}
-			dx := difference(0)
-			if dx.Sign() <= 0 {
-				t.Fatal("both original paths must advance along the shell seam", tc.face, side)
-			}
-			for axis, slope := range want {
-				if got := new(big.Rat).Quo(difference(axis+1), dx); got.Cmp(slope) != 0 {
-					t.Fatal("the exact lift must retain the distinct sided tangent at the unilateral joint", tc.face, side, axis, got)
-				}
+		verifyJoinedOneSidedTangents(t, ctx, face, 3, [2][2]*big.Rat{
+			{big.NewRat(1, 2), big.NewRat(5, 8)}, {big.NewRat(-1, 2), big.NewRat(1, 4)},
+		})
+	}
+}
+
+// Check both endpoint tangents of the original lifted paths in this chart.
+func verifyJoinedOneSidedTangents(t *testing.T, ctx context.Context, face trimmed.Face, incoming int, expected [2][2]*big.Rat) {
+	t.Helper()
+	for side, want := range expected {
+		lift, err := trimmed.ExactTrimModelBezier(ctx, face.Surface, face.Outer[incoming+side].Curve, false, geom.SurfacePatchOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		net, _, err := lift.BezierControlNet(ctx, geom.SurfacePatchOptions{})
+		if err != nil || len(net.Control) < 2 {
+			t.Fatal("each one-sided lift must be an exact original restriction", incoming, side, err)
+		}
+		a, b := net.Control[0], net.Control[1]
+		if side == 0 {
+			a, b = net.Control[len(net.Control)-2], net.Control[len(net.Control)-1]
+		}
+		difference := func(axis int) *big.Rat {
+			return new(big.Rat).Sub(new(big.Rat).Quo(b[axis], b[3]), new(big.Rat).Quo(a[axis], a[3]))
+		}
+		dx := difference(0)
+		if dx.Sign() <= 0 {
+			t.Fatal("both original paths must advance along the shell seam", incoming, side)
+		}
+		for axis, slope := range want {
+			if got := new(big.Rat).Quo(difference(axis+1), dx); got.Cmp(slope) != 0 {
+				t.Fatal("the exact lift must retain the distinct sided tangent at the unilateral joint", incoming, side, axis, got)
 			}
 		}
 	}
@@ -94,19 +99,45 @@ func TestOCCTMappedChainRectangularKinkedJoinedIndependentRoofsClosedDisplay(t *
 func TestOCCTMappedChainRectangularKinkedJoinedIndependentRoofsRejectsMovedSupport(t *testing.T) {
 	raw := readInferredSharedMappedChainFixture(t, kinkedJoinedRoofPath)
 	bad := readInferredSharedMappedChainFixture(t, kinkedJoinedMovedSupportPath)
-	rejectKinkedJoinedMovedSupport(t, context.Background(), raw, bad)
+	ctx := context.Background()
+	source, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, threeJoinedRoofOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	rejectKinkedJoinedMovedSupport(t, ctx, source, bad)
 }
 
-func rejectKinkedJoinedMovedSupport(t *testing.T, ctx context.Context, raw, bad []byte) {
+func rejectKinkedJoinedMovedSupport(t *testing.T, ctx context.Context, source MappedChainSTEPModel, bad []byte) {
 	t.Helper()
 	o := threeJoinedRoofOptions()
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(bad), Limits{}, o)
 	if !errors.Is(err, geom.ErrConvergence) || len(m.Native.ChainEdges) != 0 || len(m.SupportJoints) != 0 || len(m.Crossings) != 0 {
 		t.Fatal("moving the north support knot away from the actual material kink must reject atomically", err)
 	}
-	rejectChangedJoinedRationalNativeSupportWithOptions(t, ctx, raw, bad, o, true, "support knot must belong")
+	rejectChangedNativeJoinedRoof(t, ctx, source, bad, true, "support knot must belong")
 }
 
 func TestOCCTMappedChainRectangularKinkedJoinedIndependentRoofsLive(t *testing.T) {
 	verifyPinnedThreeJoinedRoofs(t, threeJoinedKinked)
+}
+
+// Compare the live author to the fixture with the full native and strict
+// source assertions. STEP headers contain timestamps and output filenames.
+func requirePinnedMappedChainData(t *testing.T, raw []byte, fixture string) {
+	t.Helper()
+	data := func(raw []byte) []byte {
+		t.Helper()
+		_, body, ok := bytes.Cut(raw, []byte("\nDATA;\n"))
+		if !ok {
+			t.Fatal("the authored STEP file must contain its exact DATA section")
+		}
+		lines := bytes.Split(body, []byte("\n"))
+		for i, line := range lines {
+			lines[i] = bytes.TrimRight(line, " \t\r")
+		}
+		return bytes.Join(lines, []byte("\n"))
+	}
+	if !bytes.Equal(data(raw), data(readInferredSharedMappedChainFixture(t, fixture))) {
+		t.Fatal("the live pinned author must reproduce the exact audited STEP graph", fixture)
+	}
 }

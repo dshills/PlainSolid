@@ -182,6 +182,16 @@ func ProveMappedSplineJoinedSupportTransfer(ctx context.Context, support geom.Su
 	return proveMappedSplineAsynchronousTransfer(ctx, support, source, model, 4, o)
 }
 
+// ProveMappedSplineOrderedJoinedSupportTransfer proves a single model
+// Bézier in the larger ordered family. This coedge contributes at most one
+// interior event. The chain proof checks the complete joint and cell order.
+func ProveMappedSplineOrderedJoinedSupportTransfer(ctx context.Context, support geom.Surface, source SplineUV, model *geom.ExactSplineCurve, cells int, o geom.SurfacePatchOptions) (MappedSplineUV, *big.Rat, error) {
+	if cells < 4 || cells > MaxJoinedMappedSplineCells {
+		return MappedSplineUV{}, nil, geom.ErrInvalid
+	}
+	return proveMappedSplineAsynchronousTransfer(ctx, support, source, model, 2*cells-2, o)
+}
+
 func proveMappedSplineAsynchronousTransfer(ctx context.Context, support geom.Surface, source SplineUV, model *geom.ExactSplineCurve, maxSupportKnots int, o geom.SurfacePatchOptions) (MappedSplineUV, *big.Rat, error) {
 	mapped, stations, err := proveMappedSplineInferredSupportTransfer(ctx, support, source, model, maxSupportKnots, 1, o)
 	if len(stations) == 0 {

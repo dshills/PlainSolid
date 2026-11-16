@@ -94,6 +94,7 @@ struct RoofSupportLayout {
   bool threeJoinedRationalCells = false;
   bool asymmetricJoinedRationalCells = false;
   bool kinkedJoinedRationalCells = false;
+  bool orderedJoinedRationalCells = false;
 };
 
 static std::vector<double> inferredSupportKnots(bool south, InferredSupportEvents events) {
@@ -115,22 +116,34 @@ static std::vector<double> inferredSupportKnots(bool south, InferredSupportEvent
 static constexpr double nonplanarWidth = .75;
 static constexpr double nonplanarAmplitude = 8.;
 
-static double nonplanarSeamY(double u, bool kinked = false) {
+struct RoofSeamLine {
+  double intercept, slope;
+  double value(double u) const { return intercept + slope*u; }
+};
+
+static constexpr std::array<RoofSeamLine, 4> orderedRoofSeam{{
+  {.25, .375}, {25./64, -3./16}, {7./64, .375}, {13./16, -9./16}
+}};
+
+static double nonplanarSeamY(double u, bool kinked = false, bool ordered = false) {
+  if (ordered) {
+    return orderedRoofSeam[std::min(3, static_cast<int>(4*u))].value(u);
+  }
   if (kinked) {
     return .25 + .375 * std::min(u, 1. - u);
   }
   return .25 + .75 * u * (1. - u);
 }
 
-static std::array<gp_Pnt2d, 3> nonplanarSeamPoles(double a, double b, bool kinked = false) {
+static std::array<gp_Pnt2d, 3> nonplanarSeamPoles(double a, double b, bool kinked = false, bool ordered = false) {
   const double middle = (a + b) / 2.;
-  return {gp_Pnt2d(a, nonplanarSeamY(a, kinked)),
-          gp_Pnt2d(middle, kinked ? nonplanarSeamY(middle, true) : .25 + .75 * (middle - a * b)),
-          gp_Pnt2d(b, nonplanarSeamY(b, kinked))};
+  return {gp_Pnt2d(a, nonplanarSeamY(a, kinked, ordered)),
+          gp_Pnt2d(middle, kinked ? nonplanarSeamY(middle, true, ordered) : .25 + .75 * (middle - a * b)),
+          gp_Pnt2d(b, nonplanarSeamY(b, kinked, ordered))};
 }
 
-static Cubic nonplanarChartSeam(double a, double b, bool kinked) {
-  const auto seam = nonplanarSeamPoles(a, b, kinked);
+static Cubic nonplanarChartSeam(double a, double b, bool kinked, bool ordered) {
+  const auto seam = nonplanarSeamPoles(a, b, kinked, ordered);
   const double xa = nonplanarWidth*a, xb = nonplanarWidth*b;
   return {gp_Pnt2d(xa, seam[0].Y()),
           gp_Pnt2d((2*xa+xb)/3., (seam[0].Y()+2*seam[1].Y())/3.),
@@ -215,17 +228,40 @@ static occ::handle<Geom_BSplineSurface> nonplanarRoofSupport(bool south, const s
                : new Geom_BSplineSurface(poles, xKnots, yKnots, xMult, yMult, 3, 3);
 }
 
-static double kinkedRoofEnvelopeNode(bool south, int node) {
+static double kinkedRoofEnvelopeNode(bool south, int node, RoofSupportLayout layout) {
+  if (layout.orderedJoinedRationalCells) {
+    const auto nodes = layout.movedSupportJoint ? std::array{0., .125, 0., .125, 0., 0.}
+      : std::array{0., .125, 0., 0., .125, 0.};
+    const auto southNodes = std::array{0., 0., .125, 0., .125, 0.};
+    return south ? southNodes.at(node) : nodes.at(node);
+  }
   const auto north = std::array{0., 0., .125, 0., .125, 0.};
   const auto southNodes = std::array{0., .0625, .0625, 0.};
   return south ? southNodes.at(node) : north.at(node);
 }
 
-// The distinct seam lines L=1/4+3u/8 and R=5/8-3u/8 meet at u=1/2.
-// The roof correction is 144*A(u)*y*(3/4-y)*(y-L)*(y-R)/W(v), where
-// v=4y/3. It vanishes on both lines and on every planar closing.
-// South uses W(1-v); neither original roof is split at the unused line.
-static occ::handle<Geom_BSplineSurface> kinkedJoinedRoofSupport(bool south, const std::vector<double>& knots) {
+static std::array<RoofSeamLine, 2> kinkedRoofLines(bool south, double a, double b, RoofSupportLayout layout) {
+  if (!layout.orderedJoinedRationalCells) {
+    return {{{.25, .375}, {.625, -.375}}};
+  }
+  const auto& line = orderedRoofSeam;
+  if (b <= .25) {
+    return {line[0], line[0]};
+  }
+  if (south) {
+    return a >= .75 ? std::array{line[3], line[3]} : std::array{line[1], line[2]};
+  }
+  if (layout.movedSupportJoint) {
+    return a >= .75 ? std::array{line[3], line[3]} : std::array{line[1], line[2]};
+  }
+  return b <= .5 ? std::array{line[1], line[1]} : std::array{line[2], line[3]};
+}
+
+// The roof correction is proportional to A(u)*y*(3/4-y)*(y-L)*(y-R)/W(v),
+// where v=4y/3. L and R cover the original seam branches that meet the
+// authored span. A vanishes where the chosen pair changes, and on the x walls.
+// South uses W(1-v), and any unchanged owner spans both branches at its joint.
+static occ::handle<Geom_BSplineSurface> kinkedJoinedRoofSupport(bool south, const std::vector<double>& knots, RoofSupportLayout layout) {
   const int spanCount = static_cast<int>(knots.size()) - 1;
   const int xPoles = 3 * spanCount + 1;
   NCollection_Array2<gp_Pnt> poles(1, south ? 5 : xPoles, 1, south ? xPoles : 5);
@@ -234,15 +270,19 @@ static occ::handle<Geom_BSplineSurface> kinkedJoinedRoofSupport(bool south, cons
   const auto y = south ? std::array{0., 21./64, 9./16, 9./16, .75}
                        : std::array{0., 3./16, 3./16, 27./64, .75};
   const auto factor = std::array{0., 9./64, 3./16, 9./64, 0.};
-  const auto offset = std::array{0., 0., -21./64, -3./32, 0.};
+  const double correction = layout.orderedJoinedRationalCells ? 96. : 48.;
   for (int span = 0; span < spanCount; ++span) {
     const double a = knots[span], b = knots[span+1];
-    const double a0 = kinkedRoofEnvelopeNode(south, span), a1 = kinkedRoofEnvelopeNode(south, span+1);
-    const double l0 = .25 + .375*a, l1 = .25 + .375*b;
-    const double r0 = .625 - .375*a, r1 = .625 - .375*b;
-    // These cubic Bernstein coefficients are scaled by three to retain
-    // exact binary values. L+R=7/8 gives the constants in offset above.
+    const double a0 = kinkedRoofEnvelopeNode(south, span, layout), a1 = kinkedRoofEnvelopeNode(south, span+1, layout);
+    const auto lines = kinkedRoofLines(south, a, b, layout);
+    const double l0 = lines[0].value(a), l1 = lines[0].value(b);
+    const double r0 = lines[1].value(a), r1 = lines[1].value(b);
+    const double m0 = l0+r0, m1 = l1+r1;
+    // Cubic Bernstein coefficients of A, A(L+R) and ALR, scaled by three
+    // to retain exact binary values in the y-quartic coefficients.
     const std::array<double, 4> envelope{3*a0, 2*a0+a1, a0+2*a1, 3*a1};
+    const std::array<double, 4> sum{
+      3*a0*m0, a0*m0+a0*m1+a1*m0, a0*m1+a1*m0+a1*m1, 3*a1*m1};
     const std::array<double, 4> product{
       3*a0*l0*r0, a1*l0*r0 + a0*l1*r0 + a0*l0*r1,
       a0*l1*r1 + a1*l0*r1 + a1*l1*r0, 3*a1*l1*r1};
@@ -251,7 +291,9 @@ static occ::handle<Geom_BSplineSurface> kinkedJoinedRoofSupport(bool south, cons
       for (int j = 0; j < 5; ++j) {
         double z = x*y[j];
         if (j > 0 && j < 4) {
-          z += 48./w[j] * factor[j] * (product[i] + offset[j]*envelope[i]);
+          const double q = j == 1 ? product[i] : j == 2 ? product[i] - .375*sum[i]
+            : product[i] - .75*sum[i] + (9./16)*envelope[i];
+          z += correction/w[j] * factor[j] * q;
         }
         const int xi = 3*span+i+1, yi = j+1;
         poles.SetValue(south ? yi : xi, south ? xi : yi, gp_Pnt(x, y[j], z));
@@ -284,6 +326,11 @@ static occ::handle<Geom_BezierCurve> nonplanarModelSeam(const std::vector<gp_Pnt
 }
 
 static std::vector<double> nonplanarSupportEvents(bool south, RoofSupportLayout layout) {
+  if (layout.orderedJoinedRationalCells) {
+    return south ? std::vector<double>{.25, .375, .75, .875}
+      : layout.movedSupportJoint ? std::vector<double>{.125, .25, .625, .75}
+                                : std::vector<double>{.125, .25, .5, .625};
+  }
   if (layout.kinkedJoinedRationalCells) {
     return south ? std::vector<double>{.25, .75}
                  : std::vector<double>{.125, .25, .375, layout.movedSupportJoint ? .625 : .5};
@@ -343,9 +390,11 @@ static double roofHeight(double x, double y, bool crease, bool three = false, bo
     }
     const int span = static_cast<int>(std::upper_bound(knots.begin(), knots.end(), x) - knots.begin()) - 1;
     const double t = (x-knots[span])/(knots[span+1]-knots[span]);
-    const double envelope = (1.-t)*kinkedRoofEnvelopeNode(south, span) + t*kinkedRoofEnvelopeNode(south, span+1);
+    const double envelope = (1.-t)*kinkedRoofEnvelopeNode(south, span, layout) + t*kinkedRoofEnvelopeNode(south, span+1, layout);
+    const auto lines = kinkedRoofLines(south, knots[span], knots[span+1], layout);
     const double v = south ? 1. - y/.75 : y/.75;
-    return nonplanarWidth*x*y + 144.*envelope*y*(.75-y)*(y-(.25+.375*x))*(y-(.625-.375*x))/(1.+6.*v*v);
+    const double correction = layout.orderedJoinedRationalCells ? 288. : 144.;
+    return nonplanarWidth*x*y + correction*envelope*y*(.75-y)*(y-lines[0].value(x))*(y-lines[1].value(x))/(1.+6.*v*v);
   }
   if (layout.inferred == InferredSupportEvents::nonplanar) {
     const auto knots = nonplanarSupportEvents(south, layout);
@@ -392,7 +441,7 @@ static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool un
   const bool nonplanar = layout.inferred == InferredSupportEvents::nonplanar;
   occ::handle<Geom_Surface> support;
   if (layout.kinkedJoinedRationalCells) {
-    support = kinkedJoinedRoofSupport(south, x);
+    support = kinkedJoinedRoofSupport(south, x, layout);
   } else if (nonplanar) {
     support = nonplanarRoofSupport(south, x, layout.rationalRoofs, south && layout.mirroredSouthRoof, layout.threeJoinedRationalCells);
   } else {
@@ -428,7 +477,7 @@ static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool un
     const bool spatialSeam = nonplanar && points.size() == 3;
     NCollection_Array1<gp_Pnt2d> net(1, spatialSeam ? 4 : static_cast<int>(points.size()));
     if (spatialSeam) {
-      const auto chart = nonplanarChartSeam(points.front().X(), points.back().X(), layout.kinkedJoinedRationalCells);
+      const auto chart = nonplanarChartSeam(points.front().X(), points.back().X(), layout.kinkedJoinedRationalCells, layout.orderedJoinedRationalCells);
       for (int i = 1; i <= net.Upper(); ++i) {
         const auto& p = chart[i - 1];
         net.SetValue(i, south ? gp_Pnt2d(p.Y(), p.X()) : p);
@@ -504,10 +553,11 @@ static TopoDS_Face roof(bool south, int rotate, bool crease, bool three, bool un
   const auto ab = split(a);
   std::vector<std::vector<gp_Pnt2d>> traces;
   if (nonplanar) {
-    const auto ends = layout.joinedRationalCells && !layout.threeJoinedRationalCells ? std::vector<double>{0., .25, 1.}
-                                                 : std::vector<double>{0., .25, .5, 1.};
+    const auto ends = layout.orderedJoinedRationalCells ? std::vector<double>{0., .25, .5, .75, 1.}
+      : layout.joinedRationalCells && !layout.threeJoinedRationalCells ? std::vector<double>{0., .25, 1.}
+                                                                      : std::vector<double>{0., .25, .5, 1.};
     for (std::size_t i = 0; i + 1 < ends.size(); ++i) {
-      const auto seam = nonplanarSeamPoles(ends[i], ends[i + 1], layout.kinkedJoinedRationalCells);
+      const auto seam = nonplanarSeamPoles(ends[i], ends[i + 1], layout.kinkedJoinedRationalCells, layout.orderedJoinedRationalCells);
       traces.emplace_back(seam.begin(), seam.end());
     }
   } else if (three && !unsplit) {
@@ -621,10 +671,10 @@ static occ::handle<NCollection_HArray1<T>> stepArray(const std::array<T, N>& val
 }
 
 template <std::size_t N>
-static auto nonplanarSouthPoles(const occ::handle<TCollection_HAsciiString>& name, const std::array<double, N>& ends, bool kinked) {
+static auto nonplanarSouthPoles(const occ::handle<TCollection_HAsciiString>& name, const std::array<double, N>& ends, bool kinked, bool ordered = false) {
   std::array<occ::handle<StepGeom_CartesianPoint>, 3*(N-1)+1> poles;
   for (std::size_t i = 0; i + 1 < N; ++i) {
-    const auto seam = nonplanarChartSeam(ends[i], ends[i + 1], kinked);
+    const auto seam = nonplanarChartSeam(ends[i], ends[i + 1], kinked, ordered);
     for (std::size_t j = 0; j < seam.size(); ++j) {
       auto point = new StepGeom_CartesianPoint;
       point->Init2D(name, seam[j].Y(), seam[j].X());
@@ -677,7 +727,12 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
   const double firstSouthParameter = layout.independentOwnerClocks ? 181. : 48.;
   const auto southKnots = localCells ? std::array{lastSouthParameter, 1., 16., firstSouthParameter}
     : supportCuts >= 4 ? std::array{2., 8., 16., 48.} : std::array{10., 17., 23., 478.};
-  if (layout.joinedRationalCells && !layout.threeJoinedRationalCells) {
+  if (layout.orderedJoinedRationalCells) {
+    const auto poles = nonplanarSouthPoles(name, std::array{1., .75, .5, .25, 0.}, true, true);
+    shared->Init(name, 3, poles, StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
+      stepArray(std::array{4, 3, 3, 3, 4}), stepArray(std::array{-7., -2., 1., 16., 181.}), StepGeom_ktUnspecified,
+      stepArray(std::array{1., 4., 16., 64., 128., 256., 512., 1024., 2048., 4096., 6144., 9216., 13824.}));
+  } else if (layout.joinedRationalCells && !layout.threeJoinedRationalCells) {
     const auto poles = nonplanarSouthPoles(name, std::array{1., .25, 0.}, false);
     shared->Init(name, 3, poles, StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
                  stepArray(std::array{4, 3, 4}), stepArray(std::array{1., 16., 181.}), StepGeom_ktUnspecified,
@@ -703,15 +758,18 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
     shared->Init(name, 3, stepArray(poles), StepGeom_bscfUnspecified, StepData_LFalse, StepData_LFalse,
                  stepArray(std::array{4, 3, 3, 4}), stepArray(southKnots), StepGeom_ktUnspecified, stepArray(southWeights));
   }
-  const auto x = layout.joinedRationalCells && !layout.threeJoinedRationalCells ? std::vector<double>{0., .25, 1.}
+  const auto x = layout.orderedJoinedRationalCells ? std::vector<double>{0., .25, .5, .75, 1.}
+                : layout.joinedRationalCells && !layout.threeJoinedRationalCells ? std::vector<double>{0., .25, 1.}
                 : unsplit ? std::vector<double>{0., .25, .5, 1.}
                          : std::vector<double>{0., 107. / 2048, 29. / 256, 369. / 2048, .25, .5, 1.};
-  const auto raw = layout.joinedRationalCells && !layout.threeJoinedRationalCells ? std::vector<double>{181., 16., 1.}
+  const auto raw = layout.orderedJoinedRationalCells ? std::vector<double>{181., 16., 1., -2., -7.}
+                  : layout.joinedRationalCells && !layout.threeJoinedRationalCells ? std::vector<double>{181., 16., 1.}
                   : localCells ? std::vector<double>{firstSouthParameter, 16., 1., lastSouthParameter}
                   : supportCuts >= 4 ? std::vector<double>{48., 16., 8., 2.}
                   : unsplit ? std::vector<double>{478., 23., 17., 10.}
                            : std::vector<double>{478., 443., 387., 283., 23., 17., 10.};
-  const auto station = layout.joinedRationalCells && !layout.threeJoinedRationalCells ? std::vector<double>{0., 8., 32.}
+  const auto station = layout.orderedJoinedRationalCells ? std::vector<double>{0., 8., 16., 24., 32.}
+                      : layout.joinedRationalCells && !layout.threeJoinedRationalCells ? std::vector<double>{0., 8., 32.}
                       : (localCells || supportCuts >= 4) ? std::vector<double>{0., 8., 16., 32.}
                       : unsplit ? std::vector<double>{0., 4., 8., 16.}
                                : std::vector<double>{0., 1., 2., 3., 4., 8., 16.};
@@ -767,7 +825,8 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
     if (layout.rationalModel && (cell == 0 || layout.joinedRationalCells)) {
       // The geometric homogeneous weights induce independent positive
       // projective parameters on the original nonplanar Bézier cells.
-      const double ratio = layout.threeJoinedRationalCells && cell == 2 ? 8. : cell == 0 ? 2. : 4.;
+      const double ratio = layout.orderedJoinedRationalCells ? static_cast<double>(2 << cell)
+        : layout.threeJoinedRationalCells && cell == 2 ? 8. : cell == 0 ? 2. : 4.;
       auto weights = std::array{1., ratio, ratio*ratio, ratio*ratio*ratio};
       if (a > b) {
         std::reverse(weights.begin(), weights.end());
@@ -788,9 +847,9 @@ static occ::handle<StepData_StepModel> authorMixedBasis(const occ::handle<StepDa
       const auto firstWeights = layout.independentOwnerClocks ? std::array{8., 12., 18., 27.}
         : supportCuts >= 5 ? std::array{1., 3., 9., 27.}
         : (supportCuts == 4 || localCells) ? std::array{1./8, 1./4, 1./2, 1.} : std::array{27./64, 9./16, 3./4, 1.};
-      const std::array<std::array<double, 2>, 3> domains{{{2., firstRawEnd}, {700., localCells ? 715. : 706.}, {850., 862.}}};
-      const std::array<std::array<double, 4>, 3> weights{{
-        firstWeights, {8., 12., 18., 27.}, {1., 1./2, 1./4, 1./8}}};
+      const std::array<std::array<double, 2>, 4> domains{{{2., firstRawEnd}, {700., localCells ? 715. : 706.}, {850., 862.}, {900., 915.}}};
+      const std::array<std::array<double, 4>, 4> weights{{
+        firstWeights, {8., 12., 18., 27.}, {1., 1./2, 1./4, 1./8}, {27., 18., 12., 8.}}};
       auto w = layout.threeJoinedRationalCells && cell == 2 ? std::array{27., 9., 3., 1.} : weights[cell];
       if (a > b) {
         std::reverse(w.begin(), w.end());
@@ -841,7 +900,9 @@ int main(int argc, char** argv) {
     const bool sharedInferred = mode == "write-shared-inferred-knot" || mode == "write-shared-inferred-redundant-knot";
     const bool sharedPair = mode == "write-shared-inferred-knot-pair" || mode == "write-shared-inferred-pair-redundant-knot";
     const bool offsetPair = mode == "write-shared-inferred-offset-pair" || mode == "write-mixed-inferred-redundant-knot";
-    const bool kinkedJoinedRationalCells = mode == "write-kinked-joined-independent-roofs" ||
+    const bool orderedJoinedRationalCells = mode == "write-ordered-joined-independent-roofs" ||
+      mode == "write-ordered-joined-independent-roofs-moved-joint" || mode == "measure-ordered-joined-independent-roofs";
+    const bool kinkedJoinedRationalCells = orderedJoinedRationalCells || mode == "write-kinked-joined-independent-roofs" ||
       mode == "write-kinked-joined-independent-roofs-moved-unilateral-support" || mode == "measure-kinked-joined-independent-roofs";
     const bool asymmetricJoinedRationalCells = kinkedJoinedRationalCells || mode == "write-asymmetric-joined-independent-roofs" ||
       mode == "write-asymmetric-joined-independent-roofs-missing-shared-joint" || mode == "measure-asymmetric-joined-independent-roofs";
@@ -854,10 +915,11 @@ int main(int argc, char** argv) {
       mode == "write-joined-independent-roofs-missing-south-joint" ||
       mode == "write-three-joined-independent-roofs-missing-south-joint" ||
       mode == "write-asymmetric-joined-independent-roofs-missing-shared-joint" ||
-      mode == "write-kinked-joined-independent-roofs-moved-unilateral-support";
+      mode == "write-kinked-joined-independent-roofs-moved-unilateral-support" ||
+      mode == "write-ordered-joined-independent-roofs-moved-joint";
     const bool measureJoined = mode == "measure-joined-rational-cells" || mode == "measure-joined-independent-roofs" ||
       mode == "measure-three-joined-independent-roofs" || mode == "measure-asymmetric-joined-independent-roofs" ||
-      mode == "measure-kinked-joined-independent-roofs";
+      mode == "measure-kinked-joined-independent-roofs" || mode == "measure-ordered-joined-independent-roofs";
     const bool joinedRationalCells = mode == "write-joined-rational-cells" || movedSupportJoint || measureJoined || mirroredSouthRoof;
     const bool falseRoofWeight = mode == "write-nonplanar-false-roof-weight" || mode == "write-joined-independent-roofs-false-south-weight";
     const bool rationalRoofs = mode == "write-nonplanar-rational-roofs" || falseRoofWeight || joinedRationalCells;
@@ -874,7 +936,7 @@ int main(int argc, char** argv) {
       : noModelKnot ? 0 : 1;
     const RoofSupportLayout layout{supportCuts, storedCells, mode == "write-separated-support-cells", inferred,
                                    rationalModel, independentOwnerClocks, rationalRoofs, joinedRationalCells, movedSupportJoint,
-                                   mirroredSouthRoof, threeJoinedRationalCells, asymmetricJoinedRationalCells, kinkedJoinedRationalCells};
+                                   mirroredSouthRoof, threeJoinedRationalCells, asymmetricJoinedRationalCells, kinkedJoinedRationalCells, orderedJoinedRationalCells};
     const bool unsplitBasis = mode == "write-three-knots-mixed-unsplit" || supportCuts > 3 || storedCells >= 2
       || layout.separated || inferred != InferredSupportEvents::none;
     const bool mixedBasis = mode == "write-three-knots-mixed-basis" || unsplitBasis;
@@ -959,8 +1021,10 @@ int main(int argc, char** argv) {
           authorFalseSouthRoofWeight(model, mirroredSouthRoof ? 2 : 3);
         }
         StepData_StepWriter exactWriter(model);
-        exactWriter.FloatWriter().SetFormat("%.18f", true);
-        if (supportCuts >= 5 || kinkedJoinedRationalCells) {
+        exactWriter.FloatWriter().SetFormat(orderedJoinedRationalCells ? "%.16f" : "%.18f", true);
+        if (orderedJoinedRationalCells) {
+          exactWriter.FloatWriter().SetFormatForRange("%.20f", 0., 2.);
+        } else if (supportCuts >= 5 || kinkedJoinedRationalCells) {
           // The new chart coefficients use up to 19 fractional digits.
           // They have magnitude below 2, while the raw knots can be larger
           // integers. The separate format keeps both within OCCT's buffer.

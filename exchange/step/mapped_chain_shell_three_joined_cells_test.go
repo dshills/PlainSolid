@@ -268,14 +268,19 @@ func threeJoinedPhysicalModelPoint(t float64, kinked bool) geom.Vec3 {
 
 func verifyThreeJoinedOriginalModel(t *testing.T, f *File, id, lo, hi, ratio int64, a, b float64, kinked bool) {
 	t.Helper()
-	s, err := readMappedChainStepSpline(f, id, 3, 16, 17, true)
-	if err != nil || s.degree != 3 || len(s.poles) != 4 || len(s.knots) != 8 {
-		t.Fatal("all three original model edges must store a single exact rational cubic", err)
-	}
 	pa, pb := threeJoinedPhysicalModelPoint(a, kinked), threeJoinedPhysicalModelPoint(b, kinked)
 	ym := .25 + .75*((a+b)/2-a*b)
 	if kinked {
 		ym = (pa.Y + pb.Y) / 2
+	}
+	verifyJoinedOriginalModelBezier(t, f, id, lo, hi, ratio, pa, pb, ym)
+}
+
+func verifyJoinedOriginalModelBezier(t *testing.T, f *File, id, lo, hi, ratio int64, pa, pb geom.Vec3, ym float64) {
+	t.Helper()
+	s, err := readMappedChainStepSpline(f, id, 3, 16, 17, true)
+	if err != nil || s.degree != 3 || len(s.poles) != 4 || len(s.knots) != 8 {
+		t.Fatal("each original model edge must store a single exact rational cubic", err)
 	}
 	poles := [4]geom.Vec3{pa,
 		{X: (2*pa.X + pb.X) / 3, Y: (pa.Y + 2*ym) / 3, Z: (2*pa.X*ym + pb.X*pa.Y) / 3},
@@ -440,7 +445,24 @@ func verifyPinnedThreeJoinedRoofs(t *testing.T, shape threeJoinedRoofShape) {
 		return readInferredSharedMappedChainFixture(t, path), path
 	}
 	raw, _ := authorFile("")
-	canonical := verifyThreeJoinedRoofSource(t, ctx, raw, shape)
+	var canonical []byte
+	var kinkedSource MappedChainSTEPModel
+	if shape == threeJoinedKinked {
+		requirePinnedMappedChainData(t, raw, kinkedJoinedRoofPath)
+		opts := threeJoinedRoofOptions()
+		var err error
+		kinkedSource, err = ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var output bytes.Buffer
+		if err := WriteMappedChainRectangularOriginalShell(ctx, &output, kinkedSource, Limits{}, opts); err != nil {
+			t.Fatal(err)
+		}
+		canonical = output.Bytes()
+	} else {
+		canonical = verifyThreeJoinedRoofSource(t, ctx, raw, shape)
+	}
 	verifyPinnedMappedChainTransfer(t, ctx, reader, raw, canonical, stepVolume, stepArea)
 	data, err := exec.CommandContext(ctx, author, "measure-"+mode).CombinedOutput()
 	if err != nil {
@@ -466,7 +488,8 @@ func verifyPinnedThreeJoinedRoofs(t *testing.T, shape threeJoinedRoofShape) {
 	}
 	switch shape {
 	case threeJoinedKinked:
-		rejectKinkedJoinedMovedSupport(t, ctx, raw, bad)
+		requirePinnedMappedChainData(t, bad, kinkedJoinedMovedSupportPath)
+		rejectKinkedJoinedMovedSupport(t, ctx, kinkedSource, bad)
 	case threeJoinedAsymmetric:
 		rejectAsymmetricJoinedRoofMissingJoint(t, ctx, raw, bad)
 	default:

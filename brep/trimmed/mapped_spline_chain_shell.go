@@ -152,6 +152,12 @@ type MappedSplineChainShell struct {
 // Topology returns the exact original shell's certified incidence counts.
 func (r MappedSplineChainShell) Topology() MappedChainShellTopology { return r.topology }
 
+// JoinedSupportEvents returns the original support changes proved by the
+// boundary certificate in traversal order.
+func (r MappedSplineChainShell) JoinedSupportEvents() []MappedSplineChainSupportEvent {
+	return r.boundary.JoinedSupportEvents()
+}
+
 // OriginalJointSupportChanges returns the source roof masks proved at the
 // original joined chain stations in traversal order.
 func (r MappedSplineChainShell) OriginalJointSupportChanges() [][2]bool {
