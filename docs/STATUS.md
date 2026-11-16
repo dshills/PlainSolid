@@ -81,9 +81,9 @@ and [reconciled case coverage](evidence/plaincad-main-ab33a412-partitioned-2026-
 preserve the separate attempts. The full loopback unit rerun passed 1,690
 cases and failed only the same OCCT timing control. The remaining case passed
 unchanged in both a focused run and a separate full run without loopback.
-All 1,691 case identities are accounted for; an uninterrupted current
-ordinary suite pass is still open. Both full Go and
-PlainCAD now also run against `b6335d3c`; vet and Windows amd64 build passed.
+All 1,691 case identities on that snapshot are accounted for. Both full
+Go and PlainCAD later passed on `b6335d3c`, along with vet and the
+Windows amd64 build.
 The Linux amd64 cross-build on that same source also passed; neither
 cross-build establishes native runtime coverage. The [corrected full
 ordinary Go run on `ab33a412`](evidence/main-ab33a412-qualification-2026-11-15.json)
@@ -109,6 +109,9 @@ PlainCAD report on `b6335d3c`](evidence/plaincad-main-b6335d3c-2026-11-15.json)
 records all eight passing stages and preserves the original failures and
 actual scoped rerun inputs. The production WASM is byte-identical to the
 build; the Playwright driver is pristine.
+The [newer uninterrupted PlainCAD run on `a296b700`](evidence/plaincad-main-a296b700-2026-11-15.json)
+passed all eight gates and all 1,691 ordinary cases in the same staged
+run, with scoped loopback available from the start.
 Vet and the Windows amd64 cross-build on `016354ee` pass; native
 Windows execution remains unqualified.
 
@@ -318,8 +321,8 @@ retain the zero first, shared second and opposite third derivatives on
 the actual reopened model curves. Cuspidal Cut, broader contact
 discovery, finite angle display and advanced edge modifications remain
 in progress.
-Ordinary Go is also running on
-`01d12dab` and a fresh full PlainCAD run uses `a296b700`.
+Ordinary Go is also running on `01d12dab`; the full PlainCAD run on
+`a296b700` has passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.

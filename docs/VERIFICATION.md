@@ -201,6 +201,14 @@ or app assertion changed, the Playwright driver is pristine and the
 production WASM matches the build. The evidence distinguishes the
 original attempts from each passing phase.
 
+The [uninterrupted PlainCAD run on `a296b700`](evidence/plaincad-main-a296b700-2026-11-15.json)
+passed all eight gates using the same immutable app and the two documented
+test fixture corrections. Scoped loopback was available from the start.
+It passed 345 development, 66 production, 15 cross-browser, 4 actual Go
+WASM and 1,691 ordinary cases. The unchanged one-, two- and four-start
+OCCT controls took 3.218, 10.861 and 16.776 seconds. The bundle WASM again
+matched the Go build byte for byte and the Playwright driver was pristine.
+
 The [full ordinary Go run on the same kernel `b6335d3c`](evidence/main-b6335d3c-qualification-2026-11-15.json)
 finished all nine lanes: 5,630 passes, 586 optional skips and no
 failures across 6,216 top-level cases. Its eight trimmed lanes passed
