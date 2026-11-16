@@ -102,6 +102,11 @@ request with 8,192 triangles and a certified upper bound of `0.037986`
 mm. Exact projected triangle determinants and symmetric derivative
 bounds prove injectivity in the delivered rounded mesh. Cancellation,
 work exhaustion and rounding collapse refuse atomically.
+The connected offset atlas race passed in 3.276 seconds. Three curved
+patches of different widths prove two oriented seams and the disjoint
+non-neighbor pair, leaving eight boundary edges. Reversed traversal is
+authenticated. A known extra corner contact, wrong winding, disconnected
+faces and insufficient shared work do not produce a complete atlas.
 The exact convex-hull separation race passed in geometry and intersection
 (25.901 and 1.207 seconds). A weighted curved pair separated on an exact
 new support direction, with the gap independently projected from the
