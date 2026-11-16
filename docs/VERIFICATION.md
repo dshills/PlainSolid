@@ -54,6 +54,10 @@ splits both original wires into valid fragments, with one shared analytic
 edge, opposing directions and all original boundary ranges covered.
 The reversed/swapped chart retains the nonlinear exact station `1/3`.
 Short work and a terminal inside the other face publish no fragment.
+The [ordinary exact spline jet audit](evidence/exact-spline-rational-evaluation-2026-11-16.json)
+passes a nonbinary station, a right-hand interior derivative and a
+left-hand final derivative. Its outward boxes and short work refusal
+pass the same geometry race.
 
 The [full Go run on `c7afb429`](evidence/main-c7afb429-qualification-2026-11-16.json)
 passed all nine lanes: 6,018 passes, 599 optional skips, and no failures

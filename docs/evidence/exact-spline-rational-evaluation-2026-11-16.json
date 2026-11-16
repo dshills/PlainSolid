@@ -1,0 +1,8 @@
+{
+  "scope": "Exact rational point and first derivative of an ordinary extracted spline in its original clock",
+  "main_base": "0119cbeb",
+  "main_race_log": "exact-spline-rational-evaluation-main-race-2.jsonl",
+  "main_race_sha256": "c0ba6e147fd643f4162630ea8dd5ea1a81a33e3ad9adcb927575e8dc52cb2a22",
+  "named_pass": "TestExactSplineRationalEvaluationRetainsOriginalKnotSide",
+  "independent_station_point_derivative": [["1/3", "2/3", "2"], ["1/2", "1", "4"], ["1", "3", "4"]]
+}

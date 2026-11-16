@@ -217,6 +217,9 @@ encoding and transfer limits are enforced before any output is written.
 Exact curve evaluation also provides physical derivatives through order 16.
 It retains the original right-hand knot span at repeated knots and lets the
 caller inspect the exact cycle and amount of work used.
+Exact ordinary spline and isoparametric curves expose rational points and
+physical first derivatives in their original clocks with the same knot
+side convention.
 Exact periodic tensor surfaces now also expose both pure second partials
 and the mixed partial in physical units, retaining the same original knot
 owners as first-order evaluation.
