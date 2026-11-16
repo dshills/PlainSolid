@@ -209,6 +209,11 @@ certifies the original quartic and its four transverse junctions on the
 lower or upper semicircle. Independent rational, pi and arctangent
 integrals qualify all six signed regions, including the intervening
 pocket. Main race covers both axis and roof orders and eight refusals.
+The matching native Common and Fuse run verifies 16 closed shells:
+13 faces, 36 edges, 25 vertices, four original fans and 18 exact
+section pieces per case. Independent original volume and area agree;
+eight canonical replays and 22 prior byte receipts pass. A valid
+source whose cap has no representable subdivision refuses native sewing.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same

@@ -38,5 +38,30 @@
     "smallest_positive_cap_volume": 3.515530877804706e-10
   },
   "negative_source_controls": 8,
-  "old_native_receipts_unchanged": 6
+  "old_native_receipts_unchanged": 6,
+  "native_common_fuse": {
+    "main_base": "b70c1aee",
+    "isolated_revision": "0227869608f6f8c6bc9ebe033e83caee500f10cc",
+    "patch_sha256": "a6eeea44e5a815c7bea6fc033c0c11d78d3de67238352671a624d4d7e96d9849",
+    "main_race_log": "parabola-four-junction-envelope-main-race.jsonl",
+    "main_race_sha256": "3f6cf6ce371c43ac98c18e65e955d4ed90ebef17d9ec0e3a94ba1b6a2d924d52",
+    "main_race_seconds": 151.173,
+    "isolated_race_sha256": "85b3a60b5d8dd649d0396194846206c4aa00c6f0eb3932650327ec5b5592f5f6",
+    "isolated_race_seconds": 64.949,
+    "variant_count": 16,
+    "per_solid": {
+      "faces": 13,
+      "edges": 36,
+      "vertices": 25,
+      "contour_pieces": 18,
+      "original_junction_fans": 4
+    },
+    "maximum_material_errors": {
+      "volume": 1.51e-14,
+      "physical_area": 1.73e-13
+    },
+    "canonical_replays": 8,
+    "predecessor_bytes_unchanged": 22,
+    "unrepresentable_original_cap_control_radius": "205/512"
+  }
 }

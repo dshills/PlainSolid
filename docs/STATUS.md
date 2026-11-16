@@ -76,6 +76,8 @@ and six exact point contacts with the original directed source rays.
 One original circle can also cross a parabola four times on the same
 semicircle. Exact source discovery preserves all four directed junctions,
 six signed regions, and the distinct pocket between the two caps.
+Native Common and Fuse close both same-semicircle layouts, retaining
+all four original junctions, the two exact cap splits and the pocket.
 Projectively related graph surfaces can also prove strict original
 height order or exact coincidence over their entire shared projection.
 The same full-footprint ordered proof builds closed Common, Fuse and

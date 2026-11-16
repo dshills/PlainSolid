@@ -249,11 +249,15 @@ func crossingCirclesEnvelopeLedgerFor(base int, roofFaces, owners, parabolaEdges
 	out := &parabolaCrossingCirclesEnvelopeLedger{Base: &base, RoofFaces: roofFaces, RoofOwners: owners,
 		ParabolaEdges: parabolaEdges, CircleEdges: circleEdges, WallFaces: walls}
 	for _, circle := range junctions {
-		nodes := make([]parabolaCircleCrossingsEnvelopeJunction, 0, len(circle))
-		for _, node := range circle {
-			nodes = append(nodes, parabolaCircleCrossingsEnvelopeJunction{Vertex: &node.Vertex, Rays: node.Rays[:], Sectors: node.Sectors[:]})
-		}
-		out.Junctions = append(out.Junctions, nodes)
+		out.Junctions = append(out.Junctions, parabolaCircleEnvelopeJunctionLedger(circle[:]))
+	}
+	return out
+}
+
+func parabolaCircleEnvelopeJunctionLedger(junctions []ParabolaCircleCrossingsJunction) []parabolaCircleCrossingsEnvelopeJunction {
+	out := make([]parabolaCircleCrossingsEnvelopeJunction, 0, len(junctions))
+	for _, node := range junctions {
+		out = append(out, parabolaCircleCrossingsEnvelopeJunction{Vertex: &node.Vertex, Rays: node.Rays[:], Sectors: node.Sectors[:]})
 	}
 	return out
 }
