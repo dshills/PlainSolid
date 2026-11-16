@@ -36,10 +36,26 @@ type PeriodicSplinePlaneResult struct {
 // tests and interval endpoints use exact arithmetic. Both isolated hits
 // and coincident pieces are discarded if the complete proof fails.
 func (c *PeriodicBSpline) IntersectPlaneExact(ctx context.Context, plane Plane, start, end *big.Rat, options PeriodicSplinePlaneOptions) (result PeriodicSplinePlaneResult, err error) {
-	if ctx == nil || c == nil || c.curve == nil || !plane.valid() || options.MaxSubdivisions < 0 {
+	if c == nil || c.curve == nil {
 		return result, ErrInvalid
 	}
-	if c.degree > ExactPolynomialMaxDegree {
+	return intersectPeriodicCurvePlane(ctx, c, c.degree, plane, start, end, options)
+}
+
+// IntersectPlaneExact intersects the original nonuniform cyclic law with
+// the represented plane. Edited knots keep distinct one-sided incidences.
+func (c *ExactPeriodicSplineCurve) IntersectPlaneExact(ctx context.Context, plane Plane, start, end *big.Rat, options PeriodicSplinePlaneOptions) (result PeriodicSplinePlaneResult, err error) {
+	if c == nil || len(c.net) == 0 {
+		return result, ErrInvalid
+	}
+	return intersectPeriodicCurvePlane(ctx, c, c.degree, plane, start, end, options)
+}
+
+func intersectPeriodicCurvePlane(ctx context.Context, c exactPeriodicSpanSource, degree int, plane Plane, start, end *big.Rat, options PeriodicSplinePlaneOptions) (result PeriodicSplinePlaneResult, err error) {
+	if ctx == nil || !plane.valid() || options.MaxSubdivisions < 0 {
+		return result, ErrInvalid
+	}
+	if degree > ExactPolynomialMaxDegree {
 		return result, ErrConvergence
 	}
 	o, err := patchOptions(options.SurfacePatchOptions)

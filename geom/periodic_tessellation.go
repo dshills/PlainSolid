@@ -36,6 +36,16 @@ type CertifiedPeriodicCurveTessellation struct {
 // periodic curve. Every interior knot and cyclic seam is retained, including
 // knots at rational parameters that have no exact binary64 representation.
 func (c *PeriodicBSpline) TessellateCertifiedWindow(ctx context.Context, start, end *big.Rat, options PeriodicTessellationOptions) (result CertifiedPeriodicCurveTessellation, err error) {
+	return tessellatePeriodicCurveWindow(ctx, c, start, end, options)
+}
+
+// TessellateCertifiedWindow returns parameter-linear deflection bounds on
+// the edited curve. Every inserted knot and original seam is retained.
+func (c *ExactPeriodicSplineCurve) TessellateCertifiedWindow(ctx context.Context, start, end *big.Rat, options PeriodicTessellationOptions) (CertifiedPeriodicCurveTessellation, error) {
+	return tessellatePeriodicCurveWindow(ctx, c, start, end, options)
+}
+
+func tessellatePeriodicCurveWindow(ctx context.Context, c exactPeriodicSpanSource, start, end *big.Rat, options PeriodicTessellationOptions) (result CertifiedPeriodicCurveTessellation, err error) {
 	o := options.CertifiedTessellationOptions
 	if o.MaxOperations == 0 {
 		o.MaxOperations = 8000000
@@ -49,7 +59,7 @@ func (c *PeriodicBSpline) TessellateCertifiedWindow(ctx context.Context, start, 
 	if err != nil {
 		return result, err
 	}
-	curve, spans, work, err := c.clampedPeriodicWindow(ctx, start, end, ExactBezierSpanOptions{
+	curve, spans, work, err := clampedPeriodicWindow(ctx, c, start, end, ExactBezierSpanOptions{
 		SurfacePatchOptions: limits, MaxSpans: options.MaxSpans,
 	})
 	result.ExactOperations = work

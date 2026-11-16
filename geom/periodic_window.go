@@ -5,10 +5,18 @@ import (
 	"math/big"
 )
 
+type exactPeriodicSpanSource interface {
+	ExactBezierSpans(context.Context, *big.Rat, *big.Rat, ExactBezierSpanOptions) ([]ExactPeriodicBezierSpan, int, error)
+}
+
+type exactPeriodicCellSource interface {
+	ExactBezierCells(context.Context, ExactParameterInterval, ExactParameterInterval, PeriodicSurfaceBezierOptions) ([]ExactPeriodicSurfaceBezierCell, int, error)
+}
+
 // Use an exactly represented index as the working knot for each piece. The
 // physical parameter map is stored in spans, so even a nonbinary lattice or
 // a window in a distant cycle retains its original exact parameter.
-func (c *PeriodicBSpline) clampedPeriodicWindow(ctx context.Context, start, end *big.Rat, o ExactBezierSpanOptions) (*ExactSplineCurve, []ExactPeriodicBezierSpan, int, error) {
+func clampedPeriodicWindow(ctx context.Context, c exactPeriodicSpanSource, start, end *big.Rat, o ExactBezierSpanOptions) (*ExactSplineCurve, []ExactPeriodicBezierSpan, int, error) {
 	limits, err := patchOptions(o.SurfacePatchOptions)
 	if err != nil {
 		return nil, nil, 0, err
@@ -18,7 +26,7 @@ func (c *PeriodicBSpline) clampedPeriodicWindow(ctx context.Context, start, end 
 		return nil, nil, work, err
 	}
 	limits.MaxOperations -= work
-	degree := c.degree
+	degree := len(spans[0].Control) - 1
 	if limits.MaxOperations < 1 || len(spans) > (limits.MaxPoles/2-1)/degree {
 		return nil, nil, work, ErrConvergence
 	}

@@ -3201,5 +3201,8 @@ to either cyclic direction of an exact tensor, including mixed domains
 with a discontinuous ordinary axis. Exact tensor queries preserve the
 original physical partials and cycle ownership. Exact Bézier extraction
 also preserves the inserted knots, seams, discontinuities and clipped
-physical ranges for curves and tensors. Periodic seam multiplicity
-changes and exchange of these edited splines remain open.
+physical ranges for curves and tensors. The edited curve supports exact
+plane sections, certified point distance and tessellation. The edited
+tensor supports certified point distance and bounded rational line
+contacts. Periodic seam multiplicity changes, general tensor trim
+arrangements and exchange of these edited splines remain open.

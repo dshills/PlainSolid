@@ -261,6 +261,13 @@ mixed tensor returns all six clipped cells, matches the original
 physical point and partials, and preserves the two distinct ordinary
 limits. A one-short work or output budget returns no partial net.
 All 36 periodic tests passed under the race detector in 9.706 seconds.
+The edited curve now reports both one-sided plane hits at an inserted
+knot, the exact nearest parameter in cycle `-2^100`, and two zero-error
+chords sharing the original station. The tensor retains an exact
+nearest point on its inserted knot in cycle `2^100` and brackets both
+original line contacts under their refined owners. A one-cell extraction
+limit leaves the complete original line-search window pending. All 38
+periodic tests passed under the race detector in 8.411 seconds.
 
 The [full ordinary Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
 later passed all nine lanes on macOS ARM64. The independent inventory

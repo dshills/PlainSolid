@@ -32,8 +32,23 @@ type PeriodicCurveDistanceBounds struct {
 // every original span and maps the witness to the original parameter without
 // rounding. If the work limit is reached, any reported bounds are still valid.
 func BoundPointPeriodicCurveDistanceRational(ctx context.Context, query [3]*big.Rat, curve *PeriodicBSpline, start, end *big.Rat, options PeriodicCurveDistanceOptions) (result PeriodicCurveDistanceBounds, err error) {
+	if curve == nil {
+		result.SquaredDistanceMax = math.Inf(1)
+		return result, ErrInvalid
+	}
+	return boundPointPeriodicCurveDistance(ctx, query, curve, start, end, options)
+}
+
+// BoundPointDistanceRational certifies squared distance to the nonuniform
+// periodic curve in a closed physical window. The returned witness keeps
+// its original cycle, knot owner and exact rational parameter.
+func (c *ExactPeriodicSplineCurve) BoundPointDistanceRational(ctx context.Context, query [3]*big.Rat, start, end *big.Rat, options PeriodicCurveDistanceOptions) (PeriodicCurveDistanceBounds, error) {
+	return boundPointPeriodicCurveDistance(ctx, query, c, start, end, options)
+}
+
+func boundPointPeriodicCurveDistance(ctx context.Context, query [3]*big.Rat, curve exactPeriodicSpanSource, start, end *big.Rat, options PeriodicCurveDistanceOptions) (result PeriodicCurveDistanceBounds, err error) {
 	result.SquaredDistanceMax = math.Inf(1)
-	if ctx == nil || curve == nil {
+	if ctx == nil {
 		return result, ErrInvalid
 	}
 	for _, q := range query {
@@ -57,7 +72,7 @@ func BoundPointPeriodicCurveDistanceRational(ctx context.Context, query [3]*big.
 	if err != nil {
 		return result, err
 	}
-	clamped, spans, work, err := curve.clampedPeriodicWindow(ctx, start, end, ExactBezierSpanOptions{
+	clamped, spans, work, err := clampedPeriodicWindow(ctx, curve, start, end, ExactBezierSpanOptions{
 		SurfacePatchOptions: limits, MaxSpans: options.MaxSpans,
 	})
 	result.ExactOperations = work

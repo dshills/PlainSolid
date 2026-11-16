@@ -54,7 +54,25 @@ type PeriodicSurfaceLineIntersection struct {
 // origin+t*direction in a closed rational parameter window. Surface and line
 // loci are kept exact while solving in unit working coordinates.
 func IntersectRationalLinePeriodicSurface(ctx context.Context, origin, direction [3]*big.Rat, surface *PeriodicBSplineSurface, u, v, parameter ExactParameterInterval, options PeriodicSurfaceLineOptions) (result PeriodicSurfaceLineIntersection, err error) {
-	if ctx == nil || surface == nil || surface.surface == nil || origin[0] == nil || origin[1] == nil || origin[2] == nil || !validRationalLineDirection(direction) || options.MaxDepth < 0 || options.MaxDepth > 128 || options.MaxSearchCells < 0 || options.MaxCells < 0 {
+	if surface == nil || surface.surface == nil {
+		return result, ErrInvalid
+	}
+	return intersectRationalLinePeriodicSurface(ctx, origin, direction, surface, u, v, parameter, options)
+}
+
+// IntersectRationalLine isolates contacts of origin+t*direction against the
+// exact nonuniform tensor. Contacts at an edited station retain distinct
+// owners, and unresolved contacts remain in the pending list.
+func (s *ExactPeriodicSplineSurface) IntersectRationalLine(ctx context.Context, origin, direction [3]*big.Rat,
+	u, v, parameter ExactParameterInterval, options PeriodicSurfaceLineOptions) (result PeriodicSurfaceLineIntersection, err error) {
+	if s == nil || len(s.net) == 0 {
+		return result, ErrInvalid
+	}
+	return intersectRationalLinePeriodicSurface(ctx, origin, direction, s, u, v, parameter, options)
+}
+
+func intersectRationalLinePeriodicSurface(ctx context.Context, origin, direction [3]*big.Rat, surface exactPeriodicCellSource, u, v, parameter ExactParameterInterval, options PeriodicSurfaceLineOptions) (result PeriodicSurfaceLineIntersection, err error) {
+	if ctx == nil || origin[0] == nil || origin[1] == nil || origin[2] == nil || !validRationalLineDirection(direction) || options.MaxDepth < 0 || options.MaxDepth > 128 || options.MaxSearchCells < 0 || options.MaxCells < 0 {
 		return result, ErrInvalid
 	}
 	if options.MaxOperations == 0 {

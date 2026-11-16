@@ -39,8 +39,23 @@ type periodicSurfaceDistanceCell struct {
 // The certificate includes every active cycle and keeps conservative partial
 // bounds when the caller's search budget is exhausted.
 func BoundPointPeriodicSurfaceDistanceRational(ctx context.Context, query [3]*big.Rat, surface *PeriodicBSplineSurface, u, v ExactParameterInterval, options PeriodicSurfaceDistanceOptions) (result PeriodicSurfaceDistanceBounds, err error) {
+	if surface == nil {
+		result.SquaredDistanceMax = math.Inf(1)
+		return result, ErrInvalid
+	}
+	return boundPointPeriodicSurfaceDistance(ctx, query, surface, u, v, options)
+}
+
+// BoundPointDistanceRational certifies squared distance to the nonuniform
+// surface in a closed physical rectangle. Witnesses retain original
+// parameters and one-sided owners, including at ordinary discontinuities.
+func (s *ExactPeriodicSplineSurface) BoundPointDistanceRational(ctx context.Context, query [3]*big.Rat, u, v ExactParameterInterval, options PeriodicSurfaceDistanceOptions) (PeriodicSurfaceDistanceBounds, error) {
+	return boundPointPeriodicSurfaceDistance(ctx, query, s, u, v, options)
+}
+
+func boundPointPeriodicSurfaceDistance(ctx context.Context, query [3]*big.Rat, surface exactPeriodicCellSource, u, v ExactParameterInterval, options PeriodicSurfaceDistanceOptions) (result PeriodicSurfaceDistanceBounds, err error) {
 	result.SquaredDistanceMax = math.Inf(1)
-	if ctx == nil || surface == nil {
+	if ctx == nil {
 		return result, ErrInvalid
 	}
 	o := options.SurfaceDistanceOptions
