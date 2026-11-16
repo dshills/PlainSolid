@@ -11,11 +11,11 @@ import (
 )
 
 type twoCircleStockProbe struct {
-	x, y, radius *big.Rat
+	x, y, radiusSquared *big.Rat
 }
 
 func twoCircleProbe(x, y, r, denominator int64) twoCircleStockProbe {
-	return twoCircleStockProbe{big.NewRat(x, denominator), big.NewRat(y, denominator), big.NewRat(r, denominator)}
+	return twoCircleStockProbe{big.NewRat(x, denominator), big.NewRat(y, denominator), big.NewRat(r*r, denominator*denominator)}
 }
 
 func twoCirclePrimaryStock() [2]twoCircleStockProbe {
@@ -29,7 +29,7 @@ func parabolaTwoCirclesStock(t *testing.T, axis int, circles [2]twoCircleStockPr
 	power := map[[2]int]*big.Rat{{0, 1}: big.NewRat(1225, 8192), {0, 0}: big.NewRat(-1225, 32768), {2, 0}: big.NewRat(-1225, 65536)}
 	for _, disc := range circles {
 		constant := new(big.Rat).Add(new(big.Rat).Mul(disc.x, disc.x), new(big.Rat).Mul(disc.y, disc.y))
-		constant.Sub(constant, new(big.Rat).Mul(disc.radius, disc.radius))
+		constant.Sub(constant, disc.radiusSquared)
 		terms := map[[2]int]*big.Rat{
 			{0, 0}: constant, {2, 0}: big.NewRat(1, 1), {0, 2}: big.NewRat(1, 1),
 			{1, 0}: new(big.Rat).Mul(big.NewRat(-2, 1), disc.x),
@@ -129,7 +129,7 @@ func TestParabolaTwoCirclesSourceDiscovery(t *testing.T) {
 				}
 				for i, d := range discs {
 					if r.Circles[i].Center[axis].Cmp(d.x) != 0 || r.Circles[i].Center[1-axis].Cmp(d.y) != 0 ||
-						r.Circles[i].RadiusSquared.Cmp(new(big.Rat).Mul(d.radius, d.radius)) != 0 {
+						r.Circles[i].RadiusSquared.Cmp(d.radiusSquared) != 0 {
 						t.Fatal("factor recovery changed the ordered exact circle", i, r.Circles[i])
 					}
 				}
