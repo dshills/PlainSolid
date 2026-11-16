@@ -47,5 +47,19 @@
       "exact coincidence"
     ],
     "partial_footprint_refuses": true
+  },
+  "refinement": {
+    "main_base": "b70c1aee",
+    "main_race_log": "projective-height-order-refinement-final-race.jsonl",
+    "main_race_sha256": "966b452efd3245a18b55ba8e7547b9f28e0ba734cd1a6f1a77b65ffef053b94a",
+    "main_race_seconds": 1.863,
+    "original_polynomial": "(u-1/2)^2+1/16",
+    "exact_original_range": [
+      "1/16",
+      "5/16"
+    ],
+    "sufficient_cell_budget": 3,
+    "short_cell_budget": 2,
+    "named_pass": "TestCertifyProjectiveSurfaceHeightOrderRefinesOriginalCell"
   }
 }

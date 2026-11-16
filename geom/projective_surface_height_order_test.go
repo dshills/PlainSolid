@@ -61,3 +61,35 @@ func TestCertifyProjectiveSurfaceHeightOrderOppositeInterior(t *testing.T) {
 		t.Fatal("consistent original corners do not prove a strict order", r, err)
 	}
 }
+
+func TestCertifyProjectiveSurfaceHeightOrderRefinesOriginalCell(t *testing.T) {
+	ctx := context.Background()
+	flat := arcTestPatch(t, func(u, v float64) Vec3 { return Vec3{u, v, 0} })
+	// The original exact quadratic has minimum 1/16 at u=1/2 and
+	// maximum 5/16 at its ends. Even after degree elevation its global
+	// hull still contains a negative coefficient.
+	var poles []Vec3
+	for u, z := range [3]float64{.3125, -.1875, .3125} {
+		for v := range 2 {
+			poles = append(poles, Vec3{float64(u) / 2, float64(v), z})
+		}
+	}
+	raw, err := NewBSplineSurface(2, 1, 3, 2, poles, []float64{0, 0, 0, 1, 1, 1}, []float64{0, 0, 1, 1}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := NewSurfacePatch(raw, SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := CertifyProjectiveSurfaceHeightOrder(ctx, f, flat, [2]int{0, 1}, GeneralSurfaceHeightOptions{MaxCells: 3})
+	if err != nil || !r.Complete || r.Sign != 1 ||
+		r.Difference.Lower.Cmp(big.NewRat(1, 16)) != 0 || r.Difference.Upper.Cmp(big.NewRat(5, 16)) != 0 {
+		t.Fatal("one exact split proves the independent quadratic minimum", r, err)
+	}
+	short, err := CertifyProjectiveSurfaceHeightOrder(ctx, f, flat, [2]int{0, 1}, GeneralSurfaceHeightOptions{MaxCells: 2})
+	if !errors.Is(err, ErrConvergence) || short.Complete || short.Difference.Lower == nil ||
+		short.Difference.Lower.Sign() >= 0 || short.Difference.Upper.Cmp(big.NewRat(5, 16)) < 0 {
+		t.Fatal("short refinement keeps a conservative original range", short, err)
+	}
+}

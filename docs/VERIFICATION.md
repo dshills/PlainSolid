@@ -420,6 +420,9 @@ The ordered material audit also passes six closed solid cases with
 independent volumes 5/4, 7/4 and 1/2. Both projection-axis orders
 preserve the original roofs and four side faces. Strict containment
 and coincidence return empty Cut, and an incomplete footprint refuses.
+Exact subdivision also certifies an original quadratic with a negative
+unsplit coefficient. One split proves its independent range [1/16,5/16];
+a shorter cell budget retains the conservative coarse range.
 The related UV-curve race preserves original nonuniform knots and exact
 physical derivatives. A transported original curve lifts to identical
 rational model points on both charts. A denominator with a pole and an

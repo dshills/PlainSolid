@@ -17,9 +17,9 @@ type ProjectiveSurfaceHeightOrder struct {
 }
 
 // CertifyProjectiveSurfaceHeightOrder checks all original common cells
-// with one exact work limit. When the Bernstein hull straddles or touches
-// zero without proving identity, it retains the conservative enclosure
-// and returns ErrConvergence instead of asserting an order.
+// with one exact work limit. Inconclusive Bernstein hulls may subdivide
+// within the same original cell. If exact work runs out or an original
+// sample prevents strict ordering, the conservative enclosure is kept.
 func CertifyProjectiveSurfaceHeightOrder(ctx context.Context, a, c *SurfacePatch, axes [2]int,
 	o GeneralSurfaceHeightOptions) (r ProjectiveSurfaceHeightOrder, err error) {
 	if o.MaxOperations == 0 {
@@ -35,38 +35,116 @@ func CertifyProjectiveSurfaceHeightOrder(ctx context.Context, a, c *SurfacePatch
 	}
 	b := &polynomialBudget{operations: r.ExactOperations, maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	defer func() { r.ExactOperations = b.operations }()
-	var lo, hi *big.Rat
+	if o.MaxCells == 0 {
+		o.MaxCells = 4096
+	}
+	type orderCell struct {
+		p      *SurfacePatch
+		bounds ExactParameterInterval
+		depth  int
+	}
+	hull := func(p *SurfacePatch) (x ExactParameterInterval, err error) {
+		for i, h := range p.net {
+			if i&255 == 0 {
+				if err := ctx.Err(); err != nil {
+					return x, err
+				}
+			}
+			v := new(big.Rat).Quo(h[2], h[3])
+			if err := b.check(v); err != nil {
+				return x, err
+			}
+			if x.Lower == nil || v.Cmp(x.Lower) < 0 {
+				x.Lower = v
+			}
+			if x.Upper == nil || v.Cmp(x.Upper) > 0 {
+				x.Upper = v
+			}
+		}
+		return x, nil
+	}
+	extend := func(r *ExactParameterInterval, x ExactParameterInterval) {
+		if r.Lower == nil || x.Lower.Cmp(r.Lower) < 0 {
+			r.Lower = x.Lower
+		}
+		if r.Upper == nil || x.Upper.Cmp(r.Upper) > 0 {
+			r.Upper = x.Upper
+		}
+	}
+	var coarse ExactParameterInterval
+	var pending []orderCell
 	for _, cell := range atlas.Cells {
+		p := cell.Difference
+		span, err := hull(p)
+		if err != nil {
+			return r, err
+		}
+		extend(&coarse, span)
+		pending = append(pending, orderCell{p: p, bounds: span})
+	}
+	if coarse.Lower == nil {
+		return r, ErrConvergence
+	}
+	if err := ctx.Err(); err != nil {
+		return r, err
+	}
+	r.Overlap, r.Difference = atlas.Overlap, coarse
+	if coarse.Lower.Sign() > 0 || coarse.Upper.Sign() < 0 || coarse.Lower.Sign() == 0 && coarse.Upper.Sign() == 0 {
+		r.Sign, r.Complete = coarse.Lower.Sign(), true
+		return r, nil
+	}
+	visited, sign := len(pending), 0
+	var refined ExactParameterInterval
+	for len(pending) > 0 {
 		if err := ctx.Err(); err != nil {
 			return r, err
 		}
-		for _, h := range cell.Difference.net {
-			x := new(big.Rat).Quo(h[2], h[3])
-			if err := b.check(x); err != nil {
+		i := len(pending) - 1
+		n := pending[i]
+		pending = pending[:i]
+		// The four homogeneous corner coefficients are exact point
+		// values. A zero or differing signs prove lack of strict order.
+		p := n.p
+		for _, id := range [4]int{0, p.countV - 1, (p.countU - 1) * p.countV, len(p.net) - 1} {
+			s := p.net[id][2].Sign()
+			if s == 0 || sign != 0 && s != sign {
+				return r, ErrConvergence
+			}
+			sign = s
+		}
+		if n.bounds.Lower.Sign() > 0 || n.bounds.Upper.Sign() < 0 {
+			extend(&refined, n.bounds)
+			continue
+		}
+		if n.depth >= 64 || visited > o.MaxCells-2 {
+			return r, ErrConvergence
+		}
+		d := p.Domain()
+		u := d.UMax-d.UMin >= d.VMax-d.VMin
+		lo, hi := d.VMin, d.VMax
+		if u {
+			lo, hi = d.UMin, d.UMax
+		}
+		m := lo + (hi-lo)/2
+		if m <= lo || m >= hi {
+			return r, ErrConvergence
+		}
+		left, right, err := p.split(m, u, b)
+		if err != nil {
+			return r, err
+		}
+		for _, child := range [2]*SurfacePatch{right, left} {
+			span, err := hull(child)
+			if err != nil {
 				return r, err
 			}
-			if lo == nil || x.Cmp(lo) < 0 {
-				lo = x
-			}
-			if hi == nil || x.Cmp(hi) > 0 {
-				hi = x
-			}
+			pending = append(pending, orderCell{p: child, bounds: span, depth: n.depth + 1})
 		}
+		visited += 2
 	}
-	if lo == nil {
-		return r, ErrConvergence
+	if err := ctx.Err(); err != nil {
+		return r, err
 	}
-	r.Overlap, r.Difference = atlas.Overlap, ExactParameterInterval{lo, hi}
-	switch {
-	case lo.Sign() > 0:
-		r.Sign = 1
-	case hi.Sign() < 0:
-		r.Sign = -1
-	case lo.Sign() == 0 && hi.Sign() == 0:
-		r.Sign = 0
-	default:
-		return r, ErrConvergence
-	}
-	r.Complete = true
+	r.Difference, r.Sign, r.Complete = refined, sign, true
 	return r, nil
 }
