@@ -272,13 +272,13 @@ func changePeriodicTrimmedRecord(t *testing.T, source topologySource, owner, ind
 }
 
 type periodicTrimReport struct {
-	Valid, PeriodicU bool
-	Topology         [4]int
-	Bounds           [4]float64
-	Area, Perimeter  float64
-	Edges            []periodicTrimOracleEdge
-	Wires            []periodicTrimOracleWire
-	Samples          []struct {
+	Valid, PeriodicU, PeriodicV bool
+	Topology                    [4]int
+	Bounds                      [4]float64
+	Area, Perimeter             float64
+	Edges                       []periodicTrimOracleEdge
+	Wires                       []periodicTrimOracleWire
+	Samples                     []struct {
 		UV            [2]float64
 		Point, Du, Dv [3]float64
 	}
