@@ -326,6 +326,13 @@ mixed tensor. Reduction checks the final Bézier endpoint independently
 and refuses a genuinely higher-degree source, an ordinary tensor axis,
 one modified row and a short work budget. Main's periodic race passed in
 6.815 seconds.
+Physical reversal retains weighted homogeneous controls and repeated
+seams; at a true corner the new right jet is the negated original left
+jet. Tensor reversal negates only the selected cyclic derivative, and
+reversing twice restores the original chart. The exact length test
+certifies `10.5` over an edited window across a far negative seam,
+and short limits fail without a complete claim. Main's combined periodic
+race passed in 6.518 seconds, following a broader reversal run in 13.642.
 
 The [full ordinary Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
 later passed all nine lanes on macOS ARM64. The independent inventory

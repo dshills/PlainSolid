@@ -12,6 +12,10 @@ pass that revision.
 The [native Linux ARM64 run](evidence/native-linux-7569bd36-qualification-2026-11-15.json)
 passed on `7569bd36`. Native Windows runtime, broader curved modeling,
 independent exchange and the full release matrix remain unqualified.
+Exact periodic spline curves and cyclic tensor directions now support
+physical parameter reversal, including repeated seam knots and original
+one-sided derivatives. Exact curve length bounds cover nonuniform windows
+that cross the seam even at a distant cycle.
 
 The previous paired full runs used kernel `af569683` and PlainCAD `efae4d2`.
 The [Go run](evidence/main-af569683-qualification-2026-11-15.json)
