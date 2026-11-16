@@ -61,6 +61,26 @@ than half the cylinder radius, and their sum must leave a positive straight
 lateral band. The result retains explicit seam and fillet ancestry and can
 be saved and revalidated through the native trimmed format.
 
+### Fillets on an existing circular through-bore
+
+`WrappedCylinderBoreRims` rounds either or both inside circular rims of a
+canonical through-bore between parallel circular cylinders. The cylinders
+can have independent axes. Zero leaves an end sharp. A fillet of radius
+`f` on a bore of radius `r` enlarges that cap opening to `r+f` and meets
+the cylindrical wall `f` units in from the cap. The inner quarter of a
+rational toroid retains exact tangency at both rims. The outer stock
+support, original cap planes, and bore circumferential chart are preserved.
+The history identifies original and resulting walls, caps, and rim edges.
+
+The enlarged opening disks must stay strictly within the original stock
+cylinder, and the selected radii must leave a positive straight bore span.
+Tangency to the exterior, crossing, and unsupported source charts fail
+atomically. `ValidateWrappedCylinderBoreRimFillet` independently verifies
+the full toroidal charts and exact model edge ownership after native
+round-trip. The pinned comparator `eccentric_cylinder_bore_rim_fillets.cxx`
+authors its own Boolean through-bore and selects the original lower, upper,
+or both circular edges in OCCT.
+
 ### Through-bore after circular rim blends
 
 `BoreWrappedRoundedCylinder` removes an axial, optionally eccentric circular

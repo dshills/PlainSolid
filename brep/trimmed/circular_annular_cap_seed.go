@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"sort"
 
@@ -185,6 +186,12 @@ func supportsCircularAnnularSeedShell(ctx context.Context, faces []Face) (bool, 
 				return false, nil
 			}
 			p, err := geom.CertifyWrappedFrustumEmbedding(ctx, w, geom.SurfacePatchOptions{})
+			if errors.Is(err, geom.ErrConvergence) && (len(faces) == 5 || len(faces) == 6) {
+				if _, candidate := circularBoreBlendEnd(w, f); candidate {
+					_, err = certifyWrappedCylinderBoreFilletFaces(ctx, faces, geom.SurfacePatchOptions{})
+					return err == nil, err
+				}
+			}
 			if err != nil || !p.Circular {
 				return false, err
 			}
@@ -243,12 +250,13 @@ func circularSeedWallChain(bands []geom.WrappedFrustumEmbedding) (WrappedStation
 	return out, true
 }
 
-func (s Solid) annularRimEdges() []bool {
+func (s Solid) sampledAnnularEdges() []bool {
 	rim := make([]bool, len(s.edges))
 	for _, f := range s.faces {
-		if _, ok := f.Surface.(*geom.WrappedSurfacePatch); ok {
+		if w, ok := f.Surface.(*geom.WrappedSurfacePatch); ok {
+			_, curvedSeam := circularBoreBlendEnd(w, f)
 			for _, u := range f.Outer {
-				if u.UVStart.Y == u.UVEnd.Y {
+				if curvedSeam || u.UVStart.Y == u.UVEnd.Y {
 					rim[u.Edge] = true
 				}
 			}
@@ -261,21 +269,27 @@ func (s Solid) tessellateCircularAnnularSeeds(ctx context.Context, o parametric.
 	if o.AnalyticBound {
 		return mesh.Mesh{}, parametric.ErrDeflectionUnsupported
 	}
-	rim := s.annularRimEdges()
+	rim := s.sampledAnnularEdges()
 	for level := s.minimumLevel; level <= maxCircularAnnularSeedLevel && 1<<level <= o.MaxSubdivisions; level++ {
+		n := 1 << level
 		count := 0
 		for fi, f := range s.faces {
 			vertices := 0
 			for _, loop := range append([][]Use{f.Outer}, f.Holes...) {
 				for _, u := range loop {
-					n := 1
+					splits := 1
 					if rim[u.Edge] {
-						n = 1 << level
+						splits = n
 					}
-					vertices += n
+					vertices += splits
 				}
 			}
 			triangles := vertices + 2*len(f.Holes) - 2
+			if w, ok := f.Surface.(*geom.WrappedSurfacePatch); ok {
+				if _, blend := circularBoreBlendEnd(w, f); blend {
+					triangles = 8 * n * n
+				}
+			}
 			if s.splitSeeds[fi] {
 				triangles *= 12
 			}
