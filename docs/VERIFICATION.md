@@ -18,6 +18,12 @@ display cases. Direct pinned OCCT Boolean results did not consistently
 reproduce the topology, so independently authored pinned lenses and
 closed-form moments supply the reference comparison.
 
+The [mixed original circle arrangement](evidence/parabola-mixed-circles-2026-11-16.json)
+passes the main race for the full degree-eight source identity, two simple
+crossings, five signed cells, four isolated circle extrema and rejection
+controls. It includes strictly separated circles whose global ordinate
+range overlaps the parabola. Native assembly is qualified separately.
+
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same
 native topology. The independent read-back checked 608 directed

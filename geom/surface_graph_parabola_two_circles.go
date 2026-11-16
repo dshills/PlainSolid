@@ -179,23 +179,8 @@ func bindSeparatedParabolaCircles(out *SplineGraphParabolaTwoCircles, p rational
 		}
 	}
 	first, second := out.Circles[0], out.Circles[1]
-	var separationSquared big.Rat
-	for axis := range 2 {
-		delta := new(big.Rat).Sub(second.Center[axis], first.Center[axis])
-		separationSquared.Add(&separationSquared, delta.Mul(delta, delta))
-	}
-	margin := new(big.Rat).Set(&separationSquared)
-	margin.Sub(margin, first.RadiusSquared).Sub(margin, second.RadiusSquared)
-	cross := new(big.Rat).Mul(big.NewRat(4, 1), new(big.Rat).Mul(first.RadiusSquared, second.RadiusSquared))
-	square := new(big.Rat).Mul(margin, margin)
-	if err := b.check(square); err != nil {
+	if err := proveDisjointGraphCircles(first, second, b); err != nil {
 		return regions, err
-	}
-	if err := b.check(cross); err != nil {
-		return regions, err
-	}
-	if margin.Sign() <= 0 || square.Cmp(cross) <= 0 {
-		return regions, ErrConvergence
 	}
 	for i, circle := range out.Circles {
 		region, err := separatedParabolaCircleRegion(p, minimum, maximum, circle.Center, circle.RadiusSquared, b)
@@ -207,4 +192,28 @@ func bindSeparatedParabolaCircles(out *SplineGraphParabolaTwoCircles, p rational
 		out.Circles[i].Center[1-out.FreeAxis] = circle.Center[1]
 	}
 	return regions, nil
+}
+
+// proveDisjointGraphCircles proves a strict positive gap between the two
+// closed disks, including when one or both radii are irrational.
+func proveDisjointGraphCircles(first, second GraphContactCircle, b *polynomialBudget) error {
+	var separationSquared big.Rat
+	for axis := range 2 {
+		delta := new(big.Rat).Sub(second.Center[axis], first.Center[axis])
+		separationSquared.Add(&separationSquared, delta.Mul(delta, delta))
+	}
+	margin := new(big.Rat).Set(&separationSquared)
+	margin.Sub(margin, first.RadiusSquared).Sub(margin, second.RadiusSquared)
+	cross := new(big.Rat).Mul(big.NewRat(4, 1), new(big.Rat).Mul(first.RadiusSquared, second.RadiusSquared))
+	square := new(big.Rat).Mul(margin, margin)
+	if err := b.check(square); err != nil {
+		return err
+	}
+	if err := b.check(cross); err != nil {
+		return err
+	}
+	if margin.Sign() <= 0 || square.Cmp(cross) <= 0 {
+		return ErrConvergence
+	}
+	return nil
 }
