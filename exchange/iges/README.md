@@ -173,6 +173,17 @@ including the split stations, edge directions and model curve ranges.
 Both contours and the original seam share the exact decimal and binary64
 station separation checks used for canonical emission.
 
+`ReadPeriodicSeamTrimmedFaceWithMixedHoles` admits two clockwise
+rectangular holes in one certified outer lift. One hole splits into six
+paired edges across the original U seam and the other has four pairs
+strictly inside one original span. The result preserves the original
+type-144 contour order and the one-span hole's original cell. The reader
+proves both containment and disjointness in the same chart. Pinned OCCT
+reopens both independent source orders with all sixteen original edges.
+Strict import refuses the independently overlapping original and an
+independent source whose rounded model coefficient disagrees with its UV
+owner even though OCCT transfers it.
+
 `WritePeriodicSeamTrimmedFace` emits a canonical carrier for an original
 face proved by `ReadPeriodicSeamTrimmedFace`. It replays the source proof
 and strictly reopens the complete output before writing to the stream.

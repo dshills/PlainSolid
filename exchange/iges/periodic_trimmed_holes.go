@@ -31,7 +31,7 @@ type PeriodicTrimmedFaceWithHoles struct {
 // the entire directed edge. One projection proves injectivity of the whole
 // outer rectangle before the result is published.
 func ReadPeriodicTrimmedFaceWithHoles(ctx context.Context, r io.Reader, l Limits) (PeriodicTrimmedFaceWithHoles, error) {
-	source, err := readPeriodicTrimSourceWithHoles(ctx, r, l, 4, 4, 2)
+	source, err := readPeriodicTrimSource(ctx, r, l, 4, []int{4}, []int{4, 4})
 	if err != nil {
 		return PeriodicTrimmedFaceWithHoles{}, err
 	}
@@ -51,33 +51,20 @@ func provePeriodicTrimmedFaceWithHoles(ctx context.Context, source periodicTrimS
 	}
 	holes := make([]PeriodicTrimHole, len(source.holes))
 	for i, owner := range source.holes {
-		var uv [4]periodicTrimUVEdge
-		bounds, err := readPeriodicTrimUVEdges(source.graph, owner.uv, uv[:])
+		hole, left, err := provePeriodicTrimCellHole(ctx, source.graph, m.Support, owner, remaining)
 		if err != nil {
 			return zero, err
 		}
-		cells, _, err := m.Support.ExactBezierCells(ctx, bounds[0], bounds[1], geom.PeriodicSurfaceBezierOptions{MaxCells: 1})
-		if err != nil {
-			return zero, fmt.Errorf("iges: periodic hole #%d is not an exact rectangle in one knot cell: %w", owner.contourID, err)
-		}
-		if len(cells) != 1 {
-			return zero, geom.ErrUnrepresentable
-		}
-		edges, left, err := provePeriodicTrimRectangle(ctx, source.graph, cells[0], bounds, uv, owner.model, -1, remaining)
-		if err != nil {
-			return zero, fmt.Errorf("iges: periodic hole #%d: %w", owner.contourID, err)
-		}
 		remaining = left
-		if err := provePeriodicTrimHoleContainment(owner.contourID, bounds, m.Bounds); err != nil {
+		if err := provePeriodicTrimHoleContainment(owner.contourID, hole.Bounds, m.Bounds); err != nil {
 			return zero, err
 		}
 		for _, prior := range holes[:i] {
-			if !disjointPeriodicTrimRectangles(bounds, prior.Bounds) {
+			if !disjointPeriodicTrimRectangles(hole.Bounds, prior.Bounds) {
 				return zero, fmt.Errorf("iges: periodic holes #%d and #%d overlap or meet: %w", prior.ContourID, owner.contourID, geom.ErrUnrepresentable)
 			}
 		}
-		holes[i] = PeriodicTrimHole{ContourID: owner.contourID, UVCompositeID: owner.uvID, ModelCompositeID: owner.modelID,
-			Bounds: bounds, Edges: edges}
+		holes[i] = hole
 	}
 	if len(source.graph.claimed) != len(source.graph.records) {
 		return zero, geom.ErrUnrepresentable
@@ -86,6 +73,29 @@ func provePeriodicTrimmedFaceWithHoles(ctx context.Context, source periodicTrimS
 		return zero, err
 	}
 	return PeriodicTrimmedFaceWithHoles{PeriodicTrimmedFace: m, Holes: holes}, nil
+}
+
+func provePeriodicTrimCellHole(ctx context.Context, graph periodicTrimGraph, support *geom.ExactPeriodicSplineSurface,
+	owner periodicTrimLoopSource, remaining int) (PeriodicTrimHole, int, error) {
+	var zero PeriodicTrimHole
+	var uv [4]periodicTrimUVEdge
+	bounds, err := readPeriodicTrimUVEdges(graph, owner.uv, uv[:])
+	if err != nil {
+		return zero, 0, err
+	}
+	cells, _, err := support.ExactBezierCells(ctx, bounds[0], bounds[1], geom.PeriodicSurfaceBezierOptions{MaxCells: 1})
+	if err != nil {
+		return zero, 0, fmt.Errorf("iges: periodic hole #%d is not an exact rectangle in one knot cell: %w", owner.contourID, err)
+	}
+	if len(cells) != 1 {
+		return zero, 0, geom.ErrUnrepresentable
+	}
+	edges, remaining, err := provePeriodicTrimRectangle(ctx, graph, cells[0], bounds, uv, owner.model, -1, remaining)
+	if err != nil {
+		return zero, 0, fmt.Errorf("iges: periodic hole #%d: %w", owner.contourID, err)
+	}
+	return PeriodicTrimHole{ContourID: owner.contourID, UVCompositeID: owner.uvID, ModelCompositeID: owner.modelID,
+		Bounds: bounds, Edges: edges}, remaining, nil
 }
 
 func provePeriodicTrimHoleContainment(owner int, hole, outer [2]geom.ExactParameterInterval) error {

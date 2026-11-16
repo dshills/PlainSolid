@@ -184,6 +184,29 @@ static bool writeExactSeamHole(const char* path, bool touching)
     return writer.AddEntity(face) && writer.Write(path);
 }
 
+static bool writeExactSeamMixedHoles(const char* path, std::string_view mode)
+{
+    const auto native = periodicSupport();
+    const auto support = exactCarrier(native,0.,5.,0.,4.);
+    const std::array<gp_XY,6> outer{gp_XY(4.75,3),gp_XY(4.75,1),gp_XY(5,1),
+                                    gp_XY(5.25,1),gp_XY(5.25,3),gp_XY(5,3)};
+    const std::array<gp_XY,6> seamHole{gp_XY(4.875,1.5),gp_XY(4.875,2.5),gp_XY(5,2.5),
+                                       gp_XY(5.125,2.5),gp_XY(5.125,1.5),gp_XY(5,1.5)};
+    const bool overlap = mode == "write-exact-seam-mixed-overlap";
+    const bool rounded = mode == "write-exact-seam-mixed-rounded";
+    const auto spanHole = rounded ? clockwiseRectangle(4.78125,4.84375,1.75,2.25)
+                                  : clockwiseRectangle(4.8125,4.9375,overlap?1.75:1.125,overlap?2.25:1.375);
+    const bool reversed = mode == "write-exact-seam-mixed-reversed";
+    using Contours = NCollection_HArray1<occ::handle<IGESGeom_CurveOnSurface>>;
+    occ::handle<Contours> inner = new Contours(1,2);
+    inner->SetValue(reversed?2:1,exactContour(native,support,seamHole,20));
+    inner->SetValue(reversed?1:2,exactContour(native,support,spanHole,40));
+    occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
+    face->Init(support,1,exactContour(native,support,outer,0),inner);
+    IGESControl_Writer writer("MM",0);
+    return writer.AddEntity(face) && writer.Write(path);
+}
+
 static bool report(const TopoDS_Shape& shape, bool boundary = false, bool allWires = false)
 {
     NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> faces, edges, wires, vertices;
@@ -277,6 +300,10 @@ int main(int argc,char** argv)
         }
         if (mode == "write-exact-seam-hole" || mode == "write-exact-seam-touching-hole") {
             return writeExactSeamHole(argv[2],mode == "write-exact-seam-touching-hole") ? 0 : 8;
+        }
+        if (mode == "write-exact-seam-mixed" || mode == "write-exact-seam-mixed-reversed" ||
+            mode == "write-exact-seam-mixed-overlap" || mode == "write-exact-seam-mixed-rounded") {
+            return writeExactSeamMixedHoles(argv[2],mode) ? 0 : 8;
         }
         if (mode == "write" || mode == "write-seam") {
             const TopoDS_Face face = original(mode == "write-seam");
