@@ -481,6 +481,12 @@ U-periodic support, with complete cubic composition and original model
 ranges. Canonical export matches both pinned source readback and both
 executed macOS architectures. Wrong winding, changed sub-ULP turns and
 crossing UV loops refuse. Main race, full IGES and 22 prior bytes pass.
+The [convex affine inner trim audit](evidence/iges-periodic-convex-affine-hole-2026-11-16.json)
+checks eight original model coedges and both exact UV wires. The pinned
+reader agrees on original and canonical topology, owner stations and
+physical jets. A contacting or crossing inner wire refuses even within
+the outer bounding rectangle; wrong original winding and rounded cubic
+controls also refuse. Main race, full IGES and 23 prior outputs pass.
 The [valid periodic seam trim](evidence/iges-periodic-seam-trimmed-2026-11-16.json)
 passes independently authored type 144, the pinned reopen and main race.
 The reader retains six original directed pairs, distinct seam stations,

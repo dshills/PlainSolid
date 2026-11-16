@@ -30,7 +30,7 @@ func WritePeriodicConvexTrimmedFace(ctx context.Context, w io.Writer, face Perio
 	if !reflect.DeepEqual(face, proved) {
 		return fmt.Errorf("iges: convex periodic trim no longer matches its original proof: %w", geom.ErrUnrepresentable)
 	}
-	if err := checkPeriodicConvexTransfer(proved); err != nil {
+	if err := checkPeriodicConvexTransfer(proved, nil); err != nil {
 		return err
 	}
 	carrier, err := writePeriodicTrimRecords(source)
@@ -55,26 +55,35 @@ func WritePeriodicConvexTrimmedFace(ctx context.Context, w io.Writer, face Perio
 	return err
 }
 
-func checkPeriodicConvexTransfer(f PeriodicConvexTrimmedFace) error {
-	boxes := [5][2]geom.ExactParameterInterval{
-		{f.KnotOwners[0].Domain, f.KnotOwners[1].Domain},
+func checkPeriodicConvexTransfer(f PeriodicConvexTrimmedFace, hole *PeriodicConvexTrimHole) error {
+	boxes := [][2]geom.ExactParameterInterval{{f.KnotOwners[0].Domain, f.KnotOwners[1].Domain}}
+	wires := [][4]PeriodicTrimEdge{f.Edges}
+	if hole != nil {
+		wires = append(wires, hole.Edges)
 	}
-	var points [4][2]*big.Rat
-	for i, edge := range f.Edges {
-		for axis, q := range edge.UVStart {
-			x, _ := q.Float64()
-			points[i][axis] = new(big.Rat).SetFloat64(x)
-			if points[i][axis] == nil {
-				return geom.ErrUnrepresentable
+	var points [2][4][2]*big.Rat
+	for index, wire := range wires {
+		for i, edge := range wire {
+			var station [2]geom.ExactParameterInterval
+			for axis, q := range edge.UVStart {
+				x, _ := q.Float64()
+				points[index][i][axis] = new(big.Rat).SetFloat64(x)
+				if points[index][i][axis] == nil {
+					return geom.ErrUnrepresentable
+				}
+				station[axis] = geom.ExactParameterInterval{Lower: q, Upper: q}
 			}
-			boxes[i+1][axis] = geom.ExactParameterInterval{Lower: q, Upper: q}
+			boxes = append(boxes, station)
 		}
 	}
-	if err := checkPeriodicTrimTransferStations(nil, boxes[:]...); err != nil {
+	if err := checkPeriodicTrimTransferStations(nil, boxes...); err != nil {
 		return err
 	}
-	if !periodicUVStrictlyConvex(points) {
+	if !periodicUVStrictlyConvex(points[0], 1) || hole != nil && !periodicUVStrictlyConvex(points[1], -1) {
 		return fmt.Errorf("iges: convex periodic trim loses its original winding or convexity in binary64 transfer: %w", geom.ErrUnrepresentable)
+	}
+	if hole != nil && !periodicUVStrictlyContains(points[0], points[1]) {
+		return fmt.Errorf("iges: convex trim hole loses strict containment in binary64 transfer: %w", geom.ErrUnrepresentable)
 	}
 	return nil
 }
