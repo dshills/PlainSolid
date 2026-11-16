@@ -31,12 +31,16 @@ func (r *ClippedPolynomialThreeTransverseCut) Contacts() []PolynomialMixedCutCon
 	if r == nil || r.cut == nil {
 		return nil
 	}
-	out := make([]PolynomialMixedCutContact, len(r.cut.material.contacts))
-	for i, c := range r.cut.material.contacts {
+	return r.cut.typedContacts()
+}
+
+func (d *clippedPolynomialCutData) typedContacts() []PolynomialMixedCutContact {
+	out := make([]PolynomialMixedCutContact, len(d.material.contacts))
+	for i, c := range d.material.contacts {
 		out[i] = PolynomialMixedCutContact{
 			TwoPolynomialNodeComponentContact: c.copy(),
-			Order:                             r.cut.orders[i],
-			DerivativeGap:                     new(big.Rat).Set(r.cut.derivatives[i]),
+			Order:                             d.orders[i],
+			DerivativeGap:                     new(big.Rat).Set(d.derivatives[i]),
 		}
 	}
 	return out
@@ -48,11 +52,15 @@ func (r *ClippedPolynomialThreeTransverseCut) ExactComponentVolumes() ([]*big.Ra
 	if r == nil || r.cut == nil {
 		return nil, nil
 	}
-	volumes := make([]*big.Rat, len(r.cut.volumes))
-	for i, v := range r.cut.volumes {
+	return r.cut.exactVolumes()
+}
+
+func (d *clippedPolynomialCutData) exactVolumes() ([]*big.Rat, *big.Rat) {
+	volumes := make([]*big.Rat, len(d.volumes))
+	for i, v := range d.volumes {
 		volumes[i] = new(big.Rat).Set(v)
 	}
-	return volumes, new(big.Rat).Set(r.cut.total)
+	return volumes, new(big.Rat).Set(d.total)
 }
 
 // Chambers identifies the positive original overlap regions and exclusive

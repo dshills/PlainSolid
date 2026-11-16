@@ -16,9 +16,13 @@ func (r *ClippedPolynomialThreeTransverseCut) WriteJSON(ctx context.Context, w i
 	if ctx == nil || r == nil || r.cut == nil || w == nil {
 		return geom.ErrInvalid
 	}
-	cut := r.cut
-	source, e := makePolynomialNodeComponentsRecipe(ctx, nativeClippedPolynomialThreeTransverseCut,
-		r.sources, r.axis, r.tolerance, cut.material.regions, cut.material.contacts)
+	return writeClippedTransverseCutRecipe(ctx, w, nativeClippedPolynomialThreeTransverseCut, r.sources, r.axis, r.tolerance, r.cut)
+}
+
+func writeClippedTransverseCutRecipe(ctx context.Context, w io.Writer, kind string, supports [3]*geom.BSplineSurface, axis int,
+	tolerance float64, cut *clippedPolynomialCutData) error {
+	source, e := makePolynomialNodeComponentsRecipe(ctx, kind,
+		supports, axis, tolerance, cut.material.regions, cut.material.contacts)
 	if e != nil {
 		return e
 	}
@@ -51,12 +55,18 @@ func ReadClippedPolynomialThreeTransverseCutJSON(ctx context.Context, r io.Reade
 	if e != nil {
 		return nil, e
 	}
-	cut := out.cut
-	if e = recipe.verifyTypedContacts(cut.material, cut.orders, cut.derivatives, limits); e != nil {
+	if e = recipe.verifyClippedTransverseCut(out.cut, limits); e != nil {
 		return nil, e
 	}
-	if recipe.Footprints != cut.footprints || recipe.Total != cut.total.RatString() || !reflect.DeepEqual(recipe.Shells, cut.shells) {
-		return nil, geom.ErrConvergence
-	}
 	return out, nil
+}
+
+func (recipe clippedPolynomialCutRecipe) verifyClippedTransverseCut(cut *clippedPolynomialCutData, limits JSONLimits) error {
+	if e := recipe.verifyTypedContacts(cut.material, cut.orders, cut.derivatives, limits); e != nil {
+		return e
+	}
+	if recipe.Footprints != cut.footprints || recipe.Total != cut.total.RatString() || !reflect.DeepEqual(recipe.Shells, cut.shells) {
+		return geom.ErrConvergence
+	}
+	return nil
 }
