@@ -200,13 +200,19 @@ func twoCrossingCircleArcSide(piece openSectionPiece, parabola ExactQuadraticUV,
 
 func exactCrossingCircleRing(circle geom.GraphContactCircle, r *big.Rat, junctions [2]geom.ParabolaCircleCrossing,
 	chordMidpoint geom.Vec2) ([]openSectionPiece, [2]int, error) {
+	arcs, nodes, err := exactParabolaCircleSectionRing(circle, r, junctions[:], []geom.Vec2{chordMidpoint}, 16)
+	return arcs, [2]int(nodes), err
+}
+
+func exactParabolaCircleSectionRing(circle geom.GraphContactCircle, r *big.Rat, junctions []geom.ParabolaCircleCrossing,
+	capMidpoints []geom.Vec2, maxDenominator int64) ([]openSectionPiece, []int, error) {
 	center := circle.Center
 	type anchor struct {
 		point, radial [2]*big.Rat
 		node          int
 	}
-	var nodes [2]int
-	anchors := make([]anchor, 0, 6)
+	nodes := make([]int, len(junctions))
+	anchors := make([]anchor, 0, 4+len(junctions))
 	for _, d := range [4][2]int64{{1, 0}, {0, 1}, {-1, 0}, {0, -1}} {
 		a := anchor{node: -1}
 		for i := range d {
@@ -255,13 +261,14 @@ func exactCrossingCircleRing(circle geom.GraphContactCircle, r *big.Rat, junctio
 			return nil, nodes, err
 		}
 		pieces := []ExactQuadraticUV{q}
-		if a.node >= 0 && b.node >= 0 {
+		if a.node >= 0 && b.node >= 0 && a.node/2 == b.node/2 {
+			chordMidpoint := capMidpoints[a.node/2]
 			winding, err := geom.Orient2D(q.ends[0], q.ends[1], chordMidpoint)
 			if err != nil {
 				return nil, nodes, err
 			}
 			if winding <= 0 {
-				pieces, err = subdivideTwoCrossingCircleCapArc(q, chordMidpoint)
+				pieces, err = subdivideTwoCrossingCircleCapArc(q, chordMidpoint, maxDenominator)
 				if err != nil {
 					return nil, nodes, err
 				}
@@ -274,7 +281,7 @@ func exactCrossingCircleRing(circle geom.GraphContactCircle, r *big.Rat, junctio
 	return arcs, nodes, nil
 }
 
-func subdivideTwoCrossingCircleCapArc(q ExactQuadraticUV, chordMidpoint geom.Vec2) ([]ExactQuadraticUV, error) {
+func subdivideTwoCrossingCircleCapArc(q ExactQuadraticUV, chordMidpoint geom.Vec2, maxDenominator int64) ([]ExactQuadraticUV, error) {
 	// The exact geometry already proves a simple CCW cap. Its three
 	// endpoint chords can turn clockwise when the parabola bows into
 	// the cap. Find one or two represented interior circle points so
@@ -286,7 +293,7 @@ func subdivideTwoCrossingCircleCapArc(q ExactQuadraticUV, chordMidpoint geom.Vec
 		last  bool
 	}
 	var points []candidate
-	for denominator := int64(2); denominator <= 16; denominator++ {
+	for denominator := int64(2); denominator <= maxDenominator; denominator++ {
 		for numerator := int64(1); numerator < denominator; numerator++ {
 			t := big.NewRat(numerator, denominator)
 			if t.Denom().Int64() != denominator {
