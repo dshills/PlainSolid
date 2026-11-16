@@ -98,6 +98,12 @@ paths and both local native solids retain their original identity and
 geometry. Every moved or unchanged world pose matches the exact expected
 matrix and pinned XCAF readback. The main DAG and earlier two-level
 edit race passed in 185.815 seconds.
+The [rounded depth-three DAG repair](evidence/rounded-depth-three-mixed-conical-ap242-dag-2026-11-15.json)
+keeps eight relationship IDs, seven exact paths of mixed lengths and
+the shared core definition. A `3e-12` mm budget passes pinned XCAF
+readback; `2.8e-12` mm refuses. The older two-level carrier and
+receipt remain byte-identical. The main pinned repair, replay and
+strict regressions passed in 347.846 seconds.
 
 The [full orthogonal volume offset](evidence/orthogonal-volume-offset-2026-11-15.json)
 matched independently constructed pinned OCCT references for four

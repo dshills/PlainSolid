@@ -96,7 +96,7 @@ func TestReadMixedConicalAP242DAG(t *testing.T) {
 	}
 	got.Instances[0].Path[0] = 54
 	if oracle := os.Getenv("PLAINSOLID_OCCT_MIXED_CONICAL_AP242_DAG"); oracle != "" {
-		checkMixedConicalAP242DAGOracle(t, oracle, data, got.Instances, local)
+		checkMixedConicalAP242DAGOracle(t, oracle, data, got.Instances, local, 254)
 	}
 }
 
@@ -188,7 +188,7 @@ func mixedConicalAP242DAGFixture(t *testing.T, kind string) []byte {
 	return data
 }
 
-func checkMixedConicalAP242DAGOracle(t *testing.T, oracle string, raw []byte, worlds []RationalHierarchyInstance, local map[int64]trimmed.Solid) {
+func checkMixedConicalAP242DAGOracle(t *testing.T, oracle string, raw []byte, worlds []RationalHierarchyInstance, local map[int64]trimmed.Solid, chamferedID int64) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "dag.step")
 	if err := os.WriteFile(path, raw, 0600); err != nil {
@@ -221,7 +221,7 @@ func checkMixedConicalAP242DAGOracle(t *testing.T, oracle string, raw []byte, wo
 		world := worlds[i]
 		mass := props[world.ProductID]
 		topology, definition := [4]int{1, 6, 10, 6}, 1
-		if world.ProductID == 254 {
+		if world.ProductID == chamferedID {
 			topology, definition = [4]int{1, 8, 14, 8}, 2
 		}
 		if !u.Valid || !slices.Equal(u.Path, paths[i]) || u.Definition != definition || u.SharedWithFirst != (definition == 1) ||

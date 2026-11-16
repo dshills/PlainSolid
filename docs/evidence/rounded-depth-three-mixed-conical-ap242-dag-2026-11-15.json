@@ -1,0 +1,812 @@
+{
+  "milestone": "Opt-in bounded repair of the independently authored rounded depth-three shared AP242 product DAG",
+  "plainSolidRevision": "cbfaefc9d0681556c0484f72d0c0f4d18022ca55",
+  "strictDAGRevision": "af51225ca0dc8e7100a46df9148235c424f3dca6",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "environment": {
+    "PLAINSOLID_OCCT_MIXED_CONICAL_AP242": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/mixed-ap242-curved-import/depth-three-dag/dag-author",
+    "PLAINSOLID_OCCT_MIXED_CONICAL_AP242_DAG": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/mixed-ap242-curved-import/depth-three-dag/dag-author"
+  },
+  "raceFilter": "^(TestRepair.*MixedConicalAP242DAG.*|TestReadMixedConicalAP242DAG.*|TestRepairNestedMixedConicalAP242Assembly)$",
+  "liveTests": {
+    "live.log": "29.648s",
+    "live-race.log": "241.185s"
+  },
+  "callerBudgetMillimetres": 3e-12,
+  "tightCallerBudgetRejectedMillimetres": 2.8e-12,
+  "originalSTEPHash": "1c51edaba9093844ff6841fa99002c3bffa8d8df39f10dbc6d356472a80c0b9f",
+  "originalRootDefinitions": [
+    5
+  ],
+  "sharedAssemblyDefinition": 58,
+  "sharedAssemblyParentDefinitions": [
+    35,
+    468
+  ],
+  "originalOccurrenceIDs": [
+    54,
+    85,
+    248,
+    254,
+    464,
+    487,
+    493,
+    498
+  ],
+  "exactWorlds": [
+    {
+      "ProductID": 89,
+      "Path": [
+        54,
+        85,
+        248
+      ],
+      "Pose": [
+        [
+          "-4/5",
+          "0",
+          "3/5",
+          "412/5"
+        ],
+        [
+          "3/5",
+          "0",
+          "4/5",
+          "266/5"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "8"
+        ]
+      ]
+    },
+    {
+      "ProductID": 89,
+      "Path": [
+        54,
+        85,
+        254
+      ],
+      "Pose": [
+        [
+          "0",
+          "3/5",
+          "-4/5",
+          "649/5"
+        ],
+        [
+          "0",
+          "4/5",
+          "3/5",
+          "82/5"
+        ],
+        [
+          "1",
+          "0",
+          "0",
+          "30"
+        ]
+      ]
+    },
+    {
+      "ProductID": 257,
+      "Path": [
+        54,
+        85,
+        464
+      ],
+      "Pose": [
+        [
+          "-12/25",
+          "16/25",
+          "3/5",
+          "544/5"
+        ],
+        [
+          "9/25",
+          "-12/25",
+          "4/5",
+          "192/5"
+        ],
+        [
+          "4/5",
+          "3/5",
+          "0",
+          "-24"
+        ]
+      ]
+    },
+    {
+      "ProductID": 89,
+      "Path": [
+        487,
+        493,
+        248
+      ],
+      "Pose": [
+        [
+          "3/5",
+          "0",
+          "4/5",
+          "-414/5"
+        ],
+        [
+          "16/25",
+          "3/5",
+          "-12/25",
+          "-113/25"
+        ],
+        [
+          "-12/25",
+          "4/5",
+          "9/25",
+          "741/25"
+        ]
+      ]
+    },
+    {
+      "ProductID": 89,
+      "Path": [
+        487,
+        493,
+        254
+      ],
+      "Pose": [
+        [
+          "0",
+          "4/5",
+          "3/5",
+          "-598/5"
+        ],
+        [
+          "3/5",
+          "-12/25",
+          "16/25",
+          "-731/25"
+        ],
+        [
+          "4/5",
+          "9/25",
+          "-12/25",
+          "1892/25"
+        ]
+      ]
+    },
+    {
+      "ProductID": 257,
+      "Path": [
+        487,
+        493,
+        464
+      ],
+      "Pose": [
+        [
+          "9/25",
+          "-12/25",
+          "4/5",
+          "-488/5"
+        ],
+        [
+          "108/125",
+          "-19/125",
+          "-12/25",
+          "-1121/25"
+        ],
+        [
+          "44/125",
+          "108/125",
+          "9/25",
+          "497/25"
+        ]
+      ]
+    },
+    {
+      "ProductID": 257,
+      "Path": [
+        498
+      ],
+      "Pose": [
+        [
+          "1",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "150"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "40"
+        ]
+      ]
+    }
+  ],
+  "individualParts": [
+    {
+      "definitionID": 89,
+      "bodyID": 95,
+      "nativeSHA256": "df411bbb977e59552daf4bb7620ea2ff5a7263ef87be0c5248daa075ef058dec",
+      "generatedIDs": {
+        "250": 499,
+        "251": 500
+      }
+    },
+    {
+      "definitionID": 257,
+      "bodyID": 263,
+      "nativeSHA256": "868c5fbc34da853155b930450bbac9c5b8b9a9c769b82e8875819e100c921ed5",
+      "generatedIDs": {
+        "466": 501,
+        "467": 502,
+        "468": 503,
+        "469": 504,
+        "470": 505,
+        "471": 506
+      }
+    }
+  ],
+  "pinnedOriginal": {
+    "sharedAssemblies": 1,
+    "assemblyDefinitions": 4,
+    "materialDefinitions": 2,
+    "occurrences": [
+      {
+        "path": [
+          1,
+          1,
+          1
+        ],
+        "definition": 1,
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.4014009762636,
+        "area": 1182.6440976399656,
+        "centroid": [
+          84.40227870404138,
+          55.84905831197898,
+          9.983482698605544
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          -0.8,
+          0,
+          0.6,
+          82.4,
+          0.6,
+          0,
+          0.8,
+          53.2,
+          0,
+          1,
+          0,
+          8
+        ]
+      },
+      {
+        "path": [
+          1,
+          1,
+          2
+        ],
+        "definition": 1,
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.401400976263,
+        "area": 1182.6440976399656,
+        "centroid": [
+          128.33359852155695,
+          19.979154482089236,
+          29.987612023954288
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          0,
+          0.6,
+          -0.8,
+          129.8,
+          0,
+          0.8,
+          0.6,
+          16.4,
+          1,
+          0,
+          0,
+          30
+        ]
+      },
+      {
+        "path": [
+          1,
+          1,
+          3
+        ],
+        "definition": 2,
+        "sharedWithFirst": false,
+        "valid": true,
+        "volume": 726.9882656102544,
+        "area": 593.897326906747,
+        "centroid": [
+          112.5073825265443,
+          43.6121085296616,
+          -24.553231188210816
+        ],
+        "topology": [
+          1,
+          8,
+          14,
+          8
+        ],
+        "pose": [
+          -0.48,
+          0.6400000000000001,
+          0.6,
+          108.8,
+          0.36,
+          -0.48,
+          0.8,
+          38.4,
+          0.8,
+          0.6,
+          0,
+          -24
+        ]
+      },
+      {
+        "path": [
+          2,
+          1,
+          1
+        ],
+        "definition": 1,
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.401400976264,
+        "area": 1182.6440976399656,
+        "centroid": [
+          -80.15094168802102,
+          -4.931733344069762,
+          32.42815338130926
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          0.6,
+          0,
+          0.8,
+          -82.8,
+          0.6400000000000001,
+          0.6,
+          -0.48,
+          -4.519999999999996,
+          -0.48,
+          0.8,
+          0.36,
+          29.64
+        ]
+      },
+      {
+        "path": [
+          2,
+          1,
+          2
+        ],
+        "definition": 1,
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.401400976264,
+        "area": 1182.6440976399658,
+        "centroid": [
+          -116.02084551791076,
+          -28.07431160287297,
+          74.7902487320976
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          0,
+          0.8,
+          0.6,
+          -119.6,
+          0.6,
+          -0.48,
+          0.6400000000000001,
+          -29.240000000000006,
+          0.8,
+          0.36,
+          -0.48,
+          75.68
+        ]
+      },
+      {
+        "path": [
+          2,
+          1,
+          3
+        ],
+        "definition": 2,
+        "sharedWithFirst": false,
+        "valid": true,
+        "volume": 726.9882656102541,
+        "area": 593.8973269067471,
+        "centroid": [
+          -92.3878914703384,
+          -48.137844734161945,
+          21.66184456535793
+        ],
+        "topology": [
+          1,
+          8,
+          14,
+          8
+        ],
+        "pose": [
+          0.36,
+          -0.48,
+          0.8,
+          -97.6,
+          0.864,
+          -0.15200000000000014,
+          -0.48,
+          -44.84,
+          0.35200000000000015,
+          0.864,
+          0.36,
+          19.88
+        ]
+      },
+      {
+        "path": [
+          3
+        ],
+        "definition": 2,
+        "sharedWithFirst": false,
+        "valid": true,
+        "volume": 726.9882656102542,
+        "area": 593.897326906747,
+        "centroid": [
+          -0.3457694926317486,
+          149.5389740098243,
+          46.39411633965587
+        ],
+        "topology": [
+          1,
+          8,
+          14,
+          8
+        ],
+        "pose": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          150,
+          0,
+          0,
+          1,
+          40
+        ]
+      }
+    ]
+  },
+  "pinnedCorrected": {
+    "sharedAssemblies": 1,
+    "assemblyDefinitions": 4,
+    "materialDefinitions": 2,
+    "occurrences": [
+      {
+        "path": [
+          1,
+          1,
+          1
+        ],
+        "definition": 1,
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.4014040828897,
+        "area": 1182.6440976399515,
+        "centroid": [
+          84.40232031351782,
+          55.84902710210676,
+          9.983486909773259
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          -0.8,
+          0,
+          0.6,
+          82.4,
+          0.6,
+          0,
+          0.8,
+          53.2,
+          0,
+          1,
+          0,
+          8
+        ]
+      },
+      {
+        "path": [
+          1,
+          1,
+          2
+        ],
+        "definition": 1,
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.4014040828893,
+        "area": 1182.6440976399515,
+        "centroid": [
+          128.33360105002708,
+          19.97915784969626,
+          29.987560010449798
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          0,
+          0.6,
+          -0.8,
+          129.8,
+          0,
+          0.8,
+          0.6,
+          16.4,
+          1,
+          0,
+          0,
+          30
+        ]
+      },
+      {
+        "path": [
+          1,
+          1,
+          3
+        ],
+        "definition": 2,
+        "sharedWithFirst": false,
+        "valid": true,
+        "volume": 726.9882684981451,
+        "area": 593.8973269066951,
+        "centroid": [
+          112.50745694488185,
+          43.61205271464942,
+          -24.553303452072022
+        ],
+        "topology": [
+          1,
+          8,
+          14,
+          8
+        ],
+        "pose": [
+          -0.48,
+          0.6400000000000001,
+          0.6,
+          108.8,
+          0.36,
+          -0.48,
+          0.8,
+          38.4,
+          0.8,
+          0.6,
+          0,
+          -24
+        ]
+      },
+      {
+        "path": [
+          2,
+          1,
+          1
+        ],
+        "definition": 1,
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.40140408289,
+        "area": 1182.6440976399515,
+        "centroid": [
+          -80.15097289789324,
+          -4.931764104950291,
+          32.42818171592929
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          0.6,
+          0,
+          0.8,
+          -82.8,
+          0.6400000000000001,
+          0.6,
+          -0.48,
+          -4.519999999999996,
+          -0.48,
+          0.8,
+          0.36,
+          29.64
+        ]
+      },
+      {
+        "path": [
+          2,
+          1,
+          2
+        ],
+        "definition": 1,
+        "sharedWithFirst": true,
+        "valid": true,
+        "volume": 2282.40140408289,
+        "area": 1182.6440976399517,
+        "centroid": [
+          -116.02084215030374,
+          -28.074344833751788,
+          74.7902086383761
+        ],
+        "topology": [
+          1,
+          6,
+          10,
+          6
+        ],
+        "pose": [
+          0,
+          0.8,
+          0.6,
+          -119.6,
+          0.6,
+          -0.48,
+          0.6400000000000001,
+          -29.240000000000006,
+          0.8,
+          0.36,
+          -0.48,
+          75.68
+        ]
+      },
+      {
+        "path": [
+          2,
+          1,
+          3
+        ],
+        "definition": 2,
+        "sharedWithFirst": false,
+        "valid": true,
+        "volume": 726.988268498145,
+        "area": 593.897326906695,
+        "centroid": [
+          -92.38794728535056,
+          -48.1379476271487,
+          21.66183140527149
+        ],
+        "topology": [
+          1,
+          8,
+          14,
+          8
+        ],
+        "pose": [
+          0.36,
+          -0.48,
+          0.8,
+          -97.6,
+          0.864,
+          -0.15200000000000014,
+          -0.48,
+          -44.84,
+          0.35200000000000015,
+          0.864,
+          0.36,
+          19.88
+        ]
+      },
+      {
+        "path": [
+          3
+        ],
+        "definition": 2,
+        "sharedWithFirst": false,
+        "valid": true,
+        "volume": 726.988268498145,
+        "area": 593.897326906695,
+        "centroid": [
+          -0.34588311792711346,
+          149.53900507044943,
+          46.39411633864865
+        ],
+        "topology": [
+          1,
+          8,
+          14,
+          8
+        ],
+        "pose": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          150,
+          0,
+          0,
+          1,
+          40
+        ]
+      }
+    ]
+  },
+  "legacyNestedCorrectedUnchanged": true,
+  "legacyNestedReceiptUnchanged": true,
+  "artifactSHA256": {
+    "corrected.step": "ce658cfbf366dc1951a1571a1a85e9f2a16b22ab6c61bac6bbf5628ed2c14aa3",
+    "source-receipt.json": "573c6297c71b0382e1ae377be1628249fab9f4c6b246770fa12c8d03720fc18b",
+    "proof.json": "067b1b89eef0dbd371edc6849b35b24d0351a4acc4c4344b6eed91ee3b64fd36",
+    "repair-mixed-conical-ap242-dag.patch": "7755fe8f5e5e50784d09be67953d144fc09e8f871913991d1ffe5b991f0e93cc",
+    "pinned-corrected.log": "001fdd7b4f6e2db96ae5a40667328c855a15c9c0244fb6b9e7eda93cdb1c3695"
+  },
+  "mainIntegration": {
+    "elapsedSeconds": 347.846,
+    "log": {
+      "path": ".worktrees/qualification/2026-11-15/rounded-ap242-dag-main-race.jsonl",
+      "sha256": "8bb576215fe0272da88c4f1c9c2b7305fd719481d91988040ede3db781511483"
+    },
+    "cases": [
+      "TestReadMixedConicalAP242DAG",
+      "TestReadMixedConicalAP242DAGReject/directed_cycle",
+      "TestReadMixedConicalAP242DAGReject/solid_as_parent",
+      "TestReadMixedConicalAP242DAGReject/empty_assembly_leaf",
+      "TestReadMixedConicalAP242DAGReject/nonrigid_middle_pose_below_representable_precision",
+      "TestReadMixedConicalAP242DAGReject",
+      "TestRepairMixedConicalAP242DAG",
+      "TestRepairMixedConicalAP242DAGReject",
+      "TestRepairedMixedConicalAP242DAGReceipt",
+      "TestRepairNestedMixedConicalAP242Assembly"
+    ]
+  }
+}

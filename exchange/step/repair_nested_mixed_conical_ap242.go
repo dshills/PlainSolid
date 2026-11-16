@@ -50,6 +50,14 @@ func (m RepairedNestedMixedConicalAP242Assembly) CorrectedModelSTEP() string { r
 // Assembly returns the strictly reconstructed material and hierarchy.
 func (m RepairedNestedMixedConicalAP242Assembly) Assembly() NestedMixedConicalAP242Assembly {
 	a := m.assembly
+	mixed := cloneRepairedMixedConicalAP242(MixedConicalAP242Assembly{Assembly: a.Assembly, Parts: a.Parts, Occurrences: a.Occurrences})
+	a.Assembly, a.Parts, a.Occurrences = mixed.Assembly, mixed.Parts, mixed.Occurrences
+	a.Group.Representations = slices.Clone(a.Group.Representations)
+	a.Instances = slices.Clone(a.Instances)
+	return a
+}
+
+func cloneRepairedMixedConicalAP242(a MixedConicalAP242Assembly) MixedConicalAP242Assembly {
 	a.Assembly.Roots = slices.Clone(a.Assembly.Roots)
 	a.Assembly.Occurrences = slices.Clone(a.Assembly.Occurrences)
 	a.Assembly.Products = slices.Clone(a.Assembly.Products)
@@ -57,7 +65,6 @@ func (m RepairedNestedMixedConicalAP242Assembly) Assembly() NestedMixedConicalAP
 		p := &a.Assembly.Products[i]
 		p.Representations = slices.Clone(p.Representations)
 	}
-	a.Group.Representations = slices.Clone(a.Group.Representations)
 	a.Parts = maps.Clone(a.Parts)
 	for id, part := range a.Parts {
 		part.Product.Representations = slices.Clone(part.Product.Representations)
@@ -78,13 +85,15 @@ func (m RepairedNestedMixedConicalAP242Assembly) Assembly() NestedMixedConicalAP
 		a.Parts[id] = part
 	}
 	a.Occurrences = slices.Clone(a.Occurrences)
-	a.Instances = slices.Clone(a.Instances)
 	return a
 }
 
 // PartRepairs returns the two original local definitions' proof claims.
 func (m RepairedNestedMixedConicalAP242Assembly) PartRepairs() [2]NestedMixedConicalAP242PartRepair {
-	out := m.parts
+	return cloneMixedConicalAP242PartRepairs(m.parts)
+}
+
+func cloneMixedConicalAP242PartRepairs(out [2]NestedMixedConicalAP242PartRepair) [2]NestedMixedConicalAP242PartRepair {
 	for i := range out {
 		p := &out[i]
 		p.FaceIDs, p.EdgeIDs, p.VertexIDs = slices.Clone(p.FaceIDs), slices.Clone(p.EdgeIDs), slices.Clone(p.VertexIDs)
@@ -128,49 +137,7 @@ func RepairNestedMixedConicalAP242Assembly(ctx context.Context, r io.Reader, l L
 	if err != nil {
 		return zero, fmt.Errorf("step: authenticate rounded nested AP242 hierarchy: %w", err)
 	}
-	f := h.assembly.Source
-	fixed := cloneOvalFile(f)
-	fixed.Order = slices.Clone(f.Order)
-	incoming := conicalRepairIncoming(f)
-	freshID := slices.Max(f.Order)
-	var parts [2]NestedMixedConicalAP242PartRepair
-	n := 0
-	for _, product := range h.assembly.Products {
-		bodyID, isPart := h.layout.parts[product.DefinitionID]
-		if !isPart {
-			continue
-		}
-		if err := ctx.Err(); err != nil {
-			return zero, err
-		}
-		roots := []int64{h.records.definitionShapes[product.DefinitionID], h.records.protocol, h.records.categories[product.ProductID]}
-		view, err := mixedConicalAP242ViewFile(f, roots, l)
-		if err != nil {
-			return zero, err
-		}
-		p, after, err := repairNestedMixedConicalLocalPart(ctx, view, l, o.MaxDistance, product.DefinitionID, bodyID, h.assembly.LengthUnit)
-		if err != nil {
-			return zero, fmt.Errorf("step: repair nested AP242 part #%d: %w", product.DefinitionID, err)
-		}
-		p.GeneratedEntityIDs, err = mergeNestedMixedConicalPart(fixed, view, after, bodyID, incoming, &freshID, l)
-		if err != nil {
-			return zero, err
-		}
-		for i := range p.ChamferWalls {
-			wall := &p.ChamferWalls[i]
-			wall.CorrectedGeneratorID = p.GeneratedEntityIDs[wall.CorrectedGeneratorID]
-			if wall.CorrectedGeneratorID == 0 {
-				return zero, errNestedMixedConicalAP242Repair
-			}
-		}
-		parts[n] = p
-		n++
-	}
-	if n != len(parts) {
-		return zero, errNestedMixedConicalAP242Repair
-	}
-	fixed.Order = slices.DeleteFunc(fixed.Order, func(id int64) bool { _, ok := fixed.Entities[id]; return !ok })
-	corrected, err := mappedPlanarSourceBytes(fixed)
+	corrected, parts, err := repairMixedConicalAP242Parts(ctx, h, l, o.MaxDistance)
 	if err != nil {
 		return zero, err
 	}
@@ -186,6 +153,53 @@ func RepairNestedMixedConicalAP242Assembly(ctx context.Context, r io.Reader, l L
 	}
 	return RepairedNestedMixedConicalAP242Assembly{original: string(original), corrected: string(corrected), maxDistance: o.MaxDistance,
 		assembly: material, parts: parts}, nil
+}
+
+func repairMixedConicalAP242Parts(ctx context.Context, h mixedConicalAP242Hierarchy, l Limits, distance float64) ([]byte, [2]NestedMixedConicalAP242PartRepair, error) {
+	f := h.assembly.Source
+	fixed := cloneOvalFile(f)
+	fixed.Order = slices.Clone(f.Order)
+	incoming := conicalRepairIncoming(f)
+	freshID := slices.Max(f.Order)
+	var parts [2]NestedMixedConicalAP242PartRepair
+	n := 0
+	for _, product := range h.assembly.Products {
+		bodyID, isPart := h.layout.parts[product.DefinitionID]
+		if !isPart {
+			continue
+		}
+		if err := ctx.Err(); err != nil {
+			return nil, parts, err
+		}
+		roots := []int64{h.records.definitionShapes[product.DefinitionID], h.records.protocol, h.records.categories[product.ProductID]}
+		view, err := mixedConicalAP242ViewFile(f, roots, l)
+		if err != nil {
+			return nil, parts, err
+		}
+		p, after, err := repairNestedMixedConicalLocalPart(ctx, view, l, distance, product.DefinitionID, bodyID, h.assembly.LengthUnit)
+		if err != nil {
+			return nil, parts, fmt.Errorf("step: repair nested AP242 part #%d: %w", product.DefinitionID, err)
+		}
+		p.GeneratedEntityIDs, err = mergeNestedMixedConicalPart(fixed, view, after, bodyID, incoming, &freshID, l)
+		if err != nil {
+			return nil, parts, err
+		}
+		for i := range p.ChamferWalls {
+			wall := &p.ChamferWalls[i]
+			wall.CorrectedGeneratorID = p.GeneratedEntityIDs[wall.CorrectedGeneratorID]
+			if wall.CorrectedGeneratorID == 0 {
+				return nil, parts, errNestedMixedConicalAP242Repair
+			}
+		}
+		parts[n] = p
+		n++
+	}
+	if n != len(parts) {
+		return nil, parts, errNestedMixedConicalAP242Repair
+	}
+	fixed.Order = slices.DeleteFunc(fixed.Order, func(id int64) bool { _, ok := fixed.Entities[id]; return !ok })
+	corrected, err := mappedPlanarSourceBytes(fixed)
+	return corrected, parts, err
 }
 
 func repairNestedMixedConicalLocalPart(ctx context.Context, view *File, l Limits, distance float64, definitionID, bodyID int64, unit float64) (NestedMixedConicalAP242PartRepair, *File, error) {
@@ -233,8 +247,17 @@ func repairNestedMixedConicalLocalPart(ctx context.Context, view *File, l Limits
 }
 
 func verifyNestedMixedConicalRepair(before mixedConicalAP242Hierarchy, after NestedMixedConicalAP242Assembly, parts [2]NestedMixedConicalAP242PartRepair) error {
+	if !reflect.DeepEqual(before.layout.group, after.Group) {
+		return errNestedMixedConicalAP242Repair
+	}
+	return verifyMixedConicalAP242Repair(before, MixedConicalAP242Assembly{
+		Assembly: after.Assembly, Parts: after.Parts, Occurrences: after.Occurrences,
+	}, parts)
+}
+
+func verifyMixedConicalAP242Repair(before mixedConicalAP242Hierarchy, after MixedConicalAP242Assembly, parts [2]NestedMixedConicalAP242PartRepair) error {
 	if before.assembly.LengthUnit != after.Assembly.LengthUnit || !slices.Equal(before.assembly.Roots, after.Assembly.Roots) ||
-		!reflect.DeepEqual(before.assembly.Products, after.Assembly.Products) || !reflect.DeepEqual(before.layout.group, after.Group) ||
+		!reflect.DeepEqual(before.assembly.Products, after.Assembly.Products) ||
 		!reflect.DeepEqual(before.records.occurrences, after.Occurrences) || len(after.Parts) != len(parts) {
 		return errNestedMixedConicalAP242Repair
 	}
