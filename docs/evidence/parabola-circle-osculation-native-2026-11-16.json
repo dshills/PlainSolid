@@ -1,0 +1,229 @@
+{
+  "scope": "Sole original fourth-order parabola-circle osculation, native shells and separate Cut components",
+  "base_commit": "90a988f0495f572f508038a018caefee0de75ba5",
+  "checkpoints": {
+    "geometry": {
+      "commit": "084a0dbd03538544d49da46f5f87aada66273f3a",
+      "patch": {
+        "path": "parabola-circle-osculation-geometry.patch",
+        "sha256": "99cf301f11300d7f85a1840b1d3a77e477116074b332fdc166f3c99a161b0591"
+      },
+      "race": {
+        "path": "geometry-race.log",
+        "sha256": "7be7728f2a95998c067a5dae0f01888476c989a8b4b2c8f0efa55b8c26dcd6a4",
+        "seconds": 2.964
+      }
+    },
+    "cut": {
+      "commit": "2281a09d3baf041b38694c6335afc1c64c009a4d",
+      "patch": {
+        "path": "parabola-circle-osculation-cut.patch",
+        "sha256": "15a639a4f57df4ce9dd86d199040567f664d967e4a7352e9846be56d21fd8bdf"
+      },
+      "race": {
+        "path": "native-cut-race.log",
+        "sha256": "89ca257ed82c579d27873556d3a068394d1fbc3d8b811e2aac9c4e8c50ca9708",
+        "seconds": 108.513
+      }
+    },
+    "envelope": {
+      "commit": "3ed0a388e84b539813b4b916b6a64c76de2d588c",
+      "patch": {
+        "path": "parabola-circle-osculation-envelope.patch",
+        "sha256": "9566a656da95c962a7387776eb96b4f7dec4b6255ffde481fcfb3b3a07d0bc42"
+      },
+      "race": {
+        "path": "native-envelope-race.log",
+        "sha256": "37d96b8c0c246cc4f11b8aa7d240264091de5d5c7e7e38f01be9cfbb960bd8d1",
+        "seconds": 133.683
+      }
+    }
+  },
+  "geometry": {
+    "cases": 16,
+    "sole_exact_root_order": 4,
+    "shared_second_derivative_magnitude": 4,
+    "first_unequal_dependent_fourth_derivative_magnitude": 192,
+    "substituted_circle_fourth_derivative": 96
+  },
+  "native": {
+    "canonical_replayed_fixtures": [
+      {
+        "path": "source/common-axis-0-side-0-order-0.json",
+        "sha256": "80d94be69c4437fb64ea692624c11996707a43e49201b61efc5c4db08f0ff27e"
+      },
+      {
+        "path": "source/common-axis-0-side-0-order-1.json",
+        "sha256": "994b8ba9e1bc3b90abf516c14ddecd0c5d09fe9a1d98daf8b096c580bb7152c5"
+      },
+      {
+        "path": "source/common-axis-0-side-1-order-0.json",
+        "sha256": "68ba41f16b11364fa467319a64e9fc44204a55f0022cca96648826eb7456f479"
+      },
+      {
+        "path": "source/common-axis-0-side-1-order-1.json",
+        "sha256": "b4bc09472c4f1b367a7751664b03cd187e89c7d097cff316c9543dec12738e66"
+      },
+      {
+        "path": "source/common-axis-1-side-0-order-0.json",
+        "sha256": "248f73ae95359c9afc2f6e52c874e11b9eff7bfce41d5fe69a6af8351033cc1a"
+      },
+      {
+        "path": "source/common-axis-1-side-0-order-1.json",
+        "sha256": "a3addfa9e64202d77c3fb90df80a0d793cdad58af1eb586633e8816a9d919c11"
+      },
+      {
+        "path": "source/common-axis-1-side-1-order-0.json",
+        "sha256": "c35743db3ce594100e8f55581b5b14b54f2d8fa7e74dca3675ea5b5d7e815265"
+      },
+      {
+        "path": "source/common-axis-1-side-1-order-1.json",
+        "sha256": "f5b1f857e62a40b8cb1ff78b2407915ea83fc1cd63cc7f00d26f9065d17e05d9"
+      },
+      {
+        "path": "source/cut-axis-0-side-0-order-1.json",
+        "sha256": "a9e0c403de5771f485151c38103aa73345b9e4103d1297f7433b419a99727f15"
+      },
+      {
+        "path": "source/cut-axis-0-side-1-order-0.json",
+        "sha256": "eac31b915816daab2a1df33b04c386406e6c85fdc1d9766deb2fd03f83408d24"
+      },
+      {
+        "path": "source/cut-axis-1-side-0-order-1.json",
+        "sha256": "a10d0761738a67ee43d8842ece8f3c95fc5bf3554d15715ad1ec0b1e8e21f147"
+      },
+      {
+        "path": "source/cut-axis-1-side-1-order-0.json",
+        "sha256": "c8cb0f66d24a53c9233f5c23979f9be5e25be98498c7564f1c06d3729cb9b7c7"
+      },
+      {
+        "path": "source/fuse-axis-0-side-0-order-0.json",
+        "sha256": "dc014accac4658f119d701088ebc2f94c11f780b49564b8d8ff5fcadc9448f4a"
+      },
+      {
+        "path": "source/fuse-axis-0-side-0-order-1.json",
+        "sha256": "397d0fc3b5b78f75501059f561e0c91935116ab6e382025fd32330bc7cdd4708"
+      },
+      {
+        "path": "source/fuse-axis-0-side-1-order-0.json",
+        "sha256": "910f0c9c791b756e63c42f2fe131a35efd3c92be518eb491048c1fabe11666a9"
+      },
+      {
+        "path": "source/fuse-axis-0-side-1-order-1.json",
+        "sha256": "adadcb5dc37fece393988c93e1aea42c32969dc715306c304bea88cb9d3358c3"
+      },
+      {
+        "path": "source/fuse-axis-1-side-0-order-0.json",
+        "sha256": "a8a7998d0dbc6bb64480786c8548f64917a635d8b8bc60fbec24e1fd7a0ffb68"
+      },
+      {
+        "path": "source/fuse-axis-1-side-0-order-1.json",
+        "sha256": "a2d702e69a1cf48f30f35252a44928f89cac683bd6fc2068206e1a7ada010fa6"
+      },
+      {
+        "path": "source/fuse-axis-1-side-1-order-0.json",
+        "sha256": "2e87a3b5b98933d5cf4b76b85901fdd8b25a838d2df9c26090978f8e8450e2de"
+      },
+      {
+        "path": "source/fuse-axis-1-side-1-order-1.json",
+        "sha256": "a1e710f5d58fc35f4aca00ca8e253d0897f4f414d92bf54a72f3f14a2f0d352a"
+      }
+    ],
+    "common_fuse_cases": 16,
+    "positive_two_shell_cut_cases": 4,
+    "refused_same_component_pinches": 4,
+    "common_fuse_topology_faces_edges_vertices": [
+      12,
+      30,
+      20
+    ],
+    "extra_exact_parabolic_vertices_per_envelope": 2,
+    "positive_solids": 24,
+    "maximum_absolute_exact_volume_difference": 1.9984014443252818e-15,
+    "source_volume_integrals": {
+      "path": "exact-volume.py",
+      "sha256": "1ebaee8e7b273001b21de7f1973b56dcf00e26a4500a27a34ee5c688b5747bb3"
+    },
+    "source_volume_report": {
+      "path": "exact-volume.txt",
+      "sha256": "9f09cc68413d6b3c6089b481598d699904f71268c1871f88dea665d0379a0a04"
+    },
+    "measured_volumes": {
+      "path": "native-volumes.tsv",
+      "sha256": "63cd23ff0968717d466ec31aa4fe88e098bfe1498d26ad80a3eb1b71d8bca637"
+    },
+    "export_and_generic_trim_diagnostic_log": {
+      "path": "source-export.log",
+      "sha256": "4bbd40c7a514cbbc6b0795a1c5012fa35aed6b1422182444de76089697866b1d"
+    }
+  },
+  "previous_byte_identical": {
+    "ordinary_crossing_and_separated_native": 24,
+    "apex_and_nonapex_native": 40,
+    "ordinary_crossing_and_separated_step_iges": 48,
+    "apex_and_nonapex_step_iges": 80,
+    "checksums": {
+      "path": "legacy-sha256.tsv",
+      "sha256": "9079bcc43ae9d6c9f1326ae9dca2b7b07eaf71967311c79d4c71cb08cc1bae01"
+    }
+  },
+  "occt": {
+    "version": "8.1.0",
+    "source_commit": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+    "author_checksums": {
+      "path": "occt-pin-sha256.txt",
+      "sha256": "3526f33911ba7986d1daccb502b40335119ffb2880c9b61e00beaa24c7a32a19"
+    },
+    "original_stock_authorship": {
+      "path": "direct-occt-boolean.cxx",
+      "sha256": "6550f31187b703203d84e8f6ea355c2926b37035ab98e87c905eaae06e9b5d24"
+    },
+    "independent_lens_authorship": {
+      "path": "explicit-occt-lenses.cxx",
+      "sha256": "83689c71ba954ee6da771523ec941268ca8366b9e112bee043abcee31607b39e"
+    },
+    "independent_lens_maximum_absolute_volume_difference": 2.2768245622195593e-18,
+    "independent_lens_measurements": {
+      "path": "authored-lenses-vs-exact.tsv",
+      "sha256": "583ac6c58715c0f4d9b39aa4a034d389885a3e9ff36151b304f3720e53d752e7"
+    },
+    "direct_booleans": {
+      "path": "direct-occt-vs-exact.tsv",
+      "sha256": "91af30fd434f4632bbea5d7543739286818b34cc51bcdf7ee3a0e16e854fc90a"
+    },
+    "direct_common_empty_cases": 8,
+    "direct_fuse_empty_cases": 4,
+    "direct_cut_cases_returning_two_expected_solids": 0
+  },
+  "vet": "go vet ./geom ./brep/trimmed passed",
+  "main_integration": [
+    {
+      "log": "circle-osculation-main-race.jsonl",
+      "sha256": "3073a21f88c1c107fc4048c10ff8d06a6f981f3d67f90c7cae64ccda981a169e",
+      "elapsed_seconds": {
+        "plainsolid/brep/trimmed": 229.244
+      },
+      "top_level_passes": [
+        "TestNativeParabolaCircleApexTangencyCut",
+        "TestNativeParabolaCircleApexTangencyEnvelope",
+        "TestNativeParabolaCircleObliqueTangencyCut",
+        "TestNativeParabolaCircleObliqueTangencyEnvelope",
+        "TestNativeParabolaCircleOsculationCut",
+        "TestNativeParabolaCircleOsculationEnvelope",
+        "TestParabolaCircleOsculationGeometry",
+        "TestParabolaCircleOsculationRefusals"
+      ]
+    },
+    {
+      "log": "circle-osculation-prior-display-main-race.jsonl",
+      "sha256": "f65e42ed0197eb76a7f5c4f3a36e9732079b7dcc21706c8d250e756dcde5f9df",
+      "elapsed_seconds": {
+        "plainsolid/brep/trimmed": 163.602
+      },
+      "top_level_passes": [
+        "TestCertifiedParabolaCircleApexTangencyEnvelope",
+        "TestCertifiedParabolaCircleObliqueTangencyEnvelope"
+      ]
+    }
+  ]
+}

@@ -17,6 +17,10 @@ passed 5,557 cases with 580 explicit optional skips.
 The [native Linux ARM64 run](evidence/native-linux-7569bd36-qualification-2026-11-15.json)
 passed on `7569bd36`. Native Windows runtime, broader curved modeling,
 independent exchange and the full release matrix remain unqualified.
+Original parabola/circle osculation now has native Common/Fuse shells
+and separate positive Cut components where the exact fourth-order
+contact proof applies. General tangencies, singular intersections and
+arbitrary curved Boolean arrangements remain open.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

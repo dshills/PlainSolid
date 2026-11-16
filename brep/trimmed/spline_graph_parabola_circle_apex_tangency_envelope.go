@@ -176,9 +176,11 @@ func bindParabolaCircleTangentEnvelope(ctx context.Context, s Solid, assembly Sp
 	regions [4]openGraphRegion, bridge openSectionPiece, src [3]*geom.BSplineSurface, op parametric.BooleanOp,
 	opts geom.GraphPointContactOptions) (h ParabolaCircleApexEnvelopeHistory, err error) {
 	topo := s.Topology()
-	if ([3]int{topo.Faces, topo.Edges, topo.Vertices}) != ([3]int{12, 28, 18}) || len(topo.Shells) != 1 ||
+	parabolaPieces := len(sec.regions[1-sec.diskRegion].loop) - 3
+	if (parabolaPieces != 2 && parabolaPieces != 4) ||
+		([3]int{topo.Faces, topo.Edges, topo.Vertices}) != ([3]int{12, 26 + parabolaPieces, 16 + parabolaPieces}) || len(topo.Shells) != 1 ||
 		topo.EulerCharacteristic != 2 || topo.InnerWires != 0 || topo.CollapsedEdges != 0 ||
-		assembly.Base != 4 || len(assembly.WallFaces) != 7 || len(assembly.ContourEdges) != 7 {
+		assembly.Base != 4 || len(assembly.WallFaces) != 7 || len(assembly.ContourEdges) != 5+parabolaPieces {
 		return h, geom.ErrConvergence
 	}
 	h.Base = assembly.Base

@@ -8,6 +8,16 @@ no tests. Vet, Linux and Windows amd64 cross-builds, and [all eight
 matching PlainCAD gates](evidence/plaincad-main-4495646a-2026-11-16.json)
 passed on the immutable revision.
 
+The [native fourth-order contact qualification](evidence/parabola-circle-osculation-native-2026-11-16.json)
+proves that an original parabola and circle have a single order-four
+contact and no hidden crossings. Sixteen Common/Fuse cases have one
+closed shell; four Cut cases retain two positive shells with one shared
+geometric point. The reverse pinch still refuses. Main race runs passed
+the new geometry and native cases and the previous apex and oblique
+display cases. Direct pinned OCCT Boolean results did not consistently
+reproduce the topology, so independently authored pinned lenses and
+closed-form moments supply the reference comparison.
+
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips
 among 6,460 inventoried cases. All 53 tested packages passed; eight have
