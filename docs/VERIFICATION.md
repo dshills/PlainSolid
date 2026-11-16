@@ -87,6 +87,10 @@ The offset cell bounds race passed in 2.791 seconds. Restricted positive
 and negative parabolic offsets enclose the independent algebraic
 coordinate values over the sample grid and retain the exact longitudinal
 interval. Out-of-domain rectangles and insufficient work refuse.
+The final offset image separation race passed in 3.053 seconds. Parallel
+tilted offsets with overlapping initial boxes separate under exact
+subdivision. Coincident controls never separate, and cell, work and
+cancellation limits retain the original possible contacts in the cover.
 The exact convex-hull separation race passed in geometry and intersection
 (25.901 and 1.207 seconds). A weighted curved pair separated on an exact
 new support direction, with the gap independently projected from the

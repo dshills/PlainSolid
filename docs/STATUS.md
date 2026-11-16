@@ -50,6 +50,9 @@ that edge when its projected coordinate stays fixed and the two
 interiors are proved on opposite sides.
 Verified offset surfaces also expose directed rational spatial bounds
 over a complete parameter cell, for certified mesh and collision checks.
+Nonadjacent offset pairs can use those bounds to prove strict separation.
+Unexcluded original parameter pairs remain available to later contact
+analysis when limits or overlapping enclosures prevent a decision.
 Full-domain curved pair isolation can also use a bounded exact control-hull
 support search. It can prove separation when the world axes and original
 center normals leave overlapping projections, and retains pairs it cannot
