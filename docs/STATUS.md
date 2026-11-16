@@ -4,12 +4,11 @@ The full OCCT replacement is **not complete**. This document distinguishes the
 implemented, tested kernel from the much larger specification. Full replacement
 and general-purpose production use remain unqualified.
 
-The latest completed paired run is [Go](evidence/main-b6335d3c-qualification-2026-11-15.json)
-and [PlainCAD](evidence/plaincad-main-b6335d3c-2026-11-15.json) on
-`b6335d3c`. Newer independent runs passed full Go on `01d12dab`
-and all eight [PlainCAD gates on `a3b7548d`](evidence/plaincad-main-a3b7548d-2026-11-15.json).
-The refreshed Go run on `a3b7548d` is still in progress; vet and
-Linux/Windows amd64 builds pass that revision.
+The latest completed paired run is [Go](evidence/main-a3b7548d-qualification-2026-11-15.json)
+and [PlainCAD](evidence/plaincad-main-a3b7548d-2026-11-15.json) on
+`a3b7548d`. Go passed 5,728 cases with 588 optional skips. PlainCAD
+passed all eight gates. Vet and Linux/Windows amd64 builds also
+pass that revision.
 The native Linux ARM64 run pins `7569bd36`. Native Windows runtime,
 broader curved modeling, independent exchange and the full release
 matrix remain unqualified.
@@ -106,7 +105,9 @@ failures. It includes 1,502 trimmed passes and 51 optional skips. It
 pairs with the full PlainCAD pass on that same kernel. The [full ordinary
 Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
 later passed 5,666 cases with 588 optional skips across 6,254 listed
-cases. The corrected `ab33a412` macOS race and the full native Linux
+cases. The [paired `a3b7548d` refresh](evidence/main-a3b7548d-qualification-2026-11-15.json)
+passed 5,728 cases with 588 optional skips across 6,316 listed cases.
+The corrected `ab33a412` macOS race and the full native Linux
 ARM64 `7569bd36` archive run are still in progress.
 The browser suites on `b6335d3c` required scoped loopback access after
 the default sandbox denied their local test servers; preserve those startup
@@ -432,7 +433,7 @@ through-hole shell. Both source orders replay. Independent neutral
 exchange reopens the [exact mixed parabola/circle result](evidence/parabola-circle-neutral-2026-11-15.json)
 with the original indexed positions, both conic trims and separately
 positive signed material for every component.
-Full ordinary Go on `01d12dab` and PlainCAD on `a3b7548d` have passed.
+Full ordinary Go and PlainCAD on `a3b7548d` have passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.

@@ -216,6 +216,12 @@ corrections. It passed 345 development, 66 production, 15 cross-browser,
 four-start OCCT controls took 3.925, 9.748 and 19.138 seconds. Production
 served the identical Go WASM bytes and the Playwright driver hash matched
 the pristine install.
+The [matching full ordinary Go refresh](evidence/main-a3b7548d-qualification-2026-11-15.json)
+finished all nine lanes on that immutable kernel: 5,728 passed and 588
+optional skips out of 6,316 enumerated cases. The eight trimmed lanes
+account for 1,559 passes and 51 optional skips. All 52 tested packages
+passed; six contain no tests. Vet and Linux/Windows amd64 cross-builds
+passed on the same archive, and the module list is still only `plainsolid`.
 
 The [full ordinary Go run on the same kernel `b6335d3c`](evidence/main-b6335d3c-qualification-2026-11-15.json)
 finished all nine lanes: 5,630 passes, 586 optional skips and no
