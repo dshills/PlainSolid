@@ -111,6 +111,9 @@ that station without a seed. Algebraic stations keep their defining
 equation and directed bounds; exact rational line endpoints still replay.
 Joined pairs and three-chart chains merge those exact owner intervals,
 retain every original outer event and remove events only on shared walls.
+Joined point membership proves that relative interiors of removed common
+walls belong to the union interior. Retained perimeter points keep their
+original boundary face and chart identities.
 An exact surface-pair distance query retains both rational model sample
 points and the squared distance enclosure below float64 range, including
 when an oblique gap is invisible in the outward axis boxes.

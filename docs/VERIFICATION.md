@@ -282,6 +282,10 @@ proves exact pair and chain line spans across omitted walls, including
 reversal, true gaps, shared outer edge ownership and placed rational or
 algebraic rulings. Unproved owner results publish no interval prefix.
 Main race, original package suites and five single-owner receipts pass.
+The [joined sweep point audit](evidence/verified-normal-offset-sweep-joined-query-2026-11-16.json)
+passes both removed walls, retained perimeter and cap incidences, exact
+sub-ULP side tests, and a rotated source with signed displacement
+`-1/17`. Robust refusal preserves unproved original inverses.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They
