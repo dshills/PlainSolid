@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"slices"
 )
 
 // SplineGraphParabolaTwoCrossingCircles proves a complete parabola and two
@@ -68,46 +69,30 @@ func proveTwoCrossingCirclePartition(ctx context.Context, patches [2]*SurfacePat
 	circles [2]GraphContactCircle, sign int, otherProjectionLeft *big.Rat, maxCells int, visits *int,
 	b *polynomialBudget) (*SplineGraphParabolaTwoCrossingCircles, error) {
 	out := &SplineGraphParabolaTwoCrossingCircles{
-		FreeAxis: freeAxis, CircleOrder: [2]int{0, 1}, RegionSides: [6]int{-sign, sign, sign, -sign, sign, -sign},
+		FreeAxis: freeAxis, RegionSides: [6]int{-sign, sign, sign, -sign, sign, -sign},
 	}
-	if err := out.bindOriginalParabola(ctx, patches, p, b); err != nil {
-		return nil, err
-	}
-	for i, circle := range circles {
-		if err := out.bindCrossingCircle(ctx, patches, p, circle, i, maxCells, visits, b); err != nil {
-			return nil, err
-		}
-	}
-	lo := out.Nodes[0][0].Parameters[freeAxis]
-	if lo.Cmp(out.Nodes[1][0].Parameters[freeAxis]) > 0 {
-		out.CircleOrder = [2]int{1, 0}
-	}
-	earlier, later := out.CircleOrder[0], out.CircleOrder[1]
-	if out.Nodes[earlier][1].Parameters[freeAxis].Cmp(out.Nodes[later][0].Parameters[freeAxis]) >= 0 {
-		return nil, ErrConvergence
-	}
-	x := out.CircleProjections[0][0]
-	if end := out.CircleProjections[1][0]; end.Cmp(x) < 0 {
-		x = end
-	}
-	if otherProjectionLeft != nil && otherProjectionLeft.Cmp(x) < 0 {
-		x = otherProjectionLeft
-	}
-	x = new(big.Rat).Quo(x, big.NewRat(2, 1))
-	if err := b.check(x); err != nil {
-		return nil, err
-	}
-	y, err := polynomialValue(p, x, b)
+	var err error
+	out.ParabolaControls, out.ParabolaExits, err = originalCrossingParabola(ctx, patches, freeAxis, p, b)
 	if err != nil {
 		return nil, err
 	}
-	for i := range 2 {
-		mid := new(big.Rat).Quo(new(big.Rat).Add(y, big.NewRat(int64(i), 1)), big.NewRat(2, 1))
-		if err := b.check(mid); err != nil {
+	for i, circle := range circles {
+		disk, err := proveParabolaCrossingDisk(ctx, patches, freeAxis, p, circle, i, maxCells, visits, b)
+		if err != nil {
 			return nil, err
 		}
-		out.RegionWitnesses[i] = parabolaTwoCrossingCirclesUV(freeAxis, x, mid)
+		out.Circles[i], out.CircleRadii[i], out.CircleProjections[i] = disk.circle, disk.radius, disk.projection
+		out.Nodes[i], out.CircleCCWRays[i] = disk.nodes, disk.ccwRays
+		copy(out.RegionWitnesses[2+2*i:], disk.witnesses[:])
 	}
+	if err := orderParabolaCrossingIntervals(freeAxis, out.Nodes[:], out.CircleOrder[:]); err != nil {
+		return nil, err
+	}
+	witnesses, err := parabolaCrossingExteriorWitnesses(freeAxis, p, out.CircleProjections[:], otherProjectionLeft, b)
+	if err != nil {
+		return nil, err
+	}
+	copy(out.RegionWitnesses[:2], witnesses[:])
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -115,102 +100,157 @@ func proveTwoCrossingCirclePartition(ctx context.Context, patches [2]*SurfacePat
 	return out, nil
 }
 
+func orderParabolaCrossingIntervals(axis int, nodes [][2]ParabolaCircleCrossing, order []int) error {
+	for i := range nodes {
+		order[i] = i
+	}
+	slices.SortFunc(order, func(i, j int) int {
+		return nodes[i][0].Parameters[axis].Cmp(nodes[j][0].Parameters[axis])
+	})
+	for i := 1; i < len(order); i++ {
+		earlier, later := nodes[order[i-1]], nodes[order[i]]
+		if earlier[1].Parameters[axis].Cmp(later[0].Parameters[axis]) >= 0 {
+			return ErrConvergence
+		}
+	}
+	return nil
+}
+
+func parabolaCrossingExteriorWitnesses(axis int, p rationalPolynomial, projections [][2]*big.Rat,
+	otherProjectionLeft *big.Rat, b *polynomialBudget) (witnesses [2][2]*big.Rat, err error) {
+	x := projections[0][0]
+	for _, projection := range projections[1:] {
+		if projection[0].Cmp(x) < 0 {
+			x = projection[0]
+		}
+	}
+	if otherProjectionLeft != nil && otherProjectionLeft.Cmp(x) < 0 {
+		x = otherProjectionLeft
+	}
+	x = new(big.Rat).Quo(x, big.NewRat(2, 1))
+	if err := b.check(x); err != nil {
+		return witnesses, err
+	}
+	y, err := polynomialValue(p, x, b)
+	if err != nil {
+		return witnesses, err
+	}
+	for i := range witnesses {
+		mid := new(big.Rat).Quo(new(big.Rat).Add(y, big.NewRat(int64(i), 1)), big.NewRat(2, 1))
+		if err := b.check(mid); err != nil {
+			return witnesses, err
+		}
+		witnesses[i] = parabolaTwoCrossingCirclesUV(axis, x, mid)
+	}
+	return witnesses, nil
+}
+
 func parabolaTwoCrossingCirclesUV(axis int, x, y *big.Rat) (uv [2]*big.Rat) {
 	uv[axis], uv[1-axis] = new(big.Rat).Set(x), new(big.Rat).Set(y)
 	return uv
 }
 
-func (out *SplineGraphParabolaTwoCrossingCircles) bindOriginalParabola(ctx context.Context, patches [2]*SurfacePatch,
-	p rationalPolynomial, b *polynomialBudget) error {
+func originalCrossingParabola(ctx context.Context, patches [2]*SurfacePatch, axis int,
+	p rationalPolynomial, b *polynomialBudget) (controls [3][2]*big.Rat, exits [2][3]*big.Rat, err error) {
 	two := big.NewRat(2, 1)
 	end := new(big.Rat).Add(p[0], new(big.Rat).Add(p[1], p[2]))
 	station := new(big.Rat).Quo(new(big.Rat).Neg(p[1]), new(big.Rat).Mul(two, p[2]))
 	if err := b.check(station); err != nil {
-		return err
+		return controls, exits, err
 	}
 	one := big.NewRat(1, 1)
 	extrema := []*big.Rat{p[0], end}
 	if station.Sign() > 0 && station.Cmp(one) < 0 {
 		y, err := polynomialValue(p, station, b)
 		if err != nil {
-			return err
+			return controls, exits, err
 		}
 		extrema = append(extrema, y)
 	}
 	for _, y := range extrema {
 		if y.Sign() <= 0 || y.Cmp(one) >= 0 {
-			return ErrConvergence
+			return controls, exits, ErrConvergence
 		}
 	}
 	for i, y := range [3]*big.Rat{p[0], new(big.Rat).Add(p[0], new(big.Rat).Quo(p[1], two)), end} {
 		if err := b.check(y); err != nil {
-			return err
+			return controls, exits, err
 		}
-		out.ParabolaControls[i] = parabolaTwoCrossingCirclesUV(out.FreeAxis, big.NewRat(int64(i), 2), y)
+		controls[i] = parabolaTwoCrossingCirclesUV(axis, big.NewRat(int64(i), 2), y)
 	}
 	for i, end := range [2]int{0, 2} {
-		jets, err := parabolaCircleOriginalJets(ctx, patches, out.ParabolaControls[end], b)
+		jets, err := parabolaCircleOriginalJets(ctx, patches, controls[end], b)
 		if err != nil {
-			return err
+			return controls, exits, err
 		}
-		out.ParabolaExits[i] = jets[0].Point
+		exits[i] = jets[0].Point
 	}
-	return nil
+	return controls, exits, nil
 }
 
-func (out *SplineGraphParabolaTwoCrossingCircles) bindCrossingCircle(ctx context.Context, patches [2]*SurfacePatch,
-	p rationalPolynomial, circle GraphContactCircle, index, maxCells int, visits *int, b *polynomialBudget) error {
+type parabolaCrossingDisk struct {
+	circle     GraphContactCircle
+	radius     *big.Rat
+	projection [2]*big.Rat
+	nodes      [2]ParabolaCircleCrossing
+	ccwRays    [2]int
+	witnesses  [2][2]*big.Rat
+}
+
+func proveParabolaCrossingDisk(ctx context.Context, patches [2]*SurfacePatch, axis int, p rationalPolynomial,
+	circle GraphContactCircle, index, maxCells int, visits *int, b *polynomialBudget) (parabolaCrossingDisk, error) {
+	var out parabolaCrossingDisk
 	r, projection, err := graphCircleStockProjection(circle, b)
 	if err != nil {
-		return err
+		return parabolaCrossingDisk{}, err
 	}
-	out.CircleRadii[index], out.CircleProjections[index] = r, projection
-	out.Circles[index] = GraphContactCircle{
-		Center:        parabolaTwoCrossingCirclesUV(out.FreeAxis, circle.Center[0], circle.Center[1]),
+	out.radius, out.projection = r, projection
+	out.circle = GraphContactCircle{
+		Center:        parabolaTwoCrossingCirclesUV(axis, circle.Center[0], circle.Center[1]),
 		RadiusSquared: circle.RadiusSquared,
 	}
 	q, err := parabolaCircleRestriction(p, circle.Center, circle.RadiusSquared, b)
 	if err != nil {
-		return err
+		return parabolaCrossingDisk{}, err
 	}
 	roots, initial, err := discoverGraphPolynomialPairRoots(ctx, q, polynomialGraphContactMode{crossings: 2}, maxCells, visits, b)
 	if err != nil {
-		return err
+		return parabolaCrossingDisk{}, err
 	}
 	if initial != 1 {
-		return ErrConvergence
+		return parabolaCrossingDisk{}, ErrConvergence
 	}
 	// Strict disk containment gives a positive initial sign. Exactly two
 	// simple roots force a single full open interval inside the disk.
 	for i, x := range roots {
 		y, err := polynomialValue(p, x, b)
 		if err != nil {
-			return err
+			return parabolaCrossingDisk{}, err
 		}
 		slope := new(big.Rat).Add(p[1], new(big.Rat).Mul(big.NewRat(2, 1), new(big.Rat).Mul(p[2], x)))
 		if err := b.check(slope); err != nil {
-			return err
+			return parabolaCrossingDisk{}, err
 		}
-		out.Nodes[index][i], out.CircleCCWRays[index][i], err =
-			twoCrossingCirclesOriginalNode(ctx, patches, x, y, slope, circle.Center, out.FreeAxis, index, b)
+		out.nodes[i], out.ccwRays[i], err =
+			twoCrossingCirclesOriginalNode(ctx, patches, x, y, slope, circle.Center, axis, index, b)
 		if err != nil {
-			return err
+			return parabolaCrossingDisk{}, err
 		}
 	}
 	x := new(big.Rat).Quo(new(big.Rat).Add(roots[0], roots[1]), big.NewRat(2, 1))
 	if err := b.check(x); err != nil {
-		return err
+		return parabolaCrossingDisk{}, err
 	}
 	y, err := polynomialValue(p, x, b)
 	if err != nil {
-		return err
+		return parabolaCrossingDisk{}, err
 	}
 	gap, err := polynomialValue(q, x, b)
 	if err != nil {
-		return err
+		return parabolaCrossingDisk{}, err
 	}
 	if gap.Sign() >= 0 {
-		return ErrConvergence
+		return parabolaCrossingDisk{}, ErrConvergence
 	}
 	// Inside the unit stock |y-cy|<1, and |gap|<1. Moving by
 	// |gap|/4 changes the squared distance by less than |gap|.
@@ -218,12 +258,12 @@ func (out *SplineGraphParabolaTwoCrossingCircles) bindCrossingCircle(ctx context
 	for i := range 2 {
 		ordinate := new(big.Rat).Add(y, step)
 		if err := b.check(ordinate); err != nil {
-			return err
+			return parabolaCrossingDisk{}, err
 		}
-		out.RegionWitnesses[2+2*index+i] = parabolaTwoCrossingCirclesUV(out.FreeAxis, x, ordinate)
+		out.witnesses[i] = parabolaTwoCrossingCirclesUV(axis, x, ordinate)
 		step.Neg(step)
 	}
-	return nil
+	return out, nil
 }
 
 func twoCrossingCirclesOriginalNode(ctx context.Context, patches [2]*SurfacePatch, x, y, slope *big.Rat,
