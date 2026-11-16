@@ -108,6 +108,11 @@ The exact disjoint-projection transfer audit covers 24 STEP and IGES
 files with 40 positive solid results. Pinned readers retain 30 original
 directed roof coedges, 32 source rays and 486 exact roof poles per file.
 The main positive matrix and the repaired separate refusal check pass.
+The overlapping projection STEP/IGES matrix passes another 24 files and
+40 positive results. Both pinned readers retain 36 original coedges, 32
+source rays, 486 roof poles and the separate Cut contacts. A main race
+checks the whole original carrier clock and refuses a changed UV clock.
+All 54 preceding neutral digests match.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same

@@ -47,6 +47,9 @@ nonbinary original junctions remain outside native storage.
 The representable disjoint-projection Common, Fuse and both Cut orders
 now transfer through exact STEP and IGES. Both pinned readers preserve
 the original roof coedges and all four separate Cut contacts.
+The representable overlapping-projection family also transfers exactly.
+Circular model edges and both original UV curves use the same proved
+restriction of a finite-decimal carrier with exact integer stations.
 These osculation cases also support exact analytic STEP and IGES
 output with the original owner winding, contact jets and separate Cut
 components. General curved exchange remains open.

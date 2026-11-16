@@ -11,13 +11,15 @@ import (
 
 // WriteParabolaTwoCrossingCirclesEnvelope transfers the original Common or
 // Fuse with all four transverse junctions and the coedges on both source
-// roofs. Exact model and trim coordinates must fit the neutral representation.
+// roofs. Nonterminating poles on a planar circular edge use its certified
+// cardinal-quarter support and exact active interval when both original
+// UV laws have the same restriction.
 func WriteParabolaTwoCrossingCirclesEnvelope(ctx context.Context, w io.Writer, body *trimmed.ParabolaTwoCrossingCirclesEnvelope,
 	name string, unit float64, l Limits, proof edgecheck.Options) error {
 	if body == nil {
 		return geom.ErrInvalid
 	}
-	return writeExactBezierSingleSTEP(ctx, w, body.Boundary(), name, unit, l, ClippedPolynomialFuseSTEPOptions{Proof: proof})
+	return writeExactBezierSingleSTEPWithBoundary(ctx, w, body.Boundary(), name, unit, l, ClippedPolynomialFuseSTEPOptions{Proof: proof}, false, nil, emitTwoCrossingCirclesSTEPBody(body.History().CircleEdges))
 }
 
 // VerifyParabolaTwoCrossingCirclesEnvelopeSTEP checks analytic topology, units and
@@ -51,7 +53,11 @@ func WriteParabolaTwoCrossingCirclesCut(ctx context.Context, w io.Writer, body *
 			})
 		}
 	}
-	return writeClippedCutSTEPBodies(ctx, w, parts[:], contacts, name, unit, l, ClippedPolynomialCutSTEPOptions{Proof: proof})
+	var emitters [3]exactBezierSTEPBodyEmitter
+	for i, component := range body.History() {
+		emitters[i] = emitTwoCrossingCirclesSTEPBody(component.CircleEdges)
+	}
+	return writeClippedCutSTEPBodies(ctx, w, parts[:], contacts, name, unit, l, ClippedPolynomialCutSTEPOptions{Proof: proof}, emitters[:]...)
 }
 
 // VerifyParabolaTwoCrossingCirclesCutSTEP checks each component's original analytic

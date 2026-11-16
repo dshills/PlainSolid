@@ -84,5 +84,27 @@
     "files": 24,
     "pinned_positive_solids": 40,
     "original_per_file": {"directed_coedges": 30, "junction_rays": 32, "roof_poles": 486}
+  },
+  "overlapping_projection_neutral": {
+    "isolated_revision": "86e58716242935becb10ef78cb580767da3cce03",
+    "patch_sha256": "ec5e4dbb07573756c15e881d1d8c85f85566f071a4bb08baeae3aff02745eb91",
+    "pinned_occt_revision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+    "main_pinned_log": "parabola-two-crossing-window-main-pinned.jsonl",
+    "main_pinned_sha256": "abe8946c9d2cb35d5e10447b7a1a0e432fcb0d2e188b3b7aa8cc35572ce49205",
+    "main_pinned_named_pass": "TestParabolaTwoCrossingCirclesOverlappingExchange",
+    "main_pinned_package_seconds": 615.852,
+    "main_clock_race_log": "parabola-two-crossing-window-private-main-race.jsonl",
+    "main_clock_race_sha256": "2301ed73a915c5471d16b6f304a144fef588dc5a4e09f8a7f9f05cdeff089bfb",
+    "main_clock_race_named_pass": "TestCardinalCircleWindowRetainsWholeOriginalClock",
+    "files": 24,
+    "pinned_positive_solids": 40,
+    "original_per_file": {"directed_coedges": 36, "junction_rays": 32, "roof_poles": 486},
+    "reclocked_example": {"carrier": [0, 45], "exact_restriction": [9, 40]},
+    "maximum_independent_signed_volume_absolute_error": 5.78538e-16,
+    "baseline_digests": {
+      "previous-mixed-neutral-after-carriers-sha256.tsv": "62f9eec9f1cdf233435a93129901afa7adc99e9bcf9836011da5ca6d388dbaba",
+      "neutral-stage2-disjoint-sha256.tsv": "8e7081a37f9badaab4cf22af9169412c60883b60ffa67265ccdb8310e9b87e5c"
+    },
+    "independent_volume_comparison_sha256": "4cad3a93ca26dfa2e8dab5086640b5b12a89343bafea507c26d110c7e251518f"
   }
 }

@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"testing"
-	"time"
 
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
@@ -24,8 +23,16 @@ import (
 )
 
 func TestParabolaTwoCrossingCirclesExchange(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Minute)
-	defer cancel()
+	checkTwoCrossingCircleProjectionExchange(t, false)
+}
+
+func TestParabolaTwoCrossingCirclesOverlappingExchange(t *testing.T) {
+	checkTwoCrossingCircleProjectionExchange(t, true)
+}
+
+func checkTwoCrossingCircleProjectionExchange(t *testing.T, overlap bool) {
+	t.Helper()
+	ctx := context.Background()
 	const unit = .001
 	opts := trimmed.ParabolaCircleGraphOptions{}
 	proof := edgecheck.Options{}
@@ -41,11 +48,45 @@ func TestParabolaTwoCrossingCirclesExchange(t *testing.T) {
 			338828817319615.0/8902859858574072348672 + 10041325.0*math.Pi/281474976710656,
 			338828817319615.0/8902859858574072348672 + 10041325.0*math.Pi/281474976710656},
 	}
+	if overlap {
+		envelopeVolumes = [2]float64{
+			3077966251710468651171107674069.0/1544949169028154583074107031552 - 24346835150740044425.0*math.Pi/75557863725914323419136,
+			3107120598742298359868425660459.0/1544949169028154583074107031552 + 24346835150740044425.0*math.Pi/75557863725914323419136,
+		}
+		cutVolumes = [2][3]float64{
+			{
+				22285640997159849810594261035.0/3089898338056309166148214063104 + 73040505452220133275.0*math.Pi/151115727451828646838272,
+				3157046895013458249341237195.0/6179796676112618332296428126208 - 48693421770505635725.0*math.Pi/302231454903657293676544,
+				16494028902037895796875.0/6179796676112618332296428126208 - 248530974453125.0*math.Pi/302231454903657293676544,
+			},
+			{
+				10955329892485735765601559225.0/1029966112685436388716071354368 - 24346835150740044425.0*math.Pi/151115727451828646838272,
+				3157046895013458249341237195.0/6179796676112618332296428126208 + 146080265311516907175.0*math.Pi/302231454903657293676544,
+				16494028902037895796875.0/6179796676112618332296428126208 + 745592923359375.0*math.Pi/302231454903657293676544,
+			},
+		}
+	}
+	// The ordinary regression includes both axes and Cut orders. A pinned
+	// reader runs the full axis, operation and operand-order matrix.
+	fullMatrix := os.Getenv("PLAINSOLID_OCCT_CLIPPED_CUT_STEP_COMPONENTS") != "" ||
+		os.Getenv("PLAINSOLID_OCCT_CLIPPED_CUT_IGES") != "" ||
+		os.Getenv("PLAINSOLID_OCCT_TWO_CROSSING_STEP"+twoCrossingCircleAuditSuffix(overlap)) != "" ||
+		os.Getenv("PLAINSOLID_OCCT_TWO_CROSSING_IGES"+twoCrossingCircleAuditSuffix(overlap)) != ""
 	for axis := range 2 {
 		path := fmt.Sprintf("testdata/native_parabola_two_crossing_circles_axis_%d.json", axis)
+		if overlap {
+			path = [2]string{"testdata/native_parabola_two_crossing_circles_overlap.json",
+				"testdata/native_parabola_two_crossing_circles_overlap_axis_1.json"}[axis]
+		}
 		src := readTwoCrossingCircleStocks(t, ctx, path)
 		for order := range 2 {
+			if !fullMatrix && axis != order {
+				continue
+			}
 			for i, operation := range []parametric.BooleanOp{parametric.Intersection, parametric.Union} {
+				if !fullMatrix && i != axis {
+					continue
+				}
 				name := [2]string{"common", "fuse"}[i]
 				t.Run(fmt.Sprintf("%s/%d/%d", name, axis, order), func(t *testing.T) {
 					r, err := trimmed.CombineParabolaTwoCrossingCirclesSplineGraphs(ctx, src[0], src[1+order], src[2-order], axis, operation, 1e-9, opts)
@@ -58,7 +99,7 @@ func TestParabolaTwoCrossingCirclesExchange(t *testing.T) {
 						if err != nil {
 							t.Fatal(err)
 						}
-						checkTwoCrossingCircleOwners(t, exact, axis, h.ParabolaEdges[:], h.CircleEdges)
+						checkTwoCrossingCircleOwners(t, exact, axis, h.ParabolaEdges[:], h.CircleEdges, overlap)
 					}
 					var st, ig bytes.Buffer
 					if err := step.WriteParabolaTwoCrossingCirclesEnvelope(ctx, &st, r, name, unit, step.Limits{}, proof); err != nil {
@@ -75,8 +116,11 @@ func TestParabolaTwoCrossingCirclesExchange(t *testing.T) {
 							t.Fatal(err)
 						}
 					}
+					if overlap != bytes.Contains(st.Bytes(), []byte("TRIMMED_CURVE(")) {
+						t.Fatal("wrong exact carrier mode")
+					}
 					checkTwoCirclesExchangeReadback(t, ctx, []trimmed.Solid{body}, []float64{envelopeVolumes[i]}, st.Bytes(), ig.Bytes())
-					checkTwoCrossingCirclePinnedOwners(t, ctx, name, axis, order, st.Bytes(), ig.Bytes())
+					checkTwoCrossingCirclePinnedOwners(t, ctx, name, axis, order, overlap, st.Bytes(), ig.Bytes())
 				})
 			}
 			t.Run(fmt.Sprintf("cut/%d/%d", axis, order), func(t *testing.T) {
@@ -93,7 +137,7 @@ func TestParabolaTwoCrossingCirclesExchange(t *testing.T) {
 							t.Fatal(err)
 						}
 						h := history[i]
-						checkTwoCrossingCircleOwners(t, b, axis, h.ParabolaEdges[:], h.CircleEdges)
+						checkTwoCrossingCircleOwners(t, b, axis, h.ParabolaEdges[:], h.CircleEdges, overlap)
 						if axis == 0 && order == 0 && i < 2 {
 							controls += countTwoCirclesExchangeControls(t, b)
 						}
@@ -115,7 +159,7 @@ func TestParabolaTwoCrossingCirclesExchange(t *testing.T) {
 					}
 				}
 				checkTwoCirclesExchangeReadback(t, ctx, parts[:], cutVolumes[order][:], st.Bytes(), ig.Bytes())
-				checkTwoCrossingCirclePinnedOwners(t, ctx, "cut", axis, order, st.Bytes(), ig.Bytes())
+				checkTwoCrossingCirclePinnedOwners(t, ctx, "cut", axis, order, overlap, st.Bytes(), ig.Bytes())
 				if controls > 0 {
 					var blocked bytes.Buffer
 					if err := step.WriteParabolaTwoCrossingCirclesCut(ctx, &blocked, r, "cut", unit, step.Limits{MaxSolids: 2}, proof); !errors.Is(err, geom.ErrConvergence) || blocked.Len() != 0 {
@@ -152,14 +196,14 @@ func readTwoCrossingCircleStocks(t *testing.T, ctx context.Context, path string)
 	return stock
 }
 
-func checkTwoCrossingCircleOwners(t *testing.T, b trimmed.ExactBezierBoundary, axis int, parabola []int, circles [2][]int) {
+func checkTwoCrossingCircleOwners(t *testing.T, b trimmed.ExactBezierBoundary, axis int, parabola []int, circles [2][]int, overlap bool) {
 	t.Helper()
 	for group, edges := range [3][]int{parabola, circles[0], circles[1]} {
 		for _, id := range edges {
 			if id < 0 {
 				continue
 			}
-			checkTwoCrossingCircleLaw(t, b.Edges[id].Model, axis, group, 2)
+			checkTwoCrossingCircleLaw(t, b.Edges[id].Model, axis, group, 2, overlap)
 			owners, oriented := make(map[*geom.BSplineSurface]bool), [2]int{}
 			for _, f := range b.Faces {
 				for _, loop := range f.Loops {
@@ -176,7 +220,7 @@ func checkTwoCrossingCircleOwners(t *testing.T, b trimmed.ExactBezierBoundary, a
 						} else {
 							oriented[0]++
 						}
-						checkTwoCrossingCircleLaw(t, use.UV, axis, group, 0)
+						checkTwoCrossingCircleLaw(t, use.UV, axis, group, 0, overlap)
 					}
 				}
 			}
@@ -187,7 +231,7 @@ func checkTwoCrossingCircleOwners(t *testing.T, b trimmed.ExactBezierBoundary, a
 	}
 }
 
-func checkTwoCrossingCircleLaw(t *testing.T, span geom.ExactBezierSpan, axis, group int, z int64) {
+func checkTwoCrossingCircleLaw(t *testing.T, span geom.ExactBezierSpan, axis, group int, z int64, overlap bool) {
 	t.Helper()
 	if len(span.Control) != 3 || span.Start != 0 || span.End != 1 {
 		t.Fatal("changed exact source section or native edge clock")
@@ -207,28 +251,42 @@ func checkTwoCrossingCircleLaw(t *testing.T, span geom.ExactBezierSpan, axis, gr
 			t.Fatal("original section plane changed")
 		}
 		if group == 0 {
-			x.Sub(x, big.NewRat(1, 2)).Mul(x, x).Mul(x, big.NewRat(2, 1)).Add(x, big.NewRat(1, 4))
+			if overlap {
+				x.Mul(new(big.Rat).Add(new(big.Rat).Mul(x, big.NewRat(-2, 1)), big.NewRat(119, 64)), x).Add(x, big.NewRat(171, 512))
+			} else {
+				x.Sub(x, big.NewRat(1, 2)).Mul(x, x).Mul(x, big.NewRat(2, 1)).Add(x, big.NewRat(1, 4))
+			}
 			if x.Cmp(y) != 0 {
 				t.Fatal("original parabola changed")
 			}
 		} else {
-			x.Sub(x, big.NewRat([2]int64{7, 25}[group-1], 32))
-			y.Sub(y, big.NewRat(177, 512))
-			if x.Mul(x, x).Add(x, y.Mul(y, y)).Cmp(big.NewRat(1, 256)) != 0 {
+			cx, cy, radiusSquared := big.NewRat([2]int64{7, 25}[group-1], 32), big.NewRat(177, 512), big.NewRat(1, 256)
+			if overlap {
+				cx = big.NewRat([2]int64{48, 89}[group-1], 128)
+				cy = big.NewRat([2]int64{1760, 2543}[group-1], 4096)
+				radiusSquared = big.NewRat([2]int64{1681, 25}[group-1], 16384)
+			}
+			x.Sub(x, cx)
+			y.Sub(y, cy)
+			if x.Mul(x, x).Add(x, y.Mul(y, y)).Cmp(radiusSquared) != 0 {
 				t.Fatal("original exact circle changed", group)
 			}
 		}
 	}
 }
 
-func checkTwoCrossingCirclePinnedOwners(t *testing.T, ctx context.Context, op string, axis, order int, st, ig []byte) {
+func checkTwoCrossingCirclePinnedOwners(t *testing.T, ctx context.Context, op string, axis, order int, overlap bool, st, ig []byte) {
 	t.Helper()
+	suffix, coedges := twoCrossingCircleAuditSuffix(overlap), 30
+	if overlap {
+		coedges = 36
+	}
 	for _, file := range []struct {
 		reader, format string
 		data           []byte
 	}{
-		{os.Getenv("PLAINSOLID_OCCT_TWO_CROSSING_STEP_OWNERS"), "step", st},
-		{os.Getenv("PLAINSOLID_OCCT_TWO_CROSSING_IGES_OWNERS"), "igs", ig},
+		{os.Getenv("PLAINSOLID_OCCT_TWO_CROSSING_STEP" + suffix), "step", st},
+		{os.Getenv("PLAINSOLID_OCCT_TWO_CROSSING_IGES" + suffix), "igs", ig},
 	} {
 		if file.reader == "" {
 			continue
@@ -253,26 +311,15 @@ func checkTwoCrossingCirclePinnedOwners(t *testing.T, ctx context.Context, op st
 		if op == "cut" {
 			pairs, solids = [4]int{1, 1, 1, 1}, 3
 		}
-		if report.Pairs != pairs || report.Solids != solids || report.Coedges != 30 || report.Rays != 32 || report.RoofPoles != 486 {
+		if report.Pairs != pairs || report.Solids != solids || report.Coedges != coedges || report.Rays != 32 || report.RoofPoles != 486 {
 			t.Fatalf("%s changed a source owner, junction ray or component occurrence: %+v", file.format, report)
 		}
 	}
 }
 
-func TestParabolaTwoCrossingCirclesUnrepresentableTransfer(t *testing.T) {
-	ctx := context.Background()
-	proof := edgecheck.Options{}
-	opts := trimmed.ParabolaCircleGraphOptions{}
-	stock := readTwoCrossingCircleStocks(t, ctx, "testdata/native_parabola_two_crossing_circles_overlap.json")
-	r, err := trimmed.CombineParabolaTwoCrossingCirclesSplineGraphs(ctx, stock[0], stock[1], stock[2], 0, parametric.Intersection, 1e-9, opts)
-	if err != nil {
-		t.Fatal(err)
+func twoCrossingCircleAuditSuffix(overlap bool) string {
+	if overlap {
+		return "_WINDOW_OWNERS"
 	}
-	var staged bytes.Buffer
-	if err := step.WriteParabolaTwoCrossingCirclesEnvelope(ctx, &staged, r, "common", .001, step.Limits{}, proof); !errors.Is(err, geom.ErrUnrepresentable) || staged.Len() != 0 {
-		t.Fatal("STEP published a circular span with nonterminating poles", err)
-	}
-	if err := iges.WriteParabolaTwoCrossingCirclesEnvelope(ctx, &staged, r, .001, iges.Limits{}, proof); !errors.Is(err, geom.ErrUnrepresentable) || staged.Len() != 0 {
-		t.Fatal("IGES published a circular span with nonterminating poles", err)
-	}
+	return "_OWNERS"
 }

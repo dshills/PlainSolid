@@ -42,7 +42,9 @@ func writeExactBezierSingleSTEPMode(ctx context.Context, w io.Writer, s trimmed.
 	return writeExactBezierSingleSTEPWithBoundary(ctx, w, s, name, lengthUnit, l, o, splitKnots, nil)
 }
 
-func writeExactBezierSingleSTEPWithBoundary(ctx context.Context, w io.Writer, s trimmed.Solid, name string, lengthUnit float64, l Limits, o ClippedPolynomialFuseSTEPOptions, splitKnots bool, prepare func(context.Context, trimmed.ExactBezierBoundary, edgecheck.Options) error) error {
+type exactBezierSTEPBodyEmitter func(context.Context, func(string) int64, trimmed.ExactBezierBoundary, string, *big.Rat) (int64, error)
+
+func writeExactBezierSingleSTEPWithBoundary(ctx context.Context, w io.Writer, s trimmed.Solid, name string, lengthUnit float64, l Limits, o ClippedPolynomialFuseSTEPOptions, splitKnots bool, prepare func(context.Context, trimmed.ExactBezierBoundary, edgecheck.Options) error, emitters ...exactBezierSTEPBodyEmitter) error {
 	if ctx == nil || w == nil || !utf8.ValidString(name) || len(name) > 1024 || !validLengthUnit(lengthUnit) ||
 		!finiteNumber(o.PoleTolerance) || o.PoleTolerance < 0 {
 		return geom.ErrInvalid
@@ -70,11 +72,15 @@ func writeExactBezierSingleSTEPWithBoundary(ctx context.Context, w io.Writer, s 
 			return err
 		}
 	}
+	emitBody := emitExactBezierSTEPBody
+	if len(emitters) > 0 {
+		emitBody = emitters[0]
+	}
 	staged := clippedFuseSTEPStage{limit: l.MaxBytes}
 	var geometryErr error
 	err = writeStandalone(&staged, lengthUnit, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
 		var id int64
-		id, geometryErr = emitExactBezierSTEPBody(ctx, emit, b, name, mappedChainStepRat(o.PoleTolerance))
+		id, geometryErr = emitBody(ctx, emit, b, name, mappedChainStepRat(o.PoleTolerance))
 		return []int64{id}
 	})
 	if geometryErr != nil {
@@ -144,6 +150,14 @@ type clippedFuseSTEPOwner struct {
 }
 
 func emitExactBezierSTEPBody(ctx context.Context, emit func(string) int64, b trimmed.ExactBezierBoundary, name string, poleTolerance *big.Rat) (int64, error) {
+	return emitExactBezierSTEPBodyWithCurves(ctx, emit, b, name, poleTolerance,
+		func(emit func(string) int64, _ int, span geom.ExactBezierSpan, dim int, tolerance *big.Rat) (int64, error) {
+			return emitClippedFuseSTEPBezier(emit, span, dim, tolerance)
+		})
+}
+
+func emitExactBezierSTEPBodyWithCurves(ctx context.Context, emit func(string) int64, b trimmed.ExactBezierBoundary, name string, poleTolerance *big.Rat,
+	emitCurve func(func(string) int64, int, geom.ExactBezierSpan, int, *big.Rat) (int64, error)) (int64, error) {
 	supports := make([]int64, len(b.Faces))
 	owners := make([][]clippedFuseSTEPOwner, len(b.Edges))
 	for i, f := range b.Faces {
@@ -181,13 +195,13 @@ func emitExactBezierSTEPBody(ctx context.Context, emit func(string) int64, b tri
 		if len(owners[i]) != 2 || owners[i][0].face == owners[i][1].face {
 			return 0, geom.ErrConvergence
 		}
-		model, err := emitClippedFuseSTEPBezier(emit, e.Model, 3, poleTolerance)
+		model, err := emitCurve(emit, i, e.Model, 3, poleTolerance)
 		if err != nil {
 			return 0, fmt.Errorf("step: exact Bézier model edge %d: %w", i, err)
 		}
 		var pc [2]int64
 		for j, owner := range owners[i] {
-			uv, err := emitClippedFuseSTEPBezier(emit, owner.uv, 2, poleTolerance)
+			uv, err := emitCurve(emit, i, owner.uv, 2, poleTolerance)
 			if err != nil {
 				return 0, fmt.Errorf("step: exact Bézier edge %d face %d pcurve: %w", i, owner.face, err)
 			}
