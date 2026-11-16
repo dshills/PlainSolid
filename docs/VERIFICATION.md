@@ -132,6 +132,11 @@ The [three-circle source arrangement audit](evidence/parabola-three-circles-2026
 passes 20 layouts, axes and owner orders. It retains four exact junctions,
 seven signed regions and four original isolated-ring extrema. Independent
 factor quotients, exact measures and altered/tangent/overlap controls agree.
+The same audit passes 16 native Common/Fuse variants with `14F/37E/26V`,
+one original inner wire, four original junction cycles, and canonical
+replay. Independent material integrals agree within `4.5e-16`. A valid
+source whose hole intersects the current chord through the exterior
+domain still refuses native assembly.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same

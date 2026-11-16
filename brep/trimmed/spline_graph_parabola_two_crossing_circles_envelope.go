@@ -91,6 +91,18 @@ func bindTwoCrossingCirclesEnvelope(ctx context.Context, solid Solid, assembly S
 		assembly.Base != 6 || len(assembly.WallFaces) != len(h.WallFaces) || len(assembly.ContourEdges) != n {
 		return h, geom.ErrConvergence
 	}
+	h, err = bindTwoCrossingCircleEnvelopeRegions(ctx, solid, assembly, p, sources, op)
+	if err != nil {
+		return h, err
+	}
+	if err := materialVertexLinks(ctx, solid, false); err != nil {
+		return h, err
+	}
+	return h, validateExactGraphPartitionEdges(ctx, solid, opts)
+}
+
+func bindTwoCrossingCircleEnvelopeRegions(ctx context.Context, solid Solid, assembly SplineGraphBooleanHistory,
+	p parabolaTwoCrossingCirclesPartition, sources [3]*geom.BSplineSurface, op parametric.BooleanOp) (h ParabolaTwoCrossingCirclesHistory, err error) {
 	h.Base = assembly.Base
 	if solid.faces[h.Base].Surface != sources[0] || !solid.faces[h.Base].Reversed {
 		return h, geom.ErrConvergence
@@ -148,10 +160,7 @@ func bindTwoCrossingCirclesEnvelope(ctx context.Context, solid Solid, assembly S
 			}
 		}
 	}
-	if err := materialVertexLinks(ctx, solid, false); err != nil {
-		return h, err
-	}
-	return h, validateExactGraphPartitionEdges(ctx, solid, opts)
+	return h, nil
 }
 
 func bindTwoCrossingCirclesEnvelopeJunction(solid Solid, node geom.ParabolaCircleCrossing,

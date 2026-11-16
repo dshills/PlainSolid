@@ -43,15 +43,20 @@ func proveParabolaMixedCirclesPartition(ctx context.Context, sources [3]*geom.BS
 }
 
 func bindParabolaMixedCircleRing(s Solid, edges []int, p parabolaMixedCirclesPartition) (vertices [4]int, err error) {
-	if len(edges) != len(vertices) {
+	return bindOriginalSeparatedCircleRing(s, edges, p.regions[4].loop, p.proof.SeparatedExtrema)
+}
+
+func bindOriginalSeparatedCircleRing(s Solid, edges []int, loop []openSectionPiece,
+	extrema [4]geom.ParabolaSeparatedCircleVertex) (vertices [4]int, err error) {
+	if len(edges) != len(vertices) || len(loop) != len(vertices) {
 		return vertices, geom.ErrConvergence
 	}
-	for i, v := range p.proof.SeparatedExtrema {
+	for i, v := range extrema {
 		uv, err := exactGraphPartitionUV(v.Parameters)
 		if err != nil {
 			return vertices, err
 		}
-		if p.regions[4].loop[i].a != uv {
+		if loop[i].a != uv {
 			return vertices, geom.ErrConvergence
 		}
 		vertex, err := exactParabolaCircleCrossingVertex(s, v.Point)

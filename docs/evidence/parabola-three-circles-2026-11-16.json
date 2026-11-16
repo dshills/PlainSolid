@@ -16,5 +16,17 @@
     "independent_controls_sha256": "0a48cf33fa467431dfddc5fd1a111397d17dd7f39be96c95dc5890bf45a4e766",
     "independent_exact_measures_sha256": "802746d66bd4fa702f17877c4ef37b33d4c10fe98dd0eea0d846c2aefb4f7673",
     "refusals": ["third circle crosses", "tangency", "stock boundary contact", "interdisk overlap", "altered source coefficients", "arithmetic exhaustion"]
+  },
+  "native_envelope": {
+    "isolated_revision": "0116139f02b45732992e2f26e2cfbcef3246037d",
+    "patch_sha256": "859502e93869754c438f84b0420254165385ae7300e4ba2859966428256db80b",
+    "main_base": "59c9ee6b",
+    "main_log": "parabola-three-circles-envelope-main.jsonl",
+    "main_log_sha256": "ce2760974895731c687f11470c4b00e48a75112a371d24becd9de4304ec0179d",
+    "seconds": 390.551,
+    "named_passes": ["TestNativeParabolaThreeCirclesEnvelope", "TestNativeParabolaThreeCirclesUnresolvedChordDomain"],
+    "variants": 16,
+    "topology_each": {"faces": 14, "edges": 37, "vertices": 26, "original_inner_wires": 1, "exact_contour_edges": 19, "junction_cycles": 4},
+    "max_independent_volume_absolute_error": 4.5e-16
   }
 }
