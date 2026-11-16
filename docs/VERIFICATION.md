@@ -526,6 +526,14 @@ The genus-two result passes at `0.102` and refuses `0.101` atomically
 with the same 16-subdivision budget. This bounds source-normal variation
 within each face. Main's angle and prior display race passed in 127.415 seconds.
 
+The [placed Cut and display proof](evidence/parabola-two-circles-placed-display-2026-11-15.json)
+recovers `(5-h,u-3,17/8-v)` from the original authored base. Each of
+the cap, two lenses and reverse layer retains its original world owner,
+reopens from a source-only receipt and certifies `.05` display distance
+and `.2` source-normal turn in world coordinates. Moving one owner by
+one ULP refuses. The prior identity display stays byte-identical. Main's
+placed and earlier identity race passed in 173.469 seconds.
+
 The [independent-circle native proof](evidence/parabola-offset-circles-native-2026-11-15.json)
 recovers both original centers, checks every quartic coefficient, and
 uses exact Euclidean separation when the free projections overlap.

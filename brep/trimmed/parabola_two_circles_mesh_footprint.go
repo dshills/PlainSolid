@@ -18,7 +18,8 @@ type parabolaCircleFootprintEdge struct {
 func parabolaCircleMeshEdgeKey(a, b int) [2]int { return [2]int{min(a, b), max(a, b)} }
 
 func parabolaTwoCirclesLiftFootprint(ctx context.Context, s Solid, h ParabolaCircleCutComponentHistory, height [2]parabolaCircleMeshHeight,
-	foot CertifiedMixedExactAffineMesh, topUses, bottomUses [][]Use, n int, o ParabolaTwoCirclesMeshOptions) (CertifiedParabolaTwoCirclesComponentMesh, error) {
+	foot CertifiedMixedExactAffineMesh, topUses, bottomUses [][]Use, n int, o ParabolaTwoCirclesMeshOptions,
+	placement *parabolaCircleDisplayPlacement) (CertifiedParabolaTwoCirclesComponentMesh, error) {
 	var empty CertifiedParabolaTwoCirclesComponentMesh
 	uv := slices.Clone(foot.ExactUV)
 	seam := make([]bool, len(uv))
@@ -70,37 +71,36 @@ func parabolaTwoCirclesLiftFootprint(ctx context.Context, s Solid, h ParabolaCir
 		if shared && high.Cmp(low) != 0 || !shared && high.Cmp(low) <= 0 {
 			return empty, errRefine
 		}
-		x, _ := q[0].Float64()
-		y, _ := q[1].Float64()
-		represented[i] = [2]*big.Rat{ratInset(x), ratInset(y)}
-		top, _ := high.Float64()
-		bottom, _ := low.Float64()
-		gaps[i] = new(big.Rat).Sub(ratInset(top), ratInset(bottom))
-		if !shared && gaps[i].Sign() <= 0 {
-			return empty, errRefine
-		}
-		for side, z := range [2]float64{top, bottom} {
-			p := geom.Vec3{X: x, Y: y, Z: z}
-			if !p.IsFinite() {
-				return empty, geom.ErrConvergence
-			}
+		var levels [2]*big.Rat
+		for side, z := range [2]*big.Rat{high, low} {
 			if side == 1 && shared {
-				ids[i][side] = ids[i][0]
+				ids[i][side], levels[side] = ids[i][0], levels[0]
 				continue
 			}
+			exact := exactBoundVector{q[0], q[1], z}
+			p, back, err := roundParabolaCircleMeshPoint(exact, placement)
+			if err != nil {
+				return empty, err
+			}
+			if side == 0 {
+				represented[i] = [2]*big.Rat{back[0], back[1]}
+			} else if back[0].Cmp(represented[i][0]) != 0 || back[1].Cmp(represented[i][1]) != 0 {
+				return empty, geom.ErrConvergence
+			}
+			levels[side] = back[2]
 			ids[i][side] = len(display.Mesh.Vertices)
 			display.Mesh.Vertices = append(display.Mesh.Vertices, p)
-			exact := [3]*big.Rat{q[0], q[1], high}
-			if side == 1 {
-				exact[2] = low
-			}
 			errorSum := new(big.Rat)
-			for j, r := range exactBoundPoint(p) {
-				errorSum.Add(errorSum, new(big.Rat).Abs(new(big.Rat).Sub(exact[j], r)))
+			for axis, represented := range back {
+				errorSum.Add(errorSum, new(big.Rat).Abs(new(big.Rat).Sub(exact[axis], represented)))
 			}
 			if errorSum.Cmp(rounding) > 0 {
 				rounding.Set(errorSum)
 			}
+		}
+		gaps[i] = new(big.Rat).Sub(levels[0], levels[1])
+		if !shared && gaps[i].Sign() <= 0 {
+			return empty, errRefine
 		}
 	}
 	emit := func(face int, tri [3]int) error {
@@ -146,6 +146,10 @@ func parabolaTwoCirclesLiftFootprint(ctx context.Context, s Solid, h ParabolaCir
 	}
 	display.SignedDisplayVolume.Quo(display.SignedDisplayVolume, big.NewRat(6, 1))
 
+	nativeVertices := s.vertices
+	if placement != nil {
+		nativeVertices = placement.part.vertices
+	}
 	for _, side := range sides {
 		for owner, use := range side.owners {
 			e := s.edges[use.Edge]
@@ -162,7 +166,7 @@ func parabolaTwoCirclesLiftFootprint(ctx context.Context, s Solid, h ParabolaCir
 			display.OriginalEdges[use.Edge] = edge
 			for j, vertex := range [2]int{e.Start, e.End} {
 				i := edge.Vertices[j*(len(edge.Vertices)-1)]
-				if old := display.OriginalVertices[vertex]; old != -1 && old != i || s.vertices[vertex] != display.Mesh.Vertices[i] {
+				if old := display.OriginalVertices[vertex]; old != -1 && old != i || nativeVertices[vertex] != display.Mesh.Vertices[i] {
 					return empty, geom.ErrConvergence
 				}
 				display.OriginalVertices[vertex] = i

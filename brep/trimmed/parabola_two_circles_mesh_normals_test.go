@@ -78,6 +78,14 @@ func checkParabolaTwoCirclesSourceTurnLimit(t *testing.T, cut *ParabolaTwoCircle
 
 func verifyParabolaTwoCirclesSourceTurn(t *testing.T, s Solid, m CertifiedParabolaTwoCirclesComponentMesh, request float64) {
 	t.Helper()
+	verifyParabolaTwoCirclesSourceTurnInChart(t, s, m, request, func(p geom.Vec3) geom.Vec2 {
+		return geom.Vec2{X: p.X, Y: p.Y}
+	})
+}
+
+func verifyParabolaTwoCirclesSourceTurnInChart(t *testing.T, s Solid, m CertifiedParabolaTwoCirclesComponentMesh, request float64,
+	chart func(geom.Vec3) geom.Vec2) {
+	t.Helper()
 	limit := ratInset(request)
 	limit.Mul(limit, limit)
 	if m.SquaredSourceNormalTurn == nil || m.SquaredSourceNormalTurn.Sign() <= 0 ||
@@ -98,7 +106,8 @@ func verifyParabolaTwoCirclesSourceTurn(t *testing.T, s Solid, m CertifiedParabo
 		samples := [4]geom.Vec3{a, b, c, a.Add(b).Add(c).Scale(1.0 / 3)}
 		var normals [4]geom.Vec3
 		for j, p := range samples {
-			n, err := roof.Normal(p.X, p.Y)
+			uv := chart(p)
+			n, err := roof.Normal(uv.X, uv.Y)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "scope": "Cut, source replay and world-space certified display on an independent proper signed-axis placed chart",
+  "worktreeRevision": "6f827a367f7021fa0f5bdf0a13b681daa5f6eee7",
+  "mainRaceSeconds": 173.47,
+  "physicalMap": [
+    "5-h",
+    "u-3",
+    "17/8-v"
+  ],
+  "distanceLimit": 0.05,
+  "sourceNormalTurnLimit": 0.2,
+  "cases": [
+    {
+      "region": 0,
+      "euler": 2,
+      "triangles": 8950,
+      "volume": 0.00204212116092558,
+      "distance": 0.0178752130887,
+      "turn": 0.0706123017997,
+      "candidatePairs": 845171
+    },
+    {
+      "region": 2,
+      "euler": 2,
+      "triangles": 8456,
+      "volume": 7.06105416032043e-06,
+      "distance": 0.0168510997452,
+      "turn": 0.0316558831969,
+      "candidatePairs": 436959
+    },
+    {
+      "region": 3,
+      "euler": 2,
+      "triangles": 1452,
+      "volume": 3.56632272330948e-07,
+      "distance": 0.0382624746514,
+      "turn": 0.0336796699143,
+      "candidatePairs": 63668
+    },
+    {
+      "region": 1,
+      "euler": -2,
+      "triangles": 12334,
+      "volume": 0.000477322618155712,
+      "distance": 0.0341239200421,
+      "turn": 0.101874971202,
+      "candidatePairs": 809937
+    }
+  ],
+  "files": {
+    ".worktrees/qualification/2026-11-15/parabola-placed-circles-main-race.jsonl": "7dfe86656fe2b07acbc65da85b23de62ba5d49d582abf04a0c8fcdbde848bd70",
+    ".worktrees/qualification/2026-11-15/parabola-two-circles-placed-race.jsonl": "647339944f1e32cee94dcb22145419dd311e891e00fa57743873df932d04c08c",
+    ".worktrees/qualification/2026-11-15/parabola-two-circles-placed-evidence/strict-source-reopen.log": "2a42febe9396fd62aba96ce0f50b97b4c7ed05694bef5664f702340e074411d0",
+    ".worktrees/qualification/2026-11-15/parabola-two-circles-signed-axis-display.patch": "3344649f88a75cf8dbd2aac4f9348d00e374bab44aaf18abae13b2072b73a821",
+    ".worktrees/qualification/2026-11-15/parabola-two-circles-placed-evidence/source/signed-axis-cut-order-0.json": "5c227d02a1851d637746120de510f80c827202232c61496b3bfcb66136893b6c",
+    ".worktrees/qualification/2026-11-15/parabola-two-circles-placed-evidence/source/signed-axis-cut-order-1.json": "71af2e4c07086292f5119eaf37ed8ce921d40c598d5afc9648d69fa3d0586ecb"
+  }
+}

@@ -467,6 +467,9 @@ for the cap, each separate lens and the reverse genus-two layer.
 The distance and volume checks retain the original chart and edge owners.
 An opt-in normal-turn proof bounds the continuous variation within each
 original roof face and keeps the distance-only mesh bytes.
+The same-side Cut and its certified display also accept a shared proper
+signed-axis placement with exactly represented translation. Native replay
+retains the original world roofs, edge streams and trimming paths.
 The exact source proof also accepts independently placed centers on
 the same side of the parabola, even when their free-coordinate
 projections overlap. Native envelopes and Cuts retain both circle
