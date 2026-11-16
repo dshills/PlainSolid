@@ -532,6 +532,15 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   PlainSolid STEP writer variants re-export byte-identically. Main
   exchange and STEP pinned race runs passed in 28.040 and 46.356
   seconds. No generic reader dispatch was changed.
+- The [strict eccentric bore fillet IGES import](evidence/eccentric-bore-rim-iges-import-2026-11-15.json)
+  reconstructs all three untouched model-only OCCT selections. The
+  paired input has 6 original faces, 10 edges and 6 vertices; the
+  reconstructed shell has 6 faces, 28 edges and 24 vertices, with
+  exact full-circle split provenance and positive signed volume
+  878.8609059330245 on independent re-export. Original off-support
+  data and inconsistent shoulder use, meridian transformation and
+  directory controls reject. The pinned main race runs passed in
+  45.638 seconds for exchange and 78.688 seconds for IGES.
 - The [diagonal circle cap and wall proof](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
   (`a296b700`) qualifies the independent offset `(1.5,2)` with exact
   circular rim laws and shell-wide clearance. A targeted raw constructor

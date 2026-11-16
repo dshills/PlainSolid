@@ -288,7 +288,10 @@ The [strict independent STEP reader](evidence/eccentric-bore-rim-step-import-202
 now reconstructs the pinned upper fillet from the original analytic
 STEP curves and incidence, preserving source IDs through exact circular
 subdivision. It also reopens all three existing STEP exports with
-byte-identical re-export. Independent IGES reconstruction is open.
+byte-identical re-export. The [strict independent IGES reader](evidence/eccentric-bore-rim-iges-import-2026-11-15.json)
+reconstructs all three lower, upper and paired variants from original
+OCCT files. It preserves original file units, directory and edge
+provenance and the signed volume on independent re-export.
 The [explicit PlainCAD v13 repair](evidence/plaincad-v13-ordered-step-2026-11-15.json)
 (`399957cd`) passed the native and actual Node/WASM source, closed mesh,
 strict STEP export and fresh reopen. [Two typed Chromium workers](evidence/plaincad-v13-worker-chromium-2026-11-15.json)

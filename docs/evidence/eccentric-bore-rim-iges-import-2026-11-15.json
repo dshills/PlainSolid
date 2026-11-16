@@ -1,0 +1,130 @@
+{
+  "milestone": "Strict exact model-only IGES import of a circular cylindrical through-bore with inward circular rim fillets",
+  "plainSolidCommit": "8b34c9d5c2ae4601a975ab3cd93e211ff8909512",
+  "plainSolidProducerDependency": "38b119d186111c60cb62ed452fb2d7713e177c93",
+  "gitPatchSha256": "2e08defb47b5db989f2c6a9d9e1cdc64365ec8604a7c7566d2129feadb7f3e05",
+  "occtCommit": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "independentAuthor": {
+    "path": "tools/occtref/author_iges_eccentric_bore_rim_fillets.cxx",
+    "sha256": "cec7363510dcc80675c8f6bf056347e0b9ff2f6b6f7f3a60661b03e064cfd16d",
+    "operation": "OCCT Boolean Cut of independently constructed cylinders, BRepFilletAPI_MakeFillet on original inner rim selections, IGESControl_Writer in BRep mode with write.surfacecurve.mode=0",
+    "noPostWriteEdits": true
+  },
+  "authorGeometry": {
+    "outerCenterXY": [
+      0,
+      64
+    ],
+    "boreCenterXY": [
+      1.5,
+      66
+    ],
+    "zRange": [
+      2,
+      10
+    ],
+    "outerRadius": 6.25,
+    "boreRadius": 2,
+    "metresPerFileUnit": 0.001,
+    "sourceGroup": 1,
+    "sourceSolid": 3,
+    "sourceShell": 5,
+    "sourceEdgeList": 19,
+    "sourceVertexList": 25
+  },
+  "independentPositives": [
+    {
+      "selection": "lower",
+      "sha256": "023445e755b726344ab205ea3de64a756276075e3be4bd1c70a52f0ecadd290c",
+      "radii": [
+        0.5,
+        0
+      ],
+      "sourceFacesEdgesVertices": [
+        5,
+        8,
+        5
+      ],
+      "nativeFacesEdgesVertices": [
+        5,
+        23,
+        20
+      ],
+      "signedVolume": 880.5048995841898,
+      "surfaceArea": 632.408855503647,
+      "path": "exchange/iges/testdata/occt-model-only-eccentric-bore-rim-lower.igs"
+    },
+    {
+      "selection": "upper",
+      "sha256": "b3aaacda43ecb6f3e424ea209ce093cf232ed11c44ccce2b4b194524ea43f4d3",
+      "radii": [
+        0,
+        0.75
+      ],
+      "sourceFacesEdgesVertices": [
+        5,
+        8,
+        5
+      ],
+      "nativeFacesEdgesVertices": [
+        5,
+        23,
+        20
+      ],
+      "signedVolume": 879.5727456807722,
+      "surfaceArea": 631.1994806596122,
+      "path": "exchange/iges/testdata/occt-model-only-eccentric-bore-rim-upper.igs"
+    },
+    {
+      "selection": "both",
+      "sha256": "08a847e501062c1b9ddc7222e4fe945f451c96e0d8e8e60320b980cd5ce0d2e8",
+      "radii": [
+        0.5,
+        0.75
+      ],
+      "sourceFacesEdgesVertices": [
+        6,
+        10,
+        6
+      ],
+      "nativeFacesEdgesVertices": [
+        6,
+        28,
+        24
+      ],
+      "signedVolume": 878.8609059330245,
+      "surfaceArea": 628.6139210564223,
+      "path": "exchange/iges/testdata/occt-model-only-eccentric-bore-rim-both.igs"
+    }
+  ],
+  "independentNegative": {
+    "path": "exchange/iges/testdata/occt-model-only-eccentric-bore-rim-off-support.igs",
+    "sha256": "9f8418c28d8996a763922f5764e41cd5ec2c42e23aac0588f1f01e64a95f90d2",
+    "cause": "Origin stock cylinder centered at Y=0, radius 6.25. The original extreme-X vertices and outer generator are actually written at Y=-1.530808499E-15."
+  },
+  "mutations": "The positive paired source rejects a same-direction lower shoulder, substituted lower shoulder, inward lower blend, nonrigid meridian transform, wrong grouped material member, and incompatible directory hierarchy status.",
+  "compatibility": "All six established lower, upper and paired STEP/IGES producer files were byte-identical when regenerated. Standalone IGES quarter-rim outputs reopen byte-stably with the strict reader. Every accepted independent input retains original file units, original source bytes and directory/list provenance.",
+  "tests": {
+    "strict-iges-live.log": {
+      "seconds": 6.365,
+      "pinnedComparator": true
+    },
+    "strict-iges-live-race.log": {
+      "seconds": 45.066,
+      "pinnedComparator": true
+    },
+    "legacy-iges.log": {
+      "seconds": 5.021
+    },
+    "foreign-both-reopen.log": {
+      "livePinnedOriginal": true
+    },
+    "main-pinned-race": {
+      "raw": ".worktrees/qualification/2026-11-15/eccentric-bore-iges-import-main-race.jsonl",
+      "sha256": "2fbdcc766d227ff7819414ece64d34c9c00c3497b64cdd1a7c62acb52aa971bd",
+      "exchangeSeconds": 45.638,
+      "igesSeconds": 78.688
+    }
+  },
+  "scope": "Standalone explicit IGES codec. The existing generic entry points and STEP files were preserved."
+}
