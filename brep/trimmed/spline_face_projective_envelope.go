@@ -57,25 +57,20 @@ func selectProjectiveSplineFaceEnvelope(ctx context.Context, a, b Face, axes [2]
 	if operation == parametric.Union {
 		want = [2]int{1, -1}
 	}
-	return selectProjectiveSplineFaceContourFragments(ctx, a, b, axes, want, o, single)
+	return selectProjectiveSplineFaceContourFragments(ctx, a, b, axes, want, o, single, false)
 }
 
 // A common sign picks the same projected region for both originals. Their
 // effective section directions then agree until one face is turned over.
-func selectProjectiveSplineFaceFragments(ctx context.Context, a, b Face, axes [2]int, want [2]int,
-	o ProjectiveSplineEnvelopeOptions) (r ProjectiveSplineEnvelope, err error) {
-	return selectProjectiveSplineFaceContourFragments(ctx, a, b, axes, want, o, true)
-}
-
 func selectProjectiveSplineFaceContourFragments(ctx context.Context, a, b Face, axes [2]int, want [2]int,
-	o ProjectiveSplineEnvelopeOptions, single bool) (r ProjectiveSplineEnvelope, err error) {
+	o ProjectiveSplineEnvelopeOptions, single, matchExterior bool) (r ProjectiveSplineEnvelope, err error) {
 	if o.MaxClassifyOperations < 0 {
 		return r, geom.ErrInvalid
 	}
 	if o.MaxClassifyOperations == 0 {
 		o.MaxClassifyOperations = 2_000_000
 	}
-	source, err := imprintProjectiveSplineFaces(ctx, a, b, axes, o.Imprint, single)
+	source, err := imprintProjectiveSplineFaces(ctx, a, b, axes, o.Imprint, single, matchExterior)
 	if err != nil {
 		return r, err
 	}

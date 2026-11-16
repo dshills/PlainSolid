@@ -14,6 +14,9 @@ type ProjectiveRoofSolidOptions struct {
 	Envelope ProjectiveSplineEnvelopeOptions
 	Build    geom.SurfacePatchOptions
 	Sew      ExactSewOptions
+	// MatchExteriorPartitions lets a contour Cut split exterior uses at
+	// the exact common atlas stations of either original roof.
+	MatchExteriorPartitions bool
 }
 
 // ProjectiveRoofWall retains the original roof owner, its original

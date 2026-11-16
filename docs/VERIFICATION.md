@@ -114,6 +114,10 @@ walls and a split base wire, with unchanged independent material and
 byte-identical native replay. Matching original exterior partitions
 also permit both Cut orders with volume 1/8 and no common base face.
 An unmatched partition and a short sewing budget refuse.
+The opt-in alignment proof now subdivides the unmatched case at the
+exact atlas station. Both operand orders retain original UV stations
+3/8 and 1/2 on the differently weighted charts, two seams, four original
+walls and volume 1/8. A short budget still refuses without a result.
 An independent oblique adjacent-side seam also qualifies both Cut
 orders with exact volumes 25/48 and 1/48 and separate native pentagonal
 and triangular original footprints. Both axis orders pass.

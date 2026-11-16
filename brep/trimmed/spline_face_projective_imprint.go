@@ -55,7 +55,7 @@ type projectiveImprintBoundary struct {
 // analytically in one span. Unsupported arcs return no fragments.
 func ImprintProjectiveSplineFacePair(ctx context.Context, a, b Face, axes [2]int,
 	o ProjectiveSplineImprintOptions) (r ProjectiveSplineImprint, err error) {
-	return imprintProjectiveSplineFaces(ctx, a, b, axes, o, true)
+	return imprintProjectiveSplineFaces(ctx, a, b, axes, o, true, false)
 }
 
 // ImprintProjectiveSplineFaceContour splits each original rectangular
@@ -65,11 +65,11 @@ func ImprintProjectiveSplineFacePair(ctx context.Context, a, b Face, axes [2]int
 // in native topology. An unproved use publishes no fragments.
 func ImprintProjectiveSplineFaceContour(ctx context.Context, a, b Face, axes [2]int,
 	o ProjectiveSplineImprintOptions) (r ProjectiveSplineImprint, err error) {
-	return imprintProjectiveSplineFaces(ctx, a, b, axes, o, false)
+	return imprintProjectiveSplineFaces(ctx, a, b, axes, o, false, false)
 }
 
 func imprintProjectiveSplineFaces(ctx context.Context, a, b Face, axes [2]int,
-	o ProjectiveSplineImprintOptions, single bool) (r ProjectiveSplineImprint, err error) {
+	o ProjectiveSplineImprintOptions, single, matchExterior bool) (r ProjectiveSplineImprint, err error) {
 	if ctx == nil || o.MaxEdgeOperations < 0 {
 		return r, geom.ErrInvalid
 	}
@@ -119,6 +119,19 @@ func imprintProjectiveSplineFaces(ctx context.Context, a, b Face, axes [2]int,
 		sections = contour.Uses
 	}
 	terminals := [2]int{sections[0].Vertices[0], sections[len(sections)-1].Vertices[1]}
+	var exterior [2][2][]*big.Rat
+	if matchExterior {
+		limits, err := remaining()
+		if err != nil {
+			return r, err
+		}
+		var work int
+		exterior, work, err = projectiveImprintExteriorStations(ctx, contacts.Graph, limits)
+		r.ExactOperations += work
+		if err != nil {
+			return r, err
+		}
+	}
 	zero, one := new(big.Rat), big.NewRat(1, 1)
 	var fragments [2][2]SewFace
 	var origins [2][2][]ProjectiveSplineImprintUse
@@ -221,6 +234,18 @@ func imprintProjectiveSplineFaces(ctx context.Context, a, b Face, axes [2]int,
 				}
 			}
 			p, t = append(p, u.UVEnd), append(t, one)
+			if matchExterior {
+				limits, err := remaining()
+				if err != nil {
+					return r, err
+				}
+				var work int
+				p, t, work, err = projectiveImprintAlignOriginalUse(ctx, p, t, exterior[owner], limits)
+				r.ExactOperations += work
+				if err != nil {
+					return r, err
+				}
+			}
 			for j := 0; j+1 < len(p); j++ {
 				limits, err = remaining()
 				if err != nil {

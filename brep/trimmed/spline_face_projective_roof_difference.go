@@ -38,7 +38,7 @@ func buildProjectiveSplineRoofDifference(ctx context.Context, a, b Face, axes [2
 	if err := projectiveRoofsAboveBase(a, b, height, baseHeight, o.Build); err != nil {
 		return r, err
 	}
-	selected, err := selectProjectiveSplineFaceContourFragments(ctx, a, b, axes, [2]int{1, 1}, o.Envelope, single)
+	selected, err := selectProjectiveSplineFaceContourFragments(ctx, a, b, axes, [2]int{1, 1}, o.Envelope, single, !single && o.MatchExteriorPartitions)
 	if err != nil {
 		return r, fmt.Errorf("projective Cut roof pair: %w", err)
 	}
