@@ -231,8 +231,9 @@ func proveParabolaCrossingDisk(ctx context.Context, patches [2]*SurfacePatch, ax
 		if err := b.check(slope); err != nil {
 			return parabolaCrossingDisk{}, err
 		}
+		regions := [4]int{0, 1, 2 + 2*index, 3 + 2*index}
 		out.nodes[i], out.ccwRays[i], err =
-			twoCrossingCirclesOriginalNode(ctx, patches, x, y, slope, circle.Center, axis, index, b)
+			originalParabolaCrossingCircleNode(ctx, patches, x, y, slope, circle.Center, axis, regions, b)
 		if err != nil {
 			return parabolaCrossingDisk{}, err
 		}
@@ -266,8 +267,8 @@ func proveParabolaCrossingDisk(ctx context.Context, patches [2]*SurfacePatch, ax
 	return out, nil
 }
 
-func twoCrossingCirclesOriginalNode(ctx context.Context, patches [2]*SurfacePatch, x, y, slope *big.Rat,
-	center [2]*big.Rat, axis, circle int, b *polynomialBudget) (ParabolaCircleCrossing, int, error) {
+func originalParabolaCrossingCircleNode(ctx context.Context, patches [2]*SurfacePatch, x, y, slope *big.Rat,
+	center [2]*big.Rat, axis int, regions [4]int, b *polynomialBudget) (ParabolaCircleCrossing, int, error) {
 	uv := parabolaTwoCrossingCirclesUV(axis, x, y)
 	jets, err := parabolaCircleOriginalJets(ctx, patches, uv, b)
 	if err != nil {
@@ -322,12 +323,14 @@ func twoCrossingCirclesOriginalNode(ctx context.Context, patches [2]*SurfacePatc
 				return ParabolaCircleCrossing{}, 0, ErrConvergence
 			}
 		}
+		region := 0
 		if radialGap.Sign() < 0 {
-			out.SectorRegions[i] = 2 + 2*circle
+			region = 2
 		}
 		if dependentGap.Sign() > 0 {
-			out.SectorRegions[i]++
+			region++
 		}
+		out.SectorRegions[i] = regions[region]
 	}
 	return out, circleRay, nil
 }
