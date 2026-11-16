@@ -134,6 +134,19 @@ its adjacent original knot. Pinned OCCT reopens the U-only, V-only and
 doubly periodic fixtures with matching edge data and physical surface
 derivatives.
 
+`ReadPeriodicConvexTrimmedFace` admits an outer-only type-144 convex
+quadrilateral with at least one diagonal affine UV line. The enclosing
+rectangle must fit strictly within one original knot cell and match the
+clipped type-128 interval. Every vertex outside a given edge lies
+strictly to its left in the original UV chart. Each model spline is
+proved equal to the exact composition of its UV line and the periodic
+support over the entire edge. `WritePeriodicConvexTrimmedFace` replays
+those proofs before canonical emission and strictly reopens the result.
+The writer also checks that distinct UV stations and strict convex turns
+survive binary64 transfer. Pinned OCCT preserves the independent
+bi-degree (2,1) fixture's four directed diagonal lines and cubic model
+splines. The strict proof refuses the clockwise source that OCCT rewinds.
+
 `ReadPeriodicTrimmedFaceWithHoles` admits one or two explicit rectangular
 inner type-142 contours in the same original knot cell as the outer loop.
 Each inner contour owns four directed type-110 UV lines and four complete

@@ -1,0 +1,42 @@
+{
+  "scope": "Exact convex affine outer type-144 trim on one original type-128 U-periodic support cell",
+  "isolated_revision": "1dfe0e6ea7903715fa01d4e1a063486d6254c13f",
+  "patch_sha256": "4254e0f31a53c40d86f62ccd1b80d81bfc4bf8ac5f94a8d4e46bcfa4a62c4fe5",
+  "source_qualification_sha256": "620df4a8cefe7c57d3e5d7f926724bfcd68b989780750d0592c98ee4401cb43f",
+  "main_base": "955964b6",
+  "main_race_log": "iges-periodic-convex-main-race.jsonl",
+  "main_race_sha256": "b8461e69bffe036db5c00098d3cd5a9aaa7e9af95bce3cf980633a8c986fe0b8",
+  "main_race_seconds": 19.523,
+  "isolated_full_iges_seconds": 132.405,
+  "directed_original_coedges": 4,
+  "original_model_ranges": [
+    [
+      64,
+      65
+    ],
+    [
+      66,
+      67
+    ],
+    [
+      68,
+      69
+    ],
+    [
+      70,
+      71
+    ]
+  ],
+  "independent_occt_area": 55.47419349,
+  "independent_occt_perimeter": 30.22194764,
+  "byte_identical_prior_outputs": 22,
+  "canonical_executed_architectures": [
+    "darwin/arm64",
+    "darwin/amd64"
+  ],
+  "refusals": [
+    "clockwise original outer wire",
+    "changed sub-ULP original turn",
+    "crossing UV loop"
+  ]
+}

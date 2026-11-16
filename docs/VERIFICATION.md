@@ -470,6 +470,12 @@ passes both original seams and all eight directed pairs. Symmetric and
 unequal-width cells agree with independently reopened pinned jets after
 physical derivative scaling. Missing and shifted splits refuse. Main
 race, full IGES, both macOS architectures and 20 earlier files pass.
+The [convex affine periodic trim audit](evidence/iges-periodic-convex-affine-2026-11-16.json)
+retains four independently authored diagonal coedges on a mixed-tensor
+U-periodic support, with complete cubic composition and original model
+ranges. Canonical export matches both pinned source readback and both
+executed macOS architectures. Wrong winding, changed sub-ULP turns and
+crossing UV loops refuse. Main race, full IGES and 22 prior bytes pass.
 The [valid periodic seam trim](evidence/iges-periodic-seam-trimmed-2026-11-16.json)
 passes independently authored type 144, the pinned reopen and main race.
 The reader retains six original directed pairs, distinct seam stations,

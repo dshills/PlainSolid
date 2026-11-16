@@ -15,6 +15,9 @@ macOS race on `52118ad9` is still running.
 The [PlainCAD run on `9f95a188`](evidence/plaincad-main-9f95a188-2026-11-16.json)
 also passed all eight gates, and its matching Go run remains in progress.
 The newer `d42af917` Go and PlainCAD runs are also underway.
+Type-144 exchange now independently qualifies convex affine outer loops
+on one U-periodic cell, including all original diagonal pcurves, model
+coedges and their cubic composition. Holes in those loops remain open.
 The [full native macOS race on `ab33a412`](evidence/native-main-ab33a412-race-2026-11-15.json)
 passed 5,557 cases with 580 explicit optional skips.
 The [native Linux ARM64 run](evidence/native-linux-7569bd36-qualification-2026-11-15.json)

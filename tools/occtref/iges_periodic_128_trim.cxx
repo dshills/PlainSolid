@@ -125,7 +125,9 @@ static occ::handle<IGESGeom_CurveOnSurface> exactContour(const occ::handle<Geom_
         uv->InitStatus(0,1,0,0);
         uvMembers->SetValue(i+1,uv);
 
-        const int degree = a.X() == b.X() ? native->VDegree() : native->UDegree();
+        const int degree = (a.X() == b.X() ? 0 : native->UDegree()) +
+                           (a.Y() == b.Y() ? 0 : native->VDegree());
+        if (degree < 1 || degree > 3) throw Standard_Failure("unsupported fixture parameter restriction");
         const double first = station + 2.*i, last = first+1.;
         auto knots = new NCollection_HArray1<double>(-degree,degree+1);
         auto w = new NCollection_HArray1<double>(0,degree);
@@ -136,10 +138,24 @@ static occ::handle<IGESGeom_CurveOnSurface> exactContour(const occ::handle<Geom_
         p->SetValue(0,start);
         p->SetValue(degree,end);
         if (degree == 2) {
-            // Recover the middle Bézier control from the exact midpoint
-            // of the independently constructed quadratic isoparametric span.
+            // The independently constructed quadratic restriction is
+            // determined by its dyadic endpoints and midpoint.
             const gp_XYZ mid = native->Value((a.X()+b.X())/2.,(a.Y()+b.Y())/2.).XYZ();
             p->SetValue(1,mid*2. - (start+end)*.5);
+        } else if (degree == 3) {
+            // The affine restriction of the bi-degree (2,1) fixture is
+            // cubic. The independent native endpoint jets determine its
+            // interior Bernstein poles without an interpolation grid.
+            gp_Pnt point;
+            gp_Vec du,dv;
+            const double stepU = b.X()-a.X(), stepV = b.Y()-a.Y();
+            native->D1(a.X(),a.Y(),point,du,dv);
+            const auto startTangent = du.XYZ()*stepU + dv.XYZ()*stepV;
+            native->D1(b.X(),b.Y(),point,du,dv);
+            const auto endTangent = du.XYZ()*stepU + dv.XYZ()*stepV;
+            const auto divided = [](const gp_XYZ& v) { return gp_XYZ(v.X()/3.,v.Y()/3.,v.Z()/3.); };
+            p->SetValue(1,start+divided(startTangent));
+            p->SetValue(2,end-divided(endTangent));
         }
         occ::handle<IGESGeom_BSplineCurve> model = new IGESGeom_BSplineCurve;
         model->Init(degree,degree,false,false,true,false,knots,w,p,first,last,gp_XYZ());
@@ -385,6 +401,25 @@ static bool writeExactUVSeams(const char* path, std::string_view mode)
     return write(outer,u0,5.25,v0,7.25);
 }
 
+static bool writeExactConvexAffine(const char* path, bool clockwise)
+{
+    const auto native = periodicSupport();
+    for (int u = 1; u <= native->NbUPoles(); ++u) {
+        const auto p = native->Pole(u,1);
+        native->SetPole(u,1,gp_Pnt(3*p.X(),3*p.Y(),0.));
+        native->SetPole(u,2,gp_Pnt(6*p.X(),6*p.Y(),12.));
+    }
+    const auto support = exactCarrier(native,1.25,1.75,1.,3.);
+    std::array<gp_XY,4> loop{gp_XY(1.5,1),gp_XY(1.75,2),gp_XY(1.5,3),gp_XY(1.25,2)};
+    if (clockwise) std::reverse(loop.begin(),loop.end());
+    occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
+    face->Init(support,1,exactContour(native,support,loop,64),nullptr);
+    const auto reference = BRepBuilderAPI_MakeFace(native,1.25,1.75,1.,3.,1e-9).Face();
+    if (reference.IsNull() || !report(reference)) return false;
+    IGESControl_Writer writer("MM",0);
+    return writer.AddEntity(face) && writer.Write(path);
+}
+
 int main(int argc,char** argv)
 {
     if (argc != 3) return 2;
@@ -413,6 +448,9 @@ int main(int argc,char** argv)
         if (mode == "write-exact-uv-u-seam" || mode == "write-exact-uv-v-seam" || mode == "write-exact-uv-both-seams" ||
             mode == "write-exact-uv-both-seams-unequal" || mode == "write-exact-uv-both-seams-clockwise") {
             return writeExactUVSeams(argv[2],mode) ? 0 : 8;
+        }
+        if (mode == "write-exact-convex-affine" || mode == "write-exact-convex-affine-clockwise") {
+            return writeExactConvexAffine(argv[2],mode == "write-exact-convex-affine-clockwise") ? 0 : 8;
         }
         if (mode == "write" || mode == "write-seam") {
             const TopoDS_Face face = original(mode == "write-seam");
