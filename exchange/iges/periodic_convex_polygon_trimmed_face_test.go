@@ -220,9 +220,9 @@ func TestWritePeriodicConvexPolygonTrimmedFacePinnedOCCT(t *testing.T) {
 			for i, station := range source.Bounds {
 				checkPeriodicPolygonStation(t, station, native.Bounds[i])
 			}
-			checkPeriodicPolygonPinnedWire(t, ctx, f, reopened.Wires[0], f.Outer.Edges, true)
+			checkPeriodicPolygonPinnedWire(t, ctx, f.Support, reopened.Wires[0], f.Outer.Edges, true, f.ProjectionAxes, f.ProjectionOrientation)
 			for i, hole := range f.Holes {
-				checkPeriodicPolygonPinnedWire(t, ctx, f, reopened.Wires[i+1], hole.Edges, false)
+				checkPeriodicPolygonPinnedWire(t, ctx, f.Support, reopened.Wires[i+1], hole.Edges, false, f.ProjectionAxes, f.ProjectionOrientation)
 			}
 			if len(native.Samples) != len(source.Samples) {
 				t.Fatal("pinned source changed physical jet sample count")
@@ -285,8 +285,8 @@ func checkPeriodicPolygonStation(t *testing.T, actual, expected float64) {
 	}
 }
 
-func checkPeriodicPolygonPinnedWire(t *testing.T, ctx context.Context, f PeriodicConvexPolygonTrimmedFace,
-	wire periodicTrimOracleWire, pairs []PeriodicTrimEdge, outer bool) {
+func checkPeriodicPolygonPinnedWire(t *testing.T, ctx context.Context, support *geom.ExactPeriodicSplineSurface,
+	wire periodicTrimOracleWire, pairs []PeriodicTrimEdge, outer bool, projection [2]int, orientation int) {
 	t.Helper()
 	// The author uses a 1/32 grid for trim stations and 1/64
 	// for their midpoints. Check the pinned evaluator's binary64
@@ -302,5 +302,5 @@ func checkPeriodicPolygonPinnedWire(t *testing.T, ctx context.Context, f Periodi
 			}
 		}
 	}
-	checkPeriodicTrimOracleWire(t, ctx, f.Support, wire, pairs, outer, f.ProjectionAxes, f.ProjectionOrientation)
+	checkPeriodicTrimOracleWire(t, ctx, support, wire, pairs, outer, projection, orientation)
 }

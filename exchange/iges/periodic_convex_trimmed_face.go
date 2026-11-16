@@ -52,6 +52,13 @@ func provePeriodicConvexOuter(ctx context.Context, source *periodicTrimSource) (
 }
 
 func provePeriodicConvexOuterGeometry(ctx context.Context, source *periodicTrimSource) (PeriodicTrimmedFace, []PeriodicTrimEdge, error) {
+	return provePeriodicAffineOuterGeometry(ctx, source, "convex", func(uv []periodicTrimUVEdge) error {
+		_, err := provePeriodicConvexLoop(uv, 1)
+		return err
+	})
+}
+
+func provePeriodicAffineOuterGeometry(ctx context.Context, source *periodicTrimSource, kind string, proveLoop func([]periodicTrimUVEdge) error) (PeriodicTrimmedFace, []PeriodicTrimEdge, error) {
 	var zero PeriodicTrimmedFace
 	m := source.face
 	cell, err := m.proveOriginalKnotCell(ctx)
@@ -65,11 +72,11 @@ func provePeriodicConvexOuterGeometry(ctx context.Context, source *periodicTrimS
 	}
 	for axis, interval := range bounds {
 		if interval.Lower.Cmp(m.Bounds[axis].Lower) != 0 || interval.Upper.Cmp(m.Bounds[axis].Upper) != 0 {
-			return zero, nil, fmt.Errorf("iges: convex trim bounds disagree with the original type-128 bounds: %w", geom.ErrUnrepresentable)
+			return zero, nil, fmt.Errorf("iges: %s trim bounds disagree with the original type-128 bounds: %w", kind, geom.ErrUnrepresentable)
 		}
 	}
 
-	if _, err := provePeriodicConvexLoop(uv, 1); err != nil {
+	if err := proveLoop(uv); err != nil {
 		return zero, nil, err
 	}
 	if err := m.proveInjectivePatch(ctx, cell); err != nil {
@@ -84,15 +91,9 @@ func provePeriodicConvexOuterGeometry(ctx context.Context, source *periodicTrimS
 }
 
 func provePeriodicConvexLoop(uv []periodicTrimUVEdge, winding int) ([][2]*big.Rat, error) {
-	points := make([][2]*big.Rat, len(uv))
-	diagonal := false
-	for i, edge := range uv {
-		next := uv[(i+1)%len(uv)]
-		if edge.end[0].Cmp(next.start[0]) != 0 || edge.end[1].Cmp(next.start[1]) != 0 {
-			return points, fmt.Errorf("iges: convex trim UV lines do not form one directed cycle at #%d: %w", edge.id, geom.ErrUnrepresentable)
-		}
-		points[i] = edge.start
-		diagonal = diagonal || edge.start[0].Cmp(edge.end[0]) != 0 && edge.start[1].Cmp(edge.end[1]) != 0
+	points, diagonal, err := periodicAffineCycle(uv, "convex")
+	if err != nil {
+		return nil, err
 	}
 	if !periodicUVStrictlyConvex(points, winding) {
 		direction := "counterclockwise"
@@ -105,6 +106,20 @@ func provePeriodicConvexLoop(uv []periodicTrimUVEdge, winding int) ([][2]*big.Ra
 		return points, fmt.Errorf("iges: convex trim requires a nonisoparametric UV line: %w", geom.ErrUnrepresentable)
 	}
 	return points, nil
+}
+
+func periodicAffineCycle(uv []periodicTrimUVEdge, kind string) ([][2]*big.Rat, bool, error) {
+	points := make([][2]*big.Rat, len(uv))
+	diagonal := false
+	for i, edge := range uv {
+		next := uv[(i+1)%len(uv)]
+		if edge.end[0].Cmp(next.start[0]) != 0 || edge.end[1].Cmp(next.start[1]) != 0 {
+			return nil, false, fmt.Errorf("iges: %s trim UV lines do not form one directed cycle at #%d: %w", kind, edge.id, geom.ErrUnrepresentable)
+		}
+		points[i] = edge.start
+		diagonal = diagonal || edge.start[0].Cmp(edge.end[0]) != 0 && edge.start[1].Cmp(edge.end[1]) != 0
+	}
+	return points, diagonal, nil
 }
 
 func provePeriodicAffineEdges(ctx context.Context, graph periodicTrimGraph, uv []periodicTrimUVEdge,

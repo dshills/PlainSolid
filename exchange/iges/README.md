@@ -183,6 +183,17 @@ clearance and separation survive binary64 transfer. Pinned OCCT reopens
 the independently authored triangle, triangle with a pentagonal hole and
 pentagon with a triangular hole with matching directed pairs and jets.
 
+`ReadPeriodicConcavePolygonTrimmedFace` admits one concave affine outer
+loop in the same single-cell chart. Its original directed cycle has
+positive signed UV area, at least one reflex vertex and no zero turns.
+Each pair of nonadjacent closed edges must be disjoint, including their
+endpoints. The reader proves every original model curve against its full
+UV restriction. `WritePeriodicConcavePolygonTrimmedFace` replays the proof
+and checks winding, turn signs and disjointness after binary64 conversion
+before writing the canonical carrier. Pinned OCCT reopens the concave
+pentagon with the same five directed edge pairs and original model ranges.
+The reader refuses touching, crossing and clockwise originals.
+
 `ReadPeriodicTrimmedFaceWithHoles` admits one or two explicit rectangular
 inner type-142 contours in the same original knot cell as the outer loop.
 Each inner contour owns four directed type-110 UV lines and four complete

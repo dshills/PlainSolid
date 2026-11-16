@@ -449,7 +449,7 @@ static bool writeExactConvexAffine(const char* path, std::string_view mode)
     return writer.AddEntity(face) && writer.Write(path);
 }
 
-static bool writeExactConvexPolygon(const char* path, std::string_view mode)
+static occ::handle<Geom_BSplineSurface> exactPolygonSupport()
 {
     // A power-of-two model scale keeps the native dyadic cubic poles
     // exact across the pinned writer's finite decimal formatting.
@@ -460,6 +460,12 @@ static bool writeExactConvexPolygon(const char* path, std::string_view mode)
         native->SetPole(u,1,gp_Pnt(3*scale*p.X(),3*scale*p.Y(),0.));
         native->SetPole(u,2,gp_Pnt(6*scale*p.X(),6*scale*p.Y(),12*scale));
     }
+    return native;
+}
+
+static bool writeExactConvexPolygon(const char* path, std::string_view mode)
+{
+    const auto native = exactPolygonSupport();
     const auto support = exactCarrier(native,1.25,1.75,1.,3.);
     const std::array<gp_XY,3> triangle{gp_XY(1.25,1),gp_XY(1.75,1.25),gp_XY(1.5,3)};
     std::array<gp_XY,5> pentagon{gp_XY(1.5,1),gp_XY(1.75,1.75),gp_XY(1.6875,2.5),gp_XY(1.5,3),gp_XY(1.25,2)};
@@ -485,6 +491,26 @@ static bool writeExactConvexPolygon(const char* path, std::string_view mode)
     }
     occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
     face->Init(support,1,outer,inner);
+    const auto reference = BRepBuilderAPI_MakeFace(native,1.25,1.75,1.,3.,1e-9).Face();
+    if (reference.IsNull() || !report(reference)) return false;
+    IGESControl_Writer writer("MM",0);
+    return writer.AddEntity(face) && writer.Write(path);
+}
+
+static bool writeExactConcavePolygon(const char* path, std::string_view mode)
+{
+    const auto native = exactPolygonSupport();
+    const auto support = exactCarrier(native,1.25,1.75,1.,3.);
+    std::array<gp_XY,5> corners{gp_XY(1.25,1),gp_XY(1.75,1.25),gp_XY(1.5625,1.75),gp_XY(1.75,3),gp_XY(1.3125,2.5)};
+    if (mode == "write-exact-concave-polygon-crossing") {
+        std::swap(corners[3],corners[4]);
+    } else if (mode == "write-exact-concave-polygon-touching") {
+        corners = {gp_XY(1.25,1),gp_XY(1.75,1),gp_XY(1.75,3),gp_XY(1.5,1),gp_XY(1.25,3)};
+    } else if (mode == "write-exact-concave-polygon-clockwise") {
+        std::reverse(corners.begin()+1,corners.end());
+    }
+    occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
+    face->Init(support,1,exactContour(native,support,corners,144),nullptr);
     const auto reference = BRepBuilderAPI_MakeFace(native,1.25,1.75,1.,3.,1e-9).Face();
     if (reference.IsNull() || !report(reference)) return false;
     IGESControl_Writer writer("MM",0);
@@ -530,6 +556,10 @@ int main(int argc,char** argv)
         if (mode == "write-exact-convex-polygon-triangle" || mode == "write-exact-convex-polygon-triangle-pentagon" ||
             mode == "write-exact-convex-polygon-pentagon-triangle" || mode == "write-exact-convex-polygon-collinear") {
             return writeExactConvexPolygon(argv[2],mode) ? 0 : 8;
+        }
+        if (mode == "write-exact-concave-polygon" || mode == "write-exact-concave-polygon-crossing" ||
+            mode == "write-exact-concave-polygon-touching" || mode == "write-exact-concave-polygon-clockwise") {
+            return writeExactConcavePolygon(argv[2],mode) ? 0 : 8;
         }
         if (mode == "write" || mode == "write-seam") {
             const TopoDS_Face face = original(mode == "write-seam");

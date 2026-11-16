@@ -64,24 +64,8 @@ func checkPeriodicConvexTransfer(f PeriodicConvexTrimmedFace, holes ...PeriodicC
 }
 
 func checkPeriodicConvexWireTransfer(knots [2]geom.ExactSurfaceKnotSpan, wires [][]PeriodicTrimEdge) error {
-	boxes := [][2]geom.ExactParameterInterval{{knots[0].Domain, knots[1].Domain}}
-	points := make([][][2]*big.Rat, len(wires))
-	for index, wire := range wires {
-		points[index] = make([][2]*big.Rat, len(wire))
-		for i, edge := range wire {
-			var station [2]geom.ExactParameterInterval
-			for axis, q := range edge.UVStart {
-				x, _ := q.Float64()
-				points[index][i][axis] = new(big.Rat).SetFloat64(x)
-				if points[index][i][axis] == nil {
-					return geom.ErrUnrepresentable
-				}
-				station[axis] = geom.ExactParameterInterval{Lower: q, Upper: q}
-			}
-			boxes = append(boxes, station)
-		}
-	}
-	if err := checkPeriodicTrimTransferStations(nil, boxes...); err != nil {
+	points, err := periodicRoundedAffineWires(knots, wires)
+	if err != nil {
 		return err
 	}
 	if !periodicUVStrictlyConvex(points[0], 1) {
@@ -99,4 +83,28 @@ func checkPeriodicConvexWireTransfer(knots [2]geom.ExactSurfaceKnotSpan, wires [
 		return fmt.Errorf("iges: convex trim holes lose strict separation in binary64 transfer: %w", geom.ErrUnrepresentable)
 	}
 	return nil
+}
+
+func periodicRoundedAffineWires(knots [2]geom.ExactSurfaceKnotSpan, wires [][]PeriodicTrimEdge) ([][][2]*big.Rat, error) {
+	boxes := [][2]geom.ExactParameterInterval{{knots[0].Domain, knots[1].Domain}}
+	points := make([][][2]*big.Rat, len(wires))
+	for index, wire := range wires {
+		points[index] = make([][2]*big.Rat, len(wire))
+		for i, edge := range wire {
+			var station [2]geom.ExactParameterInterval
+			for axis, q := range edge.UVStart {
+				x, _ := q.Float64()
+				points[index][i][axis] = new(big.Rat).SetFloat64(x)
+				if points[index][i][axis] == nil {
+					return nil, geom.ErrUnrepresentable
+				}
+				station[axis] = geom.ExactParameterInterval{Lower: q, Upper: q}
+			}
+			boxes = append(boxes, station)
+		}
+	}
+	if err := checkPeriodicTrimTransferStations(nil, boxes...); err != nil {
+		return nil, err
+	}
+	return points, nil
 }
