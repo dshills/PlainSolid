@@ -73,5 +73,31 @@
       "mesh": 8.838,
       "csg/offset": 56.543
     }
+  },
+  "directed_boundary": {
+    "isolated_revision": "619b806c8914e42960253b90d7f0ec9cf0a5695e",
+    "patch_sha256": "d475449e76bdee527526654ebf40868243cc367a4d9f612b143393c5888b9bb6",
+    "main_base": "6baf96c6",
+    "main_race_log": "normal-sweep-area-directed-main-race.jsonl",
+    "main_race_sha256": "8687e391d9e6aaca3a324f7074cd01ea98e13c66fa3167d0127425b71c378bea",
+    "main_race_seconds": 27.279,
+    "named_passes": [
+      "TestVerifiedNormalOffsetSweepEnclosesNoncircularBoundaryArea",
+      "TestVerifiedNormalOffsetSweepEnclosesDoublyCurvedBoundaryArea"
+    ],
+    "rotated_noncircular_parabola_area": [
+      "5.463949752854",
+      "5.464948756503"
+    ],
+    "weighted_doubly_curved_sphere_area": [
+      "0.159511834383",
+      "0.160011067986"
+    ],
+    "unchanged_prior_receipts": 20,
+    "isolate_full_packages_seconds": {
+      "geom": 72.496,
+      "mesh": 8.159,
+      "csg/offset": 45.247
+    }
   }
 }

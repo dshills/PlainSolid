@@ -104,6 +104,9 @@ propagates both original exact station maps across the middle chart.
 The joined boundary can also measure certified analytic areas on its
 retained original affine and circular faces. Exact shared walls cancel
 before integration and the result preserves each original owner and side.
+An adaptive directed integrator also encloses all six original faces of
+a single verified noncircular sweep, including a rotated parabolic strip
+and a doubly curved weighted spherical patch.
 The analytic single-sweep volume can also certify exact point membership
 and bound its unique original inverse. Queries retain possible cells
 when a boundary point or an exhausted work budget prevents a proof.

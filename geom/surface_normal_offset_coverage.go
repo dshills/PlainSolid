@@ -134,6 +134,10 @@ func offsetCartesianRanges(ctx context.Context, p *SurfacePatch, b *polynomialBu
 	if err != nil {
 		return d, err
 	}
+	return offsetCartesianRangesFromHomogeneous(h, b)
+}
+
+func offsetCartesianRangesFromHomogeneous(h [3][3][4]exactInterval, b *polynomialBudget) (d [3][3][3]exactInterval, err error) {
 	a := offsetIntervalArithmetic{b: b}
 	w := h[0][0][3]
 	if w.lo.Sign() <= 0 {
@@ -201,8 +205,37 @@ func offsetCellFocalFree(ctx context.Context, p *SurfacePatch, distance *big.Rat
 }
 
 func offsetHomogeneousRanges(ctx context.Context, p *SurfacePatch, b *polynomialBudget) (h [3][3][4]exactInterval, err error) {
+	return offsetHomogeneousRangesOn(ctx, p, nil, b)
+}
+
+// For an edge, take the endpoint coefficient row of each differentiated
+// net. Differentiating first retains original cross-wall partials, which
+// determine the actual source normal and its tangential derivative there.
+func offsetHomogeneousRangesOn(ctx context.Context, p *SurfacePatch, edge *SurfaceEdge,
+	b *polynomialBudget) (h [3][3][4]exactInterval, err error) {
 	domain := p.Domain()
 	controls := make([]*big.Rat, len(p.net))
+	rangeOf := func(values []*big.Rat, countU, countV int) exactInterval {
+		if edge == nil {
+			return coefficientRange(values)
+		}
+		return offsetBoundaryCoefficientRange(values, countU, countV, *edge)
+	}
+	takeDerivativeRange := func(values []*big.Rat, countU, countV int, u bool) (exactInterval, error) {
+		if edge == nil {
+			return scalarPartialRange(values, countU, countV, u, domain, b)
+		}
+		partial, err := scalarPartial(values, countU, countV, u, domain, b)
+		if err != nil {
+			return exactInterval{}, err
+		}
+		if u {
+			countU--
+		} else {
+			countV--
+		}
+		return rangeOf(partial, countU, countV), nil
+	}
 	for axis := range 4 {
 		if err := ctx.Err(); err != nil {
 			return h, err
@@ -213,7 +246,7 @@ func offsetHomogeneousRanges(ctx context.Context, p *SurfacePatch, b *polynomial
 				return h, err
 			}
 		}
-		h[0][0][axis] = coefficientRange(controls)
+		h[0][0][axis] = rangeOf(controls, p.countU, p.countV)
 		u, err := scalarPartial(controls, p.countU, p.countV, true, domain, b)
 		if err != nil {
 			return h, err
@@ -222,26 +255,44 @@ func offsetHomogeneousRanges(ctx context.Context, p *SurfacePatch, b *polynomial
 		if err != nil {
 			return h, err
 		}
-		h[1][0][axis], h[0][1][axis] = coefficientRange(u), coefficientRange(v)
+		h[1][0][axis], h[0][1][axis] = rangeOf(u, p.countU-1, p.countV), rangeOf(v, p.countU, p.countV-1)
 		h[2][0][axis], h[0][2][axis] = offsetZeroInterval(), offsetZeroInterval()
 		if p.degreeU > 1 {
-			h[2][0][axis], err = scalarPartialRange(u, p.countU-1, p.countV, true, domain, b)
+			h[2][0][axis], err = takeDerivativeRange(u, p.countU-1, p.countV, true)
 			if err != nil {
 				return h, err
 			}
 		}
 		if p.degreeV > 1 {
-			h[0][2][axis], err = scalarPartialRange(v, p.countU, p.countV-1, false, domain, b)
+			h[0][2][axis], err = takeDerivativeRange(v, p.countU, p.countV-1, false)
 			if err != nil {
 				return h, err
 			}
 		}
-		h[1][1][axis], err = scalarPartialRange(u, p.countU-1, p.countV, false, domain, b)
+		h[1][1][axis], err = takeDerivativeRange(u, p.countU-1, p.countV, false)
 		if err != nil {
 			return h, err
 		}
 	}
 	return h, nil
+}
+
+func offsetBoundaryCoefficientRange(values []*big.Rat, countU, countV int, edge SurfaceEdge) exactInterval {
+	switch edge {
+	case SurfaceEdgeUMin:
+		return coefficientRange(values[:countV])
+	case SurfaceEdgeUMax:
+		return coefficientRange(values[(countU-1)*countV:])
+	}
+	v := 0
+	if edge == SurfaceEdgeVMax {
+		v = countV - 1
+	}
+	side := make([]*big.Rat, countU)
+	for u := range side {
+		side[u] = values[u*countV+v]
+	}
+	return coefficientRange(side)
 }
 
 func offsetZeroInterval() exactInterval {
