@@ -60,6 +60,16 @@ func TestVertexContactAssemblyVerifiesTwoOriginalPointContacts(t *testing.T) {
 	if bad, err := ValidateMeshVertexContactAssembly(ctx, display, []AssemblyVertexContact{p}, VertexContactAssemblyOptions{}); !errors.Is(err, ErrInvalid) || bad.SignedVolume != nil {
 		t.Fatalf("indexed display accepted an undeclared contact: %+v %v", bad, err)
 	}
+	indexed, err := ValidateMeshVertexContactAssembly(ctx, display, []AssemblyVertexContact{p, q}, VertexContactAssemblyOptions{CrossBVH: true})
+	if err != nil || !slices.Equal(indexed.Contacts, meshReport.Contacts) ||
+		indexed.SignedVolume.Cmp(meshReport.SignedVolume) != 0 || indexed.ContactPairs != meshReport.ContactPairs {
+		t.Fatalf("exact indexed cross proof differs from the sweep: %+v %v", indexed, err)
+	}
+	for _, reduced := range []VertexContactAssemblyOptions{{CrossBVH: true, MaxCrossPairs: 2}, {CrossBVH: true, MaxDeclaredContacts: 1}} {
+		if out, err := ValidateMeshVertexContactAssembly(ctx, display, []AssemblyVertexContact{p, q}, reduced); !errors.Is(err, ErrLimit) || out.SignedVolume != nil {
+			t.Fatalf("short indexed assembly budget published a partial proof: %+v %v", out, err)
+		}
+	}
 	for _, entry := range r.Contacts {
 		if entry.A.Solid != 0 || entry.B.Solid != 1 {
 			t.Fatalf("noncanonical component order: %+v", entry)
@@ -103,9 +113,11 @@ func TestVertexContactAssemblyRejectsSegmentsCrossingAndContainment(t *testing.T
 	inside := box(geom.Vec3{X: .25, Y: .25, Z: .25}, geom.Vec3{X: .5, Y: .5, Z: .5})
 	crossing := box(geom.Vec3{X: .5, Y: .5, Z: .5}, geom.Vec3{X: 2, Y: 2, Z: 2})
 	face := box(geom.Vec3{X: 1}, geom.Vec3{X: 2, Y: 1, Z: 1})
-	for _, body := range []brep.Solid{inside, crossing, face} {
-		if _, err := ValidateVertexContactAssembly(ctx, []brep.Solid{stock, body}, nil, VertexContactAssemblyOptions{}); !errors.Is(err, ErrInvalid) {
-			t.Fatalf("overlap/containment accepted: %v", err)
+	for _, options := range []VertexContactAssemblyOptions{{}, {CrossBVH: true}} {
+		for _, body := range []brep.Solid{inside, crossing, face, segment} {
+			if _, err := ValidateVertexContactAssembly(ctx, []brep.Solid{stock, body}, nil, options); !errors.Is(err, ErrInvalid) {
+				t.Fatalf("overlap/containment accepted: %v", err)
+			}
 		}
 	}
 	tip := box(geom.Vec3{X: 1, Y: 1, Z: 1}, geom.Vec3{X: 2, Y: 2, Z: 2})

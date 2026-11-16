@@ -90,27 +90,7 @@ func parabolaCircleMeshSourceVolumes(h [2]parabolaCircleMeshHeight,
 	// All native charts use exact identity XY. Result regions are the two
 	// unit strips and the original circle interiors, in source order.
 	free := source.FreeAxis
-	p := [3]*big.Rat{}
-	for i, c := range source.ParabolaControls {
-		p[i] = c[1-free]
-	}
-	one := big.NewRat(1, 1)
-	a := new(big.Rat).Mul(big.NewRat(2, 1), new(big.Rat).Sub(p[1], p[0]))
-	b := new(big.Rat).Sub(new(big.Rat).Sub(p[2], p[0]), a)
-	parabolaPowers := [10][]*big.Rat{{one}}
-	for i := 1; i < len(parabolaPowers); i++ {
-		previous := parabolaPowers[i-1]
-		row := make([]*big.Rat, len(previous)+2)
-		for j := range row {
-			row[j] = new(big.Rat)
-		}
-		for j, x := range previous {
-			for k, y := range [3]*big.Rat{p[0], a, b} {
-				row[j+k].Add(row[j+k], new(big.Rat).Mul(x, y))
-			}
-		}
-		parabolaPowers[i] = row
-	}
+	parabolaPowers := parabolaCircleMeshStripPowers(source.ParabolaControls, free)
 	lower, unit := new(big.Rat), new(big.Rat)
 	var disk [2]*big.Rat
 	for i := range disk {
@@ -162,6 +142,31 @@ func parabolaCircleMeshSourceVolumes(h [2]parabolaCircleMeshHeight,
 		bound(lower, holes[0]), bound(new(big.Rat).Sub(unit, lower), holes[1]),
 		bound(new(big.Rat), disk[0]), bound(new(big.Rat), disk[1]),
 	}
+}
+
+func parabolaCircleMeshStripPowers(controls [3][2]*big.Rat, free int) [10][]*big.Rat {
+	p := [3]*big.Rat{}
+	for i, c := range controls {
+		p[i] = c[1-free]
+	}
+	one := big.NewRat(1, 1)
+	a := new(big.Rat).Mul(big.NewRat(2, 1), new(big.Rat).Sub(p[1], p[0]))
+	b := new(big.Rat).Sub(new(big.Rat).Sub(p[2], p[0]), a)
+	parabolaPowers := [10][]*big.Rat{{one}}
+	for i := 1; i < len(parabolaPowers); i++ {
+		previous := parabolaPowers[i-1]
+		row := make([]*big.Rat, len(previous)+2)
+		for j := range row {
+			row[j] = new(big.Rat)
+		}
+		for j, x := range previous {
+			for k, y := range [3]*big.Rat{p[0], a, b} {
+				row[j+k].Add(row[j+k], new(big.Rat).Mul(x, y))
+			}
+		}
+		parabolaPowers[i] = row
+	}
+	return parabolaPowers
 }
 
 func parabolaCircleDiskMoment(c geom.GraphContactCircle, u, v int) *big.Rat {
