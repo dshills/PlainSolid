@@ -468,7 +468,8 @@ The distance and volume checks retain the original chart and edge owners.
 The exact source proof also accepts independently placed centers on
 the same side of the parabola, even when their free-coordinate
 projections overlap. Native envelopes and Cuts retain both circle
-owners. The independently placed STEP and IGES controls are under review.
+owners. Exact STEP and IGES controls also preserve each independently
+placed circle and each positive Cut component.
 Full ordinary Go and PlainCAD on `a3b7548d` have passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,

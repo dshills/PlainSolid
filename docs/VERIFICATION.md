@@ -509,6 +509,14 @@ center test also checks deterministic edge ownership. The new and
 previous native races passed in 625.027 and 7.874 seconds. The earlier
 18 native recipes and 36 neutral files retain their bytes.
 
+The [independent-circle STEP and IGES proof](evidence/parabola-offset-circles-neutral-2026-11-15.json)
+passed the main paired reader race in 294.419 seconds. Pinned OCCT
+reopened 32 positive solids from 24 independently checked neutral
+files. Direct pinned Boolean omitted the larger `1.09935568841e-6`
+lens on both axes. Separate pinned OCCT lens construction from exact
+original model and UV arcs confirms its positive volume independently
+of PlainSolid's output. Earlier same-center transfer bytes remain stable.
+
 A separate isolated real double-point proof passes with and without a
 disjoint regular branch, including source order swaps and rotated
 projection axes. The original surface tangents agree at the isolated
