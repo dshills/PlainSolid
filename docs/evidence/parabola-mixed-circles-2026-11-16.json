@@ -240,5 +240,52 @@
     "race_seconds": [
       10.04
     ]
-  }
+  },
+  "main_native": [
+    {
+      "log": "parabola-mixed-circles-native-main-race.jsonl",
+      "sha256": "434155f846aa3fb417946b79e6cb1ab989987b3471c9509d85b84543a8b5befa",
+      "named_passes": [
+        "TestNativeParabolaMixedCirclesCut",
+        "TestNativeParabolaMixedCirclesEnvelope"
+      ],
+      "package_seconds": [
+        875.275
+      ]
+    },
+    {
+      "log": "parabola-mixed-circles-envelope-main-race.jsonl",
+      "sha256": "f69ddfd617bd3ce42f18c32af9461ae954e173a2f71796a3dddbf8196c5cbeea",
+      "named_passes": [
+        "TestCertifiedParabolaCircleCrossingsEnvelopeFacetAngle",
+        "TestCertifiedParabolaCircleCrossingsEnvelope",
+        "TestCertifiedParabolaCircleCrossingsContactAssembly",
+        "TestCertifiedParabolaTwoCirclesFacetAngle",
+        "TestCertifiedPlacedParabolaTwoCirclesFacetAngle",
+        "TestCertifiedParabolaTwoCirclesSourceNormalTurn",
+        "TestCertifiedParabolaTwoCirclesCutMeshes",
+        "TestCertifiedLowerParabolaTwoCirclesCutMeshes",
+        "TestCertifiedParabolaTwoCirclesCutMeshBudgetIsAtomic",
+        "TestNativeParabolaCircleCrossingsCut",
+        "TestParabolaCircleCrossingsSource",
+        "TestParabolaCircleCrossingsChangedRadius",
+        "TestParabolaCircleCrossingsSourceRefusals",
+        "TestNativeParabolaCircleCrossingsEnvelope",
+        "TestNativeParabolaMixedCirclesEnvelope",
+        "TestParabolaMixedCirclesSource",
+        "TestParabolaMixedCirclesSourceRefusals",
+        "TestParabolaTwoCirclesSourceDiscovery",
+        "TestParabolaTwoCirclesSourceRefusals",
+        "TestNativeParabolaTwoCirclesGraphEnvelope",
+        "TestNativeParabolaTwoCirclesGraphCut",
+        "TestNativeLowerParabolaTwoCirclesGraphRegions",
+        "TestParabolaTwoCirclesGraphAtomicRefusals",
+        "TestPlacedParabolaTwoCirclesOriginalCutDisplay",
+        "TestPlacedParabolaTwoCirclesRejectsPerturbedOwnerChart"
+      ],
+      "package_seconds": [
+        1772.855
+      ]
+    }
+  ]
 }

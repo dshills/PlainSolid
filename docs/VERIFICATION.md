@@ -23,6 +23,12 @@ passes the main race for the full degree-eight source identity, two simple
 crossings, five signed cells, four isolated circle extrema and rejection
 controls. It includes strictly separated circles whose global ordinate
 range overlaps the parabola. Native assembly is qualified separately.
+Main native race and the prior one- and two-circle regression race
+passed. All 24 native recipes preserve original edge and contact
+identities; the 36 positive bodies match independent integrals within
+`1.78e-15`. Independently authored pinned lenses qualified the separated
+material; direct pinned Booleans did not match the expected components.
+All 118 prior native and 236 prior neutral outputs in this audit match.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same

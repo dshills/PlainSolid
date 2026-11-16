@@ -24,6 +24,9 @@ arbitrary curved Boolean arrangements remain open.
 The exact source arrangement now also handles one original parabola and
 two disjoint circles when one crosses twice and the other is locally
 separated. It proves all five signed regions and both circle owners.
+Native Common and Fuse retain one closed shell with one inner wire;
+Cut retains two original point contacts with separate local vertices
+and either a holed exterior shell or a third strictly disjoint lens.
 These osculation cases also support exact analytic STEP and IGES
 output with the original owner winding, contact jets and separate Cut
 components. General curved exchange remains open.
