@@ -56,7 +56,7 @@ func (r MappedSplineChainAgreement) TessellateFaceCertified(ctx context.Context,
 	if e != nil {
 		return zero, e
 	}
-	out, e := r.tessellateFaceWithBoundary(ctx, owner, closing, boundary, nil, o.Face, false, 0, 0)
+	out, e := r.tessellateFaceWithBoundary(ctx, owner, closing, boundary, nil, o.Face, mappedRoofDisplayOptions{})
 	if e != nil {
 		return zero, e
 	}
@@ -73,7 +73,7 @@ func (r MappedSplineChainAgreement) TessellateFaceCertified(ctx context.Context,
 
 // The caller supplies the shared boundary and checks represented contacts on
 // either the individual face or the complete assembled mesh.
-func (r MappedSplineChainAgreement) tessellateFaceWithBoundary(ctx context.Context, owner int, closing []PCurve, boundary CertifiedMappedChainPolyline, prescribed [][]*big.Rat, o MixedExactMultiSpanMeshOptions, alignSupportKnots bool, maxFlips int, angle float64) (CertifiedMappedChainFace, error) {
+func (r MappedSplineChainAgreement) tessellateFaceWithBoundary(ctx context.Context, owner int, closing []PCurve, boundary CertifiedMappedChainPolyline, prescribed [][]*big.Rat, o MixedExactMultiSpanMeshOptions, display mappedRoofDisplayOptions) (CertifiedMappedChainFace, error) {
 	var zero CertifiedMappedChainFace
 	if len(boundary.Vertices)+len(r.cuts)-2 > 2048 {
 		return zero, geom.ErrConvergence
@@ -102,29 +102,44 @@ func (r MappedSplineChainAgreement) tessellateFaceWithBoundary(ctx context.Conte
 	if e != nil {
 		return zero, e
 	}
-	if alignSupportKnots {
+	if display.alignSupportKnots {
 		cuts, e = mappedChainKnotTrimCuts(ctx, p, outer, cuts, o.Face.Boundary.Composition)
 		if e != nil {
 			return zero, fmt.Errorf("mapped chain support knot samples: %w", e)
 		}
 	}
-	if angle > 0 {
+	if display.facetAngle > 0 {
 		// A straight trim may still have rotating normals along it. Insert
-		// exact quarters in the original coedge clock so the angular path
-		// can reduce the length of otherwise protected display edges.
+		// exact subdivisions in the original coedge clock so the angular
+		// path can shorten otherwise protected display edges.
+		intervals := int64(4)
+		if display.facetAngle < .25 {
+			intervals = 8
+		}
 		for i, fixed := range cuts {
-			fixed = append(slices.Clone(fixed), new(big.Rat), big.NewRat(1, 4), big.NewRat(1, 2), big.NewRat(3, 4), big.NewRat(1, 1))
+			fixed = slices.Clone(fixed)
+			for k := int64(0); k <= intervals; k++ {
+				fixed = append(fixed, big.NewRat(k, intervals))
+			}
 			slices.SortFunc(fixed, (*big.Rat).Cmp)
 			cuts[i] = slices.CompactFunc(fixed, func(a, b *big.Rat) bool { return a.Cmp(b) == 0 })
 		}
 	}
+	if display.normalTurn > 0 {
+		closingCuts := cuts[len(r.cuts)-1:]
+		physical, err := mappedClosingTurnCuts(ctx, p, closing, closingCuts, display.normalTurn)
+		if err != nil {
+			return zero, fmt.Errorf("mapped chain closing turn: %w", err)
+		}
+		copy(closingCuts, physical)
+	}
 	o.Face.Cuts = [][][]*big.Rat{cuts}
-	face, e := tessellateMixedExactMultiSpanRegionCertified(ctx, p, outer, nil, o, alignSupportKnots, maxFlips, angle)
+	face, e := tessellateMixedExactMultiSpanRegionCertified(ctx, p, outer, nil, o, display)
 	if e != nil {
 		return zero, fmt.Errorf("mapped chain face fill: %w", e)
 	}
 	out := CertifiedMappedChainFace{Face: face, Boundary: boundary, Owner: owner, LedgerVertices: make([]int, len(boundary.Vertices))}
-	if alignSupportKnots {
+	if display.alignSupportKnots {
 		out.supportCells, e = mappedChainTriangleSupportCells(p, face.CertifiedCurvedQuadraticTrimMesh)
 		if e != nil {
 			return zero, fmt.Errorf("mapped chain triangle support cells: %w", e)

@@ -39,6 +39,14 @@ func TestMappedRoofNormalConeUsesOriginalOneSidedDifferentials(t *testing.T) {
 	if err != nil || bound == nil || bound.Cmp(proof.limit) > 0 || retries != nil {
 		t.Fatal("both original one-sided normals must be covered by their own facet cones", bound, err)
 	}
+	turn, err := newMappedRoofNormals(ctx, p, .025, big.NewRat(1, 1<<24))
+	if err != nil {
+		t.Fatal(err)
+	}
+	turn.sourceCentered = true
+	if bound, retries, err := turn.certify(ctx, p, face); err != nil || retries != nil || bound == nil || bound.Cmp(turn.limit) > 0 {
+		t.Fatal("the one-sided analytic anchor must prove each facet's .05-radian normal turn", bound, retries, err)
+	}
 	n := func(tr [3]int) [3]*big.Rat {
 		a, b, c := face.ExactPoints[tr[0]], face.ExactPoints[tr[1]], face.ExactPoints[tr[2]]
 		return ddCross(ddSub(b, a), ddSub(c, a))

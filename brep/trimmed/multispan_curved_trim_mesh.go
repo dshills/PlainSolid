@@ -52,8 +52,7 @@ type multiSpanMeshWork struct {
 	options                 MultiSpanCurvedTrimMeshOptions
 	cells, pieces           int
 	operations              int
-	maxKnotCellFlips        int
-	mappedNormalAngle       float64
+	mappedDisplay           mappedRoofDisplayOptions
 	mappedStraightTrimImage bool
 }
 
