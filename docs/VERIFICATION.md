@@ -30,6 +30,11 @@ rational bilinear quotient gives the exact two pure and mixed second
 partials along axes of widths two and three. Uniform, exact and
 knot-inserted forms agree in a distant cycle, preserve the derivative
 sign at the original corner, and return no partial jet if work runs out.
+The local normal offset check passed the periodic geometry and curvature
+race in 8.135 seconds. It separates rational offsets that round to the
+same float64 on opposite sides of an irrational focal distance, detects
+an exact focal endpoint, and refuses a segment through two focal
+distances even when its end differential has a positive determinant.
 
 The [transversal parabola/circle neutral exchange milestone](evidence/parabola-circle-crossings-neutral-2026-11-16.json)
 passed its pinned main race in 33.929 seconds. The 24 STEP and IGES outputs
