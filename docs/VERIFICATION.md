@@ -7,6 +7,13 @@ no tests. The eight trimmed lanes account for 1,602 passes and 51 skips.
 Vet and both amd64 cross-builds passed on the same immutable source.
 The matching [full PlainCAD run](evidence/plaincad-main-946f7a04-2026-11-15.json)
 passed all eight gates.
+The [fresh full PlainCAD run on `4495646a`](evidence/plaincad-main-4495646a-2026-11-16.json)
+repeated all eight gates with 345 development, 66 production, 15
+cross-browser, four WASM contract and 1,691 ordinary unit cases. The
+browser reports are clean, the pristine Playwright driver matches the
+pinned digest, and the generated WASM matches the production asset.
+The repository runner recorded the immutable app archive, test-only
+patches and exact commands.
 
 The [refreshed full PlainCAD run on `a1d5a33f`](evidence/plaincad-main-a1d5a33f-2026-11-15.json)
 passed all eight gates with 345 development, 66 production, 15
