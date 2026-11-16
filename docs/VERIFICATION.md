@@ -108,6 +108,9 @@ rectangles are algebraically equal. Matching corners with a wrong map,
 a `2^-120` original control perturbation, an invalid ratio, and a
 short common-cell budget do not certify equality. Prior affine chart
 comparisons and conservative pair coverings pass the same race run.
+Selected nonbinary original rectangles also pass with independently
+derived local ratios `119/90` and `39/31`. A separate partial overlap
+proves only the selected area and reports inequality on the full charts.
 
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips

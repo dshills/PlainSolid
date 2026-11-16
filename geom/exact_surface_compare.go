@@ -43,6 +43,24 @@ func CompareExactSurfaces(ctx context.Context, a, b *SurfacePatch, o ExactSurfac
 	return compareExactSurfaceRationalDomains(ctx, a, b, o, nil)
 }
 
+// ExactSurfaceRectangle is a closed positive-area rectangle in the original
+// physical U and V parameters. Its rational endpoints need not be binary64.
+type ExactSurfaceRectangle struct{ U, V ExactParameterInterval }
+
+// CompareExactSurfaceRectangles proves mapped pointwise equality of two
+// selected original rectangles. Both rectangles are normalized separately;
+// SwapB, ReverseBU, ReverseBV and BStationRatios then describe B's map on
+// this normalized domain. NormalizeDomains has no effect here. No equality
+// or disjointness claim is made about the rest of either chart.
+func CompareExactSurfaceRectangles(ctx context.Context, a, b *SurfacePatch,
+	areas [2]ExactSurfaceRectangle, o ExactSurfaceComparisonOptions) (ExactSurfaceComparison, error) {
+	domains := [2][2][2]*big.Rat{
+		{{areas[0].U.Lower, areas[0].U.Upper}, {areas[0].V.Lower, areas[0].V.Upper}},
+		{{areas[1].U.Lower, areas[1].U.Upper}, {areas[1].V.Lower, areas[1].V.Upper}},
+	}
+	return compareExactSurfaceRationalDomains(ctx, a, b, o, &domains)
+}
+
 // domains, when nonnil, selects exact original-parameter subrectangles. Only
 // original knot boundaries are extracted; all final clipping remains rational.
 func compareExactSurfaceRationalDomains(ctx context.Context, a, b *SurfacePatch, o ExactSurfaceComparisonOptions, domains *[2][2][2]*big.Rat) (r ExactSurfaceComparison, err error) {

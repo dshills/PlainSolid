@@ -153,6 +153,22 @@ func TestExactSurfaceComparisonFractionalOriginalKnotMaps(t *testing.T) {
 	if err != nil || !r.Equal || !r.Complete || r.ComparedCells != 4 {
 		t.Fatal("failed to prove exact coincidence on the original pulled knot partition", r, err)
 	}
+	partial := [2]ExactSurfaceRectangle{
+		{ExactParameterInterval{big.NewRat(1, 7), big.NewRat(5, 6)}, ExactParameterInterval{big.NewRat(1, 10), big.NewRat(9, 10)}},
+		{ExactParameterInterval{big.NewRat(-46, 31), big.NewRat(22, 13)}, ExactParameterInterval{big.NewRat(76, 17), big.NewRat(36, 5)}},
+	}
+	local := o
+	local.NormalizeDomains = false
+	local.BStationRatios = [2]*big.Rat{big.NewRat(119, 90), big.NewRat(39, 31)}
+	r, err = CompareExactSurfaceRectangles(ctx, a, b, partial, local)
+	if err != nil || !r.Equal || !r.Complete || r.ComparedCells != 4 {
+		t.Fatal("nonbinary exact clipping must retain the projective knot partition", r, err)
+	}
+	outside := partial
+	outside[1].U.Lower = big.NewRat(-3, 1)
+	if r, err := CompareExactSurfaceRectangles(ctx, a, b, outside, local); !errors.Is(err, ErrDomain) || r.Complete {
+		t.Fatal("requested rectangle crossed the original domain", r, err)
+	}
 	wrong := o
 	wrong.BStationRatios[1] = big.NewRat(5, 4)
 	r, err = CompareExactSurfaces(ctx, a, b, wrong)
@@ -172,5 +188,29 @@ func TestExactSurfaceComparisonFractionalOriginalKnotMaps(t *testing.T) {
 	wrong.BStationRatios[0] = new(big.Rat)
 	if r, err := CompareExactSurfaces(ctx, a, b, wrong); !errors.Is(err, ErrInvalid) || r.Complete {
 		t.Fatal("station map is not bijective with a zero ratio", r, err)
+	}
+}
+
+func TestExactSurfaceComparisonPartialLeavesOtherRegionsUnclassified(t *testing.T) {
+	ctx := context.Background()
+	a := arcTestPatch(t, func(u, v float64) Vec3 { return Vec3{u, v, 0} })
+	s, err := NewBSplineSurface(1, 1, 3, 2,
+		[]Vec3{{0, 0, 0}, {0, 1, 0}, {.5, 0, 0}, {.5, 1, 0}, {1, 0, 1}, {1, 1, 1}},
+		[]float64{0, 0, .5, 1, 1}, []float64{0, 0, 1, 1}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := NewSurfacePatch(s, SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	area := ExactSurfaceRectangle{ExactParameterInterval{big.NewRat(1, 7), big.NewRat(3, 7)}, ExactParameterInterval{big.NewRat(1, 9), big.NewRat(8, 9)}}
+	r, err := CompareExactSurfaceRectangles(ctx, a, b, [2]ExactSurfaceRectangle{area, area}, ExactSurfaceComparisonOptions{})
+	if err != nil || !r.Equal || !r.Complete || r.ComparedCells != 1 {
+		t.Fatal("failed to prove the selected interior area", r, err)
+	}
+	r, err = CompareExactSurfaces(ctx, a, b, ExactSurfaceComparisonOptions{})
+	if err != nil || r.Equal || !r.Complete || r.DifferentCell != 1 || r.DifferentAxis != 2 {
+		t.Fatal("selected partial equality must not imply whole-surface equality", r, err)
 	}
 }
