@@ -109,9 +109,11 @@ both owners' exact original parameters and one-sided root orders.
 For a positive-area common projection, an exact height residual atlas
 now retains both original knot owners and nonbinary common cuts. It
 provides the scalar residual for contour discovery; it does not yet
-assemble all contours into a global contact graph.
+cover arbitrary singular contours.
 The local cover now isolates contacts on each residual cell while
 retaining both original owners and any cells left unresolved.
+Regular open and closed contours now join across exact nonbinary common
+knots. Each junction retains both owners' algebraic original coordinates.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

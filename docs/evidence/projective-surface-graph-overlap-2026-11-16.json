@@ -279,5 +279,35 @@
     ],
     "original_arc_pieces": 2,
     "common_nonbinary_cut": "9/10"
+  },
+  "regular_contact_graph": {
+    "log": "projective-surface-contact-graph-main-race-2.jsonl",
+    "sha256": "7b9d2e3ffd335c9976bf8f34d639df33e5855ce424ac994305cd4689761a1233",
+    "main_passes": [
+      "TestTransformProjectiveUVKeepsOriginalCurveKnotsAndPhysicalDerivatives",
+      "TestProjectiveSurfaceGraphOverlapMapsAnOriginalUVCurve",
+      "TestProjectiveSurfaceContactCoverPreservesOriginalArcPieces",
+      "TestTraceProjectiveSurfaceContactsJoinsTheOriginalNonbinaryKnot",
+      "TestTraceProjectiveSurfaceContactsFindsAClosedOriginalContour",
+      "TestProjectiveGraphBoundaryContactAuthenticatesCompleteEdge",
+      "TestProjectiveGraphBoundaryContactSeparatesOnePointFromNoContact",
+      "TestProjectiveGraphBoundaryEventsRetainSimpleAndTangentOriginalRoots",
+      "TestProjectiveGraphBoundaryEventsKeepAnIrrationalRootOnBothOwners",
+      "TestProjectiveGraphBoundaryEventsSeparateCoincidentRunAndIsolatedPoint",
+      "TestProjectiveGraphContactBoundaryKeepsBothDirectedOriginalCurves",
+      "TestProjectiveGraphContactBoundaryRefusesPartialProof",
+      "TestProjectiveSurfaceGraphOverlapDiscoversOriginalPartialMap",
+      "TestProjectiveSurfaceGraphOverlapRejectsAProjectionThatOnlyMatchesSamples",
+      "TestSurfaceSurfaceProjectiveCoincidenceKeepsExactCompleteContact",
+      "TestProjectiveSurfaceHeightDifferencePreservesOriginalUnionAndTinySigns",
+      "TestTraceSurfacePlaneOpenAndClosed",
+      "TestTraceSurfacePlaneRationalOpen",
+      "TestTraceSurfacePlaneUnresolvedAndBudget",
+      "TestTraceSurfacePlaneBoundaryAndKnotJoins",
+      "TestTraceSurfacePlaneCanonicalInternalBoundary",
+      "TestVerticalProjectiveChartPreservesWholeSurface"
+    ],
+    "first_corner_failure_log": "projective-surface-contact-graph-main-race.jsonl",
+    "first_corner_failure_sha256": "e3d97a249a31a162e756b3edca28ec97d44554ddc4d8e815c3dc7ed978e9433a"
   }
 }

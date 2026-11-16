@@ -230,6 +230,12 @@ partial atlas.
 The local contact cover certifies two exact arc pieces across the
 nonbinary original cut, with an original projected contact at `x=1/2`.
 Joint work exhaustion retains the exact atlas and incomplete cell IDs.
+The exact global join passes an open contour crossing the `9/10` common
+knot and a closed circular contour with original subdivision corners.
+Original UV values are recovered on both charts at each junction. The
+initial unaccounted-corner failure is retained in the record. An
+isolated tangency and short join budget preserve the cover without
+publishing a regular graph.
 
 [Periodic IGES type 128 import](evidence/iges-periodic-128-2026-11-16.json)
 passed three independently authored pinned OCCT inputs and 54 original
