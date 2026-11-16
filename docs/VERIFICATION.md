@@ -180,6 +180,11 @@ preserve exact placed slab totals `99/35` and `33/5`; independent
 integrals verify all tensor entries on the curved pair and chain. A
 coarse positive result requires every original chart to be covered.
 Main race passes and the three single-chart receipts match byte for byte.
+The [single-sweep distance audit](evidence/verified-normal-offset-sweep-distance-2026-11-16.json)
+passes the main race for exact affine faces, edges and corners, a rotated
+negative-Jacobian parabola, and a rational weighted spherical sector.
+Curved bounds retain replayable original face stations. Interrupted
+searches retain only justified bounds, and old analytic moment digests match.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They

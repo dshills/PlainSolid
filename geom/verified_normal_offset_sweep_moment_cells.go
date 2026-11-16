@@ -140,35 +140,11 @@ func sweepMomentIntersection(a, b exactInterval) exactInterval {
 // uniform parallelepiped exactly when the normal length is rational.
 func (w *sweepMomentWork) affineCell(ctx context.Context, p *SurfacePatch) (out sweepRawMoments, affine bool, err error) {
 	s := boundedRatArithmetic{b: w.budget}
+	u, v, affine, err := sweepHomogeneousAffineSpans(ctx, p, &s)
+	if err != nil || !affine {
+		return out, affine, err
+	}
 	h := p.net[0]
-	for _, pole := range p.net {
-		if pole[3].Cmp(h[3]) != 0 {
-			return out, false, nil
-		}
-	}
-	var u, v [3]*big.Rat
-	for i := range u {
-		u[i] = s.sub(p.net[p.degreeU*p.countV][i], h[i])
-		v[i] = s.sub(p.net[p.degreeV][i], h[i])
-	}
-	for i := 0; i <= p.degreeU; i++ {
-		if err := ctx.Err(); err != nil {
-			return out, false, err
-		}
-		t := big.NewRat(int64(i), int64(p.degreeU))
-		for j := 0; j <= p.degreeV; j++ {
-			r := big.NewRat(int64(j), int64(p.degreeV))
-			for k := range u {
-				expect := s.add(h[k], s.add(s.mul(t, u[k]), s.mul(r, v[k])))
-				if s.err != nil {
-					return out, false, s.err
-				}
-				if p.net[i*p.countV+j][k].Cmp(expect) != 0 {
-					return out, false, nil
-				}
-			}
-		}
-	}
 	var first, second, origin [3]exactInterval
 	asInterval := func(q *big.Rat) exactInterval { return exactInterval{q, q} }
 	for i := range u {

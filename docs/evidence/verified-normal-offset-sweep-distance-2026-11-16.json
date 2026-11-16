@@ -1,0 +1,31 @@
+{
+  "scope": "Directed squared point distance to the six original boundary faces of one verified normal sweep",
+  "isolated_revision": "6a4d81946980b14ade390d8c86df91d0bb9afada",
+  "patch_sha256": "1bdf5540058b5b4011101df088bba12c90a607ee5f21989643a0e984b6acf90e",
+  "main_race": {
+    "base": "5eb83aa7",
+    "log": "normal-sweep-distance-main-race.jsonl",
+    "sha256": "49255d2582ed3ea65b41bf04ab432e8d8cb093dbbc24cad8733b267d0fbeb4fd",
+    "seconds": 65.951,
+    "failures": 0,
+    "skips": 0,
+    "passed": [
+      "TestVerifiedNormalOffsetSweepBoundaryDistanceExactRationalSlab",
+      "TestVerifiedNormalOffsetSweepBoundaryDistanceRotatedNegativeJacobian",
+      "TestVerifiedNormalOffsetSweepBoundaryDistanceRationalSphere",
+      "TestVerifiedJoinedNormalOffsetSweepMomentsExactSlabs",
+      "TestVerifiedJoinedNormalOffsetSweepMomentsCurvedAndBudgets",
+      "TestVerifiedNormalOffsetSweepMomentsExactRationalSlab",
+      "TestVerifiedNormalOffsetSweepMomentsCurvedAndSigned",
+      "TestVerifiedNormalOffsetSweepMomentsSphericalSector"
+    ]
+  },
+  "independent_squared_distances": {
+    "rotated_rational_slab_face_wall_edge_corner_interior_and_contact": ["25/49", "1/4", "37/98", "11/18", "4/49", "0"],
+    "curved_apex": {"exact": "1/100", "directed_enclosure": [0.009999992847436, 0.01]},
+    "curved_wall": "1/25",
+    "rational_spherical_sector": "121/169"
+  },
+  "controls": ["original rational UV and signed displacement replay", "cancellation", "early witness without complete cover", "full cover without subdivision", "arithmetic exhaustion after positive lower bound"],
+  "unchanged_predecessor_receipts": 3
+}
