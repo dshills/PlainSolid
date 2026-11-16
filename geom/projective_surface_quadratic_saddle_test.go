@@ -10,24 +10,7 @@ import (
 func TestProjectiveQuadraticSaddleRetainsIndependentOriginalCharts(t *testing.T) {
 	ctx := context.Background()
 	for _, rotated := range []bool{false, true} {
-		lift, axes := 2, [2]int{0, 1}
-		if rotated {
-			lift, axes = 1, [2]int{2, 0}
-		}
-		a := arcTestPatch(t, func(u, v float64) Vec3 {
-			z := (u - .5) * (v - .875)
-			if rotated {
-				return Vec3{v, z, u}
-			}
-			return Vec3{u, v, z}
-		})
-		b := projectiveOverlapTestChart(t, rotated, false)
-		for i := range b.net {
-			b.net[i][lift] = new(big.Rat)
-		}
-		if err := b.computeBounds(&polynomialBudget{maxOperations: b.options.MaxOperations, maxBits: b.options.MaxCoefficientBits}); err != nil {
-			t.Fatal(err)
-		}
+		a, b, axes := projectiveQuadraticSaddleCharts(t, rotated)
 		r, err := CertifyProjectiveSurfaceQuadraticSaddle(ctx, a, b, axes, 2, ProjectiveQuadraticSaddleOptions{})
 		if err != nil || !r.Proven || r.LineAxis != [2]int{1, 0} || r.Center.OnOverlapBoundary {
 			t.Fatalf("independent original charts did not prove all four saddle rays: %+v; %v", r, err)
@@ -57,6 +40,29 @@ func TestProjectiveQuadraticSaddleRetainsIndependentOriginalCharts(t *testing.T)
 			t.Fatal("the neighboring tile does not contain the critical point", other, err)
 		}
 	}
+}
+
+func projectiveQuadraticSaddleCharts(t *testing.T, rotated bool) (*SurfacePatch, *SurfacePatch, [2]int) {
+	t.Helper()
+	lift, axes := 2, [2]int{0, 1}
+	if rotated {
+		lift, axes = 1, [2]int{2, 0}
+	}
+	a := arcTestPatch(t, func(u, v float64) Vec3 {
+		z := (u - .5) * (v - .875)
+		if rotated {
+			return Vec3{v, z, u}
+		}
+		return Vec3{u, v, z}
+	})
+	b := projectiveOverlapTestChart(t, rotated, false)
+	for i := range b.net {
+		b.net[i][lift] = new(big.Rat)
+	}
+	if err := b.computeBounds(&polynomialBudget{maxOperations: b.options.MaxOperations, maxBits: b.options.MaxCoefficientBits}); err != nil {
+		t.Fatal(err)
+	}
+	return a, b, axes
 }
 
 func TestProjectiveQuadraticSaddleClipsIrrationalEndpointsAndCorners(t *testing.T) {
@@ -106,6 +112,32 @@ func TestProjectiveQuadraticSaddleClipsIrrationalEndpointsAndCorners(t *testing.
 					root.Interval().Lower.Cmp(root.Interval().Upper) == 0 {
 					t.Fatal("wrong original irrational branch endpoint", line, direction, sign, order, err, orderErr)
 				}
+			}
+		}
+	}
+	graph, err := TraceProjectiveSurfaceContacts(ctx, a, irrational, axis, ProjectiveSurfaceContactGraphOptions{
+		Cover: ProjectiveSurfaceContactCoverOptions{IsolateQuadraticSaddles: true},
+	})
+	if err != nil || !graph.Complete || len(graph.Arcs) != 4 || len(graph.SaddleVertices) != 1 {
+		t.Fatal("irrational rays did not participate in the complete contact graph", graph, err)
+	}
+	for i := range graph.Arcs {
+		arc := graph.Arcs[i]
+		station := big.NewRat(int64(1+2*(arc.Local%2)), 4)
+		// The evaluation continues to use its sealed source even if a
+		// caller overwrites the copied result's public topology and centre.
+		graph.Cover.Saddles[0].Center = ProjectiveContactVertex{}
+		graph.Arcs[i].Saddle = false
+		q, _, err := graph.EvaluateArcRational(ctx, i, station, SurfacePatchEvaluationOptions{})
+		ax, axErr := graph.ArcFreeAxis(i)
+		if err != nil || axErr != nil || ax != 0 {
+			t.Fatal("irrational saddle arc lost its sealed original map", i, ax, err, axErr)
+		}
+		for _, uvs := range q.OriginalUV {
+			assertProjectiveBoundaryRoot(t, uvs[0], station)
+			result, err := uvs[1].SignPolynomial(ctx, []*big.Rat{big.NewRat(7, 32), big.NewRat(-1, 1), big.NewRat(1, 1)}, ExactCurvePlaneEventOptions{})
+			if err != nil || result.Sign != 0 {
+				t.Fatal("original saddle midpoint not on its defining exact branch", result, err)
 			}
 		}
 	}

@@ -13,6 +13,13 @@ type projectiveContactGraphProof struct {
 type projectiveContactArcProof struct {
 	arc    SurfacePlaneArc
 	common ExactSurfaceRectangle
+	saddle *projectiveContactSaddleArcProof
+}
+
+type projectiveContactSaddleArcProof struct {
+	axis   int
+	center [2]*ExactAlgebraicRoot
+	end    [2]*ExactAlgebraicRoot
 }
 
 func sealProjectiveContactGraph(cover ProjectiveSurfaceContactCover, arcs []ProjectiveContactArc) *projectiveContactGraphProof {
@@ -24,7 +31,17 @@ func sealProjectiveContactGraph(cover ProjectiveSurfaceContactCover, arcs []Proj
 	}
 	p := &projectiveContactGraphProof{arcs: make([]projectiveContactArcProof, len(arcs)), overlap: cover.Atlas.Overlap}
 	for i, use := range arcs {
-		p.arcs[i] = projectiveContactArcProof{cover.Isolations[use.Cell].Arcs[use.Local], clone(cover.Atlas.Cells[use.Cell].Common)}
+		if use.Saddle {
+			saddle := cover.Saddles[use.Cell]
+			ray := saddle.Rays[use.Local/2][use.Local%2]
+			axis := 0
+			if ray.Side[0] == 0 {
+				axis = 1
+			}
+			p.arcs[i].saddle = &projectiveContactSaddleArcProof{axis: axis, center: saddle.Center.Common, end: ray.End.Common}
+		} else {
+			p.arcs[i] = projectiveContactArcProof{arc: cover.Isolations[use.Cell].Arcs[use.Local], common: clone(cover.Atlas.Cells[use.Cell].Common)}
+		}
 	}
 	for i := range p.overlap.Areas {
 		p.overlap.Areas[i] = clone(p.overlap.Areas[i])
@@ -39,6 +56,9 @@ func sealProjectiveContactGraph(cover ProjectiveSurfaceContactCover, arcs []Proj
 func (g ProjectiveSurfaceContactGraph) ArcFreeAxis(index int) (int, error) {
 	if g.proof == nil || index < 0 || index >= len(g.proof.arcs) {
 		return -1, ErrInvalid
+	}
+	if saddle := g.proof.arcs[index].saddle; saddle != nil {
+		return saddle.axis, nil
 	}
 	return 1 - g.proof.arcs[index].arc.Certificate.FixedParameterAxis, nil
 }
@@ -66,6 +86,20 @@ func (g ProjectiveSurfaceContactGraph) EvaluateArcRational(ctx context.Context, 
 		return r, 0, err
 	}
 	proof := g.proof.arcs[index]
+	if proof.saddle != nil {
+		common, err := proof.saddle.evaluate(station, b)
+		if err != nil {
+			return r, 0, err
+		}
+		q, err := projectiveContactVertex(common, g.proof.overlap, b)
+		if err != nil {
+			return r, 0, err
+		}
+		if err := ctx.Err(); err != nil {
+			return r, 0, err
+		}
+		return q, 0, nil
+	}
 	arc := proof.arc
 	dep := arc.Certificate.FixedParameterAxis
 	free := 1 - dep
@@ -150,4 +184,31 @@ func (g ProjectiveSurfaceContactGraph) EvaluateArcRational(ctx context.Context, 
 		return ProjectiveContactVertex{}, 0, err
 	}
 	return q, 0, nil
+}
+
+// The free axis is the exact side coordinate that ends this ray. The
+// secondary coordinate varies affinely with the same station fraction,
+// even when the other boundary coordinate is an irrational algebraic root.
+func (p *projectiveContactSaddleArcProof) evaluate(station *big.Rat, b *polynomialBudget) (out [2]*ExactAlgebraicRoot, err error) {
+	base := p.center[p.axis].root.bounds[0]
+	terminal := p.end[p.axis].root.bounds[0]
+	if base.Cmp(terminal) < 0 && (station.Cmp(base) < 0 || station.Cmp(terminal) > 0) ||
+		base.Cmp(terminal) > 0 && (station.Cmp(terminal) < 0 || station.Cmp(base) > 0) {
+		return out, ErrDomain
+	}
+	a := boundedRatArithmetic{b: b}
+	fraction := a.quo(a.sub(station, base), a.sub(terminal, base))
+	complement := a.sub(big.NewRat(1, 1), fraction)
+	for i, root := range p.end {
+		offset := a.mul(complement, p.center[i].root.bounds[0])
+		if a.err != nil {
+			return out, a.err
+		}
+		q, err := affineMapRoot(root.root, offset, fraction, b)
+		if err != nil {
+			return out, err
+		}
+		out[i] = &ExactAlgebraicRoot{root: q}
+	}
+	return out, nil
 }

@@ -129,8 +129,9 @@ station, returning both original UV identities even when a dependent
 coordinate is irrational.
 An original common knot cell can now prove a complete interior quadratic
 saddle: one exact junction and four separate rays clipped against the
-cell boundary. Joining singular cells into a wider contact network is
-qualified separately.
+cell boundary. The optional contact network joins those four rays to
+regular arcs across the original rational knot boundaries. Other
+singularities remain unresolved.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

@@ -10,6 +10,12 @@ now covers complete contact within one exact quadratic saddle cell. Two
 placements preserve the independently reversed/swapped owner, the
 nonbinary original knot and all four terminals. Irrational terminals,
 corner deduplication, nonzero critical levels and budget limits pass.
+The [projective saddle network audit](evidence/projective-surface-graph-overlap-2026-11-16.json)
+joins one exact degree-four center, four distinct boundary terminals,
+and two regular continuations through original knot boundaries in two
+placements. Rational replay agrees on both original model surfaces,
+and irrational interior branch stations satisfy their exact polynomial.
+Limits and the default regular-only path publish no unproved network.
 
 The [full Go run on `c7afb429`](evidence/main-c7afb429-qualification-2026-11-16.json)
 passed all nine lanes: 6,018 passes, 599 optional skips, and no failures

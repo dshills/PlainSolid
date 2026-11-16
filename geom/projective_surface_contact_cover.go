@@ -12,16 +12,22 @@ type ProjectiveSurfaceContactCoverOptions struct {
 	Atlas              GeneralSurfaceHeightOptions
 	Arcs               SurfacePlaneArcOptions
 	MaxExactOperations int
+	// IsolateQuadraticSaddles may replace regular isolation in cells with a
+	// complete four-ray saddle proof. All other cells still use Arcs limits.
+	IsolateQuadraticSaddles bool
 }
 
 // ProjectiveSurfaceContactCover covers a positive-area contact projection
 // with local exact arcs, tangent points and coincident cells. Isolations
 // correspond to Atlas.Cells. Each uses that residual cell's unit square;
 // Common and OriginalCells map the answer back to both original owners.
+// If a corresponding Saddles entry is proven, it replaces that cell's
+// ordinary isolation. Saddles is nil unless the option was requested.
 // Complete means all local cells are covered, without claiming global joins.
 type ProjectiveSurfaceContactCover struct {
 	Atlas           ProjectiveSurfaceHeightDifference
 	Isolations      []SurfacePlaneArcs
+	Saddles         []ProjectiveQuadraticSaddle
 	IncompleteCells []int
 	Complete        bool
 	ExactOperations int
@@ -52,9 +58,18 @@ func BoundProjectiveSurfaceContacts(ctx context.Context, a, b *SurfacePatch, axe
 		return r, err
 	}
 	r.Isolations = make([]SurfacePlaneArcs, len(r.Atlas.Cells))
+	var saddleLimits ExactCurvePlaneEventOptions
+	if o.IsolateQuadraticSaddles {
+		saddleLimits, err = graphRootOptions(ExactCurvePlaneEventOptions{MaxOperations: o.Arcs.MaxOperations,
+			MaxCoefficientBits: o.Arcs.MaxCoefficientBits, MaxSubdivisions: o.Arcs.MaxRootSubdivisions})
+		if err != nil {
+			return r, err
+		}
+		r.Saddles = make([]ProjectiveQuadraticSaddle, len(r.Atlas.Cells))
+	}
 	defer func() {
 		for i, cell := range r.Isolations {
-			if !cell.Complete {
+			if !cell.Complete && (r.Saddles == nil || !r.Saddles[i].Proven) {
 				r.IncompleteCells = append(r.IncompleteCells, i)
 			}
 		}
@@ -71,6 +86,22 @@ func BoundProjectiveSurfaceContacts(ctx context.Context, a, b *SurfacePatch, axe
 		left := o.MaxExactOperations - r.ExactOperations
 		if left < 1 {
 			return r, ErrConvergence
+		}
+		if o.IsolateQuadraticSaddles {
+			limits := saddleLimits
+			limits.MaxOperations = min(left, limits.MaxOperations)
+			r.Saddles[i], err = certifyProjectiveQuadraticSaddleCell(ctx, cell, r.Atlas.Overlap, limits)
+			r.ExactOperations += r.Saddles[i].Operations
+			if err == nil && r.Saddles[i].Proven {
+				continue
+			}
+			if err != nil && !errors.Is(err, ErrConvergence) {
+				return r, err
+			}
+			left = o.MaxExactOperations - r.ExactOperations
+			if left < 1 {
+				return r, ErrConvergence
+			}
 		}
 		arc := o.Arcs
 		arc.MaxOperations = min(left, arc.MaxOperations)

@@ -337,5 +337,23 @@
     "terminating_common_knot": "9/10",
     "both_wall_polynomial": ["1/8", "-1", "1"],
     "tested_distinct_rays_per_case": 4
+  },
+  "quadratic_saddle_network": {
+    "main_base": "b28673e2",
+    "log": "projective-saddle-network-main-race-2.jsonl",
+    "sha256": "76d2b8e737484c3e4fe1ff96f3563ce9c4675ef674fd9eb7f18abae80db094d9",
+    "initial_broad_linear_endpoint": {
+      "log": "projective-saddle-network-main-race.jsonl",
+      "sha256": "8039be1f3ab07c7c868bfbc9e865c72b3df4a633e5944d8a379a3b6f2ab53e1d"
+    },
+    "main_passes": [
+      "TestTraceProjectiveSurfaceContactsJoinsQuadraticSaddleAcrossOriginalKnots",
+      "TestProjectiveQuadraticSaddleClipsIrrationalEndpointsAndCorners",
+      "TestTraceProjectiveSurfaceContactsJoinsTheOriginalNonbinaryKnot",
+      "TestTraceProjectiveSurfaceContactsFindsAClosedOriginalContour"
+    ],
+    "placements": 2,
+    "topology_each": {"vertices": 7, "arcs": 6, "quadratic_saddles": 1, "terminal_paths": 4},
+    "irrational_interior_polynomial": ["7/32", "-1", "1"]
   }
 }

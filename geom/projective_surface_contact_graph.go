@@ -22,10 +22,12 @@ type ProjectiveContactVertex struct {
 }
 
 // ProjectiveContactArc references one exact local cover arc and its global
-// endpoint indices. It retains the original residual-cell owner ledger.
+// endpoint indices. If Saddle is true, Local is 2*line+direction in the
+// cell saddle's Rays, and Vertices runs from the saddle center to the end.
 type ProjectiveContactArc struct {
 	Cell, Local int
 	Vertices    [2]int
+	Saddle      bool
 }
 
 type ProjectiveContactArcUse struct {
@@ -33,27 +35,33 @@ type ProjectiveContactArcUse struct {
 	Reversed bool
 }
 
+// ProjectiveContactContour is a maximal chain through degree-two vertices.
+// It can end on an overlap boundary or at a proved saddle junction.
 type ProjectiveContactContour struct {
 	Arcs   []ProjectiveContactArcUse
 	Closed bool
 }
 
-// ProjectiveSurfaceContactGraph contains a complete regular contour graph
-// from the original two surfaces. A failed join keeps the local Cover and
-// publishes no partial global topology.
+// ProjectiveSurfaceContactGraph contains a complete contour graph from the
+// original two surfaces. SaddleVertices contains only proved degree-four
+// quadratic junctions, when explicitly requested. A failed join keeps the
+// local Cover and publishes no partial global topology.
 type ProjectiveSurfaceContactGraph struct {
 	Cover                           ProjectiveSurfaceContactCover
 	Vertices                        []ProjectiveContactVertex
 	Arcs                            []ProjectiveContactArc
 	Contours                        []ProjectiveContactContour
+	SaddleVertices                  []int
 	Complete                        bool
 	JoinComparisons, JoinOperations int
 	proof                           *projectiveContactGraphProof
 }
 
 // TraceProjectiveSurfaceContacts joins the exact regular local coverage
-// across all rational common knots. Higher valence, isolated/coplanar cells
-// and zero arcs supported on a cell boundary remain unresolved here.
+// across all rational common knots. A proved interior quadratic saddle may
+// be included through Cover.IsolateQuadraticSaddles. Other higher-valence
+// junctions, isolated/coplanar cells and zero arcs supported on a cell
+// boundary remain unresolved here.
 // Corner-only local cells are admitted only when their exact corner is
 // authenticated by a retained arc elsewhere in the complete cover.
 func TraceProjectiveSurfaceContacts(ctx context.Context, source, target *SurfacePatch, axes [2]int,
@@ -84,6 +92,8 @@ func TraceProjectiveSurfaceContacts(ctx context.Context, source, target *Surface
 	var vertex []ProjectiveContactVertex
 	var arcs []ProjectiveContactArc
 	var corner [][2]*ExactAlgebraicRoot
+	var saddles []int
+	saddleVertex := make(map[int]bool)
 	find := func(point [2]*ExactAlgebraicRoot) (int, error) {
 		for i, q := range vertex {
 			if err := ctx.Err(); err != nil {
@@ -103,7 +113,49 @@ func TraceProjectiveSurfaceContacts(ctx context.Context, source, target *Surface
 		}
 		return -1, nil
 	}
+	bind := func(point [2]*ExactAlgebraicRoot) (int, error) {
+		id, err := find(point)
+		if err != nil || id >= 0 {
+			return id, err
+		}
+		q, err := projectiveContactVertex(point, r.Cover.Atlas.Overlap, b)
+		if err != nil {
+			return -1, err
+		}
+		id = len(vertex)
+		vertex = append(vertex, q)
+		return id, nil
+	}
 	for cell, isolate := range r.Cover.Isolations {
+		if r.Cover.Saddles != nil && r.Cover.Saddles[cell].Proven {
+			saddle := r.Cover.Saddles[cell]
+			if len(arcs) > o.MaxArcs-4 {
+				return r, ErrConvergence
+			}
+			before := len(vertex)
+			center, err := bind(saddle.Center.Common)
+			if err != nil {
+				return r, err
+			}
+			if center != before || vertex[center].OnOverlapBoundary {
+				return r, ErrConvergence
+			}
+			saddles = append(saddles, center)
+			saddleVertex[center] = true
+			for line, rays := range saddle.Rays {
+				for direction, ray := range rays {
+					end, err := bind(ray.End.Common)
+					if err != nil {
+						return r, err
+					}
+					if end == center {
+						return r, ErrConvergence
+					}
+					arcs = append(arcs, ProjectiveContactArc{Cell: cell, Local: 2*line + direction, Vertices: [2]int{center, end}, Saddle: true})
+				}
+			}
+			continue
+		}
 		if len(isolate.Tangencies)+len(isolate.Coplanar) != 0 || len(isolate.Arcs) > o.MaxArcs-len(arcs) ||
 			len(isolate.CornerContacts) > o.MaxArcs-len(corner) {
 			return r, ErrConvergence
@@ -119,17 +171,9 @@ func TraceProjectiveSurfaceContacts(ctx context.Context, source, target *Surface
 				if err != nil {
 					return r, err
 				}
-				id, err := find(point)
+				id, err := bind(point)
 				if err != nil {
 					return r, err
-				}
-				if id < 0 {
-					q, err := projectiveContactVertex(point, r.Cover.Atlas.Overlap, b)
-					if err != nil {
-						return r, err
-					}
-					id = len(vertex)
-					vertex = append(vertex, q)
 				}
 				use.Vertices[end] = id
 			}
@@ -162,7 +206,11 @@ func TraceProjectiveSurfaceContacts(ctx context.Context, source, target *Surface
 		}
 	}
 	for v, edge := range links {
-		if len(edge) > 2 || len(edge) == 1 && !vertex[v].OnOverlapBoundary {
+		if saddleVertex[v] {
+			if len(edge) != 4 {
+				return r, ErrConvergence
+			}
+		} else if len(edge) > 2 || len(edge) == 1 && !vertex[v].OnOverlapBoundary {
 			return r, ErrConvergence
 		}
 	}
@@ -179,7 +227,7 @@ func TraceProjectiveSurfaceContacts(ctx context.Context, source, target *Surface
 				contour.Closed = true
 				return contour
 			}
-			if len(links[v]) == 1 {
+			if len(links[v]) != 2 {
 				return contour
 			}
 			entry = links[v][0]
@@ -189,8 +237,12 @@ func TraceProjectiveSurfaceContacts(ctx context.Context, source, target *Surface
 		}
 	}
 	for _, group := range links {
-		if len(group) == 1 && !seen[group[0]/2] {
-			contours = append(contours, walk(group[0]))
+		if len(group) != 2 {
+			for _, edge := range group {
+				if !seen[edge/2] {
+					contours = append(contours, walk(edge))
+				}
+			}
 		}
 	}
 	for i := range arcs {
@@ -202,6 +254,7 @@ func TraceProjectiveSurfaceContacts(ctx context.Context, source, target *Surface
 		return r, err
 	}
 	r.Vertices, r.Arcs, r.Contours, r.Complete = vertex, arcs, contours, true
+	r.SaddleVertices = saddles
 	r.proof = sealProjectiveContactGraph(r.Cover, arcs)
 	return r, nil
 }

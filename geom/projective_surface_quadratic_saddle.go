@@ -58,10 +58,16 @@ func CertifyProjectiveSurfaceQuadraticSaddle(ctx context.Context, source, target
 	if cell >= len(atlas.Cells) {
 		return r, ErrDomain
 	}
+	r, err = certifyProjectiveQuadraticSaddleCell(ctx, atlas.Cells[cell], atlas.Overlap, limits)
+	r.AtlasOperations = atlas.ExactOperations
+	return r, err
+}
+
+func certifyProjectiveQuadraticSaddleCell(ctx context.Context, c ProjectiveSurfaceHeightCell, overlap ProjectiveSurfaceGraphOverlap,
+	limits ExactCurvePlaneEventOptions) (r ProjectiveQuadraticSaddle, err error) {
+	p := c.Difference
 	b := &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
 	defer func() { r.Operations = b.operations }()
-	c := atlas.Cells[cell]
-	p := c.Difference
 	power, err := tensorPowerCoefficients(p.net, p.countU, p.countV, 2, b)
 	if err != nil {
 		return r, err
@@ -119,7 +125,7 @@ func CertifyProjectiveSurfaceQuadraticSaddle(ctx context.Context, source, target
 			}
 			common[i] = &ExactAlgebraicRoot{root: mapped}
 		}
-		return projectiveContactVertex(common, atlas.Overlap, b)
+		return projectiveContactVertex(common, overlap, b)
 	}
 	rational := func(q *big.Rat) *ExactGraphLineRoot {
 		return &ExactGraphLineRoot{polynomial: rationalPolynomial{new(big.Rat).Neg(q), one}, bounds: [2]*big.Rat{q, q}}
@@ -172,6 +178,15 @@ func CertifyProjectiveSurfaceQuadraticSaddle(ctx context.Context, source, target
 					}
 					if order != 1 {
 						return false, ErrConvergence
+					}
+					if len(poly) == 2 && lo.Cmp(hi) != 0 {
+						// A linear original side root is exactly rational even
+						// if the isolator accepted a larger unique-root bracket.
+						q := a.quo(a.sub(zero, poly[0]), poly[1])
+						if a.err != nil {
+							return false, a.err
+						}
+						lo, hi = q, q
 					}
 					if lo.Cmp(hi) != 0 {
 						for _, q := range [2]*big.Rat{lo, hi} {
