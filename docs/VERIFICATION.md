@@ -689,6 +689,15 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   rounded source and a hybrid with exact surfaces but the original
   off-support seam both refuse. Main's focused IGES race including
   existing bore rim regressions passed in 101.015 seconds.
+- The [independent conical fillet STEP import](evidence/conical-rim-fillet-bore-step-import-2026-11-15.json)
+  qualifies the original double outer-rim fillet with a diagonal
+  eccentric bore, two different torus meridians and both cap holes.
+  The native solid has 6 faces, 28 edges and 24 vertices. Pinned OCCT
+  preserves all six original model vertices and signed volume
+  `2282.4014040828897`. The exact generator carrier requires opposed
+  lower edge uses; the raw rounded cone angle, wrong lower bound and
+  complementary upper arc each refuse. Main's live race passed in
+  59.237 seconds and regenerated both original author DATA sections.
 - The [diagonal circle cap and wall proof](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
   (`a296b700`) qualifies the independent offset `(1.5,2)` with exact
   circular rim laws and shell-wide clearance. A targeted raw constructor

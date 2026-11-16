@@ -302,7 +302,10 @@ also reconstructs the original full-rim variant with exactly authored
 generators and preserved source IDs. [Strict independent IGES](evidence/eccentric-annular-chamfer-iges-import-2026-11-15.json)
 reconstructs byte-identical native geometry from authored rational
 supports, original rims and seams, and both cap holes. The default
-rounded source and off-support seam refuse. The [eccentric bore inner rim fillets](evidence/eccentric-cylinder-bore-rim-fillet-2026-11-15.json)
+rounded source and off-support seam refuse. The [conical outer double fillet STEP reader](evidence/conical-rim-fillet-bore-step-import-2026-11-15.json)
+also proves the original eccentric bore, both unequal toroidal bands,
+their acute and obtuse meridians, and both cap holes. Its default rounded
+source does not meet the strict support contract. The [eccentric bore inner rim fillets](evidence/eccentric-cylinder-bore-rim-fillet-2026-11-15.json)
 (`d930469f`) retain the unchanged outer cylinder, original axes and cap
 planes with exact quarter-toroid transitions and positive clearance.
 The [strict independent STEP reader](evidence/eccentric-bore-rim-step-import-2026-11-15.json)
