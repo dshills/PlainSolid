@@ -292,8 +292,9 @@ The separate PlainCAD angular control measures normal turning across a
 facet. The [typed v13 worker proof](evidence/plaincad-v13-normal-turn-chromium-2026-11-15.json)
 qualifies 0.35 radians on the authored source with 2,716 closed facets
 and three exact new stations on the obstructing closing coedge. The
-initial fresh worker took about nine minutes, so faster routine use
-remains in progress. Four original eccentric frustum rim chamfers
+[exact reuse pass](evidence/plaincad-v13-normal-turn-cache-chromium-2026-11-15.json)
+reduced the fresh worker from 537.171 to 353.730 seconds with the same
+mesh and proof. Faster routine use remains open. Four original eccentric frustum rim chamfers
 now preserve both circular axes and prove the shell gap at all runouts
 ([independent evidence](evidence/eccentric-frustum-rim-chamfer-2026-11-15.json),
 `b600bde2`). The [diagonal cap fallback](evidence/eccentric-annular-cap-nesting-2026-11-15.json)

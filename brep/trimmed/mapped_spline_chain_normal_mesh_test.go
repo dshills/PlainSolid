@@ -60,6 +60,32 @@ func TestMappedRoofNormalConeUsesOriginalOneSidedDifferentials(t *testing.T) {
 	}
 }
 
+func TestMappedRoofNormalBoxCacheKeepsWorkLimit(t *testing.T) {
+	ctx := context.Background()
+	p, err := geom.NewSurfacePatch(mappedChainCreasedSupport(t, false, .5, .5), geom.SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	proof, err := newMappedRoofNormals(ctx, p, .05, big.NewRat(1, 1<<24))
+	if err != nil {
+		t.Fatal(err)
+	}
+	proof.remaining = 2
+	cell := proof.cells[[2]int{0, 0}]
+	rect := geom.ParameterRectangle{UMin: .125, UMax: .25, VMin: .125, VMax: .25}
+	want, present, err := proof.normalBox(ctx, cell, rect)
+	if err != nil || !present {
+		t.Fatal(want, present, err)
+	}
+	got, present, err := proof.normalBox(ctx, cell, rect)
+	if err != nil || !present || got != want || len(proof.normalBoxes) != 1 {
+		t.Fatal("repeated exact normal box changed", got, present, err)
+	}
+	if _, present, err := proof.normalBox(ctx, cell, rect); err != geom.ErrConvergence || present {
+		t.Fatal("normal budget must charge cached boxes", present, err)
+	}
+}
+
 func TestMappedRoofFiniteAngleProofOnClosedCreasedShell(t *testing.T) {
 	ctx := context.Background()
 	r, closing, planar, seams := mappedChainClosedFixtureWithKnot(t, true)
