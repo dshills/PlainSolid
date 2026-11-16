@@ -18,7 +18,7 @@ func WriteCuspidalCubicCommon(ctx context.Context, w io.Writer, common *trimmed.
 	if common == nil {
 		return geom.ErrInvalid
 	}
-	return writeExactBezierSingleSTEP(ctx, w, common.Boundary(), name, unit, l, o)
+	return writeExactBezierSingleSTEPMode(ctx, w, common.Boundary(), name, unit, l, o, true)
 }
 
 // VerifyCuspidalCubicCommonSTEP checks the canonical topology, physical

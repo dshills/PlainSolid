@@ -28,6 +28,14 @@ volume `1695/22528`. The pointed Cut reopens with four faces, seven
 edges, five vertices, and volume `243/22528`. The analytic exchange
 uses the native support and coedge laws directly.
 
+The creased Common fixtures retain each original knotted roof. Their
+neutral models split four boundary edges at the original physical
+crease, with one exact vertex shared by both incident coedges at
+each split. Both readers recover nine faces, 24 edges, 17 vertices,
+and volume `277485/22528 + 729/4096`. On the cusp fragments the
+outward parameter spans half the original germ, so the tested second
+and third jets scale by `1/4` and `1/8` respectively.
+
 A separate C++ probe evaluates the two reopened model curves at the
 cusp. Both first derivatives are zero, the second derivatives are `(4.5, 0, 0.3515625)`, and the
 third derivatives are `(0, ±4.5, ±0.052734375)` for the fixture's
@@ -45,7 +53,7 @@ c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" -L"$OCCT_LIB" -Wl,-rpath,"$OCCT_LIB" \
 PLAINSOLID_OCCT_CLIPPED_CUT_STEP_COMPONENTS=/tmp/plainsolid-occt-clipped-cut-step \
 PLAINSOLID_OCCT_CLIPPED_CUT_IGES=/tmp/plainsolid-occt-clipped-cut-iges \
 PLAINSOLID_OCCT_CUSPIDAL_CUBIC_JETS=/tmp/plainsolid-occt-cuspidal-cubic-jets \
-  go test ./exchange -run '^TestCuspidalCubic(Common|Fuse|Cut)Exchange$' -count=1 -v
+  go test ./exchange -run '^TestCuspidalCubic(Common|Fuse|Cut|CreasedCommon)Exchange$' -count=1 -v
 ```
 
 The regressions refuse changed STEP curve ownership, changed IGES units,
