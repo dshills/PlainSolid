@@ -92,7 +92,11 @@ func TestMappedSplineChainOrderedSupportKnotBounds(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for i, event := range reopened.JoinedSupportEvents() {
+		events := reopened.JoinedSupportEvents()
+		if len(events) != len(want) {
+			t.Fatal("v13 must retain every original joint and interior event", cells, len(events))
+		}
+		for i, event := range events {
 			expected := want[i]
 			if event.OriginalJoint != expected.OriginalJoint || event.OwnersChangingCells != expected.OwnersChangingCells ||
 				event.ModelStation.Cmp(expected.ModelStation) != 0 {
