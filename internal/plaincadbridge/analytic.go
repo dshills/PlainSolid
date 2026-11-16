@@ -29,6 +29,7 @@ type analyticBody struct {
 	segment         *circularSegmentSweep
 	arcLoop         *arcLoopSupport
 	stepArcLoop     *stepArcLoopSupport
+	stepRevolution  *provedSTEPRevolution
 	helical         bool
 	lead            *leadPart
 	helicalMesh     *mesh.Mesh
@@ -158,6 +159,10 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 		return nil, err
 	}
 	out := *a
+	if m != geom.Identity() {
+		// Original STEP entities describe their original world placement.
+		out.stepRevolution = nil
+	}
 	if len(a.polygonExtrema) != 0 {
 		out.polygonExtrema = make([]geom.Vec3, len(a.polygonExtrema))
 		for i, p := range a.polygonExtrema {

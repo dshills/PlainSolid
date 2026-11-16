@@ -426,6 +426,11 @@ func (b *Bridge) importSTEPInUnits(source string, units stepFileUnit) (Shape, er
 			return b.putRimChamferSTEP(p)
 		}
 	}
+	if strings.Contains(supports, "SURFACE_OF_REVOLUTION") {
+		if shape, recognized, err := b.importProvedSTEPRevolution(context.Background(), source); recognized {
+			return shape, err
+		}
+	}
 	m, e := step.ReadTrimmedBodies(r(), stepLimits())
 	if e == nil && len(m.Bodies) == 1 {
 		if p, ok := m.Bodies[0].CompleteCylinder(); ok {
@@ -785,6 +790,12 @@ func (b *Bridge) exportSTEPInUnits(handles []string, units stepFileUnit) (stepEx
 				return fail(unsupportedEdge("ordered mapped STEP export requires one original source body"))
 			}
 			return s.exportOrderedMappedSTEP(context.Background())
+		}
+		if s.analytic != nil && s.analytic.stepRevolution != nil {
+			if len(handles) != 1 {
+				return fail(unsupportedEdge("source-preserving revolution STEP export requires one original source body"))
+			}
+			return s.exportProvedSTEPRevolution(context.Background())
 		}
 		sources[i], e = writeSTEPBody(s)
 		if e != nil {

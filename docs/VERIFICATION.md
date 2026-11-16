@@ -708,6 +708,13 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   rounded source and a hybrid with exact surfaces but the original
   off-support seam both refuse. Main's focused IGES race including
   existing bore rim regressions passed in 101.015 seconds.
+  The ordinary PlainCAD bridge now accepts the exact annular STEP and
+  rejects its rounded control. Selected native bridge cases passed in
+  32.426 seconds under the race detector. An actual Go WASM dispatcher
+  run returned 1,024 triangles, 512 vertices, 1,536 opposed edges and
+  Euler characteristic 0. The final millimetre export and fresh import
+  reproduce the original STEP byte for byte with the same volume and
+  bounds. This is a focused dispatcher run, separate from the full app.
 - The [independent conical fillet STEP import](evidence/conical-rim-fillet-bore-step-import-2026-11-15.json)
   qualifies the original double outer-rim fillet with a diagonal
   eccentric bore, two different torus meridians and both cap holes.

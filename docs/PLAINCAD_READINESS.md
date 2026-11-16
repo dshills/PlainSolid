@@ -27,7 +27,14 @@ explicitly in the app build. Later increments have focused browser and
 exchange evidence.
 [Full provider qualification](evidence/plaincad-provider-kernel-fa857e59-2026-11-14.json).
 
-The [latest full production run](evidence/plaincad-production-cylinder-stock-2026-11-13.json)
+The [latest full refresh](evidence/plaincad-main-a3b7548d-2026-11-15.json)
+passed all eight gates without a rerun on kernel `a3b7548d` and the same
+pinned app. The browser counts were unchanged, the four Go WASM cases and
+all 1,691 ordinary cases passed, and the production WASM matched the
+build byte for byte. The [selected mapped STEP worker](evidence/plaincad-v13-normal-turn-chromium-2026-11-15.json)
+separately exercised a 0.35-radian request on the authored v13 fixture.
+
+The [earlier full production run](evidence/plaincad-production-cylinder-stock-2026-11-13.json)
 passes all 66 originals on integration commit `254c83b`. The original
 benchmark takes 31.382 seconds, and both TypeScript checks and the
 production bundle budget pass.
