@@ -128,7 +128,26 @@ func parabolaCircleGraphRegions(proof *geom.SplineGraphParabolaCircle) (out [3]o
 	}
 	reversed := make([]openSectionPiece, len(circle))
 	for i, piece := range circle {
-		reversed[len(circle)-1-i] = openSectionPiece{a: piece.b, b: piece.a, c: reversePCurve(piece.c), side: -1}
+		// Keep the exact homogeneous quarter-arc controls in the native
+		// trim type used by source-backed analytic exchange.
+		spline, ok := piece.c.(SplineUV)
+		if !ok || spline.Curve == nil || spline.Curve.Degree() != 2 || spline.Range != (UVInterval{Max: 1}) {
+			return out, geom.ErrConvergence
+		}
+		poles, weights := spline.Curve.Poles(), spline.Curve.Weights()
+		if len(poles) != 3 || len(weights) != 3 {
+			return out, geom.ErrConvergence
+		}
+		for j, point := range poles {
+			w := ratInset(weights[j])
+			controls[j] = [3]*big.Rat{new(big.Rat).Mul(ratInset(point.X), w), new(big.Rat).Mul(ratInset(point.Y), w), w}
+		}
+		arc, err := newExactQuadraticUV(controls, false)
+		if err != nil {
+			return out, err
+		}
+		circle[i].c = arc
+		reversed[len(circle)-1-i] = openSectionPiece{a: piece.b, b: piece.a, c: reversePCurve(arc), side: -1}
 	}
 	enclosing := 0
 	if proof.CircleAbove {
