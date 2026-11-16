@@ -62,6 +62,11 @@ func DiscoverSplineGraphParabolaCircleCrossings(ctx context.Context, a, c *Surfa
 	if err != nil {
 		return nil, err
 	}
+	return proveParabolaCircleCrossingFactors(ctx, a, c, freeAxis, p, center, radiusSquared, sign, b)
+}
+
+func proveParabolaCircleCrossingFactors(ctx context.Context, a, c *SurfacePatch, freeAxis int, p rationalPolynomial,
+	center [2]*big.Rat, radiusSquared *big.Rat, sign int, b *polynomialBudget) (*SplineGraphParabolaCircleCrossings, error) {
 	n, d := new(big.Int).Sqrt(radiusSquared.Num()), new(big.Int).Sqrt(radiusSquared.Denom())
 	if new(big.Int).Mul(n, n).Cmp(radiusSquared.Num()) != 0 || new(big.Int).Mul(d, d).Cmp(radiusSquared.Denom()) != 0 {
 		return nil, ErrUnrepresentable
