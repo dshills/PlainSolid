@@ -117,6 +117,9 @@ retain every original outer event and remove events only on shared walls.
 Joined point membership proves that relative interiors of removed common
 walls belong to the union interior. Retained perimeter points keep their
 original boundary face and chart identities.
+Exact affine-ruling reductions also prove membership in joined curved
+charts with quadratic or cubic transverse profiles, including original
+algebraic stations and retained cap and side incidences.
 An exact surface-pair distance query retains both rational model sample
 points and the squared distance enclosure below float64 range, including
 when an oblique gap is invisible in the outward axis boxes.

@@ -8,10 +8,13 @@ import (
 // NormalOffsetSweepJoinedPointOwner retains the directed inverse bounds in
 // one original chart's U, V and signed displacement coordinates. Faces lists
 // every retained outer face of that chart incident to the point.
+// AlgebraicStation, when present, identifies the isolated normal-foot root
+// in the original profile and its signed displacement enclosure.
 type NormalOffsetSweepJoinedPointOwner struct {
-	Owner      int
-	Parameters [3]ExactParameterInterval
-	Faces      []NormalOffsetSweepSide
+	Owner            int
+	Parameters       [3]ExactParameterInterval
+	Faces            []NormalOffsetSweepSide
+	AlgebraicStation *NormalOffsetSweepLineAlgebraicStation `json:",omitempty"`
 }
 
 // NormalOffsetSweepJoinedQueryResult records membership in a verified joined
@@ -26,7 +29,9 @@ type NormalOffsetSweepJoinedQueryResult struct {
 
 // LocateRational classifies a rational model point in the verified pair.
 // The exact operation and visited cell limits are shared across original
-// charts. MaxDepth applies separately to each original inverse query.
+// charts. MaxDepth applies separately to each original inverse partition.
+// A supported original ruled proof that covers a whole chart counts as
+// one visited cell.
 func (p *VerifiedNormalOffsetSweepPair) LocateRational(ctx context.Context, point [3]*big.Rat,
 	o NormalOffsetSweepQueryOptions) (NormalOffsetSweepJoinedQueryResult, error) {
 	if p == nil || p.coordinate == nil {
@@ -125,22 +130,16 @@ func locateJoinedNormalOffsetSweep(ctx context.Context, sweeps []*VerifiedNormal
 			return r, ErrConvergence
 		}
 		query := NormalOffsetSweepQueryOptions{Patch: limits, MaxDepth: o.MaxDepth, MaxCells: o.MaxCells - r.VisitedCells}
-		query.Patch.MaxOperations -= budget.operations
-		original, err := sweep.LocateRational(ctx, point, query)
-		budget.operations += original.ExactOperations
-		r.VisitedCells += original.VisitedCells
+		witness, visited, err := locateJoinedSweepPointOwner(ctx, owner, sweep, point, fixed[owner], omitted[owner], query, budget)
+		r.VisitedCells += visited
 		if err != nil {
 			return r, err
 		}
-		if original.Location == NormalOffsetSweepExterior {
+		if witness == nil {
 			continue
 		}
-		witness, err := joinedSweepPointOwner(owner, sweep, original.Parameters, fixed[owner], omitted[owner])
-		if err != nil {
-			return r, err
-		}
 		boundary = boundary || len(witness.Faces) != 0
-		owners = append(owners, witness)
+		owners = append(owners, *witness)
 		hits |= bit
 	}
 	if err := ctx.Err(); err != nil {
@@ -161,6 +160,32 @@ func locateJoinedNormalOffsetSweep(ctx context.Context, sweeps []*VerifiedNormal
 		r.Location = NormalOffsetSweepInterior
 	}
 	return r, nil
+}
+
+func locateJoinedSweepPointOwner(ctx context.Context, owner int, sweep *VerifiedNormalOffsetSweep, point [3]*big.Rat,
+	fixed, omitted uint8, query NormalOffsetSweepQueryOptions, budget *polynomialBudget) (*NormalOffsetSweepJoinedPointOwner, int, error) {
+	if len(sweep.source.net) > query.Patch.MaxPoles {
+		return nil, 0, ErrConvergence
+	}
+	// A higher-degree original chart can supply an exact ruled normal-foot
+	// proof. Its entire original extrusion counts as one visited cell.
+	if sweep.source.degreeU > 1 || sweep.source.degreeV > 1 {
+		witness, proved, err := joinedSweepRulingPoint(ctx, owner, sweep, point, fixed, omitted, budget)
+		if proved || err != nil {
+			return witness, 1, err
+		}
+	}
+	if budget.operations >= budget.maxOperations {
+		return nil, 0, ErrConvergence
+	}
+	query.Patch.MaxOperations = budget.maxOperations - budget.operations
+	original, err := sweep.LocateRational(ctx, point, query)
+	budget.operations += original.ExactOperations
+	if err != nil || original.Location == NormalOffsetSweepExterior {
+		return nil, original.VisitedCells, err
+	}
+	witness, err := joinedSweepPointOwner(owner, sweep, original.Parameters, fixed, omitted)
+	return &witness, original.VisitedCells, err
 }
 
 func joinedSweepPointOwner(owner int, sweep *VerifiedNormalOffsetSweep, parameters [3]ExactParameterInterval,

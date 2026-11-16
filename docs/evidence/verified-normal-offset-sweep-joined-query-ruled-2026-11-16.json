@@ -1,0 +1,15 @@
+{
+  "scope": "Exact point membership for joined ruled curved sweeps with original raw and algebraic stations",
+  "isolated_revision": "c8913ded62213ad7ae922ffa0298e2cffa5415ab",
+  "patch_sha256": "10874a8e886496380dea26599565d9ef173a835d3e7030e852c485a34b38776a",
+  "main_race": {
+    "base": "d193d123",
+    "log": "normal-sweep-joined-query-ruled-main-race.jsonl",
+    "sha256": "3224072a479bce29a54774b526f1d93dd48c9747dd1582a666bd53b0f4522192",
+    "seconds": 29.076,
+    "named_passes": ["TestVerifiedJoinedNormalOffsetSweepLocatesPlacedCurvedJoins", "TestVerifiedJoinedNormalOffsetSweepLocatesAlgebraicCapPerimeter", "TestVerifiedJoinedNormalOffsetSweepLocatesRefusesIncompleteNonRuledProof"]
+  },
+  "strong_controls": ["both original rotated joins", "raw reversed middle 14/5", "opposing original side identifiers", "exact negative offset", "two independent algebraic root recipes", "both cap incidences at 3/5", "miss 2^-60 above cap", "atomic work limits"],
+  "isolate_full_packages_seconds": {"geom": 78.400, "mesh": 7.023, "csg/offset": 52.562},
+  "unchanged_affine_receipts": 5
+}

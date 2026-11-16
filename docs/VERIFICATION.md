@@ -290,6 +290,10 @@ The [joined sweep point audit](evidence/verified-normal-offset-sweep-joined-quer
 passes both removed walls, retained perimeter and cap incidences, exact
 sub-ULP side tests, and a rotated source with signed displacement
 `-1/17`. Robust refusal preserves unproved original inverses.
+The [curved joined point audit](evidence/verified-normal-offset-sweep-joined-query-ruled-2026-11-16.json)
+passes both original joins of a rotated curved chain, the reversed raw
+station `14/5`, two algebraic witnesses, exact cap displacement `3/5`,
+and a miss `2^-60` outside the cap. Main race and five old receipts pass.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They
