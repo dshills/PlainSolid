@@ -10,11 +10,12 @@ import (
 )
 
 type topologyRecord struct {
-	id, kind  int
-	transform int
-	label     string
-	subscript int
-	values    []parameter
+	id, kind        int
+	transform       int
+	label           string
+	subscript       int
+	values          []parameter
+	boreGroupMember bool
 }
 type topologySource struct {
 	unit     float64
@@ -50,6 +51,10 @@ func readTopologyRecordsWithPlanarShells(r io.Reader, l Limits, lens, cylinders,
 }
 
 func readTopologyRecordPolicy(r io.Reader, l Limits, lens, cylinders, planes, spheres, tori, cones, placed, planarShells, vendorDirected bool, circularMode ...bool) (topologySource, error) {
+	return readTopologyRecordPolicyWithBore(r, l, lens, cylinders, planes, spheres, tori, cones, placed, planarShells, vendorDirected, false, circularMode...)
+}
+
+func readTopologyRecordPolicyWithBore(r io.Reader, l Limits, lens, cylinders, planes, spheres, tori, cones, placed, planarShells, vendorDirected, boreRim bool, circularMode ...bool) (topologySource, error) {
 	l, e := l.defaults()
 	if e != nil {
 		return topologySource{}, e
@@ -192,6 +197,9 @@ func readTopologyRecordPolicy(r io.Reader, l Limits, lens, cylinders, planes, sp
 				return topologySource{}, errors.New("iges: planar spline control point limit exceeded")
 			}
 		}
+		if boreRim {
+			supported = igesBoreRimDirectory(first, second)
+		}
 		if !supported {
 			return topologySource{}, fmt.Errorf("iges: unsupported topology entity %d", kind)
 		}
@@ -204,7 +212,7 @@ func readTopologyRecordPolicy(r io.Reader, l Limits, lens, cylinders, planes, sp
 				return topologySource{}, errors.New("iges: directory structure/view/status unsupported")
 			}
 		}
-		if !(ellipseDisk && kind == 142 && first[8] == 10500) && first[8] != 0 && first[8] != 10000 && !(kind == 504 && first[8] == 10001) && !(planarShells && kind == 186 && first[8] == 20000) && !((cylinders || planes || spheres || tori || cones || ellipseDisk || planarShells || vendorDirected) && ((kind == 116 && first[8] == 10400) || (kind == 123 && first[8] == 10200))) {
+		if !boreRim && !(ellipseDisk && kind == 142 && first[8] == 10500) && first[8] != 0 && first[8] != 10000 && !(kind == 504 && first[8] == 10001) && !(planarShells && kind == 186 && first[8] == 20000) && !((cylinders || planes || spheres || tori || cones || ellipseDisk || planarShells || vendorDirected) && ((kind == 116 && first[8] == 10400) || (kind == 123 && first[8] == 10200))) {
 			return topologySource{}, errors.New("iges: unsupported directory status")
 		}
 		if first[8] == 10000 || first[8] == 10500 {
@@ -230,10 +238,11 @@ func readTopologyRecordPolicy(r io.Reader, l Limits, lens, cylinders, planes, sp
 			return topologySource{}, e
 		}
 		formOne := ellipseConic && kind == 104 || cylinders && kind == 192 || (planes || ellipseDisk || ellipsePrism || planarShells) && kind == 190 || (spheres || sphericalMaterial) && kind == 196 || (tori || toroidalMaterial) && kind == 198 || cones && kind == 194 || conicalMaterial && kind == 194 || circular && (kind == 190 || kind == 192) || planarShells && kind == 402
-		if (first[6] != 0 && !(placed && (sphericalMaterial && kind == 196 || toroidalMaterial && kind == 198 || placedCone && kind == 194 || ellipseConic && kind == 104 || ellipsePrism && (kind == 110 || kind == 190) || kind == 126 || kind == 128 || circular && (kind == 100 || kind == 110 || kind == 190 || kind == 192)))) || second[8] < 0 || second[8] > 99999999 || (kind >= 500 && kind != 514 && second[4] != 1) || (kind == 514 && ((!lens && second[4] != 2) || (lens && second[4] != 1))) || (kind < 500 && second[4] != 0 && (!formOne || second[4] != 1)) || (formOne && second[4] != 1) {
+		if !boreRim && ((first[6] != 0 && !(placed && (sphericalMaterial && kind == 196 || toroidalMaterial && kind == 198 || placedCone && kind == 194 || ellipseConic && kind == 104 || ellipsePrism && (kind == 110 || kind == 190) || kind == 126 || kind == 128 || circular && (kind == 100 || kind == 110 || kind == 190 || kind == 192)))) || second[8] < 0 || second[8] > 99999999 || (kind >= 500 && kind != 514 && second[4] != 1) || (kind == 514 && ((!lens && second[4] != 2) || (lens && second[4] != 1))) || (kind < 500 && second[4] != 0 && (!formOne || second[4] != 1)) || (formOne && second[4] != 1)) {
 			return topologySource{}, errors.New("iges: unsupported topology placement/form")
 		}
-		doc.entities = append(doc.entities, topologyRecord{id: i + 1, kind: kind, transform: first[6], values: values, label: strings.TrimSpace(c[56:64]), subscript: second[8]})
+		doc.entities = append(doc.entities, topologyRecord{id: i + 1, kind: kind, transform: first[6], values: values, label: strings.TrimSpace(c[56:64]), subscript: second[8],
+			boreGroupMember: boreRim && kind == 186 && first[8] == 20000})
 	}
 	for _, u := range used {
 		if !u {
