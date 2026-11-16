@@ -90,6 +90,12 @@ below `0.01796` mm distance and `0.11452` radian continuous turn. A
 tilted instance preserves the tiny lens at volume scale 125. The
 overlapping component boxes are checked for exact disjointness; all 34
 earlier meshes and four transverse results remain byte identical.
+The [local separation exchange milestone](evidence/parabola-circle-local-separation-neutral-2026-11-16.json)
+passed a 490.550-second pinned main race. The complete neutral matrix
+contains 24 files, 32 positive one-shell solids and 432 independently
+audited directed original conic uses. The tiny lens readback agrees with
+the independent original-support author to within `6.74e-21` cubic units.
+Both short budgets emitted no bytes, and all 144 earlier files matched.
 
 The [proper-similarity display milestone](evidence/parabola-circle-proper-similarity-2026-11-16.json)
 passed its main focused race in 322.877 seconds. Eight components from four

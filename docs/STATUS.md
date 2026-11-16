@@ -73,6 +73,9 @@ exact native Common, Fuse and Cut.
 The locally separated Cuts also have certified closed display in both
 axes and orders, including a rotated and scaled instance of the tiny
 positive lens.
+Their exact Common, Fuse and Cut outputs also transfer through STEP
+and IGES. The tiny lens retains its original four quadrant vertices
+and its identity as a separate solid in both formats.
 Certified display of the separated two-circle Cuts now accepts proper
 rational similarities. The proof uses the original world coedge owners
 and reports distance in physical units after rotation and scaling.
