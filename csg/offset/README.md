@@ -66,6 +66,12 @@ A split inner core creates separate internal shells. A vanished core
 leaves the original layer completely filled. These operations do not cut
 an opening through an exterior support.
 
+`ThickenVolumeOpenPlane` and `ThickenOrthogonalVolumeOpenPlane` instead
+extend the first or last complete core cross section to one original
+extremal support. They verify every opening column against original
+material before cutting. The lip, unselected supports and independent
+internal walls stay in place. An absent positive mouth refuses atomically.
+
 The pinned OCCT control independently builds the expected stepped and
 hollow solids from their moved support stations. See
 [the reference runner](../../tools/occtref/README.md#orthogonal-volume-offset-controls).

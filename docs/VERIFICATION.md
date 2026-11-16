@@ -89,6 +89,12 @@ checks exact subtraction before coordinate conversion. The independent
 pinned stepped wall measures 19 with area 78 and two boundary shells.
 The hollow shape keeps two material bodies and four boundary shells with
 volume 640 and area 1,296. The main pinned race passed in 1.434 seconds.
+The [orthogonal open-wall proof](evidence/orthogonal-volume-open-wall-2026-11-15.json)
+checks the selected lip and unaffected support independently. The pinned
+stepped opening gives volume 18.5, area 78 and one boundary shell. The
+hollow opening gives volume 576, area 1,200 and three shells. All six box
+supports and a missing mouth were also tested. The main pinned race
+passed in 1.655 seconds.
 
 ## Full Go and PlainCAD rerun (2026-11-15)
 

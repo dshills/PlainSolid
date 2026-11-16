@@ -51,22 +51,34 @@ int main(int argc, char** argv) {
                       box(2., 8., 2., 8., 2., 8.));
     if (!op.IsDone()) return 3;
     result = op.Shape();
-  } else if (fixture == "step-wall") {
+  } else if (fixture == "step-wall" || fixture == "step-open-top") {
     BRepAlgoAPI_Fuse source(box(0., 4., 0., 2., 0., 2.),
                            box(0., 2., 0., 2., 2., 4.));
     BRepAlgoAPI_Cut core(box(.5, 3.5, .5, 1.5, .5, 3.5),
                         box(1.5, 4., 0., 2., 1.5, 4.));
     if (!source.IsDone() || !core.IsDone()) return 3;
-    BRepAlgoAPI_Cut wall(source.Shape(), core.Shape());
+    TopoDS_Shape tool = core.Shape();
+    if (fixture == "step-open-top") {
+      BRepAlgoAPI_Fuse opened(tool, box(.5, 1.5, .5, 1.5, 3.5, 4.5));
+      if (!opened.IsDone()) return 3;
+      tool = opened.Shape();
+    }
+    BRepAlgoAPI_Cut wall(source.Shape(), tool);
     if (!wall.IsDone()) return 3;
     result = wall.Shape();
-  } else if (fixture == "cavity-wall") {
+  } else if (fixture == "cavity-wall" || fixture == "cavity-open-top") {
     BRepAlgoAPI_Cut source(box(0., 10., 0., 10., 0., 10.),
                           box(3., 7., 3., 7., 3., 7.));
     BRepAlgoAPI_Cut core(box(1., 9., 1., 9., 1., 9.),
                         box(2., 8., 2., 8., 2., 8.));
     if (!source.IsDone() || !core.IsDone()) return 3;
-    BRepAlgoAPI_Cut wall(source.Shape(), core.Shape());
+    TopoDS_Shape tool = core.Shape();
+    if (fixture == "cavity-open-top") {
+      BRepAlgoAPI_Fuse opened(tool, box(1., 9., 1., 9., 9., 11.));
+      if (!opened.IsDone()) return 3;
+      tool = opened.Shape();
+    }
+    BRepAlgoAPI_Cut wall(source.Shape(), tool);
     if (!wall.IsDone()) return 3;
     result = wall.Shape();
   } else {

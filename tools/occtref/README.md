@@ -388,7 +388,7 @@ orders. OCCT reports one and two solids for those cases respectively.
 
 ## Orthogonal volume offset controls
 
-The optional reference builds four offsets and two closed wall layers
+The optional reference builds four offsets and four open or closed wall layers
 from moved support boxes. Pinned OCCT combines them and measures validity,
 shell count, signed volume and area. The ordinary Go implementation has
 no OCCT dependency.

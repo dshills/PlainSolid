@@ -3184,6 +3184,8 @@ closure, and regularizes a collapsed neck to two positive components.
 This is a cubical offset; general Euclidean offsets remain open.
 Closed wall thickening retains the exact original material minus its
 cubical erosion, including split cores and separate enclosed walls.
+Open thickening can extend a proved core to one original extremal support,
+keeping the lip, other support planes and independent cavity walls.
 
 ### Original curved loops and STEP cavities
 

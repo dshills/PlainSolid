@@ -147,11 +147,13 @@ func TestOrthogonalVolumeOffsetPinnedOCCT(t *testing.T) {
 		source   solid.Solid
 		distance float64
 		wall     bool
+		open     bool
 		bodies   int
 	}{
-		{"step-outward", stepped, .5, false, 1}, {"step-inward", stepped, -.5, false, 1},
-		{"cavity-outward", cavity, 1, false, 1}, {"cavity-inward", cavity, -1, false, 1},
-		{"step-wall", stepped, .5, true, 1}, {"cavity-wall", cavity, 1, true, 2},
+		{"step-outward", stepped, .5, false, false, 1}, {"step-inward", stepped, -.5, false, false, 1},
+		{"cavity-outward", cavity, 1, false, false, 1}, {"cavity-inward", cavity, -1, false, false, 1},
+		{"step-wall", stepped, .5, true, false, 1}, {"cavity-wall", cavity, 1, true, false, 2},
+		{"step-open-top", stepped, .5, true, true, 1}, {"cavity-open-top", cavity, 1, true, true, 2},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			out, err := exec.Command(oracle, c.name).CombinedOutput()
@@ -166,6 +168,11 @@ func TestOrthogonalVolumeOffsetPinnedOCCT(t *testing.T) {
 			op := ComputeVolume
 			if c.wall {
 				op = ThickenVolume
+			}
+			if c.open {
+				op = func(ctx context.Context, source solid.Solid, thickness float64, options VolumeOptions) (VolumeResult, error) {
+					return ThickenVolumeOpenPlane(ctx, source, thickness, VolumeOpenPlane{Axis: 2, High: true}, options)
+				}
 			}
 			result, err := op(ctx, c.source, c.distance, VolumeOptions{})
 			if err != nil {

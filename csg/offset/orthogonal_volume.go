@@ -47,7 +47,7 @@ func ComputeVolume(ctx context.Context, source solid.Solid, distance float64, o 
 	if err != nil {
 		return VolumeResult{}, err
 	}
-	return computeVolumeOffset(ctx, source, distance, o, false)
+	return computeVolumeOffset(ctx, source, distance, o, false, nil)
 }
 
 // FromOrthogonalVolume proves an outward axis-aligned B-rep and offsets its
@@ -61,7 +61,7 @@ func FromOrthogonalVolume(ctx context.Context, source brep.Solid, distance float
 	if err != nil {
 		return VolumeResult{}, err
 	}
-	return computeVolumeOffset(ctx, cells, distance, o, false)
+	return computeVolumeOffset(ctx, cells, distance, o, false, nil)
 }
 
 // ThickenVolume retains the wall layer of positive thickness inside an
@@ -76,7 +76,7 @@ func ThickenVolume(ctx context.Context, source solid.Solid, thickness float64, o
 	if err != nil {
 		return VolumeResult{}, err
 	}
-	return computeVolumeOffset(ctx, source, -thickness, o, true)
+	return computeVolumeOffset(ctx, source, -thickness, o, true, nil)
 }
 
 // ThickenOrthogonalVolume first proves a native outward orthogonal B-rep
@@ -93,7 +93,7 @@ func ThickenOrthogonalVolume(ctx context.Context, source brep.Solid, thickness f
 	if err != nil {
 		return VolumeResult{}, err
 	}
-	return computeVolumeOffset(ctx, cells, -thickness, o, true)
+	return computeVolumeOffset(ctx, cells, -thickness, o, true, nil)
 }
 
 func orthogonalVolumeSource(source brep.Solid, o VolumeOptions) (solid.Solid, error) {
@@ -194,7 +194,7 @@ func (g volumeGrid) accumulate(b *budget) error {
 	return nil
 }
 
-func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float64, o VolumeOptions, keepWall bool) (VolumeResult, error) {
+func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float64, o VolumeOptions, keepWall bool, opening *VolumeOpenPlane) (VolumeResult, error) {
 	var zero VolumeResult
 	result := VolumeResult{ExactVolume: new(big.Rat)}
 	b := &budget{ctx: ctx, remaining: o.MaxWork}
@@ -203,6 +203,9 @@ func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float
 	}
 	count := source.CellCount()
 	if count == 0 {
+		if opening != nil {
+			return zero, ErrNoOpenCore
+		}
 		return result, nil
 	}
 	if count > o.MaxSourceCells || count > b.remaining/6 {
@@ -254,6 +257,9 @@ func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float
 		shifted[a] = unique(shifted[a])
 	}
 	if vanished {
+		if opening != nil {
+			return zero, ErrNoOpenCore
+		}
 		return unchangedVolumeLayer(cells, exact, b, o)
 	}
 	g, err := newVolumeGrid(shifted, b, o.MaxGridEntries)
@@ -307,6 +313,13 @@ func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float
 			lo[a] = g.position(a, axis[0])
 			hi[a] = g.position(a, axis[len(axis)-1])
 		}
+		var mouth orthogonalOpenMouth
+		if opening != nil {
+			mouth, err = proveVolumeOpening(g, original, lo, hi, insetLo, insetHi, *opening, b)
+			if err != nil {
+				return zero, err
+			}
+		}
 		take = func(i, j, k int) bool {
 			index := g.index(i, j, k)
 			if original.delta[index] == 0 {
@@ -315,6 +328,9 @@ func computeVolumeOffset(ctx context.Context, source solid.Solid, distance float
 			// The core is occupied only inside the inset limits and outside
 			// every expanded complementary box.
 			inside := i >= insetLo[0] && i < insetHi[0] && j >= insetLo[1] && j < insetHi[1] && k >= insetLo[2] && k < insetHi[2]
+			if opening != nil && mouth.contains([3]int{i, j, k}) {
+				return false
+			}
 			return !inside || g.delta[index] > 0
 		}
 	} else {
