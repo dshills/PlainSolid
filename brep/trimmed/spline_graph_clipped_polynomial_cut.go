@@ -187,9 +187,12 @@ func CutClippedPolynomialComponents(ctx context.Context, base, a, b *geom.BSplin
 }
 
 func isNativeClippedPolynomialArrangement(proof geom.SplineGraphPolynomialArrangement, axis int) bool {
-	return isNativeAlignedPolynomialArrangement(proof, axis) ||
-		proof.Proven && proof.FreeAxis == axis && proof.Graph.ProjectionOrientation == 1 &&
-			slices.Equal(proof.ContactOrder, []int{1, 1})
+	return isNativeAlignedPolynomialArrangement(proof, axis) || isNativeClippedTransverseArrangement(proof, axis, 2)
+}
+
+func isNativeClippedTransverseArrangement(proof geom.SplineGraphPolynomialArrangement, axis, nodes int) bool {
+	return proof.Proven && proof.FreeAxis == axis && proof.Graph.ProjectionOrientation == 1 &&
+		len(proof.ContactOrder) == nodes && !slices.ContainsFunc(proof.ContactOrder, func(order int) bool { return order != 1 })
 }
 
 func (b *clippedStockShellBuilder) buildCutShell(ctx context.Context, material geom.ClippedSplineGraphPolynomialMaterial,

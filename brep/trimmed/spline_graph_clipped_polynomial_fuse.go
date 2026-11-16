@@ -79,9 +79,9 @@ func cloneClippedPolynomialWallBindings(walls []ClippedPolynomialWallBinding) []
 }
 
 // FuseClippedPolynomialEnvelope builds the union over unequal, exactly
-// representable axis-aligned footprints. It admits two transverse crossings
-// or a cubic crossing and a quadratic tangency inside the overlap. Roof step
-// walls keep the original upper and lower traces, including tapered ends.
+// representable axis-aligned footprints. It admits two or three transverse
+// crossings, or a cubic crossing and a quadratic tangency, inside the overlap.
+// Roof step walls keep the original upper and lower traces, including tapered ends.
 func FuseClippedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface, axis int,
 	tolerance float64, o PolynomialCubicCrossingTangencyEnvelopeOptions) (*ClippedPolynomialFuse, error) {
 	if ctx == nil || base == nil || a == nil || b == nil || axis < 0 || axis > 1 || !finite(tolerance) || tolerance <= 0 ||
@@ -108,7 +108,7 @@ func FuseClippedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BSpline
 		return nil, geom.ErrDomain
 	}
 	proof := material.Overlap.Projection.Arrangement
-	if !isNativeClippedPolynomialArrangement(proof, axis) {
+	if !isNativeClippedPolynomialArrangement(proof, axis) && !isNativeClippedTransverseArrangement(proof, axis, 3) {
 		return nil, geom.ErrConvergence
 	}
 	baseChart, e := polynomialEnvelopeBaseChart(material.Overlap.BaseAlignment)
@@ -169,7 +169,7 @@ func FuseClippedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BSpline
 		return nil, e
 	}
 	junctionBinding := polynomialEnvelopeBinding{polynomialNodeBinding: binding, roofFaces: faceIDs}
-	var contacts [2]PolynomialMixedEnvelopeContact
+	contacts := make([]PolynomialMixedEnvelopeContact, len(proof.Nodes))
 	for i, node := range proof.Nodes {
 		c, e := bindPolynomialEnvelopeJunction(solid, junctionBinding, proof.Edges, node, proof.Vertices[node.Vertex], xyz[node.Vertex])
 		if e != nil {
@@ -179,13 +179,15 @@ func FuseClippedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BSpline
 		contacts[i] = c
 	}
 	chains := make([][2]int, len(binding.edges))
+	var midpoints []int
 	for i, chain := range binding.edges {
 		chains[i] = [2]int{chain[0], -1}
 		if len(chain) == 2 {
 			chains[i][1] = chain[1]
+			midpoints = append(midpoints, binding.midpoints[i])
 		}
 	}
-	ledger := makePolynomialEnvelopeLedger(chains, binding.vertices, []int{binding.midpoints[1], binding.midpoints[4]}, faceIDs, ownerIDs, baseID, contacts[:])
+	ledger := makePolynomialEnvelopeLedger(chains, binding.vertices, midpoints, faceIDs, ownerIDs, baseID, contacts)
 	solid.clippedFuseAxis = axis + 1
 	return &ClippedPolynomialFuse{solid: solid, sources: sources, axis: axis, tolerance: tolerance, ledger: ledger, walls: walls,
 		footprints: material.Footprints, volume: material.Fuse}, nil
