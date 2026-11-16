@@ -42,6 +42,27 @@ complete disappearance, overlapping-cross morphology, exact decimal-offset
 area, topology-preserving float conversion, rejection of collapsed coordinates
 and point contacts, promotion, and budget/cancellation failures.
 
+### Full orthogonal volume offsets
+
+`ComputeVolume` offsets a cell solid along all three axes;
+`FromOrthogonalVolume` first proves and converts an outward orthogonal
+B-rep. Their metric is the cube `[-r,r]³`. This can change height, close
+cavities, join separated volumes, or erode a neck to nothing and split
+the result. The original footprint-only functions continue to leave Z
+unchanged.
+
+Dilation marks expanded occupied cells. Erosion marks expanded empty
+cells and excludes the outside of the inset bounds. Three-dimensional
+prefix sums construct the exact rational arrangement; adjacent runs
+are combined into disjoint cuboids. `VolumeResult.ExactVolume` and
+`Cells` retain their exact values. The native B-rep is published only
+if used coordinates retain strict order within the rounding budget and
+the result is a closed manifold. Lower dimensional remnants disappear.
+
+The pinned OCCT control independently builds the expected stepped and
+hollow solids from their moved support stations. See
+[the reference runner](../../tools/occtref/README.md#orthogonal-volume-offset-controls).
+
 ### Exact rounded-cylinder blend extinction
 
 `WrappedRoundedCylinder` also accepts inward offsets that exactly reduce the

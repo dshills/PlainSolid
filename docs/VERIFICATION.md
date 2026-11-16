@@ -46,6 +46,13 @@ name on a shared relationship appears in both uses. Invalid or conflicting
 edits produce no output. Main's STEP and document races passed in 94.996
 and 98.513 seconds; the existing rational spherical edit also passed.
 
+The [full orthogonal volume offset](evidence/orthogonal-volume-offset-2026-11-15.json)
+matched independently constructed pinned OCCT references for four
+stepped and hollow operations. The exact volumes are 63, 5, 1720 and
+296, with surface areas 102, 22, 888 and 600. A neck collapse separates
+two positive volumes; an edge-only boundary contact and short budgets
+refuse atomically. The pinned main race passed in 1.313 seconds.
+
 ## Full Go and PlainCAD rerun (2026-11-15)
 
 The [pinned Go report](evidence/main-af569683-qualification-2026-11-15.json)

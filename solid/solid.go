@@ -54,7 +54,11 @@ func finite(v float64) bool { return !math.IsNaN(v) && !math.IsInf(v, 0) }
 
 // Cells returns an independent copy of the solid's disjoint cells.
 func (s Solid) Cells() []geom.Box { return append([]geom.Box(nil), s.cells...) }
-func (s Solid) Empty() bool       { return len(s.cells) == 0 }
+
+// CellCount reports the number of disjoint cells without copying them.
+func (s Solid) CellCount() int { return len(s.cells) }
+
+func (s Solid) Empty() bool { return len(s.cells) == 0 }
 func (s Solid) Volume() float64 {
 	sum := 0.
 	for _, b := range s.cells {

@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "scope": "Regularized three-dimensional cubical orthogonal offsets; pinned independent support-box reference",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "elapsedSeconds": 1.314,
+  "namedCases": [
+    "TestOrthogonalVolumeOffsetStepAndCavity",
+    "TestOrthogonalVolumeOffsetTopologicalTransitions",
+    "TestOrthogonalVolumeOffsetExactCoordinatesAndRefusal",
+    "TestOrthogonalVolumeOffsetPinnedOCCT/step-outward",
+    "TestOrthogonalVolumeOffsetPinnedOCCT/step-inward",
+    "TestOrthogonalVolumeOffsetPinnedOCCT/cavity-outward",
+    "TestOrthogonalVolumeOffsetPinnedOCCT/cavity-inward",
+    "TestOrthogonalVolumeOffsetPinnedOCCT"
+  ],
+  "referenceResults": [
+    {
+      "fixture": "step-outward",
+      "volume": 63,
+      "surfaceArea": 102,
+      "shells": 1
+    },
+    {
+      "fixture": "step-inward",
+      "volume": 5,
+      "surfaceArea": 22,
+      "shells": 1
+    },
+    {
+      "fixture": "cavity-outward",
+      "volume": 1720,
+      "surfaceArea": 888,
+      "shells": 2
+    },
+    {
+      "fixture": "cavity-inward",
+      "volume": 296,
+      "surfaceArea": 600,
+      "shells": 2
+    }
+  ],
+  "files": {
+    ".worktrees/qualification/2026-11-15/orthogonal-volume-offset-occt-main-race.jsonl": "94ec84eb89b9e97f4ca76360bb8b56d073751d8c35871a25d99630bb84e61fa6",
+    ".worktrees/qualification/2026-11-15/orthogonal-volume-offset-reference": "fc3199026764d77826a92cf0150c832ba3f26f59abae5cee026d21a589704bfb",
+    "tools/occtref/orthogonal_volume_offset.cxx": "eab152aa9d3f797b70701b4fa6836ae884bdf29190574d322fd66c3c0d079db8"
+  }
+}

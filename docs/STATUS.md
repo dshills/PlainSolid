@@ -3165,6 +3165,10 @@ Spherical offsets retain exact support ancestry through cavity fill,
 transverse breakthrough, union of expanding components and removal of
 collapsed components. General offsets and rolling ball transitions
 remain open.
+The orthogonal offset now also operates on full variable-height volumes.
+It retains exact rational cuboid coverage through cavity growth or
+closure, and regularizes a collapsed neck to two positive components.
+This is a cubical offset; general Euclidean offsets remain open.
 
 ### Original curved loops and STEP cavities
 
