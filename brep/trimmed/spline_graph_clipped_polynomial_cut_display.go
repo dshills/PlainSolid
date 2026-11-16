@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"math/big"
 	"slices"
 
 	"plainsolid/brep/parametric"
@@ -21,6 +22,21 @@ func (r *ClippedPolynomialCut) Tessellate(ctx context.Context, o parametric.Tess
 	if r == nil || r.native == nil {
 		return nil, geom.ErrInvalid
 	}
+	return tessellateClippedCut(ctx, r.native.axis, r.native.material, r.shells, r.native.volumes, r.native.orders == ([2]int{1, 1}), o)
+}
+
+// Tessellate displays the three-crossing Cut as separately indexed, outward
+// meshes. Each declared native contact remains an independent vertex in
+// each incident shell. The caller's triangle budget covers all components.
+func (r *ClippedPolynomialThreeTransverseCut) Tessellate(ctx context.Context, o parametric.TessellationOptions) ([]mesh.Mesh, error) {
+	if r == nil || r.cut == nil {
+		return nil, geom.ErrInvalid
+	}
+	return tessellateClippedCut(ctx, r.axis, r.cut.material, r.cut.shells, r.cut.volumes, true, o)
+}
+
+func tessellateClippedCut(ctx context.Context, axis int, material polynomialNodeCutMaterial, shells []clippedPolynomialCutShellLedger,
+	volumes []*big.Rat, preferStripVolume bool, o parametric.TessellationOptions) ([]mesh.Mesh, error) {
 	o, e := normalizeTrimmedTessellationOptions(ctx, o)
 	if e != nil {
 		return nil, e
@@ -28,7 +44,7 @@ func (r *ClippedPolynomialCut) Tessellate(ctx context.Context, o parametric.Tess
 	if o.AnalyticBound {
 		return nil, parametric.ErrDeflectionUnsupported
 	}
-	parts := r.native.material.components
+	parts := material.components
 	displays := make([]mesh.Mesh, len(parts))
 	maximum := min(o.MaxTriangles, collision.MaxTriangles)
 	remaining := maximum
@@ -42,7 +58,7 @@ func (r *ClippedPolynomialCut) Tessellate(ctx context.Context, o parametric.Tess
 		options := o
 		options.MaxTriangles = remaining
 		part = part.withTessellationTrimMemo(&tessellationTrimMemo{limit: tessellationTrimMemoLimit})
-		display, e := part.tessellateClippedPolynomial(ctx, r.native.axis, options)
+		display, e := part.tessellateClippedPolynomial(ctx, axis, options)
 		if e != nil {
 			return nil, fmt.Errorf("trimmed: clipped Cut display component %d: %w", i, e)
 		}
@@ -50,8 +66,8 @@ func (r *ClippedPolynomialCut) Tessellate(ctx context.Context, o parametric.Tess
 		remaining -= len(display.Triangles)
 	}
 
-	declarations := make([]collision.AssemblyVertexContact, 0, len(r.native.material.contacts))
-	for _, contact := range r.native.material.contacts {
+	declarations := make([]collision.AssemblyVertexContact, 0, len(material.contacts))
+	for _, contact := range material.contacts {
 		declarations = append(declarations, collision.AssemblyVertexContact{
 			A: collision.AssemblyVertex{Solid: contact.Components[0], Vertex: contact.Vertices[0]},
 			B: collision.AssemblyVertex{Solid: contact.Components[1], Vertex: contact.Vertices[1]},
@@ -61,7 +77,10 @@ func (r *ClippedPolynomialCut) Tessellate(ctx context.Context, o parametric.Tess
 	if _, e = collision.ValidateMeshVertexContactAssembly(ctx, displays, declarations, validation); e != nil {
 		return nil, fmt.Errorf("trimmed: clipped Cut display contacts: %w", e)
 	}
-	preferred, e := r.preferTransverseStripDisplays(ctx, o, displays, remaining)
+	if !preferStripVolume {
+		return displays, nil
+	}
+	preferred, e := preferTransverseStripDisplays(ctx, axis, parts, shells, volumes, o, displays, remaining)
 	if e != nil {
 		return nil, e
 	}
@@ -79,19 +98,19 @@ func (r *ClippedPolynomialCut) Tessellate(ctx context.Context, o parametric.Tess
 // Prefer closer agreement with the exact source volume after the requested
 // geometric preview has qualified. A transverse component whose floor steps
 // from the base to the cutter can use spare capacity for another subdivision.
-func (r *ClippedPolynomialCut) preferTransverseStripDisplays(ctx context.Context, o parametric.TessellationOptions,
-	displays []mesh.Mesh, remaining int) ([]mesh.Mesh, error) {
-	if r.native.orders != ([2]int{1, 1}) || remaining == 0 {
+func preferTransverseStripDisplays(ctx context.Context, axis int, parts []Solid, shells []clippedPolynomialCutShellLedger,
+	volumes []*big.Rat, o parametric.TessellationOptions, displays []mesh.Mesh, remaining int) ([]mesh.Mesh, error) {
+	if remaining == 0 {
 		return nil, nil
 	}
 	const relativeVolumePreference = .003
 	var preferred []mesh.Mesh
 	for i, display := range displays {
-		chambers := r.shells[i].Chambers
+		chambers := shells[i].Chambers
 		if len(chambers) < 2 || chambers[0].Tile != 0 || chambers[len(chambers)-1].Tile == 0 {
 			continue
 		}
-		volume, _ := r.native.volumes[i].Float64()
+		volume, _ := volumes[i].Float64()
 		if volume <= 0 || !finite(volume) {
 			continue
 		}
@@ -103,8 +122,8 @@ func (r *ClippedPolynomialCut) preferTransverseStripDisplays(ctx context.Context
 		}
 		options := o
 		options.MaxTriangles = remaining + len(display.Triangles)
-		part := r.native.material.components[i].withTessellationTrimMemo(&tessellationTrimMemo{limit: tessellationTrimMemoLimit})
-		candidate, e := part.tessellateClippedPolynomialCandidate(ctx, r.native.axis, options, withinPreference)
+		part := parts[i].withTessellationTrimMemo(&tessellationTrimMemo{limit: tessellationTrimMemoLimit})
+		candidate, e := part.tessellateClippedPolynomialCandidate(ctx, axis, options, withinPreference)
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
