@@ -82,5 +82,47 @@
     "elapsed_seconds": [
       1.456
     ]
+  },
+  "analytic_contact_boundary": {
+    "log": "projective-graph-contact-boundary-main-race.jsonl",
+    "sha256": "85b592619967536b5da682d9d77d831216c1faa302c37cad09318d61f10316b9",
+    "main_passes": [
+      "TestTransformProjectiveUVKeepsOriginalCurveKnotsAndPhysicalDerivatives",
+      "TestProjectiveSurfaceGraphOverlapMapsAnOriginalUVCurve",
+      "TestExactSurfaceComparisonDegreeKnotsAndDomain",
+      "TestExactSurfaceComparisonChartSymmetries",
+      "TestExactSurfaceComparisonNegativeAndLimits",
+      "TestExactSurfaceComparisonRationalMultiplierAndNonbinaryGrid",
+      "TestExactSurfaceComparisonFractionalOriginalKnotMaps",
+      "TestExactSurfaceComparisonPartialLeavesOtherRegionsUnclassified",
+      "TestProjectiveGraphContactBoundaryKeepsBothDirectedOriginalCurves",
+      "TestProjectiveGraphContactBoundaryRefusesPartialProof",
+      "TestProjectiveSurfaceGraphOverlapDiscoversOriginalPartialMap",
+      "TestProjectiveSurfaceGraphOverlapRejectsAProjectionThatOnlyMatchesSamples",
+      "TestSurfaceSurfaceProjectiveCoincidenceKeepsExactCompleteContact",
+      "TestExactSurfaceAffineParameterCurveRationalReversal",
+      "TestSurfaceSurfaceCoverSplitsFiniteRangesWhoseWidthOverflows",
+      "TestSurfaceSurfaceCoverCrossingAndSymmetry",
+      "TestSurfaceSurfaceDisjointAndIdentical",
+      "TestSurfaceSurfaceTangencyAndLimits",
+      "TestSurfaceSurfaceRationalContactCover",
+      "TestSurfaceSurfaceCoplanarIsNotEqualityProof",
+      "TestVerticalProjectiveChartPreservesWholeSurface"
+    ],
+    "directed_clock_ratios": [
+      "13/17",
+      "7/9",
+      "17/13",
+      "9/7"
+    ],
+    "original_B_clock_cuts": [
+      "13/64",
+      "7/8",
+      "51/64",
+      "1/8"
+    ],
+    "elapsed_seconds": [
+      1.568
+    ]
   }
 }

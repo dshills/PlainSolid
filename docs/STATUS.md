@@ -77,6 +77,8 @@ retaining their original curve clocks and break stations.
 The surface-pair cover can publish that exact rectangle as the complete
 original contact under the proved graph assumptions. If the proof does
 not conclude, ordinary coverage still retains all possible contacts.
+The proved overlap can also publish a closed analytic boundary with both
+original owners, their knot partitions and exact directed coedge clocks.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

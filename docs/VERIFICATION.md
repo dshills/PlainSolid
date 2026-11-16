@@ -151,6 +151,10 @@ insufficient mapped control budget leave no curve.
 The surface-pair cover reports that complete contact in one visit with
 the exact original stations and map. Its short-budget and perturbed
 controls retain pending cells; an edge-only contact remains a candidate.
+The exact common boundary exposes four model corners, four directed
+coedge clock ratios, and each owner's original knot cuts. Independently
+evaluated owner traces coincide; short extraction limits return no
+partial cycle.
 
 [Periodic IGES type 128 import](evidence/iges-periodic-128-2026-11-16.json)
 passed three independently authored pinned OCCT inputs and 54 original
