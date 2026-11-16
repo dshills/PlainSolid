@@ -13,6 +13,11 @@ func (s stored) analyticDisplayMesh(q request) (mesh.Mesh, [][3]geom.Vec3, bool,
 	if err != nil {
 		return mesh.Mesh{}, nil, true, err
 	}
+	if s.analytic != nil && s.analytic.stepRevolution != nil && s.analytic.stepRevolution.conical != nil {
+		// Use the certified conical source path rather than substituting the
+		// generic sampled normal mesh for an already authenticated solid.
+		return mesh.Mesh{}, nil, false, nil
+	}
 	if s.analytic != nil && s.analytic.stepArcLoop != nil {
 		// The source-aware sampler includes exact axis support extrema.
 		// Generic compact charts sample only at evenly spaced parameters.

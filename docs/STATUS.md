@@ -315,7 +315,11 @@ also proves the original eccentric bore, both unequal toroidal bands,
 their acute and obtuse meridians, and both cap holes. Its default rounded
 source does not meet the strict support contract. The [matching independent IGES reader](evidence/conical-rim-fillet-bore-iges-import-2026-11-15.json)
 replays the same native body and both formats now expose a certified
-distance and closed-display path on their authenticated geometry.
+distance and angular display path on their authenticated geometry.
+The [ordinary PlainCAD conical route](evidence/conical-bore-angular-plaincad-2026-11-15.json)
+now uses the exact mesh and supports byte-preserving STEP replay in the
+original placement. At the proved default tolerance it took 65 seconds
+in a fresh Go WASM dispatcher.
 The [independent mixed AP242 assembly](evidence/mixed-conical-ap242-assembly-2026-11-15.json)
 uses a shared conical part twice and the chamfered annulus once. Both
 local parts re-prove byte-identically to their standalone native bodies,

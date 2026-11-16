@@ -18,6 +18,7 @@ func TestProvedSTEPRevolutionImportAndSourceExport(t *testing.T) {
 		faces  int
 	}{
 		{"occt-eccentric-annular-chamfer", 726.98826535488854, 8},
+		{"occt-conical-double-rim-eccentric-bore", 2282.4014040828897, 6},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			path := filepath.Join("..", "..", "exchange", "step", "testdata")

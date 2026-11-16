@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "scope": "Certified native conical fillet/bore display and actual Go WASM ordinary STEP dispatcher.",
+  "base": "78c9e7a9",
+  "nativePatch": "92c94735ffd3093a40698c2f80d786d363f19a84",
+  "nativeDefault": {
+    "linearDeflection": 0.05,
+    "facetAngle": 0.1,
+    "normalTurn": 0.2,
+    "squaredNormalTangentUpper": 0.0078125,
+    "squaredDeflectionUpper": 0.001095479786,
+    "triangles": 10496,
+    "gridChecks": 21832,
+    "planePredicates": 69220,
+    "collisionCandidates": 321011,
+    "contacts": 0,
+    "report": {
+      "path": ".worktrees/qualification/2026-11-15/conical-bore-angular-005-01-native-default.log",
+      "sha256": "adfb7285f2c7843c8b7f39e23296af8a2801803039082ba6815037156f676cdb"
+    }
+  },
+  "wasm": {
+    "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/conical-angular-main-MBrOHy/out/conical-angular-main.wasm",
+    "sha256": "ee9e446624adbb9af6c6249976ab000446af8cdabcbaea73af0bc3f0340418b5",
+    "run": {
+      "path": ".worktrees/qualification/2026-11-15/conical-angular-main-sealed-wasm.log",
+      "sha256": "0541d64c97ed018133af657fa1a36ee740baf7abb7924271284f019207d9b432"
+    },
+    "records": [
+      {
+        "family": "conical",
+        "triangles": 10496,
+        "vertices": 5248,
+        "edges": 15744,
+        "eulerCharacteristic": 0,
+        "volume": 2282.401400976394,
+        "signedVolume": 2277.843268907193,
+        "meshMs": 65303.933625000005,
+        "originalSHA256": "af7b2221489a2edef6c4535233c8786826519787e9e326639e984bea0bd871a9"
+      },
+      {
+        "family": "annular",
+        "triangles": 1024,
+        "vertices": 512,
+        "edges": 1536,
+        "eulerCharacteristic": 0,
+        "volume": 726.9882656101975,
+        "signedVolume": 725.6769728851809,
+        "meshMs": 829.3275829999993,
+        "originalSHA256": "5d4b2bbd008c9a295afa988c3ece5365d05200edac0b9a1e5b05d96d6769a75c"
+      }
+    ]
+  },
+  "mainRace": {
+    "path": ".worktrees/qualification/2026-11-15/conical-angular-bridge-main-sealed-race.jsonl",
+    "sha256": "d773a1da87cd7450bd97ba475a86a32eac838fff46ccecc31271211061ecf546",
+    "packageTimes": {
+      "plainsolid/brep/trimmed": 150.43,
+      "plainsolid/internal/plaincadbridge": 213.927
+    }
+  }
+}

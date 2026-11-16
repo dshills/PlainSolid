@@ -91,6 +91,9 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 }
 
 func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, error) {
+	if a.stepRevolution != nil && a.stepRevolution.conical != nil {
+		return a.stepRevolution.tessellateConical(context.Background(), o)
+	}
 	if a.stepArcLoop != nil {
 		if display, qualified, err := a.stepArcLoop.tessellate(o); qualified {
 			return display, err

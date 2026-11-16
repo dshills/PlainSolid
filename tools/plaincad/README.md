@@ -453,3 +453,19 @@ worker requests the 0.35-radian interaction profile and verifies edge closure
 and the same native receipt. It also checks that a 0.34-radian request fails
 after the 0.35-radian mesh has been cached. The source, worker and WASM hashes
 accompany both fixture results.
+
+### Strict revolution STEP
+
+Ordinary STEP import accepts the exact eccentric annular chamfer and
+double conical rim fillet with an eccentric through-bore. Their original
+millimetre STEP files can be replayed and exported unchanged in their
+original placement. The conical display certifies both distance and
+normal turn; it does not take the generic sampled mesh path.
+
+```sh
+GOOS=js GOARCH=wasm go build -trimpath -o /tmp/plaincad-revolution.wasm ./cmd/plaincadwasm
+node tools/plaincad/proved-revolution-step.mjs /tmp/plaincad-revolution.wasm "$(go env GOROOT)/lib/wasm/wasm_exec.js" conical
+```
+
+Use `annular` for the chamfered annulus control. The conical probe checks
+0.05 mm distance with a 0.2-radian source normal turn request.

@@ -23,3 +23,10 @@ func (r DisplayRecipe) TessellateCertified(ctx context.Context, o trimmed.Certif
 	}
 	return trimmed.TessellateFilletedFrustumThroughBoreCertified(ctx, r.stock, r.lower, r.upper, r.center, r.radius, o)
 }
+
+func (r DisplayRecipe) TessellateNormalsCertified(ctx context.Context, angle float64, o trimmed.CertifiedWrappedFrustumMeshOptions) (trimmed.CertifiedFilletedFrustumBoreMesh, error) {
+	if ctx == nil || r.radius <= 0 {
+		return trimmed.CertifiedFilletedFrustumBoreMesh{}, geom.ErrInvalid
+	}
+	return trimmed.TessellateFilletedFrustumThroughBoreNormalsCertified(ctx, r.stock, r.lower, r.upper, r.center, r.radius, angle, o)
+}

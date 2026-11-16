@@ -36,6 +36,12 @@ func (m ConicalRimFilletBoreIGES) TessellateCertified(ctx context.Context, o tri
 	return m.display.TessellateCertified(ctx, o)
 }
 
+// TessellateNormalsCertified proves continuous outward source normals
+// against each represented facet along with the two-sided distance bound.
+func (m ConicalRimFilletBoreIGES) TessellateNormalsCertified(ctx context.Context, angle float64, o trimmed.CertifiedWrappedFrustumMeshOptions) (trimmed.CertifiedFilletedFrustumBoreMesh, error) {
+	return m.display.TessellateNormalsCertified(ctx, angle, o)
+}
+
 var errIGESConicalRimFilletBore = errors.New("iges: unsupported exact conical rim fillet with eccentric bore")
 
 type conicalRimFilletBoreFaces struct {

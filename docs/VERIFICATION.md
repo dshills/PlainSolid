@@ -786,7 +786,18 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   2,160-triangle closed source-owned mesh with a 0.2 mm distance bound,
   4,808 patch checks and 9,045 predicates. Main race passed the cross-format
   display and the independent STEP/IGES files in 94.156, 52.518 and
-  50.405 seconds. This display proof has no finite angular claim yet.
+  50.405 seconds. That distance-only proof is unchanged.
+- The [conical angular mesh and ordinary bridge](evidence/conical-bore-angular-plaincad-2026-11-15.json)
+  prove the default 0.05 mm distance and 0.2-radian normal turn by
+  bounding each original source normal within 0.1 radians of its
+  represented facet. Exact cone, torus and bore charts generate the
+  bounds. The closed 10,496-triangle display checks 321,011 possible
+  contacts with no unintended hits. Its signed mesh volume is
+  `2277.843268907193` versus source `2282.401400976394`. The actual Go
+  WASM dispatcher took 65.304 seconds, refused the rounded source, and
+  exported and reopened the exact original STEP bytes. The preceding
+  annular bridge returned its same 1,024 facets. Main's sealed native
+  and bridge race groups passed in 150.430 and 213.927 seconds.
 - The [mixed AP242 source proof](evidence/mixed-conical-ap242-assembly-2026-11-15.json)
   keeps distinct conical uses `191` and `197` on one original local
   definition `35`. Chamfered definition `200` retains the exact rational
