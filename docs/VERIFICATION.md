@@ -820,6 +820,14 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   topology. Altered ownership, unit mismatch, raw rounded supports and
   rotation changes hidden by binary rounding refuse. Main's sealed live
   race passed in 51.952 seconds.
+- The [nested AP242 proof](evidence/nested-mixed-conical-ap242-assembly-2026-11-15.json)
+  keeps both original IDs on each of six leaf paths through repeated
+  group `31`. World transforms compose exactly at both levels. One
+  path retains rotation `(-7/25,24/25)` and another maps the retained
+  source point to `(-1007/10,-1154/25,378/25)`. Pinned XCAF recovers
+  shared ownership, topology and positive per-occurrence volumes.
+  Rounded supports, wrong child attachment and altered directions
+  at either level refuse. Main's sealed live race passed in 30.053 seconds.
 - The [diagonal circle cap and wall proof](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
   (`a296b700`) qualifies the independent offset `(1.5,2)` with exact
   circular rim laws and shell-wide clearance. A targeted raw constructor

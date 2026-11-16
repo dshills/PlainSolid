@@ -39,3 +39,32 @@ c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" tools/occtref/author_ap242_mixed_conical_cu
 PLAINSOLID_OCCT_MIXED_CONICAL_AP242="$PWD/author-ap242-mixed-conical-curved" \
   go test -race ./exchange/step -run '^(TestReadMixedConicalAP242Assembly.*|TestMixedConicalAP242PinnedAuthor)$' -count=1 -v
 ```
+
+## Reused subassembly
+
+`ReadNestedMixedConicalAP242Assembly` authenticates one assembly-only
+group referenced two to eight times by the root. The group has two
+to eight original material uses, including both curved families. Its
+local product geometry is validated once. Each expanded instance
+retains both original NAUO IDs and the exact product of the two source
+poses. The flat reader remains an independent two-leaf entry point.
+
+The pinned nested author reuses the same mixed group twice. Its two
+parent rotations use the rational 3–4–5 ratios around different axes.
+Six leaf instances expand from five source uses and two unchanged
+native solids. Path `[58,416]` composes two azimuth rotations with
+cosine `-7/25` and sine `24/25`. The other occurrence of that
+chamfered part, at path `[422,416]`, sends local point `(1.5,2,4)`
+to exact world coordinates `(-1007/10,-1154/25,378/25)`.
+
+The reference check reopens the nested source in pinned XCAF, verifies
+both group references point to one original definition, and compares
+all six world poses, topology counts and signed volumes. The fixture
+also tests a valid common assembly graph that misattaches a direct leaf.
+The focused reader rejects that graph, duplicate transformation
+ownership, and inexact source directions at either level.
+
+```sh
+PLAINSOLID_OCCT_MIXED_CONICAL_AP242="$PWD/author-ap242-mixed-conical-curved" \
+  go test -race ./exchange/step -run '^(TestReadNestedMixedConicalAP242Assembly.*|TestNestedMixedConicalAP242PinnedAuthor)$' -count=1 -v
+```

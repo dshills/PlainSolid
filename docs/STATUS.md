@@ -325,6 +325,9 @@ The [independent mixed AP242 assembly](evidence/mixed-conical-ap242-assembly-202
 uses a shared conical part twice and the chamfered annulus once. Both
 local parts re-prove byte-identically to their standalone native bodies,
 and occurrence identities and exact rational placements remain distinct.
+Its [nested counterpart](evidence/nested-mixed-conical-ap242-assembly-2026-11-15.json)
+expands six exact world paths from five original occurrence links while
+reusing the two authenticated local solids.
 The [eccentric bore inner rim fillets](evidence/eccentric-cylinder-bore-rim-fillet-2026-11-15.json)
 (`d930469f`) retain the unchanged outer cylinder, original axes and cap
 planes with exact quarter-toroid transitions and positive clearance.

@@ -8,7 +8,7 @@ type mixedConicalAP242Records struct {
 	occurrences                  []ExactNAUOOccurrence
 }
 
-func proveMixedConicalAP242Records(a Assembly, parts map[int64]int64, geometry map[int64]bool, l Limits) (mixedConicalAP242Records, error) {
+func proveMixedConicalAP242Records(a Assembly, layout mixedConicalAP242Layout, l Limits) (mixedConicalAP242Records, error) {
 	var zero mixedConicalAP242Records
 	f := a.Source
 	productIDs := map[int64]bool{}
@@ -18,23 +18,16 @@ func proveMixedConicalAP242Records(a Assembly, parts map[int64]int64, geometry m
 		}
 		productIDs[p.ProductID] = true
 	}
-	uses, counts := map[int64]AssemblyOccurrence{}, map[int64]int{}
-	for _, u := range a.Occurrences {
-		if u.Parent != a.Roots[0] || parts[u.Child] == 0 {
-			return zero, errMixedConicalAP242
-		}
-		uses[u.ID] = u
-		counts[u.Child]++
-	}
-	if len(counts) != len(parts) {
-		return zero, errMixedConicalAP242
+	uses, err := mixedConicalAP242UseIndex(a, layout)
+	if err != nil {
+		return zero, err
 	}
 	out := mixedConicalAP242Records{definitionShapes: map[int64]int64{}, categories: map[int64]int64{}}
 	linked, relationships, transforms := map[int64]bool{}, map[int64]bool{}, map[int64]bool{}
 	var roots []int64
 	for _, id := range f.Order {
 		for _, r := range f.Entities[id].Records {
-			if !geometry[id] && !mixedConicalAP242Metadata(r.Type) {
+			if !layout.geometry[id] && !mixedConicalAP242Metadata(r.Type) {
 				return zero, errMixedConicalAP242
 			}
 			switch r.Type {
@@ -78,6 +71,31 @@ func proveMixedConicalAP242Records(a Assembly, parts map[int64]int64, geometry m
 		return zero, errMixedConicalAP242
 	}
 	return out, nil
+}
+
+func mixedConicalAP242UseIndex(a Assembly, layout mixedConicalAP242Layout) (map[int64]AssemblyOccurrence, error) {
+	uses, leaves := map[int64]AssemblyOccurrence{}, map[int64]bool{}
+	root, group := a.Roots[0], layout.group.DefinitionID
+	parent, outer, inner := root, 0, 0
+	if group != 0 {
+		parent = group
+	}
+	for _, u := range a.Occurrences {
+		switch {
+		case group != 0 && u.Parent == root && u.Child == group:
+			outer++
+		case u.Parent == parent && layout.parts[u.Child] != 0:
+			leaves[u.Child] = true
+			inner++
+		default:
+			return nil, errMixedConicalAP242
+		}
+		uses[u.ID] = u
+	}
+	if len(leaves) != len(layout.parts) || group != 0 && (outer < 2 || outer > 8 || inner > 8) {
+		return nil, errMixedConicalAP242
+	}
+	return uses, nil
 }
 
 func mixedConicalAP242Metadata(kind string) bool {

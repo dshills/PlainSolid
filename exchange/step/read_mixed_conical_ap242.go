@@ -34,7 +34,17 @@ var errMixedConicalAP242 = errors.New("step: unsupported exact mixed conical AP2
 // two original exact local materials and independently proved rigid uses.
 // Local topology stays in original coordinates and file units.
 func ReadMixedConicalAP242Assembly(ctx context.Context, r io.Reader, l Limits, o geom.SurfacePatchOptions) (MixedConicalAP242Assembly, error) {
-	var zero MixedConicalAP242Assembly
+	m, err := readMixedConicalAP242Assembly(ctx, r, l, o, false)
+	return m.MixedConicalAP242Assembly, err
+}
+
+type mixedConicalAP242Source struct {
+	MixedConicalAP242Assembly
+	group AssemblyProduct
+}
+
+func readMixedConicalAP242Assembly(ctx context.Context, r io.Reader, l Limits, o geom.SurfacePatchOptions, nested bool) (mixedConicalAP242Source, error) {
+	var zero mixedConicalAP242Source
 	if ctx == nil || r == nil {
 		return zero, geom.ErrInvalid
 	}
@@ -49,26 +59,33 @@ func ReadMixedConicalAP242Assembly(ctx context.Context, r io.Reader, l Limits, o
 	if err != nil {
 		return zero, err
 	}
-	if len(a.Products) != 3 || len(a.Roots) != 1 || len(a.Occurrences) < 2 || len(a.Occurrences) > 16 {
+	products, minUses := 3, 2
+	if nested {
+		products, minUses = 4, 4
+	}
+	if len(a.Products) != products || len(a.Roots) != 1 || len(a.Occurrences) < minUses || len(a.Occurrences) > 16 {
 		return zero, errMixedConicalAP242
 	}
 	f := a.Source
 	if !mixedConicalAP242Schema(f) {
 		return zero, errMixedConicalAP242
 	}
-	parts, geometry, err := mixedConicalAP242Parts(a, l)
+	layout, err := mixedConicalAP242Parts(a, l, nested)
 	if err != nil {
 		return zero, err
 	}
-	records, err := proveMixedConicalAP242Records(a, parts, geometry, l)
+	records, err := proveMixedConicalAP242Records(a, layout, l)
 	if err != nil {
 		return zero, err
 	}
-	out := MixedConicalAP242Assembly{Assembly: a, Occurrences: records.occurrences, Parts: map[int64]MixedConicalAP242Part{}}
+	out := mixedConicalAP242Source{
+		MixedConicalAP242Assembly: MixedConicalAP242Assembly{Assembly: a, Occurrences: records.occurrences, Parts: map[int64]MixedConicalAP242Part{}},
+		group:                     layout.group,
+	}
 	var rounded, chamfered bool
 	var faces, vertices, edgeUses int
 	for _, product := range a.Products {
-		bodyID, ok := parts[product.DefinitionID]
+		bodyID, ok := layout.parts[product.DefinitionID]
 		if !ok {
 			continue
 		}
@@ -141,58 +158,75 @@ func mixedConicalAP242Schema(f *File) bool {
 	return count == 1
 }
 
-func mixedConicalAP242Parts(a Assembly, l Limits) (map[int64]int64, map[int64]bool, error) {
+type mixedConicalAP242Layout struct {
+	parts    map[int64]int64
+	geometry map[int64]bool
+	group    AssemblyProduct
+}
+
+func mixedConicalAP242Parts(a Assembly, l Limits, nested bool) (mixedConicalAP242Layout, error) {
+	var zero mixedConicalAP242Layout
 	f := a.Source
-	parts, owned, geometry := map[int64]int64{}, map[int64]bool{}, map[int64]bool{}
+	out := mixedConicalAP242Layout{parts: map[int64]int64{}, geometry: map[int64]bool{}}
+	owned := map[int64]bool{}
 	var datums []int64
 	for _, p := range a.Products {
 		if len(p.Representations) != 1 {
-			return nil, nil, errMixedConicalAP242
+			return zero, errMixedConicalAP242
 		}
-		isRoot := p.DefinitionID == a.Roots[0]
+		assemblyOnly := p.DefinitionID == a.Roots[0]
+		if nested && !assemblyOnly {
+			if _, err := simple(f, p.Representations[0], "SHAPE_REPRESENTATION", 3); err == nil {
+				if out.group.DefinitionID != 0 {
+					return zero, errMixedConicalAP242
+				}
+				out.group = p
+				assemblyOnly = true
+			}
+		}
 		kind := "ADVANCED_BREP_SHAPE_REPRESENTATION"
-		if isRoot {
+		if assemblyOnly {
 			kind = "SHAPE_REPRESENTATION"
 		}
 		rep, err := simple(f, p.Representations[0], kind, 3)
 		if err != nil {
-			return nil, nil, err
+			return zero, err
 		}
 		if err := occtLoopContextMode(f, rep.Args[2].Ref, true); err != nil {
-			return nil, nil, err
+			return zero, err
 		}
 		modelIDs, advanced, err := a.productItems(p.DefinitionID)
 		if err != nil {
-			return nil, nil, err
+			return zero, err
 		}
-		if isRoot {
+		if assemblyOnly {
 			if len(modelIDs) != 0 {
-				return nil, nil, errMixedConicalAP242
+				return zero, errMixedConicalAP242
 			}
 		} else {
 			if len(modelIDs) != 1 || !advanced[0] {
-				return nil, nil, errMixedConicalAP242
+				return zero, errMixedConicalAP242
 			}
-			parts[p.DefinitionID] = modelIDs[0]
+			out.parts[p.DefinitionID] = modelIDs[0]
 			closure, err := nauoClosure(f, modelIDs, l.MaxDepth)
 			if err != nil {
-				return nil, nil, err
+				return zero, err
 			}
 			for id := range closure {
 				if owned[id] {
-					return nil, nil, errMixedConicalAP242
+					return zero, errMixedConicalAP242
 				}
-				owned[id], geometry[id] = true, true
+				owned[id], out.geometry[id] = true, true
 			}
 		}
 		items, err := listRefs(rep.Args[1], 1)
 		if err != nil {
-			return nil, nil, err
+			return zero, err
 		}
 		for _, id := range items {
 			if _, err := simple(f, id, "AXIS2_PLACEMENT_3D", 4); err == nil {
 				if _, err := mappedRationalFrame(f, id); err != nil {
-					return nil, nil, err
+					return zero, err
 				}
 				datums = append(datums, id)
 			}
@@ -200,18 +234,18 @@ func mixedConicalAP242Parts(a Assembly, l Limits) (map[int64]int64, map[int64]bo
 	}
 	datumRecords, err := nauoClosure(f, datums, l.MaxDepth)
 	if err != nil {
-		return nil, nil, err
+		return zero, err
 	}
 	for id := range datumRecords {
 		if owned[id] {
-			return nil, nil, errMixedConicalAP242
+			return zero, errMixedConicalAP242
 		}
-		geometry[id] = true
+		out.geometry[id] = true
 	}
-	if len(parts) != 2 {
-		return nil, nil, errMixedConicalAP242
+	if len(out.parts) != 2 || nested != (out.group.DefinitionID != 0) {
+		return zero, errMixedConicalAP242
 	}
-	return parts, geometry, nil
+	return out, nil
 }
 
 func hasMixedConicalToroid(f *File, id int64) bool {
