@@ -1,5 +1,12 @@
 # Verification record
 
+The [full Go run on `c7afb429`](evidence/main-c7afb429-qualification-2026-11-16.json)
+passed all nine lanes: 6,018 passes, 599 optional skips, and no failures
+across 6,617 inventoried cases. All 54 tested packages passed; eight have
+no tests. The trimmed lanes account for 1,647 passes and 51 skips. Vet,
+Linux and Windows amd64 cross-builds, and [all eight PlainCAD gates](evidence/plaincad-main-c7afb429-2026-11-16.json)
+passed on that same immutable source.
+
 The [full Go run on `4495646a`](evidence/main-4495646a-qualification-2026-11-16.json)
 passed all nine lanes: 5,935 passes and 598 explicit optional skips
 across 6,533 inventoried cases, including 1,627 trimmed passes and 51
@@ -12,9 +19,7 @@ The [full PlainCAD run on `c7afb429`](evidence/plaincad-main-c7afb429-2026-11-16
 passed 345 development, 66 production and 15 cross-browser cases, four
 WASM contract cases and 1,691 ordinary unit cases. All eight gates passed
 without a skipped, flaky or failed reported case. The pinned Playwright
-driver and production WASM agree with their verified source assets. The
-matching ordinary Go run is still in progress; vet and both amd64
-cross-builds passed on the same immutable tree.
+driver and production WASM agree with their verified source assets.
 
 The [native fourth-order contact qualification](evidence/parabola-circle-osculation-native-2026-11-16.json)
 proves that an original parabola and circle have a single order-four

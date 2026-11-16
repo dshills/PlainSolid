@@ -164,7 +164,19 @@
       "sha256": "fbd929a7db863fc762254ffa4a20cd94402ed6516374371e4cc988f6a5c28974"
     }
   ],
-  "ordinaryGoQualification": "running at this checkpoint",
+  "ordinaryGoQualification": {
+    "state": "passed",
+    "evidence": "main-c7afb429-qualification-2026-11-16.json",
+    "summary": {
+      "packagesPassed": 54,
+      "packagesWithoutTests": 8,
+      "topLevelInventory": 6617,
+      "topLevelPasses": 6018,
+      "topLevelSkips": 599,
+      "trimmedPasses": 1647,
+      "trimmedSkips": 51
+    }
+  },
   "static_checks": {
     "vet": {
       "exit": 0,
