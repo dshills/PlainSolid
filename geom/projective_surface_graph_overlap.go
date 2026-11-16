@@ -28,6 +28,68 @@ type projectiveGraphAxis struct {
 	ratio *big.Rat
 }
 
+// OriginalUVMap converts a proved overlapping chart map to physical original
+// parameters. The returned map can transform an exact UV curve without
+// changing its clock. Its denominators are positive throughout source Areas[0].
+func (r ProjectiveSurfaceGraphOverlap) OriginalUVMap(o SurfacePatchOptions) (ProjectiveUVMap, error) {
+	var out ProjectiveUVMap
+	if !r.Coincident || r.NoArea {
+		return out, ErrDomain
+	}
+	limits, err := patchOptions(o)
+	if err != nil {
+		return out, err
+	}
+	b := &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
+	a := boundedRatArithmetic{b: b}
+	var boxes [2][2]ExactParameterInterval
+	for owner, p := range r.Areas {
+		boxes[owner] = [2]ExactParameterInterval{p.U, p.V}
+		for _, x := range boxes[owner] {
+			if x.Lower == nil || x.Upper == nil || x.Lower.Cmp(x.Upper) >= 0 {
+				return ProjectiveUVMap{}, ErrInvalid
+			}
+			for _, q := range [2]*big.Rat{x.Lower, x.Upper} {
+				if err := b.check(q); err != nil {
+					return ProjectiveUVMap{}, err
+				}
+			}
+		}
+	}
+	for from, flip := range [2]bool{r.ReverseBU, r.ReverseBV} {
+		to := from
+		if r.SwapB {
+			to = 1 - from
+		}
+		lo, hi := boxes[0][from], boxes[1][to]
+		ratio := r.BStationRatios[from]
+		if ratio == nil || ratio.Sign() <= 0 {
+			return ProjectiveUVMap{}, ErrInvalid
+		}
+		if err := b.check(ratio); err != nil {
+			return ProjectiveUVMap{}, err
+		}
+		// Scale numerator and denominator by the width of the original
+		// source domain so both are affine in its raw physical coordinate.
+		oldWidth := a.sub(lo.Upper, lo.Lower)
+		newWidth := a.sub(hi.Upper, hi.Lower)
+		k := a.sub(ratio, big.NewRat(1, 1))
+		den := [2]*big.Rat{k, a.sub(oldWidth, a.mul(k, lo.Lower))}
+		num := [2]*big.Rat{ratio, a.sub(new(big.Rat), a.mul(ratio, lo.Lower))}
+		for i := range num {
+			if flip {
+				num[i] = a.sub(den[i], num[i])
+			}
+			num[i] = a.add(a.mul(hi.Lower, den[i]), a.mul(newWidth, num[i]))
+		}
+		if a.err != nil {
+			return ProjectiveUVMap{}, a.err
+		}
+		out[to] = ProjectiveUVAxisMap{from, num, den}
+	}
+	return out, nil
+}
+
 // CertifyProjectiveSurfaceGraphOverlap discovers signed-axis correspondence
 // when each selected Cartesian coordinate is a nonconstant linear-fractional
 // function of exactly one original normalized parameter. It proves the full

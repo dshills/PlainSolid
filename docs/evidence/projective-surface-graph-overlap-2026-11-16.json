@@ -35,5 +35,25 @@
   ],
   "original_lift_difference": "2^-100",
   "physical_placements": 2,
-  "common_rectangles": 4
+  "common_rectangles": 4,
+  "curve_transport": {
+    "log": "projective-uv-curve-main-race.jsonl",
+    "sha256": "500da3096e765507c82e81f752af24bf2ec5471a1871e7686bad147e51f77085",
+    "main_passes": [
+      "TestTransformProjectiveUVKeepsOriginalCurveKnotsAndPhysicalDerivatives",
+      "TestProjectiveSurfaceGraphOverlapMapsAnOriginalUVCurve",
+      "TestExactSurfaceComparisonDegreeKnotsAndDomain",
+      "TestExactSurfaceComparisonChartSymmetries",
+      "TestExactSurfaceComparisonNegativeAndLimits",
+      "TestExactSurfaceComparisonRationalMultiplierAndNonbinaryGrid",
+      "TestExactSurfaceComparisonFractionalOriginalKnotMaps",
+      "TestExactSurfaceComparisonPartialLeavesOtherRegionsUnclassified",
+      "TestProjectiveSurfaceGraphOverlapDiscoversOriginalPartialMap",
+      "TestProjectiveSurfaceGraphOverlapRejectsAProjectionThatOnlyMatchesSamples",
+      "TestVerticalProjectiveChartPreservesWholeSurface"
+    ],
+    "elapsed_seconds": [
+      1.38
+    ]
+  }
 }

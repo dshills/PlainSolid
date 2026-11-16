@@ -132,6 +132,10 @@ nonbinary original overlap bounds, exact map ratios and four union
 knot cells. A nonseparable chart that fits the proposal samples is
 rejected by the full coefficient proof. A `2^-100` lift difference,
 edge-only overlap and insufficient work do not establish coincidence.
+The related UV-curve race preserves original nonuniform knots and exact
+physical derivatives. A transported original curve lifts to identical
+rational model points on both charts. A denominator with a pole and an
+insufficient mapped control budget leave no curve.
 
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips
