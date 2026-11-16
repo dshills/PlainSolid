@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "contributorRevision": "806765f8",
+  "plainCADRevision": "efae4d2ffa6065875d3a76fc5926f358b5936a29",
+  "playwrightVersion": "1.63.0",
+  "chromiumPassingTests": 1,
+  "retries": 0,
+  "elapsedSeconds": 166.186,
+  "typeChecks": [
+    "application",
+    "Playwright"
+  ],
+  "proof": {
+    "sourceSha256": "7c44cd5168cd750913900168f8643d2c7b7e1d08bf8cd802a509cc1deb865594",
+    "certificateSha256": "c705f9dbb44f21d4e14ae38dea64fa6c00fe207e4c96dddb95ad28b9b663eaa0",
+    "canonicalSha256": "db0329b3ff7c4b9b04770aff59ce97f8a19d26acf91a7facb60dca3deef356e8",
+    "workers": [
+      "/src/cad/kernel/plainSolidOrderedMappedStepProbe.ts",
+      "/src/cad/kernel/plainSolidOrderedMappedStepProbe.ts"
+    ],
+    "wasmLoads": [
+      200,
+      200
+    ],
+    "occtRequests": [],
+    "display": {
+      "triangles": 2822,
+      "edges": 4233,
+      "eulerCharacteristic": 2,
+      "source": "plainsolid",
+      "operation": "stepImport",
+      "geometryAssertions": {
+        "valid": true,
+        "volume": 0.6448671346810797,
+        "surfaceArea": 4.651334753118447,
+        "solidCount": 1
+      }
+    },
+    "linearDeflection": 0.36,
+    "angularInput": 3.141592653589793,
+    "genericFailure": "PlainSolid UNSUPPORTED: STEP source is not a supported complete planar or analytic solid",
+    "legacyFailure": "PlainSolid UNSUPPORTED: STEP source has no qualified default OCCT pcurve repair within maxDistance",
+    "strictFailure": "PlainSolid UNSUPPORTED: STEP source is not a supported complete planar or analytic solid",
+    "distanceFailure": "PlainSolid UNSUPPORTED: ordered mapped STEP display requires linear deflection of at least 0.36 mm",
+    "angularFailure": "PlainSolid UNSUPPORTED: ordered mapped STEP display certifies linear distance and requires angular deflection pi when supplied",
+    "proof": [
+      {
+        "valid": true,
+        "volume": 0.6448671346810797,
+        "surfaceArea": 4.651334753118447,
+        "solidCount": 1,
+        "bounds": {
+          "min": [
+            -1.0000106581410367e-09,
+            -1.0000106581410367e-09,
+            -1.0000000010000145
+          ],
+          "max": [
+            0.7500000010000107,
+            0.7500000010000107,
+            0.5625000010000143
+          ]
+        }
+      }
+    ]
+  },
+  "artifacts": [
+    {
+      "file": "plaincad-v13-worker-806765f8/readiness.json",
+      "bytes": 437027,
+      "sha256": "673ffd2dfdcde3fbc84a728424a1a833d8d71a94d39f73f405860b2370decca8"
+    },
+    {
+      "file": "plaincad-v13-worker-806765f8/playwright-results.json",
+      "bytes": 6336,
+      "sha256": "09d214b940b24fb99f4e399985be76aa500ff8cf17c83d43e24e4cb2936af44a"
+    },
+    {
+      "file": "plaincad-v13-worker-806765f8/worker-proof.json",
+      "bytes": 1870,
+      "sha256": "f281fbc004ac32440f22ce7082ab78442b6a52037ac65b14fe5cd6727c8a197a"
+    }
+  ]
+}

@@ -25,9 +25,12 @@ const stepRepairFixture = args.includes("--step-repair-fixture");
 const stepRepairTest = "plainSolidStepRepair.test.ts";
 const stepRepairWorkerFixture = args.includes("--step-repair-worker-fixture");
 const stepRepairWorkerTest = "e2e/plainsolid-step-repair-worker.spec.ts";
-const testDefaults = { development: stepRepairWorkerFixture ? stepRepairWorkerTest : "e2e/extrusion-hole.spec.ts", production: "production-e2e", "cross-browser": "cross-browser-e2e", unit: stepRepairFixture ? stepRepairTest : leadFitFixture ? leadFitTest : "" };
+const orderedMappedStepWorkerFixture = args.includes("--ordered-mapped-step-worker-fixture");
+const orderedMappedStepWorkerTest = "e2e/plainsolid-ordered-mapped-step-worker.spec.ts";
+const supplementalWorkerTest = orderedMappedStepWorkerFixture ? orderedMappedStepWorkerTest : stepRepairWorkerFixture ? stepRepairWorkerTest : undefined;
+const testDefaults = { development: supplementalWorkerTest ?? "e2e/extrusion-hole.spec.ts", production: "production-e2e", "cross-browser": "cross-browser-e2e", unit: stepRepairFixture ? stepRepairTest : leadFitFixture ? leadFitTest : "" };
 const testFile = option("--test", testDefaults[suite]);
-const defaultGrep = suite === "development" && !stepRepairWorkerFixture
+const defaultGrep = suite === "development" && !supplementalWorkerTest
   ? "native negative/symmetric coordinate extents, parameter edits, save/open and STL winding"
   : leadFitFixture ? `^${leadFitTestPrefix} ` : ".*";
 const grep = option("--grep", defaultGrep);
@@ -38,16 +41,19 @@ if (!Object.hasOwn(acceptanceConfigs, suite)) throw new Error("Pass --suite deve
 const acceptanceConfig = acceptanceConfigs[suite];
 const sideDualDiskFixture = args.includes("--side-dual-disk-fixture");
 if (leadFitFixture && (suite !== "unit" || testFile !== leadFitTest || grep !== defaultGrep ||
-    stepRepairFixture || stepRepairWorkerFixture || sideDualDiskFixture))
+    stepRepairFixture || supplementalWorkerTest || sideDualDiskFixture))
   throw new Error("The lead-fit fixture runs all three original cases as a standalone unit selection.");
 if (sideDualDiskFixture && (suite !== "development" || testFile !== "e2e/plainsolid-side-dual-disk.spec.ts"))
   throw new Error("The supplemental dual-disk fixture must run by itself in the development suite.");
 if (stepRepairFixture && (suite !== "unit" || testFile !== stepRepairTest))
   throw new Error("The supplemental STEP repair fixture must run by itself in the unit suite.");
-if (stepRepairWorkerFixture && (suite !== "development" || testFile !== stepRepairWorkerTest))
-  throw new Error("The supplemental STEP repair worker fixture must run by itself in the development suite.");
+if (supplementalWorkerTest && (suite !== "development" || testFile !== supplementalWorkerTest ||
+    (orderedMappedStepWorkerFixture && stepRepairWorkerFixture)))
+  throw new Error("Select one supplemental STEP worker fixture in the development suite.");
 const gitIdentity = cwd => {
   const git = (...argv) => { try { return execFileSync("git", argv, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return null; } };
+  // A committed app archive may be staged inside an unrelated Git checkout.
+  if (git("rev-parse", "--show-prefix") !== "") return { head: null, status: null, branch: null };
   return { head: git("rev-parse", "HEAD"), status: git("status", "--porcelain=v1"), branch: git("branch", "--show-current") };
 };
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
@@ -246,21 +252,37 @@ async function runSTEPRepairWorkerFixture() {
     "exchange/step/testdata/occt-five-default-tilted-pentagonal-prism-fillet-converted-inch-unscaled.step": "public/plainsolid-five-unscaled-inch.step",
     "exchange/step/testdata/occt-both-default-tilted-oblique-prism-fillet-blind-bore.step": "public/plainsolid-blind-bore-control.step",
   };
+  await runSupplementalSTEPWorker({ sourceFiles, pageName: "plainsolid-step-repair-worker.html",
+    pageTitle: "PlainSolid STEP repair worker", expectedCount: Object.keys(fixtureStepSources).length });
+}
+async function runOrderedMappedStepWorkerFixture() {
+  await runSupplementalSTEPWorker({
+    sourceFiles: {
+      "tools/plaincad/ordered-mapped-step-worker.fixture.ts": "src/cad/kernel/plainSolidOrderedMappedStepProbe.ts",
+      "tools/plaincad/ordered-mapped-step-worker.spec.fixture.ts": orderedMappedStepWorkerTest,
+      "exchange/step/testdata/occt_mapped_chain_ordered_joined_independent_roofs.step": "public/plainsolid-ordered-mapped-step-input.step",
+    },
+    pageName: "plainsolid-ordered-mapped-step-worker.html",
+    pageTitle: "PlainSolid ordered mapped STEP worker",
+    expectedCount: 1,
+  });
+}
+async function runSupplementalSTEPWorker({ sourceFiles, pageName, pageTitle, expectedCount }) {
   const sourceHashes = {};
   for (const [source, target] of Object.entries(sourceFiles)) {
     const input = await readFile(join(root, source));
     await writeFile(join(work, target), input, { flag: "wx" });
     sourceHashes[source] = hash(input);
   }
-  const page = "<!doctype html><meta charset=utf-8><title>PlainSolid STEP repair worker</title>\n";
-  await writeFile(join(work, "public/plainsolid-step-repair-worker.html"), page, { flag: "wx" });
-  report.supplementalFixture = { file: stepRepairWorkerTest, sourceHashes, pageSha256: hash(page) };
+  const page = `<!doctype html><meta charset=utf-8><title>${pageTitle}</title>\n`;
+  await writeFile(join(work, "public", pageName), page, { flag: "wx" });
+  report.supplementalFixture = { file: testFile, sourceHashes, pageSha256: hash(page) };
   await command("node", [join(work, "node_modules/typescript/bin/tsc"), "-b", "--noEmit"], "typecheck.log");
   await command("node", [join(work, "node_modules/typescript/bin/tsc"), "-p", "tsconfig.e2e.json"], "typecheck-e2e.log");
   report.typecheck = "passed";
   const path = join(work, "playwright-results.json");
   try {
-    await command("node", [join(work, "node_modules/@playwright/test/cli.js"), "test", stepRepairWorkerTest, "--grep", grep,
+    await command("node", [join(work, "node_modules/@playwright/test/cli.js"), "test", testFile, "--grep", grep,
       "--reporter=list,json"], "acceptance.log", { PLAYWRIGHT_JSON_OUTPUT_FILE: path });
   } catch (error) { report.error = String(error); }
   try {
@@ -268,7 +290,6 @@ async function runSTEPRepairWorkerFixture() {
     report.tests = browserTests(result.suites);
     report.summaries = [{ path, ...result.stats }];
     const count = report.tests.length;
-    const expectedCount = Object.keys(fixtureStepSources).length;
     report.backendVerified = count > 0 && (grep !== ".*" || count === expectedCount) && report.tests.every(test =>
       test.status === "expected" && test.results.length === 1 && test.results[0].status === "passed");
   } catch (error) { report.error ??= `Cannot read the STEP repair worker result: ${error}`; }
@@ -313,7 +334,7 @@ try {
   }).trim().split("\n").filter(path => path.startsWith(root + "/"));
   for (const path of [...runtimeSources, join(root, "go.mod")])
     report.plainSolidSourceHashes[path.slice(root.length + 1)] = hash(await readFile(path));
-  if (!stepRepairFixture && !stepRepairWorkerFixture && !leadFitFixture) {
+  if (!stepRepairFixture && !supplementalWorkerTest && !leadFitFixture) {
     // The worker already accepts this progress callback for modeled threads.
     // Report actual feature boundaries for the synchronous Go kernel as well.
     const rebuildPath = join(work, "src/cad/features/rebuildGraph.ts");
@@ -347,6 +368,8 @@ try {
   report.wasmSha256 = hash(await readFile(join(work, "public/assets/plainsolid-kernel.wasm")));
   if (suite === "unit") {
     await runOriginalUnitTests();
+  } else if (orderedMappedStepWorkerFixture) {
+    await runOrderedMappedStepWorkerFixture();
   } else if (stepRepairWorkerFixture) {
     await runSTEPRepairWorkerFixture();
   } else {
