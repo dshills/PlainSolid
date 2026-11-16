@@ -28,7 +28,14 @@ type ClippedPolynomialFuseSTEPOptions struct {
 // its analytic supports, native model edges and both incident pcurves. The
 // tessellated display is not used. LengthUnit gives metres per model unit.
 func WriteClippedPolynomialFuse(ctx context.Context, w io.Writer, fuse *trimmed.ClippedPolynomialFuse, name string, lengthUnit float64, l Limits, o ClippedPolynomialFuseSTEPOptions) error {
-	if ctx == nil || w == nil || fuse == nil || !utf8.ValidString(name) || len(name) > 1024 || !validLengthUnit(lengthUnit) ||
+	if fuse == nil {
+		return geom.ErrInvalid
+	}
+	return writeExactBezierSingleSTEP(ctx, w, fuse.Boundary(), name, lengthUnit, l, o)
+}
+
+func writeExactBezierSingleSTEP(ctx context.Context, w io.Writer, s trimmed.Solid, name string, lengthUnit float64, l Limits, o ClippedPolynomialFuseSTEPOptions) error {
+	if ctx == nil || w == nil || !utf8.ValidString(name) || len(name) > 1024 || !validLengthUnit(lengthUnit) ||
 		!finiteNumber(o.PoleTolerance) || o.PoleTolerance < 0 {
 		return geom.ErrInvalid
 	}
@@ -36,7 +43,6 @@ func WriteClippedPolynomialFuse(ctx context.Context, w io.Writer, fuse *trimmed.
 	if err != nil {
 		return err
 	}
-	s := fuse.Boundary()
 	if len(s.Topology().Shells) != 1 || len(s.Vertices()) > l.MaxVertices || len(s.Faces()) > l.MaxFaces || len(s.Edges()) > l.MaxEdgeUses/2 {
 		return geom.ErrConvergence
 	}
@@ -107,7 +113,7 @@ type clippedFuseSTEPStage struct {
 
 func (s *clippedFuseSTEPStage) Write(p []byte) (int, error) {
 	if int64(len(p)) > s.limit-int64(s.Len()) {
-		return 0, fmt.Errorf("step: clipped Fuse output exceeds byte limit: %w", geom.ErrConvergence)
+		return 0, fmt.Errorf("step: analytic clipped output exceeds byte limit: %w", geom.ErrConvergence)
 	}
 	return s.Buffer.Write(p)
 }

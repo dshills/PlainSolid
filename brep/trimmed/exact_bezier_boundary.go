@@ -32,6 +32,9 @@ type ExactBezierBoundaryFace struct {
 	Affine   *edgecheck.Chart
 	Loops    [][]ExactBezierBoundaryUse
 	Reversed bool
+	// Native graph walls use a unit-length clock independent of the physical
+	// side vector. Preserve that same chart in existing standard exports.
+	affineUnitU bool
 }
 
 type ExactBezierBoundaryUse struct {
@@ -61,6 +64,13 @@ func (s Solid) ExtractExactBezierBoundary(ctx context.Context, o edgecheck.Optio
 			exportable.Spline = x
 		case splineGraphAffineWall:
 			c := x.chart()
+			exportable.Affine = &c
+			exportable.affineUnitU = true
+		case geom.PlaneSurface:
+			c, ok := edgeChart(x)
+			if !ok {
+				return zero, fmt.Errorf("trimmed: exact Bézier plane %d: %w", i, geom.ErrDomain)
+			}
 			exportable.Affine = &c
 		default:
 			return zero, fmt.Errorf("trimmed: exact Bézier face %d: %w", i, geom.ErrDomain)
@@ -222,6 +232,12 @@ func exactBoundaryUV(ctx context.Context, u Use, o geom.SurfacePatchOptions) (ge
 	case ExactQuadraticUV:
 		p := q.HomogeneousControls()
 		controls(p[:])
+	case wallTrim:
+		var err error
+		net, err = exactBoundaryWallUV(ctx, q, o)
+		if err != nil {
+			return geom.ExactBezierSpan{}, err
+		}
 	case affineGraphWallTrim:
 		var err error
 		net, err = exactBoundaryWallUV(ctx, q.wallTrim, o)
