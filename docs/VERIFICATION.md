@@ -41,6 +41,13 @@ the independent analytic value within 0.014%. All eight previous grid
 digests matched. Main race controls cover the new meshes, atomic resource
 and precision refusals, and the existing stitched atlas.
 
+[Exact normal sweep membership](evidence/verified-normal-sweep-query-2026-11-16.json)
+passed rational slab interior, boundary and near-exterior controls and
+independently known points on a curved sweep, including a split station
+and a point with an irrational source unit normal. The directed inverse
+enclosures contain the exact expected parameters. Cancellation and
+short work/partition limits retain the unexcluded original cells.
+
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips
 among 6,460 inventoried cases. All 53 tested packages passed; eight have

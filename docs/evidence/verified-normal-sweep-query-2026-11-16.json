@@ -1,0 +1,35 @@
+{
+  "scope": "Exact analytic point location in one globally verified normal offset sweep",
+  "base_revision": "3c1a358d",
+  "runs": [
+    {
+      "path": "normal-sweep-query-main-race.jsonl",
+      "sha256": "fb312b6152b946dc289f448ad0bd27efe86a136af907973ea29888b47445c9f2",
+      "outcome": "split-boundary control exposed a proof gap corrected by overlapping child boxes",
+      "passed": [
+        "TestVerifiedNormalOffsetSweepLocatesExactPlanarPoint",
+        "TestVerifiedNormalOffsetSweepRetainsSixOriginalBoundaryFaces",
+        "TestVerifiedNormalOffsetSweepEnclosesCompleteRationalSubvolume"
+      ],
+      "failed": [
+        "TestVerifiedNormalOffsetSweepLocatesCurvedPoint"
+      ],
+      "package_seconds": []
+    },
+    {
+      "path": "normal-sweep-query-main-race-3.jsonl",
+      "sha256": "2c839bf931702272f7ac5099251c111ecbc810d33126286f2e5c2b4d8e6b6f8e",
+      "outcome": "pass",
+      "passed": [
+        "TestVerifiedNormalOffsetSweepLocatesExactPlanarPoint",
+        "TestVerifiedNormalOffsetSweepLocatesCurvedPoint",
+        "TestVerifiedNormalOffsetSweepRetainsSixOriginalBoundaryFaces",
+        "TestVerifiedNormalOffsetSweepEnclosesCompleteRationalSubvolume"
+      ],
+      "failed": [],
+      "package_seconds": [
+        1.345
+      ]
+    }
+  ]
+}
