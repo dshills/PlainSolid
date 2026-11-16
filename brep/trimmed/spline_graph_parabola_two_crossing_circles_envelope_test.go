@@ -100,7 +100,7 @@ func checkTwoCrossingCirclesEnvelopeReplay(t *testing.T, r *ParabolaTwoCrossingC
 	if out, err := read(raw.Bytes(), JSONLimits{MaxEntities: 1}); out != nil || !errors.Is(err, geom.ErrConvergence) {
 		t.Fatal("short native budget published a partial arrangement", out, err)
 	}
-	var recipe parabolaTwoCrossingCirclesEnvelopeRecipe
+	var recipe parabolaCrossingCirclesEnvelopeRecipe
 	if err := json.Unmarshal(raw.Bytes(), &recipe); err != nil {
 		t.Fatal(err)
 	}
