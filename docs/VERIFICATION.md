@@ -154,6 +154,12 @@ bridge and topology. Pinned audits observed 480 directed conic uses, 320
 original-law apex jets and 64 bridge uses; their signed volumes differ
 from exact source integrals by at most `4.45e-16`. Short budgets publish
 no bytes and the 48 earlier files match.
+The [apex Cut display race](evidence/parabola-circle-apex-tangency-cut-display-2026-11-16.json)
+passed in 364.470 seconds on main with the earlier transverse controls.
+All four admitted Cuts keep exactly one paired apex and reprove the
+original lifted ray directions and second derivatives. Their distance
+is below `0.036549` mm, source turn below `0.325035` radians, and facet
+deviation below `0.165529` radians. All 16 older displayed outputs match.
 
 The [proper-similarity display milestone](evidence/parabola-circle-proper-similarity-2026-11-16.json)
 passed its main focused race in 322.877 seconds. Eight components from four

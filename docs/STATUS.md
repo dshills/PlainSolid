@@ -110,6 +110,9 @@ vertex. The reverse orientation that pinches one shell refuses.
 The apex Common, Fuse and admitted Cut also transfer through exact
 STEP and IGES, preserving the directed apex rays and original roof
 bridge in the corresponding results.
+The admitted apex Cuts also have certified closed display. The mesh
+keeps positive components with one registered apex between their
+separate vertex identities.
 Certified display of the separated two-circle Cuts now accepts proper
 rational similarities. The proof uses the original world coedge owners
 and reports distance in physical units after rotation and scaling.
