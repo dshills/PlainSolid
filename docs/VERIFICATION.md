@@ -395,6 +395,12 @@ The joined directed query passes the rotated weighted parabolic pair
 and chain with width below 1/25 and every retained face independently
 checked. The affine controls visit exactly 10 and 14 faces, with no
 visits to omitted walls. Race and 23 predecessor receipts pass.
+The [nonparallel sweep audit](evidence/nonparallel-normal-sweep-chain-2026-11-16.json)
+qualifies two original wall joins over a trapezoid middle chart. Exact
+end-projection gaps are 1 and 3/5 on the two independent separators,
+and the independent original volume is 5/8. The certified display,
+both seam memberships and 17 prior receipts pass. A touching affine
+L and overlapping disjointness candidates refuse.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They

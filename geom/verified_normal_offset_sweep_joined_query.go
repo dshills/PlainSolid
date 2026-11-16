@@ -37,7 +37,7 @@ func (p *VerifiedNormalOffsetSweepPair) LocateRational(ctx context.Context, poin
 	if p == nil || p.coordinate == nil {
 		return NormalOffsetSweepJoinedQueryResult{}, ErrInvalid
 	}
-	return locateJoinedNormalOffsetSweep(ctx, p.sweeps[:], []*VerifiedNormalOffsetSweepPair{p}, point, o)
+	return locateJoinedNormalOffsetSweep(ctx, p.sweeps[:], []*VerifiedNormalOffsetSweepPair{p}, nil, point, o)
 }
 
 // LocateRational classifies a rational model point in the three-chart chain.
@@ -49,11 +49,11 @@ func (c *VerifiedNormalOffsetSweepChain) LocateRational(ctx context.Context, poi
 	if c == nil || c.pairs[0] == nil || c.pairs[1] == nil {
 		return NormalOffsetSweepJoinedQueryResult{}, ErrInvalid
 	}
-	return locateJoinedNormalOffsetSweep(ctx, c.sweeps[:], c.pairs[:], point, o)
+	return locateJoinedNormalOffsetSweep(ctx, c.sweeps[:], c.pairs[:], c.endSeparator, point, o)
 }
 
 func locateJoinedNormalOffsetSweep(ctx context.Context, sweeps []*VerifiedNormalOffsetSweep,
-	joins []*VerifiedNormalOffsetSweepPair, point [3]*big.Rat,
+	joins []*VerifiedNormalOffsetSweepPair, endSeparator *VerifiedNormalOffsetSweepChainSeparator, point [3]*big.Rat,
 	o NormalOffsetSweepQueryOptions) (r NormalOffsetSweepJoinedQueryResult, err error) {
 	if ctx == nil || o.MaxDepth < 0 || o.MaxDepth > 64 || o.MaxCells < 0 || o.MaxCells > 1<<18 {
 		return r, ErrInvalid
@@ -84,12 +84,33 @@ func locateJoinedNormalOffsetSweep(ctx context.Context, sweeps []*VerifiedNormal
 		}
 	}
 
-	// Strict separation for the original pairs and the chain's ordered
-	// parallel planes excludes entire chart groups. On a plane, its two
-	// adjacent closed charts may meet the point only on the same wall.
+	// Ordered parallel planes can exclude entire chart groups. For a
+	// nonparallel chain, each joining plane excludes only its adjacent
+	// owners. The independent end separator applies to the two ends.
 	eligible := uint8((1 << len(sweeps)) - 1)
 	var omitted, fixed [3]uint8
+	var onWalls uint8
 	a := boundedRatArithmetic{b: budget}
+	if endSeparator != nil {
+		if err := checkSweepSeparatorCovector(endSeparator.Covector, budget); err != nil {
+			return r, err
+		}
+		if err := budget.check(endSeparator.Coordinate); err != nil {
+			return r, err
+		}
+		projection := sweepLineDot(&a, endSeparator.Covector, point)
+		if a.err != nil {
+			return r, a.err
+		}
+		switch projection.Cmp(endSeparator.Coordinate) {
+		case -1:
+			eligible &^= 1 << 2
+		case 1:
+			eligible &^= 1
+		default:
+			eligible &^= 1 | 1<<2
+		}
+	}
 	for i, pair := range joins {
 		leftWall, rightWall := uint8(1<<pair.join.Edges[0]), uint8(1<<pair.join.Edges[1])
 		omitted[i] |= leftWall
@@ -108,7 +129,21 @@ func locateJoinedNormalOffsetSweep(ctx context.Context, sweeps []*VerifiedNormal
 			return r, a.err
 		}
 		leftCharts := uint8((1 << (i + 1)) - 1)
-		switch projection.Cmp(pair.coordinate) * pair.join.AInteriorSign {
+		relative := projection.Cmp(pair.coordinate) * pair.join.AInteriorSign
+		if endSeparator != nil {
+			switch relative {
+			case -1:
+				eligible &^= 1 << i
+			case 1:
+				eligible &^= 1 << (i + 1)
+			default:
+				onWalls |= 1 << i
+				fixed[i] |= leftWall
+				fixed[i+1] |= rightWall
+			}
+			continue
+		}
+		switch relative {
 		case 1:
 			eligible &= leftCharts
 		case -1:
@@ -117,6 +152,16 @@ func locateJoinedNormalOffsetSweep(ctx context.Context, sweeps []*VerifiedNormal
 			eligible &= 3 << i
 			fixed[i], fixed[i+1] = leftWall, rightWall
 		}
+	}
+	if endSeparator != nil && onWalls == 3 {
+		// A point on both planes could belong to the middle chart
+		// only if it occupied its two disjoint opposite walls. Any
+		// end hit on its original plane would require that middle hit.
+		if err := ctx.Err(); err != nil {
+			return r, err
+		}
+		r.Location = NormalOffsetSweepExterior
+		return r, nil
 	}
 	var owners []NormalOffsetSweepJoinedPointOwner
 	var hits uint8
@@ -130,7 +175,8 @@ func locateJoinedNormalOffsetSweep(ctx context.Context, sweeps []*VerifiedNormal
 			return r, ErrConvergence
 		}
 		query := NormalOffsetSweepQueryOptions{Patch: limits, MaxDepth: o.MaxDepth, MaxCells: o.MaxCells - r.VisitedCells}
-		witness, visited, err := locateJoinedSweepPointOwner(ctx, owner, sweep, point, fixed[owner], omitted[owner], query, budget)
+		witness, visited, err := locateJoinedSweepPointOwner(ctx, owner, sweep, point, fixed[owner], omitted[owner],
+			endSeparator != nil, query, budget)
 		r.VisitedCells += visited
 		if err != nil {
 			return r, err
@@ -145,8 +191,19 @@ func locateJoinedNormalOffsetSweep(ctx context.Context, sweeps []*VerifiedNormal
 	if err := ctx.Err(); err != nil {
 		return r, err
 	}
-	if eligible == 0 || (hits != 0 && hits != eligible) {
-		return r, ErrConvergence
+	if endSeparator == nil {
+		if eligible == 0 || (hits != 0 && hits != eligible) {
+			return r, ErrConvergence
+		}
+	} else {
+		for i := range joins {
+			if onWalls&(1<<i) != 0 {
+				adjacent := uint8(3 << i)
+				if pairedHits := hits & adjacent; pairedHits != 0 && pairedHits != adjacent {
+					return r, ErrConvergence
+				}
+			}
+		}
 	}
 	r.Owners = owners
 	switch {
@@ -163,23 +220,24 @@ func locateJoinedNormalOffsetSweep(ctx context.Context, sweeps []*VerifiedNormal
 }
 
 func locateJoinedSweepPointOwner(ctx context.Context, owner int, sweep *VerifiedNormalOffsetSweep, point [3]*big.Rat,
-	fixed, omitted uint8, query NormalOffsetSweepQueryOptions, budget *polynomialBudget) (*NormalOffsetSweepJoinedPointOwner, int, error) {
+	fixed, omitted uint8, exactWalls bool, query NormalOffsetSweepQueryOptions, budget *polynomialBudget) (*NormalOffsetSweepJoinedPointOwner, int, error) {
 	if len(sweep.source.net) > query.Patch.MaxPoles {
 		return nil, 0, ErrConvergence
 	}
 	// A higher-degree original chart can supply an exact ruled normal-foot
 	// proof. Its entire original extrusion counts as one visited cell.
-	if sweep.source.degreeU > 1 || sweep.source.degreeV > 1 {
+	higherDegree := sweep.source.degreeU > 1 || sweep.source.degreeV > 1
+	if higherDegree {
 		witness, proved, err := joinedSweepRulingPoint(ctx, owner, sweep, point, fixed, omitted, budget)
 		if proved || err != nil {
 			return witness, 1, err
 		}
-		if fixed != 0 {
-			side := NormalOffsetSweepSide(bits.TrailingZeros8(fixed))
-			witness, proved, err := joinedSweepWallPoint(ctx, owner, sweep, point, side, budget)
-			if proved || err != nil {
-				return witness, 1, err
-			}
+	}
+	if fixed != 0 && (higherDegree || exactWalls) {
+		side := NormalOffsetSweepSide(bits.TrailingZeros8(fixed))
+		witness, proved, err := joinedSweepWallPoint(ctx, owner, sweep, point, side, budget)
+		if proved || err != nil {
+			return witness, 1, err
 		}
 	}
 	if budget.operations >= budget.maxOperations {

@@ -1,0 +1,40 @@
+{
+  "scope": "Exact three-sweep chain across two original nonparallel full wall joins",
+  "main_base": "91b15071",
+  "isolated_revision": "4307b743a2171673b7ea0c811c80f106926b2551",
+  "patch_sha256": "4dd8f122cb8d3af595a351b55b0ca0ba293002e8f7549de7df34c4e2a5c91db9",
+  "main_race_log": "nonparallel-normal-sweep-chain-main-race.jsonl",
+  "main_race_sha256": "74f83cc45872957a0c7e8e5556b7a0fd93426e5eeb02a41919bb85f329fbdff9",
+  "main_race_seconds": 52.39,
+  "isolated_race_seconds": {
+    "geom": 8.853,
+    "csg/offset": 87.439
+  },
+  "isolated_package_seconds": {
+    "geom": 81.15,
+    "mesh": 9.486,
+    "csg/offset": 49.258
+  },
+  "independent_original_volume": "5/8",
+  "original_join_planes": [
+    "x=0",
+    "x-y/4=1"
+  ],
+  "independent_separator_gap": "1",
+  "tilted_layer_separator_gap": "3/5",
+  "retained_original_face_count": 14,
+  "display_control": {
+    "vertices": 450,
+    "triangles": 896,
+    "signed_volume": "25/32",
+    "squared_deflection": "145/64",
+    "angular_limit_radians": 0.04
+  },
+  "predecessor_receipts_unchanged": 17,
+  "refusals": [
+    "affine L whose end sweeps share the original swept edge",
+    "nonparallel original ends with overlapping material",
+    "separator that fails on full signed displacement layers",
+    "short work or cancellation"
+  ]
+}

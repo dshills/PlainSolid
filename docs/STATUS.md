@@ -121,6 +121,10 @@ parallel walls, preserving both original join maps, fourteen analytic
 outer faces, and a strict exact gap between the nonadjacent ends.
 The proved three-chart chain also has an embedded closed display that
 propagates both original exact station maps across the middle chart.
+The chain also admits two nonparallel opposing original wall joins
+when an independent exact plane strictly separates the closed ends
+over their full signed layers. The joins retain fourteen original
+faces, point membership, and the certified display.
 The joined boundary can also measure certified analytic areas on its
 retained original affine and circular faces. Exact shared walls cancel
 before integration and the result preserves each original owner and side.
