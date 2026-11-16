@@ -14,6 +14,72 @@ type ProjectiveContactSpline struct {
 	ExactOperations int
 }
 
+// ProjectiveContactSplineUse binds one exact analytic piece to its directed
+// contour terminals. Reversed means the native curve clocks run opposite
+// to the traversal; Model and both UV curves always share that same clock.
+type ProjectiveContactSplineUse struct {
+	Arc      int
+	Vertices [2]int
+	Reversed bool
+	Spline   ProjectiveContactSpline
+}
+
+// ProjectiveContactContourSplines retains the original analytic pieces in
+// contour order. An unproved piece leaves the complete contour unpublished.
+type ProjectiveContactContourSplines struct {
+	Uses            []ProjectiveContactSplineUse
+	ExactOperations int
+	Closed          bool
+	Complete        bool
+}
+
+// BuildContourSplines composes every directed proved arc of one original
+// contour on both supports. It preserves original knot sections and
+// shared algebraic vertex identities within one exact work budget.
+func (g ProjectiveSurfaceContactGraph) BuildContourSplines(ctx context.Context, index int,
+	options SurfacePatchOptions) (r ProjectiveContactContourSplines, err error) {
+	if ctx == nil || g.proof == nil || index < 0 || index >= len(g.proof.contours) {
+		return r, ErrInvalid
+	}
+	limits, err := patchOptions(options)
+	if err != nil {
+		return r, err
+	}
+	contour := g.proof.contours[index]
+	uses := make([]ProjectiveContactSplineUse, 0, len(contour.Arcs))
+	for _, use := range contour.Arcs {
+		if err := ctx.Err(); err != nil {
+			return r, err
+		}
+		left := limits
+		left.MaxOperations -= r.ExactOperations
+		if left.MaxOperations < 1 {
+			return r, ErrConvergence
+		}
+		q, err := g.BuildArcSpline(ctx, use.Arc, left)
+		r.ExactOperations += q.ExactOperations
+		if err != nil {
+			return r, err
+		}
+		ends := g.proof.arcs[use.Arc].vertices
+		if use.Reversed {
+			ends[0], ends[1] = ends[1], ends[0]
+		}
+		if len(uses) > 0 && uses[len(uses)-1].Vertices[1] != ends[0] {
+			return r, ErrConvergence
+		}
+		uses = append(uses, ProjectiveContactSplineUse{Arc: use.Arc, Reversed: use.Reversed, Vertices: ends, Spline: q})
+	}
+	if len(uses) == 0 || (uses[0].Vertices[0] == uses[len(uses)-1].Vertices[1]) != contour.Closed {
+		return r, ErrConvergence
+	}
+	if err := ctx.Err(); err != nil {
+		return r, err
+	}
+	r.Uses, r.Closed, r.Complete = uses, contour.Closed, true
+	return r, nil
+}
+
 // BuildArcSpline constructs an exact model curve and both original pcurves
 // when a contact arc is straight in the common chart and has provably
 // rational endpoints. A regular implicit arc must have an identically zero

@@ -86,4 +86,66 @@ func TestProjectiveContactSplineRejectsTheChordOfAnOriginalCurve(t *testing.T) {
 	if !errors.Is(err, ErrConvergence) || got.Model != nil || got.UV[0] != nil {
 		t.Fatal("matching rational terminals do not authenticate the whole chord", got, err)
 	}
+	whole, err := g.BuildContourSplines(ctx, 0, SurfacePatchOptions{})
+	if !errors.Is(err, ErrConvergence) || whole.Complete || len(whole.Uses) != 0 {
+		t.Fatal("an unsupported arc must not publish an approximate contour", whole, err)
+	}
+}
+
+func TestProjectiveContactContourSplinesPreserveOriginalKnotAndClock(t *testing.T) {
+	ctx := context.Background()
+	var owners [2]*SurfacePatch
+	for i := range owners {
+		stations, vknots := []float64{0, .375, 1}, []float64{0, 0, .375, 1, 1}
+		if i == 1 {
+			stations, vknots = []float64{0, 1}, []float64{0, 0, 1, 1}
+		}
+		var poles []Vec3
+		var weights []float64
+		for x := range 2 {
+			for _, y := range stations {
+				z, w := 0., 1.
+				if i == 1 {
+					z, w = float64(x)-.5, 1+y
+				}
+				poles = append(poles, Vec3{float64(x), y, z})
+				weights = append(weights, w)
+			}
+		}
+		raw, err := NewBSplineSurface(1, 1, 2, len(stations), poles, []float64{0, 0, 1, 1}, vknots, weights)
+		if err != nil {
+			t.Fatal(err)
+		}
+		owners[i], err = NewSurfacePatch(raw, SurfacePatchOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	g, err := TraceProjectiveSurfaceContacts(ctx, owners[0], owners[1], [2]int{0, 1}, ProjectiveSurfaceContactGraphOptions{})
+	if err != nil || !g.Complete || len(g.Contours) != 1 || len(g.Contours[0].Arcs) != 2 {
+		t.Fatal("original knot should split the same complete contour exactly", err)
+	}
+	g.Contours[0].Arcs[0].Arc = -1
+	g.Contours[0].Closed = true
+	g.Arcs[0].Vertices = [2]int{-1, -1}
+	r, err := g.BuildContourSplines(ctx, 0, SurfacePatchOptions{})
+	if err != nil || !r.Complete || r.Closed || len(r.Uses) != 2 || r.Uses[0].Vertices[1] != r.Uses[1].Vertices[0] {
+		t.Fatal("use the sealed directed topology across the original knot", r, err)
+	}
+	for i, use := range r.Uses {
+		at := int64(1 - i)
+		if use.Reversed {
+			at = 1 - at
+		}
+		for owner, expect := range [2]*big.Rat{big.NewRat(3, 8), big.NewRat(3, 13)} {
+			uv, err := use.Spline.UV[owner].patch.EvaluateRational(ctx, big.NewRat(at, 1), big.NewRat(1, 2), SurfacePatchEvaluationOptions{})
+			if err != nil || uv.Point[0].Cmp(big.NewRat(1, 2)) != 0 || uv.Point[1].Cmp(expect) != 0 {
+				t.Fatal("two independently authored clocks must preserve the exact original station", i, owner, uv, err)
+			}
+		}
+	}
+	short, err := g.BuildContourSplines(ctx, 0, SurfacePatchOptions{MaxOperations: r.ExactOperations - 1})
+	if !errors.Is(err, ErrConvergence) || short.Complete || len(short.Uses) != 0 {
+		t.Fatal("one-short overall work must not publish the already-proved prefix", short, err)
+	}
 }

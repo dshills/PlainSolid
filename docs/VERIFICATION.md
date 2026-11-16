@@ -89,6 +89,10 @@ side faces meet the exact section without zero-length edges. All four
 native results reopen byte-identically. Certified display checks every
 original coedge use. The contact solver also certifies the exact free
 projection derivative across each of the three coordinate-plane pairs.
+Directed contour composition independently preserves the shared
+knot at original stations 3/8 and 3/13. A modified display ledger does
+not change the sealed traversal; unsupported chord approximations and
+insufficient shared work leave the output unpublished.
 The [ordinary exact spline jet audit](evidence/exact-spline-rational-evaluation-2026-11-16.json)
 passes a nonbinary station, a right-hand interior derivative and a
 left-hand final derivative. Its outward boxes and short work refusal

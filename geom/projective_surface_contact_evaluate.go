@@ -6,18 +6,20 @@ import (
 )
 
 type projectiveContactGraphProof struct {
-	arcs    []projectiveContactArcProof
-	overlap ProjectiveSurfaceGraphOverlap
-	holes   []ExactSurfaceRectangle
-	sources [2]*SurfacePatch
-	cells   []ProjectiveSurfaceHeightCell
+	arcs     []projectiveContactArcProof
+	contours []ProjectiveContactContour
+	overlap  ProjectiveSurfaceGraphOverlap
+	holes    []ExactSurfaceRectangle
+	sources  [2]*SurfacePatch
+	cells    []ProjectiveSurfaceHeightCell
 }
 
 type projectiveContactArcProof struct {
-	arc    SurfacePlaneArc
-	common ExactSurfaceRectangle
-	saddle *projectiveContactSaddleArcProof
-	ends   [2][2]*ExactAlgebraicRoot
+	arc      SurfacePlaneArc
+	common   ExactSurfaceRectangle
+	saddle   *projectiveContactSaddleArcProof
+	ends     [2][2]*ExactAlgebraicRoot
+	vertices [2]int
 }
 
 type projectiveContactSaddleArcProof struct {
@@ -27,7 +29,7 @@ type projectiveContactSaddleArcProof struct {
 }
 
 func sealProjectiveContactGraph(cover ProjectiveSurfaceContactCover, arcs []ProjectiveContactArc,
-	vertices []ProjectiveContactVertex, sources [2]*SurfacePatch) *projectiveContactGraphProof {
+	vertices []ProjectiveContactVertex, contours []ProjectiveContactContour, sources [2]*SurfacePatch) *projectiveContactGraphProof {
 	clone := func(x ExactSurfaceRectangle) ExactSurfaceRectangle {
 		return ExactSurfaceRectangle{
 			ExactParameterInterval{new(big.Rat).Set(x.U.Lower), new(big.Rat).Set(x.U.Upper)},
@@ -50,6 +52,12 @@ func sealProjectiveContactGraph(cover ProjectiveSurfaceContactCover, arcs []Proj
 		for j, v := range use.Vertices {
 			p.arcs[i].ends[j] = vertices[v].Common
 		}
+		p.arcs[i].vertices = use.Vertices
+	}
+	for _, contour := range contours {
+		p.contours = append(p.contours, ProjectiveContactContour{
+			Arcs: append([]ProjectiveContactArcUse(nil), contour.Arcs...), Closed: contour.Closed,
+		})
 	}
 	for i := range p.overlap.Areas {
 		p.overlap.Areas[i] = clone(p.overlap.Areas[i])

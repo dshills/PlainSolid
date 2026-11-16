@@ -615,5 +615,21 @@
       "1/2",
       "2"
     ]
+  },
+  "directed_contour_splines": {
+    "main_base": "b70c1aee",
+    "main_race_log": "projective-contour-spline-main-race.jsonl",
+    "main_race_sha256": "ba799373272563bac384b60600d743a7cdc2821b1dc663b45d497a10905637ef",
+    "main_race_seconds": 3.161,
+    "explicit_join_original_stations": [
+      "3/8",
+      "3/13"
+    ],
+    "section_pieces": 2,
+    "controls": [
+      "mutable external display contour cannot change private traversal",
+      "single work budget across both pieces",
+      "unsupported parabolic common-chart chord produces no partial result"
+    ]
   }
 }
