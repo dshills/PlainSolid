@@ -292,6 +292,13 @@ physical `v=-1/8`. The adapter refuses ordinary knot jumps instead of
 welding distinct limits, and short grid/work limits return no patch.
 The broad periodic/wrapped race passed in 7.103 seconds and the plane
 section recheck passed in 1.340 seconds.
+The inverse knot edit recovers each original homogeneous curve control
+after insertions on both sides of the seam, a repeated interior knot,
+and repeated seam copies. A tensor recovers both original axes by
+removing in the opposite order from insertion. Both require exact
+reinsertion equality. A real source break, one modified ordinate or
+one invalid tensor row refuses atomically. Main's periodic race
+passed in 5.973 seconds.
 
 The [full ordinary Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
 later passed all nine lanes on macOS ARM64. The independent inventory

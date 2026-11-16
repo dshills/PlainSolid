@@ -3242,5 +3242,7 @@ knots through the degree, and the same physical curve or surface can
 use any original knot as its fundamental seam. A continuous edited
 tensor now reassembles as a wrapped patch with an exact piecewise
 physical coordinate map and supports a closed plane contour across
-the new seam. General tensor trim arrangements, knot removal and
-neutral exchange of these edited splines remain open.
+the new seam. Exact knot removal succeeds only when reinsertion
+reproduces every original homogeneous ordinate, on every row of a
+tensor. General tensor trim arrangements, degree editing and neutral
+exchange of these edited splines remain open.
