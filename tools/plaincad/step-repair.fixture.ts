@@ -143,7 +143,7 @@ for (const fixture of fixtures) {
       expect(evidence.repairEvidence).toMatchObject({
         family: fixture.family, sourceSHA256: digest, lengthUnit: fixture.metresPerUnit ?? .001, maxDistance, pcurveOwners: fixture.owners,
       });
-      expect(evidence.repairEvidence.provenance.Body).toBeGreaterThan(0);
+      expect(evidence.repairEvidence.provenance?.Body).toBeGreaterThan(0);
       expect(evidence.repairEvidence.repairs).toHaveLength(fixture.sites);
       expect(evidence.repairEvidence.worldPose).toEqual(fixture.pose);
       if (fixture.prefix) {

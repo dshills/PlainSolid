@@ -410,3 +410,31 @@ selection uses the same [verified delegation](SUITE_DELEGATION.md) for
 production and cross-browser qualification.
 
 Run the inexpensive verifier tests with `node --test tools/plaincad/production.test.mjs`.
+
+### Four-cell mapped STEP repair
+
+Select the ordered v13 source family on import and reopen. The bridge qualifies
+one original four-cell shell in millimetres. Its evidence includes source face
+and model edge IDs, the source SHA-256, and the exact ordered support events.
+The optional v13 native receipt retains and re-proves both original owner
+charts, the joint changes, and the paired interior cuts.
+
+```ts
+const options = { stepRepair: { family: "mapped-chain-v13", maxDistance: 1e-12, native: true } } as const;
+const shape = kernel.importStep(source, options);
+const display = kernel.tessellate(shape, { linearDeflection: 0.36, angularDeflection: Math.PI });
+const exported = kernel.exportStep([shape]);
+const reopened = kernel.importStep(new TextDecoder().decode(exported.bytes), options);
+```
+
+The display is a closed mesh with a certified linear distance of at most
+0.36 mm. Request a linear deflection of at least 0.36 mm and use π if setting
+an angular deflection. The bridge supports canonical STEP export for a single
+mapped source body and certifies its analytic measures and bounds on readback.
+
+Run the focused Node qualification with the Go WASM runtime.
+
+```sh
+GOOS=js GOARCH=wasm go build -o /tmp/plaincad-ordered-mapped.wasm ./cmd/plaincadwasm
+node tools/plaincad/ordered-mapped-step.mjs /tmp/plaincad-ordered-mapped.wasm "$(go env GOROOT)/lib/wasm/wasm_exec.js"
+```

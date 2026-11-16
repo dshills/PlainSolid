@@ -138,11 +138,12 @@ type stored struct {
 	analytic        *analyticBody
 	tangent         *tangentBlindBore
 	rationalStepArc *rationalStepArcLoop
+	mappedChainSTEP *orderedMappedSTEPBody
 	result          Shape
 }
 
 func (s stored) planar() bool {
-	return s.cylinder == nil && s.bore == nil && s.treated == nil && s.analytic == nil && s.tangent == nil && s.rationalStepArc == nil
+	return s.cylinder == nil && s.bore == nil && s.treated == nil && s.analytic == nil && s.tangent == nil && s.rationalStepArc == nil && s.mappedChainSTEP == nil
 }
 
 type failure struct {
@@ -242,7 +243,7 @@ func (b *Bridge) execute(q request) (any, error) {
 			return nil, errors.New("stepUnits must be m or in for explicit source-unit STEP transfer")
 		}
 	}
-	if err := b.checkRationalSTEPArcOperation(q); err != nil {
+	if err := b.checkRetainedSTEPOperation(q); err != nil {
 		return nil, err
 	}
 	switch q.Op {
