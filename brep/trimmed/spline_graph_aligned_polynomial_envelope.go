@@ -92,8 +92,6 @@ func buildNativePolynomialEnvelopeOnFootprint(ctx context.Context, sources [3]*g
 	op parametric.BooleanOp, tolerance float64, o PolynomialCubicCrossingTangencyEnvelopeOptions, kind string,
 	proof geom.SplineGraphPolynomialArrangement, owners [2]geom.SplineGraphPolynomialOwnerLedger,
 	baseChart graphEnvelopeChart, charts [2]graphEnvelopeChart, reference graphEnvelopeReference) (*AlignedPolynomialEnvelope, error) {
-	base := sources[0]
-	roofs := [2]*geom.BSplineSurface{sources[1+first], sources[2-first]}
 	admit := isNativeAlignedPolynomialArrangement
 	if kind == nativeClippedPolynomialCommon {
 		admit = isNativeClippedPolynomialArrangement
@@ -101,6 +99,36 @@ func buildNativePolynomialEnvelopeOnFootprint(ctx context.Context, sources [3]*g
 	if !admit(proof, axis) {
 		return nil, geom.ErrConvergence
 	}
+	roofs := [2]*geom.BSplineSurface{sources[1+first], sources[2-first]}
+	bound, e := assembleBoundPolynomialEnvelope(ctx, sources[0], roofs, op, tolerance, o, proof, owners, baseChart, charts, reference)
+	if e != nil {
+		return nil, e
+	}
+	binding := bound.binding
+	out := &AlignedPolynomialEnvelope{solid: bound.solid, sources: sources, axis: axis, op: op, tolerance: tolerance, kind: kind}
+	out.history = PolynomialCubicCrossingTangencyEnvelopeHistory{
+		Base: bound.base, Vertices: [6]int(binding.vertices), Edges: [6][2]int(binding.chains),
+		Midpoints: [2]int{binding.midpoints[1], binding.midpoints[4]},
+		RoofFaces: [5]int(binding.roofFaces), RoofOwners: [5]int(binding.roofOwners),
+	}
+	for i := range out.history.RoofOwners {
+		out.history.RoofOwners[i] ^= first
+	}
+	out.contacts = [2]PolynomialMixedEnvelopeContact(bound.contacts)
+	return out, nil
+}
+
+type boundPolynomialEnvelope struct {
+	solid    Solid
+	binding  polynomialEnvelopeBinding
+	base     int
+	contacts []PolynomialMixedEnvelopeContact
+}
+
+func assembleBoundPolynomialEnvelope(ctx context.Context, base *geom.BSplineSurface, roofs [2]*geom.BSplineSurface,
+	op parametric.BooleanOp, tolerance float64, o PolynomialCubicCrossingTangencyEnvelopeOptions,
+	proof geom.SplineGraphPolynomialArrangement, owners [2]geom.SplineGraphPolynomialOwnerLedger,
+	baseChart graphEnvelopeChart, charts [2]graphEnvelopeChart, reference graphEnvelopeReference) (*boundPolynomialEnvelope, error) {
 	uv, xyz, e := proof.RepresentedVertices()
 	if e != nil {
 		return nil, e
@@ -136,27 +164,19 @@ func buildNativePolynomialEnvelopeOnFootprint(ctx context.Context, sources [3]*g
 	if e != nil {
 		return nil, e
 	}
-	out := &AlignedPolynomialEnvelope{solid: solid, sources: sources, axis: axis, op: op, tolerance: tolerance, kind: kind}
-	out.history = PolynomialCubicCrossingTangencyEnvelopeHistory{
-		Base: envelope.Base, Vertices: [6]int(binding.vertices), Edges: [6][2]int(binding.chains),
-		Midpoints: [2]int{binding.midpoints[1], binding.midpoints[4]},
-		RoofFaces: [5]int(binding.roofFaces), RoofOwners: [5]int(binding.roofOwners),
-	}
-	for i := range out.history.RoofOwners {
-		out.history.RoofOwners[i] ^= first
-	}
+	contacts := make([]PolynomialMixedEnvelopeContact, len(proof.Nodes))
 	for i, n := range proof.Nodes {
 		c, e := bindPolynomialEnvelopeJunction(solid, binding, proof.Edges, n, proof.Vertices[n.Vertex], xyz[n.Vertex])
 		if e != nil {
 			return nil, e
 		}
 		c.Order, c.DerivativeGap = proof.ContactOrder[i], proof.DerivativeGap[i]
-		out.contacts[i] = c
+		contacts[i] = c
 	}
 	if e := ctx.Err(); e != nil {
 		return nil, e
 	}
-	return out, nil
+	return &boundPolynomialEnvelope{solid: solid, binding: binding, base: envelope.Base, contacts: contacts}, nil
 }
 
 type alignedPolynomialStock struct {

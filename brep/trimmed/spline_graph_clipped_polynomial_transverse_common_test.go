@@ -107,6 +107,15 @@ func checkClippedTransverseCommonOwners(t *testing.T, r *AlignedPolynomialEnvelo
 	}
 
 	fp, ok := r.ClippedFootprint()
+	if !ok {
+		t.Fatal("missing original clipped footprint")
+	}
+	checkClippedCommonWallOwners(t, s, h.Base, r.sources, fp, layout, axis, order)
+}
+
+func checkClippedCommonWallOwners(t *testing.T, s Solid, base int, sources [3]*geom.BSplineSurface,
+	fp ClippedPolynomialFootprint, layout, axis, order int) {
+	t.Helper()
 	ends := [3][2][4]uint8{
 		{{3, 1, 3, 2}, {2, 3, 1, 3}},
 		{{2, 3, 1, 3}, {3, 1, 3, 2}},
@@ -117,25 +126,29 @@ func checkClippedTransverseCommonOwners(t *testing.T, r *AlignedPolynomialEnvelo
 			ends[i] = (mask&1)<<1 | (mask&2)>>1
 		}
 	}
-	if !ok || fp.BoundaryRoofs != ends {
+	if fp.BoundaryRoofs != ends {
 		t.Fatal("exact ownership of all original clipped footprint sides", fp, ends)
 	}
 	var otherStockWall bool
-	for i, f := range s.faces[h.Base+1:] {
+	for i, f := range s.faces[base+1:] {
 		if len(f.Outer) != 4 {
 			t.Fatal("one upper trace, lower trace and two uprights per common wall", i)
 		}
 		low, loOK := graphWallSourceTrim(f.Outer[0].Curve, false, true)
 		high, hiOK := graphWallSourceTrim(f.Outer[2].Curve, true, true)
-		if !loOK || !hiOK || low.surface != r.sources[0] {
+		if !loOK || !hiOK || low.surface != sources[0] {
 			t.Fatal("external wall keeps the original floor and roof curves", i)
 		}
 		owner := 0
-		if high.surface != r.sources[1] {
+		if high.surface != sources[1] {
 			owner = 1
-			if high.surface != r.sources[2] {
+			if high.surface != sources[2] {
 				t.Fatal("upper wall trace lost its original roof", i)
 			}
+		}
+		bottom, ok := s.edges[f.Outer[0].Edge].Curve.(surfaceTrimCurve)
+		if !ok || bottom.surface != low.surface || bottom.a != low.a || bottom.b != low.b || bottom.curve != nil {
+			t.Fatal("wall lower edge keeps the original base UV", i)
 		}
 		edge := s.edges[f.Outer[2].Edge]
 		model, ok := edge.Curve.(surfaceTrimCurve)

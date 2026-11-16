@@ -42,23 +42,8 @@ func (r *AlignedPolynomialEnvelope) ClippedFootprint() (ClippedPolynomialFootpri
 // The shell retains unmodified original cap sources and owner wall trims.
 func CommonClippedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BSplineSurface, axis int,
 	tolerance float64, o PolynomialCubicCrossingTangencyEnvelopeOptions) (*AlignedPolynomialEnvelope, error) {
-	if ctx == nil || base == nil || a == nil || b == nil || axis < 0 || axis > 1 || !finite(tolerance) || tolerance <= 0 ||
-		o.Section.Domain != (geom.ParameterRectangle{}) {
-		return nil, geom.ErrInvalid
-	}
-	if e := ctx.Err(); e != nil {
-		return nil, e
-	}
 	sources := [3]*geom.BSplineSurface{base, a, b}
-	var patches [3]*geom.SurfacePatch
-	for i, source := range sources {
-		p, e := geom.NewSurfacePatch(source, o.Section.Patch)
-		if e != nil {
-			return nil, e
-		}
-		patches[i] = p
-	}
-	proof, e := geom.DiscoverClippedSplineGraphPolynomialArrangement(ctx, patches[0], patches[1], patches[2], axis, o.Proof)
+	proof, e := prepareClippedPolynomialCommon(ctx, sources, axis, tolerance, o)
 	if e != nil {
 		return nil, e
 	}
@@ -72,9 +57,34 @@ func CommonClippedPolynomialEnvelope(ctx context.Context, base, a, b *geom.BSpli
 	if e != nil {
 		return nil, e
 	}
-	out.clippedFootprint = &ClippedPolynomialFootprint{Physical: proof.Reference.Domain(), Original: proof.OriginalDomains,
-		Restricted: proof.RestrictedDomains, BoundaryRoofs: proof.BoundaryRoofs}
+	footprint := clippedCommonFootprint(proof)
+	out.clippedFootprint = &footprint
 	return out, nil
+}
+
+func prepareClippedPolynomialCommon(ctx context.Context, sources [3]*geom.BSplineSurface, axis int, tolerance float64,
+	o PolynomialCubicCrossingTangencyEnvelopeOptions) (geom.ClippedSplineGraphPolynomialArrangement, error) {
+	if ctx == nil || sources[0] == nil || sources[1] == nil || sources[2] == nil || axis < 0 || axis > 1 || !finite(tolerance) || tolerance <= 0 ||
+		o.Section.Domain != (geom.ParameterRectangle{}) {
+		return geom.ClippedSplineGraphPolynomialArrangement{}, geom.ErrInvalid
+	}
+	if e := ctx.Err(); e != nil {
+		return geom.ClippedSplineGraphPolynomialArrangement{}, e
+	}
+	var patches [3]*geom.SurfacePatch
+	for i, source := range sources {
+		p, e := geom.NewSurfacePatch(source, o.Section.Patch)
+		if e != nil {
+			return geom.ClippedSplineGraphPolynomialArrangement{}, e
+		}
+		patches[i] = p
+	}
+	return geom.DiscoverClippedSplineGraphPolynomialArrangement(ctx, patches[0], patches[1], patches[2], axis, o.Proof)
+}
+
+func clippedCommonFootprint(proof geom.ClippedSplineGraphPolynomialArrangement) ClippedPolynomialFootprint {
+	return ClippedPolynomialFootprint{Physical: proof.Reference.Domain(), Original: proof.OriginalDomains,
+		Restricted: proof.RestrictedDomains, BoundaryRoofs: proof.BoundaryRoofs}
 }
 
 // ReadClippedPolynomialCommonJSON re-proves the original stock clearances and
