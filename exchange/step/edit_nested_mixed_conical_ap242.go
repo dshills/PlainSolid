@@ -64,6 +64,34 @@ func writeMixedConicalAP242Edits(ctx context.Context, w io.Writer, original io.R
 	if err != nil {
 		return err
 	}
+	known, err := editMixedConicalAP242Occurrences(ctx, base, edits)
+	if err != nil {
+		return err
+	}
+	raw, err := mappedPlanarSourceBytes(base.a.Source)
+	if err != nil {
+		return err
+	}
+	if len(edits) != 0 {
+		fresh, err := read(bytes.NewReader(raw))
+		if err != nil {
+			return err
+		}
+		if err := checkMixedConicalAP242Edits(base, fresh, known); err != nil {
+			return err
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	n, err := w.Write(raw)
+	if err == nil && n != len(raw) {
+		return io.ErrShortWrite
+	}
+	return err
+}
+
+func editMixedConicalAP242Occurrences(ctx context.Context, base mixedConicalEditInput, edits []MixedConicalAP242OccurrenceEdit) (map[int64]ExactNAUOOccurrence, error) {
 	f := base.a.Source
 	known := make(map[int64]ExactNAUOOccurrence, len(base.occurrences))
 	for _, o := range base.occurrences {
@@ -77,17 +105,17 @@ func writeMixedConicalAP242Edits(ctx context.Context, w io.Writer, original io.R
 	seen := make(map[int64]bool, len(edits))
 	for _, e := range edits {
 		if err := ctx.Err(); err != nil {
-			return err
+			return nil, err
 		}
 		o, ok := known[e.NAUOID]
 		if !ok || seen[e.NAUOID] || e.Name == nil && e.Translation == nil {
-			return geom.ErrInvalid
+			return nil, geom.ErrInvalid
 		}
 		seen[e.NAUOID] = true
 		if e.Name != nil {
 			name := *e.Name
 			if len(name) > 4096 || !utf8.ValidString(name) {
-				return geom.ErrInvalid
+				return nil, geom.ErrInvalid
 			}
 			o.Name = name
 			f.Entities[o.NAUOID].Records[0].Args[1] = Value{Kind: String, Text: name}
@@ -96,7 +124,7 @@ func writeMixedConicalAP242Edits(ctx context.Context, w io.Writer, original io.R
 			changed := false
 			for i, q := range *e.Translation {
 				if q == nil || q.Num().BitLen() > 256 || q.Denom().BitLen() > 256 {
-					return geom.ErrUnrepresentable
+					return nil, geom.ErrUnrepresentable
 				}
 				changed = changed || q.Cmp(o.pose.Origin[i]) != 0
 				o.pose.Origin[i] = new(big.Rat).Set(q)
@@ -105,40 +133,27 @@ func writeMixedConicalAP242Edits(ctx context.Context, w io.Writer, original io.R
 				// The source's child frame is the exact identity. Its proved
 				// target frame therefore is the requested child-to-parent pose.
 				if err := setAssemblyOccurrenceTarget(f, o.TransformationID, products[o.ParentID], o.pose); err != nil {
-					return err
+					return nil, err
 				}
 				o.ToPlacementID = f.Entities[o.TransformationID].Records[0].Args[3].Ref
 			}
 		}
 		known[o.NAUOID] = o
 	}
-	raw, err := mappedPlanarSourceBytes(f)
-	if err != nil {
-		return err
+	return known, nil
+}
+
+func checkMixedConicalAP242Edits(base, fresh mixedConicalEditInput, known map[int64]ExactNAUOOccurrence) error {
+	if len(fresh.occurrences) != len(known) || fresh.instances != base.instances || fresh.a.LengthUnit != base.a.LengthUnit {
+		return geom.ErrUnrepresentable
 	}
-	if len(edits) != 0 {
-		fresh, err := read(bytes.NewReader(raw))
-		if err != nil {
-			return err
-		}
-		if len(fresh.occurrences) != len(known) || fresh.instances != base.instances || fresh.a.LengthUnit != base.a.LengthUnit {
+	for _, got := range fresh.occurrences {
+		want, ok := known[got.NAUOID]
+		if !ok || !equalMixedConicalOccurrences(got, want) {
 			return geom.ErrUnrepresentable
 		}
-		for _, got := range fresh.occurrences {
-			want, ok := known[got.NAUOID]
-			if !ok || !equalMixedConicalOccurrences(got, want) {
-				return geom.ErrUnrepresentable
-			}
-		}
 	}
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	n, err := w.Write(raw)
-	if err == nil && n != len(raw) {
-		return io.ErrShortWrite
-	}
-	return err
+	return nil
 }
 
 func equalMixedConicalOccurrences(a, b ExactNAUOOccurrence) bool {
