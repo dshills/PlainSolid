@@ -35,6 +35,15 @@ exact source volume within `4.45e-16` absolute. The prior 108 neutral
 files are byte identical. The direct OCCT Boolean's distinct vertex
 ownership and measured volume differences are recorded separately.
 
+The [proper-similarity display milestone](evidence/parabola-circle-proper-similarity-2026-11-16.json)
+passed its main focused race in 322.877 seconds. Eight components from four
+independently authored carriers were reopened with the exact rotated
+chart, linear scale five and volume scale 125. The `0.25` mm distance,
+`0.2` radian normal-turn and `0.1` radian facet bounds passed. A
+`0.1` mm request requiring more refinement refused. Shear, anisotropy,
+reflection and changed coedge owners remain outside the proof. All 34
+earlier output digests still match.
+
 The [explicit rounded conical STEP repair](evidence/conical-rim-fillet-default-step-repair-2026-11-15.json)
 was checked against independently pinned OCCT authoring and readback. The
 finite cone displacement bound is `2.82747187543142e-12` mm. The

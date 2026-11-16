@@ -11,7 +11,7 @@ import (
 const nativePlacedParabolaTwoCirclesCut = "trimmed-placed-spline-graph-parabola-two-circles-cut"
 
 // WriteJSON stores the original world controls and the component boundary
-// ledger. The rigid chart and all display quantities are rederived on demand.
+// ledger. The similarity chart and all display quantities are rederived on demand.
 func (r *PlacedParabolaTwoCirclesGraphCut) WriteJSON(ctx context.Context, w io.Writer) error {
 	if ctx == nil || w == nil || r == nil || r.local == nil || r.sources[0] == nil {
 		return geom.ErrInvalid
@@ -21,7 +21,7 @@ func (r *PlacedParabolaTwoCirclesGraphCut) WriteJSON(ctx context.Context, w io.W
 		return err
 	}
 	return writePolynomialGraphRecipe(ctx, w, parabolaCircleCutRecipe{
-		Version: 1, Kind: nativePlacedParabolaTwoCirclesCut, Sources: src, Axis: &r.local.axis, Tolerance: r.local.tolerance,
+		Version: 1, Kind: nativePlacedParabolaTwoCirclesCut, Sources: src, Axis: &r.local.axis, Tolerance: r.tolerance,
 		Ledger: parabolaCircleCutRecipeLedger(r.local.history),
 	})
 }

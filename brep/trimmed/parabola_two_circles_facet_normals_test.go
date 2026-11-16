@@ -91,6 +91,13 @@ func checkParabolaCircleFacetDisplay(t *testing.T, s Solid, m CertifiedParabolaT
 			case geom.PlaneSurface:
 				native = surface.Frame().ZAxis()
 				walls++
+			case parabolaCircleSimilarityWall:
+				a, b, err := surface.Partials(0, 0)
+				if err != nil {
+					t.Fatal(err)
+				}
+				native = a.Cross(b)
+				walls++
 			case *geom.BSplineSurface:
 				q := uv(p)
 				var err error

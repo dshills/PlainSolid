@@ -1,0 +1,66 @@
+{
+  "isolate_commit": "59ea8ed8b249cba8224f0490418a87f6ae0a80cb",
+  "patch_sha256": "5e814eb6c70385944ababbaaeba77ab1a91d741bc14d3e58687e64257bb8a5f7",
+  "main_integration": {
+    "log": "parabola-proper-similarity-main-race.jsonl",
+    "sha256": "f7be39ea153db0157ff8854d2db3e3f445757a1d523e040b968486d5e6849d31",
+    "elapsed_seconds": 322.877,
+    "passed_tests": {
+      "TestCertifiedParabolaCircleSimilarity": 127.42,
+      "TestPlacedParabolaCircleRejectsNonSimilarity": 0.02,
+      "TestCertifiedParabolaTwoCirclesFacetAngle": 108.79,
+      "TestCertifiedPlacedParabolaTwoCirclesFacetAngle": 85.21
+    }
+  },
+  "world_chart": [
+    "5u+17/8",
+    "3v-4z-3",
+    "4v+3z+5"
+  ],
+  "linear_scale": 5,
+  "volume_scale": 125,
+  "qualified_deflection": 0.25,
+  "qualified_normal_turn": 0.2,
+  "qualified_facet_angle": 0.1,
+  "fixed_refinement_rejected_deflection": 0.1,
+  "prior_output_digests_verified": 34,
+  "source_reopen_log_sha256": "50900a7b6d27618ccdb4a19b2eadae085913b8dc4b20e013e6307b4cb2dbca3d",
+  "rotated_carriers": [
+    {
+      "name": "opposite-order-0.json",
+      "authored": "fa196baef5309f1da77c62ae16eaa999282d7fc618a200c8fff2152f1fe7d3dd",
+      "canonical": "05b37d3039ba5256e4ce2e5edeb551a1e0924d0b43efcca033f9f965ef627993",
+      "reopens": [
+        "region 0 triangles 10394 Euler 0 Volume 0.0463255944350860375 Distance 0.087100704581179 TurnSquared 0.005471758115635 FacetTangentSquared 0.002395682960921 Contacts 0",
+        "region 2 triangles 8456 Euler 2 Volume 0.0022792885933296305 Distance 0.064486880010091 TurnSquared 0.000727570027404 FacetTangentSquared 0.000161748885131 Contacts 0"
+      ]
+    },
+    {
+      "name": "opposite-order-1.json",
+      "authored": "5c60c4c287c83b13cb5e6974cb7b8f3b71a2a7f3c3a07cf586b32c3313282335",
+      "canonical": "3f4953265700de81d1fcd57f7ed3dd3773b8024a8d29ecc643a2fe1a0d6ae47b",
+      "reopens": [
+        "region 1 triangles 12190 Euler 0 Volume 0.3321331147991253161 Distance 0.148384188939921 TurnSquared 0.009120160118512 FacetTangentSquared 0.001972222933582 Contacts 0",
+        "region 3 triangles 1452 Euler 2 Volume 0.0000547049316493523 Distance 0.145521547062456 TurnSquared 0.000807558053742 FacetTangentSquared 0.000166538286701 Contacts 0"
+      ]
+    },
+    {
+      "name": "same-order-0.json",
+      "authored": "f9877923a411fd56456b6e5ce5bfe98dd85f633043ce257d37bd1c6fd235caad",
+      "canonical": "7e712cee53995c4499431a833e56ea6e5697a0c22e0028eeaa9c7cff84041154",
+      "reopens": [
+        "region 0 triangles 8950 Euler 2 Volume 0.2551157291967625247 Distance 0.100667972331061 TurnSquared 0.006443190811530 FacetTangentSquared 0.001497910598044 Contacts 0",
+        "region 2 triangles 8456 Euler 2 Volume 0.0008837489916915047 Distance 0.084656343097546 TurnSquared 0.001037383854000 FacetTangentSquared 0.000221246531707 Contacts 0",
+        "region 3 triangles 1452 Euler 2 Volume 0.0000447771544894695 Distance 0.191555807056993 TurnSquared 0.001151279442028 FacetTangentSquared 0.000240043296014 Contacts 0"
+      ]
+    },
+    {
+      "name": "same-order-1.json",
+      "authored": "f662f330c37f82c4c31fde43bfb2dd4438a56ec693915a8d7f025edbdf80ca77",
+      "canonical": "2fa827af77441176853f4003146c19b33ab36bbd3bcc9e39d7370b36b87c9db9",
+      "reopens": [
+        "region 1 triangles 12334 Euler -2 Volume 0.0595122402591564106 Distance 0.189874750832871 TurnSquared 0.012909506770858 FacetTangentSquared 0.002599022480651 Contacts 0"
+      ]
+    }
+  ]
+}

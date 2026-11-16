@@ -163,6 +163,15 @@ func (r *ParabolaTwoCirclesGraphCut) tessellateCertified(ctx context.Context, o 
 		meshes[i] = result[i].Mesh
 		o.MaxTriangles -= len(meshes[i].Triangles)
 	}
+	if world != nil && !world.chart.signedAxisUnit {
+		separated, err := world.chart.separatesDisplayedComponents(ctx, meshes)
+		if err != nil {
+			return nil, err
+		}
+		if separated {
+			return result, nil
+		}
+	}
 	if err := proveParabolaCircleDisplaySeparation(ctx, meshes, maximumTriangles, o.Collision.MaxPairs); err != nil {
 		return nil, fmt.Errorf("trimmed: parabola and circles display separation: %w", err)
 	}
@@ -209,6 +218,14 @@ func parabolaTwoCirclesComponentDisplay(ctx context.Context, s Solid, h Parabola
 				}
 			}
 			curves[i] = append(curves[i], a)
+		}
+	}
+	physicalDeflection := ratInset(o.Deflection)
+	if placement.scaled() {
+		var err error
+		o.Deflection, err = placement.chart.localDistance(o.Deflection)
+		if err != nil {
+			return empty, err
 		}
 	}
 	tolerance := ratInset(o.RelativeVolumeTolerance)
@@ -270,7 +287,20 @@ func parabolaTwoCirclesComponentDisplay(ctx context.Context, s Solid, h Parabola
 		if err != nil {
 			return empty, err
 		}
-		if actual.Cmp(display.SignedDisplayVolume) != 0 {
+		if placement.scaled() {
+			scale := placement.chart.scale
+			display.DistanceUpper.Mul(display.DistanceUpper, scale)
+			if display.DistanceUpper.Cmp(physicalDeflection) > 0 {
+				continue
+			}
+			factor := placement.chart.volume
+			localVolume := new(big.Rat).Quo(actual, factor)
+			if localVolume.Cmp(minimum) < 0 || localVolume.Cmp(maximum) > 0 {
+				continue
+			}
+			display.SignedDisplayVolume = actual
+			volume = [2]*big.Rat{new(big.Rat).Mul(volume[0], factor), new(big.Rat).Mul(volume[1], factor)}
+		} else if actual.Cmp(display.SignedDisplayVolume) != 0 {
 			return empty, geom.ErrConvergence
 		}
 		display.Collision, display.SourceVolume, display.Subdivisions = report, volume, n
