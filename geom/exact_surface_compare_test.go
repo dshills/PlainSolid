@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"math/big"
 	"testing"
 )
 
@@ -107,5 +108,69 @@ func TestExactSurfaceComparisonRationalMultiplierAndNonbinaryGrid(t *testing.T) 
 	r, e = CompareExactSurfaces(context.Background(), a, b, ExactSurfaceComparisonOptions{NormalizeDomains: true, MaxCells: 1})
 	if !errors.Is(e, ErrConvergence) || r.Complete {
 		t.Fatal(r, e)
+	}
+}
+
+func TestExactSurfaceComparisonFractionalOriginalKnotMaps(t *testing.T) {
+	ctx := context.Background()
+	a := arcTestPatch(t, func(u, v float64) Vec3 { return Vec3{u, 2 * v, u * v} })
+	makeB := func(perturb bool) *SurfacePatch {
+		t.Helper()
+		// On B, the original U is A's second station, and B's decreasing
+		// V is A's first. Evaluate the analytically known homogeneous
+		// bilinear polynomial at the original knot grid. Degree-one
+		// controls interpolate this polynomial exactly at those knots.
+		p := &SurfacePatch{degreeU: 1, degreeV: 1, countU: 3, countV: 3,
+			knotsU: []float64{-2, -2, 0, 2, 2}, knotsV: []float64{4, 4, 7, 8, 8}}
+		one, two := big.NewRat(1, 1), big.NewRat(2, 1)
+		for i, v := range [3]*big.Rat{new(big.Rat), big.NewRat(1, 2), one} {
+			for j, u := range [3]*big.Rat{one, big.NewRat(1, 4), new(big.Rat)} {
+				wu := new(big.Rat).Sub(big.NewRat(3, 2), new(big.Rat).Quo(u, two))
+				wv := new(big.Rat).Sub(big.NewRat(4, 3), new(big.Rat).Quo(v, big.NewRat(3, 1)))
+				h := exactHomogeneous{new(big.Rat).Mul(u, wv), new(big.Rat).Mul(two, new(big.Rat).Mul(v, wu)),
+					new(big.Rat).Mul(u, v), new(big.Rat).Mul(wu, wv)}
+				if perturb && i == 1 && j == 1 {
+					h[2].Add(h[2], new(big.Rat).SetFrac(big.NewInt(1), new(big.Int).Lsh(big.NewInt(1), 120)))
+				}
+				p.net = append(p.net, h)
+			}
+		}
+		p.options, _ = patchOptions(SurfacePatchOptions{})
+		if err := p.computeBounds(&polynomialBudget{maxOperations: p.options.MaxOperations, maxBits: p.options.MaxCoefficientBits}); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	b := makeB(false)
+	// B's original (U,V) knot intersection pulls back to A (2/11,3/7).
+	jet, err := b.EvaluateRational(ctx, new(big.Rat), big.NewRat(7, 1), SurfacePatchEvaluationOptions{})
+	if err != nil || jet.Point[0].Cmp(big.NewRat(2, 11)) != 0 || jet.Point[1].Cmp(big.NewRat(6, 7)) != 0 || jet.Point[2].Cmp(big.NewRat(6, 77)) != 0 {
+		t.Fatal("independent original fractional knot control is inconsistent", jet, err)
+	}
+	o := ExactSurfaceComparisonOptions{NormalizeDomains: true, SwapB: true, ReverseBU: true,
+		BStationRatios: [2]*big.Rat{big.NewRat(3, 2), big.NewRat(4, 3)}}
+	r, err := CompareExactSurfaces(ctx, a, b, o)
+	if err != nil || !r.Equal || !r.Complete || r.ComparedCells != 4 {
+		t.Fatal("failed to prove exact coincidence on the original pulled knot partition", r, err)
+	}
+	wrong := o
+	wrong.BStationRatios[1] = big.NewRat(5, 4)
+	r, err = CompareExactSurfaces(ctx, a, b, wrong)
+	if err != nil || !r.Complete || r.Equal || r.DifferentAxis != 1 {
+		t.Fatal("coincident corners must not authenticate a wrong interior station map", r, err)
+	}
+	r, err = CompareExactSurfaces(ctx, a, makeB(true), o)
+	if err != nil || !r.Complete || r.Equal || r.DifferentAxis != 2 {
+		t.Fatal("tiny original interior deviation must survive the exact mapped comparison", r, err)
+	}
+	short := o
+	short.MaxCells = 3
+	r, err = CompareExactSurfaces(ctx, a, b, short)
+	if !errors.Is(err, ErrConvergence) || r.Complete {
+		t.Fatal("incomplete mapped knot cover must not claim equality", r, err)
+	}
+	wrong.BStationRatios[0] = new(big.Rat)
+	if r, err := CompareExactSurfaces(ctx, a, b, wrong); !errors.Is(err, ErrInvalid) || r.Complete {
+		t.Fatal("station map is not bijective with a zero ratio", r, err)
 	}
 }

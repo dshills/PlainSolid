@@ -9,10 +9,14 @@ import (
 // ExactSurfaceComparisonOptions selects B's chart map: swap its U/V axes first,
 // then reverse the resulting U/V axes as requested. NormalizeDomains aligns
 // both domain rectangles affinely; otherwise mapped domain endpoints must match.
+// BStationRatios optionally map each normalized A axis t through
+// r*t/(1+(r-1)*t) on the aligned B axis before its reversal. Entries
+// follow the aligned axis order after SwapB; nil and one are identity.
 // All maps and common knot partitions are rational, never rounded to float knots.
 // Zero limits select 8192 common cells, 8M operations and 16384 coefficient bits.
 type ExactSurfaceComparisonOptions struct {
 	NormalizeDomains, SwapB, ReverseBU, ReverseBV bool
+	BStationRatios                                [2]*big.Rat
 	MaxCells, MaxOperations, MaxCoefficientBits   int
 }
 
@@ -70,6 +74,18 @@ func compareExactSurfaceRationalDomains(ctx context.Context, a, b *SurfacePatch,
 	}
 	budget := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	defer func() { r.ExactOperations = budget.operations }()
+	for i, ratio := range o.BStationRatios {
+		if ratio == nil || ratio.Cmp(big.NewRat(1, 1)) == 0 {
+			o.BStationRatios[i] = nil
+			continue
+		}
+		if ratio.Sign() <= 0 {
+			return r, ErrInvalid
+		}
+		if err := budget.check(ratio); err != nil {
+			return r, err
+		}
+	}
 	extract := func(source *SurfacePatch, owner int, swap, reverseU, reverseV bool) ([]comparisonTensor, error) {
 		d := source.Domain()
 		domain := [2][2]*big.Rat{{new(big.Rat).SetFloat64(d.UMin), new(big.Rat).SetFloat64(d.UMax)}, {new(big.Rat).SetFloat64(d.VMin), new(big.Rat).SetFloat64(d.VMax)}}
@@ -161,6 +177,22 @@ func compareExactSurfaceRationalDomains(ctx context.Context, a, b *SurfacePatch,
 	if e != nil {
 		return r, e
 	}
+	if o.BStationRatios != [2]*big.Rat{} {
+		pulled := bc[:0]
+		for _, c := range bc {
+			if err := ctx.Err(); err != nil {
+				return r, err
+			}
+			cell, ok, err := pullComparisonTensor(c, o.BStationRatios, budget)
+			if err != nil {
+				return r, err
+			}
+			if ok {
+				pulled = append(pulled, cell)
+			}
+		}
+		bc = pulled
+	}
 	union := func(u bool) []*big.Rat {
 		values := []*big.Rat{new(big.Rat), big.NewRat(1, 1)}
 		for _, cells := range [][]comparisonTensor{ac, bc} {
@@ -244,6 +276,75 @@ func compareExactSurfaceRationalDomains(ctx context.Context, a, b *SurfacePatch,
 	}
 	r.Complete, r.Equal = true, true
 	return r, nil
+}
+
+func pullComparisonTensor(c comparisonTensor, ratios [2]*big.Rat, b *polynomialBudget) (comparisonTensor, bool, error) {
+	a := boundedRatArithmetic{b: b}
+	zero, one := new(big.Rat), big.NewRat(1, 1)
+	intervals := [2][2]*big.Rat{{c.u0, c.u1}, {c.v0, c.v1}}
+	original := intervals
+	for i, ends := range intervals {
+		if ends[1].Sign() <= 0 || ends[0].Cmp(one) >= 0 {
+			return comparisonTensor{}, false, nil
+		}
+		if ends[0].Sign() < 0 {
+			intervals[i][0] = zero
+		}
+		if ends[1].Cmp(one) > 0 {
+			intervals[i][1] = one
+		}
+	}
+	if intervals != original {
+		var clip [2][2]*big.Rat
+		for i, ends := range intervals {
+			width := a.sub(original[i][1], original[i][0])
+			for j, end := range ends {
+				clip[i][j] = a.quo(a.sub(end, original[i][0]), width)
+			}
+		}
+		if a.err != nil {
+			return comparisonTensor{}, false, a.err
+		}
+		var err error
+		c.net, err = restrictComparisonTensor(c, clip[0][0], clip[0][1], clip[1][0], clip[1][1], b)
+		if err != nil {
+			return comparisonTensor{}, false, err
+		}
+	}
+	var power [2][]*big.Rat
+	for i, degree := range [2]int{c.nu - 1, c.nv - 1} {
+		local := one
+		if r := ratios[i]; r != nil {
+			k := a.sub(r, one)
+			for j, y := range intervals[i] {
+				// Invert y = r*x/(1+(r-1)*x) exactly at the original knot.
+				intervals[i][j] = a.quo(y, a.sub(r, a.mul(k, y)))
+			}
+			// After clipping to a cell, the normalized local Möbius
+			// ratio is the quotient of global denominators at its ends.
+			local = a.quo(a.add(one, a.mul(k, intervals[i][1])), a.add(one, a.mul(k, intervals[i][0])))
+		}
+		power[i] = make([]*big.Rat, degree+1)
+		power[i][0] = one
+		for j := 1; j <= degree; j++ {
+			power[i][j] = a.mul(power[i][j-1], local)
+		}
+	}
+	if a.err != nil {
+		return comparisonTensor{}, false, a.err
+	}
+	// For y = R*t/(1+(R-1)*t), composing a degree-d Bernstein
+	// polynomial scales its ith homogeneous control by R^i and divides
+	// by a common positive denominator to the dth power. The common
+	// factor cancels from the rational surface. Apply each tensor axis.
+	for i, h := range c.net {
+		scale := a.mul(power[0][i/c.nv], power[1][i%c.nv])
+		for axis, x := range h {
+			c.net[i][axis] = a.mul(x, scale)
+		}
+	}
+	c.u0, c.u1, c.v0, c.v1 = intervals[0][0], intervals[0][1], intervals[1][0], intervals[1][1]
+	return c, a.err == nil, a.err
 }
 
 func restrictComparisonTensor(c comparisonTensor, u0, u1, v0, v1 *big.Rat, b *polynomialBudget) ([]exactHomogeneous, error) {

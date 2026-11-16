@@ -47,6 +47,10 @@ a valid coarse interval when refinement exhausts its budget.
 An exact surface-pair distance query retains both rational model sample
 points and the squared distance enclosure below float64 range, including
 when an oblique gap is invisible in the outward axis boxes.
+Exact surface comparison now also proves whole chart coincidence under
+independent fractional maps of the normalized U and V axes, including
+swapped/reversed owners and different original knot breaks. Partial
+coincidence and automatic recovery of general chart maps remain open.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

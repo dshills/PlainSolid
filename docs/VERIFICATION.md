@@ -89,6 +89,14 @@ certified in one cell with both original witnesses. A contact remains
 zero, and a short search supplies valid partial bounds and a matching
 exact sample rather than claiming completion.
 
+[Fractional surface comparison](evidence/fractional-surface-comparison-2026-11-16.json)
+passed a reversed, transposed rational spline whose two original
+interior knots pull back to `2/11` and `3/7`. All four resulting
+rectangles are algebraically equal. Matching corners with a wrong map,
+a `2^-120` original control perturbation, an invalid ratio, and a
+short common-cell budget do not certify equality. Prior affine chart
+comparisons and conservative pair coverings pass the same race run.
+
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips
 among 6,460 inventoried cases. All 53 tested packages passed; eight have
