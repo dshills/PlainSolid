@@ -257,8 +257,9 @@ A complete contact contour can also preserve all exact analytic
 section pieces and both original clocks across a source knot.
 For exactly representable endpoints, both original faces now split
 their native wires across that full contour and retain the original
-model pieces and boundary coedge ranges. Shared material sewing is a
-separate stage.
+model pieces and boundary coedge ranges. Closed Common and Fuse retain
+all section edges and the split original wall; Cut also closes both
+orders when their original exterior partitions agree.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

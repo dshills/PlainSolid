@@ -659,5 +659,40 @@
       "one-short shared work",
       "nonbinary second-owner UV endpoint"
     ]
+  },
+  "closed_contour_material": {
+    "main_base": "2520c628",
+    "main_race_log": "projective-contour-roof-all-material-main-race.jsonl",
+    "main_race_sha256": "b1697ff349e035a6c8e26d98473fff3b219b2a87993632f6e337b05b58b5da5f",
+    "main_race_seconds": 34.58,
+    "named_passes": [
+      "TestBuildProjectiveSplineRoofContourSolidRetainsSweptOriginalKnot",
+      "TestBuildProjectiveSplineRoofContourDifferenceRetainsBothOriginalKnotWires"
+    ],
+    "original_section_edges": 2,
+    "common_and_fuse": {
+      "faces": 10,
+      "edges": 23,
+      "vertices": 15,
+      "independent_volumes": [
+        "9/8",
+        "11/8"
+      ],
+      "exact_replays": 4,
+      "original_walls": 7
+    },
+    "cut": {
+      "faces": 6,
+      "edges": 13,
+      "vertices": 9,
+      "independent_volume": "1/8",
+      "input_orders": 2,
+      "original_walls": 4,
+      "base_faces": 0
+    },
+    "refusals": [
+      "insufficient sewing comparisons",
+      "unmatched top and floor exterior partitions"
+    ]
   }
 }

@@ -25,6 +25,7 @@ type ProjectiveSplineEnvelope struct {
 	RetainedSide    [2]int // sign of original A height minus original B height
 	Witness         [2]geom.ProjectiveContactHeight
 	Section         geom.ProjectiveContactSpline
+	Sections        []geom.ProjectiveContactSplineUse
 	ExactOperations int
 	Complete        bool
 }
@@ -36,6 +37,19 @@ type ProjectiveSplineEnvelope struct {
 // throughout its region. All original corners are checked for consistency.
 func SelectProjectiveSplineFaceEnvelope(ctx context.Context, a, b Face, axes [2]int, operation parametric.BooleanOp,
 	o ProjectiveSplineEnvelopeOptions) (r ProjectiveSplineEnvelope, err error) {
+	return selectProjectiveSplineFaceEnvelope(ctx, a, b, axes, operation, o, true)
+}
+
+// SelectProjectiveSplineFaceContourEnvelope retains the lower or upper
+// portions of two original roofs separated by one open exact contour.
+// It preserves every native section edge and both original pcurves.
+func SelectProjectiveSplineFaceContourEnvelope(ctx context.Context, a, b Face, axes [2]int, operation parametric.BooleanOp,
+	o ProjectiveSplineEnvelopeOptions) (r ProjectiveSplineEnvelope, err error) {
+	return selectProjectiveSplineFaceEnvelope(ctx, a, b, axes, operation, o, false)
+}
+
+func selectProjectiveSplineFaceEnvelope(ctx context.Context, a, b Face, axes [2]int, operation parametric.BooleanOp,
+	o ProjectiveSplineEnvelopeOptions, single bool) (r ProjectiveSplineEnvelope, err error) {
 	if ctx == nil || operation != parametric.Intersection && operation != parametric.Union || o.MaxClassifyOperations < 0 {
 		return r, geom.ErrInvalid
 	}
@@ -43,20 +57,25 @@ func SelectProjectiveSplineFaceEnvelope(ctx context.Context, a, b Face, axes [2]
 	if operation == parametric.Union {
 		want = [2]int{1, -1}
 	}
-	return selectProjectiveSplineFaceFragments(ctx, a, b, axes, want, o)
+	return selectProjectiveSplineFaceContourFragments(ctx, a, b, axes, want, o, single)
 }
 
 // A common sign picks the same projected region for both originals. Their
 // effective section directions then agree until one face is turned over.
 func selectProjectiveSplineFaceFragments(ctx context.Context, a, b Face, axes [2]int, want [2]int,
 	o ProjectiveSplineEnvelopeOptions) (r ProjectiveSplineEnvelope, err error) {
+	return selectProjectiveSplineFaceContourFragments(ctx, a, b, axes, want, o, true)
+}
+
+func selectProjectiveSplineFaceContourFragments(ctx context.Context, a, b Face, axes [2]int, want [2]int,
+	o ProjectiveSplineEnvelopeOptions, single bool) (r ProjectiveSplineEnvelope, err error) {
 	if o.MaxClassifyOperations < 0 {
 		return r, geom.ErrInvalid
 	}
 	if o.MaxClassifyOperations == 0 {
 		o.MaxClassifyOperations = 2_000_000
 	}
-	source, err := ImprintProjectiveSplineFacePair(ctx, a, b, axes, o.Imprint)
+	source, err := imprintProjectiveSplineFaces(ctx, a, b, axes, o.Imprint, single)
 	if err != nil {
 		return r, err
 	}
@@ -141,21 +160,40 @@ func selectProjectiveSplineFaceFragments(ctx context.Context, a, b Face, axes [2
 	}
 	var retained [2]SewFace
 	var sources [2][]ProjectiveSplineImprintUse
-	var orientation [2]bool
+	pieces := make(map[int]*geom.ExactSplineCurve, len(source.Sections))
+	for _, section := range source.Sections {
+		pieces[section.Arc] = section.Spline.Model
+	}
+	var orientation [2]map[int]bool
 	for i, j := range choices {
 		retained[i], sources[i] = source.Fragments[i][j], source.Sources[i][j]
-		section := retained[i].Face.Outer[len(retained[i].Face.Outer)-1]
-		if !sources[i][len(sources[i])-1].Section || retained[i].Edges[section.Edge].Curve != source.Section.Model {
+		orientation[i] = make(map[int]bool, len(pieces))
+		for k, s := range sources[i] {
+			if !s.Section {
+				continue
+			}
+			use := retained[i].Face.Outer[k]
+			if model, ok := pieces[s.SectionArc]; !ok || retained[i].Edges[use.Edge].Curve != model {
+				return r, geom.ErrConvergence
+			}
+			if _, repeated := orientation[i][s.SectionArc]; repeated {
+				return r, geom.ErrConvergence
+			}
+			orientation[i][s.SectionArc] = use.Reversed != retained[i].Face.Reversed
+		}
+		if len(orientation[i]) != len(pieces) {
 			return r, geom.ErrConvergence
 		}
-		orientation[i] = section.Reversed != retained[i].Face.Reversed
 	}
-	if (orientation[0] == orientation[1]) != (want[0] == want[1]) {
-		return r, geom.ErrConvergence
+	for arc, dir := range orientation[0] {
+		if (dir == orientation[1][arc]) != (want[0] == want[1]) {
+			return r, geom.ErrConvergence
+		}
 	}
 	if err := ctx.Err(); err != nil {
 		return r, err
 	}
-	r.Faces, r.Sources, r.RetainedSide, r.Witness, r.Section, r.Complete = retained, sources, want, witnesses, source.Section, true
+	r.Faces, r.Sources, r.RetainedSide, r.Witness = retained, sources, want, witnesses
+	r.Section, r.Sections, r.Complete = source.Section, source.Sections, true
 	return r, nil
 }

@@ -16,6 +16,20 @@ import (
 // The result retains BaseFace=-1 because the common base cancels.
 func BuildProjectiveSplineRoofDifference(ctx context.Context, a, b Face, axes [2]int, baseHeight float64,
 	o ProjectiveRoofSolidOptions) (r ProjectiveRoofSolid, err error) {
+	return buildProjectiveSplineRoofDifference(ctx, a, b, axes, baseHeight, o, true)
+}
+
+// BuildProjectiveSplineRoofContourDifference closes the A-minus-B material
+// along every edge of one open analytic contour. Each retained exterior
+// top and floor segment must have the same projected endpoints so the
+// original exterior partitions mate exactly.
+func BuildProjectiveSplineRoofContourDifference(ctx context.Context, a, b Face, axes [2]int, baseHeight float64,
+	o ProjectiveRoofSolidOptions) (r ProjectiveRoofSolid, err error) {
+	return buildProjectiveSplineRoofDifference(ctx, a, b, axes, baseHeight, o, false)
+}
+
+func buildProjectiveSplineRoofDifference(ctx context.Context, a, b Face, axes [2]int, baseHeight float64,
+	o ProjectiveRoofSolidOptions, single bool) (r ProjectiveRoofSolid, err error) {
 	if ctx == nil || !finite(baseHeight) || axes[0] < 0 || axes[0] > 2 || axes[1] < 0 || axes[1] > 2 ||
 		axes[0] == axes[1] || o.Sew.RepairOrientation {
 		return r, geom.ErrInvalid
@@ -24,7 +38,7 @@ func BuildProjectiveSplineRoofDifference(ctx context.Context, a, b Face, axes [2
 	if err := projectiveRoofsAboveBase(a, b, height, baseHeight, o.Build); err != nil {
 		return r, err
 	}
-	selected, err := selectProjectiveSplineFaceFragments(ctx, a, b, axes, [2]int{1, 1}, o.Envelope)
+	selected, err := selectProjectiveSplineFaceContourFragments(ctx, a, b, axes, [2]int{1, 1}, o.Envelope, single)
 	if err != nil {
 		return r, fmt.Errorf("projective Cut roof pair: %w", err)
 	}
@@ -37,7 +51,7 @@ func BuildProjectiveSplineRoofDifference(ctx context.Context, a, b Face, axes [2
 	if err != nil {
 		return r, err
 	}
-	if len(top) != len(bottom) || len(top) < 2 || len(top) > 4 {
+	if len(top) != len(bottom) || len(top) < 2 || single && len(top) > 4 {
 		return r, fmt.Errorf("projective Cut border count: %w", geom.ErrConvergence)
 	}
 	parity := 1
@@ -52,15 +66,22 @@ func BuildProjectiveSplineRoofDifference(ctx context.Context, a, b Face, axes [2
 			new(big.Rat).Mul(projectiveVectorRat(edge.ends[0], axes[0]), projectiveVectorRat(edge.ends[1], axes[1])),
 			new(big.Rat).Mul(projectiveVectorRat(edge.ends[1], axes[0]), projectiveVectorRat(edge.ends[0], axes[1]))))
 	}
-	seamEdge := parts[0].Edges[topSeam]
-	x, y := parts[0].Vertices[seamEdge.Start], parts[0].Vertices[seamEdge.End]
-	for _, u := range parts[0].Face.Outer {
-		if u.Edge == topSeam && u.Reversed != parts[0].Face.Reversed {
+	var sections [2][]int
+	for _, piece := range selected.Sections {
+		up, upOK := topSeam[piece.Arc]
+		lo, loOK := bottomSeam[piece.Arc]
+		if !upOK || !loOK {
+			return r, geom.ErrConvergence
+		}
+		sections[0], sections[1] = append(sections[0], up.Edge), append(sections[1], lo.Edge)
+		seamEdge := parts[0].Edges[up.Edge]
+		x, y := parts[0].Vertices[seamEdge.Start], parts[0].Vertices[seamEdge.End]
+		if up.Reversed != parts[0].Face.Reversed {
 			x, y = y, x
 		}
+		area.Add(area, new(big.Rat).Sub(new(big.Rat).Mul(projectiveVectorRat(x, axes[0]), projectiveVectorRat(y, axes[1])),
+			new(big.Rat).Mul(projectiveVectorRat(y, axes[0]), projectiveVectorRat(x, axes[1]))))
 	}
-	area.Add(area, new(big.Rat).Sub(new(big.Rat).Mul(projectiveVectorRat(x, axes[0]), projectiveVectorRat(y, axes[1])),
-		new(big.Rat).Mul(projectiveVectorRat(y, axes[0]), projectiveVectorRat(x, axes[1]))))
 	if area.Sign() != parity {
 		return r, fmt.Errorf("projective Cut upper roof orientation: %w", geom.ErrConvergence)
 	}
@@ -68,17 +89,13 @@ func BuildProjectiveSplineRoofDifference(ctx context.Context, a, b Face, axes [2
 	used := make([]bool, len(bottom))
 	var walls []ProjectiveRoofWall
 	var floorSources []ProjectiveSplineImprintUse
-	project := func(p geom.Vec3) [2]float64 {
-		return [2]float64{projectiveVectorAxis(p, axes[0]), projectiveVectorAxis(p, axes[1])}
-	}
 	for _, upperBorder := range top {
 		if err := ctx.Err(); err != nil {
 			return r, err
 		}
 		id := -1
 		for i, lowerBorder := range bottom {
-			if !used[i] && project(upperBorder.ends[0]) == project(lowerBorder.ends[0]) &&
-				project(upperBorder.ends[1]) == project(lowerBorder.ends[1]) {
+			if !used[i] && projectiveSameBorderProjection(upperBorder, lowerBorder, axes) {
 				if id >= 0 {
 					return r, geom.ErrConvergence
 				}
@@ -98,21 +115,22 @@ func BuildProjectiveSplineRoofDifference(ctx context.Context, a, b Face, axes [2
 		parts = append(parts, wall)
 	}
 
-	solid, seam, err := sewProjectiveRoofParts(ctx, parts, [2]int{topSeam, bottomSeam}, o.Sew)
+	solid, edges, err := sewProjectiveRoofSectionParts(ctx, parts, sections, o.Sew)
 	if err != nil {
 		return r, fmt.Errorf("projective Cut sewing: %w", err)
 	}
 	if err := ctx.Err(); err != nil {
 		return r, err
 	}
-	r.Solid, r.Roofs, r.Walls, r.FloorSources, r.BaseFace, r.Section, r.Complete = solid, [2]int{0, 1}, walls, floorSources, -1, seam, true
+	r.Solid, r.Roofs, r.Walls, r.FloorSources = solid, [2]int{0, 1}, walls, floorSources
+	r.BaseFace, r.Section, r.SectionEdges, r.Complete = -1, edges[0], edges, true
 	return r, nil
 }
 
 func projectiveDifferenceRim(ctx context.Context, f SewFace, sources []ProjectiveSplineImprintUse, owner int,
-	o geom.SurfacePatchOptions) ([]projectiveRoofRim, int, error) {
+	o geom.SurfacePatchOptions) ([]projectiveRoofRim, map[int]Use, error) {
 	var rim []projectiveRoofRim
-	seam := -1
+	seams := make(map[int]Use)
 	n := len(f.Face.Outer)
 	for j := range n {
 		i := j
@@ -121,16 +139,19 @@ func projectiveDifferenceRim(ctx context.Context, f SewFace, sources []Projectiv
 		}
 		u, source := f.Face.Outer[i], sources[i]
 		if source.Section {
-			seam = u.Edge
+			if _, repeated := seams[source.SectionArc]; repeated {
+				return nil, nil, geom.ErrConvergence
+			}
+			seams[source.SectionArc] = u
 			continue
 		}
 		m := f.Edges[u.Edge].Curve.(*geom.ExactSplineCurve)
 		net, _, err := m.BezierControlNet(ctx, o)
 		if err != nil {
-			return nil, -1, err
+			return nil, nil, err
 		}
 		if len(net.Control) < 2 || len(net.Control) > 3 || net.Start != 0 || net.End != 1 {
-			return nil, -1, geom.ErrConvergence
+			return nil, nil, geom.ErrConvergence
 		}
 		if u.Reversed != f.Face.Reversed {
 			for i, j := 0, len(net.Control)-1; i < j; i, j = i+1, j-1 {
@@ -138,22 +159,22 @@ func projectiveDifferenceRim(ctx context.Context, f SewFace, sources []Projectiv
 			}
 			m, err = geom.NewExactHomogeneousBezier(ctx, net.Control, o)
 			if err != nil {
-				return nil, -1, err
+				return nil, nil, err
 			}
 		}
 		var ends [2]geom.Vec3
 		for i := range ends {
 			ends[i], err = m.ExactPoint(float64(i))
 			if err != nil {
-				return nil, -1, err
+				return nil, nil, err
 			}
 		}
 		rim = append(rim, projectiveRoofRim{model: m, ends: ends, owner: owner, use: source})
 	}
-	if seam < 0 {
-		return nil, -1, geom.ErrConvergence
+	if len(seams) == 0 {
+		return nil, nil, geom.ErrConvergence
 	}
-	return rim, seam, nil
+	return rim, seams, nil
 }
 
 func makeProjectiveDifferenceWall(ctx context.Context, top, bottom projectiveRoofRim, axes [2]int, height int,

@@ -33,7 +33,8 @@ type ProjectiveRoofSolid struct {
 	// FloorSources is ordered like Walls for Cut; it retains original B uses.
 	FloorSources []ProjectiveSplineImprintUse
 	BaseFace     int
-	Section      int
+	Section      int // First section edge, or -1 when there is no section.
+	SectionEdges []int
 	Complete     bool
 	Empty        bool // A proved empty result has no Solid.
 }
@@ -57,11 +58,24 @@ type projectiveRoofBottom struct {
 // quadratic rational curve whose projection stays on one rectangle side.
 func BuildProjectiveSplineRoofSolid(ctx context.Context, a, b Face, axes [2]int, baseHeight float64, operation parametric.BooleanOp,
 	o ProjectiveRoofSolidOptions) (r ProjectiveRoofSolid, err error) {
+	return buildProjectiveSplineRoofSolid(ctx, a, b, axes, baseHeight, operation, o, true)
+}
+
+// BuildProjectiveSplineRoofContourSolid closes an original Common or Fuse
+// with one open analytic contour, preserving all its section edges and
+// the original subdivided exterior boundary above the common base.
+func BuildProjectiveSplineRoofContourSolid(ctx context.Context, a, b Face, axes [2]int, baseHeight float64,
+	operation parametric.BooleanOp, o ProjectiveRoofSolidOptions) (r ProjectiveRoofSolid, err error) {
+	return buildProjectiveSplineRoofSolid(ctx, a, b, axes, baseHeight, operation, o, false)
+}
+
+func buildProjectiveSplineRoofSolid(ctx context.Context, a, b Face, axes [2]int, baseHeight float64, operation parametric.BooleanOp,
+	o ProjectiveRoofSolidOptions, single bool) (r ProjectiveRoofSolid, err error) {
 	if ctx == nil || !finite(baseHeight) || axes[0] < 0 || axes[0] > 2 || axes[1] < 0 || axes[1] > 2 ||
 		axes[0] == axes[1] || o.Sew.RepairOrientation {
 		return r, geom.ErrInvalid
 	}
-	envelope, err := SelectProjectiveSplineFaceEnvelope(ctx, a, b, axes, operation, o.Envelope)
+	envelope, err := selectProjectiveSplineFaceEnvelope(ctx, a, b, axes, operation, o.Envelope, single)
 	if err != nil {
 		return r, err
 	}
@@ -74,8 +88,16 @@ func BuildProjectiveSplineRoofSolid(ctx context.Context, a, b Face, axes [2]int,
 		return r, err
 	}
 	var rim []projectiveRoofRim
-	var seams [2]int
+	var seams [2][]int
+	arcs := make(map[int]int, len(envelope.Sections))
+	for i, section := range envelope.Sections {
+		arcs[section.Arc] = i
+	}
 	for owner, f := range envelope.Faces {
+		seams[owner] = make([]int, len(arcs))
+		for i := range seams[owner] {
+			seams[owner][i] = -1
+		}
 		n := len(f.Face.Outer)
 		for j := range n {
 			i := j
@@ -84,7 +106,11 @@ func BuildProjectiveSplineRoofSolid(ctx context.Context, a, b Face, axes [2]int,
 			}
 			u, source := f.Face.Outer[i], envelope.Sources[owner][i]
 			if source.Section {
-				seams[owner] = u.Edge
+				if k, ok := arcs[source.SectionArc]; ok && seams[owner][k] < 0 {
+					seams[owner][k] = u.Edge
+				} else {
+					return r, geom.ErrConvergence
+				}
 				continue
 			}
 			m := f.Edges[u.Edge].Curve.(*geom.ExactSplineCurve)
@@ -114,7 +140,7 @@ func BuildProjectiveSplineRoofSolid(ctx context.Context, a, b Face, axes [2]int,
 			rim = append(rim, projectiveRoofRim{m, ends, owner, source})
 		}
 	}
-	if len(rim) != 6 {
+	if len(rim) < 6 || single && len(rim) != 6 {
 		return r, geom.ErrConvergence
 	}
 	for i := 1; i < len(rim); i++ {
@@ -179,14 +205,14 @@ func BuildProjectiveSplineRoofSolid(ctx context.Context, a, b Face, axes [2]int,
 	baseFace := len(parts)
 	parts = append(parts, base)
 
-	solid, seam, err := sewProjectiveRoofParts(ctx, parts, seams, o.Sew)
+	solid, edges, err := sewProjectiveRoofSectionParts(ctx, parts, seams, o.Sew)
 	if err != nil {
 		return r, err
 	}
 	if err := ctx.Err(); err != nil {
 		return r, err
 	}
-	r.Solid, r.Roofs, r.Walls, r.BaseFace, r.Section, r.Complete = solid, [2]int{0, 1}, walls, baseFace, seam, true
+	r.Solid, r.Roofs, r.Walls, r.BaseFace, r.Section, r.SectionEdges, r.Complete = solid, [2]int{0, 1}, walls, baseFace, edges[0], edges, true
 	return r, nil
 }
 
@@ -225,11 +251,35 @@ func projectiveRoofsAboveBase(a, b Face, height int, baseHeight float64, limits 
 }
 
 func sewProjectiveRoofParts(ctx context.Context, parts []SewFace, seams [2]int, o ExactSewOptions) (Solid, int, error) {
+	var section [2][]int
+	if seams != [2]int{-1, -1} {
+		section = [2][]int{{seams[0]}, {seams[1]}}
+	}
+	s, edges, err := sewProjectiveRoofSectionParts(ctx, parts, section, o)
+	if err != nil || len(edges) == 0 {
+		return s, -1, err
+	}
+	return s, edges[0], nil
+}
+
+func sewProjectiveRoofSectionParts(ctx context.Context, parts []SewFace, seams [2][]int, o ExactSewOptions) (Solid, []int, error) {
 	var allEdges []parametric.Edge
 	var allVertices []geom.Vec3
 	var allFaces []Face
+	var offsets [2]int
+	if len(parts) < 2 || len(seams[0]) != len(seams[1]) {
+		return Solid{}, nil, geom.ErrConvergence
+	}
 	for i, f := range parts {
 		vo, eo := len(allVertices), len(allEdges)
+		if i < 2 {
+			offsets[i] = eo
+			for _, id := range seams[i] {
+				if id < 0 || id >= len(f.Edges) {
+					return Solid{}, nil, geom.ErrConvergence
+				}
+			}
+		}
 		allVertices = append(allVertices, f.Vertices...)
 		for _, e := range f.Edges {
 			e.Start, e.End = e.Start+vo, e.End+vo
@@ -239,25 +289,26 @@ func sewProjectiveRoofParts(ctx context.Context, parts []SewFace, seams [2]int, 
 		for j := range face.Outer {
 			face.Outer[j].Edge += eo
 		}
-		if i < 2 && seams[i] >= 0 {
-			seams[i] += eo
-		}
 		allFaces = append(allFaces, face)
 	}
 	solid, proof, err := SewExactTopology(ctx, allVertices, allEdges, allFaces, o)
 	if err != nil {
-		return Solid{}, -1, err
+		return Solid{}, nil, err
 	}
 	if len(proof.FlippedFaces) != 0 {
-		return Solid{}, -1, geom.ErrConvergence
+		return Solid{}, nil, geom.ErrConvergence
 	}
-	if seams == [2]int{-1, -1} {
-		return solid, -1, nil
+	var edges []int
+	seen := make(map[int]bool, len(seams[0]))
+	for i, local := range seams[0] {
+		edge := proof.Edges[offsets[0]+local].Edge
+		if seen[edge] || edge != proof.Edges[offsets[1]+seams[1][i]].Edge {
+			return Solid{}, nil, geom.ErrConvergence
+		}
+		seen[edge] = true
+		edges = append(edges, edge)
 	}
-	if proof.Edges[seams[0]].Edge != proof.Edges[seams[1]].Edge {
-		return Solid{}, -1, geom.ErrConvergence
-	}
-	return solid, proof.Edges[seams[0]].Edge, nil
+	return solid, edges, nil
 }
 
 func makeProjectiveRoofWall(ctx context.Context, top projectiveRoofRim, axes [2]int, height int, baseHeight float64,

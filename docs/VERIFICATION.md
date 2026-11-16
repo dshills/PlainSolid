@@ -98,6 +98,11 @@ The two original section edges join at (1/2,3/8,19/16). Both fragments
 of each owner retain opposite original coedge directions; only the
 owner with the interior knot acquires original exterior subranges.
 Nonbinary native UV and a short imprint budget refuse atomically.
+Closed Common and Fuse retain two exact section edges, seven original
+walls and a split base wire, with unchanged independent material and
+byte-identical native replay. Matching original exterior partitions
+also permit both Cut orders with volume 1/8 and no common base face.
+An unmatched partition and a short sewing budget refuse.
 The [ordinary exact spline jet audit](evidence/exact-spline-rational-evaluation-2026-11-16.json)
 passes a nonbinary station, a right-hand interior derivative and a
 left-hand final derivative. Its outward boxes and short work refusal
