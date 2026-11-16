@@ -508,6 +508,13 @@ uses an explicit 1.1-million contact pair limit. Main's display and
 native Cut race passed in 207.547 seconds. This gate covers distance
 and volume on the original single-span identity XY graph supports.
 
+The [optional source-normal turn proof](evidence/parabola-two-circles-source-normal-turn-2026-11-15.json)
+uses exact Bernstein derivative bounds across each represented triangle.
+At `0.2` radians all four primary meshes retain their original bytes.
+The genus-two result passes at `0.102` and refuses `0.101` atomically
+with the same 16-subdivision budget. This bounds source-normal variation
+within each face. Main's angle and prior display race passed in 127.415 seconds.
+
 The [independent-circle native proof](evidence/parabola-offset-circles-native-2026-11-15.json)
 recovers both original centers, checks every quartic coefficient, and
 uses exact Euclidean separation when the free projections overlap.

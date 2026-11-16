@@ -465,6 +465,8 @@ including both separate lenses and the reverse through-hole layer.
 The same-side native Cut now supplies a certified, closed display
 for the cap, each separate lens and the reverse genus-two layer.
 The distance and volume checks retain the original chart and edge owners.
+An opt-in normal-turn proof bounds the continuous variation within each
+original roof face and keeps the distance-only mesh bytes.
 The exact source proof also accepts independently placed centers on
 the same side of the parabola, even when their free-coordinate
 projections overlap. Native envelopes and Cuts retain both circle
