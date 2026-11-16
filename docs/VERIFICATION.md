@@ -25,6 +25,10 @@ passes original rectangle restrictions on both faces, a rotated wire-use
 order, a reversed edge clock, and a quadratic crossing with two original
 uses at each corner. A hole or a short work budget publishes no partial
 section.
+The same audit also inserts nonbinary stations from both original charts,
+including a swapped and reversed fractional owner. All 16 resulting
+proof cells preserve the original knot owner and physical projection;
+the same section crosses four cells without gaining a terminal.
 
 The [full Go run on `c7afb429`](evidence/main-c7afb429-qualification-2026-11-16.json)
 passed all nine lanes: 6,018 passes, 599 optional skips, and no failures

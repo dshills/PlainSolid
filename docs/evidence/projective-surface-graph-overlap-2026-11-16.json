@@ -381,5 +381,15 @@
     "original_normalized_coedge_positions": ["3/4", "2/5"],
     "reversed_edge_normalized_position": "1/4",
     "quadratic_corner_terminals": 4
+  },
+  "original_cut_insertion": {
+    "main_base": "67fcae50",
+    "log": "projective-original-cuts-main-race.jsonl",
+    "sha256": "477da53eb922aeda71e00e59b52e5b0673d1e8410431b1733cee608335a29c63",
+    "main_pass": "TestProjectiveSurfaceOriginalCutsUseBothRawClocks",
+    "original_clocks": ["A: U=3/8, V=5/6", "B: U=-1, V=6"],
+    "common_cuts": [["3/8", "13/20"], ["1/2", "2/3"]],
+    "proof_cells": 16,
+    "one_open_contour_arcs": 4
   }
 }

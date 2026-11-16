@@ -12,6 +12,7 @@ type ProjectiveSurfaceContactCoverOptions struct {
 	Atlas              GeneralSurfaceHeightOptions
 	Arcs               SurfacePlaneArcOptions
 	MaxExactOperations int
+	OriginalCuts       ProjectiveSurfaceOriginalCuts
 	// IsolateQuadraticSaddles may replace regular isolation in cells with a
 	// complete four-ray saddle proof. All other cells still use Arcs limits.
 	IsolateQuadraticSaddles bool
@@ -52,7 +53,7 @@ func BoundProjectiveSurfaceContacts(ctx context.Context, a, b *SurfacePatch, axe
 		o.Arcs.MaxOperations = 2_000_000
 	}
 	o.Atlas.MaxOperations = min(o.Atlas.MaxOperations, o.MaxExactOperations)
-	r.Atlas, err = BuildProjectiveSurfaceHeightDifference(ctx, a, b, axes, o.Atlas)
+	r.Atlas, err = BuildProjectiveSurfaceHeightDifferenceWithOriginalCuts(ctx, a, b, axes, o.OriginalCuts, o.Atlas)
 	r.ExactOperations = r.Atlas.ExactOperations
 	if err != nil {
 		return r, err

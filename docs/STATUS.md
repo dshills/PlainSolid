@@ -149,6 +149,9 @@ the unresolved contact.
 Two rectangular trimmed spline faces can now return an exact section
 with the original coedge IDs and normalized parameters at each terminal.
 General trim loops and Boolean assembly from these sections remain open.
+The projective section can insert exact cut stations from either original
+UV clock. Those proof cuts retain the original knot owners and do not
+change the covered geometry.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

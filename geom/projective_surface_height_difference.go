@@ -28,12 +28,27 @@ type ProjectiveSurfaceHeightDifference struct {
 	ExactOperations int
 }
 
+// ProjectiveSurfaceOriginalCuts indexes the owning surface first, then its
+// original U or V axis. An exact cut inside the proved overlap is added to
+// its common atlas axis. Cuts on the boundary or outside the overlap leave
+// the existing grid unchanged, provided they are on their original chart.
+type ProjectiveSurfaceOriginalCuts [2][2][]*big.Rat
+
 // BuildProjectiveSurfaceHeightDifference builds the exact residual on both
 // original graphs' entire positive-area projected overlap. MaxCells bounds
 // both extraction and common rectangles. MaxPoles bounds source/refined nets
 // and the combined output controls. No partial atlas is returned on failure.
 func BuildProjectiveSurfaceHeightDifference(ctx context.Context, a, c *SurfacePatch, axes [2]int,
 	o GeneralSurfaceHeightOptions) (r ProjectiveSurfaceHeightDifference, err error) {
+	return BuildProjectiveSurfaceHeightDifferenceWithOriginalCuts(ctx, a, c, axes, ProjectiveSurfaceOriginalCuts{}, o)
+}
+
+// BuildProjectiveSurfaceHeightDifferenceWithOriginalCuts inserts additional
+// exact stations from both original parameter charts in the common grid.
+// The result retains all original knot owners; only the proof tiles split.
+// These cuts do not change either original surface or the covered area.
+func BuildProjectiveSurfaceHeightDifferenceWithOriginalCuts(ctx context.Context, a, c *SurfacePatch, axes [2]int,
+	cuts ProjectiveSurfaceOriginalCuts, o GeneralSurfaceHeightOptions) (r ProjectiveSurfaceHeightDifference, err error) {
 	if o.MaxCells == 0 {
 		o.MaxCells = 4096
 	}
@@ -75,6 +90,9 @@ func BuildProjectiveSurfaceHeightDifference(ctx context.Context, a, c *SurfacePa
 			breaks[0] = append(breaks[0], p.tensor.u0, p.tensor.u1)
 			breaks[1] = append(breaks[1], p.tensor.v0, p.tensor.v1)
 		}
+	}
+	if err := appendProjectiveSurfaceOriginalCuts(ctx, &breaks, [2]*SurfacePatch{a, c}, overlap, cuts, o.MaxCells, b); err != nil {
+		return r, err
 	}
 	for i, values := range breaks {
 		sort.Slice(values, func(i, j int) bool { return values[i].Cmp(values[j]) < 0 })
@@ -137,6 +155,64 @@ func BuildProjectiveSurfaceHeightDifference(ctx context.Context, a, c *SurfacePa
 	}
 	r.Overlap, r.Cells, r.Complete = overlap, out, true
 	return r, nil
+}
+
+func appendProjectiveSurfaceOriginalCuts(ctx context.Context, breaks *[2][]*big.Rat, sources [2]*SurfacePatch,
+	overlap ProjectiveSurfaceGraphOverlap, cuts ProjectiveSurfaceOriginalCuts, limit int, b *polynomialBudget) error {
+	one := big.NewRat(1, 1)
+	a := boundedRatArithmetic{b: b}
+	for owner, c := range cuts {
+		if len(c[0]) == 0 && len(c[1]) == 0 {
+			continue
+		}
+		source := projectiveParameterIntervals(sources[owner].Domain())
+		selected := [2]ExactParameterInterval{overlap.Areas[owner].U, overlap.Areas[owner].V}
+		for raw, stops := range c {
+			if len(stops) > limit {
+				return ErrConvergence
+			}
+			axis := raw
+			if owner == 1 && overlap.SwapB {
+				axis = 1 - raw
+			}
+			x := selected[raw]
+			for _, q := range stops {
+				if err := ctx.Err(); err != nil {
+					return err
+				}
+				if q == nil {
+					return ErrInvalid
+				}
+				if err := b.check(q); err != nil {
+					return err
+				}
+				if q.Cmp(source[raw].lo) < 0 || q.Cmp(source[raw].hi) > 0 {
+					return ErrDomain
+				}
+				if q.Cmp(x.Lower) <= 0 || q.Cmp(x.Upper) >= 0 {
+					continue
+				}
+				t := a.quo(a.sub(q, x.Lower), a.sub(x.Upper, x.Lower))
+				if owner == 1 {
+					if [2]bool{overlap.ReverseBU, overlap.ReverseBV}[axis] {
+						t = a.sub(one, t)
+					}
+					ratio := overlap.BStationRatios[axis]
+					// Invert s=ratio*t/(1+(ratio-1)*t) to get A's
+					// common clock. The denominator stays positive.
+					t = a.quo(t, a.add(ratio, a.mul(a.sub(one, ratio), t)))
+				}
+				if a.err != nil {
+					return a.err
+				}
+				if t.Sign() <= 0 || t.Cmp(one) >= 0 {
+					return ErrConvergence
+				}
+				breaks[axis] = append(breaks[axis], t)
+			}
+		}
+	}
+	return nil
 }
 
 type projectiveHeightOwnerCell struct {
