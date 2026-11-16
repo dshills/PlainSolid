@@ -5,11 +5,17 @@ import (
 	"math/big"
 )
 
-func (w *sweepBoundaryDistanceWork) affine(ctx context.Context, p *SurfacePatch) (bool, error) {
+type sweepBoundaryAffineFrame struct {
+	axes     [3][3]*big.Rat
+	origin   [3]*big.Rat
+	original [3]exactInterval
+}
+
+func (w *sweepBoundaryDistanceWork) affine(ctx context.Context, p *SurfacePatch, original [3]exactInterval) (*sweepBoundaryAffineFrame, error) {
 	a := boundedRatArithmetic{b: w.budget}
 	u, v, affine, err := sweepHomogeneousAffineSpans(ctx, p, &a)
 	if err != nil || !affine {
-		return false, err
+		return nil, err
 	}
 	h := p.net[0]
 	var frame [3][3]*big.Rat
@@ -20,58 +26,38 @@ func (w *sweepBoundaryDistanceWork) affine(ctx context.Context, p *SurfacePatch)
 		frame[0][i], frame[1][i], origin[i] = a.quo(u[i], h[3]), a.quo(v[i], h[3]), a.quo(h[i], h[3])
 	}
 	if a.err != nil {
-		return false, a.err
+		return nil, a.err
 	}
 	normal, err := w.evaluateOffset(ctx, jet, big.NewRat(1, 1))
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	span := a.sub(w.original[2].hi, w.original[2].lo)
+	span := a.sub(original[2].hi, original[2].lo)
 	for i, n := range normal {
 		if n.lo.Cmp(n.hi) != 0 {
 			// An affine chart with an irrational unit normal can
 			// use the general directed boundary search.
-			return false, a.err
+			return nil, a.err
 		}
 		frame[2][i] = a.mul(span, n.lo)
-		origin[i] = a.add(origin[i], a.mul(w.original[2].lo, n.lo))
+		origin[i] = a.add(origin[i], a.mul(original[2].lo, n.lo))
 	}
 	if a.err != nil {
-		return false, a.err
+		return nil, a.err
 	}
-	for side := NormalOffsetSweepUMin; side <= NormalOffsetSweepUpper; side++ {
-		if err := ctx.Err(); err != nil {
-			return true, err
-		}
-		if w.result.VisitedCells >= w.options.MaxCells {
-			return true, ErrConvergence
-		}
-		w.result.VisitedCells++
-		if err := w.affineFace(side, origin, frame); err != nil {
-			return true, err
-		}
-		if w.result.Squared.Upper.Sign() == 0 {
-			break
-		}
-	}
-	if err := ctx.Err(); err != nil {
-		return true, err
-	}
-	w.result.Squared.Lower = new(big.Rat).Set(w.result.Squared.Upper)
-	w.result.Complete = true
-	return true, nil
+	return &sweepBoundaryAffineFrame{axes: frame, origin: origin, original: original}, nil
 }
 
-func (w *sweepBoundaryDistanceWork) affineFace(side NormalOffsetSweepSide, origin [3]*big.Rat, frame [3][3]*big.Rat) error {
+func (w *sweepBoundaryDistanceWork) affineFace(owner int, side NormalOffsetSweepSide, f *sweepBoundaryAffineFrame) error {
 	a := boundedRatArithmetic{b: w.budget}
 	fixed := int(side) / 2
 	free := [3][2]int{{1, 2}, {0, 2}, {0, 1}}[fixed]
-	u, v := frame[free[0]], frame[free[1]]
+	u, v := f.axes[free[0]], f.axes[free[1]]
 	zero, one := new(big.Rat), big.NewRat(1, 1)
 	on := big.NewRat(int64(int(side)%2), 1)
 	var delta, base [3]*big.Rat
 	for i := range delta {
-		base[i] = a.add(origin[i], a.mul(on, frame[fixed][i]))
+		base[i] = a.add(f.origin[i], a.mul(on, f.axes[fixed][i]))
 		delta[i] = a.sub(w.point[i], base[i])
 	}
 	dot := func(x, y [3]*big.Rat) *big.Rat {
@@ -92,7 +78,7 @@ func (w *sweepBoundaryDistanceWork) affineFace(side NormalOffsetSweepSide, origi
 		return a.err
 	}
 	if s.Sign() >= 0 && s.Cmp(one) <= 0 && t.Sign() >= 0 && t.Cmp(one) <= 0 {
-		return w.recordAffineFace(side, free, on, base, u, v, s, t, &a)
+		return w.recordAffineFace(owner, side, free, on, f.original, base, u, v, s, t, &a)
 	}
 	clamp := func(q *big.Rat) *big.Rat {
 		if q.Sign() < 0 {
@@ -107,18 +93,18 @@ func (w *sweepBoundaryDistanceWork) affineFace(side NormalOffsetSweepSide, origi
 	// an edge. Clamping the exact line projection includes vertices.
 	for _, end := range [2]*big.Rat{zero, one} {
 		t := clamp(a.quo(a.sub(vp, a.mul(end, uv)), vv))
-		if err := w.recordAffineFace(side, free, on, base, u, v, end, t, &a); err != nil {
+		if err := w.recordAffineFace(owner, side, free, on, f.original, base, u, v, end, t, &a); err != nil {
 			return err
 		}
 		s := clamp(a.quo(a.sub(up, a.mul(end, uv)), uu))
-		if err := w.recordAffineFace(side, free, on, base, u, v, s, end, &a); err != nil {
+		if err := w.recordAffineFace(owner, side, free, on, f.original, base, u, v, s, end, &a); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (w *sweepBoundaryDistanceWork) recordAffineFace(side NormalOffsetSweepSide, free [2]int, on *big.Rat,
+func (w *sweepBoundaryDistanceWork) recordAffineFace(owner int, side NormalOffsetSweepSide, free [2]int, on *big.Rat, original [3]exactInterval,
 	base, u, v [3]*big.Rat, s, t *big.Rat, a *boundedRatArithmetic) error {
 	var parameters [3]*big.Rat
 	parameters[int(side)/2], parameters[free[0]], parameters[free[1]] = on, s, t
@@ -126,11 +112,11 @@ func (w *sweepBoundaryDistanceWork) recordAffineFace(side NormalOffsetSweepSide,
 	for i := range parameters {
 		p := a.add(base[i], a.add(a.mul(s, u[i]), a.mul(t, v[i])))
 		box[i] = exactInterval{p, p}
-		d := w.original[i]
+		d := original[i]
 		parameters[i] = a.add(d.lo, a.mul(parameters[i], a.sub(d.hi, d.lo)))
 	}
 	if a.err != nil {
 		return a.err
 	}
-	return w.record(side, parameters, box)
+	return w.record(owner, side, parameters, box)
 }

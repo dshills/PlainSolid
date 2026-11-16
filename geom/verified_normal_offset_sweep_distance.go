@@ -16,19 +16,22 @@ type NormalOffsetSweepDistanceOptions struct {
 	MaxDepth, MaxCells int
 }
 
-// NormalOffsetSweepDistanceWitness retains one original face and its
-// exact source U, V and signed displacement. Position encloses the
-// corresponding physical point, which can have irrational coordinates.
+// NormalOffsetSweepDistanceWitness retains one original chart, face and
+// exact source U, V and signed displacement. Owner is zero-based.
+// Position encloses the possibly irrational physical point.
 type NormalOffsetSweepDistanceWitness struct {
 	Side       NormalOffsetSweepSide
+	Owner      int `json:",omitempty"`
 	Parameters [3]*big.Rat
 	Position   [3]ExactParameterInterval
 }
 
 // NormalOffsetSweepDistance is a directed squared-distance enclosure to
 // the entire analytic boundary. Squared.Upper is supplied by Witness.
-// A resource refusal retains any proved bounds; the upper bound and
+// A resource refusal retains any proved bounds. The upper bound and
 // witness can be absent if exact work ends before evaluating a station.
+// A joined search can have an upper witness before its full outer cover
+// is available to establish a coarse lower bound.
 type NormalOffsetSweepDistance struct {
 	Squared                       ExactParameterInterval
 	Witness                       *NormalOffsetSweepDistanceWitness
@@ -41,8 +44,20 @@ type NormalOffsetSweepDistance struct {
 // faces. Complete means the requested squared interval width was met.
 // The query applies to either interior or exterior points.
 func (s *VerifiedNormalOffsetSweep) BoundPointBoundaryDistanceRational(ctx context.Context, point [3]*big.Rat,
-	o NormalOffsetSweepDistanceOptions) (r NormalOffsetSweepDistance, err error) {
-	if ctx == nil || s == nil || s.source == nil || o.MaxDepth < 0 || o.MaxDepth > 128 ||
+	o NormalOffsetSweepDistanceOptions) (NormalOffsetSweepDistance, error) {
+	if s == nil || s.source == nil {
+		return NormalOffsetSweepDistance{}, ErrInvalid
+	}
+	var faces [6]VerifiedNormalOffsetSweepBoundaryFace
+	for side := NormalOffsetSweepUMin; side <= NormalOffsetSweepUpper; side++ {
+		faces[side] = VerifiedNormalOffsetSweepBoundaryFace{Side: side, Face: VerifiedNormalOffsetSweepFace{sweep: s, side: side}}
+	}
+	return boundPointSweepOuterDistance(ctx, point, o, []*VerifiedNormalOffsetSweep{s}, faces[:])
+}
+
+func boundPointSweepOuterDistance(ctx context.Context, point [3]*big.Rat, o NormalOffsetSweepDistanceOptions,
+	sweeps []*VerifiedNormalOffsetSweep, faces []VerifiedNormalOffsetSweepBoundaryFace) (r NormalOffsetSweepDistance, err error) {
+	if ctx == nil || o.MaxDepth < 0 || o.MaxDepth > 128 ||
 		o.MaxCells < 0 || o.MaxCells > 1<<18 || (o.SquaredTolerance != nil && o.SquaredTolerance.Sign() < 0) {
 		return r, ErrInvalid
 	}
@@ -72,66 +87,112 @@ func (s *VerifiedNormalOffsetSweep) BoundPointBoundaryDistanceRational(ctx conte
 	}
 	b := &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
 	defer func() { r.ExactOperations = b.operations }()
-	r.Squared.Lower = new(big.Rat)
-	root := *s.source
-	root.options.MaxPoles = min(root.options.MaxPoles, limits.MaxPoles)
-	if len(root.net) > root.options.MaxPoles {
-		return r, ErrConvergence
+	if len(sweeps) == 1 {
+		r.Squared.Lower = new(big.Rat)
 	}
-	for _, q := range [6]*big.Rat{point[0], point[1], point[2], s.lower, s.upper, o.SquaredTolerance} {
+	roots := make([]sweepBoundaryDistanceRoot, len(sweeps))
+	for i, sweep := range sweeps {
+		root := &roots[i]
+		root.patch = *sweep.source
+		root.patch.options.MaxPoles = min(root.patch.options.MaxPoles, limits.MaxPoles)
+		if len(root.patch.net) > root.patch.options.MaxPoles {
+			return r, ErrConvergence
+		}
+		root.original = normalSweepParameterIntervals(root.patch.Domain(), exactInterval{sweep.lower, sweep.upper})
+	}
+	// The displacement interval is identical across independently
+	// certified adjacent sweeps, so its endpoints need one budget charge.
+	for _, q := range [6]*big.Rat{point[0], point[1], point[2], sweeps[0].lower, sweeps[0].upper, o.SquaredTolerance} {
 		if err := b.check(q); err != nil {
 			return r, err
 		}
 	}
-	w := sweepBoundaryDistanceWork{point: point, options: o, budget: b, result: &r,
-		original: normalSweepParameterIntervals(root.Domain(), exactInterval{s.lower, s.upper})}
-	affine, err := w.affine(ctx, &root)
-	if err != nil || affine {
-		return r, err
-	}
-	err = w.search(ctx, &root)
+	w := sweepBoundaryDistanceWork{point: point, options: o, budget: b, result: &r}
+	err = w.search(ctx, roots, faces)
 	return r, err
 }
 
 type sweepBoundaryDistanceWork struct {
-	point    [3]*big.Rat
-	options  NormalOffsetSweepDistanceOptions
-	budget   *polynomialBudget
-	result   *NormalOffsetSweepDistance
+	point   [3]*big.Rat
+	options NormalOffsetSweepDistanceOptions
+	budget  *polynomialBudget
+	result  *NormalOffsetSweepDistance
+}
+
+type sweepBoundaryDistanceRoot struct {
+	patch    SurfacePatch
 	original [3]exactInterval
+	prepared bool
+	affine   *sweepBoundaryAffineFrame
 }
 
 type sweepBoundaryDistanceCell struct {
 	patch        *SurfacePatch
 	displacement exactInterval
 	side         NormalOffsetSweepSide
+	owner        int
 	lower        *big.Rat
 	depth        int
 }
 
-func (w *sweepBoundaryDistanceWork) search(ctx context.Context, root *SurfacePatch) error {
+func (w *sweepBoundaryDistanceWork) search(ctx context.Context, roots []sweepBoundaryDistanceRoot,
+	faces []VerifiedNormalOffsetSweepBoundaryFace) error {
 	var queue sweepBoundaryDistanceQueue
-	for side := NormalOffsetSweepUMin; side <= NormalOffsetSweepUpper; side++ {
-		cell := sweepBoundaryDistanceCell{patch: root, side: side, displacement: w.original[2], lower: new(big.Rat)}
-		switch side {
-		case NormalOffsetSweepLower:
-			cell.displacement.hi = cell.displacement.lo
-		case NormalOffsetSweepUpper:
-			cell.displacement.lo = cell.displacement.hi
+	for _, outer := range faces {
+		if err := ctx.Err(); err != nil {
+			return err
 		}
 		if w.result.VisitedCells >= w.options.MaxCells {
 			return ErrConvergence
 		}
-		cell, err := w.estimate(ctx, cell)
-		if err != nil {
-			return err
+		root := &roots[outer.Owner]
+		if !root.prepared {
+			var err error
+			root.affine, err = w.affine(ctx, &root.patch, root.original)
+			if err != nil {
+				return err
+			}
+			root.prepared = true
 		}
-		if w.result.Squared.Upper != nil && w.result.Squared.Upper.Sign() == 0 {
-			w.result.Complete = true
+		if root.affine != nil {
+			w.result.VisitedCells++
+			if err := w.affineFace(outer.Owner, outer.Side, root.affine); err != nil {
+				return err
+			}
+		} else {
+			cell := sweepBoundaryDistanceCell{
+				patch: &root.patch, side: outer.Side, owner: outer.Owner, displacement: root.original[2], lower: new(big.Rat),
+			}
+			switch outer.Side {
+			case NormalOffsetSweepLower:
+				cell.displacement.hi = cell.displacement.lo
+			case NormalOffsetSweepUpper:
+				cell.displacement.lo = cell.displacement.hi
+			}
+			cell, err := w.estimate(ctx, cell)
+			if err != nil {
+				return err
+			}
+			heap.Push(&queue, cell)
+		}
+		if w.result.Squared.Upper.Sign() == 0 {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			w.finishExact()
 			return nil
 		}
-		heap.Push(&queue, cell)
 	}
+	if len(queue) == 0 {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		w.finishExact()
+		return nil
+	}
+	// Every retained outer face now has an initial cell or was
+	// minimized exactly. Each affine minimum is at least the best
+	// upper endpoint, so only the nonaffine cells need subdivision.
 	var terminalLower *big.Rat
 	for {
 		lower := w.result.Squared.Upper
@@ -176,8 +237,7 @@ func (w *sweepBoundaryDistanceWork) search(ctx context.Context, root *SurfacePat
 				return err
 			}
 			if w.result.Squared.Upper.Sign() == 0 {
-				w.result.Squared.Lower = new(big.Rat)
-				w.result.Complete = true
+				w.finishExact()
 				return nil
 			}
 			if child.lower.Cmp(w.result.Squared.Upper) < 0 {
@@ -185,6 +245,11 @@ func (w *sweepBoundaryDistanceWork) search(ctx context.Context, root *SurfacePat
 			}
 		}
 	}
+}
+
+func (w *sweepBoundaryDistanceWork) finishExact() {
+	w.result.Squared.Lower = new(big.Rat).Set(w.result.Squared.Upper)
+	w.result.Complete = true
 }
 
 func (w *sweepBoundaryDistanceWork) estimate(ctx context.Context, cell sweepBoundaryDistanceCell) (sweepBoundaryDistanceCell, error) {
@@ -248,7 +313,7 @@ func (w *sweepBoundaryDistanceWork) sample(ctx context.Context, cell sweepBounda
 	if err != nil {
 		return err
 	}
-	return w.record(cell.side, uvw, box)
+	return w.record(cell.owner, cell.side, uvw, box)
 }
 
 func (w *sweepBoundaryDistanceWork) evaluateOffset(ctx context.Context, jet RationalSurfacePatchJet, distance *big.Rat) (box [3]exactInterval, err error) {
@@ -269,7 +334,7 @@ func (w *sweepBoundaryDistanceWork) evaluateOffset(ctx context.Context, jet Rati
 	return box, nil
 }
 
-func (w *sweepBoundaryDistanceWork) record(side NormalOffsetSweepSide, coordinates [3]*big.Rat, box [3]exactInterval) error {
+func (w *sweepBoundaryDistanceWork) record(owner int, side NormalOffsetSweepSide, coordinates [3]*big.Rat, box [3]exactInterval) error {
 	d, err := w.boxDistance(box, true)
 	if err != nil {
 		return err
@@ -278,7 +343,7 @@ func (w *sweepBoundaryDistanceWork) record(side NormalOffsetSweepSide, coordinat
 		return nil
 	}
 	w.result.Squared.Upper = d
-	witness := &NormalOffsetSweepDistanceWitness{Side: side}
+	witness := &NormalOffsetSweepDistanceWitness{Owner: owner, Side: side}
 	for i := range coordinates {
 		witness.Parameters[i] = new(big.Rat).Set(coordinates[i])
 		witness.Position[i] = copySweepInterval(box[i])
