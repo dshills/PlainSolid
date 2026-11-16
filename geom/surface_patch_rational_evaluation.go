@@ -48,38 +48,9 @@ func (p *SurfacePatch) evaluateRationalOnKnotSide(ctx context.Context, u, v *big
 	}
 	budget := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	defer func() { r.ExactOperations = budget.operations }()
-	for _, x := range []*big.Rat{u, v} {
-		if e := budget.check(x); e != nil {
-			return r, e
-		}
-	}
-	d := p.Domain()
-	if u.Cmp(new(big.Rat).SetFloat64(d.UMin)) < 0 || u.Cmp(new(big.Rat).SetFloat64(d.UMax)) > 0 || v.Cmp(new(big.Rat).SetFloat64(d.VMin)) < 0 || v.Cmp(new(big.Rat).SetFloat64(d.VMax)) > 0 {
-		return r, ErrDomain
-	}
-	current := p
-	for {
-		if e := ctx.Err(); e != nil {
-			return r, e
-		}
-		t, axis, knot := patchSplitChoice(current)
-		if !knot {
-			break
-		}
-		left, right, e := current.split(t, axis, budget)
-		if e != nil {
-			return r, e
-		}
-		parameter, direction := u, side[0]
-		if !axis {
-			parameter, direction = v, side[1]
-		}
-		comparison := parameter.Cmp(new(big.Rat).SetFloat64(t))
-		if comparison < 0 || (comparison == 0 && direction < 0) {
-			current = left
-		} else {
-			current = right
-		}
+	current, e := p.rationalEvaluationCell(ctx, u, v, side, budget)
+	if e != nil {
+		return r, e
 	}
 	point, derivative, e := exactSurfaceJet(current, u, v, budget)
 	if e != nil {
@@ -95,6 +66,44 @@ func (p *SurfacePatch) evaluateRationalOnKnotSide(ctx context.Context, u, v *big
 	}
 	r.PointBounds, r.DuBounds, r.DvBounds = rationalSurfaceVectorBounds(r.Point), rationalSurfaceVectorBounds(r.Du), rationalSurfaceVectorBounds(r.Dv)
 	return r, nil
+}
+
+func (p *SurfacePatch) rationalEvaluationCell(ctx context.Context, u, v *big.Rat, side [2]int,
+	budget *polynomialBudget) (*SurfacePatch, error) {
+	for _, x := range []*big.Rat{u, v} {
+		if e := budget.check(x); e != nil {
+			return nil, e
+		}
+	}
+	d := p.Domain()
+	if u.Cmp(new(big.Rat).SetFloat64(d.UMin)) < 0 || u.Cmp(new(big.Rat).SetFloat64(d.UMax)) > 0 || v.Cmp(new(big.Rat).SetFloat64(d.VMin)) < 0 || v.Cmp(new(big.Rat).SetFloat64(d.VMax)) > 0 {
+		return nil, ErrDomain
+	}
+	current := p
+	for {
+		if e := ctx.Err(); e != nil {
+			return nil, e
+		}
+		t, axis, knot := patchSplitChoice(current)
+		if !knot {
+			break
+		}
+		left, right, e := current.split(t, axis, budget)
+		if e != nil {
+			return nil, e
+		}
+		parameter, direction := u, side[0]
+		if !axis {
+			parameter, direction = v, side[1]
+		}
+		comparison := parameter.Cmp(new(big.Rat).SetFloat64(t))
+		if comparison < 0 || (comparison == 0 && direction < 0) {
+			current = left
+		} else {
+			current = right
+		}
+	}
+	return current, nil
 }
 
 func rationalSurfaceVectorBounds(values [3]*big.Rat) Box {

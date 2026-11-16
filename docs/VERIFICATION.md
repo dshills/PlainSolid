@@ -38,6 +38,11 @@ rational bilinear quotient gives the exact two pure and mixed second
 partials along axes of widths two and three. Uniform, exact and
 knot-inserted forms agree in a distant cycle, preserve the derivative
 sign at the original corner, and return no partial jet if work runs out.
+The clamped surface second-jet race passed in 8.319 seconds. Exact mixed
+and pure partials agree with independently differentiated laws on a
+weighted rational patch and unequal original knot spans. At a deliberate
+corner the right-hand piece keeps its distinct curvature and the final
+endpoint uses the last original cell.
 The local normal offset check passed the periodic geometry and curvature
 race in 8.135 seconds. It separates rational offsets that round to the
 same float64 on opposite sides of an irrational focal distance, detects

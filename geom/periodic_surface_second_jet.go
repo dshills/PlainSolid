@@ -80,6 +80,20 @@ type splineJetBlend func(j, r int) (*big.Rat, *big.Rat)
 func evaluatePeriodicSecondJet(ctx context.Context, nu, nv int, pole func(i, j int) exactHomogeneous,
 	uo, vo ExactSurfaceKnotSpan, ub, vb splineJetBlend, b *polynomialBudget) (RationalPeriodicSurfaceSecondJet, error) {
 	var result RationalPeriodicSurfaceSecondJet
+	d, err := exactSplineSecondTensor(ctx, nu, nv, pole, ub, vb, b)
+	if err != nil {
+		return result, err
+	}
+	result.U, result.V = uo, vo
+	result.Point, result.Du, result.Dv = d[0][0], d[1][0], d[0][1]
+	result.Duu, result.Duv, result.Dvv = d[2][0], d[1][1], d[0][2]
+	result.PointBounds, result.DuBounds, result.DvBounds = rationalSurfaceVectorBounds(result.Point), rationalSurfaceVectorBounds(result.Du), rationalSurfaceVectorBounds(result.Dv)
+	result.DuuBounds, result.DuvBounds, result.DvvBounds = rationalSurfaceVectorBounds(result.Duu), rationalSurfaceVectorBounds(result.Duv), rationalSurfaceVectorBounds(result.Dvv)
+	return result, nil
+}
+
+func exactSplineSecondTensor(ctx context.Context, nu, nv int, pole func(i, j int) exactHomogeneous,
+	ub, vb splineJetBlend, b *polynomialBudget) (d [3][3][3]*big.Rat, err error) {
 	row := make([]exactHomogeneous, nv)
 	var unets [3][]exactHomogeneous
 	vOrder := min(nv-1, 2)
@@ -92,7 +106,7 @@ func evaluatePeriodicSecondJet(ctx context.Context, nu, nv int, pole func(i, j i
 		}
 		jet, err := homogeneousSplineDerivatives(ctx, row, vb, 2, b)
 		if err != nil {
-			return result, err
+			return d, err
 		}
 		for k, p := range jet {
 			unets[k][i] = p
@@ -102,22 +116,13 @@ func evaluatePeriodicSecondJet(ctx context.Context, nu, nv int, pole func(i, j i
 	for k := 0; k <= vOrder; k++ {
 		jet, err := homogeneousSplineDerivatives(ctx, unets[k], ub, 2-k, b)
 		if err != nil {
-			return result, err
+			return d, err
 		}
 		for j, p := range jet {
 			h[j][k] = p
 		}
 	}
-	d, err := dehomogenizeSecondJet(ctx, h, b)
-	if err != nil {
-		return result, err
-	}
-	result.U, result.V = uo, vo
-	result.Point, result.Du, result.Dv = d[0][0], d[1][0], d[0][1]
-	result.Duu, result.Duv, result.Dvv = d[2][0], d[1][1], d[0][2]
-	result.PointBounds, result.DuBounds, result.DvBounds = rationalSurfaceVectorBounds(result.Point), rationalSurfaceVectorBounds(result.Du), rationalSurfaceVectorBounds(result.Dv)
-	result.DuuBounds, result.DuvBounds, result.DvvBounds = rationalSurfaceVectorBounds(result.Duu), rationalSurfaceVectorBounds(result.Duv), rationalSurfaceVectorBounds(result.Dvv)
-	return result, nil
+	return dehomogenizeSecondJet(ctx, h, b)
 }
 
 func dehomogenizeSecondJet(ctx context.Context, h [3][3]exactHomogeneous, b *polynomialBudget) (d [3][3][3]*big.Rat, err error) {

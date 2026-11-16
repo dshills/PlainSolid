@@ -26,6 +26,8 @@ caller inspect the exact cycle and amount of work used.
 Exact periodic tensor surfaces now also expose both pure second partials
 and the mixed partial in physical units, retaining the same original knot
 owners as first-order evaluation.
+Ordinary clamped rational patches now expose the same full exact jet on
+their selected original knot rectangle.
 Exact second derivatives now support a focal point check for a signed
 normal offset. The bounded coverage proof partitions a spline patch,
 retains its original knot boundaries, and exposes unresolved cells.
