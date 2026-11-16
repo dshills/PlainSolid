@@ -5,6 +5,12 @@ passed all eight gates with 345 development, 66 production, 15
 cross-browser, four real Go WASM and 1,691 ordinary unit cases. The
 driver is pristine, the production WASM matches the built asset, and
 all browser reports have zero unexpected, skipped and flaky cases.
+The matching [full Go run](evidence/main-a1d5a33f-qualification-2026-11-15.json)
+completed all nine lanes: 5,819 passes and 594 explicit optional skips
+across 6,413 inventoried cases. The eight trimmed lanes account for
+1,586 passes and 51 skips. All 53 tested packages passed; eight packages
+have no tests. Vet and Linux and Windows amd64 builds also passed on the
+same immutable kernel.
 
 The [explicit rounded conical STEP repair](evidence/conical-rim-fillet-default-step-repair-2026-11-15.json)
 was checked against independently pinned OCCT authoring and readback. The

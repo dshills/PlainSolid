@@ -4,15 +4,12 @@ The full OCCT replacement is **not complete**. This document distinguishes the
 implemented, tested kernel from the much larger specification. Full replacement
 and general-purpose production use remain unqualified.
 
-The latest completed paired run is [Go](evidence/main-a3b7548d-qualification-2026-11-15.json)
-and [PlainCAD](evidence/plaincad-main-a3b7548d-2026-11-15.json) on
-`a3b7548d`. Go passed 5,728 cases with 588 optional skips. PlainCAD
-passed all eight gates. Vet and Linux/Windows amd64 builds also
-pass that revision.
-The refreshed [full PlainCAD run on `a1d5a33f`](evidence/plaincad-main-a1d5a33f-2026-11-15.json)
-also passed all eight gates: 345 development, 66 production, 15
-cross-browser, four WASM contract and 1,691 unit cases. The paired
-refreshed Go run is still finishing its trimmed groups.
+The latest completed paired run is [Go](evidence/main-a1d5a33f-qualification-2026-11-15.json)
+and [PlainCAD](evidence/plaincad-main-a1d5a33f-2026-11-15.json) on
+`a1d5a33f`. Go passed 5,819 cases with 594 optional skips. PlainCAD
+passed all eight gates: 345 development, 66 production, 15 cross-browser,
+four WASM contract and 1,691 unit cases. Vet and Linux/Windows amd64
+builds also passed. A newer paired run on `946f7a04` is in progress.
 The [native Linux ARM64 run](evidence/native-linux-7569bd36-qualification-2026-11-15.json)
 passed on `7569bd36`. Native Windows runtime, broader curved modeling,
 independent exchange and the full release matrix remain unqualified.
