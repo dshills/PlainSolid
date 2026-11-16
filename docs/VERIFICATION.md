@@ -223,6 +223,14 @@ account for 1,559 passes and 51 optional skips. All 52 tested packages
 passed; six contain no tests. Vet and Linux/Windows amd64 cross-builds
 passed on the same archive, and the module list is still only `plainsolid`.
 
+The [full native Linux ARM64 archive qualification](evidence/native-linux-7569bd36-qualification-2026-11-15.json)
+runs `7569bd36` on Linux aarch64 with Go 1.26.0 in a network-disabled
+container. The reader validates the trusted Git tar's embedded commit
+and records its SHA-256. All nine lanes passed: 5,714 passes and 588
+optional skips across 6,302 independently enumerated cases. This
+includes 1,549 trimmed passes and 51 optional skips. It is separate
+from amd64 cross-builds and does not qualify native Windows.
+
 The [full ordinary Go run on the same kernel `b6335d3c`](evidence/main-b6335d3c-qualification-2026-11-15.json)
 finished all nine lanes: 5,630 passes, 586 optional skips and no
 failures across 6,216 top-level cases. Its eight trimmed lanes passed

@@ -9,9 +9,9 @@ and [PlainCAD](evidence/plaincad-main-a3b7548d-2026-11-15.json) on
 `a3b7548d`. Go passed 5,728 cases with 588 optional skips. PlainCAD
 passed all eight gates. Vet and Linux/Windows amd64 builds also
 pass that revision.
-The native Linux ARM64 run pins `7569bd36`. Native Windows runtime,
-broader curved modeling, independent exchange and the full release
-matrix remain unqualified.
+The [native Linux ARM64 run](evidence/native-linux-7569bd36-qualification-2026-11-15.json)
+passed on `7569bd36`. Native Windows runtime, broader curved modeling,
+independent exchange and the full release matrix remain unqualified.
 
 The previous paired full runs used kernel `af569683` and PlainCAD `efae4d2`.
 The [Go run](evidence/main-af569683-qualification-2026-11-15.json)
@@ -107,8 +107,10 @@ Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
 later passed 5,666 cases with 588 optional skips across 6,254 listed
 cases. The [paired `a3b7548d` refresh](evidence/main-a3b7548d-qualification-2026-11-15.json)
 passed 5,728 cases with 588 optional skips across 6,316 listed cases.
-The corrected `ab33a412` macOS race and the full native Linux
-ARM64 `7569bd36` archive run are still in progress.
+The [full native Linux ARM64 archive run](evidence/native-linux-7569bd36-qualification-2026-11-15.json)
+passed 5,714 cases with 588 optional skips on `7569bd36` under
+Go 1.26.0. The corrected `ab33a412` macOS race is still in progress.
+The next paired immutable full Go and PlainCAD runs use `a1d5a33f`.
 The browser suites on `b6335d3c` required scoped loopback access after
 the default sandbox denied their local test servers; preserve those startup
 logs separately from the browser results. Scoped browser reruns then
