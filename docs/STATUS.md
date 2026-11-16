@@ -9,6 +9,10 @@ and [PlainCAD](evidence/plaincad-main-a3b7548d-2026-11-15.json) on
 `a3b7548d`. Go passed 5,728 cases with 588 optional skips. PlainCAD
 passed all eight gates. Vet and Linux/Windows amd64 builds also
 pass that revision.
+The refreshed [full PlainCAD run on `a1d5a33f`](evidence/plaincad-main-a1d5a33f-2026-11-15.json)
+also passed all eight gates: 345 development, 66 production, 15
+cross-browser, four WASM contract and 1,691 unit cases. The paired
+refreshed Go run is still finishing its trimmed groups.
 The [native Linux ARM64 run](evidence/native-linux-7569bd36-qualification-2026-11-15.json)
 passed on `7569bd36`. Native Windows runtime, broader curved modeling,
 independent exchange and the full release matrix remain unqualified.
@@ -458,6 +462,9 @@ and two separately positive lenses. The other keeps a single shell
 with two through holes. Exact STEP and IGES now reproduce the
 [original two-circle results](evidence/parabola-two-circles-neutral-2026-11-15.json),
 including both separate lenses and the reverse through-hole layer.
+The same-side native Cut now supplies a certified, closed display
+for the cap, each separate lens and the reverse genus-two layer.
+The distance and volume checks retain the original chart and edge owners.
 The exact source proof also accepts independently placed centers on
 the same side of the parabola, even when their free-coordinate
 projections overlap. Native envelopes and Cuts retain both circle

@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "scope": "Certified distance, volume and topology display for native same-side two-circle Cut",
+  "meshWorktreeRevision": "468ae6bdb77726c881d1edaa4440c52ca821c056",
+  "mainRaceSeconds": 207.547,
+  "primary": [
+    {
+      "region": 0,
+      "triangles": 8950,
+      "euler": 2,
+      "signedVolume": 0.002042121160925581,
+      "referenceVolume": 0.002036147934469491,
+      "distanceUpperBound": 0.017875213088721812,
+      "candidatePairs": 843057
+    },
+    {
+      "region": 2,
+      "triangles": 8456,
+      "euler": 2,
+      "signedVolume": 7.061054160320297e-06,
+      "referenceVolume": 7.097639395170065e-06,
+      "distanceUpperBound": 0.01685109974517101,
+      "candidatePairs": 427141
+    },
+    {
+      "region": 3,
+      "triangles": 1452,
+      "euler": 2,
+      "signedVolume": 3.566322723309243e-07,
+      "referenceVolume": 3.624513768515666e-07,
+      "distanceUpperBound": 0.038262474651384264,
+      "candidatePairs": 62053
+    },
+    {
+      "region": 1,
+      "triangles": 12334,
+      "euler": -2,
+      "signedVolume": 0.0004773226181557123,
+      "referenceVolume": 0.0004741075218008142,
+      "distanceUpperBound": 0.034123920042080834,
+      "candidatePairs": 812383
+    }
+  ],
+  "circleBelow": [
+    {
+      "region": 0,
+      "triangles": 11866,
+      "euler": -2,
+      "signedVolume": 5.133103600918931e-05,
+      "referenceVolume": 5.043643548120027e-05,
+      "distanceUpperBound": 0.011257180681241943,
+      "candidatePairs": 882797
+    },
+    {
+      "region": 1,
+      "triangles": 10870,
+      "euler": 2,
+      "signedVolume": 0.01351680064820454,
+      "referenceVolume": 0.01346679311192066,
+      "distanceUpperBound": 0.015359991203030998,
+      "candidatePairs": 1019824
+    },
+    {
+      "region": 2,
+      "triangles": 1452,
+      "euler": 2,
+      "signedVolume": 1.169081784070517e-07,
+      "referenceVolume": 1.190872765438023e-07,
+      "distanceUpperBound": 0.020389359815831093,
+      "candidatePairs": 62051
+    },
+    {
+      "region": 3,
+      "triangles": 1452,
+      "euler": 2,
+      "signedVolume": 1.059327730800649e-08,
+      "referenceVolume": 1.07892521983556e-08,
+      "distanceUpperBound": 0.009955690279540848,
+      "candidatePairs": 61999
+    }
+  ],
+  "files": {
+    ".worktrees/qualification/2026-11-15/parabola-two-circles-mesh-main-race.jsonl": "31811e31d0c0938fc245214a87f0093adf2888367ec77ce606e0e6e40b1531c8",
+    ".worktrees/qualification/2026-11-15/parabola-two-circles-certified-final-native.log": "7b304d1056ceeb9ee21bb5e0a842c45f78cdf7da17063e9fa0694a3f007d7115",
+    ".worktrees/qualification/2026-11-15/parabola-two-circles-certified-final-race.jsonl": "c95ea9254cfa6704557abd98c7a959e3013a537192fc1b464d04989b9a74d81e",
+    ".worktrees/qualification/2026-11-15/parabola-two-circles-generic-display-probe.log": "2a154e30c20be5bc30e06a314f5e3195b5d9fe29f8c328b9c05df19d5e0b3307",
+    ".worktrees/qualification/2026-11-15/parabola-two-circles-certified-mesh.patch": "c10754dae7d6bddb9b3d6a2984f97f996e02c8c0c624864f01f70f8c615bc07f"
+  }
+}

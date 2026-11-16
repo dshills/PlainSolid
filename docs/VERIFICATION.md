@@ -1,5 +1,11 @@
 # Verification record
 
+The [refreshed full PlainCAD run on `a1d5a33f`](evidence/plaincad-main-a1d5a33f-2026-11-15.json)
+passed all eight gates with 345 development, 66 production, 15
+cross-browser, four real Go WASM and 1,691 ordinary unit cases. The
+driver is pristine, the production WASM matches the built asset, and
+all browser reports have zero unexpected, skipped and flaky cases.
+
 The [explicit rounded conical STEP repair](evidence/conical-rim-fillet-default-step-repair-2026-11-15.json)
 was checked against independently pinned OCCT authoring and readback. The
 finite cone displacement bound is `2.82747187543142e-12` mm. The
@@ -484,6 +490,15 @@ tolerance. Pinned OCCT reopened all 48 separately positive solids from
 operated on the original stock independently. All 36 earlier
 single-circle neutral files retained their bytes. The complete main
 paired-format race, including earlier controls, passed in 896.359 seconds.
+
+The [certified same-side Cut display](evidence/parabola-two-circles-certified-display-2026-11-15.json)
+retains exact boundary stations, checks opposing edge incidence and
+unintended triangle contacts, and certifies two-sided distance below
+0.05 model units. All four result components for each of two source
+layouts have signed volumes within two percent of independent integrals; the lower cap
+uses an explicit 1.1-million contact pair limit. Main's display and
+native Cut race passed in 207.547 seconds. This gate covers distance
+and volume on the original single-span identity XY graph supports.
 
 The [independent-circle native proof](evidence/parabola-offset-circles-native-2026-11-15.json)
 recovers both original centers, checks every quartic coefficient, and
