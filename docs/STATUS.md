@@ -316,6 +316,10 @@ their acute and obtuse meridians, and both cap holes. Its default rounded
 source does not meet the strict support contract. The [matching independent IGES reader](evidence/conical-rim-fillet-bore-iges-import-2026-11-15.json)
 replays the same native body and both formats now expose a certified
 distance and closed-display path on their authenticated geometry.
+The [independent mixed AP242 assembly](evidence/mixed-conical-ap242-assembly-2026-11-15.json)
+uses a shared conical part twice and the chamfered annulus once. Both
+local parts re-prove byte-identically to their standalone native bodies,
+and occurrence identities and exact rational placements remain distinct.
 The [eccentric bore inner rim fillets](evidence/eccentric-cylinder-bore-rim-fillet-2026-11-15.json)
 (`d930469f`) retain the unchanged outer cylinder, original axes and cap
 planes with exact quarter-toroid transitions and positive clearance.

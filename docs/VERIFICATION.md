@@ -760,6 +760,15 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   4,808 patch checks and 9,045 predicates. Main race passed the cross-format
   display and the independent STEP/IGES files in 94.156, 52.518 and
   50.405 seconds. This display proof has no finite angular claim yet.
+- The [mixed AP242 source proof](evidence/mixed-conical-ap242-assembly-2026-11-15.json)
+  keeps distinct conical uses `191` and `197` on one original local
+  definition `35`. Chamfered definition `200` retains the exact rational
+  occurrence rotation with cosine `3/5` and sine `4/5`. Both local
+  geometries match their independent standalone native bytes. Pinned
+  XCAF reopens all three with positive signed material and the expected
+  topology. Altered ownership, unit mismatch, raw rounded supports and
+  rotation changes hidden by binary rounding refuse. Main's sealed live
+  race passed in 51.952 seconds.
 - The [diagonal circle cap and wall proof](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
   (`a296b700`) qualifies the independent offset `(1.5,2)` with exact
   circular rim laws and shell-wide clearance. A targeted raw constructor
