@@ -269,16 +269,24 @@ now preserve both circular axes and prove the shell gap at all runouts
 (`a296b700`) proves both whole wall chains stay separated before filling
 the rings. The [explicit PlainCAD v13 repair](evidence/plaincad-v13-ordered-step-2026-11-15.json)
 (`399957cd`) passed the native and actual Node/WASM source, closed mesh,
-strict STEP export and fresh reopen; the typed browser worker
-qualification is in progress.
+strict STEP export and fresh reopen. [Two typed Chromium workers](evidence/plaincad-v13-worker-chromium-2026-11-15.json)
+(`0debedd8`) independently passed the same strict reopen on the pinned
+app. Both loaded Go WASM, with no OCCT asset requests. The public route
+currently certifies distance, with no finite normal-angle claim.
+An [opt-in native knot-aligned mesh](evidence/mapped-v13-knot-aligned-native-2026-11-15.json)
+(`66d273d2`) proves a tighter distance in the original one-sided roof
+cells. It retains the previously qualified public route and mesh bytes.
 
-The native variable-count Cut (`0091b243`) discovers one through five
-original transverse contacts. Exact component volume, source replay,
-and a separate contact-in-one-component refusal are checked. The shared
+Native variable-count Cut (`0091b243`), Common (`548ee371`) and Fuse
+(`72f5b907`) discover one through five original transverse contacts.
+Exact material and original-source replay pass, and Cut refuses
+a contact inside a single connected component. The shared Cut
 STEP and IGES writers (`5a03aaca`) qualify one through three. Higher
 counts still need [thin-shell orientation portability](evidence/variable-transverse-cut-transfer-2026-11-15.json):
 pinned default readback automatically reversed some separate positive
 four- and five-contact lenses even though its topology validator passed.
+The [independent orientation diagnostic](evidence/clipped-cut-occt-shell-orientation-2026-11-15.json)
+isolates the default shell-orientation repair on unchanged input bytes.
 The public writers refuse those counts before they produce records.
 
 Nodal cubic discovery (`9f054eb5`) independently recovers a closed loop
@@ -286,8 +294,17 @@ and two attached arms on original projected spline supports. Native
 Common (`4cf4205c`) closes the original roof sectors with one exact
 owner-chart seam where the exterior face needs separate wires. Both
 source orders retain the four node rays, exact material and display.
-Work continues on the matching Fuse and Cut, broader contact discovery
-and advanced edge modifications. Ordinary Go is also running on
+Native Fuse (`8debec04`) reuses the same sector proof and [STEP and IGES](../exchange/NODAL_CUBIC.md)
+qualify the one-body Common and Fuse in both source orders (`d3a3187b`).
+Native Cut (`85dcc1ba`) keeps the separate loop and arm layers with one
+original point contact; its reverse order rejects a proved pinch. The
+admitted order now also transfers through STEP and IGES (`bffac9bc`),
+with independent positive signed volume for both separate components.
+Exact cuspidal cubic discovery (`ffc10247`) separately proves a genuine
+zero first jet, a shared second jet and opposite third jets in the
+original owner charts. Native cusp assembly, broader contact discovery,
+finite angle display and advanced edge modifications remain in progress.
+Ordinary Go is also running on
 `01d12dab` and a fresh full PlainCAD run uses `a296b700`.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,

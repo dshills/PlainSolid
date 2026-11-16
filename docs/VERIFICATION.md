@@ -455,6 +455,23 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   import strictly reopened the canonical STEP and reproduced the same
   native source receipt. Main focused native with the existing signed
   and tilted controls passed in 136.648 seconds.
+  The [typed Chromium worker gate](evidence/plaincad-v13-worker-chromium-2026-11-15.json)
+  (`0debedd8`) passed in 166.186 seconds on the audited pinned app
+  archive, with both app and Playwright typechecks. Two fresh workers
+  received Go WASM with HTTP 200 and no OCCT requests. Both reproduced
+  the canonical STEP and exact native receipt digests; ordinary import,
+  finer distance, and finite angular requests rejected. All 14 main
+  Node harness tests passed.
+- An [exact knot-aligned native display](evidence/mapped-v13-knot-aligned-native-2026-11-15.json)
+  (`66d273d2`) returns 4,162 closed triangles for the tighter 0.30 mm
+  request. Its certified two-sided distance is below 0.173 mm, with
+  every roof triangle in an original one-sided support cell. It
+  retains the original joints and has no unintended contacts. An
+  exact original derivative check gives a counterexample to a
+  0.2-radian angular request on each roof, so that option remains
+  rejected. The earlier 2,822-triangle mesh bytes are identical. Main
+  focused native passed in 44.310 seconds and the isolated race passed
+  in 261.541 seconds.
 - The native variable-count clipped Cut (`0091b243`) independently
   checks one, four and five contacts across two axes and two original
   footprint layouts. It agrees with the older two- and three-contact
@@ -467,6 +484,21 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   solids. Default pinned readers considered the raw higher-count shapes
   valid but reversed the signed volumes of some thin lens shells. Both
   public writers return a scope error with no bytes above three contacts.
+  The [pinned diagnostic](evidence/clipped-cut-occt-shell-orientation-2026-11-15.json)
+  restores the positive volumes on identical source bytes when only
+  the shell-orientation repair is disabled. Two repeated repair calls
+  on affected shells toggle their signed volumes. Exact midpoint seams,
+  owner-order changes and physical-size-preserving placement attempts
+  did not qualify with the default pinned readers.
+- Native variable-count Common (`548ee371`) and Fuse (`72f5b907`)
+  extend the exact original-source domain to one through five transverse
+  contacts. Common passed its 36 one-, four- and five-contact cases
+  across original axes, footprint layouts and operand orders, with
+  source replay, both legacy counts and the displayed four/five-contact
+  shapes. The common scoped batch with nodal Fuse passed in 51.549
+  seconds. Fuse passed the new one- and five-contact cases with independent
+  integration of both original stock heights and their Common, plus
+  closed display and legacy four-contact replay, in 63.566 seconds.
 - Exact nodal cubic discovery (`9f054eb5`) recovers two arms, a closed
   loop and all four original owner rays. It rejects a cusp, an isolated
   acnode, a clipped loop, and irrational original endpoint examples.
@@ -478,6 +510,36 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   nodal, clipped Common and cubic-tangency race passed in 150.237 seconds.
   A separate broad intersect run reached its cumulative ten-minute
   limit in the existing triple radial tube test.
+- Native nodal Fuse (`8debec04`) keeps the selected original roof on
+  each side of the node, closes 12 faces in both source orders and
+  reproduces exact volume `821259/65536`. Its 512-triangle closed mesh
+  is about 0.080% high in volume; the two Common recipe hashes are
+  unchanged. [STEP and IGES](../exchange/NODAL_CUBIC.md) (`d3a3187b`)
+  retain all 18 vertices, 28 edges, 12 faces, four node rays and the
+  original seam for both operations and source orders. Pinned readback
+  matches exact volume and independent area. The main full scoped
+  exchange regression passed.
+- [Native nodal Cut](evidence/nodal-cubic-cut-2026-11-15.json)
+  (`85dcc1ba`) retains two distinct positive components with volumes
+  `1/100925440` and `4619/100925440` and original separate point
+  contacts. Its reverse order refuses the exterior pinch. The combined
+  main nodal family race passed in 18.870 seconds. Both coarse previews
+  are closed with only the declared contact. Their relative volumes
+  differ by about `-20.6%` and `+13.8%`; at deflection 0.001 the
+  same controls differ by about `-5.69%` and `+0.25%`. Exact source
+  integrals remain independent of those preview limits.
+  The [neutral-format Cut](../exchange/NODAL_CUBIC.md) (`bffac9bc`)
+  passes each independent signed-volume test, with two separate
+  solids, six faces, nine indexed vertices, and two incident rays
+  on both original copies of the exact shared node.
+- Exact cuspidal cubic discovery (`ffc10247`) proves the whole
+  original triple-factor locus, two original boundary exits and both
+  signed sides. The zero first cusp derivatives remain zero in the
+  certificate, with equal second and opposed third sided jets.
+  Focused main nodal and cuspidal geometry passed, as did the full
+  isolate geometry and focused intersection races. An ordinary node,
+  wrong footprint, irrational or clipped exits and altered original
+  coefficients all reject.
 - The [tilted through-bore bridge](evidence/plaincad-tilted-bore-bridge-2026-11-15.json)
   (`8e9cae2c`) keeps both cap openings in a closed 644-triangle display and
   re-proves the original source graph on native reopen. The integrated
