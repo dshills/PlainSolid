@@ -36,6 +36,36 @@ func VerifyClippedPolynomialCommonIGES(ctx context.Context, input io.Reader, com
 	if err := requireTransverseClippedCommonIGES(common); err != nil {
 		return err
 	}
+	return verifyClippedCommonIGES(ctx, input, l, func(w io.Writer) error {
+		return WriteClippedPolynomialCommon(ctx, w, common, unit, l, o)
+	})
+}
+
+// WriteClippedPolynomialThreeTransverseCommon writes one source-proved
+// intersection solid with its three exact four-ray junction vertices. Both
+// roof charts, the base and wall charts and all original edge uses remain.
+func WriteClippedPolynomialThreeTransverseCommon(ctx context.Context, w io.Writer, common *trimmed.ClippedPolynomialThreeTransverseCommon, unit float64, l Limits, o ClippedPolynomialCommonIGESOptions) error {
+	if err := requireThreeTransverseClippedCommonIGES(common); err != nil {
+		return err
+	}
+	return writeExactBezierSingleIGES(ctx, w, common.Boundary(), unit, l, o)
+}
+
+// VerifyClippedPolynomialThreeTransverseCommonIGES authenticates the native
+// three-contact solid, all original edge owners and its declared units.
+func VerifyClippedPolynomialThreeTransverseCommonIGES(ctx context.Context, input io.Reader, common *trimmed.ClippedPolynomialThreeTransverseCommon, unit float64, l Limits, o ClippedPolynomialCommonIGESOptions) error {
+	if ctx == nil || input == nil {
+		return geom.ErrInvalid
+	}
+	if err := requireThreeTransverseClippedCommonIGES(common); err != nil {
+		return err
+	}
+	return verifyClippedCommonIGES(ctx, input, l, func(w io.Writer) error {
+		return WriteClippedPolynomialThreeTransverseCommon(ctx, w, common, unit, l, o)
+	})
+}
+
+func verifyClippedCommonIGES(ctx context.Context, input io.Reader, l Limits, write func(io.Writer) error) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -44,7 +74,7 @@ func VerifyClippedPolynomialCommonIGES(ctx context.Context, input io.Reader, com
 		return err
 	}
 	var canonical bytes.Buffer
-	if err := WriteClippedPolynomialCommon(ctx, &canonical, common, unit, l, o); err != nil {
+	if err := write(&canonical); err != nil {
 		return err
 	}
 	expected, err := readTopologySource(&canonical, l, true)
@@ -63,6 +93,22 @@ func requireTransverseClippedCommonIGES(common *trimmed.AlignedPolynomialEnvelop
 		return geom.ErrInvalid
 	}
 	for _, contact := range common.Contacts() {
+		if contact.Order != 1 {
+			return fmt.Errorf("iges: clipped Common requires transverse wire contacts: %w", geom.ErrDomain)
+		}
+	}
+	return nil
+}
+
+func requireThreeTransverseClippedCommonIGES(common *trimmed.ClippedPolynomialThreeTransverseCommon) error {
+	if _, ok := common.ClippedFootprint(); !ok {
+		return geom.ErrInvalid
+	}
+	contacts := common.Contacts()
+	if len(contacts) != 3 {
+		return geom.ErrInvalid
+	}
+	for _, contact := range contacts {
 		if contact.Order != 1 {
 			return fmt.Errorf("iges: clipped Common requires transverse wire contacts: %w", geom.ErrDomain)
 		}
