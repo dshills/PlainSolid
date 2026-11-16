@@ -70,18 +70,23 @@ def main():
     ap.add_argument("--shards", type=int, default=8)
     ap.add_argument("--jobs", type=int, default=min(9, os.cpu_count() or 1), help="parallel lanes")
     ap.add_argument("--go-workers", type=int, default=2, help="Go scheduler threads per lane")
+    ap.add_argument("--cache", type=Path, help="Go build cache (default: GOCACHE or a shared cache beside the stage)")
     ap.add_argument("--prior", type=Path, help="completed stage used only for estimating shard durations")
     ap.add_argument("--timeout", default="240m", help="go test timeout per package")
     opts = ap.parse_args()
     if not 0 < opts.shards <= 32 or not 0 < opts.jobs <= 33 or not 0 < opts.go_workers <= 32:
         ap.error("shards, jobs and Go workers must be positive and bounded")
+    parent = opts.stage.resolve()
     env = os.environ.copy()
     for key in ("GOOS", "GOARCH", "GOFLAGS"):
         env.pop(key, None)
     env.update(GOMAXPROCS=str(opts.go_workers), CGO_ENABLED="1" if opts.race else "0")
+    if opts.cache is not None:
+        env["GOCACHE"] = str(opts.cache.resolve())
+    elif not env.get("GOCACHE"):
+        env["GOCACHE"] = str(parent.parent / ".go-qualification-cache")
     repo = Path(run(["git", "rev-parse", "--show-toplevel"], Path.cwd(), env).strip())
     revision = run(["git", "rev-parse", "--verify", "--end-of-options", f"{opts.revision}^{{commit}}"], repo, env).strip()
-    parent = opts.stage.resolve()
     parent.mkdir()
     source = parent / "src"
     source.mkdir()
@@ -110,7 +115,8 @@ def main():
         (parent / f"{lane}.list").write_text("\n".join(split) + "\n")
         lanes[lane] = base + ["-p", "1", "./brep/trimmed", "-run", "^(" + "|".join(split) + ")$"]
     mode = "race" if opts.race else "ordinary"
-    (parent / "run-commands.json").write_text(json.dumps({"mode": mode, "commands": lanes}, indent=2) + "\n")
+    go_env = {name: env[name] for name in ("GOCACHE", "CGO_ENABLED", "GOMAXPROCS")}
+    (parent / "run-commands.json").write_text(json.dumps({"mode": mode, "commands": lanes, "goEnvironment": go_env}, indent=2) + "\n")
     rc = 0
     with ThreadPoolExecutor(max_workers=opts.jobs) as executor, (parent / "status.tsv").open("w") as status:
         waiting = {executor.submit(run, argv, source, env, parent / f"{lane}.jsonl"): lane for lane, argv in lanes.items()}
