@@ -142,12 +142,13 @@ func TestEditMixedConicalAP242DAGRationalRotationReject(t *testing.T) {
 	raw := mixedConicalAP242DAGFixture(t, "exact")
 	reflection := conicalRotationAboutZ(5, 12, 13)
 	reflection[2][2] = big.NewRat(-1, 1)
-	// The proper orientation from quaternion (1,1,1,4) has no fixed
-	// Cartesian axis and its ordinary projection disagrees.
+	// Quaternion (1,2,2,4) induces a proper rotation with terminating
+	// unit axes. Where the ordinary projection differs, these decimal
+	// axes do not supply the new primitive integer source proof.
 	unsupported := &[3][3]*big.Rat{
-		{big.NewRat(-15, 19), big.NewRat(-6, 19), big.NewRat(10, 19)},
-		{big.NewRat(10, 19), big.NewRat(-15, 19), big.NewRat(6, 19)},
-		{big.NewRat(6, 19), big.NewRat(10, 19), big.NewRat(15, 19)},
+		{big.NewRat(-3, 5), new(big.Rat), big.NewRat(4, 5)},
+		{big.NewRat(16, 25), big.NewRat(-3, 5), big.NewRat(12, 25)},
+		{big.NewRat(12, 25), big.NewRat(4, 5), big.NewRat(9, 25)},
 	}
 	for _, tc := range []struct {
 		name  string
