@@ -10,6 +10,8 @@ and [PlainCAD](evidence/plaincad-main-a1d5a33f-2026-11-15.json) on
 passed all eight gates: 345 development, 66 production, 15 cross-browser,
 four WASM contract and 1,691 unit cases. Vet and Linux/Windows amd64
 builds also passed. A newer paired run on `946f7a04` is in progress.
+The [full native macOS race on `ab33a412`](evidence/native-main-ab33a412-race-2026-11-15.json)
+passed 5,557 cases with 580 explicit optional skips.
 The [native Linux ARM64 run](evidence/native-linux-7569bd36-qualification-2026-11-15.json)
 passed on `7569bd36`. Native Windows runtime, broader curved modeling,
 independent exchange and the full release matrix remain unqualified.
@@ -474,6 +476,9 @@ for the cap, each separate lens and the reverse genus-two layer.
 The distance and volume checks retain the original chart and edge owners.
 An opt-in normal-turn proof bounds the continuous variation within each
 original roof face and keeps the distance-only mesh bytes.
+The optional facet angle independently bounds each represented triangle
+against its original continuous face normal and improves interior
+connectivity while keeping original boundary edges.
 The same-side Cut and its certified display also accept a shared proper
 signed-axis placement with exactly represented translation. Native replay
 retains the original world roofs, edge streams and trimming paths.

@@ -11,6 +11,9 @@ across 6,413 inventoried cases. The eight trimmed lanes account for
 1,586 passes and 51 skips. All 53 tested packages passed; eight packages
 have no tests. Vet and Linux and Windows amd64 builds also passed on the
 same immutable kernel.
+The [full native macOS race on `ab33a412`](evidence/native-main-ab33a412-race-2026-11-15.json)
+passed all nine lanes, with 5,557 passes and 580 optional skips among
+6,137 recorded cases, including 1,468 passes in the eight trimmed lanes.
 
 The [explicit rounded conical STEP repair](evidence/conical-rim-fillet-default-step-repair-2026-11-15.json)
 was checked against independently pinned OCCT authoring and readback. The
@@ -566,6 +569,13 @@ At `0.2` radians all four primary meshes retain their original bytes.
 The genus-two result passes at `0.102` and refuses `0.101` atomically
 with the same 16-subdivision budget. This bounds source-normal variation
 within each face. Main's angle and prior display race passed in 127.415 seconds.
+The [facet angle proof](evidence/parabola-circles-facet-normal-2026-11-15.json)
+checks the continuous original normal against the represented facet.
+Interior flips honor all protected original edges and preserve exact
+planar wall alignment. The genus-two case passes `0.051` radians and
+refuses `0.050` with the same subdivision limit. Twenty-eight audited
+distance and source-turn displays retain their full bytes. Main's facet,
+source-turn and mapped-edge quality race passed in 604.250 seconds.
 
 The [placed Cut and display proof](evidence/parabola-two-circles-placed-display-2026-11-15.json)
 recovers `(5-h,u-3,17/8-v)` from the original authored base. Each of

@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "scope": "Exact opt-in facet deviation and unchanged normal-turn controls in identity and placed Cut displays",
+  "worktreeRevision": "96bd36f3fa5f09f661902f8ce4df06c53f342e90",
+  "mainIntegration": {
+    "elapsedSeconds": 604.253,
+    "log": {
+      "path": ".worktrees/qualification/2026-11-15/parabola-facet-normal-main-race.jsonl",
+      "sha256": "47c541b4f9c306e94e7d457ffd2fc6077f1955296c9f500b4077a9499822a743"
+    },
+    "cases": [
+      "TestCertifiedParabolaTwoCirclesFacetAngle",
+      "TestCertifiedPlacedParabolaTwoCirclesFacetAngle",
+      "TestCertifiedParabolaTwoCirclesSourceNormalTurn",
+      "TestOrderedMappedSTEPProjectedQuality"
+    ]
+  },
+  "legacyOutputsByteIdentical": 28,
+  "thresholdRadians": {
+    "accepted": 0.051,
+    "refused": 0.05,
+    "subdivisions": 16
+  },
+  "otherArtifacts": [
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-circles-facet-legacy-before.log",
+      "sha256": "df7be21bc27fd1305232abe0f60fe9645e84143f61f1ff840d89d97636c74597"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-circles-facet-legacy-after.log",
+      "sha256": "df7be21bc27fd1305232abe0f60fe9645e84143f61f1ff840d89d97636c74597"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-circles-facet-final-race.jsonl",
+      "sha256": "acfefd0030694bdb45fd8a4a7dfef5dda43ff6b8b1e7bc6ecf845c274906b2a8"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-circles-facet-mapped-quality-regression.log",
+      "sha256": "04853d7e17c9774933f4ae2d2d2441e7798c0f9a89a2a81bd074cf6a46c4b2e8"
+    }
+  ]
+}

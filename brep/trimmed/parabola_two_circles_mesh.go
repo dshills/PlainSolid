@@ -30,6 +30,11 @@ type ParabolaTwoCirclesMeshOptions struct {
 	// It compares normals from one original face at a time. Zero selects
 	// the distance and volume path without an angular certificate.
 	NormalTurn float64
+
+	// NormalAngle optionally bounds deviation in radians between each
+	// delivered facet normal and the original normals on its own face.
+	// A positive request is below pi/2 and enables shape-quality flips.
+	NormalAngle float64
 }
 
 // ParabolaTwoCirclesMeshEdge records the original model edge and the exact
@@ -58,6 +63,10 @@ type CertifiedParabolaTwoCirclesComponentMesh struct {
 	// SquaredSourceNormalTurn bounds the requested pairwise turn in
 	// radians squared. Nil when NormalTurn is zero.
 	SquaredSourceNormalTurn *big.Rat `json:",omitempty"`
+
+	// SquaredFacetNormalTangent bounds tan(deviation)^2 over each facet's
+	// padded source footprint. Nil when the facet option is zero.
+	SquaredFacetNormalTangent *big.Rat `json:",omitempty"`
 }
 
 // TessellateCertified displays the sealed native Cut on its original
@@ -93,7 +102,8 @@ func (r *ParabolaTwoCirclesGraphCut) tessellateCertified(ctx context.Context, o 
 		o.RelativeVolumeTolerance <= 0 || o.RelativeVolumeTolerance >= 1 ||
 		o.MaxSubdivisions < 1 || o.MaxSubdivisions > 128 || o.MaxTriangles < 1 || o.MaxTriangles > collision.MaxTriangles ||
 		o.Collision.MaxPairs < 0 || o.Collision.MaxContacts < 0 ||
-		!finite(o.NormalTurn) || o.NormalTurn < 0 || o.NormalTurn > math.Pi {
+		!finite(o.NormalTurn) || o.NormalTurn < 0 || o.NormalTurn > math.Pi ||
+		!finite(o.NormalAngle) || o.NormalAngle < 0 || o.NormalAngle >= math.Pi/2 {
 		return nil, geom.ErrInvalid
 	}
 	var height [2]parabolaCircleMeshHeight
@@ -104,7 +114,7 @@ func (r *ParabolaTwoCirclesGraphCut) tessellateCertified(ctx context.Context, o 
 		if err != nil {
 			return nil, err
 		}
-		if o.NormalTurn > 0 {
+		if o.NormalTurn > 0 || o.NormalAngle > 0 {
 			height[i].normalHessian = parabolaCircleMeshHessian(r.sources[i+1])
 		}
 	}
@@ -244,6 +254,9 @@ func parabolaTwoCirclesComponentDisplay(ctx context.Context, s Solid, h Parabola
 			continue
 		}
 		if turnLimit != nil && (display.SquaredSourceNormalTurn == nil || display.SquaredSourceNormalTurn.Cmp(turnLimit) > 0) {
+			continue
+		}
+		if o.NormalAngle > 0 && display.SquaredFacetNormalTangent == nil {
 			continue
 		}
 		native := s

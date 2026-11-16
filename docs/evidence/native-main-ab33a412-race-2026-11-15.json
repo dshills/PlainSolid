@@ -1,0 +1,282 @@
+{
+  "snapshot": "ab33a4129b82aea2d14ffb750a68b1e9f44c5511",
+  "mode": "race",
+  "toolchain": "go version go1.27.4 darwin/arm64\nDarwin arm64",
+  "summary": {
+    "packagesPassed": 52,
+    "packagesWithoutTests": 5,
+    "topLevelInventory": 6137,
+    "topLevelPasses": 5557,
+    "topLevelSkips": 580,
+    "trimmedPasses": 1468,
+    "trimmedSkips": 51
+  },
+  "sourceArtifacts": [
+    {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/packages.list",
+      "bytes": 1450,
+      "sha256": "9ff9a2c27101860aa58c74bafd8f76adf5bee06fd77c998316d5f3aac552002d"
+    },
+    {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/status.tsv",
+      "bytes": 107,
+      "sha256": "5c9b6e9044d7e0849b945d73755637d62cbaf7dc1f7e337d83e8d458b85a577a"
+    },
+    {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/run-commands.json",
+      "bytes": 62020,
+      "sha256": "b456e9b8751c583c2fce3c7a66d33b7fba1fc4b41cf0628bdb782dd49ba6ab93"
+    },
+    {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/inventory-trimmed.jsonl",
+      "bytes": 228300,
+      "sha256": "873384a850aa8b0ac760eb8f63e9620c356e5ce9cdf3925a2c4ecb9336651a19"
+    },
+    {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/inventory.jsonl",
+      "bytes": 691389,
+      "sha256": "2d73dd1b877a433b0a4b464fc7b359c81470581f23154c539e0582f3a3e16ebf"
+    },
+    {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-0.list",
+      "bytes": 5915,
+      "sha256": "11383975ff779f7099f374e946e2fba45b66c8e6f8545f8671bc3bb9a2970034"
+    },
+    {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-1.list",
+      "bytes": 7375,
+      "sha256": "cbb88d6cf15de8556aa60214a3be5ca9941256ed77e90cb24cb6691c39477012"
+    },
+    {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-2.list",
+      "bytes": 7568,
+      "sha256": "d37786f28dc0e8da9d8d6caf1d46993af1722d4409c1ae3d8b1e3b1928fc1c32"
+    },
+    {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-3.list",
+      "bytes": 7715,
+      "sha256": "60d0f977e5cabb63a6c789567050b693a1bef03d25813188f91dd673a8f609d1"
+    },
+    {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-4.list",
+      "bytes": 7340,
+      "sha256": "5733d509a59860ed76aa0272b679caf952475bca58ea645b7131853d8167fd26"
+    },
+    {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-5.list",
+      "bytes": 7541,
+      "sha256": "67685a0045a52a9218ea1f9fc1fa4c2dace3c389ae399d93c2b9dad9e2f0d633"
+    },
+    {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-6.list",
+      "bytes": 7485,
+      "sha256": "810e3faabf35266e9275e594ea500e8c478c199cfe6edaca30ae70a143c1561e"
+    },
+    {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-7.list",
+      "bytes": 7398,
+      "sha256": "673043a76d0277dc6adc99658258238d0ba54c02d34e43660e264f8b6cae8f13"
+    }
+  ],
+  "lanes": {
+    "packages": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/packages.jsonl",
+      "bytes": 6980490,
+      "sha256": "426982ddf0bfa8cb90b4d243f35019c218e4c8f7180d82f2dca506f6f2e44e4a",
+      "topLevel": {
+        "pass": 4089,
+        "skip": 529
+      },
+      "includingSubtests": {
+        "pass": 8101,
+        "skip": 545
+      },
+      "terminalPackages": {
+        "plainsolid/brep/edgecheck": "pass",
+        "plainsolid/brep/faceclip": "pass",
+        "plainsolid/brep": "pass",
+        "plainsolid/brep/placement": "pass",
+        "plainsolid/brep/splinebounds": "pass",
+        "plainsolid/brep/support": "pass",
+        "plainsolid/brep/trimvalidate": "pass",
+        "plainsolid/brep/trimvalidate/adapter": "pass",
+        "plainsolid/capability": "pass",
+        "plainsolid/cmd/plaincadwasm": "skip",
+        "plainsolid/collision": "pass",
+        "plainsolid/csg": "pass",
+        "plainsolid/csg/draft": "pass",
+        "plainsolid/csg/elbow": "pass",
+        "plainsolid/csg/feature": "pass",
+        "plainsolid/brep/parametric": "pass",
+        "plainsolid/csg/loft": "pass",
+        "plainsolid/csg/fillet": "pass",
+        "plainsolid/csg/poly": "pass",
+        "plainsolid/csg/prism": "pass",
+        "plainsolid/csg/thread": "pass",
+        "plainsolid/csg/offset": "pass",
+        "plainsolid/examples/boredplate": "pass",
+        "plainsolid/examples/bracket": "pass",
+        "plainsolid/examples/ellipticallens": "pass",
+        "plainsolid/examples/pressurecap": "pass",
+        "plainsolid/examples/splineenvelope": "pass",
+        "plainsolid/examples/tubelens": "skip",
+        "plainsolid/examples/wrappedbore": "pass",
+        "plainsolid/exchange": "pass",
+        "plainsolid/exchange/analytic": "pass",
+        "plainsolid/exchange/cylinder": "pass",
+        "plainsolid/exchange/cylindercells": "pass",
+        "plainsolid/exchange/extrusion": "pass",
+        "plainsolid/exchange/iges": "pass",
+        "plainsolid/exchange/internal/circularsweep": "skip",
+        "plainsolid/exchange/plane": "pass",
+        "plainsolid/exchange/revolution": "pass",
+        "plainsolid/exchange/sphere": "pass",
+        "plainsolid/document": "pass",
+        "plainsolid/exchange/torus": "pass",
+        "plainsolid/geom": "pass",
+        "plainsolid/heal": "pass",
+        "plainsolid/heal/frommesh": "pass",
+        "plainsolid/heal/unify": "pass",
+        "plainsolid/internal/ellipticprism": "skip",
+        "plainsolid/internal/occtcheck": "pass",
+        "plainsolid/internal/plaincadbridge": "pass",
+        "plainsolid/internal/testgraphfixture": "skip",
+        "plainsolid/exchange/step": "pass",
+        "plainsolid/mesh": "pass",
+        "plainsolid/query": "pass",
+        "plainsolid/scene": "pass",
+        "plainsolid/section": "pass",
+        "plainsolid/solid": "pass",
+        "plainsolid/intersect": "pass"
+      }
+    },
+    "trimmed-0": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-0.jsonl",
+      "bytes": 154798,
+      "sha256": "cdc7b04866d355de3e07ac4e0aa7af5c6e9348633e1dba3b1186f79793c740ab",
+      "topLevel": {
+        "pass": 148,
+        "skip": 7
+      },
+      "includingSubtests": {
+        "pass": 180,
+        "skip": 7
+      },
+      "terminalPackages": {
+        "plainsolid/brep/trimmed": "pass"
+      }
+    },
+    "trimmed-1": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-1.jsonl",
+      "bytes": 252386,
+      "sha256": "fdaa3fca2cd6291a3f65f13ddd18775005c390c94b3b7a5acbce1f7fab88edc7",
+      "topLevel": {
+        "pass": 185,
+        "skip": 4
+      },
+      "includingSubtests": {
+        "pass": 288,
+        "skip": 4
+      },
+      "terminalPackages": {
+        "plainsolid/brep/trimmed": "pass"
+      }
+    },
+    "trimmed-2": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-2.jsonl",
+      "bytes": 231937,
+      "sha256": "038428e51f904a4fead3b68759e2220296dffea81b8389e2cbf8a254d9728df9",
+      "topLevel": {
+        "pass": 186,
+        "skip": 9
+      },
+      "includingSubtests": {
+        "pass": 262,
+        "skip": 9
+      },
+      "terminalPackages": {
+        "plainsolid/brep/trimmed": "pass"
+      }
+    },
+    "trimmed-3": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-3.jsonl",
+      "bytes": 243347,
+      "sha256": "9b61df5e0e14387fdd9787472687c7d471e87a564e1c984749a434e3b126e3c5",
+      "topLevel": {
+        "skip": 5,
+        "pass": 191
+      },
+      "includingSubtests": {
+        "skip": 5,
+        "pass": 274
+      },
+      "terminalPackages": {
+        "plainsolid/brep/trimmed": "pass"
+      }
+    },
+    "trimmed-4": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-4.jsonl",
+      "bytes": 208546,
+      "sha256": "25f50e270bf5e9dcaa137f8057b375e639be8a5e76311f6d564d475305b75c2a",
+      "topLevel": {
+        "pass": 189,
+        "skip": 7
+      },
+      "includingSubtests": {
+        "pass": 241,
+        "skip": 7
+      },
+      "terminalPackages": {
+        "plainsolid/brep/trimmed": "pass"
+      }
+    },
+    "trimmed-5": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-5.jsonl",
+      "bytes": 219285,
+      "sha256": "09e4e6d2089bf7bf9848e45e2b689f029447a7e3b41806812b779cebc743b612",
+      "topLevel": {
+        "skip": 7,
+        "pass": 189
+      },
+      "includingSubtests": {
+        "skip": 7,
+        "pass": 251
+      },
+      "terminalPackages": {
+        "plainsolid/brep/trimmed": "pass"
+      }
+    },
+    "trimmed-6": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-6.jsonl",
+      "bytes": 226941,
+      "sha256": "446f392db25f77950f4fa707666d50cce1330b9df43563e8ddc3b29b45cf455a",
+      "topLevel": {
+        "pass": 190,
+        "skip": 6
+      },
+      "includingSubtests": {
+        "pass": 252,
+        "skip": 6
+      },
+      "terminalPackages": {
+        "plainsolid/brep/trimmed": "pass"
+      }
+    },
+    "trimmed-7": {
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/go-ab33a412-race/trimmed-7.jsonl",
+      "bytes": 221571,
+      "sha256": "d60bbad6f4097a2b72a6146fbe6f3f969df99f62f8611a02080947e2f0943ade",
+      "topLevel": {
+        "pass": 190,
+        "skip": 6
+      },
+      "includingSubtests": {
+        "pass": 249,
+        "skip": 6
+      },
+      "terminalPackages": {
+        "plainsolid/brep/trimmed": "pass"
+      }
+    }
+  }
+}
