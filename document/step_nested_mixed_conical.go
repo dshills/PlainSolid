@@ -18,11 +18,11 @@ import (
 // entity identities; editing a node changes its current document placement,
 // independently of those original source labels.
 func ReadNestedMixedConicalAP242STEP(ctx context.Context, r io.Reader, limits STEPAssemblyOptions, geometry geom.SurfacePatchOptions, historyLimit int) (*Document, error) {
-	if ctx == nil || r == nil || limits.MaxDepth < 0 || limits.MaxDepth > 256 || limits.MaxNodes < 0 || historyLimit < 0 {
+	if ctx == nil || r == nil {
 		return nil, geom.ErrInvalid
 	}
-	if limits.MaxDepth != 0 && limits.MaxDepth < 3 || limits.MaxNodes != 0 && limits.MaxNodes < 7 {
-		return nil, fmt.Errorf("document: mixed conical hierarchy exceeds the expansion limits: %w", geom.ErrConvergence)
+	if err := validateMixedConicalDocumentLimits(limits, historyLimit); err != nil {
+		return nil, err
 	}
 	m, err := step.ReadNestedMixedConicalAP242Assembly(ctx, r, limits.Geometry, geometry)
 	if err != nil {
@@ -32,6 +32,16 @@ func ReadNestedMixedConicalAP242STEP(ctx context.Context, r io.Reader, limits ST
 		return nil, err
 	}
 	return mixedConicalDocument(ctx, m, limits.MaxNodes, historyLimit)
+}
+
+func validateMixedConicalDocumentLimits(limits STEPAssemblyOptions, historyLimit int) error {
+	if limits.MaxDepth < 0 || limits.MaxDepth > 256 || limits.MaxNodes < 0 || historyLimit < 0 {
+		return geom.ErrInvalid
+	}
+	if limits.MaxDepth != 0 && limits.MaxDepth < 3 || limits.MaxNodes != 0 && limits.MaxNodes < 7 {
+		return fmt.Errorf("document: mixed conical hierarchy exceeds the expansion limits: %w", geom.ErrConvergence)
+	}
+	return nil
 }
 
 func mixedConicalDocument(ctx context.Context, m step.NestedMixedConicalAP242Assembly, maxNodes, historyLimit int) (*Document, error) {

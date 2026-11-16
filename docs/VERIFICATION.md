@@ -77,6 +77,11 @@ and 230 once, relocates only eight newly generated supports, and keeps
 every original occurrence ID and exact placement. Pinned XCAF reopens
 all six raw and corrected paths as positive solids. The main flat,
 nested, writeback and source receipt race passed in 469.168 seconds.
+The [rounded AP242 document replay](evidence/rounded-ap242-document-replay-2026-11-15.json)
+re-creates the original native snapshot byte for byte from the source
+receipt. After editing one group, a strict STEP round trip preserves the
+current occurrence changes and leaves the original source receipt intact.
+The main document and prior strict controls passed in 214.197 seconds.
 
 The [full orthogonal volume offset](evidence/orthogonal-volume-offset-2026-11-15.json)
 matched independently constructed pinned OCCT references for four
