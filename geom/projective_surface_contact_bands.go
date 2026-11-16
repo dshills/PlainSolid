@@ -13,6 +13,7 @@ type ProjectiveParallelContact struct {
 	Contour int
 	Station *big.Rat
 	Pieces  []ProjectiveContactSplineUse
+	Whole   ProjectiveContactSpline // Set only by BuildUnsplitParallelContactBands.
 }
 
 // ProjectiveHeightBand is the region between two parallel sections or
@@ -41,6 +42,21 @@ type ProjectiveContactBands struct {
 // contour, original clock or work limit cannot be proved.
 func (g ProjectiveSurfaceContactGraph) BuildParallelContactBands(ctx context.Context,
 	o SurfacePatchOptions) (r ProjectiveContactBands, err error) {
+	return g.buildParallelContactBands(ctx, o, false)
+}
+
+// BuildUnsplitParallelContactBands also composes each whole section in
+// a single original span per owner. It removes isolation subdivisions
+// only. A section with more than one original span refuses the unsplit
+// result. The whole model and pcurves increase along the free coordinate
+// of the first normalized chart.
+func (g ProjectiveSurfaceContactGraph) BuildUnsplitParallelContactBands(ctx context.Context,
+	o SurfacePatchOptions) (r ProjectiveContactBands, err error) {
+	return g.buildParallelContactBands(ctx, o, true)
+}
+
+func (g ProjectiveSurfaceContactGraph) buildParallelContactBands(ctx context.Context,
+	o SurfacePatchOptions, whole bool) (r ProjectiveContactBands, err error) {
 	if ctx == nil || g.proof == nil {
 		return r, ErrInvalid
 	}
@@ -133,7 +149,20 @@ func (g ProjectiveSurfaceContactGraph) BuildParallelContactBands(ctx context.Con
 				return r, ErrConvergence
 			}
 		}
-		sections = append(sections, ProjectiveParallelContact{i, new(big.Rat).Set(a[axis]), s.Uses})
+		section := ProjectiveParallelContact{Contour: i, Station: new(big.Rat).Set(a[axis]), Pieces: s.Uses}
+		if whole {
+			ends := [2][2]*big.Rat{}
+			ends[0][axis], ends[1][axis] = a[axis], a[axis]
+			ends[0][f], ends[1][f] = zero, one
+			start := b.operations
+			s, err := g.composeProvedCommonLine(ctx, ends, limits, b)
+			if err != nil {
+				return r, err
+			}
+			s.ExactOperations = b.operations - start
+			section.Whole = s
+		}
+		sections = append(sections, section)
 	}
 	sort.Slice(sections, func(i, j int) bool { return sections[i].Station.Cmp(sections[j].Station) < 0 })
 	var bands []ProjectiveHeightBand

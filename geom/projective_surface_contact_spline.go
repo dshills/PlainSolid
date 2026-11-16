@@ -99,14 +99,6 @@ func (g ProjectiveSurfaceContactGraph) BuildArcSpline(ctx context.Context, index
 	}
 	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
 	defer func() { r.ExactOperations = b.operations }()
-	remaining := func() (SurfacePatchOptions, error) {
-		limits := o
-		limits.MaxOperations -= b.operations
-		if limits.MaxOperations < 1 {
-			return limits, ErrConvergence
-		}
-		return limits, nil
-	}
 	proof := g.proof.arcs[index]
 	var endpoints [2][2]*big.Rat
 	for i, end := range proof.ends {
@@ -119,18 +111,6 @@ func (g ProjectiveSurfaceContactGraph) BuildArcSpline(ctx context.Context, index
 		}
 	}
 	a := boundedRatArithmetic{b: b}
-	one, zero := big.NewRat(1, 1), new(big.Rat)
-	makeLine := func(q [2][2]*big.Rat) (*ExactSplineCurve, error) {
-		limits, err := remaining()
-		if err != nil {
-			return nil, err
-		}
-		c, err := NewExactHomogeneousBezier(ctx, [][4]*big.Rat{{q[0][0], q[0][1], zero, one}, {q[1][0], q[1][1], zero, one}}, limits)
-		if err == nil {
-			b.operations += c.ExactOperations()
-		}
-		return c, err
-	}
 	if proof.saddle == nil {
 		// Arc.source uses the residual tile's parameter clock, possibly
 		// restricted by local subdivision. Recover its two exact stations.
@@ -143,11 +123,11 @@ func (g ProjectiveSurfaceContactGraph) BuildArcSpline(ctx context.Context, index
 		if a.err != nil {
 			return r, a.err
 		}
-		line, err := makeLine(local)
+		line, err := projectiveContactSplineLine(ctx, local, o, b)
 		if err != nil {
 			return r, err
 		}
-		limits, err := remaining()
+		limits, err := projectiveContactSplineRemaining(o, b)
 		if err != nil {
 			return r, err
 		}
@@ -162,6 +142,37 @@ func (g ProjectiveSurfaceContactGraph) BuildArcSpline(ctx context.Context, index
 			}
 		}
 	}
+	return g.composeProvedCommonLine(ctx, endpoints, o, b)
+}
+
+func projectiveContactSplineRemaining(o SurfacePatchOptions, b *polynomialBudget) (SurfacePatchOptions, error) {
+	o.MaxOperations -= b.operations
+	if o.MaxOperations < 1 {
+		return o, ErrConvergence
+	}
+	return o, nil
+}
+
+func projectiveContactSplineLine(ctx context.Context, q [2][2]*big.Rat, o SurfacePatchOptions,
+	b *polynomialBudget) (*ExactSplineCurve, error) {
+	limits, err := projectiveContactSplineRemaining(o, b)
+	if err != nil {
+		return nil, err
+	}
+	one, zero := big.NewRat(1, 1), new(big.Rat)
+	c, err := NewExactHomogeneousBezier(ctx, [][4]*big.Rat{{q[0][0], q[0][1], zero, one}, {q[1][0], q[1][1], zero, one}}, limits)
+	if err == nil {
+		b.operations += c.ExactOperations()
+	}
+	return c, err
+}
+
+// The caller proves this is the entire original contact line. Compose
+// both original lifts and additionally verify their complete equality.
+func (g ProjectiveSurfaceContactGraph) composeProvedCommonLine(ctx context.Context, endpoints [2][2]*big.Rat,
+	o SurfacePatchOptions, b *polynomialBudget) (r ProjectiveContactSpline, err error) {
+	a := boundedRatArithmetic{b: b}
+	one, zero := big.NewRat(1, 1), new(big.Rat)
 	var uv [2]*ExactSplineCurve
 	var qA [2][2]*big.Rat
 	var numerator, denominator [2][]*big.Rat
@@ -192,7 +203,7 @@ func (g ProjectiveSurfaceContactGraph) BuildArcSpline(ctx context.Context, index
 			}
 		}
 	}
-	uv[0], err = makeLine(qA)
+	uv[0], err = projectiveContactSplineLine(ctx, qA, o, b)
 	if err != nil {
 		return r, err
 	}
@@ -210,7 +221,7 @@ func (g ProjectiveSurfaceContactGraph) BuildArcSpline(ctx context.Context, index
 			return r, err
 		}
 	}
-	limits, err := remaining()
+	limits, err := projectiveContactSplineRemaining(o, b)
 	if err != nil {
 		return r, err
 	}
@@ -226,7 +237,7 @@ func (g ProjectiveSurfaceContactGraph) BuildArcSpline(ctx context.Context, index
 
 	var model [2]*ExactSplineCurve
 	for i, p := range g.proof.sources {
-		limits, err := remaining()
+		limits, err := projectiveContactSplineRemaining(o, b)
 		if err != nil {
 			return r, err
 		}
@@ -240,7 +251,7 @@ func (g ProjectiveSurfaceContactGraph) BuildArcSpline(ctx context.Context, index
 		}
 		model[i] = result.Pieces[0].Curve
 	}
-	limits, err = remaining()
+	limits, err = projectiveContactSplineRemaining(o, b)
 	if err != nil {
 		return r, err
 	}

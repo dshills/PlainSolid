@@ -839,5 +839,39 @@
     "axis_order_cases": 4,
     "different_original_chart_weights": true,
     "one_short_work_refuses": true
+  },
+  "whole_parallel_section_curves": {
+    "main_base": "8bd481ff",
+    "main_race_log": "projective-native-band-edges-main-race.jsonl",
+    "main_race_sha256": "8b7cd8b52c29a1577b5dfb73ff5129f485182212ea9d67d6f0de5cae0eb02680",
+    "main_race_seconds": 4.001,
+    "whole_physical_terminals": [
+      [
+        [
+          1,
+          0,
+          3
+        ],
+        [
+          1,
+          1,
+          3
+        ]
+      ],
+      [
+        [
+          2,
+          0,
+          3
+        ],
+        [
+          2,
+          1,
+          3
+        ]
+      ]
+    ],
+    "retains_exact_original_pcurves": true,
+    "actual_support_knot_keeps_piecewise_proof_and_refuses_unsplit": true
   }
 }

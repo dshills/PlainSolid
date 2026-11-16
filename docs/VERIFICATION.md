@@ -133,6 +133,10 @@ The parallel contour proof qualifies all three signed bands for two
 exact sections at physical stations 1 and 2 (normalized 1/3 and 2/3).
 Both weighted operand and projection orders retain the exact analytic
 pieces; one-short work leaves the entire band ledger unpublished.
+An additional race certifies one whole exact model edge and both
+pcurves for each section when splitting only came from isolation. The
+original knot control still qualifies the piecewise proof and refuses
+unsplit topology rather than erasing that knot.
 An independent oblique adjacent-side seam also qualifies both Cut
 orders with exact volumes 25/48 and 1/48 and separate native pentagonal
 and triangular original footprints. Both axis orders pass.
