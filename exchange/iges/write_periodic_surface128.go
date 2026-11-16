@@ -127,10 +127,7 @@ func encodeExactPeriodicSurface128(g *geom.ExactPeriodicSplineSurface, source *S
 	}
 	n := eu.count * ev.count
 	weights, poles := make([]string, n), make([]string, 3*n)
-	polynomial, distinguishable := true, false
-	firstWeight := controls[eu.phase*v.Count+ev.phase][3]
-	firstFloat, _ := firstWeight.Float64()
-	lowest := firstFloat
+	exactWeights := make([]*big.Rat, n)
 	// Type 128 lists its controls with U varying fastest. Keep the
 	// original cyclic phase in the finite expansion and do not rescale
 	// homogeneous data to make a Cartesian coordinate representable.
@@ -142,10 +139,7 @@ func encodeExactPeriodicSurface128(g *geom.ExactPeriodicSplineSurface, source *S
 			if err != nil {
 				return "", err
 			}
-			w, _ := c[3].Float64()
-			lowest = min(lowest, w)
-			polynomial = polynomial && c[3].Cmp(firstWeight) == 0
-			distinguishable = distinguishable || math.Abs(w-firstFloat) > 1e-10
+			exactWeights[k] = c[3]
 			for axis := range 3 {
 				q := new(big.Rat).Quo(c[axis], c[3])
 				poles[3*k+axis], err = periodic128Decimal(q)
@@ -155,10 +149,9 @@ func encodeExactPeriodicSurface128(g *geom.ExactPeriodicSplineSurface, source *S
 			}
 		}
 	}
-	// The pinned reader treats weights within 1e-10 of the first as
-	// polynomial and refuses rational weights below PConfusion().
-	if !polynomial && (!distinguishable || lowest < 1e-9) {
-		return "", fmt.Errorf("iges: type-128 rational weights lost in external transfer: %w", geom.ErrUnrepresentable)
+	polynomial, err := periodicIGESTransferWeights(exactWeights)
+	if err != nil {
+		return "", err
 	}
 	closedU, closedV := u.Periodic, v.Periodic
 	if source != nil {
@@ -173,4 +166,22 @@ func encodeExactPeriodicSurface128(g *geom.ExactPeriodicSplineSurface, source *S
 	p = append(p, poles...)
 	p = append(p, ku[u.Degree], ku[eu.count], kv[v.Degree], kv[ev.count], "0", "0")
 	return strings.Join(p, ",") + ";", nil
+}
+
+// Both pinned type-126 and type-128 transfers can treat close nonuniform
+// weights as polynomial. Rational weights must also meet their floor.
+func periodicIGESTransferWeights(weights []*big.Rat) (bool, error) {
+	first, _ := weights[0].Float64()
+	lowest := first
+	polynomial, distinguishable := true, false
+	for _, q := range weights {
+		w, _ := q.Float64()
+		lowest = min(lowest, w)
+		polynomial = polynomial && q.Cmp(weights[0]) == 0
+		distinguishable = distinguishable || math.Abs(w-first) > 1e-10
+	}
+	if !polynomial && (!distinguishable || lowest < 1e-9) {
+		return false, fmt.Errorf("iges: rational weights lost in external transfer: %w", geom.ErrUnrepresentable)
+	}
+	return polynomial, nil
 }

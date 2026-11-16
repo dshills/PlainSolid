@@ -86,6 +86,7 @@ func ReadPeriodicTrimmedFace(ctx context.Context, r io.Reader, l Limits) (Period
 
 type periodicTrimSource struct {
 	face      PeriodicTrimmedFace
+	support   *Surface
 	graph     periodicTrimGraph
 	uv, model []int
 	remaining int
@@ -173,7 +174,7 @@ func readPeriodicTrimSource(ctx context.Context, r io.Reader, l Limits, edgeCoun
 		m.Bounds[i] = geom.ExactParameterInterval{Lower: bounds[2*i], Upper: bounds[2*i+1]}
 	}
 	m.LengthUnit, m.original = doc.unit, string(doc.bytes)
-	return periodicTrimSource{m, g, uv[2:], model[2:], remaining}, nil
+	return periodicTrimSource{face: m, support: support.Surface, graph: g, uv: uv[2:], model: model[2:], remaining: remaining}, nil
 }
 
 func (m *PeriodicTrimmedFace) proveOriginalKnotCell(ctx context.Context) (geom.ExactPeriodicSurfaceBezierCell, error) {

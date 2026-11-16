@@ -102,7 +102,7 @@ interior knot multiplicities may not exceed their degree. Nonuniform weights
 must be at least `1e-9` and differ from the first expanded weight in binary64
 by more than `1e-10` for at least one control, matching the pinned reader's
 rationality check.
-Placed periodic output and periodic face export are outside this subset.
+The standalone periodic writer accepts unplaced support surfaces.
 
 `ReadPeriodicTrimmedFace` separately admits one unplaced type-144 face with
 an explicit outer type-142 contour on a U-periodic type-128 support. Its
@@ -129,6 +129,15 @@ written from explicitly paired lifted segments through OCCT's standard
 IGES entities. The pinned reader reopens its six directed edges with the
 same UV stations, model points, and model parameter ranges. It assigns each
 pcurve the parameter interval of its paired model spline on transfer.
+
+`WritePeriodicSeamTrimmedFace` emits a canonical carrier for an original
+face proved by `ReadPeriodicSeamTrimmedFace`. It replays the source proof
+and strictly reopens the complete output before writing to the stream.
+The cyclic support is expanded from its exact tensor, with the source
+directory IDs, six directed pairs, lifted UV values and all original
+model ranges retained. The same finite decimal and pinned transfer rules
+apply to the edges. The reader's `OriginalIGES` continues to return the
+exact original bytes.
 
 The pinned OCCT type-144 fixture and its separately written seam control
 are checked by `tools/occtref/build_iges_periodic_128_trim.sh` and the

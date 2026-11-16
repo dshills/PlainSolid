@@ -275,6 +275,11 @@ passes independently authored type 144, the pinned reopen and main race.
 The reader retains six original directed pairs, distinct seam stations,
 original model ranges and physical jets. Both strict readers still reject
 the earlier mismatched source. All seven prior outputs match.
+The [canonical periodic seam export](evidence/iges-periodic-seam-outbound-2026-11-16.json)
+passes the pinned reader and main race. Original and emitted independent
+reports match byte for byte, with 18 edge samples and five surface jets.
+Two executed macOS architectures emit identical bytes; eight prior exports
+remain unchanged. Source tampering and inadmissible encodings refuse.
 
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips

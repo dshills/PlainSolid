@@ -137,6 +137,9 @@ A verified type 144 rectangular trim can also cross the original upper
 U seam. It retains six original trim/model pairs and proves continuous
 geometry and injectivity on the lifted chart. The inconsistent seam
 sample still refuses.
+Canonical export can emit that verified six-edge seam trim with its
+original identifiers, parameter ranges and geometry. General editable
+periodic trim construction and export remain open.
 Standalone unplaced periodic type 128 export now reconstructs the
 original expanded owners from an exact cyclic tensor. Finite decimal
 encoding and transfer limits are enforced before any output is written.

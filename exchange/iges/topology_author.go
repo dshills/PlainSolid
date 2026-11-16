@@ -13,6 +13,7 @@ type nativeTopologyRecord struct {
 	label      string
 	subscript  int
 	data       string
+	status     *int
 }
 type topologyAuthor struct {
 	records       []nativeTopologyRecord
@@ -82,6 +83,9 @@ func (a *topologyAuthor) file(unit float64) ([]byte, error) {
 		}
 		if r.kind == 402 && a.groupedSolids {
 			status = 0
+		}
+		if r.status != nil {
+			status = *r.status
 		}
 		line(fmt.Sprintf("%8d%8d%8d%8d%8d%8d%8d%8d%08d", r.kind, start, 0, 0, 0, 0, 0, 0, status), 'D', 2*i+1)
 		line(fmt.Sprintf("%8d%8d%8d%8d%8d%8d%8d%-8s%8d", r.kind, 0, 0, len(c), r.form, 0, 0, r.label, r.subscript), 'D', 2*i+2)
