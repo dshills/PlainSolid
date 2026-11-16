@@ -28,15 +28,21 @@ type ClippedPolynomialFuseIGESOptions struct {
 // 186 material with type 128 supports and paired type 126 edge laws.
 // The model coordinates and pcurve domains retain their original units.
 func WriteClippedPolynomialFuse(ctx context.Context, w io.Writer, fuse *trimmed.ClippedPolynomialFuse, unit float64, l Limits, o ClippedPolynomialFuseIGESOptions) error {
+	if fuse == nil {
+		return geom.ErrInvalid
+	}
+	return writeExactBezierSingleIGES(ctx, w, fuse.Boundary(), unit, l, o)
+}
+
+func writeExactBezierSingleIGES(ctx context.Context, w io.Writer, s trimmed.Solid, unit float64, l Limits, o ClippedPolynomialFuseIGESOptions) error {
 	bound := new(big.Rat).SetFloat64(o.PoleTolerance)
-	if ctx == nil || w == nil || fuse == nil || bound == nil || bound.Sign() < 0 {
+	if ctx == nil || w == nil || bound == nil || bound.Sign() < 0 {
 		return geom.ErrInvalid
 	}
 	l, err := l.defaults()
 	if err != nil {
 		return err
 	}
-	s := fuse.Boundary()
 	if len(s.Topology().Shells) != 1 {
 		return geom.ErrConvergence
 	}

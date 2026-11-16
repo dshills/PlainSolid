@@ -41,14 +41,16 @@ int main(int argc, char** argv) {
             const auto body = part.Current();
             IndexedShapes points;
             TopExp::MapShapes(body, TopAbs_VERTEX, points);
-            GProp_GProps volume;
+            GProp_GProps volume, area;
             const double error = BRepGProp::VolumeProperties(body, volume, 1e-10, true);
+            BRepGProp::SurfaceProperties(body, area, 1e-10);
             if (!first) std::cout << ',';
             first = false;
             std::cout << "{\"Faces\":" << count(body, TopAbs_FACE)
                       << ",\"Edges\":" << count(body, TopAbs_EDGE)
                       << ",\"Shells\":" << count(body, TopAbs_SHELL)
                       << ",\"Volume\":" << volume.Mass()
+                      << ",\"Area\":" << area.Mass()
                       << ",\"RelativeIntegrationError\":" << error
                       << ",\"Vertices\":[";
             for (int j = 1; j <= points.Extent(); ++j) {
