@@ -128,6 +128,8 @@ algebraic stations and retained cap and side incidences.
 An original nonruled chart can also prove point membership on a shared
 planar swept wall when its weighted wall profile qualifies. Off-wall
 inverse tests still require an independent complete proof.
+Affine normal sweeps now report the exact six original face areas or
+directed rational enclosures for irrational areas, and a certified total.
 An exact surface-pair distance query retains both rational model sample
 points and the squared distance enclosure below float64 range, including
 when an oblique gap is invisible in the outward axis boxes.

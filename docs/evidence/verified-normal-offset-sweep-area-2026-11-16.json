@@ -1,0 +1,14 @@
+{
+  "scope": "Certified analytic areas for all six original faces of affine normal sweeps",
+  "isolated_revision": "86cb354b695cc7175fac6cee9dd7cc5b182ee020",
+  "patch_sha256": "f3bafa52048f2d03369765e7597cff7df8a64628c8911b028dcb97d46a93c6b2",
+  "main_base": "87a48d65",
+  "main_race_log": "normal-sweep-affine-area-main-race.jsonl",
+  "main_race_sha256": "117518a79b7bb074cc7b00e64de96b8452ae1e5e200f6083f4b6609467956115",
+  "main_race_seconds": 1.246,
+  "named_passes": ["TestVerifiedNormalOffsetSweepBoundaryAreaRationalSlab", "TestVerifiedNormalOffsetSweepBoundaryAreaIrrationalSlab", "TestVerifiedNormalOffsetSweepMomentsExactRationalSlab"],
+  "independent_exact_total": "382/21",
+  "independent_irrational_terms": ["sqrt(61)", "sqrt(5)", "sqrt(13)"],
+  "directed_total_width": "less than 2^-150 for the sheared control",
+  "isolate_full_packages_seconds": {"geom": 74.484, "mesh": 7.197, "csg/offset": 47.993}
+}

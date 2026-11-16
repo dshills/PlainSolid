@@ -328,6 +328,10 @@ passes both planar joining walls of rotated quartic charts, opposite
 original side IDs, exact cap witnesses and independent algebraic roots.
 It refuses an unresolved off-wall inverse. Main race and ten original
 receipts pass.
+The [affine sweep area audit](evidence/verified-normal-offset-sweep-area-2026-11-16.json)
+passes six original faces, exact total `382/21`, and the independent
+irrational areas of a sheared weighted chart. Both short work and
+short precision retain only the proved area information.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They
