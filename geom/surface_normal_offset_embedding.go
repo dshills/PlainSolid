@@ -81,6 +81,10 @@ func offsetCellJacobianBounds(ctx context.Context, p *SurfacePatch, b *polynomia
 	if err != nil {
 		return nil, err
 	}
+	return offsetCellJacobianFromCartesian(jet, b)
+}
+
+func offsetCellJacobianFromCartesian(jet [3][3][3]exactInterval, b *polynomialBudget) (*offsetCellJacobian, error) {
 	a := offsetIntervalArithmetic{b: b}
 	u, v := jet[1][0], jet[0][1]
 	n := a.cross(u, v)
