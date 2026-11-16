@@ -1,5 +1,11 @@
 # Verification record
 
+The [full PlainCAD run on `9f95a188`](evidence/plaincad-main-9f95a188-2026-11-16.json)
+passed all eight gates, with 345 development, 66 production, 15
+cross-browser, four WASM contracts and 1,691 unit cases. Vet and Linux and
+Windows amd64 cross-builds passed on the same immutable archive. Full Go
+test reconciliation on that revision is still in progress.
+
 The [full Go run on `29563ead`](evidence/main-29563ead-qualification-2026-11-16.json)
 passes all nine lanes: 6,086 passes, 603 optional skips, zero failures,
 and all 6,689 cases accounted for. All 54 tested packages passed; eight

@@ -12,7 +12,9 @@ cross-browser, four WASM contract and 1,691 unit cases. Vet and Linux and
 Windows amd64 cross-builds passed. The [native Linux ARM64 run](evidence/native-linux-946f7a04-qualification-2026-11-16.json)
 also passed on the earlier paired revision, `946f7a04`. The newer full
 macOS race on `52118ad9` is still running.
-Another paired run is in progress on `9f95a188`.
+The [PlainCAD run on `9f95a188`](evidence/plaincad-main-9f95a188-2026-11-16.json)
+also passed all eight gates, and its matching Go run remains in progress.
+The newer `d42af917` Go and PlainCAD runs are also underway.
 The [full native macOS race on `ab33a412`](evidence/native-main-ab33a412-race-2026-11-15.json)
 passed 5,557 cases with 580 explicit optional skips.
 The [native Linux ARM64 run](evidence/native-linux-7569bd36-qualification-2026-11-15.json)
