@@ -290,7 +290,9 @@ now preserve both circular axes and prove the shell gap at all runouts
 ([independent evidence](evidence/eccentric-frustum-rim-chamfer-2026-11-15.json),
 `b600bde2`). The [diagonal cap fallback](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
 (`a296b700`) proves both whole wall chains stay separated before filling
-the rings. The [eccentric bore inner rim fillets](evidence/eccentric-cylinder-bore-rim-fillet-2026-11-15.json)
+the rings. [Exact STEP and IGES output](evidence/eccentric-annular-chamfer-neutral-2026-11-15.json)
+keeps both axes, the original four chamfers and all ten conical wall
+partitions for aligned and diagonal placements. The [eccentric bore inner rim fillets](evidence/eccentric-cylinder-bore-rim-fillet-2026-11-15.json)
 (`d930469f`) retain the unchanged outer cylinder, original axes and cap
 planes with exact quarter-toroid transitions and positive clearance.
 The [strict independent STEP reader](evidence/eccentric-bore-rim-step-import-2026-11-15.json)

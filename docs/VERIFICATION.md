@@ -588,6 +588,16 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   the untouched foreign positives and structural negatives. A failing
   read never returns partial material or source IDs. The same bounded
   checks run in the Go fuzz CI lane.
+- The [eccentric annular chamfer neutral report](evidence/eccentric-annular-chamfer-neutral-2026-11-15.json)
+  records the four pinned STEP/IGES readbacks: aligned and diagonal,
+  both with positive signed volume, 12 faces, 58 edges and 48 exact
+  vertices. STEP uses exact straight generators of revolution; IGES
+  keeps the original rational supports. The main race passed in
+  157.440 seconds after rebuilding the stale author that previously
+  supplied aligned circles to the diagonal check. The original failure
+  is retained. A rational enclosure independently proves the default
+  OCCT decimal cone angles do not have the slope forced by their exact
+  shoulder circles. Those foreign files do not establish strict import.
 - The [diagonal circle cap and wall proof](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
   (`a296b700`) qualifies the independent offset `(1.5,2)` with exact
   circular rim laws and shell-wide clearance. A targeted raw constructor
