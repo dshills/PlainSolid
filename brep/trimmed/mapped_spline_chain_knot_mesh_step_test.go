@@ -220,6 +220,7 @@ func TestOrderedMappedSTEPProjectedQuality(t *testing.T) {
 		t.Fatal(err)
 	}
 	u, v := p.KnotBreaks()
+	verifyMappedProtectedCoedgeAngle(t, ctx, p, roof)
 	cells := make(map[[2]int]*geom.SurfacePatch)
 	for i, tri := range roof.Mesh.Triangles {
 		cell := out.RoofSupportCells[owner][i]
@@ -253,4 +254,91 @@ func TestOrderedMappedSTEPProjectedQuality(t *testing.T) {
 		}
 	}
 	t.Fatal("the distance-only projected mesh must still exercise an exact excessive angle")
+}
+
+func verifyMappedProtectedCoedgeAngle(t *testing.T, ctx context.Context, p *geom.SurfacePatch, roof trimmed.CertifiedMixedExactCurvedMesh) {
+	t.Helper()
+	var boundaryEdge bool
+	for _, loop := range roof.BoundaryLoops {
+		for i, a := range loop {
+			x, y := roof.ExactUV[a], roof.ExactUV[loop[(i+1)%len(loop)]]
+			if x[1].Cmp(y[1]) > 0 {
+				x, y = y, x
+			}
+			boundaryEdge = boundaryEdge || (x[0].Sign() == 0 && y[0].Sign() == 0 &&
+				x[1].Cmp(big.NewRat(1, 4)) == 0 && y[1].Cmp(big.NewRat(3, 4)) == 0)
+		}
+	}
+	if !boundaryEdge {
+		t.Fatal("the projected fallback must retain the original unsplit closing display edge")
+	}
+	knots, _ := p.KnotBreaks()
+	d := p.Domain()
+	d.UMax = knots[1]
+	oneSide, err := p.Trim(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var normals [2][3]*big.Rat
+	for i, y := range []*big.Rat{big.NewRat(1, 4), big.NewRat(19, 32)} {
+		j, err := oneSide.EvaluateRational(ctx, new(big.Rat), y, geom.SurfacePatchEvaluationOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		normals[i] = exactMeshCross(j.Du, j.Dv)
+	}
+	dot := exactMeshDot(normals[0], normals[1])
+	cross := exactMeshCross(normals[0], normals[1])
+	// The alternating sine upper bound at .7 is <13/20, and cosine
+	// is >3/4 by 1-.7²/2. Thus tan(.7)<13/15. The geodesic triangle
+	// inequality rules out any single facet within .35 of both normals.
+	if dot.Sign() <= 0 || exactMeshDot(cross, cross).Cmp(new(big.Rat).Mul(big.NewRat(169, 225), new(big.Rat).Mul(dot, dot))) <= 0 {
+		t.Fatal("the unsplit closing edge must require angular subdivision", normals)
+	}
+	t.Logf("protected closing edge has source normal separation >.7 at raw (0,1/4) and (0,19/32)")
+}
+
+func TestOrderedMappedSTEPFiniteAngleDisplay(t *testing.T) {
+	ctx := context.Background()
+	model := orderedMappedDisplaySTEP(t, ctx)
+	fill := trimmed.MixedExactMultiSpanMeshOptions{
+		Span: trimmed.MultiSpanTriangleBoundOptions{MaxDegree: 4}, MaxResidualOperations: 850000000,
+		Face: trimmed.MixedExactCurvedMeshOptions{
+			BoundaryModelBudget: .065,
+			Interior:            trimmed.CurvedQuadraticTrimMeshOptions{Deflection: .30, MaxSubdivisions: 128},
+		},
+	}
+	out, err := model.Shell.TessellateClosedCertified(ctx, nil, trimmed.MappedChainClosedMeshOptions{
+		AlignSupportKnots: true, MaxKnotCellFlips: 100000, NormalAngle: .35, MaxTriangles: 3000,
+		Boundary:  trimmed.MappedChainPolylineOptions{Deflection: .01875},
+		Curved:    [2]trimmed.MixedExactMultiSpanMeshOptions{fill, fill},
+		Collision: collision.Options{MaxPairs: 4_000_000},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := out.Mesh.ValidateSolid(); err != nil {
+		t.Fatal(err)
+	}
+	a := big.NewRat(7, 20)
+	limit := new(big.Rat).Mul(new(big.Rat).Mul(a, a), a)
+	limit.Quo(limit, big.NewRat(3, 1))
+	limit.Add(limit, a)
+	limit.Mul(limit, limit)
+	if len(out.Mesh.Triangles) != 2126 || len(out.ChainJoints) != 3 || len(out.Planar) != 5 ||
+		out.SquaredDistance.Cmp(big.NewRat(81, 10000)) >= 0 ||
+		out.SquaredNormalTangent == nil || out.SquaredNormalTangent.Cmp(limit) > 0 ||
+		!out.DisplayCollision.Complete || len(out.DisplayCollision.Contacts) != 0 {
+		t.Fatal("finite angular request must preserve closed original ownership and prove both bounds", len(out.Mesh.Triangles))
+	}
+	for i, roof := range out.Curved {
+		if roof.SquaredNormalTangent == nil || roof.SquaredNormalTangent.Cmp(out.SquaredNormalTangent) > 0 ||
+			len(out.RoofSupportCells[i]) != len(roof.Mesh.Triangles) {
+			t.Fatal("lost one-sided roof cone or original support cell", i)
+		}
+		t.Logf("roof=%d triangles=%d tangent²<=%s interior passes=%d", i, len(roof.Mesh.Triangles),
+			roof.SquaredNormalTangent.FloatString(12), roof.InteriorRefinementPasses)
+	}
+	t.Logf("shell triangles=%d distance²=%s tangent²<=%s pairs=%d seam rounds=%d", len(out.Mesh.Triangles),
+		out.SquaredDistance.FloatString(12), out.SquaredNormalTangent.FloatString(12), out.DisplayCollision.BroadPhasePairs, out.RefinementRounds)
 }

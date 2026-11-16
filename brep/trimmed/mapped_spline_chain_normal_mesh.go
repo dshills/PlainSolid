@@ -9,21 +9,25 @@ import (
 	"plainsolid/geom"
 )
 
+type mappedRoofNormalVertex struct {
+	cell [2]int
+	id   int
+}
+
 type mappedRoofNormals struct {
+	vertices          map[mappedRoofNormalVertex][3]*big.Rat
+	certified         map[[3]int]*big.Rat
 	cells             map[[2]int]*geom.SurfacePatch
 	limit, trimRadius *big.Rat
 	remaining         int
 }
 
 func newMappedRoofNormals(ctx context.Context, p *geom.SurfacePatch, angle float64, trimDistance *big.Rat) (*mappedRoofNormals, error) {
-	r := &mappedRoofNormals{cells: make(map[[2]int]*geom.SurfacePatch), remaining: 100000}
-	// tan'(x)=1+tan²(x) >= 1+x² on this interval, so x+x³/3 is
-	// a rational lower bound for tan(x) at the represented request.
-	a := ratInset(angle)
-	lower := new(big.Rat).Mul(new(big.Rat).Mul(a, a), a)
-	lower.Quo(lower, big.NewRat(3, 1))
-	lower.Add(lower, a)
-	r.limit = lower.Mul(lower, lower)
+	r := &mappedRoofNormals{
+		cells: make(map[[2]int]*geom.SurfacePatch), vertices: make(map[mappedRoofNormalVertex][3]*big.Rat),
+		certified: make(map[[3]int]*big.Rat), remaining: 100000,
+	}
+	r.limit = mappedAngleTangentLimit(angle)
 	_, radius, err := graphAreaSqrt(trimDistance, 64, 16384)
 	if err != nil {
 		return nil, err
@@ -45,6 +49,16 @@ func newMappedRoofNormals(ctx context.Context, p *geom.SurfacePatch, angle float
 	return r, nil
 }
 
+// tan'(x)=1+tan²(x) >= 1+x² on this interval, so x+x³/3 is
+// a rational lower bound for tan(x) at the represented request.
+func mappedAngleTangentLimit(angle float64) *big.Rat {
+	a := ratInset(angle)
+	lower := new(big.Rat).Mul(new(big.Rat).Mul(a, a), a)
+	lower.Quo(lower, big.NewRat(3, 1))
+	lower.Add(lower, a)
+	return lower.Mul(lower, lower)
+}
+
 func (r *mappedRoofNormals) charge(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -56,57 +70,75 @@ func (r *mappedRoofNormals) charge(ctx context.Context) error {
 	return nil
 }
 
-// certify returns nil without an error if the triangles need a finer mesh.
-// source cell closure uses the same knot on either side and independent
-// original derivatives; no smooth normal is inferred across its crease.
-func (r *mappedRoofNormals) certify(ctx context.Context, p *geom.SurfacePatch, face CertifiedCurvedQuadraticTrimMesh) (*big.Rat, error) {
+// certify returns the per-triangle refinement set when the exact bound
+// cannot yet admit the entire roof. It first uses exact vertex normals
+// to detect actual errors and only tests continuous hulls once those pass.
+func (r *mappedRoofNormals) certify(ctx context.Context, p *geom.SurfacePatch, face CertifiedCurvedQuadraticTrimMesh) (*big.Rat, []bool, error) {
 	cells, err := mappedChainTriangleSupportCells(p, face)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	type vertex struct {
-		cell [2]int
-		id   int
-	}
-	normals := make(map[vertex][3]*big.Rat)
-	limit := new(big.Rat)
+	maximum := new(big.Rat)
 	facets := make([][3]*big.Rat, len(face.Mesh.Triangles))
+	retry := make([]bool, len(facets))
+	needsRefinement := false
 	for i, tri := range face.Mesh.Triangles {
+		if proof := r.certified[tri]; proof != nil {
+			if proof.Cmp(maximum) > 0 {
+				maximum.Set(proof)
+			}
+			continue
+		}
 		c := r.cells[cells[i]]
 		a, b, d := exactBoundPoint(face.Mesh.Vertices[tri[0]]), exactBoundPoint(face.Mesh.Vertices[tri[1]]), exactBoundPoint(face.Mesh.Vertices[tri[2]])
 		facet := ddCross(ddSub(b, a), ddSub(d, a))
 		facets[i] = facet
 		for _, id := range tri {
-			key := vertex{cells[i], id}
-			n, exists := normals[key]
+			key := mappedRoofNormalVertex{cells[i], id}
+			n, exists := r.vertices[key]
 			if !exists {
 				if err := r.charge(ctx); err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 				uv := face.ExactUV[id]
 				j, err := c.EvaluateRational(ctx, uv[0], uv[1], geom.SurfacePatchEvaluationOptions{})
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 				n = ddCross(j.Du, j.Dv)
-				normals[key] = n
+				r.vertices[key] = n
 			}
 			if t, ok := ddTanSquared(facet, n); !ok || t.Cmp(r.limit) > 0 {
-				return nil, nil
+				retry[i], needsRefinement = true, true
+				break
 			}
 		}
 	}
+	if needsRefinement {
+		return nil, retry, nil
+	}
 	for i, t := range face.Mesh.Triangles {
+		if r.certified[t] != nil {
+			continue
+		}
 		uv := [3][2]*big.Rat{face.ExactUV[t[0]], face.ExactUV[t[1]], face.ExactUV[t[2]]}
 		q, err := r.bound(ctx, r.cells[cells[i]], facets[i], uv, 3)
-		if err != nil || q == nil {
-			return nil, err
+		if err != nil {
+			return nil, nil, err
 		}
-		if q.Cmp(limit) > 0 {
-			limit.Set(q)
+		if q == nil {
+			retry[i], needsRefinement = true, true
+			continue
+		}
+		r.certified[t] = q
+		if q.Cmp(maximum) > 0 {
+			maximum.Set(q)
 		}
 	}
-	return limit, nil
+	if needsRefinement {
+		return nil, retry, nil
+	}
+	return maximum, nil, nil
 }
 
 func (r *mappedRoofNormals) bound(ctx context.Context, p *geom.SurfacePatch, facet [3]*big.Rat, uv [3][2]*big.Rat, depth int) (*big.Rat, error) {
@@ -206,6 +238,82 @@ func (r *mappedRoofNormals) bound(ctx context.Context, p *geom.SurfacePatch, fac
 		}
 		if q.Cmp(maximum) > 0 {
 			maximum.Set(q)
+		}
+	}
+	return maximum, nil
+}
+
+// A projectively parameterized straight trim can have a nonzero residual
+// against its linear chord clock. Its exact image is still the same segment.
+// Prove this from monotone projected controls and collinearity, independently
+// of the per-trim point sampling used by the chord winding proof.
+func mappedRoofStraightTrimImage(trims []PCurve) bool {
+	for _, trim := range trims {
+		h, err := mixedExactControls(trim)
+		if err != nil {
+			return false
+		}
+		controls := make([][3]*big.Rat, len(h))
+		for i, p := range h {
+			for axis := 0; axis < 2; axis++ {
+				controls[i][axis] = new(big.Rat).Quo(p[axis], p[2])
+			}
+		}
+		start, end := controls[0], controls[len(controls)-1]
+		axis := 0
+		if start[axis].Cmp(end[axis]) == 0 {
+			axis = 1
+		}
+		_, direction := mappedChainMonotoneSpan(controls, axis)
+		if direction == 0 {
+			return false
+		}
+		a, b := [2]*big.Rat{start[0], start[1]}, [2]*big.Rat{end[0], end[1]}
+		for _, c := range controls[1 : len(controls)-1] {
+			if exactUVSignedArea(a, b, [2]*big.Rat{c[0], c[1]}).Sign() != 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// The roof proofs are relative to their original chart orientation; reversing
+// both source and display for outward winding preserves the angle. Planar
+// owners already proved an affine lift, so one exact lifted triangle gives
+// their constant normal before display rounding.
+func certifyMappedChainClosedNormals(ctx context.Context, out CertifiedMappedChainClosedMesh, angle float64) (*big.Rat, error) {
+	limit := mappedAngleTangentLimit(angle)
+	maximum := new(big.Rat)
+	for _, roof := range out.Curved {
+		q := roof.SquaredNormalTangent
+		if q == nil || q.Cmp(limit) > 0 {
+			return nil, geom.ErrConvergence
+		}
+		if q.Cmp(maximum) > 0 {
+			maximum.Set(q)
+		}
+	}
+	for _, planar := range out.Planar {
+		if len(planar.Mesh.Triangles) == 0 {
+			return nil, geom.ErrConvergence
+		}
+		tri := planar.Mesh.Triangles[0]
+		a, b, c := planar.ExactPoints[tri[0]], planar.ExactPoints[tri[1]], planar.ExactPoints[tri[2]]
+		planeNormal := ddCross(ddSub(b, a), ddSub(c, a))
+		for _, t := range planar.Mesh.Triangles {
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
+			a, b, c := exactBoundPoint(planar.Mesh.Vertices[t[0]]), exactBoundPoint(planar.Mesh.Vertices[t[1]]), exactBoundPoint(planar.Mesh.Vertices[t[2]])
+			facet := ddCross(ddSub(b, a), ddSub(c, a))
+			q, ok := ddTanSquared(facet, planeNormal)
+			if !ok || q.Cmp(limit) > 0 {
+				return nil, geom.ErrConvergence
+			}
+			if q.Cmp(maximum) > 0 {
+				maximum.Set(q)
+			}
 		}
 	}
 	return maximum, nil

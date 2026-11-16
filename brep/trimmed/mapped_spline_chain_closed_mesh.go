@@ -42,8 +42,8 @@ type MappedChainClosedMeshOptions struct {
 	// Zero keeps the existing triangulation. A positive limit applies per roof
 	// lift, requires AlignSupportKnots, and is capped at 100000.
 	MaxKnotCellFlips int
-	// NormalAngle optionally certifies each represented roof facet against
-	// its continuous original one-sided support normals, in radians (0,1].
+	// NormalAngle optionally certifies each represented facet against its
+	// original one-sided support normals in radians (0,1].
 	// It requires the projected quality route. The normal proof uses at most
 	// 100000 exact evaluations and hull tests per roof lift.
 	NormalAngle  float64
@@ -81,9 +81,12 @@ type CertifiedMappedChainClosedMesh struct {
 	RoofSupportCells [2][][2]int
 	Planar           []CertifiedMixedExactAffineMesh
 	SquaredDistance  *big.Rat
-	DisplayVolume    *big.Rat
-	DisplayCollision collision.Report
-	RefinementRounds int
+	// SquaredNormalTangent bounds the complete shell's one-sided facet angles
+	// when NormalAngle is requested.
+	SquaredNormalTangent *big.Rat `json:",omitempty"`
+	DisplayVolume        *big.Rat
+	DisplayCollision     collision.Report
+	RefinementRounds     int
 }
 
 type mappedChainClosedFaceMesh struct {
@@ -320,6 +323,12 @@ func stitchMappedChainClosed(ctx context.Context, out CertifiedMappedChainClosed
 		return zero, fmt.Errorf("closed mapped chain display: %w", err)
 	}
 	out.DisplayVolume, out.DisplayCollision = volume, report
+	if o.NormalAngle > 0 {
+		out.SquaredNormalTangent, err = certifyMappedChainClosedNormals(ctx, out, o.NormalAngle)
+		if err != nil {
+			return zero, fmt.Errorf("closed mapped chain display normals: %w", err)
+		}
+	}
 	return out, nil
 }
 
