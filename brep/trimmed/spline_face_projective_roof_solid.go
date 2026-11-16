@@ -33,6 +33,8 @@ type ProjectiveRoofSolid struct {
 	Solid Solid
 	Roofs [2]int // -1 for an absent owner in a completed result.
 	Walls []ProjectiveRoofWall
+	// RoofFragments retains every original roof face in a band result.
+	RoofFragments [2][]int
 	// FloorSources is ordered like Walls for Cut; it retains original B uses.
 	FloorSources []ProjectiveSplineImprintUse
 	BaseFace     int
@@ -273,23 +275,37 @@ func sewProjectiveRoofParts(ctx context.Context, parts []SewFace, seams [2]int, 
 }
 
 func sewProjectiveRoofSectionParts(ctx context.Context, parts []SewFace, seams [2][]int, o ExactSewOptions) (Solid, []int, error) {
-	var allEdges []parametric.Edge
-	var allVertices []geom.Vec3
-	var allFaces []Face
-	var offsets [2]int
 	if len(parts) < 2 || len(seams[0]) != len(seams[1]) {
 		return Solid{}, nil, geom.ErrConvergence
 	}
-	for i, f := range parts {
-		vo, eo := len(allVertices), len(allEdges)
-		if i < 2 {
-			offsets[i] = eo
-			for _, id := range seams[i] {
-				if id < 0 || id >= len(f.Edges) {
-					return Solid{}, nil, geom.ErrConvergence
-				}
+	pairs := make([][2]projectiveRoofEdgeID, len(seams[0]))
+	for i, a := range seams[0] {
+		pairs[i] = [2]projectiveRoofEdgeID{{0, a}, {1, seams[1][i]}}
+	}
+	return sewProjectiveRoofPairedEdges(ctx, parts, pairs, o)
+}
+
+type projectiveRoofEdgeID struct{ face, edge int }
+
+func sewProjectiveRoofPairedEdges(ctx context.Context, parts []SewFace, seams [][2]projectiveRoofEdgeID,
+	o ExactSewOptions) (Solid, []int, error) {
+	var allEdges []parametric.Edge
+	var allVertices []geom.Vec3
+	var allFaces []Face
+	offsets := make([]int, len(parts))
+	for _, pair := range seams {
+		if pair[0].face == pair[1].face {
+			return Solid{}, nil, geom.ErrConvergence
+		}
+		for _, id := range pair {
+			if id.face < 0 || id.face >= len(parts) || id.edge < 0 || id.edge >= len(parts[id.face].Edges) {
+				return Solid{}, nil, geom.ErrConvergence
 			}
 		}
+	}
+	for i, f := range parts {
+		vo, eo := len(allVertices), len(allEdges)
+		offsets[i] = eo
 		allVertices = append(allVertices, f.Vertices...)
 		for _, e := range f.Edges {
 			e.Start, e.End = e.Start+vo, e.End+vo
@@ -309,10 +325,11 @@ func sewProjectiveRoofSectionParts(ctx context.Context, parts []SewFace, seams [
 		return Solid{}, nil, geom.ErrConvergence
 	}
 	var edges []int
-	seen := make(map[int]bool, len(seams[0]))
-	for i, local := range seams[0] {
-		edge := proof.Edges[offsets[0]+local].Edge
-		if seen[edge] || edge != proof.Edges[offsets[1]+seams[1][i]].Edge {
+	seen := make(map[int]bool, len(seams))
+	for _, pair := range seams {
+		a, b := pair[0], pair[1]
+		edge := proof.Edges[offsets[a.face]+a.edge].Edge
+		if seen[edge] || edge != proof.Edges[offsets[b.face]+b.edge].Edge {
 			return Solid{}, nil, geom.ErrConvergence
 		}
 		seen[edge] = true
@@ -323,6 +340,11 @@ func sewProjectiveRoofSectionParts(ctx context.Context, parts []SewFace, seams [
 
 func makeProjectiveRoofWall(ctx context.Context, top projectiveRoofRim, axes [2]int, height int, baseHeight float64,
 	mins, maxs [2]float64, o geom.SurfacePatchOptions) (SewFace, projectiveRoofBottom, error) {
+	return makeProjectiveRoofWallWithBaseChart(ctx, top, axes, height, baseHeight, mins, maxs, false, o)
+}
+
+func makeProjectiveRoofWallWithBaseChart(ctx context.Context, top projectiveRoofRim, axes [2]int, height int, baseHeight float64,
+	mins, maxs [2]float64, physical bool, o geom.SurfacePatchOptions) (SewFace, projectiveRoofBottom, error) {
 	var bottom projectiveRoofBottom
 	q, _, err := top.model.BezierControlNet(ctx, o)
 	if err != nil {
@@ -366,7 +388,7 @@ func makeProjectiveRoofWall(ctx context.Context, top projectiveRoofRim, axes [2]
 	if err != nil {
 		return SewFace{}, bottom, err
 	}
-	bottom.uv, err = projectiveRoofBaseUV(baseNet, axes, mins, maxs)
+	bottom.uv, err = projectiveRoofBaseUV(baseNet, axes, mins, maxs, physical)
 	if err != nil {
 		return SewFace{}, bottom, err
 	}
@@ -391,12 +413,16 @@ func makeProjectiveRoofWall(ctx context.Context, top projectiveRoofRim, axes [2]
 	return SewFace{Vertices: ps[:], Edges: edges, Face: Face{Surface: surface, Outer: outer}}, bottom, nil
 }
 
-func projectiveRoofBaseUV(net [][4]*big.Rat, axes [2]int, mins, maxs [2]float64) (ExactQuadraticUV, error) {
+func projectiveRoofBaseUV(net [][4]*big.Rat, axes [2]int, mins, maxs [2]float64, physical bool) (ExactQuadraticUV, error) {
 	param := make([][3]*big.Rat, len(net))
 	for i, p := range net {
 		for j, a := range axes {
-			base, limit := new(big.Rat).SetFloat64(mins[j]), new(big.Rat).SetFloat64(maxs[j])
-			param[i][j] = new(big.Rat).Quo(new(big.Rat).Sub(p[a], new(big.Rat).Mul(base, p[3])), limit.Sub(limit, base))
+			if physical {
+				param[i][j] = p[a]
+			} else {
+				base, limit := new(big.Rat).SetFloat64(mins[j]), new(big.Rat).SetFloat64(maxs[j])
+				param[i][j] = new(big.Rat).Quo(new(big.Rat).Sub(p[a], new(big.Rat).Mul(base, p[3])), limit.Sub(limit, base))
+			}
 		}
 		param[i][2] = p[3]
 	}
@@ -411,20 +437,41 @@ func projectiveRoofBaseUV(net [][4]*big.Rat, axes [2]int, mins, maxs [2]float64)
 
 func makeProjectiveRoofBase(ctx context.Context, bottom []projectiveRoofBottom, axes [2]int, height int, z float64,
 	mins, maxs [2]float64, parity int, o geom.SurfacePatchOptions) (SewFace, error) {
-	corners := make([][4]*big.Rat, 0, 4)
-	for i := range 2 {
-		for j := range 2 {
-			h := [4]*big.Rat{}
-			h[axes[0]], h[axes[1]] = new(big.Rat).SetFloat64([2]float64{mins[0], maxs[0]}[i]), new(big.Rat).SetFloat64([2]float64{mins[1], maxs[1]}[j])
-			h[height], h[3] = new(big.Rat).SetFloat64(z), big.NewRat(1, 1)
-			corners = append(corners, h)
+	return makeProjectiveRoofBaseWithChart(ctx, bottom, axes, height, z, mins, maxs, parity, false, o)
+}
+
+func makeProjectiveRoofBaseWithChart(ctx context.Context, bottom []projectiveRoofBottom, axes [2]int, height int, z float64,
+	mins, maxs [2]float64, parity int, physical bool, o geom.SurfacePatchOptions) (SewFace, error) {
+	var surface geom.Surface
+	var err error
+	if physical {
+		var poles []geom.Vec3
+		for _, x := range [2]float64{mins[0], maxs[0]} {
+			for _, y := range [2]float64{mins[1], maxs[1]} {
+				var p [3]float64
+				p[axes[0]], p[axes[1]], p[height] = x, y, z
+				poles = append(poles, geom.Vec3{X: p[0], Y: p[1], Z: p[2]})
+			}
 		}
+		ku := []float64{mins[0], mins[0], maxs[0], maxs[0]}
+		kv := []float64{mins[1], mins[1], maxs[1], maxs[1]}
+		surface, err = geom.NewBSplineSurface(1, 1, 2, 2, poles, ku, kv, nil)
+	} else {
+		corners := make([][4]*big.Rat, 0, 4)
+		for i := range 2 {
+			for j := range 2 {
+				h := [4]*big.Rat{}
+				h[axes[0]], h[axes[1]] = new(big.Rat).SetFloat64([2]float64{mins[0], maxs[0]}[i]), new(big.Rat).SetFloat64([2]float64{mins[1], maxs[1]}[j])
+				h[height], h[3] = new(big.Rat).SetFloat64(z), big.NewRat(1, 1)
+				corners = append(corners, h)
+			}
+		}
+		p, err := geom.NewExactHomogeneousBezierSurface(ctx, 1, 1, corners, o)
+		if err != nil {
+			return SewFace{}, err
+		}
+		surface, err = geom.NewExactBezierSurface(p)
 	}
-	p, err := geom.NewExactHomogeneousBezierSurface(ctx, 1, 1, corners, o)
-	if err != nil {
-		return SewFace{}, err
-	}
-	surface, err := geom.NewExactBezierSurface(p)
 	if err != nil {
 		return SewFace{}, err
 	}

@@ -298,7 +298,8 @@ accepts a covering tool, retains the original clipped floor, and
 keeps an unchanged stock against a tool with no shared projected area.
 The source graph also proves all signed material bands between
 multiple full parallel contours, preserving each exact section and
-both original chart clocks. Native assembly of those bands follows.
+both original chart clocks. Closed Common and Fuse retain the full
+original band ownership and exact parallel section models.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

@@ -46,6 +46,15 @@ type projectiveRoofFootprintProof struct {
 	overlap  geom.ProjectiveSurfaceGraphOverlap
 }
 
+func (p projectiveRoofFootprintProof) covers(i int) bool {
+	if p.overlap.NoArea {
+		return false
+	}
+	s, d := p.overlap.Areas[i], p.supports[i].Domain()
+	return s.U.Lower.Cmp(new(big.Rat).SetFloat64(d.UMin)) == 0 && s.U.Upper.Cmp(new(big.Rat).SetFloat64(d.UMax)) == 0 &&
+		s.V.Lower.Cmp(new(big.Rat).SetFloat64(d.VMin)) == 0 && s.V.Upper.Cmp(new(big.Rat).SetFloat64(d.VMax)) == 0
+}
+
 func proveProjectiveRoofFootprints(ctx context.Context, a, b Face, axes [2]int, baseHeight float64,
 	o ProjectiveRoofSolidOptions) (r projectiveRoofFootprintProof, err error) {
 	if ctx == nil || !finite(baseHeight) || axes[0] < 0 || axes[0] > 2 || axes[1] < 0 || axes[1] > 2 ||

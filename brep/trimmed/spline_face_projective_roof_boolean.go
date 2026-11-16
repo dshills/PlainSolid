@@ -3,7 +3,6 @@ package trimmed
 import (
 	"context"
 	"errors"
-	"math/big"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
@@ -14,7 +13,8 @@ import (
 // uses the exact rectangular overlap. Fuse also accepts fully contained
 // material, and Cut accepts a tool whose footprint covers the entire
 // stock or has no positive area in common with it. Material uses proven
-// exact height order or one complete open analytic section.
+// exact height order, one complete open analytic section, or a family
+// of complete parallel sections for Common and Fuse.
 func BuildProjectiveSplineRoofBoolean(ctx context.Context, a, b Face, axes [2]int, baseHeight float64,
 	op parametric.BooleanOp, o ProjectiveRoofSolidOptions) (ProjectiveRoofSolid, error) {
 	if op == parametric.Intersection {
@@ -39,7 +39,11 @@ func buildProjectiveSplineRoofBooleanOnEqualFootprints(ctx context.Context, a, b
 	if op == parametric.Difference {
 		return BuildProjectiveSplineRoofContourDifference(ctx, a, b, axes, baseHeight, o)
 	}
-	return BuildProjectiveSplineRoofContourSolid(ctx, a, b, axes, baseHeight, op, o)
+	r, err = BuildProjectiveSplineRoofContourSolid(ctx, a, b, axes, baseHeight, op, o)
+	if err == nil || !errors.Is(err, geom.ErrConvergence) {
+		return r, err
+	}
+	return BuildProjectiveSplineRoofBandSolid(ctx, a, b, axes, baseHeight, op, o)
 }
 
 func emptyProjectiveRoofBoolean() ProjectiveRoofSolid {
@@ -72,12 +76,7 @@ func buildProjectiveSplineRoofContainedMaterial(ctx context.Context, a, b Face, 
 		}
 		return r, geom.ErrConvergence // A single-solid fuse cannot carry disjoint material.
 	}
-	var covered [2]bool
-	for i, s := range p.overlap.Areas {
-		d := p.supports[i].Domain()
-		covered[i] = s.U.Lower.Cmp(new(big.Rat).SetFloat64(d.UMin)) == 0 && s.U.Upper.Cmp(new(big.Rat).SetFloat64(d.UMax)) == 0 &&
-			s.V.Lower.Cmp(new(big.Rat).SetFloat64(d.VMin)) == 0 && s.V.Upper.Cmp(new(big.Rat).SetFloat64(d.VMax)) == 0
-	}
+	covered := [2]bool{p.covers(0), p.covers(1)}
 	if covered[0] == covered[1] || op == parametric.Difference && !covered[0] {
 		return r, geom.ErrConvergence
 	}

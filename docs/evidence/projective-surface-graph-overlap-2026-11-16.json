@@ -873,5 +873,31 @@
     ],
     "retains_exact_original_pcurves": true,
     "actual_support_knot_keeps_piecewise_proof_and_refuses_unsplit": true
+  },
+  "native_parallel_band_material": {
+    "main_base": "e0845470",
+    "main_race_log": "projective-roof-bands-dispatch-main-race.jsonl",
+    "main_race_sha256": "09619185ef190caaf4cfd24e7127352406c4c43d06835e1eeee4f264a99bc1f3",
+    "main_race_seconds": 51.59,
+    "native_variants": 8,
+    "native_topology": {
+      "faces": 12,
+      "edges": 26,
+      "vertices": 16,
+      "roof_fragments": 3,
+      "walls": 8,
+      "section_edges": 2
+    },
+    "independent_volumes": {
+      "common": "53/6",
+      "fuse": "32/3"
+    },
+    "physical_base_stations": [
+      1,
+      2
+    ],
+    "native_identical_replays": 8,
+    "automatic_dispatch": true,
+    "short_sewing_refuses": true
   }
 }

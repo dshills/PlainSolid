@@ -140,6 +140,11 @@ An additional race certifies one whole exact model edge and both
 pcurves for each section when splitting only came from isolation. The
 original knot control still qualifies the piecewise proof and refuses
 unsplit topology rather than erasing that knot.
+Native parallel-band Common and Fuse now pass eight closed-shell
+variants, retaining all three roof fragments and both section edges.
+Their independent volumes are 53/6 and 32/3. The base uses physical
+coordinates to preserve exact whole stations 1 and 2; every native
+result reopens byte-identically and automatic dispatch is qualified.
 An independent oblique adjacent-side seam also qualifies both Cut
 orders with exact volumes 25/48 and 1/48 and separate native pentagonal
 and triangular original footprints. Both axis orders pass.
