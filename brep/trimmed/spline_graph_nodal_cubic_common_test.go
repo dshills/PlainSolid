@@ -3,8 +3,10 @@ package trimmed
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"slices"
 	"testing"
@@ -71,10 +73,17 @@ func TestNativeNodalCubicCommon(t *testing.T) {
 		if err != nil {
 			t.Fatal(order, err)
 		}
-		checkNativeNodalCubicCommon(t, common, input, order)
+		checkNativeNodalCubicEnvelope(t, common.Boundary(), common.History(), input, order, false)
 		var recipe bytes.Buffer
 		if err := common.WriteJSON(ctx, &recipe); err != nil {
 			t.Fatal(err)
+		}
+		wantDigest := [2]string{
+			"5c2a684186ea8510e9449af5fae791f020e838756474fbc636ab8f99fec13ca6",
+			"a92d294ba063833edddb7b050bb8db7255bf452dea8e3d2f01db813020659797",
+		}[order]
+		if digest := fmt.Sprintf("%x", sha256.Sum256(recipe.Bytes())); digest != wantDigest {
+			t.Fatal("existing nodal Common recipe bytes changed", order, digest)
 		}
 		reloaded, err := ReadNodalCubicCommonJSON(ctx, bytes.NewReader(recipe.Bytes()), JSONLimits{}, options)
 		if err != nil || reloaded.History() != common.History() {
@@ -92,14 +101,22 @@ func TestNativeNodalCubicCommon(t *testing.T) {
 	}
 }
 
-func checkNativeNodalCubicCommon(t *testing.T, common *NodalCubicCommon, sources [3]*geom.BSplineSurface, order int) {
+func checkNativeNodalCubicEnvelope(t *testing.T, s Solid, h NodalCubicCommonHistory, sources [3]*geom.BSplineSurface, order int, fuse bool) {
 	t.Helper()
 	ctx := context.Background()
-	s, h := common.Boundary(), common.History()
 	// In canonical XY the loop and arm contributions to the removed
 	// height integrate to 1/151388160 and 4619/151388160 before multiplying
 	// by the projected determinant six and the height factor 1/4.
-	wantVolume, wantArea := 807933.0/65536, nodalCubicCommonSourceArea()
+	wantVolume := 807933.0 / 65536
+	exterior := 1 ^ order
+	nearHeight := 2.0
+	if fuse {
+		// V(A)+V(B) is the integral of both full stock laws.
+		wantVolume = 102657.0/8192 + 789.0/64 - wantVolume
+		exterior ^= 1
+		nearHeight += 1521.0 / 16384
+	}
+	wantArea := nodalCubicSourceEnvelopeArea(fuse)
 	mass, err := s.MassProperties(ctx, parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 	if err != nil || math.Abs(mass.Volume-wantVolume) > 1e-9 || math.Abs(mass.Area-wantArea) > 1e-8 {
 		t.Fatal("independent positive Common measures", mass, wantVolume, wantArea, err)
@@ -107,7 +124,7 @@ func checkNativeNodalCubicCommon(t *testing.T, common *NodalCubicCommon, sources
 	t.Logf("order %d volume %.15g area %.15g", order, mass.Volume, mass.Area)
 	top := s.Topology()
 	if len(s.faces) != 12 || len(top.Shells) != 1 || top.EulerCharacteristic != 2 || top.CollapsedEdges != 0 ||
-		h.RoofOwners != ([4]int{1 ^ order, 1 ^ order, order, order}) || h.NodeSectors != ([4]int{0, 2, 1, 3}) ||
+		h.RoofOwners != ([4]int{exterior, exterior, exterior ^ 1, exterior ^ 1}) || h.NodeSectors != ([4]int{0, 2, 1, 3}) ||
 		s.faces[h.Base].Surface != sources[0] {
 		t.Fatal("native roof owners or nodal sector incidence", h, top)
 	}
@@ -146,14 +163,14 @@ func checkNativeNodalCubicCommon(t *testing.T, common *NodalCubicCommon, sources
 	if a.X > b.X {
 		a, b = b, a
 	}
-	if a != (geom.Vec3{Y: 1, Z: 2}) || b != (geom.Vec3{X: 9.0 / 4, Y: 1, Z: 557.0 / 256}) ||
-		seam.Curve.(surfaceTrimCurve).surface != sources[2-order] ||
+	if a != (geom.Vec3{Y: 1, Z: nearHeight}) || b != (geom.Vec3{X: 9.0 / 4, Y: 1, Z: 557.0 / 256}) ||
+		seam.Curve.(surfaceTrimCurve).surface != sources[1+exterior] ||
 		!slices.Equal(nodalCubicIncidentFaces(s, h.Seam), []int{0, 1}) {
 		t.Fatal("seam leaves the exact exterior owner fiber", a, b)
 	}
 }
 
-func nodalCubicCommonSourceArea() float64 {
+func nodalCubicSourceEnvelopeArea(fuse bool) float64 {
 	// Gauss-Legendre on the original graph laws. In the two interior
 	// regions use u=3/4+t² so both original branch ordinates are polynomial.
 	points := [5]float64{-.906179845938664, -.538469310105683, 0, .538469310105683, .906179845938664}
@@ -179,18 +196,21 @@ func nodalCubicCommonSourceArea() float64 {
 		return math.Sqrt(36 + 4*du*du + 9*dv*dv)
 	}
 	area := integrate(0, 1, func(u float64) float64 {
-		return integrate(0, 1, func(v float64) float64 { return roof(u, v, false) })
+		return integrate(0, 1, func(v float64) float64 { return roof(u, v, fuse) })
 	})
 	correction := func(t float64) float64 {
 		u := .75 + t*t
 		width := t * math.Abs(u-13.0/16)
 		return 2 * t * integrate(.5-width, .5+width, func(v float64) float64 {
-			return roof(u, v, true) - roof(u, v, false)
+			return roof(u, v, !fuse) - roof(u, v, fuse)
 		})
 	}
 	area += integrate(0, .25, correction) + integrate(.25, .5, correction)
 	baseArea := 6 * math.Sqrt(1+1.0/(48*48)+1.0/(32*32))
-	const wallArea = 1315.0/64 - 27.0/65536
+	wallArea := 1315.0/64 - 27.0/65536
+	if fuse {
+		wallArea = 1388243.0 / 65536
+	}
 	return area + baseArea + wallArea
 }
 
