@@ -21,7 +21,11 @@ type SplineGraphParabolaCirclePocketDisk struct {
 	PocketExtrema    [4]ParabolaSeparatedCircleVertex // physical +X, +Y, -X, -Y
 	RegionSides      [7]int
 	RegionWitnesses  [7][2]*big.Rat
-	ExactOperations  int
+	// DiskSignedVolumePiCoefficient is the exact signed integral of
+	// A.Z-B.Z over the original small disk, divided by π.
+	// The WithVolume discovery populates it.
+	DiskSignedVolumePiCoefficient *big.Rat
+	ExactOperations               int
 }
 
 // DiscoverSplineGraphParabolaCirclePocketDisk authenticates the full
@@ -35,6 +39,19 @@ type SplineGraphParabolaCirclePocketDisk struct {
 // are caller-owned.
 func DiscoverSplineGraphParabolaCirclePocketDisk(ctx context.Context, a, c *SurfacePatch, freeAxis int,
 	o GraphPointContactOptions) (*SplineGraphParabolaCirclePocketDisk, error) {
+	return discoverSplineGraphParabolaCirclePocketDisk(ctx, a, c, freeAxis, o, false)
+}
+
+// DiscoverSplineGraphParabolaCirclePocketDiskWithVolume additionally
+// certifies the original signed disk volume when the original height
+// difference has a constant homogeneous denominator.
+func DiscoverSplineGraphParabolaCirclePocketDiskWithVolume(ctx context.Context, a, c *SurfacePatch, freeAxis int,
+	o GraphPointContactOptions) (*SplineGraphParabolaCirclePocketDisk, error) {
+	return discoverSplineGraphParabolaCirclePocketDisk(ctx, a, c, freeAxis, o, true)
+}
+
+func discoverSplineGraphParabolaCirclePocketDisk(ctx context.Context, a, c *SurfacePatch, freeAxis int,
+	o GraphPointContactOptions, volume bool) (*SplineGraphParabolaCirclePocketDisk, error) {
 	if ctx == nil || a == nil || c == nil || len(a.net) == 0 || len(c.net) == 0 || freeAxis < 0 || freeAxis > 1 {
 		return nil, ErrInvalid
 	}
@@ -49,7 +66,11 @@ func DiscoverSplineGraphParabolaCirclePocketDisk(ctx context.Context, a, c *Surf
 		o.MaxCells = 4096
 	}
 	b := &polynomialBudget{maxOperations: o.MaxOperations, maxBits: o.MaxCoefficientBits}
-	p, circles, sign, err := unitParabolaTwoCircleFactors(ctx, a, c, freeAxis, b)
+	law, diff, err := unitParabolaTwoCircleLaw(ctx, a, c, freeAxis, b)
+	if err != nil {
+		return nil, err
+	}
+	p, circles, sign, err := factorParabolaTwoCircles(law, b)
 	if err != nil {
 		return nil, err
 	}
@@ -84,6 +105,22 @@ func DiscoverSplineGraphParabolaCirclePocketDisk(ctx context.Context, a, c *Surf
 	if crossing < 0 || inner < 0 {
 		return nil, ErrConvergence
 	}
+	center := circles[inner].Center
+	height, err := polynomialValue(p, center[0], b)
+	if err != nil {
+		return nil, err
+	}
+	var diskVolume *big.Rat
+	if volume {
+		scale, err := pocketDiskHeightScale(diff, law[5][0], b)
+		if err != nil {
+			return nil, err
+		}
+		diskVolume, err = pocketDiskVolumePiCoefficient(scale, p, &circles[crossing], &circles[inner], height, b)
+		if err != nil {
+			return nil, err
+		}
+	}
 	patches := [2]*SurfacePatch{a, c}
 	proof, err := proveParabolaCircleFourCrossingFactors(ctx, patches, freeAxis, p, circles[crossing], sign, o.MaxCells, b)
 	if err != nil {
@@ -97,12 +134,7 @@ func DiscoverSplineGraphParabolaCirclePocketDisk(ctx context.Context, a, c *Surf
 	if projection[0].Cmp(left) <= 0 || projection[1].Cmp(right) >= 0 {
 		return nil, ErrConvergence
 	}
-	center := circles[inner].Center
 	largeY := circles[crossing].Center[1]
-	height, err := polynomialValue(p, center[0], b)
-	if err != nil {
-		return nil, err
-	}
 	if center[1].Cmp(height) != -proof.CircleSide || center[1].Cmp(largeY) != proof.CircleSide {
 		return nil, ErrConvergence
 	}
@@ -117,7 +149,7 @@ func DiscoverSplineGraphParabolaCirclePocketDisk(ctx context.Context, a, c *Surf
 		return nil, err
 	}
 	out := &SplineGraphParabolaCirclePocketDisk{Crossing: *proof, CrossingCircle: crossing, PocketCircle: inner,
-		PocketRadius: radius, PocketProjection: projection}
+		PocketRadius: radius, PocketProjection: projection, DiskSignedVolumePiCoefficient: diskVolume}
 	for i, circle := range circles {
 		out.Circles[i] = GraphContactCircle{Center: parabolaTwoCrossingCirclesUV(freeAxis, circle.Center[0], circle.Center[1]),
 			RadiusSquared: circle.RadiusSquared}
@@ -129,6 +161,9 @@ func DiscoverSplineGraphParabolaCirclePocketDisk(ctx context.Context, a, c *Surf
 	out.PocketExtrema, err = originalSeparatedCircleExtrema(ctx, patches, out.Circles[inner].Center, radius, b)
 	if err != nil {
 		return nil, err
+	}
+	if diskVolume != nil && diskVolume.Sign() != out.RegionSides[6] {
+		return nil, ErrConvergence
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err

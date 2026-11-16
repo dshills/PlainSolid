@@ -88,6 +88,18 @@ func bindParabolaCircleFourCrossingEnvelope(ctx context.Context, s Solid, assemb
 		len(assembly.WallFaces) != len(h.WallFaces) || len(assembly.ContourEdges) != n {
 		return h, geom.ErrConvergence
 	}
+	h, err = bindParabolaCircleFourCrossingEnvelopeRegions(ctx, s, assembly, p, src, op)
+	if err != nil {
+		return h, err
+	}
+	if err := materialVertexLinks(ctx, s, false); err != nil {
+		return h, err
+	}
+	return h, validateExactGraphPartitionEdges(ctx, s, opts)
+}
+
+func bindParabolaCircleFourCrossingEnvelopeRegions(ctx context.Context, s Solid, assembly SplineGraphBooleanHistory,
+	p parabolaCircleFourCrossingPartition, src [3]*geom.BSplineSurface, op parametric.BooleanOp) (h ParabolaCircleFourCrossingsHistory, err error) {
 	h.Base = assembly.Base
 	h.WallFaces = [6]int(assembly.WallFaces)
 	for i := range h.RoofFaces {
@@ -109,10 +121,7 @@ func bindParabolaCircleFourCrossingEnvelope(ctx context.Context, s Solid, assemb
 			return h, err
 		}
 	}
-	if err := materialVertexLinks(ctx, s, false); err != nil {
-		return h, err
-	}
-	return h, validateExactGraphPartitionEdges(ctx, s, opts)
+	return h, nil
 }
 
 const nativeParabolaCircleFourCrossingsEnvelope = "trimmed-spline-graph-parabola-circle-four-crossings-envelope"
