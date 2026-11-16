@@ -178,6 +178,11 @@ owners reduce to cyclic control counts in U, V, and both. A nonbinary
 on-disk period `36/5` is retained. Duplicate pole/weight, shifted knot,
 wrong flags and topology-owner controls refuse. Main race, bounded fuzz,
 and matched ordinary IGES bytes passed.
+The [matching periodic IGES export](evidence/iges-periodic-128-outbound-2026-11-16.json)
+passes U, V, and both periodic directions and a rephased native case.
+Pinned readers independently reopen all four with matching physical jets
+and winding. Ordinary IGES outputs and cross-architecture periodic bytes
+match; unsupported encodings refuse before writing.
 
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips

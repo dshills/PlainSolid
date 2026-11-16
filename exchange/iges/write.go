@@ -107,7 +107,7 @@ func encode(e Entity) (int, string) {
 	return kind, strings.Join(p, ",") + ";"
 }
 
-// Write emits deterministic 80-column ASCII IGES 5.3 curve files. Geometry is
+// Write emits deterministic 80-column ASCII IGES 5.3 geometry files. Geometry is
 // not transformed or rescaled; units must be a supported IGES standard unit.
 // Optional associativity/property pointers are emitted as zero. Caller owns w.
 func Write(w io.Writer, m Model) error { return writeCurvedMode(w, m, false) }
@@ -172,8 +172,8 @@ func writeSweptMode(w io.Writer, m Model, curved, wires, revolutions, tabulated 
 		return errors.New("iges: directory sequence limit exceeded")
 	}
 	for i, e := range m.Entities {
-		if e.Surface != nil && (e.Surface.PeriodicU || e.Surface.PeriodicV || e.Surface.periodic != nil) {
-			return errors.New("iges: periodic spline surface write unsupported")
+		if e.Surface != nil && e.Surface.periodic != nil && (curved || wires || revolutions || tabulated || e.Transform != nil) {
+			return errors.New("iges: periodic type-128 output requires standalone unplaced geometry")
 		}
 		if e.Composite != nil {
 			if err := m.validateCompositeMode(i, wires); err != nil {
@@ -258,7 +258,18 @@ func writeSweptMode(w io.Writer, m Model, curved, wires, revolutions, tabulated 
 	}
 	for i, e := range m.Entities {
 		entityIDs[i] = len(d) + 1
-		kind, data := encode(e)
+		var kind int
+		var data string
+		if e.Surface != nil && e.Surface.periodic != nil {
+			var err error
+			kind = 128
+			data, err = encodeExactPeriodicSurface128(e.Surface.periodic.exact, e.Surface)
+			if err != nil {
+				return err
+			}
+		} else {
+			kind, data = encode(e)
+		}
 		if e.Composite != nil {
 			values := []string{"102", strconv.Itoa(len(e.Composite.Curves))}
 			for _, idx := range e.Composite.Curves {

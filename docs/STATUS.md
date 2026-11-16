@@ -93,6 +93,9 @@ Standalone IGES type 128 import now proves expanded periodic knot and
 control ownership before exposing exact cyclic geometry. U, V and both
 periodic directions are supported for full active rectangles in this
 bounded import. Periodic trim/topology import remains open.
+Standalone unplaced periodic type 128 export now reconstructs the
+original expanded owners from an exact cyclic tensor. Finite decimal
+encoding and transfer limits are enforced before any output is written.
 Exact curve evaluation also provides physical derivatives through order 16.
 It retains the original right-hand knot span at repeated knots and lets the
 caller inspect the exact cycle and amount of work used.

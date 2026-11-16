@@ -141,10 +141,6 @@ func TestReadExactPeriodicSurface128(t *testing.T) {
 			if _, err := edited.ExactPeriodicGeometry(); err == nil {
 				t.Fatal("relabelled surface kept its exact source proof")
 			}
-			var w bytes.Buffer
-			if err := Write(&w, m); err == nil || w.Len() != 0 {
-				t.Fatal("inbound periodic surface escaped the writer boundary")
-			}
 		})
 	}
 }
