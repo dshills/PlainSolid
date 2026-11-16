@@ -104,10 +104,34 @@ func TestMixedConicalAP242DAGAppearancePinnedAuthor(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := mixedDAGAppearanceFixture(t)
-	i, j := bytes.Index(got, []byte("\nDATA;\n")), bytes.Index(want, []byte("\nDATA;\n"))
-	if i < 0 || j < 0 || !bytes.Equal(got[i:], want[j:]) {
-		t.Fatal("pinned XCAF changed its original styled DATA section")
+	// The writer's two presentation groups can come out in either order.
+	// Their private style IDs vary. The original assembly and SHUO records
+	// before those groups, style targets, and paths must reproduce exactly.
+	modelRecords := func(b []byte) []byte {
+		start := bytes.Index(b, []byte("\nDATA;\n"))
+		end := bytes.Index(b, []byte("\n#483 = MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION"))
+		if start < 0 || end <= start {
+			return nil
+		}
+		return b[start:end]
 	}
+	if len(modelRecords(got)) == 0 || !bytes.Equal(modelRecords(got), modelRecords(want)) {
+		t.Fatal("pinned XCAF changed the original assembly or SHUO records")
+	}
+	m, err := ReadMixedConicalAP242DAGAppearance(context.Background(), bytes.NewReader(got), MixedConicalAP242DAGLimits{}, geom.SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	product := map[int64]RGB{}
+	for _, s := range m.ProductStyles {
+		product[s.BodyID] = s.Color
+	}
+	if !reflect.DeepEqual(product, map[int64]RGB{95: {1, 0, 0}, 260: {0, 1, 0}}) ||
+		len(m.FaceStyles) != 1 || m.FaceStyles[0].FaceID != 336 || m.FaceStyles[0].Color != (RGB{1, 1, 0}) ||
+		m.PathOverride.Path != [3]int64{54, 85, 251} || m.PathOverride.Context.Color != (RGB{0, 0, 1}) {
+		t.Fatal("pinned XCAF changed original style targets")
+	}
+	checkMixedDAGAppearanceOracle(t, oracle, got)
 }
 
 func mixedDAGAppearanceFixture(t *testing.T) []byte {
