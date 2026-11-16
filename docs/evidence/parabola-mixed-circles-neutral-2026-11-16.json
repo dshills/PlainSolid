@@ -1,0 +1,316 @@
+{
+  "scope": "Exact neutral mixed-circle native Common, Fuse and Cut",
+  "native_prerequisite": "6e5567ad7cae098ffe50c9d812c6e6547e12c701",
+  "native_qualification": {
+    "path": "qualification.json",
+    "sha256": "798cacfe34d89b99fad4d30ae2679b3bca50efe416fc0ad17418f1f567372483"
+  },
+  "commit": "12508913c8192f65281e66dbe15b43bb533a7b48",
+  "patch": {
+    "path": "parabola-mixed-circles-neutral.patch",
+    "sha256": "88fa3f40541222e0476419a62efae17b462f3d272285fe816f231cacb1cac713"
+  },
+  "qualified": {
+    "exact_native_recipes": 24,
+    "neutral_files": [
+      {
+        "path": "neutral/common-axis-0-side-0-order-0.igs",
+        "sha256": "d33a7a227a570c35512b243847d93ad864dfce762f9bb4320b5b57f218c8b9fa"
+      },
+      {
+        "path": "neutral/common-axis-0-side-0-order-0.step",
+        "sha256": "096dc3f87abdac35ed506938d5f889ab7dad5f9cfb95b2a664764eec3b2116a5"
+      },
+      {
+        "path": "neutral/common-axis-0-side-0-order-1.igs",
+        "sha256": "d33a7a227a570c35512b243847d93ad864dfce762f9bb4320b5b57f218c8b9fa"
+      },
+      {
+        "path": "neutral/common-axis-0-side-0-order-1.step",
+        "sha256": "3684b30b37f5f557a5dc7461ea03ad29ce3528cfd5bc595746d02c5955fa9ab7"
+      },
+      {
+        "path": "neutral/common-axis-0-side-1-order-0.igs",
+        "sha256": "6ceb4751ebf94356d64772abf86673b8d32d645cbcef62693e90a956bda3c94d"
+      },
+      {
+        "path": "neutral/common-axis-0-side-1-order-0.step",
+        "sha256": "bc8e2eab76a7e8b33867b7f8cd519a7fd0f54838aed0adfe5a291c7db6e63d65"
+      },
+      {
+        "path": "neutral/common-axis-0-side-1-order-1.igs",
+        "sha256": "6ceb4751ebf94356d64772abf86673b8d32d645cbcef62693e90a956bda3c94d"
+      },
+      {
+        "path": "neutral/common-axis-0-side-1-order-1.step",
+        "sha256": "8ad9c1fd122bb6fc336ae5721d141319018d759828af18d3392e58b742f1b22b"
+      },
+      {
+        "path": "neutral/common-axis-1-side-0-order-0.igs",
+        "sha256": "0271d7692e7717fda5f29e5f256b56cabaf7c5af846df5d3914f08adf7a63935"
+      },
+      {
+        "path": "neutral/common-axis-1-side-0-order-0.step",
+        "sha256": "8a8cd959db6fbf285fed469d03e8e3b68c94d5a960c34e2b2a2d2dd66289efef"
+      },
+      {
+        "path": "neutral/common-axis-1-side-0-order-1.igs",
+        "sha256": "0271d7692e7717fda5f29e5f256b56cabaf7c5af846df5d3914f08adf7a63935"
+      },
+      {
+        "path": "neutral/common-axis-1-side-0-order-1.step",
+        "sha256": "093bd637da2ff1ae9a911103269bbfc6f89d2d300e30dac898cc498621936d9e"
+      },
+      {
+        "path": "neutral/common-axis-1-side-1-order-0.igs",
+        "sha256": "75f8c44f055a0b1fba61aa2b81eda59c40e041c2c07e22ab8f371b26f15e6fe8"
+      },
+      {
+        "path": "neutral/common-axis-1-side-1-order-0.step",
+        "sha256": "09ec3b4d3fe9bd1f015d310785f7f5ae44009f0456bf906ce1a69cb5a416302a"
+      },
+      {
+        "path": "neutral/common-axis-1-side-1-order-1.igs",
+        "sha256": "75f8c44f055a0b1fba61aa2b81eda59c40e041c2c07e22ab8f371b26f15e6fe8"
+      },
+      {
+        "path": "neutral/common-axis-1-side-1-order-1.step",
+        "sha256": "7de3476c42f4f85aeba668f81546b3e01d3e5938308ba2e99549ab7e5f5f358e"
+      },
+      {
+        "path": "neutral/cut-axis-0-side-0-order-0.igs",
+        "sha256": "7875d15d674a37ee4f0cd2f954d813e5787d0475e800635e50108bcdcc5e2f08"
+      },
+      {
+        "path": "neutral/cut-axis-0-side-0-order-0.step",
+        "sha256": "d9b73e0a02a40beb3c724e75377b5813d41772fe5b75f680b38086e4011e79d5"
+      },
+      {
+        "path": "neutral/cut-axis-0-side-0-order-1.igs",
+        "sha256": "ba7f001f2fefbbe1b06f17495562b08545f32fd35449cae79613e0ac4e4e6b3b"
+      },
+      {
+        "path": "neutral/cut-axis-0-side-0-order-1.step",
+        "sha256": "b7b01fc8a3ff7025715b0d1acfaa320936eb9158f58a4563469c46cf89f88e11"
+      },
+      {
+        "path": "neutral/cut-axis-0-side-1-order-0.igs",
+        "sha256": "81323be0cfb07be5e0b7db49fddc69a06c6fcd2996abdcfb974da149ec9bef67"
+      },
+      {
+        "path": "neutral/cut-axis-0-side-1-order-0.step",
+        "sha256": "e29defab0c567e31a5d554da07a3197e3105ab8a9fc2a78b6089a2906f1b8ac8"
+      },
+      {
+        "path": "neutral/cut-axis-0-side-1-order-1.igs",
+        "sha256": "f16e3047f0aba27b22f8298d99721de3aa8df697e3c8456538b2a4df2064c174"
+      },
+      {
+        "path": "neutral/cut-axis-0-side-1-order-1.step",
+        "sha256": "14b152b850c7d27b591575a4c19ad246ed0448303b46f7c3dd8faa4d97cafcbe"
+      },
+      {
+        "path": "neutral/cut-axis-1-side-0-order-0.igs",
+        "sha256": "5349d3c58491eea65b34ef1b1fee3f2a131696f46493852a358be563c8f4786b"
+      },
+      {
+        "path": "neutral/cut-axis-1-side-0-order-0.step",
+        "sha256": "264ca0a41a40362ad583c9ef6f2ad81d6799f081dd8a1c1f0e9fdf32f3340b78"
+      },
+      {
+        "path": "neutral/cut-axis-1-side-0-order-1.igs",
+        "sha256": "c31726ee24dd82d0be611783d085033d850b03a5da03e6a10265a53bf3c8aa6d"
+      },
+      {
+        "path": "neutral/cut-axis-1-side-0-order-1.step",
+        "sha256": "5c270b3acd3a14aca4cb45739a8fe8e012cb24b9e32c5d20d24bdbaf72ed3e32"
+      },
+      {
+        "path": "neutral/cut-axis-1-side-1-order-0.igs",
+        "sha256": "1889ff2417a2b91dc29a3c42fb46f9990306195a7b9fbd911a295a52937709f9"
+      },
+      {
+        "path": "neutral/cut-axis-1-side-1-order-0.step",
+        "sha256": "0ba324e2bab95828bf7ab3d4baa27904f3bdb42d65b7dea790c2518eb5b06b7c"
+      },
+      {
+        "path": "neutral/cut-axis-1-side-1-order-1.igs",
+        "sha256": "7a00b912e2fac93f7bc6cf78336ec19ea01ea4ba32561d0ad7196254c78412f4"
+      },
+      {
+        "path": "neutral/cut-axis-1-side-1-order-1.step",
+        "sha256": "c82978e138f684a24fa41802f5f74fb32e25a618eb1198188615cf7eb5f53cb2"
+      },
+      {
+        "path": "neutral/fuse-axis-0-side-0-order-0.igs",
+        "sha256": "d6fd82b10120164455f73f11ab47bdd42c61d335aaad9753e12840648dc77931"
+      },
+      {
+        "path": "neutral/fuse-axis-0-side-0-order-0.step",
+        "sha256": "9e90d51a1e475a9228a5a35477f51c0b86eedb4e61bcbf2a36ab228ef9df4128"
+      },
+      {
+        "path": "neutral/fuse-axis-0-side-0-order-1.igs",
+        "sha256": "d6fd82b10120164455f73f11ab47bdd42c61d335aaad9753e12840648dc77931"
+      },
+      {
+        "path": "neutral/fuse-axis-0-side-0-order-1.step",
+        "sha256": "9d4dbea84a6a2439e7e86dba0ff06d676c2828c750676b143f345378e4ea486f"
+      },
+      {
+        "path": "neutral/fuse-axis-0-side-1-order-0.igs",
+        "sha256": "4b005d9089095055aceb96a6b30462b86411b99290d1553360201acaf3a4d708"
+      },
+      {
+        "path": "neutral/fuse-axis-0-side-1-order-0.step",
+        "sha256": "1261f7ba83c0f13496a1982f7d33e4330346ff056cc95b0debfc78b7f60baa21"
+      },
+      {
+        "path": "neutral/fuse-axis-0-side-1-order-1.igs",
+        "sha256": "4b005d9089095055aceb96a6b30462b86411b99290d1553360201acaf3a4d708"
+      },
+      {
+        "path": "neutral/fuse-axis-0-side-1-order-1.step",
+        "sha256": "c0a35e69de81ce105a3b8db55c71b8ef19a9f868274be963e6464ad0e33056b0"
+      },
+      {
+        "path": "neutral/fuse-axis-1-side-0-order-0.igs",
+        "sha256": "d728613761e3cffa8852c635064f1a32340b5c47e7cd7513af9d0446e5cc10f1"
+      },
+      {
+        "path": "neutral/fuse-axis-1-side-0-order-0.step",
+        "sha256": "300cb3c81f46f0fc33d151897790ff466416a2f4a9946c24b45171dcd8c880e0"
+      },
+      {
+        "path": "neutral/fuse-axis-1-side-0-order-1.igs",
+        "sha256": "d728613761e3cffa8852c635064f1a32340b5c47e7cd7513af9d0446e5cc10f1"
+      },
+      {
+        "path": "neutral/fuse-axis-1-side-0-order-1.step",
+        "sha256": "eb03757c032e94582cca535ebd3c114010795a49ae623a08226fbf0432683ef4"
+      },
+      {
+        "path": "neutral/fuse-axis-1-side-1-order-0.igs",
+        "sha256": "716265100a1c3b798ff843a9aa9a0f648ccf25b65284e1f7b12e170b8f5ef450"
+      },
+      {
+        "path": "neutral/fuse-axis-1-side-1-order-0.step",
+        "sha256": "492e94d2260de2868fefedea382ed1dd87509ef053c448c59d0c6f696ec8e486"
+      },
+      {
+        "path": "neutral/fuse-axis-1-side-1-order-1.igs",
+        "sha256": "716265100a1c3b798ff843a9aa9a0f648ccf25b65284e1f7b12e170b8f5ef450"
+      },
+      {
+        "path": "neutral/fuse-axis-1-side-1-order-1.step",
+        "sha256": "9d6b43752638053fc05595feac49ee87729235f7e226d97ff4dc3009c5fbf649"
+      }
+    ],
+    "matched_native_incidence": {
+      "path": "native-neutral-incidence.jsonl",
+      "sha256": "261da715eabb079192b488b1f51514858645bf07103577b3eeb918f68f35fd01"
+    },
+    "canonical_verify_source": {
+      "path": "verify-native-neutral.go",
+      "sha256": "f7532acae499ae43149b429f6c427a79c7e1e22e7ecd6f50272af9efdc37d6e5"
+    },
+    "positive_one_shell_solids": 72,
+    "whole_stock_envelopes": 32,
+    "grouped_cut_files": 16,
+    "exact_unmerged_point_pairs_per_cut_file": 2,
+    "opposed_original_coedges": 1056,
+    "original_model_crossing_rays": 384,
+    "original_crossing_owner_jets": 768,
+    "isolated_circle_owner_jets": 768,
+    "original_roof_pole_occurrences": 19440,
+    "original_inner_wires": 48,
+    "maximum_analytic_absolute_volume_difference": 4.440892098500626e-16,
+    "maximum_analytic_relative_volume_difference": 7.4729731448325e-13,
+    "maximum_native_absolute_volume_difference": 1.9984014443252818e-15,
+    "maximum_independently_authored_lens_volume_difference": 1.5368354036745212e-19,
+    "maximum_independently_authored_lens_area_difference": 1.3877787807814457e-17,
+    "measurements": [
+      {
+        "path": "neutral-measures.tsv",
+        "sha256": "aaff421fcd6b8fd581e863ae8f23ea6f96fb86c59b71995acb6ce3bd47284e51"
+      },
+      {
+        "path": "neutral-original-owners.tsv",
+        "sha256": "04b47aef1c14565b6cc1c2ba3e037570396ee854ca3dc2fbf8c72c66a98c8c4e"
+      },
+      {
+        "path": "neutral-vs-authored-lenses.tsv",
+        "sha256": "7cd983d3dbc882648ab3b8769a2dc6692ae11856c472dfb21a21a5c0367bfa28"
+      },
+      {
+        "path": "neutral-readback-status.tsv",
+        "sha256": "e838383847913eb3b9b2530bbef779550fed77139946400047eafdef80da8124"
+      },
+      {
+        "path": "verify-mixed-neutral.py",
+        "sha256": "e22b1e32324d320643edd9e78d3af5c67074baad7e13b96efe8be45ded640940"
+      }
+    ]
+  },
+  "occt": {
+    "version": "8.1.0",
+    "source_commit": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+    "source_archive": {
+      "path": "../../reference/occt-4dbfdcc.tar.gz",
+      "sha256": "32b1e918a697a0398e8ce623099af2c1d62cdeda2b2eefa86f07c0aee9d4aaf7"
+    },
+    "readers": {
+      "path": "neutral-reader-sha256.txt",
+      "sha256": "06e30a3def26d296a5c41f1c8b44cd5cbb691bfba60eb09353bc8e8083f320cd"
+    },
+    "independent_owner_jet_probe": {
+      "path": "neutral-mixed-audit.cxx",
+      "sha256": "f592933d6defb20d1117fead9629e57c79f25c3c4c551f19b74d8646d187a517"
+    },
+    "reader_commands": {
+      "path": "read-mixed-neutral.py",
+      "sha256": "76a81d405f911e9ffde9473af2b9c881e906aacfbd0358b816b7918d37eecde7"
+    },
+    "independently_authored_original_poles": {
+      "path": "source-poles.hxx",
+      "sha256": "a968df4e38fd1f53f700335b677a5987659aa72813e6f2b7f88ab18a83463449"
+    },
+    "direct_boolean_diagnostics": {
+      "path": "direct-occt-vs-exact.tsv",
+      "sha256": "5a7de27a06c7fcd716f4ca1c116486f2f3b539502f8db7728c05afee196a8460"
+    }
+  },
+  "legacy_identical": {
+    "prior_neutral_files": 276,
+    "profiles": 10,
+    "checksums": {
+      "path": "neutral-legacy-sha256.tsv",
+      "sha256": "d12ca8b22757cda10cb1d8a0382f4e7cf98849466209b3f580f7f888ea4c6810"
+    }
+  },
+  "go": {
+    "race": {
+      "path": "neutral-pinned-race.log",
+      "sha256": "6116e066d6e7ce9bb0a9fc3452f4260e69d1083a67ccc166a2c42402380fd20e",
+      "seconds": 630.841
+    },
+    "vet": "go vet ./exchange ./exchange/step ./exchange/iges passed",
+    "atomic_grouped_limits": true,
+    "atomic_grouped_limit_test": {
+      "path": "neutral-group-atomic.log",
+      "sha256": "106909073947e3deb25b081ddabdfd869a49fb6f40514a5d403e432aab5ac93c"
+    }
+  },
+  "main_integration": {
+    "agent_evidence_sha256": "eeebd2e5ea52c8c7438de4940a69a849893246e12d3c1bc4f8e01b5adce423ad",
+    "log": "parabola-mixed-circles-neutral-main-race.jsonl",
+    "sha256": "724b0fa6298a33f062ab50f6aed6677638440ac803dbfcd823c9093bd644d36a",
+    "named_passes": [
+      "TestParabolaMixedCirclesEnvelopeExchange",
+      "TestParabolaMixedCirclesCutExchange"
+    ],
+    "package_seconds": [
+      643.704
+    ]
+  }
+}

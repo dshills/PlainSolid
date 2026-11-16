@@ -37,6 +37,12 @@ identities; the 36 positive bodies match independent integrals within
 `1.78e-15`. Independently authored pinned lenses qualified the separated
 material; direct pinned Booleans did not match the expected components.
 All 118 prior native and 236 prior neutral outputs in this audit match.
+The [separate neutral audit](evidence/parabola-mixed-circles-neutral-2026-11-16.json)
+qualifies 48 STEP/IGES files and 72 positive solids. Both pinned readers
+preserve original nested and separate material, 1,056 opposed coedges,
+both crossing and isolated source jets, and 19,440 roof-pole occurrences.
+The largest signed-volume difference from the exact integrals is
+`4.44e-16`. Main race and 276 prior neutral digests pass.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same
