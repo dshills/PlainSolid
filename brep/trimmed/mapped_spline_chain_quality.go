@@ -42,10 +42,23 @@ type roofEdgeOwners struct {
 }
 
 func (r *mappedRoofQuality) improve(ctx context.Context, face *CertifiedCurvedQuadraticTrimMesh) error {
-	triangles := face.Mesh.Triangles
 	uv := face.ExactUV
 	xy := func(i int) [2]*big.Rat { p := face.ExactPoints[i]; return [2]*big.Rat{p[0], p[1]} }
+	onKnot := func(a, b int) bool {
+		for axis, knots := range r.knots {
+			for _, knot := range knots {
+				if uv[a][axis].Cmp(knot) == 0 && uv[b][axis].Cmp(knot) == 0 {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	return improveRoofDiagonals(ctx, face.Mesh.Triangles, uv, xy, r.orientation, &r.remaining, onKnot, nil)
+}
 
+func improveRoofDiagonals(ctx context.Context, triangles [][3]int, uv [][2]*big.Rat, xy func(int) [2]*big.Rat,
+	orientation int, remaining *int, protected, allowed func(int, int) bool) error {
 	edges := make(map[mappedRoofEdge]roofEdgeOwners)
 	enqueued := make(map[mappedRoofEdge]bool)
 	queue := make([]mappedRoofEdge, 0, len(triangles)*2)
@@ -81,16 +94,6 @@ func (r *mappedRoofQuality) improve(ctx context.Context, face *CertifiedCurvedQu
 			edges[k] = x
 		}
 	}
-	onKnot := func(a, b int) bool {
-		for axis, knots := range r.knots {
-			for _, knot := range knots {
-				if uv[a][axis].Cmp(knot) == 0 && uv[b][axis].Cmp(knot) == 0 {
-					return true
-				}
-			}
-		}
-		return false
-	}
 	for i, t := range triangles {
 		if err := add(i, t); err != nil {
 			return err
@@ -103,7 +106,7 @@ func (r *mappedRoofQuality) improve(ctx context.Context, face *CertifiedCurvedQu
 		e := queue[k]
 		delete(enqueued, e)
 		slot := edges[e]
-		if slot.uses != 2 || onKnot(e[0], e[1]) {
+		if slot.uses != 2 || protected != nil && protected(e[0], e[1]) {
 			continue
 		}
 		i, j := slot.tris[0], slot.tris[1]
@@ -124,23 +127,23 @@ func (r *mappedRoofQuality) improve(ctx context.Context, face *CertifiedCurvedQu
 				return geom.ErrConvergence
 			}
 		}
-		if c == d || edges[roofEdge(c, d)].uses != 0 ||
+		if c == d || edges[roofEdge(c, d)].uses != 0 || allowed != nil && !allowed(c, d) ||
 			exactUVSignedArea(uv[c], uv[d], uv[b]).Sign() <= 0 ||
 			exactUVSignedArea(uv[d], uv[c], uv[a]).Sign() <= 0 {
 			continue
 		}
 		x, y, z, q := xy(a), xy(b), xy(c), xy(d)
-		if exactUVSignedArea(x, y, z).Sign() != r.orientation ||
-			exactUVSignedArea(y, x, q).Sign() != r.orientation ||
-			exactUVSignedArea(z, q, y).Sign() != r.orientation ||
-			exactUVSignedArea(q, z, x).Sign() != r.orientation ||
-			roofIncircle(x, y, z, q)*r.orientation <= 0 {
+		if exactUVSignedArea(x, y, z).Sign() != orientation ||
+			exactUVSignedArea(y, x, q).Sign() != orientation ||
+			exactUVSignedArea(z, q, y).Sign() != orientation ||
+			exactUVSignedArea(q, z, x).Sign() != orientation ||
+			roofIncircle(x, y, z, q)*orientation <= 0 {
 			continue
 		}
-		if r.remaining == 0 {
+		if *remaining == 0 {
 			return fmt.Errorf("mapped roof diagonal flip budget: %w", geom.ErrConvergence)
 		}
-		r.remaining--
+		*remaining -= 1
 		remove(i, left)
 		remove(j, right)
 		triangles[i], triangles[j] = [3]int{c, d, b}, [3]int{d, c, a}

@@ -33,8 +33,9 @@ func TestCertifiedParabolaTwoCirclesSourceNormalTurn(t *testing.T) {
 			t.Fatal("angular assembly", len(angular), err)
 		}
 		for i, display := range angular {
-			if plain[i].SquaredSourceNormalTurn != nil {
-				t.Fatal("distance path emitted an angular certificate")
+			if plain[i].SquaredSourceNormalTurn != nil || plain[i].SquaredFacetNormalTangent != nil ||
+				display.SquaredFacetNormalTangent != nil {
+				t.Fatal("display emitted an unrequested angular certificate")
 			}
 			if err := legacyMesh.Encode(plain[i].Mesh); err != nil {
 				t.Fatal(err)

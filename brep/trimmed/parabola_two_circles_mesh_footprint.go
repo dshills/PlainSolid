@@ -53,6 +53,11 @@ func parabolaTwoCirclesLiftFootprint(ctx context.Context, s Solid, h ParabolaCir
 	if err != nil {
 		return empty, err
 	}
+	if o.NormalAngle > 0 {
+		if err := improveParabolaCircleFacetGrid(ctx, uv, triangles, seam); err != nil {
+			return empty, err
+		}
+	}
 	display := CertifiedParabolaTwoCirclesComponentMesh{Region: h.Region, OriginalVertices: make([]int, len(s.vertices)),
 		OriginalEdges: make([]ParabolaTwoCirclesMeshEdge, len(s.edges)), SignedDisplayVolume: new(big.Rat)}
 	for i := range display.OriginalVertices {
@@ -245,6 +250,14 @@ func parabolaTwoCirclesLiftFootprint(ctx context.Context, s Solid, h ParabolaCir
 		total.Add(total, rounding)
 		if total.Cmp(display.DistanceUpper) > 0 {
 			display.DistanceUpper.Set(total)
+		}
+	}
+	if o.NormalAngle > 0 && display.DistanceUpper.Cmp(ratInset(o.Deflection)) <= 0 {
+		pad := new(big.Rat).Add(trimError, rounding)
+		display.SquaredFacetNormalTangent, err = certifyParabolaCircleFacetNormals(ctx, s, h, height, uv, triangles,
+			display, placement, pad, mappedAngleTangentLimit(o.NormalAngle))
+		if err != nil {
+			return empty, err
 		}
 	}
 	return display, nil
