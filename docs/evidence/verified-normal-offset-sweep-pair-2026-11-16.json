@@ -1,0 +1,23 @@
+{
+  "agent_revision": "cb7d94444e60a9ebdcd8f835d39e511428aa291e",
+  "main_base": "1cbc8443",
+  "summary": "# Verified two-chart normal sweep\n\nThe patch is based on `c7afb429871319820d960f009fd4da0e13430089`. The isolated milestone is `cb7d94444e60a9ebdcd8f835d39e511428aa291e`. The portable patch SHA-256 is `edd117c0847067c78ce6f70fb4cfb730a66eb913aa5956c2802d7e04a369712b`. Both additions are in `geom`.\n\nEach input is an independently verified embedded normal sweep on one original rational B\u00e9zier chart and carries the same exact signed displacement interval. The original full-edge seam proof matches the exact point and oriented unit normal using the supplied normalized station map. The wall at every displacement therefore matches. The selected Cartesian coordinate is constant on the shared original edge. Its source normal component vanishes identically on that edge, so the full joined wall stays on a fixed model plane. The directed cell proof bounds the derivative in each wall-transverse parameter away from zero with the specified sign at both displacement endpoints. Since the derivative is affine in displacement, integration along a line of fixed free station puts all points away from the common wall in opposite open halfspaces. This proves disjointness between different displacement layers as well as equal ones. The joined wall orientations are opposite under the original parameter map. The ten returned faces retain their original analytic owners, sides and windings.\n\nThe controls independently author two curved sides of the graph `z=(x-5/8)^2/32+y^2/64`. The whole joined wall occupies `x=5/8` and the displacement interval is `[-1/11,2/13]`. The linear station proof uses 1,788 exact operations. The reversed projective station proof uses 6,275 exact operations and retains B's original V-min wall and original free domain `[2,4]`. Its raw station is `2+2(1-s)/(1+s/2)` for normalized A station `s`. The test checks endpoint and interior raw stations at both displacement endpoints, zero and two other exact interior displacements. It compares both owners' exact enclosures and checks the analytic world point from the known parabola. It also checks two interior points at unequal displacements, all retained owner identities and winding, and copy ownership of the returned exact join metadata.\n\nNegative controls cover matching endpoints with the wrong interior station map, same-side sweep overlap, a common source edge with unequal normals, an authenticated smooth wall that leaves the chosen plane, unequal displacement intervals, cancellation and insufficient shared exact operation budget. The last failure retains the completed seam proof and publishes no pair or separator. The method supports one planar separator in a Cartesian coordinate, two original single-span supports, the existing affine or positive projective station law, and a common signed interval with matching original oriented normals. General swept-wall separation, arbitrary chart networks and B-rep construction are outside this qualification.\n\n`focused.log` covers all surface normal-offset and verified normal-offset geometry tests. `race.log` repeats that scope under the race detector. `packages.log` records the geometry, mesh and offset package suites.\n",
+  "digests": {
+    "verified-normal-offset-sweep-pair-main-race.jsonl": "919260105d28c52b569dab2763cd71764f0b564b5c5e7dc211016130ffacf4b3",
+    "verified-normal-offset-sweep-pair.patch": "edd117c0847067c78ce6f70fb4cfb730a66eb913aa5956c2802d7e04a369712b",
+    "focused.log": "6c41d4d5518440a11f13aec7b9b2d301a84ebd92b056006b0cd02461cc2bcd24",
+    "packages.log": "63cfee200e38416979e358c6c4601df590582fa9dadb2e2580fd4be006d6697e",
+    "race.log": "568361b52cbeee77d3f532ff608ce4c775d23207a46d883e6cb062547babeefe"
+  },
+  "main_passes": [
+    "TestSurfaceNormalOffsetSweepCertifiesAllDisplacementLayers",
+    "TestSurfaceNormalOffsetSweepKeepsKnownFocalLineUnresolved",
+    "TestVerifiedNormalOffsetAtlasProvesConnectedCurvedSheet",
+    "TestVerifiedNormalOffsetAtlasRetainsAnUnregisteredCornerContact",
+    "TestVerifiedNormalOffsetSweepPairRetainsOriginalCurvedBoundary",
+    "TestVerifiedNormalOffsetSweepPairRefusesUnprovedContact"
+  ],
+  "main_package_seconds": [
+    2.5629999999999997
+  ]
+}

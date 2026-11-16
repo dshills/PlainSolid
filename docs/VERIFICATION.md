@@ -55,6 +55,14 @@ at a 0.03 radian request is below 0.022551 radians; the planar slab
 certifies zero. Six omitted-angle digests match exactly. Main race also
 passed the preceding five open-offset facet cases.
 
+The [qualified two-chart normal sweep](evidence/verified-normal-offset-sweep-pair-2026-11-16.json)
+proves full original wall equality, opposite open halfspaces across
+different displacement layers, and original orientation on ten outer
+faces. Independent bivariate paraboloids pass both identity and reversed
+fractional station maps with nonbinary displacements. Wrong interior
+maps, same-side overlap, changes in the seam normal, and walls that
+leave the separator all refuse. Native package and main race runs passed.
+
 [Exact normal sweep membership](evidence/verified-normal-sweep-query-2026-11-16.json)
 passed rational slab interior, boundary and near-exterior controls and
 independently known points on a curved sweep, including a split station

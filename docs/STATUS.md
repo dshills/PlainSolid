@@ -33,7 +33,10 @@ and the raw replay receipt remains separate from the edited carrier.
 A single verified normal sweep now has a closed, outward, embedded
 display mesh with a proved spatial error and original face and station
 identities. An optional angular limit also certifies continuous outward
-normals on its original walls and layers. Closed multi-chart sweeps and
+normals on its original walls and layers. Two independently embedded
+sweeps can also prove an exact shared wall and disjoint interiors when
+the wall stays on one Cartesian separator. Their ten original outer
+faces retain their chart owners and windings. Multi-chart display and
 general offset joins remain open.
 The analytic single-sweep volume can also certify exact point membership
 and bound its unique original inverse. Queries retain possible cells
