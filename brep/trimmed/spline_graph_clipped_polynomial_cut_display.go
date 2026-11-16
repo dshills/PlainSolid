@@ -22,7 +22,7 @@ func (r *ClippedPolynomialCut) Tessellate(ctx context.Context, o parametric.Tess
 	if r == nil || r.native == nil {
 		return nil, geom.ErrInvalid
 	}
-	return tessellateClippedCut(ctx, r.native.axis, r.native.material, r.shells, r.native.volumes, r.native.orders == ([2]int{1, 1}), o)
+	return tessellateClippedCut(ctx, r.native.axis, r.native.material, r.shells, r.native.volumes, r.native.orders == ([2]int{1, 1}), nil, o)
 }
 
 // Tessellate displays the three-crossing Cut as separately indexed, outward
@@ -32,11 +32,24 @@ func (r *ClippedPolynomialThreeTransverseCut) Tessellate(ctx context.Context, o 
 	if r == nil || r.cut == nil {
 		return nil, geom.ErrInvalid
 	}
-	return tessellateClippedCut(ctx, r.axis, r.cut.material, r.cut.shells, r.cut.volumes, true, o)
+	return tessellateClippedCut(ctx, r.axis, r.cut.material, r.cut.shells, r.cut.volumes, true, nil, o)
+}
+
+// TessellateWithVolumeTolerance also requires each display component's exact
+// mesh volume to be within relativeVolumeTolerance of its independently
+// integrated source volume. The tolerance is a positive finite fraction.
+// If the bound cannot be reached within the tessellation limits, it returns
+// parametric.ErrBudget and no meshes. The exact assembly contact check still applies.
+func (r *ClippedPolynomialThreeTransverseCut) TessellateWithVolumeTolerance(ctx context.Context, o parametric.TessellationOptions,
+	relativeVolumeTolerance float64) ([]mesh.Mesh, error) {
+	if r == nil || r.cut == nil || !finite(relativeVolumeTolerance) || relativeVolumeTolerance <= 0 {
+		return nil, geom.ErrInvalid
+	}
+	return tessellateClippedCut(ctx, r.axis, r.cut.material, r.cut.shells, r.cut.volumes, false, ratInset(relativeVolumeTolerance), o)
 }
 
 func tessellateClippedCut(ctx context.Context, axis int, material polynomialNodeCutMaterial, shells []clippedPolynomialCutShellLedger,
-	volumes []*big.Rat, preferStripVolume bool, o parametric.TessellationOptions) ([]mesh.Mesh, error) {
+	volumes []*big.Rat, preferStripVolume bool, relativeVolumeTolerance *big.Rat, o parametric.TessellationOptions) ([]mesh.Mesh, error) {
 	o, e := normalizeTrimmedTessellationOptions(ctx, o)
 	if e != nil {
 		return nil, e
@@ -58,7 +71,22 @@ func tessellateClippedCut(ctx context.Context, axis int, material polynomialNode
 		options := o
 		options.MaxTriangles = remaining
 		part = part.withTessellationTrimMemo(&tessellationTrimMemo{limit: tessellationTrimMemoLimit})
-		display, e := part.tessellateClippedPolynomial(ctx, axis, options)
+		var accept func(mesh.Mesh) bool
+		if relativeVolumeTolerance != nil {
+			// Work in six times volume, the direct sum of oriented tetrahedra.
+			volume := new(big.Rat).Mul(volumes[i], big.NewRat(6, 1))
+			tolerance := new(big.Rat).Mul(volume, relativeVolumeTolerance)
+			accept = func(m mesh.Mesh) bool {
+				return clippedCutDisplayMatchesVolume(ctx, m, volume, tolerance)
+			}
+		}
+		display, e := part.tessellateClippedPolynomialCandidate(ctx, axis, options, accept)
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if e != nil && accept != nil {
+			return nil, fmt.Errorf("trimmed: clipped Cut display component %d volume tolerance: %w", i, e)
+		}
 		if e != nil {
 			return nil, fmt.Errorf("trimmed: clipped Cut display component %d: %w", i, e)
 		}
@@ -93,6 +121,29 @@ func tessellateClippedCut(ctx context.Context, axis int, material polynomialNode
 		}
 	}
 	return displays, nil
+}
+
+// Volume accuracy compares the exact dyadic vertices of the candidate to
+// the exact source integral. Thin overlap shells can lose material digits in
+// a floating-point sum even when their individual triangles are well shaped.
+func clippedCutDisplayMatchesVolume(ctx context.Context, m mesh.Mesh, expected, tolerance *big.Rat) bool {
+	origin := exactBoundPoint(m.Vertices[0])
+	points := make([][3]*big.Rat, len(m.Vertices))
+	for i, p := range m.Vertices {
+		if ctx.Err() != nil {
+			return false
+		}
+		points[i] = ddSub(exactBoundPoint(p), origin)
+	}
+	sum := new(big.Rat)
+	for _, triangle := range m.Triangles {
+		if ctx.Err() != nil {
+			return false
+		}
+		a, b, c := points[triangle[0]], points[triangle[1]], points[triangle[2]]
+		sum.Add(sum, ddDot(a, ddCross(b, c)))
+	}
+	return sum.Sign() > 0 && sum.Abs(sum.Sub(sum, expected)).Cmp(tolerance) <= 0
 }
 
 // Prefer closer agreement with the exact source volume after the requested
