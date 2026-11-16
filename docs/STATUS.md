@@ -4,15 +4,13 @@ The full OCCT replacement is **not complete**. This document distinguishes the
 implemented, tested kernel from the much larger specification. Full replacement
 and general-purpose production use remain unqualified.
 
-The latest completed paired run is [Go](evidence/main-a1d5a33f-qualification-2026-11-15.json)
-and [PlainCAD](evidence/plaincad-main-a1d5a33f-2026-11-15.json) on
-`a1d5a33f`. Go passed 5,819 cases with 594 optional skips. PlainCAD
-passed all eight gates: 345 development, 66 production, 15 cross-browser,
-four WASM contract and 1,691 unit cases. Vet and Linux/Windows amd64
-builds also passed. The [newer PlainCAD run on `946f7a04`](evidence/plaincad-main-946f7a04-2026-11-15.json)
-passed all eight gates with the same case counts. The corresponding Go
-run is still completing its trimmed geometry lanes; vet and both
-cross-builds passed.
+The latest completed paired run is [Go](evidence/main-946f7a04-qualification-2026-11-16.json)
+and [PlainCAD](evidence/plaincad-main-946f7a04-2026-11-15.json) on
+`946f7a04`. Go passed 5,865 cases with 595 explicit optional skips.
+PlainCAD passed all eight gates: 345 development, 66 production, 15
+cross-browser, four WASM contract and 1,691 unit cases. Vet and Linux and
+Windows amd64 cross-builds passed. Native Linux ARM64 qualification on
+that revision and the newer macOS race on `52118ad9` are running.
 The [full native macOS race on `ab33a412`](evidence/native-main-ab33a412-race-2026-11-15.json)
 passed 5,557 cases with 580 explicit optional skips.
 The [native Linux ARM64 run](evidence/native-linux-7569bd36-qualification-2026-11-15.json)

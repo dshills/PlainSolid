@@ -1,5 +1,13 @@
 # Verification record
 
+The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
+passed all nine lanes, with 5,865 passes and 595 explicit optional skips
+among 6,460 inventoried cases. All 53 tested packages passed; eight have
+no tests. The eight trimmed lanes account for 1,602 passes and 51 skips.
+Vet and both amd64 cross-builds passed on the same immutable source.
+The matching [full PlainCAD run](evidence/plaincad-main-946f7a04-2026-11-15.json)
+passed all eight gates.
+
 The [refreshed full PlainCAD run on `a1d5a33f`](evidence/plaincad-main-a1d5a33f-2026-11-15.json)
 passed all eight gates with 345 development, 66 production, 15
 cross-browser, four real Go WASM and 1,691 ordinary unit cases. The
