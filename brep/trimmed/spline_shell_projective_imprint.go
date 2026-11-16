@@ -30,6 +30,7 @@ type ProjectiveShellImprintOwner struct {
 	Solid                           Solid
 	SourceFaces                     [][]int
 	Edges                           []ProjectiveShellImprintEdge
+	SectionEdges                    []int // Ordered by the input face pairs.
 	SectionEdge, InsertedBoundaries int
 }
 
@@ -41,10 +42,31 @@ type ProjectiveShellImprint struct {
 	Complete bool
 }
 
+// ProjectiveShellFacePair selects two distinct original face slots and
+// the physical projection axes for that one pair.
+type ProjectiveShellFacePair struct {
+	Faces, Axes [2]int
+}
+
+// ProjectiveMultiShellImprint carries a complete closed imprint and one
+// shared analytic section for every selected original pair, in input order.
+type ProjectiveMultiShellImprint struct {
+	Owners   [2]ProjectiveShellImprintOwner
+	Sections []geom.ProjectiveContactSpline
+	Complete bool
+}
+
 type projectiveShellRawEdge struct {
 	source int
 	clock  [2]*big.Rat
 	seam   bool
+	pair   int
+}
+
+type projectiveShellReplacement struct {
+	fragments [2]SewFace
+	sources   [2][]ProjectiveSplineImprintUse
+	pair      int
 }
 
 // ImprintProjectiveSplineShellFaces splits the selected face of each shell
@@ -53,21 +75,54 @@ type projectiveShellRawEdge struct {
 // equality, original UV trim validity and final vertex link checks.
 func (a Solid) ImprintProjectiveSplineShellFaces(ctx context.Context, faceA int, b Solid, faceB int, axes [2]int,
 	o ProjectiveShellImprintOptions) (r ProjectiveShellImprint, err error) {
-	if ctx == nil || faceA < 0 || faceA >= len(a.faces) || faceB < 0 || faceB >= len(b.faces) || o.Sew.Sew.RepairOrientation {
-		return r, geom.ErrInvalid
-	}
-	split, err := ImprintProjectiveSplineFacePair(ctx, a.faces[faceA], b.faces[faceB], axes, o.Faces)
+	pair := ProjectiveShellFacePair{Faces: [2]int{faceA, faceB}, Axes: axes}
+	multiple, err := a.ImprintProjectiveSplineShellFacePairs(ctx, b, []ProjectiveShellFacePair{pair}, o)
 	if err != nil {
 		return r, err
 	}
+	return ProjectiveShellImprint{Owners: multiple.Owners, Section: multiple.Sections[0], Complete: true}, nil
+}
+
+// ImprintProjectiveSplineShellFacePairs processes at most 64 distinct face
+// pairs, with no original face selected twice for either owner. Every pair
+// must have a complete supported section. Both closed shells are rebuilt
+// only after all local proofs have passed; unresolved pairs publish nothing.
+func (a Solid) ImprintProjectiveSplineShellFacePairs(ctx context.Context, b Solid, pairs []ProjectiveShellFacePair,
+	o ProjectiveShellImprintOptions) (r ProjectiveMultiShellImprint, err error) {
+	if ctx == nil || len(pairs) == 0 || len(pairs) > 64 || o.Sew.Sew.RepairOrientation {
+		return r, geom.ErrInvalid
+	}
+	sources := [2]Solid{a, b}
+	var seen [2]map[int]bool
+	for owner, source := range sources {
+		seen[owner] = make(map[int]bool, len(pairs))
+		for _, pair := range pairs {
+			face := pair.Faces[owner]
+			if face < 0 || face >= len(source.faces) || seen[owner][face] {
+				return r, geom.ErrInvalid
+			}
+			seen[owner][face] = true
+		}
+	}
+	replacements := [2]map[int]projectiveShellReplacement{make(map[int]projectiveShellReplacement, len(pairs)), make(map[int]projectiveShellReplacement, len(pairs))}
+	sections := make([]geom.ProjectiveContactSpline, len(pairs))
+	for i, pair := range pairs {
+		split, err := ImprintProjectiveSplineFacePair(ctx, a.faces[pair.Faces[0]], b.faces[pair.Faces[1]], pair.Axes, o.Faces)
+		if err != nil {
+			return r, err
+		}
+		for owner := range sources {
+			replacements[owner][pair.Faces[owner]] = projectiveShellReplacement{split.Fragments[owner], split.Sources[owner], i}
+		}
+		sections[i] = split.Section
+	}
 	var owners [2]ProjectiveShellImprintOwner
-	for i, source := range [2]Solid{a, b} {
-		face := [2]int{faceA, faceB}[i]
+	for i, source := range sources {
 		limits := o.Sew
 		if limits.Sew.DisplayTolerance == 0 {
 			limits.Sew.DisplayTolerance = source.tolerance
 		}
-		owners[i], err = propagateProjectiveImprint(ctx, source, face, split.Fragments[i], split.Sources[i], limits)
+		owners[i], err = propagateProjectiveImprint(ctx, source, replacements[i], len(pairs), limits)
 		if err != nil {
 			return r, err
 		}
@@ -75,12 +130,12 @@ func (a Solid) ImprintProjectiveSplineShellFaces(ctx context.Context, faceA int,
 	if err := ctx.Err(); err != nil {
 		return r, err
 	}
-	r.Owners, r.Section, r.Complete = owners, split.Section, true
+	r.Owners, r.Sections, r.Complete = owners, sections, true
 	return r, nil
 }
 
-func propagateProjectiveImprint(ctx context.Context, source Solid, selected int, fragments [2]SewFace,
-	fragmentSources [2][]ProjectiveSplineImprintUse, o ExactSplineSewOptions) (r ProjectiveShellImprintOwner, err error) {
+func propagateProjectiveImprint(ctx context.Context, source Solid, replacements map[int]projectiveShellReplacement, count int,
+	o ExactSplineSewOptions) (r ProjectiveShellImprintOwner, err error) {
 	var vertices []geom.Vec3
 	var edges []parametric.Edge
 	var faces []Face
@@ -92,16 +147,16 @@ func propagateProjectiveImprint(ctx context.Context, source Solid, selected int,
 		if err := ctx.Err(); err != nil {
 			return r, err
 		}
-		if i == selected {
-			for j, part := range fragments {
+		if replacement, ok := replacements[i]; ok {
+			for j, part := range replacement.fragments {
 				index[i] = append(index[i], len(faces))
 				firstV, firstE := len(vertices), len(edges)
 				vertices = append(vertices, part.Vertices...)
 				for k, e := range part.Edges {
 					e.Start, e.End = firstV+e.Start, firstV+e.End
 					edges = append(edges, e)
-					ref := fragmentSources[j][k]
-					row := projectiveShellRawEdge{source: ref.OriginalEdge, clock: ref.OriginalRange, seam: ref.Section}
+					ref := replacement.sources[j][k]
+					row := projectiveShellRawEdge{source: ref.OriginalEdge, clock: ref.OriginalRange, seam: ref.Section, pair: replacement.pair}
 					if ref.Section {
 						row.clock = whole
 					} else if face.Outer[ref.OriginalUse].Reversed {
@@ -147,17 +202,20 @@ func propagateProjectiveImprint(ctx context.Context, source Solid, selected int,
 	if len(report.FlippedFaces) != 0 || len(report.Segments) != len(history) {
 		return r, geom.ErrConvergence
 	}
-	section := -1
-	sectionOccurrences := 0
+	sections, occurrences := make([]int, count), make([]int, count)
+	for i := range sections {
+		sections[i] = -1
+	}
 	var lineage []ProjectiveShellImprintEdge
 	for i, row := range report.Segments {
 		original := history[i]
 		if original.seam {
-			if len(row) != 1 || section >= 0 && section != row[0].Edge {
+			prior := sections[original.pair]
+			if len(row) != 1 || prior >= 0 && prior != row[0].Edge {
 				return r, geom.ErrConvergence
 			}
-			section = row[0].Edge
-			sectionOccurrences++
+			sections[original.pair] = row[0].Edge
+			occurrences[original.pair]++
 			continue
 		}
 		clock := original.clock
@@ -174,9 +232,17 @@ func propagateProjectiveImprint(ctx context.Context, source Solid, selected int,
 			lineage = append(lineage, ProjectiveShellImprintEdge{original.source, part.Edge, lo, hi, reversed})
 		}
 	}
-	if section < 0 || sectionOccurrences != 2 {
-		return r, geom.ErrConvergence
+	sectionSet := make(map[int]bool, count)
+	for i, edge := range sections {
+		if edge < 0 || occurrences[i] != 2 || sectionSet[edge] {
+			return r, geom.ErrConvergence
+		}
+		sectionSet[edge] = true
 	}
-	r.Solid, r.SourceFaces, r.Edges, r.SectionEdge, r.InsertedBoundaries = solid, index, lineage, section, report.InsertedVertices
+	r.Solid, r.SourceFaces, r.Edges, r.SectionEdges, r.InsertedBoundaries = solid, index, lineage, sections, report.InsertedVertices
+	r.SectionEdge = -1
+	if count == 1 {
+		r.SectionEdge = sections[0]
+	}
 	return r, nil
 }

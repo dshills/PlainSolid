@@ -59,6 +59,10 @@ closed shell has `7F/15E/10V`, all original edge clocks and two exact
 inserted border stations. Independent unit volume and centroid agree.
 Continuous exact checking rejects a perturbed pcurve with matching
 terminals; the original sewing regressions pass.
+The same audit passes simultaneous original top and bottom imprints:
+each closed shell retains `8F/18E/12V`, four propagated border stations,
+two ordered distinct seam IDs, and unit volume. Duplicate face selections
+and an unresolved later pair leave no partial shell.
 The [imprinted shell persistence audit](evidence/projective-surface-graph-overlap-2026-11-16.json)
 passes byte-identical save and reopen for both shells, preserving
 topology and independent volume. The exact model codec separately

@@ -447,5 +447,14 @@
     "native_shells": 2,
     "standalone_original_clock": [-2, 3],
     "byte_identical_replay": true
+  },
+  "multiple_closed_shell_imprints": {
+    "main_base": "20310447",
+    "log": "projective-multi-shell-main-race.jsonl",
+    "sha256": "6813e722f5b345357d21e043c0af8b0a749273d4fa958720a73721a99cdea22e",
+    "main_pass": "TestImprintProjectiveSplineShellFacePairsRetainsTwoSeparateSections",
+    "result_topology_each": {"faces": 8, "edges": 18, "vertices": 12},
+    "propagated_stations_each": 4,
+    "independent_volume_each": "1"
   }
 }
