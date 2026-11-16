@@ -50,7 +50,7 @@ func WriteClippedPolynomialTransverseCut(ctx context.Context, w io.Writer, cut *
 	return writeClippedCutIGESBodies(ctx, w, cut.Components(), contacts, unit, l, o)
 }
 
-func writeClippedCutIGESBodies(ctx context.Context, w io.Writer, components []trimmed.Solid, contacts []trimmed.PolynomialMixedCutContact, unit float64, l Limits, o ClippedPolynomialCutIGESOptions) error {
+func writeClippedCutIGESBodies(ctx context.Context, w io.Writer, components []trimmed.Solid, contacts []trimmed.PolynomialMixedCutContact, unit float64, l Limits, o ClippedPolynomialCutIGESOptions, emitters ...exactBezierIGESBodyEmitter) error {
 	bound := new(big.Rat).SetFloat64(o.PoleTolerance)
 	if ctx == nil || w == nil || !finite(unit) || unit <= 0 || bound == nil || bound.Sign() < 0 {
 		return geom.ErrInvalid
@@ -79,6 +79,9 @@ func writeClippedCutIGESBodies(ctx context.Context, w io.Writer, components []tr
 		return err
 	}
 
+	if len(emitters) != 0 && len(emitters) != len(components) {
+		return geom.ErrInvalid
+	}
 	a := topologyAuthor{groupedSolids: true}
 	remaining := l.MaxControlPoints
 	consume := func(n int) error {
@@ -90,7 +93,11 @@ func writeClippedCutIGESBodies(ctx context.Context, w io.Writer, components []tr
 	}
 	group := []int{402, len(boundaries)}
 	for i, b := range boundaries {
-		root, err := emitExactBezierIGESBody(&a, b, bound, consume)
+		emitBody := emitExactBezierIGESBody
+		if len(emitters) > 0 {
+			emitBody = emitters[i]
+		}
+		root, err := emitBody(&a, b, bound, consume)
 		if err != nil {
 			return fmt.Errorf("iges: clipped Cut component %d: %w", i, err)
 		}

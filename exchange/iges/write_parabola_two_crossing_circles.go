@@ -11,13 +11,15 @@ import (
 
 // WriteParabolaTwoCrossingCirclesEnvelope transfers the original Common or
 // Fuse with all four transverse junctions and the coedges on both source
-// roofs. Exact model and trim coordinates must fit the neutral representation.
+// roofs. Nonterminating poles on a planar circular edge use its certified
+// cardinal-quarter support and exact active interval when both original
+// UV laws have the same restriction.
 func WriteParabolaTwoCrossingCirclesEnvelope(ctx context.Context, w io.Writer, body *trimmed.ParabolaTwoCrossingCirclesEnvelope,
 	unit float64, l Limits, proof edgecheck.Options) error {
 	if body == nil {
 		return geom.ErrInvalid
 	}
-	return writeExactBezierSingleIGES(ctx, w, body.Boundary(), unit, l, ClippedPolynomialFuseIGESOptions{Proof: proof})
+	return writeExactBezierSingleIGESWithBoundary(ctx, w, body.Boundary(), unit, l, ClippedPolynomialFuseIGESOptions{Proof: proof}, false, nil, emitTwoCrossingCirclesIGESBody(ctx, body.History().CircleEdges))
 }
 
 // VerifyParabolaTwoCrossingCirclesEnvelopeIGES checks analytic topology, units and
@@ -51,7 +53,11 @@ func WriteParabolaTwoCrossingCirclesCut(ctx context.Context, w io.Writer, body *
 			})
 		}
 	}
-	return writeClippedCutIGESBodies(ctx, w, parts[:], contacts, unit, l, ClippedPolynomialCutIGESOptions{Proof: proof})
+	var emitters [3]exactBezierIGESBodyEmitter
+	for i, component := range body.History() {
+		emitters[i] = emitTwoCrossingCirclesIGESBody(ctx, component.CircleEdges)
+	}
+	return writeClippedCutIGESBodies(ctx, w, parts[:], contacts, unit, l, ClippedPolynomialCutIGESOptions{Proof: proof}, emitters[:]...)
 }
 
 // VerifyParabolaTwoCrossingCirclesCutIGES checks the original analytic topology

@@ -50,7 +50,7 @@ func WriteClippedPolynomialTransverseCut(ctx context.Context, w io.Writer, cut *
 }
 
 func writeClippedCutSTEPBodies(ctx context.Context, w io.Writer, parts []trimmed.Solid, contacts []trimmed.PolynomialMixedCutContact,
-	name string, lengthUnit float64, l Limits, o ClippedPolynomialCutSTEPOptions) error {
+	name string, lengthUnit float64, l Limits, o ClippedPolynomialCutSTEPOptions, emitters ...exactBezierSTEPBodyEmitter) error {
 	if ctx == nil || w == nil || !utf8.ValidString(name) || len(name) > 1024 || !validLengthUnit(lengthUnit) ||
 		!finiteNumber(o.PoleTolerance) || o.PoleTolerance < 0 {
 		return geom.ErrInvalid
@@ -84,14 +84,21 @@ func writeClippedCutSTEPBodies(ctx context.Context, w io.Writer, parts []trimmed
 	if err := auditClippedCutSTEPContacts(ctx, contacts, boundaries); err != nil {
 		return err
 	}
+	if len(emitters) != 0 && len(emitters) != len(parts) {
+		return geom.ErrInvalid
+	}
 	staged := clippedFuseSTEPStage{limit: l.MaxBytes}
 	var geometryErr error
 	tol := mappedChainStepRat(o.PoleTolerance)
 	err = writeStandalone(&staged, lengthUnit, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
 		ids := make([]int64, len(boundaries))
 		for i, part := range boundaries {
+			emitBody := emitExactBezierSTEPBody
+			if len(emitters) > 0 {
+				emitBody = emitters[i]
+			}
 			label := fmt.Sprintf("%s [%d]", name, i+1)
-			ids[i], geometryErr = emitExactBezierSTEPBody(ctx, emit, part, label, tol)
+			ids[i], geometryErr = emitBody(ctx, emit, part, label, tol)
 			if geometryErr != nil {
 				geometryErr = fmt.Errorf("step: clipped Cut component %d: %w", i, geometryErr)
 				return nil

@@ -42,7 +42,9 @@ func writeExactBezierSingleIGESMode(ctx context.Context, w io.Writer, s trimmed.
 	return writeExactBezierSingleIGESWithBoundary(ctx, w, s, unit, l, o, splitKnots, nil)
 }
 
-func writeExactBezierSingleIGESWithBoundary(ctx context.Context, w io.Writer, s trimmed.Solid, unit float64, l Limits, o ClippedPolynomialFuseIGESOptions, splitKnots bool, prepare func(context.Context, trimmed.ExactBezierBoundary, edgecheck.Options) error) error {
+type exactBezierIGESBodyEmitter func(*topologyAuthor, trimmed.ExactBezierBoundary, *big.Rat, func(int) error) (int, error)
+
+func writeExactBezierSingleIGESWithBoundary(ctx context.Context, w io.Writer, s trimmed.Solid, unit float64, l Limits, o ClippedPolynomialFuseIGESOptions, splitKnots bool, prepare func(context.Context, trimmed.ExactBezierBoundary, edgecheck.Options) error, emitters ...exactBezierIGESBodyEmitter) error {
 	bound := new(big.Rat).SetFloat64(o.PoleTolerance)
 	if ctx == nil || w == nil || bound == nil || bound.Sign() < 0 {
 		return geom.ErrInvalid
@@ -76,7 +78,11 @@ func writeExactBezierSingleIGESWithBoundary(ctx context.Context, w io.Writer, s 
 		controls += count
 		return ctx.Err()
 	}
-	if _, err := emitExactBezierIGESBody(&a, b, bound, consume); err != nil {
+	emitBody := emitExactBezierIGESBody
+	if len(emitters) > 0 {
+		emitBody = emitters[0]
+	}
+	if _, err := emitBody(&a, b, bound, consume); err != nil {
 		return err
 	}
 	if len(a.records) > l.MaxEntities {
@@ -100,6 +106,14 @@ func writeExactBezierSingleIGESWithBoundary(ctx context.Context, w io.Writer, s 
 }
 
 func emitExactBezierIGESBody(a *topologyAuthor, b trimmed.ExactBezierBoundary, bound *big.Rat, consume func(int) error) (int, error) {
+	return emitExactBezierIGESBodyWithCurves(a, b, bound, consume,
+		func(_ int, span geom.ExactBezierSpan, planar bool, tolerance *big.Rat) (string, error) {
+			return exactIGESBezier(span, planar, tolerance)
+		})
+}
+
+func emitExactBezierIGESBodyWithCurves(a *topologyAuthor, b trimmed.ExactBezierBoundary, bound *big.Rat, consume func(int) error,
+	encodeCurve func(int, geom.ExactBezierSpan, bool, *big.Rat) (string, error)) (int, error) {
 	supports := make([]int, len(b.Faces))
 	for i, f := range b.Faces {
 		s, err := f.BSplineSupport()
@@ -139,7 +153,7 @@ func emitExactBezierIGESBody(a *topologyAuthor, b trimmed.ExactBezierBoundary, b
 		if err := consume(len(e.Model.Control)); err != nil {
 			return 0, err
 		}
-		v, err := exactIGESBezier(e.Model, false, bound)
+		v, err := encodeCurve(i, e.Model, false, bound)
 		if err != nil {
 			return 0, fmt.Errorf("iges: clipped spline model edge %d: %w", i, err)
 		}
@@ -157,7 +171,7 @@ func emitExactBezierIGESBody(a *topologyAuthor, b trimmed.ExactBezierBoundary, b
 				if err := consume(len(u.UV.Control)); err != nil {
 					return 0, err
 				}
-				v, err := exactIGESBezier(u.UV, true, bound)
+				v, err := encodeCurve(u.Edge, u.UV, true, bound)
 				if err != nil {
 					return 0, fmt.Errorf("iges: clipped spline edge %d face %d pcurve: %w", u.Edge, i, err)
 				}
@@ -256,6 +270,10 @@ func exactIGESSplineSupport(d geom.BSplineSurfaceData, domain [4]float64, polyno
 }
 
 func exactIGESBezier(span geom.ExactBezierSpan, planar bool, tolerance *big.Rat) (string, error) {
+	return exactIGESBezierInWindow(span, planar, tolerance, "1.", "0.", "1.")
+}
+
+func exactIGESBezierInWindow(span geom.ExactBezierSpan, planar bool, tolerance *big.Rat, domainEnd, first, last string) (string, error) {
 	deg := len(span.Control) - 1
 	one := big.NewRat(1, 1)
 	weights := make([]*big.Rat, len(span.Control))
@@ -278,7 +296,7 @@ func exactIGESBezier(span geom.ExactBezierSpan, planar bool, tolerance *big.Rat)
 		p = append(p, "0.")
 	}
 	for range span.Control {
-		p = append(p, "1.")
+		p = append(p, domainEnd)
 	}
 	for _, w := range weights {
 		s, err := exactIGESSplineDecimal(w.Mul(w, new(big.Rat).SetInt(denominator)))
@@ -304,7 +322,7 @@ func exactIGESBezier(span geom.ExactBezierSpan, planar bool, tolerance *big.Rat)
 			p = append(p, x)
 		}
 	}
-	return joinTopologyValues(append(p, "0.", "1.", "0.", "0.", flag(planar)+".", "0", "0")), nil
+	return joinTopologyValues(append(p, first, last, "0.", "0.", flag(planar)+".", "0", "0")), nil
 }
 
 func exactIGESSplineDecimal(q *big.Rat) (string, error) {
