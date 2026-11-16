@@ -237,6 +237,15 @@ restricted rational Bézier spans in an original cycle of magnitude
 Output bounds enclose each jet, and one-short work returns no geometry
 or cycle ID. The combined periodic and cubic geometry race passed in
 12.219 seconds.
+Nonuniform cyclic insertion also preserves the exact position and first
+derivative against the original independent rational Bézier restrictions
+at all changed knots, span midpoints and far negative cycles. The cubic
+case inserts next to both sides of the seam and raises an original knot
+to maximum multiplicity. An independently authored weighted linear
+curve checks the physical derivative and owner at a nonuniform knot.
+Invalid input, cancellation and short pole/work budgets publish no edit.
+All 32 periodic curve and surface cases passed under the race detector
+in 6.225 seconds.
 
 The [full ordinary Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
 later passed all nine lanes on macOS ARM64. The independent inventory

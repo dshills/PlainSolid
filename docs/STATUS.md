@@ -3156,7 +3156,7 @@ signed cardinal cases. The corrected output uses the separately validated
 model-only representation. Explicit repair at the bridge import entry
 point is in progress.
 
-### Uniform periodic spline geometry
+### Periodic spline geometry
 
 Periodic curve windows retain the original rational physical lattice and
 owner spans even when a knot or cyclic phase cannot be represented as a
@@ -3182,3 +3182,9 @@ fits the original binary64 contract.
 Direct rational curve evaluation now gives an exact point and first
 derivative in the original physical parameter units, with the exact
 cycle, knot interval and one-sided seam ownership.
+An exact cyclic curve can now also retain an authored nonuniform knot
+vector or insert an arbitrary interior rational knot once per cycle.
+The operation preserves the homogeneous curve and its physical jets
+without rounding the refined coefficients. Nonuniform tensor editing,
+periodic seam multiplicity changes and neutral exchange of these edited
+curves remain open.

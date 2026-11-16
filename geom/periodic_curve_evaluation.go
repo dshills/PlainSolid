@@ -52,6 +52,11 @@ func (c *PeriodicBSpline) EvaluateRational(ctx context.Context, t *big.Rat, o Su
 		return result, err
 	}
 	width := new(big.Rat).Sub(owner.Domain.Upper, owner.Domain.Lower)
+	return exactPeriodicCurveResult(ctx, h, d, width, owner, b)
+}
+
+func exactPeriodicCurveResult(ctx context.Context, h, d exactHomogeneous, width *big.Rat,
+	owner ExactSurfaceKnotSpan, b *polynomialBudget) (result RationalPeriodicCurveJet, err error) {
 	den := new(big.Rat).Mul(h[3], h[3])
 	den.Mul(den, width)
 	if err := b.check(den); err != nil {
@@ -98,7 +103,6 @@ func (c *PeriodicBSpline) periodicHomogeneousJet(ctx context.Context, span int, 
 	b *polynomialBudget) (value, derivative exactHomogeneous, err error) {
 	p := c.degree
 	controls := make([]exactHomogeneous, p+1)
-	jets := make([]exactHomogeneous, p+1)
 	for i := range controls {
 		pole := c.curve.poles[span+i]
 		w := new(big.Rat).SetFloat64(c.curve.weights[span+i])
@@ -106,7 +110,21 @@ func (c *PeriodicBSpline) periodicHomogeneousJet(ctx context.Context, span int, 
 		for axis := 0; axis < 3; axis++ {
 			controls[i][axis] = new(big.Rat).Mul(new(big.Rat).SetFloat64(coordinate(pole, axis)), w)
 		}
-		for axis, q := range controls[i] {
+	}
+	return differentiatePeriodicNet(ctx, controls, func(j, r int) (a, slope *big.Rat) {
+		slope = big.NewRat(1, int64(p-r+1))
+		a = new(big.Rat).Add(local, big.NewRat(int64(p-j), 1))
+		a.Mul(a, slope)
+		return a, slope
+	}, b)
+}
+
+func differentiatePeriodicNet(ctx context.Context, controls []exactHomogeneous, blend func(j, r int) (a, slope *big.Rat),
+	b *polynomialBudget) (value, derivative exactHomogeneous, err error) {
+	p := len(controls) - 1
+	jets := make([]exactHomogeneous, len(controls))
+	for i, h := range controls {
+		for axis, q := range h {
 			if err := b.check(q); err != nil {
 				return value, derivative, err
 			}
@@ -117,12 +135,10 @@ func (c *PeriodicBSpline) periodicHomogeneousJet(ctx context.Context, span int, 
 		if err := ctx.Err(); err != nil {
 			return value, derivative, err
 		}
-		slope := big.NewRat(1, int64(p-r+1))
 		for j := p; j >= r; j-- {
-			a := new(big.Rat).Add(local, big.NewRat(int64(p-j), 1))
-			a.Mul(a, slope)
+			a, slope := blend(j, r)
 			q := new(big.Rat).Sub(big.NewRat(1, 1), a)
-			for _, alpha := range []*big.Rat{a, q} {
+			for _, alpha := range []*big.Rat{a, q, slope} {
 				if err := b.check(alpha); err != nil {
 					return value, derivative, err
 				}
