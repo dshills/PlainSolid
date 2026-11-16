@@ -17,24 +17,26 @@ import (
 )
 
 type stepRepairRequest struct {
+	Family      string `json:"family,omitempty"`
 	MaxDistance number `json:"maxDistance"`
 	Native      bool   `json:"native,omitempty"`
 	NativeText  bool   `json:"nativeText,omitempty"`
 }
 
 type stepRepairEvidence struct {
-	Family           string                         `json:"family"`
-	SourceSHA256     string                         `json:"sourceSHA256"`
-	LengthUnit       float64                        `json:"lengthUnit"`
-	MaxDistance      float64                        `json:"maxDistance"`
-	Provenance       step.ConvexArcRepairProvenance `json:"provenance"`
-	Repairs          []step.ConvexArcRepairSite     `json:"repairs"`
-	PCurveOwners     int                            `json:"pcurveOwners"`
-	RationalCaps     int                            `json:"rationalCaps,omitempty"`
-	FiniteLineOwners int                            `json:"finiteLineOwners,omitempty"`
-	AxialTrims       int                            `json:"axialTrims,omitempty"`
-	WorldPose        *[3][4]*big.Rat                `json:"worldPose,omitempty"`
-	ThroughBore      *stepRepairBoreEvidence        `json:"throughBore,omitempty"`
+	Family           string                          `json:"family"`
+	SourceSHA256     string                          `json:"sourceSHA256"`
+	LengthUnit       float64                         `json:"lengthUnit"`
+	MaxDistance      float64                         `json:"maxDistance"`
+	Provenance       *step.ConvexArcRepairProvenance `json:"provenance,omitempty"`
+	Repairs          []step.ConvexArcRepairSite      `json:"repairs"`
+	PCurveOwners     int                             `json:"pcurveOwners"`
+	RationalCaps     int                             `json:"rationalCaps,omitempty"`
+	FiniteLineOwners int                             `json:"finiteLineOwners,omitempty"`
+	AxialTrims       int                             `json:"axialTrims,omitempty"`
+	WorldPose        *[3][4]*big.Rat                 `json:"worldPose,omitempty"`
+	ThroughBore      *stepRepairBoreEvidence         `json:"throughBore,omitempty"`
+	MappedChain      *mappedChainStepEvidence        `json:"mappedChain,omitempty"`
 }
 
 type stepRepairBoreEvidence struct {
@@ -61,6 +63,13 @@ func (b *Bridge) importSTEPWithRepair(ctx context.Context, source string, repair
 	maxDistance := float64(repair.MaxDistance)
 	if !finite(maxDistance) || maxDistance <= 0 {
 		return Shape{}, errors.New("stepRepair requires a positive finite maxDistance in source length units")
+	}
+	switch repair.Family {
+	case orderedMappedSTEPFamily:
+		return b.importOrderedMappedSTEP(ctx, source, *repair, units)
+	case "":
+	default:
+		return Shape{}, errors.New("unknown stepRepair family")
 	}
 	shape, err := b.importSTEPInUnits(source, units)
 	var strictErr *failureError
@@ -92,9 +101,10 @@ func (b *Bridge) importSTEPWithRepair(ctx context.Context, source string, repair
 }
 
 func (b *Bridge) putSTEPRepair(ctx context.Context, material stepRepairMaterial, q stepRepairRequest, units stepFileUnit) (Shape, error) {
+	provenance := material.Provenance()
 	evidence := stepRepairEvidence{
 		MaxDistance:  float64(q.MaxDistance),
-		Provenance:   material.Provenance(),
+		Provenance:   &provenance,
 		Repairs:      material.Repairs(),
 		PCurveOwners: len(material.PCurves()),
 	}
@@ -225,11 +235,12 @@ func (b *Bridge) putSTEPBoreRepair(ctx context.Context, m step.RationalPosedConv
 		return Shape{}, err
 	}
 	outer := m.ExteriorProof()
+	provenance := outer.Provenance()
 	bore := m.Bore
 	digest := sha256.Sum256([]byte(m.OriginalSTEP()))
 	evidence := stepRepairEvidence{
 		Family: "occt-rational-posed-grouped-through-bore-pcurve-convex-arc", SourceSHA256: hex.EncodeToString(digest[:]),
-		LengthUnit: d.LengthUnit, MaxDistance: float64(q.MaxDistance), Provenance: outer.Provenance(), Repairs: outer.Repairs(),
+		LengthUnit: d.LengthUnit, MaxDistance: float64(q.MaxDistance), Provenance: &provenance, Repairs: outer.Repairs(),
 		PCurveOwners: len(outer.PCurves()) + 2*len(bore.Rims) + len(bore.SeamOwners), RationalCaps: len(outer.RationalCaps()),
 		FiniteLineOwners: len(outer.FiniteLineOwners()), AxialTrims: len(outer.AxialTrims()), WorldPose: &matrix,
 		ThroughBore: &stepRepairBoreEvidence{CapFaces: [2]int64{bore.Rims[0].CapFaceID, bore.Rims[1].CapFaceID},

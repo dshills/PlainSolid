@@ -780,6 +780,12 @@ func (b *Bridge) exportSTEPInUnits(handles []string, units stepFileUnit) (stepEx
 		if s.result.StepUnits != units {
 			return fail(&failureError{"INVALID", "STEP export unit must match each retained source unit"})
 		}
+		if s.mappedChainSTEP != nil {
+			if len(handles) != 1 {
+				return fail(unsupportedEdge("ordered mapped STEP export requires one original source body"))
+			}
+			return s.exportOrderedMappedSTEP(context.Background())
+		}
 		sources[i], e = writeSTEPBody(s)
 		if e != nil {
 			return fail(e)

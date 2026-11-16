@@ -14,6 +14,8 @@ import type { SketchProfile, ProfileLoop } from "../sketch/profileDetection";
 import { transformPoint, type SketchPlaneTransform } from "../sketch/planes";
 
 export interface StepRepairOptions {
+  /** Explicitly select the four-cell ordered mapped source reader. */
+  readonly family?: "mapped-chain-v13";
   /** Positive finite displacement in the source STEP's length units. */
   readonly maxDistance: number;
   /** Include source-bound proof JSON for independent native reproof. */
@@ -38,13 +40,14 @@ type StepRationalPoseRow = readonly [string, string, string, string];
 export interface StepRepairEvidence {
   readonly family: "occt-single-pcurve-convex-arc" | "occt-grouped-pcurve-convex-arc"
     | "occt-posed-grouped-pcurve-convex-arc" | "occt-rational-posed-single-pcurve-convex-arc"
-    | "occt-rational-posed-grouped-pcurve-convex-arc" | "occt-rational-posed-grouped-through-bore-pcurve-convex-arc";
+    | "occt-rational-posed-grouped-pcurve-convex-arc" | "occt-rational-posed-grouped-through-bore-pcurve-convex-arc"
+    | "mapped-chain-v13";
   readonly sourceSHA256: string;
   /** Source length unit, in metres. */
   readonly lengthUnit: number;
   readonly maxDistance: number;
   /** Display entity IDs. The native proof retains the original integer lexemes. */
-  readonly provenance: {
+  readonly provenance?: {
     readonly ProductID: number;
     readonly DefinitionID: number;
     readonly Body: number;
@@ -63,6 +66,16 @@ export interface StepRepairEvidence {
     readonly SquaredDistance: string;
   }[];
   readonly pcurveOwners: number;
+  readonly mappedChain?: {
+    readonly boundaryVersion: 13;
+    readonly originalFaces: readonly number[];
+    readonly originalEdges: readonly number[];
+    readonly supportEvents: readonly {
+      readonly modelStation: string;
+      readonly ownersChangingCells: readonly [boolean, boolean];
+      readonly originalJoint: boolean;
+    }[];
+  };
   readonly rationalCaps?: number;
   readonly finiteLineOwners?: number;
   readonly axialTrims?: number;
@@ -865,7 +878,7 @@ export class OpenCascadeKernel implements KernelAdapter {
   importStep(source: string, options?: StepImportOptions): KernelShape {
     if (typeof globalThis.document !== "undefined") throw new Error("STEP import requires an isolated browser worker.");
     const repair = options?.stepRepair;
-    const stepRepair = repair && { maxDistance: repair.maxDistance, nativeText: repair.native };
+    const stepRepair = repair && { maxDistance: repair.maxDistance, nativeText: repair.native, family: repair.family };
     return owned(request({ op: "importStep", source, stepRepair, stepUnits: options?.units }), "stepImport");
   }
   nativeStepSourceUnit(shape: KernelShape): StepSourceUnit | undefined {

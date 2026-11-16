@@ -137,21 +137,21 @@ func (p rationalStepArcLoop) transformed(ctx context.Context, m geom.Affine) (ri
 	return p.pose.Then(ctx, next, 512)
 }
 
-func (b *Bridge) checkRationalSTEPArcOperation(q request) error {
+func (b *Bridge) checkRetainedSTEPOperation(q request) error {
 	switch q.Op {
-	case "importStep", "exportStep", "inspect", "clone", "dispose", "mesh", "stl", "displayEdges", "drawingGeometry", "transform":
+	case "importStep", "exportStep", "inspect", "clone", "dispose", "mesh", "stl":
 		return nil
 	}
-	for _, handle := range []string{q.Handle, q.A, q.B} {
-		if b.shapes[handle].rationalStepArc != nil {
-			return unsupportedEdge("operation is outside the rational-world STEP occurrence domain")
+	arcReference := q.Op == "displayEdges" || q.Op == "drawingGeometry" || q.Op == "transform"
+	handles := append([]string{q.Handle, q.A, q.B}, q.Handles...)
+	handles = append(handles, q.Tools...)
+	for _, handle := range handles {
+		body := b.shapes[handle]
+		if body.mappedChainSTEP != nil {
+			return unsupportedEdge("operation is outside the ordered mapped STEP source domain")
 		}
-	}
-	for _, handles := range [][]string{q.Handles, q.Tools} {
-		for _, handle := range handles {
-			if b.shapes[handle].rationalStepArc != nil {
-				return unsupportedEdge("operation is outside the rational-world STEP occurrence domain")
-			}
+		if body.rationalStepArc != nil && !arcReference {
+			return unsupportedEdge("operation is outside the rational-world STEP occurrence domain")
 		}
 	}
 	return nil

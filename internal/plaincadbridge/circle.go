@@ -109,6 +109,9 @@ func (s stored) tessellate(q request) (mesh.Mesh, error) {
 	if err != nil {
 		return mesh.Mesh{}, err
 	}
+	if s.mappedChainSTEP != nil {
+		return s.mappedChainSTEP.tessellate(context.Background(), q)
+	}
 	if s.rationalStepArc != nil {
 		return s.rationalStepArc.tessellate(context.Background(), o)
 	}

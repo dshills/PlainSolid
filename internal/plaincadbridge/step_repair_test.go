@@ -86,7 +86,7 @@ func TestSTEPRepairImportWorldMeshAndCanonicalExport(t *testing.T) {
 			case "occt-posed-grouped-pcurve-convex-arc":
 				reloaded, err = step.ReadPosedGroupedPCurveRepairedOCCTConvexArcJSON(ctx, reader, limits)
 			}
-			if err != nil || reloaded.OriginalSTEP() != source || !reflect.DeepEqual(reloaded.Provenance(), evidence.Provenance) ||
+			if err != nil || reloaded.OriginalSTEP() != source || evidence.Provenance == nil || !reflect.DeepEqual(reloaded.Provenance(), *evidence.Provenance) ||
 				!reflect.DeepEqual(reloaded.Repairs(), evidence.Repairs) || len(reloaded.PCurves()) != evidence.PCurveOwners {
 				t.Fatal("native proof did not re-prove original source evidence", err)
 			}
