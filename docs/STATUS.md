@@ -105,6 +105,9 @@ neutral transfer still need qualification.
 The planar open sweep chain also has a durable native receipt. Reload
 rebuilds the original chart, join and separation proofs before it accepts
 the native owners or exact positive volume.
+A separate exact three-chart planar elbow now retains the certified
+reentrant swept edge between its original end owners. True end overlap
+and extra swept-face contact refuse; elbow exchange is still in progress.
 Projectively related graph surfaces can also prove strict original
 height order or exact coincidence over their entire shared projection.
 Neighboring projective stocks with one complete coincident roof edge

@@ -525,6 +525,13 @@ in-memory proof. It rebuilds the five source charts, four joins and six
 separators, then compares owner indices and native bytes. Both exact
 volumes above, the two-owner form, fresh-process replay, altered-source
 and owner refusals, and the predecessor transfer tests pass.
+The separate planar elbow proves three occupied closed sectors and
+the original swept edge as the entire end-to-end contact. Both the
+perpendicular and independently oblique controls retain 16 vertices,
+28 edges and 14 original faces with signed exact volume 9/2. The
+original reentrant end owners are checked, positive end overlap and
+extra swept-face contact refuse, and both existing native receipts
+and all six predecessor transfers regenerate byte-identically.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They

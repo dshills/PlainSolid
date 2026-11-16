@@ -250,5 +250,21 @@
     "independent_process_byte_replay": true,
     "two_owner_optional_axis": true,
     "prior_analytic_display_transfer_receipts": [55, 12, 6]
+  },
+  "planar_elbow_original_end_edge": {
+    "main_base": "c87019f4",
+    "isolated_revision": "a8f9dc695e90020a71a354433805619ec25eddce",
+    "patch_sha256": "88b62046b9a4d4d4f104e9a77e911d56a9fabefea46cf3b79442b6b47c9e7829",
+    "main_race_log": "planar-sweep-elbow-main-race.jsonl",
+    "main_race_sha256": "5b59faf6235b36029c8fb8f9c1e0c95214778654182d358f04ed239a27c6e2de",
+    "main_race_seconds": {"geom": 1.258, "csg/offset": 7.492},
+    "isolated_race_seconds": {"geom": 1.853, "csg/offset": 4.557},
+    "isolated_package_seconds": {"geom": 89.477, "brep": 1.383, "collision": 1.858, "mesh": 9.964, "csg/offset": 56.190},
+    "positive_topology": [16, 28, 14],
+    "independent_exact_volume": "9/2",
+    "original_affine_and_fractional_joins": ["1", "3/2"],
+    "regenerated_predecessor_receipt_and_transfer_files": [2, 6],
+    "regenerated_fixture_digest_log_sha256": "affcdc24c5d7b1d33daacfb194852e4b055d2fc81fa8b63970ae7d9e5441281f",
+    "refusals": ["strict chain still rejects edge contact", "positive end overlap", "extra swept-face contact", "short exact arithmetic or native collision budget", "cancellation"]
   }
 }
