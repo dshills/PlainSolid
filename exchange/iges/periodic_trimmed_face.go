@@ -102,10 +102,10 @@ type periodicTrimSource struct {
 }
 
 func readPeriodicTrimSource(ctx context.Context, r io.Reader, l Limits, edgeCount int) (periodicTrimSource, error) {
-	return readPeriodicTrimSourceWithHoles(ctx, r, l, edgeCount, 0)
+	return readPeriodicTrimSourceWithHoles(ctx, r, l, edgeCount, 0, 0)
 }
 
-func readPeriodicTrimSourceWithHoles(ctx context.Context, r io.Reader, l Limits, edgeCount, maxHoles int) (periodicTrimSource, error) {
+func readPeriodicTrimSourceWithHoles(ctx context.Context, r io.Reader, l Limits, edgeCount, holeEdgeCount, maxHoles int) (periodicTrimSource, error) {
 	var zero periodicTrimSource
 	if ctx == nil {
 		return zero, geom.ErrInvalid
@@ -125,11 +125,11 @@ func readPeriodicTrimSourceWithHoles(ctx context.Context, r io.Reader, l Limits,
 	owners := 5 + 2*edgeCount
 	holeCount := 0
 	if maxHoles > 0 {
-		const holeOwners = 11 // three contour and eight direct curve records
+		holeOwners := 3 + 2*holeEdgeCount
 		extra := len(doc.entities) - owners
 		holeCount = extra / holeOwners
 		if holeCount < 1 || holeCount > maxHoles || extra%holeOwners != 0 {
-			return zero, fmt.Errorf("iges: expected one or two explicit periodic trim holes: %w", geom.ErrUnrepresentable)
+			return zero, fmt.Errorf("iges: invalid explicit periodic trim hole count (maximum %d): %w", maxHoles, geom.ErrUnrepresentable)
 		}
 		owners += extra
 	}
@@ -162,7 +162,7 @@ func readPeriodicTrimSourceWithHoles(ctx context.Context, r io.Reader, l Limits,
 	m.UVCompositeID, m.ModelCompositeID = outer.uvID, outer.modelID
 	holes := make([]periodicTrimLoopSource, holeCount)
 	for i, id := range face[5:] {
-		holes[i], err = readPeriodicTrimLoop(g, m.SupportID, id, 4)
+		holes[i], err = readPeriodicTrimLoop(g, m.SupportID, id, holeEdgeCount)
 		if err != nil {
 			return zero, err
 		}
