@@ -69,9 +69,10 @@ func buildParabolaTwoCrossingCirclesPartition(proof *geom.SplineGraphParabolaTwo
 	}
 	var exterior [2][]openSectionPiece
 	for order, i := range proof.CircleOrder {
-		arcs, nodes, err := exactTwoCrossingCircleRing(proof, i)
+		chord := p.pieces[3*order+1 : 3*order+3]
+		arcs, nodes, err := exactTwoCrossingCircleRing(proof, i, chord[0].b)
 		if err != nil {
-			return p, err
+			return p, fmt.Errorf("trimmed: original circle %d: %w", i, err)
 		}
 		offset := len(p.pieces)
 		for j := range arcs {
@@ -83,7 +84,6 @@ func buildParabolaTwoCrossingCirclesPartition(proof *geom.SplineGraphParabolaTwo
 			p.rays[i][j][(direction+2)%4] = offset + (n+len(arcs)-1)%len(arcs)
 		}
 		p.pieces = append(p.pieces, arcs...)
-		chord := p.pieces[3*order+1 : 3*order+3]
 		var sideSeen [2]bool
 		for j, start := range nodes {
 			var chain []openSectionPiece
@@ -163,7 +163,8 @@ func twoCrossingCircleArcSide(piece openSectionPiece, parabola ExactQuadraticUV,
 	}
 }
 
-func exactTwoCrossingCircleRing(proof *geom.SplineGraphParabolaTwoCrossingCircles, index int) ([]openSectionPiece, [2]int, error) {
+func exactTwoCrossingCircleRing(proof *geom.SplineGraphParabolaTwoCrossingCircles, index int, chordMidpoint geom.Vec2) (
+	[]openSectionPiece, [2]int, error) {
 	circle := proof.Circles[index]
 	r := proof.CircleRadii[index]
 	center := circle.Center
@@ -210,17 +211,99 @@ func exactTwoCrossingCircleRing(proof *geom.SplineGraphParabolaTwoCrossingCircle
 		cross := new(big.Rat).Sub(new(big.Rat).Mul(a.radial[0], b.radial[1]), new(big.Rat).Mul(a.radial[1], b.radial[0]))
 		return -cross.Sign()
 	})
-	arcs := make([]openSectionPiece, len(anchors))
+	arcs := make([]openSectionPiece, 0, len(anchors)+2)
 	for i, a := range anchors {
 		if a.node >= 0 {
-			nodes[a.node] = i
+			nodes[a.node] = len(arcs)
 		}
 		b := anchors[(i+1)%len(anchors)]
 		q, err := shortRationalCircleArc(a.point, b.point, center, r)
 		if err != nil {
 			return nil, nodes, err
 		}
-		arcs[i] = openSectionPiece{a: q.ends[0], b: q.ends[1], c: q, side: -1}
+		pieces := []ExactQuadraticUV{q}
+		if a.node >= 0 && b.node >= 0 {
+			winding, err := geom.Orient2D(q.ends[0], q.ends[1], chordMidpoint)
+			if err != nil {
+				return nil, nodes, err
+			}
+			if winding <= 0 {
+				pieces, err = subdivideTwoCrossingCircleCapArc(q, chordMidpoint)
+				if err != nil {
+					return nil, nodes, err
+				}
+			}
+		}
+		for _, piece := range pieces {
+			arcs = append(arcs, openSectionPiece{a: piece.ends[0], b: piece.ends[1], c: piece, side: -1})
+		}
 	}
 	return arcs, nodes, nil
+}
+
+func subdivideTwoCrossingCircleCapArc(q ExactQuadraticUV, chordMidpoint geom.Vec2) ([]ExactQuadraticUV, error) {
+	// The exact geometry already proves a simple CCW cap. Its three
+	// endpoint chords can turn clockwise when the parabola bows into
+	// the cap. Find one or two represented interior circle points so
+	// the native chord polygon is a positively oriented fan.
+	type candidate struct {
+		t     *big.Rat
+		point geom.Vec2
+		first bool
+		last  bool
+	}
+	var points []candidate
+	for denominator := int64(2); denominator <= 16; denominator++ {
+		for numerator := int64(1); numerator < denominator; numerator++ {
+			t := big.NewRat(numerator, denominator)
+			if t.Denom().Int64() != denominator {
+				continue
+			}
+			p, _, err := q.EvaluateRational(t)
+			if err != nil {
+				return nil, err
+			}
+			vertex, err := exactGraphPartitionUV(p)
+			if err != nil {
+				continue
+			}
+			// All three chart points have already been checked finite.
+			first, _ := geom.Orient2D(q.ends[0], vertex, chordMidpoint)
+			last, _ := geom.Orient2D(vertex, q.ends[1], chordMidpoint)
+			if first > 0 && last > 0 {
+				return splitTwoCrossingCircleArc(q, []*big.Rat{t})
+			}
+			points = append(points, candidate{t: t, point: vertex, first: first > 0, last: last > 0})
+		}
+	}
+	for _, a := range points {
+		if !a.first {
+			continue
+		}
+		for _, z := range points {
+			if !z.last || a.t.Cmp(z.t) >= 0 {
+				continue
+			}
+			winding, _ := geom.Orient2D(a.point, z.point, chordMidpoint)
+			if winding > 0 {
+				return splitTwoCrossingCircleArc(q, []*big.Rat{a.t, z.t})
+			}
+		}
+	}
+	return nil, fmt.Errorf("trimmed: exact cap arc subdivision search exhausted: %w", geom.ErrConvergence)
+}
+
+func splitTwoCrossingCircleArc(q ExactQuadraticUV, stations []*big.Rat) ([]ExactQuadraticUV, error) {
+	ends := append(slices.Clone(stations), big.NewRat(1, 1))
+	out := make([]ExactQuadraticUV, 0, len(ends))
+	a := new(big.Rat)
+	for _, z := range ends {
+		part, err := q.Restrict(a, z)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, part)
+		a = z
+	}
+	return out, nil
 }
