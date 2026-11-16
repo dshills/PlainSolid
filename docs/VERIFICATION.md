@@ -32,6 +32,13 @@ seconds. Two exact local assets supply six leaf paths and fourteen
 original face labels. Moving one group moves only its descendants and
 leaves source provenance intact. Undo, redo and byte-identical native
 replay passed. A short depth or node budget publishes no document.
+The [nested AP242 writeback](evidence/nested-conical-ap242-writeback-2026-11-15.json)
+preserves the original rotation and part definitions. Pinned OCCT
+reopens all six original leaf paths with the new exact group translation
+and validates their world poses, signed volume and topology. A changed
+name on a shared relationship appears in both uses. Invalid or conflicting
+edits produce no output. Main's STEP and document races passed in 94.996
+and 98.513 seconds; the existing rational spherical edit also passed.
 
 ## Full Go and PlainCAD rerun (2026-11-15)
 

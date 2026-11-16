@@ -144,7 +144,7 @@ func applyRationalHierarchyEdits(ctx context.Context, f *File, base RationalSphe
 			if err := rationalHierarchyFrameBound(target); err != nil {
 				return nil, err
 			}
-			if err := setSphericalHierarchyTarget(f, r.TransformationID, parent[r.ParentID], target); err != nil {
+			if err := setAssemblyOccurrenceTarget(f, r.TransformationID, parent[r.ParentID], target); err != nil {
 				return nil, err
 			}
 			r.ToPlacementID = f.Entities[r.TransformationID].Records[0].Args[3].Ref

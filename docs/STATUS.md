@@ -19,8 +19,9 @@ that cross the seam even at a distant cycle.
 The nested conical AP242 reader now materializes an editable document with
 two shared local solids, six leaf occurrences, original face labels, and
 exact original local and world pose labels. Native save/load preserves
-these records through occurrence edits. STEP occurrence writeback is
-still undergoing focused verification.
+these records through occurrence edits. STEP writeback changes names
+and translations on the original occurrence relationships and refuses
+conflicting edits to shared relationships.
 
 The previous paired full runs used kernel `af569683` and PlainCAD `efae4d2`.
 The [Go run](evidence/main-af569683-qualification-2026-11-15.json)

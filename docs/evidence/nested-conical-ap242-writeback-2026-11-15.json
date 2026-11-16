@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "scope": "Translation and name writeback to original nested AP242 occurrence relationships",
+  "sourceBase": "d4675913",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "pinnedReader": {
+    "path": ".worktrees/qualification/2026-11-15/mixed-ap242-curved-import/nested-author",
+    "sha256": "e28bd10154ad1ecb6445b5743728e6329943f27c404d1f8f08e8b4fcac9b3b40"
+  },
+  "mainIntegration": {
+    "nested-conical-edit-main-retake-race.jsonl": {
+      "path": ".worktrees/qualification/2026-11-15/nested-conical-edit-main-retake-race.jsonl",
+      "sha256": "3d86ce355e5b975da249d4439aaf666f1aa6baaf142709bfa541404db495392d",
+      "elapsedSeconds": 94.999,
+      "namedCases": [
+        "TestEditNestedMixedConicalAP242STEP",
+        "TestEditNestedMixedConicalAP242STEPReject",
+        "TestIndependentSphericalHierarchyEditSharedDatum"
+      ]
+    },
+    "nested-conical-doc-write-main-retake-race.jsonl": {
+      "path": ".worktrees/qualification/2026-11-15/nested-conical-doc-write-main-retake-race.jsonl",
+      "sha256": "2ab2aa98cf86e536b22b5239add9fff93f884efd7b95de6a52e147c2747fabd5",
+      "elapsedSeconds": 98.513,
+      "namedCases": [
+        "TestSphericalHierarchyDocument",
+        "TestNestedMixedConicalAP242DocumentWrite"
+      ]
+    },
+    "nested-conical-rational-spherical-regression-race.jsonl": {
+      "path": ".worktrees/qualification/2026-11-15/nested-conical-rational-spherical-regression-race.jsonl",
+      "sha256": "a0ca1b392f3bb3755609bc6726a802df7e5fa83bc7512fc965bddcfe14729bbe",
+      "elapsedSeconds": 4.006,
+      "namedCases": [
+        "TestRationalSphericalHierarchyDocumentEdit/rational-spherical-hierarchy.step",
+        "TestRationalSphericalHierarchyDocumentEdit/occt-rational-spherical-hierarchy.step",
+        "TestRationalSphericalHierarchyDocumentEdit"
+      ]
+    }
+  }
+}

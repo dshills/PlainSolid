@@ -143,10 +143,10 @@ func editSphericalHierarchyFrame(f *File, trID, parentRep int64, pose geom.Affin
 	if alternate, err := independentTorusAssemblyPose(composeMappedPose(inverseMappedPose(from), target)); err != nil || alternate != pose {
 		return geom.ErrUnrepresentable
 	}
-	return setSphericalHierarchyTarget(f, trID, parentRep, target)
+	return setAssemblyOccurrenceTarget(f, trID, parentRep, target)
 }
 
-func setSphericalHierarchyTarget(f *File, trID, parentRep int64, target mappedRationalBasis) error {
+func setAssemblyOccurrenceTarget(f *File, trID, parentRep int64, target mappedRationalBasis) error {
 	tr := f.Entities[trID].Records[0]
 	toID := tr.Args[3].Ref
 	frame := f.Entities[toID].Records[0]
