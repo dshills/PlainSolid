@@ -5,6 +5,24 @@ PlainSolid compiled to Go WebAssembly. It makes a fresh temporary app copy and
 never changes the source PlainCAD checkout. There is no OCCT or faceted fallback
 in the replacement adapter.
 
+For the full recorded qualification, run the pinned application suite on a
+specific PlainSolid commit with Python 3.12 or newer:
+
+```sh
+python3 tools/ci/run-plaincad-qualification.py \
+  /tmp/plaincad-qualification /tmp/plaincad-qualification.json \
+  --app /absolute/path/to/PlainCAD --kernel-revision HEAD
+```
+
+Use a new stage and manifest path. The source checkout needs its matching npm
+dependencies and installed Playwright Chromium, Firefox and WebKit. The runner
+uses a Git archive of the qualified PlainCAD revision, copies the existing
+dependencies, and checks the pristine Playwright driver. It records the two
+test-only corrections, command lines, raw results, and WASM digests. A saved
+stage can be reconciled again with `--verify-only`. The pinned case counts
+live in the qualification script and must be reviewed when changing the app
+revision.
+
 Run from the PlainSolid checkout (including an integration worktree):
 
 ```sh
