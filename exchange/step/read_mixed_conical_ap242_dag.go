@@ -46,6 +46,26 @@ func ReadMixedConicalAP242DAG(ctx context.Context, r io.Reader, l MixedConicalAP
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
+	l, err := mixedConicalAP242DAGLimits(l)
+	if err != nil {
+		return zero, err
+	}
+	h, err := readMixedConicalAP242HierarchyMode(r, l.Source, mixedConicalAP242DAG)
+	if err != nil {
+		return zero, err
+	}
+	worlds, err := mixedConicalAP242DAGWorlds(ctx, h.assembly.Roots[0], h.records.occurrences, l)
+	if err != nil {
+		return zero, err
+	}
+	m, err := readMixedConicalAP242Materials(ctx, h, l.Source, o)
+	if err != nil {
+		return zero, err
+	}
+	return MixedConicalAP242DAG{Assembly: m.Assembly, Parts: m.Parts, Occurrences: m.Occurrences, Instances: worlds}, nil
+}
+
+func mixedConicalAP242DAGLimits(l MixedConicalAP242DAGLimits) (MixedConicalAP242DAGLimits, error) {
 	if l.MaxOccurrenceDepth == 0 {
 		l.MaxOccurrenceDepth = maxMixedConicalAP242OccurrenceDepth
 	}
@@ -54,25 +74,14 @@ func ReadMixedConicalAP242DAG(ctx context.Context, r io.Reader, l MixedConicalAP
 	}
 	if l.MaxOccurrenceDepth < 1 || l.MaxOccurrenceDepth > maxMixedConicalAP242OccurrenceDepth ||
 		l.MaxLeafInstances < 1 || l.MaxLeafInstances > maxMixedConicalAP242Instances {
-		return zero, geom.ErrInvalid
+		return l, geom.ErrInvalid
 	}
 	sourceLimits, err := occurrenceColorSourceLimits(l.Source)
 	if err != nil {
-		return zero, err
+		return l, err
 	}
-	h, err := readMixedConicalAP242HierarchyMode(r, sourceLimits, mixedConicalAP242DAG)
-	if err != nil {
-		return zero, err
-	}
-	worlds, err := mixedConicalAP242DAGWorlds(ctx, h.assembly.Roots[0], h.records.occurrences, l)
-	if err != nil {
-		return zero, err
-	}
-	m, err := readMixedConicalAP242Materials(ctx, h, sourceLimits, o)
-	if err != nil {
-		return zero, err
-	}
-	return MixedConicalAP242DAG{Assembly: m.Assembly, Parts: m.Parts, Occurrences: m.Occurrences, Instances: worlds}, nil
+	l.Source = sourceLimits
+	return l, nil
 }
 
 // ReadAssembly already proves a rooted acyclic graph and all referenced
