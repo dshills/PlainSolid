@@ -249,7 +249,15 @@ and exact zero first derivative. The pointed preview at deflection
 `0.005` and angle `0.1` closed with 1,536 triangles and 0.509% relative
 volume error. The exterior test confirms the generic preview returns an
 explicit error and no mesh when closure fails; finer probes exceeded the
-current budget. This is an unresolved display case.
+current budget. The dedicated source-driven Cut preview now qualifies
+both orders at deflection `0.05` and angle `0.15` on the original
+polynomial roofs. It returns 318 closed exterior triangles with 0.1392%
+volume error and 1,022 pointed triangles with 0.6729% error. A shifted
+cusp and reversed roof chart pass a 0.6% volume bound with 1,150
+triangles. All three displays retain the exact cusp vertex and pass
+collision and replay checks. Sampled deflection and angle are distinct
+from the exact mesh-to-source volume gate. The main focused native race
+passed in 13.426 seconds.
 
 The [cuspidal Fuse and Cut exchange record](evidence/cuspidal-fuse-cut-neutral-2026-11-15.json)
 contains all eight transfer and derivative readbacks against pinned

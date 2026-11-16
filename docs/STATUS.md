@@ -341,10 +341,11 @@ now qualifies Common, Fuse and both Cut orders, with the zero first,
 shared second and opposite third derivatives on the actual reopened
 model curves. Native cuspidal Cut qualifies in both
 source orders with exact closed shells and original cusp derivatives.
-The pointed Cut has a closed preview at the documented settings;
-the exterior preview still needs a conforming mesh. Its exact material
-proof remains available. Broader contact discovery, finite angle display
-and advanced edge modifications remain in progress.
+The dedicated source-driven preview now closes both Cut orders on the
+qualified polynomial roofs, retaining the exact cusp vertices and
+enforcing a source volume bound. The generic solid preview remains
+separate. Broader contact discovery, creased-source display and advanced
+edge modifications remain in progress.
 Full ordinary Go on `01d12dab` and PlainCAD on `a296b700` have passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,
