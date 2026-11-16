@@ -3,8 +3,10 @@ package trimmed
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"slices"
@@ -28,14 +30,18 @@ func TestNativeCuspidalCubicCommon(t *testing.T) {
 	ctx := context.Background()
 	src := cuspidalCubicCommonFixture(t)
 	o := CuspidalCubicCommonOptions{}
-	wantArea := cuspidalCubicCommonSourceArea()
+	wantArea := cuspidalCubicEnvelopeSourceArea(false)
+	priorDigests := [2]string{
+		"b22715b3fc18e7c643955e17c07614a9c5d56e9987183b7c70179ccc8f30eeb7",
+		"ffbb732a81acbb4a77b24f11b19176d7d96f9771219592999a544edea60444d3",
+	}
 	for order := range 2 {
 		input := [3]*geom.BSplineSurface{src[0], src[1+order], src[2-order]}
 		r, err := CommonCuspidalCubicSplineGraphs(ctx, input[0], input[1], input[2], order, 1e-9, o)
 		if err != nil {
 			t.Fatal(order, err)
 		}
-		checkNativeCuspidalCubicShell(t, r, input, order)
+		checkNativeCuspidalCubicShell(t, r.solid, r.history, input, order^1)
 		// Integrate the original bilinear stock over the full footprint.
 		// Subtract the gap integral (4/3)*(3/16)*w³ vertically between
 		// the two germs, where w=t³/k and du=2t/k dt on 0<=t<=1/2.
@@ -47,6 +53,9 @@ func TestNativeCuspidalCubicCommon(t *testing.T) {
 		var raw, echo bytes.Buffer
 		if err := r.WriteJSON(ctx, &raw); err != nil {
 			t.Fatal(err)
+		}
+		if digest := fmt.Sprintf("%x", sha256.Sum256(raw.Bytes())); digest != priorDigests[order] {
+			t.Fatal("prior Common receipt changed", order, digest)
 		}
 		loaded, err := ReadCuspidalCubicCommonJSON(ctx, bytes.NewReader(raw.Bytes()), JSONLimits{}, o)
 		if err != nil || loaded.History() != r.History() {
@@ -63,12 +72,11 @@ func TestNativeCuspidalCubicCommon(t *testing.T) {
 	}
 }
 
-func checkNativeCuspidalCubicShell(t *testing.T, r *CuspidalCubicCommon, input [3]*geom.BSplineSurface, order int) {
+func checkNativeCuspidalCubicShell(t *testing.T, s Solid, h CuspidalCubicCommonHistory, input [3]*geom.BSplineSurface, exteriorOwner int) {
 	t.Helper()
-	h, s := r.history, r.solid
 	topology := s.Topology()
 	if len(topology.Shells) != 1 || topology.EulerCharacteristic != 2 || len(s.faces) != 9 || topology.CollapsedEdges != 0 ||
-		h.RoofOwners != ([2]int{order ^ 1, order}) || s.faces[h.Base].Surface != input[0] {
+		h.RoofOwners != ([2]int{exteriorOwner, exteriorOwner ^ 1}) || s.faces[h.Base].Surface != input[0] {
 		t.Fatal("signed roof regions or closed stock topology", h, topology)
 	}
 	for i, face := range h.RoofFaces {
@@ -101,7 +109,7 @@ func checkNativeCuspidalCubicShell(t *testing.T, r *CuspidalCubicCommon, input [
 	}
 }
 
-func cuspidalCubicCommonSourceArea() float64 {
+func cuspidalCubicEnvelopeSourceArea(upper bool) float64 {
 	points := [5]float64{-.906179845938664, -.538469310105683, 0, .538469310105683, .906179845938664}
 	weights := [5]float64{.236926885056189, .478628670499366, .568888888888889, .478628670499366, .236926885056189}
 	integrate := func(a, b float64, f func(float64) float64) float64 {
@@ -115,9 +123,9 @@ func cuspidalCubicCommonSourceArea() float64 {
 		}
 		return sum
 	}
-	roof := func(u, v float64, lowerInside bool) float64 {
+	roof := func(u, v float64, firstRoof bool) float64 {
 		du, dv := 3.0/16+3*v/32, 3*u/32
-		if lowerInside {
+		if firstRoof {
 			offset := u - .25
 			du -= (3.0 / 16) * offset * offset
 			dv += (3.0 / 8) * (v - .5)
@@ -125,17 +133,22 @@ func cuspidalCubicCommonSourceArea() float64 {
 		return math.Sqrt(36 + 4*du*du + 9*dv*dv)
 	}
 	area := integrate(0, 1, func(u float64) float64 {
-		return integrate(0, 1, func(v float64) float64 { return roof(u, v, false) })
+		return integrate(0, 1, func(v float64) float64 { return roof(u, v, upper) })
 	})
 	// u=.25+3*t² keeps the exact cusp thickness 6*t³ in the source area integral.
 	area += integrate(0, .5, func(t float64) float64 {
 		u, width := .25+3*t*t, 3*t*t*t
 		return 6 * t * integrate(.5-width, .5+width, func(v float64) float64 {
-			return roof(u, v, true) - roof(u, v, false)
+			return roof(u, v, !upper) - roof(u, v, upper)
 		})
 	})
 	baseArea := 6 * math.Sqrt(1+1.0/(48*48)+1.0/(32*32))
-	const wallArea = 1315.0/64 - 27.0/1024
+	// A−B integrates to 135/512 over the full stock perimeter, including
+	// its -27/1024 contribution on the cusp's interior at the exit side.
+	wallArea := 1315.0/64 - 27.0/1024
+	if upper {
+		wallArea = 1315.0/64 + 135.0/512 + 27.0/1024
+	}
 	return area + baseArea + wallArea
 }
 

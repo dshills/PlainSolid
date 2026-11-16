@@ -38,16 +38,15 @@ type cuspidalCubicCommonGerm struct {
 	UVThird  [][]string `json:"uvThird"`
 }
 
-func (r *CuspidalCubicCommon) recipeLedger() *cuspidalCubicCommonLedger {
-	h := r.history
-	cusp := r.section.Vertices[0]
+func makeCuspidalCubicEnvelopeLedger(h CuspidalCubicCommonHistory, section *geom.CuspidalCubicSection) *cuspidalCubicCommonLedger {
+	cusp := section.Vertices[0]
 	stringPair := func(v [2]*big.Rat) []string { return []string{v[0].RatString(), v[1].RatString()} }
 	l := &cuspidalCubicCommonLedger{
 		Base: h.Base, RoofFaces: h.RoofFaces[:], RoofOwners: h.RoofOwners[:], Vertices: h.Vertices[:],
 		Point: []string{cusp.Point[0].RatString(), cusp.Point[1].RatString(), cusp.Point[2].RatString()},
 		UV:    [][]string{stringPair(cusp.UV[0]), stringPair(cusp.UV[1])},
 	}
-	for i, g := range r.section.Germs {
+	for i, g := range section.Germs {
 		l.Germs = append(l.Germs, cuspidalCubicCommonGerm{
 			Edge: h.Germs[i], Range: stringPair(g.Range),
 			UVSecond: [][]string{stringPair(g.UVSecond[0]), stringPair(g.UVSecond[1])},
@@ -63,13 +62,17 @@ func (r *CuspidalCubicCommon) WriteJSON(ctx context.Context, w io.Writer) error 
 	if ctx == nil || w == nil || r == nil || r.section == nil {
 		return geom.ErrInvalid
 	}
-	stock, err := encodePolynomialGraphSupports(ctx, r.sources)
+	return writeCuspidalCubicEnvelopeRecipe(ctx, w, nativeCuspidalCubicCommon, r.sources, r.freeAxis, r.tolerance, r.history, r.section)
+}
+
+func writeCuspidalCubicEnvelopeRecipe(ctx context.Context, w io.Writer, kind string, sources [3]*geom.BSplineSurface, axis int,
+	tolerance float64, h CuspidalCubicCommonHistory, section *geom.CuspidalCubicSection) error {
+	stock, err := encodePolynomialGraphSupports(ctx, sources)
 	if err != nil {
 		return err
 	}
 	return writePolynomialGraphRecipe(ctx, w, cuspidalCubicCommonRecipe{
-		Version: 1, Kind: nativeCuspidalCubicCommon, Sources: stock, Axis: &r.freeAxis, Tolerance: r.tolerance,
-		Ledger: r.recipeLedger(),
+		Version: 1, Kind: kind, Sources: stock, Axis: &axis, Tolerance: tolerance, Ledger: makeCuspidalCubicEnvelopeLedger(h, section),
 	})
 }
 
@@ -77,15 +80,7 @@ func (r *CuspidalCubicCommon) WriteJSON(ctx context.Context, w io.Writer) error 
 // the native roof, wall, and base faces before verifying their ledger.
 func ReadCuspidalCubicCommonJSON(ctx context.Context, r io.Reader, limits JSONLimits,
 	o CuspidalCubicCommonOptions) (*CuspidalCubicCommon, error) {
-	var recipe cuspidalCubicCommonRecipe
-	if err := readPolynomialGraphRecipe(ctx, r, limits, &recipe); err != nil {
-		return nil, err
-	}
-	if recipe.Version != 1 || recipe.Kind != nativeCuspidalCubicCommon || len(recipe.Sources) != 3 ||
-		recipe.Axis == nil || recipe.Ledger == nil {
-		return nil, geom.ErrInvalid
-	}
-	stock, err := decodePolynomialGraphSupports(ctx, recipe.Sources, limits.MaxControlPoints)
+	recipe, stock, err := readCuspidalCubicEnvelopeRecipe(ctx, r, limits, nativeCuspidalCubicCommon)
 	if err != nil {
 		return nil, err
 	}
@@ -93,12 +88,29 @@ func ReadCuspidalCubicCommonJSON(ctx context.Context, r io.Reader, limits JSONLi
 	if err != nil {
 		return nil, err
 	}
-	if !reflect.DeepEqual(recipe.Ledger, out.recipeLedger()) ||
-		(limits.MaxEntities > 0 && polynomialGraphEntityCount([]Solid{out.solid}) > limits.MaxEntities) {
-		return nil, geom.ErrConvergence
-	}
-	if err := ctx.Err(); err != nil {
+	if err := recipe.verify(ctx, out.solid, out.history, out.section, limits); err != nil {
 		return nil, err
 	}
 	return out, nil
+}
+
+func readCuspidalCubicEnvelopeRecipe(ctx context.Context, r io.Reader, limits JSONLimits, kind string) (cuspidalCubicCommonRecipe, [3]*geom.BSplineSurface, error) {
+	var recipe cuspidalCubicCommonRecipe
+	if err := readPolynomialGraphRecipe(ctx, r, limits, &recipe); err != nil {
+		return recipe, [3]*geom.BSplineSurface{}, err
+	}
+	if recipe.Version != 1 || recipe.Kind != kind || len(recipe.Sources) != 3 || recipe.Axis == nil || recipe.Ledger == nil {
+		return recipe, [3]*geom.BSplineSurface{}, geom.ErrInvalid
+	}
+	stock, err := decodePolynomialGraphSupports(ctx, recipe.Sources, limits.MaxControlPoints)
+	return recipe, stock, err
+}
+
+func (recipe cuspidalCubicCommonRecipe) verify(ctx context.Context, solid Solid, h CuspidalCubicCommonHistory,
+	section *geom.CuspidalCubicSection, limits JSONLimits) error {
+	if !reflect.DeepEqual(recipe.Ledger, makeCuspidalCubicEnvelopeLedger(h, section)) ||
+		(limits.MaxEntities > 0 && polynomialGraphEntityCount([]Solid{solid}) > limits.MaxEntities) {
+		return geom.ErrConvergence
+	}
+	return ctx.Err()
 }
