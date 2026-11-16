@@ -21,7 +21,25 @@ type ClippedPolynomialCutSTEPOptions = ClippedPolynomialFuseSTEPOptions
 // points retain separate vertex IDs and identical coordinates. No weld,
 // tessellation or sampled support reconstruction is used.
 func WriteClippedPolynomialCut(ctx context.Context, w io.Writer, cut *trimmed.ClippedPolynomialCut, name string, lengthUnit float64, l Limits, o ClippedPolynomialCutSTEPOptions) error {
-	if ctx == nil || w == nil || cut == nil || !utf8.ValidString(name) || len(name) > 1024 || !validLengthUnit(lengthUnit) ||
+	if cut == nil {
+		return geom.ErrInvalid
+	}
+	contacts := cut.Contacts()
+	return writeClippedCutSTEPBodies(ctx, w, cut.Components(), contacts[:], name, lengthUnit, l, o)
+}
+
+// WriteClippedPolynomialThreeTransverseCut retains all three exact original
+// contact pairs and transfers all four or five separate positive bodies.
+func WriteClippedPolynomialThreeTransverseCut(ctx context.Context, w io.Writer, cut *trimmed.ClippedPolynomialThreeTransverseCut, name string, lengthUnit float64, l Limits, o ClippedPolynomialCutSTEPOptions) error {
+	if cut == nil {
+		return geom.ErrInvalid
+	}
+	return writeClippedCutSTEPBodies(ctx, w, cut.Components(), cut.Contacts(), name, lengthUnit, l, o)
+}
+
+func writeClippedCutSTEPBodies(ctx context.Context, w io.Writer, parts []trimmed.Solid, contacts []trimmed.PolynomialMixedCutContact,
+	name string, lengthUnit float64, l Limits, o ClippedPolynomialCutSTEPOptions) error {
+	if ctx == nil || w == nil || !utf8.ValidString(name) || len(name) > 1024 || !validLengthUnit(lengthUnit) ||
 		!finiteNumber(o.PoleTolerance) || o.PoleTolerance < 0 {
 		return geom.ErrInvalid
 	}
@@ -29,7 +47,6 @@ func WriteClippedPolynomialCut(ctx context.Context, w io.Writer, cut *trimmed.Cl
 	if err != nil {
 		return err
 	}
-	parts := cut.Components()
 	if len(parts) == 0 || len(parts) > l.MaxSolids {
 		return geom.ErrConvergence
 	}
@@ -52,7 +69,7 @@ func WriteClippedPolynomialCut(ctx context.Context, w io.Writer, cut *trimmed.Cl
 			return fmt.Errorf("step: clipped Cut component %d: %w", i, err)
 		}
 	}
-	if err := auditClippedCutSTEPContacts(ctx, cut.Contacts(), boundaries); err != nil {
+	if err := auditClippedCutSTEPContacts(ctx, contacts, boundaries); err != nil {
 		return err
 	}
 	staged := clippedFuseSTEPStage{limit: l.MaxBytes}
@@ -93,7 +110,27 @@ func WriteClippedPolynomialCut(ctx context.Context, w io.Writer, cut *trimmed.Cl
 // graph and its separate source components. The original native proof is
 // required; this does not infer compound material from arbitrary STEP.
 func VerifyClippedPolynomialCutSTEP(ctx context.Context, input io.Reader, cut *trimmed.ClippedPolynomialCut, name string, lengthUnit float64, l Limits, o ClippedPolynomialCutSTEPOptions) error {
-	if ctx == nil || input == nil || cut == nil {
+	if cut == nil {
+		return geom.ErrInvalid
+	}
+	return verifyClippedCutSTEPBodies(ctx, input, l, func(w io.Writer) error {
+		return WriteClippedPolynomialCut(ctx, w, cut, name, lengthUnit, l, o)
+	})
+}
+
+// VerifyClippedPolynomialThreeTransverseCutSTEP authenticates the canonical
+// DATA graph and every component-local vertex occurrence against source.
+func VerifyClippedPolynomialThreeTransverseCutSTEP(ctx context.Context, input io.Reader, cut *trimmed.ClippedPolynomialThreeTransverseCut, name string, lengthUnit float64, l Limits, o ClippedPolynomialCutSTEPOptions) error {
+	if cut == nil {
+		return geom.ErrInvalid
+	}
+	return verifyClippedCutSTEPBodies(ctx, input, l, func(w io.Writer) error {
+		return WriteClippedPolynomialThreeTransverseCut(ctx, w, cut, name, lengthUnit, l, o)
+	})
+}
+
+func verifyClippedCutSTEPBodies(ctx context.Context, input io.Reader, l Limits, write func(io.Writer) error) error {
+	if ctx == nil || input == nil {
 		return geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -104,7 +141,7 @@ func VerifyClippedPolynomialCutSTEP(ctx context.Context, input io.Reader, cut *t
 		return err
 	}
 	var expected bytes.Buffer
-	if err := WriteClippedPolynomialCut(ctx, &expected, cut, name, lengthUnit, l, o); err != nil {
+	if err := write(&expected); err != nil {
 		return err
 	}
 	want, err := Parse(&expected, l)
@@ -117,7 +154,7 @@ func VerifyClippedPolynomialCutSTEP(ctx context.Context, input io.Reader, cut *t
 	return ctx.Err()
 }
 
-func auditClippedCutSTEPContacts(ctx context.Context, contacts [2]trimmed.PolynomialMixedCutContact, bodies []trimmed.ExactBezierBoundary) error {
+func auditClippedCutSTEPContacts(ctx context.Context, contacts []trimmed.PolynomialMixedCutContact, bodies []trimmed.ExactBezierBoundary) error {
 	type occurrence struct{ solid, vertex int }
 	declared := make(map[[2]occurrence]geom.Vec3, len(contacts))
 	for _, contact := range contacts {
