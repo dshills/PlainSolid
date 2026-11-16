@@ -56,7 +56,28 @@ func ReadMixedConicalAP242DAGAppearance(ctx context.Context, r io.Reader, l Mixe
 	if int64(len(raw)) > l.Source.MaxBytes {
 		return zero, geom.ErrConvergence
 	}
-	f, err := Parse(bytes.NewReader(raw), l.Source)
+	style, err := readMixedConicalDAGStyleSource(raw, l.Source)
+	if err != nil {
+		return zero, err
+	}
+	model, err := ReadMixedConicalAP242DAG(ctx, bytes.NewReader(style.unstyled), l, o)
+	if err != nil {
+		return zero, err
+	}
+	return style.bind(model, string(raw))
+}
+
+type mixedConicalDAGStyleSource struct {
+	file     *File
+	unstyled []byte
+	shuo     deepSHUOSource
+	styles   []MixedConicalAP242SurfaceStyle
+	override OccurrenceSurfaceColor
+}
+
+func readMixedConicalDAGStyleSource(raw []byte, l Limits) (mixedConicalDAGStyleSource, error) {
+	var zero mixedConicalDAGStyleSource
+	f, err := Parse(bytes.NewReader(raw), l)
 	if err != nil {
 		return zero, err
 	}
@@ -69,11 +90,12 @@ func ReadMixedConicalAP242DAGAppearance(ctx context.Context, r io.Reader, l Mixe
 	if err != nil {
 		return zero, err
 	}
-	model, err := ReadMixedConicalAP242DAG(ctx, bytes.NewReader(stripped), l, o)
-	if err != nil {
-		return zero, err
-	}
-	out := MixedConicalAP242DAGAppearance{DAG: model, original: string(raw)}
+	return mixedConicalDAGStyleSource{f, stripped, shuo, styles, override}, nil
+}
+
+func (s mixedConicalDAGStyleSource) bind(model MixedConicalAP242DAG, original string) (MixedConicalAP242DAGAppearance, error) {
+	var zero MixedConicalAP242DAGAppearance
+	out := MixedConicalAP242DAGAppearance{DAG: model, original: original}
 	partIDs := map[int64]int64{}
 	faceIDs := map[int64][]int64{}
 	for id, part := range model.Parts {
@@ -85,7 +107,7 @@ func ReadMixedConicalAP242DAGAppearance(ctx context.Context, r io.Reader, l Mixe
 			partIDs[p.SourceBodyID], faceIDs[p.SourceBodyID] = id, p.NativeFaceSourceIDs
 		}
 	}
-	for _, style := range styles {
+	for _, style := range s.styles {
 		style.DefinitionID = partIDs[style.BodyID]
 		if style.DefinitionID == 0 {
 			return zero, errMixedConicalAP242DAGAppearance
@@ -100,12 +122,12 @@ func ReadMixedConicalAP242DAGAppearance(ctx context.Context, r io.Reader, l Mixe
 			out.FaceStyles = append(out.FaceStyles, style)
 		}
 	}
-	path, err := bindMixedConicalDAGSHUO(model, partIDs[override.BodyID], shuo, override)
+	path, err := bindMixedConicalDAGSHUO(model, partIDs[s.override.BodyID], s.shuo, s.override)
 	if err != nil {
 		return zero, err
 	}
 	out.PathOverride = path
-	out.DAG.Assembly.Source = f
+	out.DAG.Assembly.Source = s.file
 	return out, nil
 }
 
