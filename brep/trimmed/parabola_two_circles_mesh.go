@@ -86,25 +86,9 @@ func (r *ParabolaTwoCirclesGraphCut) tessellateCertified(ctx context.Context, o 
 	if ctx == nil || r == nil || len(r.components) == 0 || len(r.components) != len(r.history) {
 		return nil, geom.ErrInvalid
 	}
-	if o.Deflection == 0 {
-		o.Deflection = .05
-	}
-	if o.RelativeVolumeTolerance == 0 {
-		o.RelativeVolumeTolerance = .02
-	}
-	if o.MaxSubdivisions == 0 {
-		o.MaxSubdivisions = 64
-	}
-	if o.MaxTriangles == 0 {
-		o.MaxTriangles = 100000
-	}
-	if !finite(o.Deflection) || o.Deflection <= 0 || !finite(o.RelativeVolumeTolerance) ||
-		o.RelativeVolumeTolerance <= 0 || o.RelativeVolumeTolerance >= 1 ||
-		o.MaxSubdivisions < 1 || o.MaxSubdivisions > 128 || o.MaxTriangles < 1 || o.MaxTriangles > collision.MaxTriangles ||
-		o.Collision.MaxPairs < 0 || o.Collision.MaxContacts < 0 ||
-		!finite(o.NormalTurn) || o.NormalTurn < 0 || o.NormalTurn > math.Pi ||
-		!finite(o.NormalAngle) || o.NormalAngle < 0 || o.NormalAngle >= math.Pi/2 {
-		return nil, geom.ErrInvalid
+	o, err := checkedParabolaCircleMeshOptions(o)
+	if err != nil {
+		return nil, err
 	}
 	var height [2]parabolaCircleMeshHeight
 	var patches [2]*geom.SurfacePatch
@@ -129,15 +113,7 @@ func (r *ParabolaTwoCirclesGraphCut) tessellateCertified(ctx context.Context, o 
 	}
 	volume := parabolaCircleMeshSourceVolumes(height, source)
 
-	// This auxiliary plane is only the exact UV polygon certificate, never
-	// a replacement for either original support or any native edge.
-	var controls [][4]*big.Rat
-	for u := range 2 {
-		for v := range 2 {
-			controls = append(controls, [4]*big.Rat{big.NewRat(int64(u), 1), big.NewRat(int64(v), 1), new(big.Rat), big.NewRat(1, 1)})
-		}
-	}
-	plane, err := geom.NewExactHomogeneousBezierSurface(ctx, 1, 1, controls, geom.SurfacePatchOptions{})
+	plane, err := parabolaCircleMeshUVPlane(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +132,7 @@ func (r *ParabolaTwoCirclesGraphCut) tessellateCertified(ctx context.Context, o 
 		if world != nil {
 			placement = &parabolaCircleDisplayPlacement{chart: world.chart, part: world.world[i]}
 		}
-		result[i], err = parabolaTwoCirclesComponentDisplay(ctx, part, h, height, plane, volume[h.Region], o, placement)
+		result[i], err = parabolaTwoCirclesComponentDisplay(ctx, part, h, height, plane, volume[h.Region], o, placement, false)
 		if err != nil {
 			return nil, fmt.Errorf("trimmed: parabola and circles display region %d: %w", h.Region, err)
 		}
@@ -169,9 +145,45 @@ func (r *ParabolaTwoCirclesGraphCut) tessellateCertified(ctx context.Context, o 
 	return result, nil
 }
 
+func checkedParabolaCircleMeshOptions(o ParabolaTwoCirclesMeshOptions) (ParabolaTwoCirclesMeshOptions, error) {
+	if o.Deflection == 0 {
+		o.Deflection = .05
+	}
+	if o.RelativeVolumeTolerance == 0 {
+		o.RelativeVolumeTolerance = .02
+	}
+	if o.MaxSubdivisions == 0 {
+		o.MaxSubdivisions = 64
+	}
+	if o.MaxTriangles == 0 {
+		o.MaxTriangles = 100000
+	}
+	if !finite(o.Deflection) || o.Deflection <= 0 || !finite(o.RelativeVolumeTolerance) ||
+		o.RelativeVolumeTolerance <= 0 || o.RelativeVolumeTolerance >= 1 ||
+		o.MaxSubdivisions < 1 || o.MaxSubdivisions > 128 || o.MaxTriangles < 1 || o.MaxTriangles > collision.MaxTriangles ||
+		o.Collision.MaxPairs < 0 || o.Collision.MaxContacts < 0 ||
+		!finite(o.NormalTurn) || o.NormalTurn < 0 || o.NormalTurn > math.Pi ||
+		!finite(o.NormalAngle) || o.NormalAngle < 0 || o.NormalAngle >= math.Pi/2 {
+		return o, geom.ErrInvalid
+	}
+	return o, nil
+}
+
+func parabolaCircleMeshUVPlane(ctx context.Context) (*geom.SurfacePatch, error) {
+	// This auxiliary plane is only the exact UV polygon certificate, never
+	// a replacement for either original support or any native edge.
+	var controls [][4]*big.Rat
+	for u := range 2 {
+		for v := range 2 {
+			controls = append(controls, [4]*big.Rat{big.NewRat(int64(u), 1), big.NewRat(int64(v), 1), new(big.Rat), big.NewRat(1, 1)})
+		}
+	}
+	return geom.NewExactHomogeneousBezierSurface(ctx, 1, 1, controls, geom.SurfacePatchOptions{})
+}
+
 func parabolaTwoCirclesComponentDisplay(ctx context.Context, s Solid, h ParabolaCircleCutComponentHistory,
 	height [2]parabolaCircleMeshHeight, plane *geom.SurfacePatch, volume [2]*big.Rat,
-	o ParabolaTwoCirclesMeshOptions, placement *parabolaCircleDisplayPlacement) (CertifiedParabolaTwoCirclesComponentMesh, error) {
+	o ParabolaTwoCirclesMeshOptions, placement *parabolaCircleDisplayPlacement, boundaryAware bool) (CertifiedParabolaTwoCirclesComponentMesh, error) {
 	var empty CertifiedParabolaTwoCirclesComponentMesh
 	roof, below := s.faces[h.RoofFaces[0]], s.faces[h.RoofFaces[1]]
 	topUses := append([][]Use{roof.Outer}, roof.Holes...)
@@ -242,7 +254,7 @@ func parabolaTwoCirclesComponentDisplay(ctx context.Context, s Solid, h Parabola
 			}
 			return empty, err
 		}
-		display, err := parabolaTwoCirclesLiftFootprint(ctx, s, h, height, foot, topUses, bottomUses, n, o, placement)
+		display, err := parabolaTwoCirclesLiftFootprint(ctx, s, h, height, foot, topUses, bottomUses, n, o, placement, boundaryAware)
 		if err != nil {
 			if errors.Is(err, errRefine) {
 				continue
