@@ -26,6 +26,13 @@ map fixes transfer of the transposed upper envelope in the pinned
 reader while retaining the original owner traces. All 80 prior files
 in the neutral regression audit stayed byte identical.
 
+The [rounded spatial AP242 frame repair](evidence/mixed-ap242-rounded-frame-repair-2026-11-16.json)
+passed focused main race tests using the pinned independent source
+author. The exact repair stays within the selected axis chord and
+displacement limits, preserves the original source receipt, and refuses
+tight limits, ambiguous primitive directions and borrowed placement
+owners. Native Darwin ARM64 and executed Darwin amd64 snapshots agreed.
+
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips
 among 6,460 inventoried cases. All 53 tested packages passed; eight have

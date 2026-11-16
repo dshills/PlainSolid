@@ -435,12 +435,14 @@ int main(int argc, char** argv) {
     const bool nest = mode == "write-nested" || mode == "write-nested-exact" || mode == "read-nested";
     const bool appearance = mode == "write-dag-appearance" || mode == "write-dag-rounded-appearance" ||
                             mode == "read-dag-appearance";
-    const bool dag = mode == "write-dag" || mode == "write-dag-exact" || mode == "read-dag" || appearance;
+    const bool roundedFrame = mode == "write-dag-rounded-frame";
+    const bool dag = mode == "write-dag" || mode == "write-dag-exact" || mode == "read-dag" || appearance || roundedFrame;
     auto colors = XCAFDoc_DocumentTool::ColorTool(doc->Main());
-    const bool exact = mode == "write-exact" || mode == "write-nested-exact" || mode == "write-dag-exact" || mode == "write-dag-appearance";
+    const bool exact = mode == "write-exact" || mode == "write-nested-exact" || mode == "write-dag-exact" ||
+                       mode == "write-dag-appearance" || roundedFrame;
     if (mode == "write" || mode == "write-exact" || mode == "write-nested" || mode == "write-nested-exact" ||
         mode == "write-dag" || mode == "write-dag-exact" || mode == "write-dag-appearance" ||
-        mode == "write-dag-rounded-appearance") {
+        mode == "write-dag-rounded-appearance" || roundedFrame) {
         const auto fillet = rounded(), chamfer = chamfered();
         if (fillet.IsNull() || chamfer.IsNull() || !BRepCheck_Analyzer(fillet).IsValid() || !BRepCheck_Analyzer(chamfer).IsValid()) return 2;
         auto root = shapes->NewShape(), f = shapes->AddShape(fillet, false), c = shapes->AddShape(chamfer, false);
@@ -449,7 +451,11 @@ int main(int argc, char** argv) {
         TDataStd_Name::Set(c,TCollection_ExtendedString("Chamfered eccentric annular stock"));
         gp_Trsf a, b, d;
         a.SetTranslation(gp_Vec(30,2,4));
-        b.SetValues(0,0,1,-30, 1,0,0,24, 0,1,0,3);
+        if (roundedFrame) {
+            b.SetValues(-15./19,-6./19,10./19,-30, 10./19,-15./19,6./19,24, 6./19,10./19,15./19,3);
+        } else {
+            b.SetValues(0,0,1,-30, 1,0,0,24, 0,1,0,3);
+        }
         d.SetValues(.6,-.8,0,0, .8,.6,0,-30, 0,0,1,8);
         const auto group = (nest || dag) ? shapes->NewShape() : root;
         shapes->AddComponent(group, f, TopLoc_Location(a));

@@ -147,7 +147,7 @@ func mixedConicalCategory(f *File, id int64) (int64, error) {
 	return ids[0], nil
 }
 
-func mixedConicalOccurrence(f *File, id int64, uses map[int64]AssemblyOccurrence) (ExactNAUOOccurrence, error) {
+func mixedConicalOccurrenceRecords(f *File, id int64, uses map[int64]AssemblyOccurrence) (ExactNAUOOccurrence, error) {
 	var zero ExactNAUOOccurrence
 	cd, err := simple(f, id, "CONTEXT_DEPENDENT_SHAPE_REPRESENTATION", 2)
 	if err != nil {
@@ -175,7 +175,20 @@ func mixedConicalOccurrence(f *File, id int64, uses map[int64]AssemblyOccurrence
 	if err != nil {
 		return zero, err
 	}
-	from, err := mappedRationalFrame(f, tr.Args[2].Ref)
+	return ExactNAUOOccurrence{
+		Name: use.Name, NAUOID: use.ID, CDSRID: id, RelationshipID: rel, TransformationID: transform,
+		FromPlacementID: tr.Args[2].Ref, ToPlacementID: tr.Args[3].Ref, ParentID: use.Parent, ChildID: use.Child,
+	}, nil
+}
+
+func mixedConicalOccurrence(f *File, id int64, uses map[int64]AssemblyOccurrence) (ExactNAUOOccurrence, error) {
+	var zero ExactNAUOOccurrence
+	occ, err := mixedConicalOccurrenceRecords(f, id, uses)
+	if err != nil {
+		return zero, err
+	}
+	use := uses[occ.NAUOID]
+	from, err := mappedRationalFrame(f, occ.FromPlacementID)
 	if err != nil {
 		return zero, err
 	}
@@ -183,20 +196,18 @@ func mixedConicalOccurrence(f *File, id int64, uses map[int64]AssemblyOccurrence
 	if err != nil || neutral != geom.Identity() {
 		return zero, errMixedConicalAP242
 	}
-	to, err := mappedRationalFrame(f, tr.Args[3].Ref)
+	to, err := mappedRationalFrame(f, occ.ToPlacementID)
 	if err != nil {
 		return zero, err
 	}
 	if use.Transform != projectMixedConicalFrame(to) {
 		// The ordinary assembly must refer to this same target entity.
 		// The exact neutral child frame has already been proved above.
-		ordinary, err := placement(f, tr.Args[3].Ref)
-		if err != nil || use.Transform != frameTransform(ordinary) || !mixedConicalFrameProjection(f, tr.Args[3].Ref, ordinary, to) {
+		ordinary, err := placement(f, occ.ToPlacementID)
+		if err != nil || use.Transform != frameTransform(ordinary) || !mixedConicalFrameProjection(f, occ.ToPlacementID, ordinary, to) {
 			return zero, errMixedConicalAP242
 		}
 	}
-	return ExactNAUOOccurrence{
-		Name: use.Name, NAUOID: use.ID, CDSRID: id, RelationshipID: rel, TransformationID: transform,
-		FromPlacementID: tr.Args[2].Ref, ToPlacementID: tr.Args[3].Ref, ParentID: use.Parent, ChildID: use.Child, pose: to,
-	}, nil
+	occ.pose = to
+	return occ, nil
 }
