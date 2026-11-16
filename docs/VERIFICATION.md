@@ -205,6 +205,12 @@ uses original outer boundary coverage and proves positive distance at
 points lying on either removed wall. Independent rational references
 cover rotated curved, exact affine and mixed-chart cases. Main race and
 four byte-identical single-sweep receipts pass.
+The [normal sweep line audit](evidence/verified-normal-offset-sweep-line-2026-11-16.json)
+covers affine crossings, corner touches, cap overlap and misses. A
+rotated curved ruling and a reversed, negative-Jacobian original chart
+replay exact intervals and nonbinary source stations. Unsupported or
+unauthenticated lines refuse; main race and four earlier distance
+receipt comparisons passed.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They

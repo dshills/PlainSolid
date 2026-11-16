@@ -86,6 +86,10 @@ parameter witness. Affine faces, edges and corners have exact results.
 The same query handles the ten retained outer faces of a joined pair
 and fourteen of a three-chart chain. Removed common walls are excluded;
 each witness identifies its original chart and face.
+Verified sweeps also clip exact rational lines against affine charts
+and against proved perpendicular rulings of a curved chart when the
+original transverse station is authenticated. The result retains exact
+line parameters and original face and displacement identities.
 An exact surface-pair distance query retains both rational model sample
 points and the squared distance enclosure below float64 range, including
 when an oblique gap is invisible in the outward axis boxes.
