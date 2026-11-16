@@ -79,6 +79,16 @@ type nodalCubicLaw struct {
 }
 
 func recoverNodalCubic(p [3]rationalPolynomial, b *polynomialBudget) (r nodalCubicLaw, err error) {
+	r, err = recoverDoubleRootGraphCubic(p, b)
+	if err == nil && r.loopDepth.Sign() <= 0 {
+		return nodalCubicLaw{}, ErrDomain
+	}
+	return r, err
+}
+
+// The signed third-root offset is positive for a node with real rays and
+// negative for an isolated real double point.
+func recoverDoubleRootGraphCubic(p [3]rationalPolynomial, b *polynomialBudget) (r nodalCubicLaw, err error) {
 	c, err := recoverGraphCubicCoefficients(p, b)
 	if err != nil {
 		return r, err
@@ -115,7 +125,7 @@ func recoverNodalCubic(p [3]rationalPolynomial, b *polynomialBudget) (r nodalCub
 	}
 	direction := signedScale.Sign()
 	depth := new(big.Rat).Mul(new(big.Rat).Add(q[0], x), big.NewRat(int64(direction), 1))
-	if depth.Sign() <= 0 {
+	if depth.Sign() == 0 {
 		return r, ErrDomain
 	}
 	scale := new(big.Rat).Abs(signedScale)

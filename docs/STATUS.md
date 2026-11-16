@@ -332,7 +332,11 @@ shared carrier crease away from the required jets and refuses a changed
 residual or an ambiguous cusp or node tangent. Native cuspidal Common,
 Fuse and both Cut orders now also qualify on an actual shared carrier
 crease in reversed charts, including native replay and independent
-volume checks. Curved trim quadrature splits at the certified rational
+volume checks. The geometry also distinguishes an isolated real double
+point from both a crossing node and a cusp. When the same cubic has a
+separate regular branch in the footprint, the proof keeps its two
+original exits and shows the isolated point is not on that branch.
+Curved trim quadrature splits at the certified rational
 source knots. Creased neutral transfer still needs qualification.
 Native Common (`fea3d0b4`) and Fuse (`750c9e80`)
 preserve this singularity in both source orders and in closed displays.

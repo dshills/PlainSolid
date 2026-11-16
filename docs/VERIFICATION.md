@@ -230,6 +230,14 @@ pair reproduces the exact cusp and the changed original exit heights.
 Changing only the later knot cell's residual, placing an ambiguous
 crease at the cusp, or constraining the cell budget produces no result.
 
+A separate isolated real double-point proof passes with and without a
+disjoint regular branch, including source order swaps and rotated
+projection axes. The original surface tangents agree at the isolated
+point, with no sign switch there. The regular arc keeps its exact
+turning point, exits and signed regions. A real crossing node, a cusp,
+boundary turning point, clipped arc, irrational exit and changed
+coefficient refuse. The main cubic geometry race passed in 2.716 seconds.
+
 The native shared-crease follow-up retains the two original cusp roof
 charts, one closed Euler-2 shell and byte-identical native replay for all
 six Common/Fuse/Cut results. The original unsplit mass correction strips
