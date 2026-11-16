@@ -24,6 +24,11 @@ func (c *VerifiedNormalOffsetSweepOpenChain) PlanarPrismsRational(ctx context.Co
 	if ctx == nil || c == nil || len(c.sweeps) < 2 {
 		return nil, ErrInvalid
 	}
+	return planarSweepPrismsRational(ctx, c.sweeps, o)
+}
+
+func planarSweepPrismsRational(ctx context.Context, sweeps []*VerifiedNormalOffsetSweep,
+	o SurfacePatchOptions) ([]VerifiedNormalOffsetSweepPlanarPrism, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -32,8 +37,8 @@ func (c *VerifiedNormalOffsetSweepOpenChain) PlanarPrismsRational(ctx context.Co
 		return nil, err
 	}
 	budget := &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
-	prisms := make([]VerifiedNormalOffsetSweepPlanarPrism, len(c.sweeps))
-	for owner, sweep := range c.sweeps {
+	prisms := make([]VerifiedNormalOffsetSweepPlanarPrism, len(sweeps))
+	for owner, sweep := range sweeps {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
