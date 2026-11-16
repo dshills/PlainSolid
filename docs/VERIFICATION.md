@@ -117,6 +117,12 @@ patches of different widths prove two oriented seams and the disjoint
 non-neighbor pair, leaving eight boundary edges. Reversed traversal is
 authenticated. A known extra corner contact, wrong winding, disconnected
 faces and insufficient shared work do not produce a complete atlas.
+The stitched offset atlas passed its geometry, mesh and modeling race.
+Three curves of unequal face width conform at both original seams,
+including a reversed face. Mesh incidence leaves exactly the original
+eight boundary runs, and the maximum two-sided distance is within the
+requested limit. A valid geometric seam at an unrepresentable
+`1/3` coordinate and a one-triangle-short budget refuse atomically.
 The exact convex-hull separation race passed in geometry and intersection
 (25.901 and 1.207 seconds). A weighted curved pair separated on an exact
 new support direction, with the gap independently projected from the

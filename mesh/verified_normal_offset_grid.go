@@ -11,11 +11,12 @@ import (
 
 // NormalOffsetGridOptions bounds a tensor grid for a verified normal offset.
 // Zero selects defaults of .05 model units, eight dyadic refinement levels,
-// 131072 triangles and 100 million geometry work units.
+// 131072 triangles and 100 million geometry work units. MinDepth can start
+// at a finer dyadic level to match the grid of an adjacent face.
 type NormalOffsetGridOptions struct {
-	Deflection             float64
-	MaxDepth, MaxTriangles int
-	MaxWork                int
+	Deflection                       float64
+	MinDepth, MaxDepth, MaxTriangles int
+	MaxWork                          int
 
 	// MaxSourceOperations defaults to 4096. Each new corner reserves this
 	// many work units and applies the same limit to its source-jet evaluation.
@@ -61,7 +62,7 @@ func TessellateVerifiedNormalOffsetGrid(ctx context.Context, p *geom.VerifiedNor
 	distance := new(big.Rat).SetFloat64(o.Deflection)
 	w := normalOffsetGridWork{options: o, points: make(map[[2]float64]normalOffsetGridPoint)}
 	distance.Mul(distance, distance)
-	for depth := 0; depth <= o.MaxDepth; depth++ {
+	for depth := o.MinDepth; depth <= o.MaxDepth; depth++ {
 		if err := ctx.Err(); err != nil {
 			return empty, err
 		}
@@ -104,7 +105,7 @@ func checkedNormalOffsetGridOptions(o NormalOffsetGridOptions) (NormalOffsetGrid
 	if o.MaxSourceOperations == 0 {
 		o.MaxSourceOperations = 4096
 	}
-	if !finite(o.Deflection) || o.Deflection <= 0 || o.MaxDepth < 0 || o.MaxDepth > 9 ||
+	if !finite(o.Deflection) || o.Deflection <= 0 || o.MinDepth < 0 || o.MinDepth > o.MaxDepth || o.MaxDepth < 0 || o.MaxDepth > 9 ||
 		o.MaxTriangles < 1 || o.MaxTriangles > 524288 ||
 		o.MaxWork < 1 || o.MaxWork > 1_000_000_000 ||
 		o.MaxSourceOperations < 1 || o.MaxSourceOperations > 1_000_000_000 {

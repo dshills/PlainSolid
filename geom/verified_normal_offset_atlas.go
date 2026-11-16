@@ -38,7 +38,16 @@ type VerifiedNormalOffsetAtlas struct {
 	BoundaryEdges               int
 	ProvenJoins, SeparatedPairs int
 	UnresolvedPairs             [][2]int
+	JoinProofs                  []VerifiedNormalOffsetAtlasJoinProof
 	ExactOperations             int
+}
+
+// VerifiedNormalOffsetAtlasJoinProof keeps the exact separator and two
+// original edge identities in the input join's order.
+type VerifiedNormalOffsetAtlasJoinProof struct {
+	Faces     [2]int
+	Edges     [2]SurfaceEdge
+	Adjacency VerifiedNormalOffsetAdjacency
 }
 
 // CertifyVerifiedNormalOffsetAtlas verifies each declared join, consistent
@@ -152,6 +161,7 @@ func CertifyVerifiedNormalOffsetAtlas(ctx context.Context, faces []VerifiedNorma
 				return r, ErrConvergence
 			}
 			r.ProvenJoins++
+			r.JoinProofs = append(r.JoinProofs, VerifiedNormalOffsetAtlasJoinProof{join.Faces, join.Edges, got})
 		} else {
 			pair := o.Pair
 			if pair.Patch.MaxOperations == 0 || pair.Patch.MaxOperations > left {

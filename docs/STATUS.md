@@ -65,6 +65,9 @@ The certificate covers its original open parameter rectangle.
 A bounded connected offset atlas can verify every declared full-edge
 join, consistent winding and separation of all nonadjacent face pairs.
 It reports remaining boundary edges without assigning solid material.
+The verified atlas can also stitch conforming grids across exactly
+matched linear seam stations. Adjacent rounded meshes must agree on
+their seam vertices and stay in opposite open halfspaces.
 Full-domain curved pair isolation can also use a bounded exact control-hull
 support search. It can prove separation when the world axes and original
 center normals leave overlapping projections, and retains pairs it cannot
