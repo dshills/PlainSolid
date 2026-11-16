@@ -143,6 +143,12 @@ strips with opposite Jacobian signs, and a doubly curved rational sphere
 sector with a separate rational alternating-series volume enclosure.
 The sphere exercises the quadratic displacement term. Short work retains
 the coarser valid bound, and no display mesh enters the integration.
+The [analytic sweep mass moments](evidence/verified-normal-offset-sweep-moments-2026-11-16.json)
+pass exact 64-bit-coefficient rational slabs, ordinary and rotated
+negative-Jacobian parabolic strips, and a spherical sector with an
+independent rational axial second moment. Short work retains a
+positive coarse enclosure; cancellation refuses. Both previous volume
+receipts match byte for byte.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They

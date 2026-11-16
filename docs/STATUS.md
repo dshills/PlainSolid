@@ -70,6 +70,9 @@ when a boundary point or an exhausted work budget prevents a proof.
 It also integrates analytic volume by enclosing the original UV density
 and exactly integrating its displacement polynomial. The result retains
 a valid coarse interval when refinement exhausts its budget.
+Single-sweep mass moments also enclose the original centroid, full
+second moments and inertia about the origin and centroid, without a
+display mesh. Exact rational slabs retain exact results.
 An exact surface-pair distance query retains both rational model sample
 points and the squared distance enclosure below float64 range, including
 when an oblique gap is invisible in the outward axis boxes.
