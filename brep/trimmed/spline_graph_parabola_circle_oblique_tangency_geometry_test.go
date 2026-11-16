@@ -12,28 +12,28 @@ import (
 )
 
 type obliqueCircleFixture struct {
-	station, slope, normal, shift, radiusSquared *big.Rat
+	station, ordinate, slope, normal, shift, radiusSquared *big.Rat
 }
 
 func originalObliqueCircleFixture(side int) obliqueCircleFixture {
-	return obliqueCircleFixture{big.NewRat(1, 2), big.NewRat(3, 4), big.NewRat(int64(2*side-1), 16), new(big.Rat), big.NewRat(25, 4096)}
+	return obliqueCircleFixture{big.NewRat(1, 2), big.NewRat(1, 2), big.NewRat(3, 4), big.NewRat(int64(2*side-1), 16), new(big.Rat), big.NewRat(25, 4096)}
 }
 
 func parabolaCircleObliqueStock(t *testing.T, axis int, f obliqueCircleFixture, changed bool) [3]*geom.BSplineSurface {
 	t.Helper()
 	// Independently expand 9/16*(y-p(x))*Q in the original stock chart.
-	// p=1/2+m*(x-x0)+(x-x0)^2/8 and the circle center is
-	// (x0-m*delta+shift,1/2+delta).
+	// p=y0+m*(x-x0)+(x-x0)^2/8 and the circle center is
+	// (x0-m*delta+shift,y0+delta).
 	k := big.NewRat(1, 8)
 	constant := new(big.Rat).Mul(f.station, f.station)
-	constant.Mul(constant, k).Sub(constant, new(big.Rat).Mul(f.station, f.slope)).Add(constant, big.NewRat(1, 2))
+	constant.Mul(constant, k).Sub(constant, new(big.Rat).Mul(f.station, f.slope)).Add(constant, f.ordinate)
 	linear := new(big.Rat).Sub(f.slope, new(big.Rat).Mul(f.station, big.NewRat(1, 4)))
 	branch := map[[2]int]*big.Rat{
 		{0, 0}: constant.Neg(constant), {1, 0}: linear.Neg(linear), {2, 0}: k.Neg(k), {0, 1}: big.NewRat(1, 1),
 	}
 	cx := new(big.Rat).Sub(f.station, new(big.Rat).Mul(f.slope, f.normal))
 	cx.Add(cx, f.shift)
-	cy := new(big.Rat).Add(big.NewRat(1, 2), f.normal)
+	cy := new(big.Rat).Add(f.ordinate, f.normal)
 	circleConstant := new(big.Rat).Add(new(big.Rat).Mul(cx, cx), new(big.Rat).Mul(cy, cy))
 	circleConstant.Sub(circleConstant, f.radiusSquared)
 	circle := map[[2]int]*big.Rat{{0, 0}: circleConstant, {2, 0}: big.NewRat(1, 1), {0, 2}: big.NewRat(1, 1),
