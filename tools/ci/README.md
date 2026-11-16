@@ -15,6 +15,13 @@ python3 tools/ci/run-go-qualification.py HEAD .worktrees/qualification/go-curren
   --race --prior .worktrees/qualification/go-current --jobs 6
 ```
 
+To qualify the same committed tree on another platform without transferring
+the checkout or its history, run `git archive --format=tar <full-commit>`
+and transfer the trusted tar and the two Python scripts. With Python 3.12+
+use `run-go-qualification.py <full-commit> <new-stage> --archive <tar>`.
+The launcher checks the Git commit recorded in the tar header and records
+the archive SHA-256 with the run commands.
+
 For an immutable qualification workspace, keep the following together:
 
 - `revision`, `toolchain.txt`, and the recorded Go argument lists in

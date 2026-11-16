@@ -3,6 +3,7 @@
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -10,6 +11,7 @@ import platform
 import re
 import subprocess
 import sys
+import tarfile
 
 TRIMMED = "plainsolid/brep/trimmed"
 NAME = re.compile(r"(?:Test|Fuzz|Example)[A-Za-z0-9_]*")
@@ -31,6 +33,17 @@ def archive(revision, repo, source):
             pack.stdout.close()
         if unpack.returncode or pack.wait():
             raise ValueError("could not archive the requested commit")
+
+
+def unpack_archive(revision, path, source):
+    with path.open("rb") as raw:
+        sha256 = hashlib.file_digest(raw, "sha256").hexdigest()
+        raw.seek(0)
+        with tarfile.open(fileobj=raw, mode="r:") as pack:
+            if pack.pax_headers.get("comment") != revision:
+                raise ValueError("archive commit does not match the requested revision")
+            pack.extractall(source, filter="data")
+    return {"kind": "git archive", "sha256": sha256}
 
 
 def trimmed_inventory(path):
@@ -64,8 +77,9 @@ def schedule(names, count, prior):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("revision", help="Git commit, tag or branch")
+    ap.add_argument("revision", help="Git commit, tag or branch (full commit hash with --archive)")
     ap.add_argument("stage", type=Path, help="new directory for source, logs and report")
+    ap.add_argument("--archive", type=Path, help="trusted tar from git archive, for execution outside the checkout")
     ap.add_argument("--race", action="store_true")
     ap.add_argument("--shards", type=int, default=8)
     ap.add_argument("--jobs", type=int, default=min(9, os.cpu_count() or 1), help="parallel lanes")
@@ -85,13 +99,20 @@ def main():
         env["GOCACHE"] = str(opts.cache.resolve())
     elif not env.get("GOCACHE"):
         env["GOCACHE"] = str(parent.parent / ".go-qualification-cache")
-    repo = Path(run(["git", "rev-parse", "--show-toplevel"], Path.cwd(), env).strip())
-    revision = run(["git", "rev-parse", "--verify", "--end-of-options", f"{opts.revision}^{{commit}}"], repo, env).strip()
+    if opts.archive:
+        revision = opts.revision
+        if not re.fullmatch(r"[a-f0-9]{40}(?:[a-f0-9]{24})?", revision):
+            ap.error("--archive requires a full Git commit hash")
+    else:
+        repo = Path(run(["git", "rev-parse", "--show-toplevel"], Path.cwd(), env).strip())
+        revision = run(["git", "rev-parse", "--verify", "--end-of-options", f"{opts.revision}^{{commit}}"], repo, env).strip()
     parent.mkdir()
     source = parent / "src"
     source.mkdir()
     (parent / "revision").write_text(revision + "\n")
-    archive(revision, repo, source)
+    source_input = unpack_archive(revision, opts.archive, source) if opts.archive else None
+    if source_input is None:
+        archive(revision, repo, source)
     version = run(["go", "version"], source, env)
     (parent / "toolchain.txt").write_text(version + f"{platform.system()} {platform.machine()}\n")
     packages = run(["go", "list", "./..."], source, env).splitlines()
@@ -116,7 +137,10 @@ def main():
         lanes[lane] = base + ["-p", "1", "./brep/trimmed", "-run", "^(" + "|".join(split) + ")$"]
     mode = "race" if opts.race else "ordinary"
     go_env = {name: env[name] for name in ("GOCACHE", "CGO_ENABLED", "GOMAXPROCS")}
-    (parent / "run-commands.json").write_text(json.dumps({"mode": mode, "commands": lanes, "goEnvironment": go_env}, indent=2) + "\n")
+    run_record = {"mode": mode, "commands": lanes, "goEnvironment": go_env}
+    if source_input:
+        run_record["sourceInput"] = source_input
+    (parent / "run-commands.json").write_text(json.dumps(run_record, indent=2) + "\n")
     rc = 0
     with ThreadPoolExecutor(max_workers=opts.jobs) as executor, (parent / "status.tsv").open("w") as status:
         waiting = {executor.submit(run, argv, source, env, parent / f"{lane}.jsonl"): lane for lane, argv in lanes.items()}
@@ -135,5 +159,5 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+    except (OSError, ValueError, subprocess.CalledProcessError, tarfile.TarError) as error:
         sys.exit(str(error))

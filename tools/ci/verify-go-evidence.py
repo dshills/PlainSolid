@@ -143,8 +143,9 @@ def main():
         return
     require(set(statuses) == set(lanes), f"missing final lane exit status: {sorted(set(lanes) - set(statuses))}")
     revision = (stage / "revision").read_text().strip()
-    require(re.fullmatch(r"[0-9a-f]{40}", revision), "invalid Git revision")
+    require(re.fullmatch(r"[0-9a-f]{40}(?:[0-9a-f]{24})?", revision), "invalid Git revision")
     launcher = stage / "run-commands.json"
+    source_input = None
     if launcher.is_file():
         run = json.loads(launcher.read_text())
         mode = run.get("mode")
@@ -155,6 +156,11 @@ def main():
             require(isinstance(command, list) and command[:2] == ["go", "test"] and
                     ("-race" in command) == (mode == "race") and "-count=1" in command and "-json" in command,
                     "recorded Go lane command disagrees with qualification mode")
+        source_input = run.get("sourceInput")
+        if source_input is not None:
+            require(isinstance(source_input, dict) and source_input.get("kind") == "git archive" and
+                    re.fullmatch(r"[0-9a-f]{64}", str(source_input.get("sha256", ""))),
+                    "invalid qualification source archive record")
     else:
         launcher = stage / "run.sh"
         mode = "race" if "go test -race " in launcher.read_text() else "ordinary"
@@ -180,6 +186,8 @@ def main():
         "sourceArtifacts": [artifact(p) for p in [package_list, status_path, launcher, *files, *schedules]],
         "lanes": reports,
     }
+    if source_input is not None:
+        result["sourceInput"] = source_input
     opts.output.write_text(json.dumps(result, indent=2) + "\n")
     print(result["summary"])
 
