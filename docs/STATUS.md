@@ -3254,5 +3254,7 @@ the new seam. Exact knot removal succeeds only when reinsertion
 reproduces every original homogeneous ordinate, on every row of a
 tensor. Exact degree elevation on curves or either periodic tensor
 direction preserves the original continuity requirement and physical
-geometry. General tensor trim arrangements, degree reduction and
-neutral exchange of these edited splines remain open.
+geometry. Exact reduction verifies each lowered homogeneous piece
+and whole-tensor continuity before publishing the result. General
+tensor trim arrangements and neutral exchange of these edited splines
+remain open.

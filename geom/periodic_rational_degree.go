@@ -105,13 +105,8 @@ func (a exactTensorSplineAxis) elevation(ctx context.Context, maxPoles int, b *p
 	if err != nil {
 		return e, err
 	}
-	knots := make([]*big.Rat, 0, q*len(windows)+1)
 	for i := range windows {
 		w := &windows[i]
-		station := w.owner.Domain.Lower
-		for range q {
-			knots = append(knots, station)
-		}
 		old := w.weights
 		w.weights = make([][]*big.Rat, q+1)
 		w.weights[0], w.weights[q] = old[0], old[q-1]
@@ -128,29 +123,43 @@ func (a exactTensorSplineAxis) elevation(ctx context.Context, maxPoles int, b *p
 			w.weights[j] = row
 		}
 	}
-	knots = append(knots, a.knots[a.count])
-	axis, err := newExactCyclicAxis(ctx, q, knots, b)
+	axis, removals, err := a.changedDegreeBasis(ctx, windows, q, b)
 	if err != nil {
 		return e, err
 	}
-	// In the initial elevated Bézier basis every knot has degree
-	// multiplicity. Prove each redundant copy can be removed so that
-	// the final degree-minus-multiplicity equals the original one.
+	return cyclicElevation{windows, removals, axis, q}, nil
+}
+
+func (a exactTensorSplineAxis) changedDegreeBasis(ctx context.Context, windows []periodicTensorWindow, degree int,
+	b *polynomialBudget) (exactCyclicAxis, []cyclicKnotRemoval, error) {
+	knots := make([]*big.Rat, 0, degree*len(windows)+1)
+	for _, w := range windows {
+		for range degree {
+			knots = append(knots, w.owner.Domain.Lower)
+		}
+	}
+	knots = append(knots, a.knots[a.count])
+	axis, err := newExactCyclicAxis(ctx, degree, knots, b)
+	if err != nil {
+		return exactCyclicAxis{}, nil, err
+	}
+	// The temporary Bézier basis has full degree multiplicity at each
+	// station. The final one keeps at least one copy of every station.
 	var removals []cyclicKnotRemoval
 	previous := -1
 	for _, w := range windows {
-		desired := w.owner.Span - previous + 1
+		desired := max(1, w.owner.Span-previous+degree-a.degree)
 		previous = w.owner.Span
-		for j := desired; j < q; j++ {
+		for j := desired; j < degree; j++ {
 			p, err := axis.removal(ctx, w.owner.Domain.Lower, b)
 			if err != nil {
-				return e, err
+				return exactCyclicAxis{}, nil, err
 			}
 			removals = append(removals, p)
 			axis = p.axis
 		}
 	}
-	return cyclicElevation{windows, removals, axis, q}, nil
+	return axis, removals, nil
 }
 
 func (e cyclicElevation) elevate(ctx context.Context, source []exactHomogeneous, b *polynomialBudget) ([]exactHomogeneous, error) {
@@ -172,20 +181,28 @@ func (e cyclicElevation) elevate(ctx context.Context, source []exactHomogeneous,
 			if err != nil {
 				return nil, err
 			}
-			if h[3].Sign() <= 0 {
-				return nil, ErrConvergence
-			}
-			index := ((i+1)*q - 1 + j) % len(net)
-			if net[index][3] != nil {
-				if err := checkKnotRemovalPole(net[index], h, b); err != nil {
-					return nil, err
-				}
-			} else {
-				net[index] = h
+			if err := bindCyclicBezierPole(net, q, i, j, h, b); err != nil {
+				return nil, err
 			}
 		}
 	}
-	for _, r := range e.removals {
+	return reduceCyclicBezierBasis(ctx, net, e.removals, b)
+}
+
+func bindCyclicBezierPole(net []exactHomogeneous, degree, span, local int, h exactHomogeneous, b *polynomialBudget) error {
+	if h[3].Sign() <= 0 {
+		return ErrUnrepresentable
+	}
+	index := ((span+1)*degree - 1 + local) % len(net)
+	if net[index][3] != nil {
+		return checkKnotRemovalPole(net[index], h, b)
+	}
+	net[index] = h
+	return nil
+}
+
+func reduceCyclicBezierBasis(ctx context.Context, net []exactHomogeneous, removals []cyclicKnotRemoval, b *polynomialBudget) ([]exactHomogeneous, error) {
+	for _, r := range removals {
 		var err error
 		net, err = r.recover(ctx, net, b)
 		if err != nil {

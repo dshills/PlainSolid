@@ -320,6 +320,12 @@ match the independent original Bézier restrictions on both sides of
 the seam and in a far cycle. Both tensor directions accept nonuniform
 elevation. Short temporary pole or work budgets return no result.
 Main's complete periodic race passed in 5.115 seconds.
+An inverse degree change recovers the full original homogeneous net
+after two elevations of a weighted nonuniform curve and one of a
+mixed tensor. Reduction checks the final Bézier endpoint independently
+and refuses a genuinely higher-degree source, an ordinary tensor axis,
+one modified row and a short work budget. Main's periodic race passed in
+6.815 seconds.
 
 The [full ordinary Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
 later passed all nine lanes on macOS ARM64. The independent inventory
