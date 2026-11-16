@@ -268,6 +268,13 @@ nearest point on its inserted knot in cycle `2^100` and brackets both
 original line contacts under their refined owners. A one-cell extraction
 limit leaves the complete original line-search window pending. All 38
 periodic tests passed under the race detector in 8.411 seconds.
+The native exact periodic geometry codec round-trips edited weighted
+curves and tensors byte for byte. Rational replay reproduces the curve
+jet and the original right owner at a discontinuous ordinary tensor
+knot. Numerical adapters agree after reload. Noncanonical fractions,
+exponent payloads, changed knot modes, unknown controls and short pole
+budgets refuse without returning geometry. Main's sealed geometry
+and parametric codec race groups passed in 6.687 and 1.397 seconds.
 
 The [full ordinary Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
 later passed all nine lanes on macOS ARM64. The independent inventory

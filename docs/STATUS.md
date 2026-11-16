@@ -3222,5 +3222,9 @@ also preserves the inserted knots, seams, discontinuities and clipped
 physical ranges for curves and tensors. The edited curve supports exact
 plane sections, certified point distance and tessellation. The edited
 tensor supports certified point distance and bounded rational line
-contacts. Periodic seam multiplicity changes, general tensor trim
-arrangements and exchange of these edited splines remain open.
+contacts. The native geometry codec now round-trips exact rational
+knots and controls without choosing floating poles. The ordinary
+curve/surface interfaces evaluate the represented query values and
+round only their results. Periodic seam multiplicity changes, general
+tensor trim arrangements and neutral exchange of these edited splines
+remain open.

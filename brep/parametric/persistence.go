@@ -60,6 +60,7 @@ type surfaceData struct {
 	Meridian         *[2]geom.Vec2            `json:",omitempty"`
 	Spline           *geom.BSplineSurfaceData `json:",omitempty"`
 	PeriodicSpline   *periodicSplineAxes      `json:",omitempty"`
+	ExactPeriodic    *exactPeriodicSplineData `json:",omitempty"`
 	Center           *geom.Vec3               `json:",omitempty"`
 	Other            *surfaceData             `json:",omitempty"`
 	U0, U1           *Interval                `json:",omitempty"`
@@ -360,6 +361,20 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 			return surfaceData{}, geom.ErrInvalid
 		}
 		return surfaceData{Kind: "periodic-spline-surface", Spline: &d, PeriodicSpline: &periodicSplineAxes{U: u, V: v}}, nil
+	case *geom.ExactPeriodicSplineSurface:
+		a, b := x.ControlShape()
+		if a == 0 || b == 0 {
+			return surfaceData{}, geom.ErrInvalid
+		}
+		if a > exactPeriodicMaxControls/b {
+			return surfaceData{}, geom.ErrConvergence
+		}
+		u, v, h := x.Data()
+		d, err := encodeExactPeriodicSpline(u, &v, h)
+		if err != nil {
+			return surfaceData{}, err
+		}
+		return surfaceData{Kind: "exact-periodic-spline-surface", ExactPeriodic: d}, nil
 	case *geom.WrappedSurfacePatch:
 		if x == nil || x.FundamentalPatch() == nil {
 			return surfaceData{}, geom.ErrInvalid
@@ -381,6 +396,16 @@ func encodeSurface(s geom.Surface) (surfaceData, error) {
 }
 
 func (d surfaceData) decode(budget *int) (geom.Surface, error) {
+	if (d.Kind == "exact-periodic-spline-surface") != (d.ExactPeriodic != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if x := d.ExactPeriodic; x != nil {
+		if x.V == nil || d != (surfaceData{Kind: d.Kind, ExactPeriodic: x}) {
+			return nil, geom.ErrInvalid
+		}
+		_, s, err := x.decode(budget)
+		return s, err
+	}
 	if (d.Kind == "periodic-spline-surface") != (d.PeriodicSpline != nil) {
 		return nil, geom.ErrInvalid
 	}
@@ -884,6 +909,7 @@ type curveData struct {
 	Side              int                      `json:",omitempty"`
 	Start, Period     float64                  `json:",omitempty"`
 	Seam              *geom.ClosedCurveOptions `json:",omitempty"`
+	ExactPeriodic     *exactPeriodicSplineData `json:",omitempty"`
 }
 
 func encodeCurve(c geom.Curve) (*curveData, error) {
@@ -931,6 +957,20 @@ func encodeCurve(c geom.Curve) (*curveData, error) {
 		}
 		start, _ := x.Domain()
 		return &curveData{Kind: "periodic-spline", Degree: x.Degree(), Poles: x.Poles(), Weights: x.Weights(), Start: start, Period: x.Period()}, nil
+	case *geom.ExactPeriodicSplineCurve:
+		n := x.ControlCount()
+		if n == 0 {
+			return nil, geom.ErrInvalid
+		}
+		if n > exactPeriodicMaxControls {
+			return nil, geom.ErrConvergence
+		}
+		a := geom.ExactTensorSplineAxis{Degree: x.Degree(), Count: n, Periodic: true, Knots: x.Knots()}
+		d, err := encodeExactPeriodicSpline(a, nil, x.HomogeneousControls())
+		if err != nil {
+			return nil, err
+		}
+		return &curveData{Kind: "exact-periodic-spline", ExactPeriodic: d}, nil
 
 	case *geom.BSpline:
 		if x == nil {
@@ -956,6 +996,16 @@ func encodeCurve(c geom.Curve) (*curveData, error) {
 func (d *curveData) decode(budget *int) (geom.Curve, error) {
 	if d == nil {
 		return nil, nil
+	}
+	if (d.Kind == "exact-periodic-spline") != (d.ExactPeriodic != nil) {
+		return nil, geom.ErrInvalid
+	}
+	if x := d.ExactPeriodic; x != nil {
+		if x.V != nil || !validExactPeriodicCurveEnvelope(*d) {
+			return nil, geom.ErrInvalid
+		}
+		c, _, err := x.decode(budget)
+		return c, err
 	}
 	if d.Kind == "mapped" {
 		if d.Base == nil || d.Base.Kind == "mapped" || d.Transform == nil {
