@@ -18,6 +18,14 @@ display cases. Direct pinned OCCT Boolean results did not consistently
 reproduce the topology, so independently authored pinned lenses and
 closed-form moments supply the reference comparison.
 
+[Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
+separately qualifies 40 files and 48 positive solids from the same
+native topology. The independent read-back checked 608 directed
+coedges and 320 fourth-order jet uses. An exact fractional parameter
+map fixes transfer of the transposed upper envelope in the pinned
+reader while retaining the original owner traces. All 80 prior files
+in the neutral regression audit stayed byte identical.
+
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips
 among 6,460 inventoried cases. All 53 tested packages passed; eight have
