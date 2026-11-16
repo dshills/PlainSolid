@@ -377,9 +377,12 @@ static bool writeExactUVSeams(const char* path, std::string_view mode)
                                         gp_XY(1.75,7.25),gp_XY(1.25,7.25),gp_XY(1.25,7)};
         return write(outer,1.25,1.75,6.75,7.25);
     }
-    const std::array<gp_XY,8> outer{gp_XY(4.75,6.75),gp_XY(5,6.75),gp_XY(5.25,6.75),gp_XY(5.25,7),
-                                    gp_XY(5.25,7.25),gp_XY(5,7.25),gp_XY(4.75,7.25),gp_XY(4.75,7)};
-    return write(outer,4.75,5.25,6.75,7.25);
+    const bool unequal = mode == "write-exact-uv-both-seams-unequal";
+    const double u0 = unequal ? 4.5 : 4.75, v0 = unequal ? 6.5 : 6.75;
+    std::array<gp_XY,8> outer{gp_XY(u0,v0),gp_XY(5,v0),gp_XY(5.25,v0),gp_XY(5.25,7),
+                              gp_XY(5.25,7.25),gp_XY(5,7.25),gp_XY(u0,7.25),gp_XY(u0,7)};
+    if (mode == "write-exact-uv-both-seams-clockwise") std::reverse(outer.begin(),outer.end());
+    return write(outer,u0,5.25,v0,7.25);
 }
 
 int main(int argc,char** argv)
@@ -407,7 +410,8 @@ int main(int argc,char** argv)
         if (mode == "write-exact-uv-cell" || mode == "write-exact-uv-cell-clockwise") {
             return writeExactUVCell(argv[2],mode == "write-exact-uv-cell-clockwise") ? 0 : 8;
         }
-        if (mode == "write-exact-uv-u-seam" || mode == "write-exact-uv-v-seam" || mode == "write-exact-uv-both-seams") {
+        if (mode == "write-exact-uv-u-seam" || mode == "write-exact-uv-v-seam" || mode == "write-exact-uv-both-seams" ||
+            mode == "write-exact-uv-both-seams-unequal" || mode == "write-exact-uv-both-seams-clockwise") {
             return writeExactUVSeams(argv[2],mode) ? 0 : 8;
         }
         if (mode == "write" || mode == "write-seam") {
