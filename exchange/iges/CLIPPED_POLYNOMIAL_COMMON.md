@@ -1,8 +1,9 @@
-# Source-backed transverse clipped Common through IGES
+# Source-backed clipped Common through IGES
 
 `WriteClippedPolynomialCommon` transfers the proved Common of two
-unequal-footprint polynomial stocks with two transverse crossings. Its
-single type 186 solid retains the original roof and base spline data,
+unequal-footprint polynomial stocks with two transverse crossings or a
+cubic crossing and quadratic tangency. Its single type 186 solid retains
+the original roof and base spline data,
 the bounded planar wall charts with their original parameter clocks,
 and the two signed type 126 pcurve owners for each shared model edge.
 `VerifyClippedPolynomialCommonIGES` authenticates the topology, supports,
@@ -31,12 +32,16 @@ PLAINSOLID_OCCT_CLIPPED_COMMON_IGES=/tmp/plainsolid-occt-clipped-cut-iges \
   go test -race ./exchange/iges -run '^TestWriteClippedPolynomial(ThreeTransverseCommon|Common)$' -count=1 -v
 ```
 
-The reader qualifies one valid solid with 14 faces, 32 edges and all 20
-original vertices. It measures volume 11.970411420799792 mm³ and area
-32.983255727388539 mm². The mixed higher-order native fixture returns
-`geom.ErrDomain` before export or verification. A raw analytic transfer
-of that comparator gives an unorientable face and a self-intersecting
-wire in the same pinned OCCT reader.
+The transverse readback has 14 faces, 32 edges and all 20 original
+vertices. It measures volume 11.970411420799792 mm³ and area
+32.983255727388539 mm². The mixed Common splits one original cusp lens
+where its two branches already have proved midpoint vertices. The seam
+is a constant-station curve on the unchanged roof chart. The independent
+reader accepts the resulting 15-face solid with 33 edges and the same
+20 vertices, with volume 11.970703124180975 mm³ and area
+31.655122029933921 mm². Both tip orders use the same split. The old
+unsplit wire fails independent validation and canonical authentication;
+the transverse stream is byte-identical.
 
 Both three-crossing fixtures reopen as one valid solid with 15 faces,
 36 edges and 23 exact vertices. The independent reader matches every edge

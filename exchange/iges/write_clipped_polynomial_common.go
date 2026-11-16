@@ -15,15 +15,19 @@ import (
 // decimal serialization of derived model and parameter-space curve poles.
 type ClippedPolynomialCommonIGESOptions = ClippedPolynomialFuseIGESOptions
 
-// WriteClippedPolynomialCommon writes a source-proved transverse clipped
-// Common as one type 186 solid. It retains both roof charts, the base and
-// planar wall charts, and the two original parameter-space uses of each edge.
-// A higher-order contact is outside the supported wire family.
+// WriteClippedPolynomialCommon writes a source-proved clipped Common as one
+// type 186 solid. It preserves the original supports and paired coedges.
+// If the original contacts are cubic and quadratic, it splits the cusp
+// lens on its original roof so that each wire retains just one tip.
 func WriteClippedPolynomialCommon(ctx context.Context, w io.Writer, common *trimmed.AlignedPolynomialEnvelope, unit float64, l Limits, o ClippedPolynomialCommonIGESOptions) error {
-	if err := requireTransverseClippedCommonIGES(common); err != nil {
+	if ctx == nil || w == nil {
+		return geom.ErrInvalid
+	}
+	boundary, err := clippedCommonIGESBoundary(ctx, common, o)
+	if err != nil {
 		return err
 	}
-	return writeExactBezierSingleIGES(ctx, w, common.Boundary(), unit, l, o)
+	return writeExactBezierSingleIGES(ctx, w, boundary, unit, l, o)
 }
 
 // VerifyClippedPolynomialCommonIGES matches the original type 186 geometry,
@@ -33,8 +37,8 @@ func VerifyClippedPolynomialCommonIGES(ctx context.Context, input io.Reader, com
 	if ctx == nil || input == nil {
 		return geom.ErrInvalid
 	}
-	if err := requireTransverseClippedCommonIGES(common); err != nil {
-		return err
+	if _, ok := common.ClippedFootprint(); !ok {
+		return geom.ErrInvalid
 	}
 	return verifyClippedCommonIGES(ctx, input, l, func(w io.Writer) error {
 		return WriteClippedPolynomialCommon(ctx, w, common, unit, l, o)
@@ -88,16 +92,21 @@ func verifyClippedCommonIGES(ctx context.Context, input io.Reader, l Limits, wri
 	return ctx.Err()
 }
 
-func requireTransverseClippedCommonIGES(common *trimmed.AlignedPolynomialEnvelope) error {
+func clippedCommonIGESBoundary(ctx context.Context, common *trimmed.AlignedPolynomialEnvelope, o ClippedPolynomialCommonIGESOptions) (trimmed.Solid, error) {
 	if _, ok := common.ClippedFootprint(); !ok {
-		return geom.ErrInvalid
+		return trimmed.Solid{}, geom.ErrInvalid
 	}
-	for _, contact := range common.Contacts() {
-		if contact.Order != 1 {
-			return fmt.Errorf("iges: clipped Common requires transverse wire contacts: %w", geom.ErrDomain)
-		}
+	contacts := common.Contacts()
+	switch [2]int{contacts[0].Order, contacts[1].Order} {
+	case [2]int{1, 1}:
+		return common.Boundary(), nil
+	case [2]int{2, 3}, [2]int{3, 2}:
+		return common.SubdivideClippedCommonLens(ctx, geom.GraphPointContactOptions{
+			MaxOperations: o.Proof.MaxWork, MaxCoefficientBits: o.Proof.MaxBits,
+		})
+	default:
+		return trimmed.Solid{}, fmt.Errorf("iges: unsupported clipped Common contact orders: %w", geom.ErrDomain)
 	}
-	return nil
 }
 
 func requireThreeTransverseClippedCommonIGES(common *trimmed.ClippedPolynomialThreeTransverseCommon) error {

@@ -3,7 +3,9 @@ package iges
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"os"
@@ -30,15 +32,6 @@ func TestWriteClippedPolynomialCommon(t *testing.T) {
 				t.Fatal(err)
 			}
 			var output bytes.Buffer
-			if layout == "mixed" {
-				if err := WriteClippedPolynomialCommon(ctx, &output, common, .001, Limits{}, opts); !errors.Is(err, geom.ErrDomain) || output.Len() != 0 {
-					t.Fatalf("higher-order cusp published IGES bytes: %v", err)
-				}
-				if err := VerifyClippedPolynomialCommonIGES(ctx, &output, common, .001, Limits{}, opts); !errors.Is(err, geom.ErrDomain) {
-					t.Fatalf("higher-order cusp reached IGES authentication: %v", err)
-				}
-				return
-			}
 			if err := WriteClippedPolynomialCommon(ctx, &output, common, .001, Limits{}, opts); err != nil {
 				t.Fatal(err)
 			}
@@ -48,10 +41,43 @@ func TestWriteClippedPolynomialCommon(t *testing.T) {
 				t.Fatalf("original IGES units %g: %v", graph.unit, err)
 			}
 			body := common.Boundary()
-			loop := checkClippedCommonIGESGraph(t, graph, body)
 			verify := func(data []byte, unit float64) error {
 				return VerifyClippedPolynomialCommonIGES(ctx, bytes.NewReader(data), common, unit, Limits{}, opts)
 			}
+			if layout == "mixed" {
+				original := body
+				body, err = common.SubdivideClippedCommonLens(ctx, geom.GraphPointContactOptions{})
+				if err != nil || len(body.Vertices()) != len(original.Vertices()) || len(body.Faces()) != len(original.Faces())+1 ||
+					len(body.Edges()) != len(original.Edges())+1 {
+					t.Fatal("mixed transfer must split just one original lens without changing its vertices", err)
+				}
+				var unsplit bytes.Buffer
+				if err := writeExactBezierSingleIGES(ctx, &unsplit, original, .001, Limits{}, opts); err != nil {
+					t.Fatal(err)
+				}
+				if err := verify(unsplit.Bytes(), .001); !errors.Is(err, geom.ErrConvergence) {
+					t.Fatalf("original nonportable cusp wire was accepted: %v", err)
+				}
+				oldGraph, err := readTopologySource(bytes.NewReader(unsplit.Bytes()), Limits{}, true)
+				if err != nil {
+					t.Fatal(err)
+				}
+				var refused bytes.Buffer
+				short := opts
+				short.Proof.MaxWork = 1
+				if err := WriteClippedPolynomialCommon(ctx, &refused, common, .001, Limits{}, short); err == nil || refused.Len() != 0 {
+					t.Fatalf("exhausted cusp proof published bytes: %v", err)
+				}
+				if err := WriteClippedPolynomialCommon(ctx, &refused, common, .001, Limits{MaxEntities: len(oldGraph.entities)}, opts); err == nil || refused.Len() != 0 {
+					t.Fatalf("rejected cusp split published part of a solid: %v", err)
+				}
+			} else {
+				const before = "a0edad01ea1d65edf4577239331570fca4f6c20a60dc012747a6f1cfefdc973e"
+				if got := fmt.Sprintf("%x", sha256.Sum256(raw)); got != before {
+					t.Fatalf("unchanged transverse export hash %s, want %s", got, before)
+				}
+			}
+			loop := checkClippedCommonIGESGraph(t, graph, body)
 			if err := verify(bytes.Replace(raw, []byte("PlainSolid exact"), []byte("PlainSolid check"), 1), .001); err != nil {
 				t.Fatal("harmless start annotation", err)
 			}
