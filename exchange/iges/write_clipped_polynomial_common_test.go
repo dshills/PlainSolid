@@ -195,7 +195,7 @@ func checkClippedCommonIGESOwner(t *testing.T, faceIndex, useIndex int, face tri
 	}
 }
 
-func checkOCCTClippedCommonIGES(t *testing.T, ctx context.Context, oracle string, raw []byte, body trimmed.Solid) {
+func checkOCCTClippedCommonIGES(t *testing.T, ctx context.Context, oracle string, raw []byte, body trimmed.Solid) occtExactBezierIGESComponent {
 	t.Helper()
 	result := readOCCTExactBezierIGES(t, ctx, oracle, raw)
 	points := body.Vertices()
@@ -222,4 +222,5 @@ func checkOCCTClippedCommonIGES(t *testing.T, ctx context.Context, oracle string
 	}
 	t.Logf("OCCT transferred one valid solid: %d faces, %d edges, %d exact original vertices, volume %.16g, area %.16g",
 		part.Faces, part.Edges, result.IndexedVertices, part.Volume, part.Area)
+	return part
 }

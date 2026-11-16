@@ -9,6 +9,7 @@
 #include <TopExp_Explorer.hxx>
 #include <TopTools_ShapeMapHasher.hxx>
 #include <TopoDS.hxx>
+#include <TopoDS_Vertex.hxx>
 #include <TopoDS_Shape.hxx>
 #include <iomanip>
 #include <iostream>
@@ -39,15 +40,16 @@ int main(int argc, char** argv) {
         bool first = true;
         for (TopExp_Explorer part(shape, TopAbs_SOLID); part.More(); part.Next()) {
             const auto body = part.Current();
-            IndexedShapes points;
+            IndexedShapes points, edges;
             TopExp::MapShapes(body, TopAbs_VERTEX, points);
+            TopExp::MapShapes(body, TopAbs_EDGE, edges);
             GProp_GProps volume, area;
             const double error = BRepGProp::VolumeProperties(body, volume, 1e-10, true);
             BRepGProp::SurfaceProperties(body, area, 1e-10);
             if (!first) std::cout << ',';
             first = false;
             std::cout << "{\"Faces\":" << count(body, TopAbs_FACE)
-                      << ",\"Edges\":" << count(body, TopAbs_EDGE)
+                      << ",\"Edges\":" << edges.Extent()
                       << ",\"Shells\":" << count(body, TopAbs_SHELL)
                       << ",\"Volume\":" << volume.Mass()
                       << ",\"Area\":" << area.Mass()
@@ -57,6 +59,13 @@ int main(int argc, char** argv) {
                 const auto p = BRep_Tool::Pnt(TopoDS::Vertex(points(j)));
                 if (j > 1) std::cout << ',';
                 std::cout << '[' << p.X() << ',' << p.Y() << ',' << p.Z() << ']';
+            }
+            std::cout << "],\"EdgeVertices\":[";
+            for (int j = 1; j <= edges.Extent(); ++j) {
+                TopoDS_Vertex start, end;
+                TopExp::Vertices(TopoDS::Edge(edges(j)), start, end);
+                if (j > 1) std::cout << ',';
+                std::cout << '[' << points.FindIndex(start) - 1 << ',' << points.FindIndex(end) - 1 << ']';
             }
             std::cout << "]}";
         }

@@ -9,6 +9,11 @@ and the two signed type 126 pcurve owners for each shared model edge.
 owners, exact vertices, physical units and transfer settings against the
 native receipt. Start-section annotations may vary.
 
+`WriteClippedPolynomialThreeTransverseCommon` and its verifier use the same
+single-solid transfer for the three-crossing family. Each junction keeps one
+exact vertex record and all four original incident model edges, with the
+signed owner pcurves in their original charts.
+
 The transverse fixture uses millimetres and an explicit `1e-14` maximum
 coordinate error for derived interior model and pcurve poles. Its type
 502 vertices, curve endpoints, weights and original support data keep
@@ -23,7 +28,7 @@ that same executable.
 
 ```sh
 PLAINSOLID_OCCT_CLIPPED_COMMON_IGES=/tmp/plainsolid-occt-clipped-cut-iges \
-  go test -race ./exchange/iges -run '^TestWriteClippedPolynomialCommon$' -count=1 -v
+  go test -race ./exchange/iges -run '^TestWriteClippedPolynomial(ThreeTransverseCommon|Common)$' -count=1 -v
 ```
 
 The reader qualifies one valid solid with 14 faces, 32 edges and all 20
@@ -32,3 +37,7 @@ original vertices. It measures volume 11.970411420799792 mm³ and area
 `geom.ErrDomain` before export or verification. A raw analytic transfer
 of that comparator gives an unorientable face and a self-intersecting
 wire in the same pinned OCCT reader.
+
+Both three-crossing fixtures reopen as one valid solid with 15 faces,
+36 edges and 23 exact vertices. The independent reader matches every edge
+to its original endpoints and checks volume and area for both layouts.

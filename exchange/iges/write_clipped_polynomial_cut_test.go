@@ -182,13 +182,16 @@ func replaceExactBezierIGESParameterDigit(t *testing.T, raw []byte, entity, para
 	t.Fatalf("no parameter %d in IGES entity %d", parameter, entity)
 }
 
+type occtExactBezierIGESComponent struct {
+	Faces, Edges, Shells int
+	Area, Volume         float64
+	Vertices             [][3]float64
+	EdgeVertices         [][2]int
+}
+
 type occtExactBezierIGESReport struct {
 	Faces, Solids, TransferredRoots, IndexedVertices int
-	Components                                       []struct {
-		Faces, Edges, Shells int
-		Area, Volume         float64
-		Vertices             [][3]float64
-	}
+	Components                                       []occtExactBezierIGESComponent
 }
 
 func readOCCTExactBezierIGES(t *testing.T, ctx context.Context, oracle string, data []byte) occtExactBezierIGESReport {
