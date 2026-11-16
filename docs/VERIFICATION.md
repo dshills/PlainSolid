@@ -126,6 +126,13 @@ original/corrected readback. The opt-in `3e-12` mm budget succeeds and
 reports are byte identical. The seven exact world placements, paint on
 original face #348 and the single override at `[54,85,254]` survive.
 The earlier unstyled corrected STEP and replay receipt still match.
+The [strict styled editable document milestone](evidence/mixed-conical-ap242-dag-document-appearance-2026-11-16.json)
+passed the pinned writeback and refusal cases and the legacy document and
+receipt regressions. Independent XCAF reopened the recolored shared
+product, a single magenta occurrence override and the orange original
+cap on each of its three uses after exact local placement changes.
+The writer kept all 516 entity identities and rebinds the original SHUO
+context if a shared placement datum needs a separate physical frame.
 
 The [explicit rounded conical STEP repair](evidence/conical-rim-fillet-default-step-repair-2026-11-15.json)
 was checked against independently pinned OCCT authoring and readback. The

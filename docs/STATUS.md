@@ -61,7 +61,9 @@ repaired depth-three inputs support editable native documents and
 relationship writeback, with a conflict check for expanded shared uses.
 The strict depth-three exchange path now also reads product surface fills,
 face fills and an occurrence override authenticated on its full original
-SHUO path. Editable appearance and appearance writeback remain in progress.
+SHUO path. The strict editable document retains paint and provenance through
+native save/load. STEP writeback can repaint those same original styles and
+edit placement while keeping the contextual override bound to its exact path.
 The independently rounded styled input has explicit repair with an
 original STEP receipt. Both styles and source owners survive corrected
 strict exchange. The repaired editable document path is in progress.
