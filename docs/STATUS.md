@@ -72,6 +72,9 @@ The strict separation proof for parabola and circle no longer requires
 globally disjoint ordinate ranges. It certifies the original quartic over
 the local circle projection, so overlapping ranges can still support
 exact native Common, Fuse and Cut.
+The locally separated Cuts also have certified closed display in both
+axes and orders, including a rotated and scaled instance of the tiny
+positive lens.
 Certified display of the separated two-circle Cuts now accepts proper
 rational similarities. The proof uses the original world coedge owners
 and reports distance in physical units after rotation and scaling.

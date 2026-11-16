@@ -75,6 +75,13 @@ orders produce 16 positive bodies across 12 cases, including the
 lenses corroborate the source integrals; direct Booleans retained the
 required counts in four of 12 cases. All 60 previous native recipes
 reproduce byte for byte. Tangency, crossings and changed owners refuse.
+The [local separation display race](evidence/parabola-circle-local-separation-display-2026-11-16.json)
+passed in 203.344 seconds on main. Each displayed material volume is
+within 2% of its exact source integral. All identity-chart cases stay
+below `0.01796` mm distance and `0.11452` radian continuous turn. A
+tilted instance preserves the tiny lens at volume scale 125. The
+overlapping component boxes are checked for exact disjointness; all 34
+earlier meshes and four transverse results remain byte identical.
 
 The [proper-similarity display milestone](evidence/parabola-circle-proper-similarity-2026-11-16.json)
 passed its main focused race in 322.877 seconds. Eight components from four

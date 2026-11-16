@@ -341,8 +341,15 @@ func proveParabolaCircleDisplaySeparation(ctx context.Context, meshes []mesh.Mes
 				b.Max.Y < a.Min.Y || a.Max.Z < b.Min.Z || b.Max.Z < a.Min.Z {
 				continue
 			}
+			// Locally separated regions can have overlapping whole-mesh
+			// boxes. Traverse their exact 3D bounds and prove exterior
+			// membership with the same collision limit as the components.
+			if maxPairs == 0 {
+				maxPairs = collision.DefaultMaxPairs
+			}
 			_, err := collision.ValidateMeshVertexContactAssembly(ctx, meshes, nil, collision.VertexContactAssemblyOptions{
-				MaxCrossPairs: maxPairs, Validation: collision.LocationOptions{MaxTriangles: maxTriangles},
+				MaxCrossPairs: maxPairs, CrossBVH: true,
+				Validation: collision.LocationOptions{MaxTriangles: maxTriangles, MaxCollisionPairs: maxPairs},
 			})
 			return err
 		}

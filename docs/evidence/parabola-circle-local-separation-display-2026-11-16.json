@@ -1,0 +1,33 @@
+{
+  "isolate_commit": "1571fa981511184f98d5ac8fc195418f6a81ee49",
+  "patch_sha256": "29f66c1953f63ea224672a5194d79736f2fdb5eb87dfa7ffc69dd326f89b39f7",
+  "main_integration": {
+    "log": "parabola-local-display-main-race.jsonl",
+    "sha256": "4db075229dffd7669c70bc693d38d975fd77981fefc6e8c256c18b964cd12bb5",
+    "package_seconds": 203.344,
+    "named_passes": {
+      "TestCertifiedParabolaLocalSeparationDisplay": 148.58,
+      "TestCertifiedPlacedParabolaLocalSeparationTinyLens": 52.98
+    }
+  },
+  "isolated_final_race": {
+    "elapsed_seconds": 180.72,
+    "sha256": "4fa575dc94e1fe5c91b1fa5b8e7ddbd954bc8f8b24d6de52dfa032c0b5cb9711"
+  },
+  "qualification": {
+    "identity_axes_and_orders": 4,
+    "max_identity_distance": 0.01796,
+    "max_identity_source_turn": 0.11452,
+    "max_relative_volume_error": 0.02,
+    "smallest_exact_source_lens_volume": 2.6129628716e-10,
+    "tiny_lens_mesh_volume": 2.5614672559e-10,
+    "world_chart_linear_scale": 5,
+    "world_chart_volume_scale": 125,
+    "world_distance_limit": 0.25,
+    "world_source_turn_limit": 0.2,
+    "overlapping_boxes_cross_candidates": 6,
+    "cross_contacts": 0,
+    "prior_full_output_digests_matched": 34,
+    "prior_transverse_cases_matched": 4
+  }
+}
