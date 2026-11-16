@@ -889,7 +889,9 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   mesh took 537.171 seconds and matched the exact native receipt.
   A 0.34-radian request and generic import refused even after caching.
   The earlier distance mesh bytes match. The combined main native
-  race is in progress.
+  race reached its 35-minute cumulative limit after the earlier mesh
+  tests passed. The isolated optimized main authored race passed in
+  758.097 seconds with the same output and certificates.
   The [exact split reuse milestone](evidence/plaincad-v13-normal-turn-cache-chromium-2026-11-15.json)
   elapsed 353.730 seconds in a fresh pinned Chromium worker, down
   34.2% from 537.171 seconds. All 2,802 manifested source paths match
@@ -899,6 +901,13 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   original proof budgets, and signed zero keeps its own split encoding.
   Main's sealed race groups passed in 2.232 seconds for geometry and
   4.771 seconds for the trimmed normal and roof proofs.
+  The [exact arithmetic pass](evidence/plaincad-v13-normal-turn-arithmetic-chromium-2026-11-15.json)
+  reduces the fresh pinned worker to 242.025 seconds. More than half
+  of the original 537.171 seconds are saved. The final Go WASM emits the
+  identical raw `7a164d30…` mesh, and the earlier distance result still
+  matches. The audited worktree matches all 2,803 staged source paths.
+  Main's focused race checks prove the same coefficients and proof
+  work near the original numerator and denominator bit limits.
 - The native variable-count clipped Cut (`0091b243`) independently
   checks one, four and five contacts across two axes and two original
   footprint layouts. It agrees with the older two- and three-contact
