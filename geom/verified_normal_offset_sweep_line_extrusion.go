@@ -94,7 +94,10 @@ func (w *sweepLineWork) intersectRuling(ctx context.Context, axis int, ruling [3
 	if err != nil || miss {
 		return nil, err
 	}
-	return nil, ErrConvergence
+	if seed != nil {
+		return nil, ErrConvergence
+	}
+	return w.intersectRulingAlgebraic(ctx, axis, ruling)
 }
 
 func (w *sweepLineWork) tryRulingStation(ctx context.Context, axis int, ruling [3]*big.Rat,
