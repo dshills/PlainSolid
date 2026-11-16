@@ -46,7 +46,18 @@ func provePeriodicConcavePolygonTrimmedFace(ctx context.Context, source periodic
 	if len(source.holes) != 0 {
 		return zero, fmt.Errorf("iges: concave periodic trim requires one outer loop: %w", geom.ErrUnrepresentable)
 	}
-	m, edges, err := provePeriodicAffineOuterGeometry(ctx, &source, "concave", func(uv []periodicTrimUVEdge) error {
+	outer, err := provePeriodicConcaveOuter(ctx, &source)
+	if err != nil {
+		return zero, err
+	}
+	if len(source.graph.claimed) != len(source.graph.records) {
+		return zero, geom.ErrUnrepresentable
+	}
+	return outer, nil
+}
+
+func provePeriodicConcaveOuter(ctx context.Context, source *periodicTrimSource) (PeriodicConcavePolygonTrimmedFace, error) {
+	m, edges, err := provePeriodicAffineOuterGeometry(ctx, source, "concave", func(uv []periodicTrimUVEdge) error {
 		points, _, err := periodicAffineCycle(uv, "concave")
 		if err != nil {
 			return err
@@ -54,10 +65,7 @@ func provePeriodicConcavePolygonTrimmedFace(ctx context.Context, source periodic
 		return provePeriodicUVConcavity(points)
 	})
 	if err != nil {
-		return zero, err
-	}
-	if len(source.graph.claimed) != len(source.graph.records) {
-		return zero, geom.ErrUnrepresentable
+		return PeriodicConcavePolygonTrimmedFace{}, err
 	}
 	return PeriodicConcavePolygonTrimmedFace{
 		LengthUnit: m.LengthUnit, FaceID: m.FaceID, SupportID: m.SupportID, ContourID: m.ContourID,
