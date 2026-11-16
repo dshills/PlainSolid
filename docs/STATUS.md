@@ -477,6 +477,10 @@ the same side of the parabola, even when their free-coordinate
 projections overlap. Native envelopes and Cuts retain both circle
 owners. Exact STEP and IGES controls also preserve each independently
 placed circle and each positive Cut component.
+The two circles may also lie on opposite sides of the open parabola.
+Common and Fuse then keep one original hole on each roof owner. Each
+Cut retains a through-hole layer and one separate positive lens. The
+opposite-side neutral and display races are running independently.
 Full ordinary Go and PlainCAD on `a3b7548d` have passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,

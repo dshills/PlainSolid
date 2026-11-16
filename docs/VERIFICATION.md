@@ -573,6 +573,13 @@ files. Direct pinned Boolean omitted the larger `1.09935568841e-6`
 lens on both axes. Separate pinned OCCT lens construction from exact
 original model and UV arcs confirms its positive volume independently
 of PlainSolid's output. Earlier same-center transfer bytes remain stable.
+The [opposite-side circle proof](evidence/parabola-opposite-circles-native-2026-11-15.json)
+keeps two independent hole owners in Common and Fuse. Each Cut yields
+a five-face wall layer with Euler characteristic zero and a separate
+two-face lens with Euler characteristic two. Exact source integrals
+check all four Cut order and axis combinations. Earlier same-side
+30 native recipes and 60 STEP and IGES files retain their bytes.
+The main new and previous native race passed in 764.804 seconds.
 
 A separate isolated real double-point proof passes with and without a
 disjoint regular branch, including source order swaps and rotated

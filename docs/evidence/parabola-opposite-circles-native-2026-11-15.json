@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "scope": "Native exact Boolean arrangement of an open parabola and one interior circle on each side",
+  "sourceWorktreeRevision": "fcd8162f18628e2ae41c967bf9772b8e187894bd",
+  "geometryAndNativePatch": {
+    "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/parabola-opposite-circles-native.patch",
+    "sha256": "98b0c407124041682864b7f6bc40009800d743f16ec6eaeefb6c5e88dcb098a8"
+  },
+  "nativeRace": {
+    "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/native-race.log",
+    "sha256": "3d02a6fae0ade794d5d729e1603198de9c4ea60b2ada6970ec3b94cb73a9fd31",
+    "packageSeconds": 358.555
+  },
+  "exactSourceIntegrals": {
+    "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/exact-volume.py",
+    "sha256": "4daf2f73304ef28345d7b712c44b4a8635b4346189948c5f516dd2d7bbea2cfa"
+  },
+  "priorSameSideNativeReceiptsIdentical": 30,
+  "priorSameSideNeutralFilesIdentical": 60,
+  "sameSideByteCompatibility": {
+    "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/same-side-byte-compatibility.tsv",
+    "sha256": "9f766a9436c1c0dc4cd5f3a2281bf3a178b06ec116f34da66ef48d01959f52fa"
+  },
+  "nativeFixtureReceipts": [
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/source/common-axis-0-order-0.json",
+      "sha256": "1ce743673917287e36b69eb69548e8288495327102fc561889b3628a847f28e2"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/source/common-axis-0-order-1.json",
+      "sha256": "3e33a5ff6264d6bda0b4f6e212eb479b8733113639bc4ca524bd1b0e28809951"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/source/common-axis-1-order-0.json",
+      "sha256": "dcaedc7eeaf07664fbdfc96e20dd3e9a27e9d37e4e69256def56251b3652a23e"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/source/common-axis-1-order-1.json",
+      "sha256": "391d4dd0988728ef871a49a16defc50d8324928665a41d6b52d04c312719d106"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/source/cut-axis-0-order-0.json",
+      "sha256": "1e77966d6a3246f35f2db112f9ee087214c55bf140cdda1ce23786707a55b155"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/source/cut-axis-0-order-1.json",
+      "sha256": "9eb6fc46fa69eb08975fa6ddb51e5a1a07d1b851f7fbd3ec98d50c69851496b6"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/source/cut-axis-1-order-0.json",
+      "sha256": "89d141f82fac17be37306e52191dd9c4e263953f998c8aeba04829dbcbd74016"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/source/cut-axis-1-order-1.json",
+      "sha256": "ce8d04599edc93a1af1fb83e95b7f3216d9f4cf3ce35ceba1bb5988ee39689aa"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/source/fuse-axis-0-order-0.json",
+      "sha256": "d33db25abec7c713bfc8baca686d4fbb1b846484104375fc1f8c0e536b7768ee"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/source/fuse-axis-0-order-1.json",
+      "sha256": "a9d11583c1380786398434a0a5f4d5c5e6e666a3f614db8df6bca4b5aa37c34c"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/source/fuse-axis-1-order-0.json",
+      "sha256": "9b65513a75d1201d2cc928f126e11c829294c5c0c4a1b01a08c553a0bd637f94"
+    },
+    {
+      "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-evidence/source/fuse-axis-1-order-1.json",
+      "sha256": "250ad0390cc19c7681fdb08bca4f5ee8af1c79ca53ebf8c3d695a1bf2fb3169d"
+    }
+  ],
+  "mainIntegration": {
+    "elapsedSeconds": 764.804,
+    "path": ".worktrees/qualification/2026-11-15/parabola-opposite-circles-main-race.jsonl",
+    "sha256": "a604014112089ba660ecc4feb2c3536c23b1abea0f40f14eb03428be263595fa",
+    "passingOppositeCases": [
+      "TestParabolaOppositeCirclesSourceDiscovery",
+      "TestNativeParabolaOppositeCirclesEnvelopes/0/0/1",
+      "TestNativeParabolaOppositeCirclesEnvelopes/0/0/0",
+      "TestNativeParabolaOppositeCirclesEnvelopes/0/1/1",
+      "TestNativeParabolaOppositeCirclesEnvelopes/0/1/0",
+      "TestNativeParabolaOppositeCirclesEnvelopes/1/0/1",
+      "TestNativeParabolaOppositeCirclesEnvelopes/1/0/0",
+      "TestNativeParabolaOppositeCirclesEnvelopes/1/1/1",
+      "TestNativeParabolaOppositeCirclesEnvelopes/1/1/0",
+      "TestNativeParabolaOppositeCirclesEnvelopes",
+      "TestNativeParabolaOppositeCirclesCuts/0/0",
+      "TestNativeParabolaOppositeCirclesCuts/0/1",
+      "TestNativeParabolaOppositeCirclesCuts/1/0",
+      "TestNativeParabolaOppositeCirclesCuts/1/1",
+      "TestNativeParabolaOppositeCirclesCuts",
+      "TestParabolaOppositeCirclesLedgerRefusals"
+    ]
+  }
+}
