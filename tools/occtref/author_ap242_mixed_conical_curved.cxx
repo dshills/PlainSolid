@@ -434,12 +434,12 @@ int main(int argc, char** argv) {
     const std::string_view mode(argv[1]);
     const bool nest = mode == "write-nested" || mode == "write-nested-exact" || mode == "read-nested";
     const bool appearance = mode == "write-dag-appearance" || mode == "write-dag-rounded-appearance" ||
-                            mode == "read-dag-appearance";
-    const bool roundedFrame = mode == "write-dag-rounded-frame";
+                            mode == "write-dag-rounded-frame-appearance" || mode == "read-dag-appearance";
+    const bool roundedFrame = mode == "write-dag-rounded-frame" || mode == "write-dag-rounded-frame-appearance";
     const bool dag = mode == "write-dag" || mode == "write-dag-exact" || mode == "read-dag" || appearance || roundedFrame;
     auto colors = XCAFDoc_DocumentTool::ColorTool(doc->Main());
     const bool exact = mode == "write-exact" || mode == "write-nested-exact" || mode == "write-dag-exact" ||
-                       mode == "write-dag-appearance" || roundedFrame;
+                       mode == "write-dag-appearance" || mode == "write-dag-rounded-frame";
     if (mode == "write" || mode == "write-exact" || mode == "write-nested" || mode == "write-nested-exact" ||
         mode == "write-dag" || mode == "write-dag-exact" || mode == "write-dag-appearance" ||
         mode == "write-dag-rounded-appearance" || roundedFrame) {
