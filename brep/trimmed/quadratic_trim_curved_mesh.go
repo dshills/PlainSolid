@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"math/big"
 	"plainsolid/geom"
@@ -28,8 +29,11 @@ type CurvedQuadraticTrimMeshOptions struct {
 // Boundary stores the independently certified UV triangulation proposal. This
 // certifies image distance, not surface injectivity, mesh embedding or sewing.
 type CertifiedCurvedQuadraticTrimMesh struct {
-	InteriorRefinementPasses                                                                      int // Fixed-boundary refinement only; Subdivisions stays 1.
-	SpanCellChecks, SpanPieceChecks                                                               int // Zero for the single-span API.
+	// SquaredNormalTangent is the upper bound for an explicitly certified
+	// mapped roof. It is nil on the existing distance-only paths.
+	SquaredNormalTangent                                                                          *big.Rat `json:",omitempty"`
+	InteriorRefinementPasses                                                                      int      // Fixed-boundary refinement only; Subdivisions stays 1.
+	SpanCellChecks, SpanPieceChecks                                                               int      // Zero for the single-span API.
 	Mesh                                                                                          mesh.Mesh
 	ExactUV                                                                                       [][2]*big.Rat
 	ExactPoints                                                                                   [][3]*big.Rat
@@ -178,9 +182,29 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 		}
 	}
 	passes := 0
+	var quality *mappedRoofQuality
+	var normals *mappedRoofNormals
+	if spans != nil && spans.maxKnotCellFlips > 0 {
+		var err error
+		quality, err = newMappedRoofQuality(ctx, p, spans.maxKnotCellFlips)
+		if err != nil {
+			return empty, fmt.Errorf("mapped roof projected quality: %w", err)
+		}
+		if spans.mappedNormalAngle > 0 {
+			normals, err = newMappedRoofNormals(ctx, p, spans.mappedNormalAngle, boundary.Region.FillSquaredDistance)
+			if err != nil {
+				return empty, fmt.Errorf("mapped roof normal cells: %w", err)
+			}
+		}
+	}
 	for n := 1; n <= o.MaxSubdivisions; n *= 2 {
 		if len(result.Mesh.Triangles) > o.MaxTriangleChecks-result.TriangleChecks {
 			return empty, geom.ErrConvergence
+		}
+		if quality != nil {
+			if err := quality.improve(ctx, &result); err != nil {
+				return empty, fmt.Errorf("mapped roof projected quality: %w", err)
+			}
 		}
 		result.SquaredErrors = nil
 		result.OriginalFace = nil
@@ -214,7 +238,15 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 				maximum = bound
 			}
 		}
-		if maximum.Cmp(quarter) <= 0 && n >= minimum {
+		distanceReady := maximum.Cmp(quarter) <= 0 && n >= minimum
+		if distanceReady && normals != nil {
+			var e error
+			result.SquaredNormalTangent, e = normals.certify(ctx, p, result)
+			if e != nil {
+				return empty, fmt.Errorf("mapped roof normal cone: %w", e)
+			}
+		}
+		if distanceReady && (normals == nil || result.SquaredNormalTangent != nil) {
 			if e := result.Mesh.Validate(); e != nil {
 				return empty, e
 			}
@@ -231,6 +263,9 @@ func tessellateCertifiedTrimBoundaryDisplayMode(ctx context.Context, p *geom.Sur
 			return result, nil
 		}
 		if n == o.MaxSubdivisions || len(result.Mesh.Triangles) > o.MaxTriangles/4 || len(result.Mesh.Triangles) > (o.MaxTriangleChecks-result.TriangleChecks)/4 {
+			if distanceReady && normals != nil {
+				return empty, fmt.Errorf("mapped roof angular refinement: %w", geom.ErrConvergence)
+			}
 			return empty, geom.ErrConvergence
 		}
 		mids := map[edge]int{}
