@@ -23,11 +23,34 @@ type CardinalCircleWindow struct {
 // the derived restrictions are authenticated against the extracted spans.
 func PrepareCardinalCircleWindows(ctx context.Context, b trimmed.ExactBezierBoundary, rings [2][]int,
 	decimal func(*big.Rat) (string, error)) (map[int]CardinalCircleWindow, error) {
+	return prepareCircleWindows(ctx, b, rings, decimal, false)
+}
+
+// PrepareAnchoredCircleWindows additionally tries exact quarter carriers
+// starting at original vertices of the source-proved circle ring. This
+// retains the linear active clock of subarcs authored from a non-cardinal
+// junction, including subdivisions whose own endpoints have a different
+// rational clock. Every carrier must match the two stored source UV laws.
+func PrepareAnchoredCircleWindows(ctx context.Context, b trimmed.ExactBezierBoundary, ring []int,
+	decimal func(*big.Rat) (string, error)) (map[int]CardinalCircleWindow, error) {
+	return prepareCircleWindows(ctx, b, [2][]int{ring}, decimal, true)
+}
+
+func prepareCircleWindows(ctx context.Context, b trimmed.ExactBezierBoundary, rings [2][]int,
+	decimal func(*big.Rat) (string, error), anchored bool) (map[int]CardinalCircleWindow, error) {
 	if ctx == nil || decimal == nil {
 		return nil, geom.ErrInvalid
 	}
 	windows := make(map[int]CardinalCircleWindow)
 	for _, ring := range rings {
+		var anchors []geom.Vec3
+		if anchored {
+			var err error
+			anchors, err = circleRingVertices(b, ring)
+			if err != nil {
+				return nil, err
+			}
+		}
 		for _, id := range ring {
 			if err := ctx.Err(); err != nil {
 				return nil, err
@@ -58,7 +81,7 @@ func PrepareCardinalCircleWindows(ctx context.Context, b trimmed.ExactBezierBoun
 			if hasDecimalPoles(model, decimal) && hasDecimalPoles(uses[0], decimal) && hasDecimalPoles(uses[1], decimal) {
 				continue
 			}
-			w, err := originalCardinalCircleWindow(model, [2]geom.ExactBezierSpan(uses))
+			w, err := originalCircleWindow(model, [2]geom.ExactBezierSpan(uses), anchors...)
 			if err != nil {
 				return nil, fmt.Errorf("original circle edge %d: %w", id, err)
 			}
@@ -69,6 +92,30 @@ func PrepareCardinalCircleWindows(ctx context.Context, b trimmed.ExactBezierBoun
 		}
 	}
 	return windows, nil
+}
+
+func circleRingVertices(b trimmed.ExactBezierBoundary, ring []int) ([]geom.Vec3, error) {
+	seen := make(map[int]bool, len(ring))
+	var anchors []geom.Vec3
+	for _, id := range ring {
+		if id < 0 {
+			continue
+		}
+		if id >= len(b.Edges) {
+			return nil, geom.ErrConvergence
+		}
+		edge := b.Edges[id]
+		for _, v := range [2]int{edge.Start, edge.End} {
+			if v < 0 || v >= len(b.Vertices) || !b.Vertices[v].IsFinite() {
+				return nil, geom.ErrConvergence
+			}
+			if !seen[v] {
+				seen[v] = true
+				anchors = append(anchors, b.Vertices[v])
+			}
+		}
+	}
+	return anchors, nil
 }
 
 func hasDecimalPoles(span geom.ExactBezierSpan, decimal func(*big.Rat) (string, error)) bool {
@@ -82,7 +129,7 @@ func hasDecimalPoles(span geom.ExactBezierSpan, decimal func(*big.Rat) (string, 
 	return true
 }
 
-func originalCardinalCircleWindow(model geom.ExactBezierSpan, uses [2]geom.ExactBezierSpan) (CardinalCircleWindow, error) {
+func originalCircleWindow(model geom.ExactBezierSpan, uses [2]geom.ExactBezierSpan, anchors ...geom.Vec3) (CardinalCircleWindow, error) {
 	var empty CardinalCircleWindow
 	if len(model.Control) != 3 || model.Start != 0 || model.End != 1 {
 		return empty, geom.ErrUnrepresentable
@@ -106,13 +153,26 @@ func originalCardinalCircleWindow(model geom.ExactBezierSpan, uses [2]geom.Exact
 		return empty, err
 	}
 	rs := new(big.Rat).Mul(radius, radius)
-	cardinal := [4][2]int64{{1, 0}, {0, 1}, {-1, 0}, {0, -1}}
-	for i, d := range cardinal {
-		var a, z [2]*big.Rat
-		for j := range a {
-			a[j] = new(big.Rat).Mul(radius, big.NewRat(d[j], 1))
-			z[j] = new(big.Rat).Mul(radius, big.NewRat(cardinal[(i+1)%4][j], 1))
+	starts := make([][2]*big.Rat, 0, 4+len(anchors))
+	for _, d := range [4][2]int64{{1, 0}, {0, 1}, {-1, 0}, {0, -1}} {
+		starts = append(starts, [2]*big.Rat{
+			new(big.Rat).Mul(radius, big.NewRat(d[0], 1)),
+			new(big.Rat).Mul(radius, big.NewRat(d[1], 1)),
+		})
+	}
+	for _, p := range anchors {
+		if new(big.Rat).SetFloat64(p.Z).Cmp(height) != 0 {
+			continue
 		}
+		x := new(big.Rat).Sub(new(big.Rat).SetFloat64(p.X), center[0])
+		y := new(big.Rat).Sub(new(big.Rat).SetFloat64(p.Y), center[1])
+		length := new(big.Rat).Add(new(big.Rat).Mul(x, x), new(big.Rat).Mul(y, y))
+		if length.Cmp(rs) == 0 {
+			starts = append(starts, [2]*big.Rat{x, y})
+		}
+	}
+	for _, a := range starts {
+		z := [2]*big.Rat{new(big.Rat).Neg(a[1]), new(big.Rat).Set(a[0])}
 		limits := [2]*big.Rat{}
 		for j, p := range [2][2]*big.Rat{points[0], points[2]} {
 			radial := [2]*big.Rat{new(big.Rat).Sub(p[0], center[0]), new(big.Rat).Sub(p[1], center[1])}

@@ -11,8 +11,18 @@ import (
 )
 
 func emitTwoCrossingCirclesSTEPBody(rings [2][]int) exactBezierSTEPBodyEmitter {
+	return emitParabolaCircleSTEPBody(rings, false)
+}
+
+func emitParabolaCircleSTEPBody(rings [2][]int, anchored bool) exactBezierSTEPBodyEmitter {
 	return func(ctx context.Context, emit func(string) int64, b trimmed.ExactBezierBoundary, name string, tolerance *big.Rat) (int64, error) {
-		windows, err := parabolacircle.PrepareCardinalCircleWindows(ctx, b, rings, mappedChainStepDecimal)
+		var windows map[int]parabolacircle.CardinalCircleWindow
+		var err error
+		if anchored {
+			windows, err = parabolacircle.PrepareAnchoredCircleWindows(ctx, b, rings[0], mappedChainStepDecimal)
+		} else {
+			windows, err = parabolacircle.PrepareCardinalCircleWindows(ctx, b, rings, mappedChainStepDecimal)
+		}
 		if err != nil {
 			return 0, err
 		}
