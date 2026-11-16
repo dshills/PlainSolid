@@ -15,7 +15,7 @@ import { transformPoint, type SketchPlaneTransform } from "../sketch/planes";
 
 export interface StepRepairOptions {
   /** Select a specific source repair or proof recipe. */
-  readonly family?: "mapped-chain-v13" | "occt-conical-rim-fillet-bore";
+  readonly family?: "mapped-chain-v13" | "occt-conical-rim-fillet-bore" | "occt-eccentric-annular-chamfer";
   /** Positive finite displacement in the source STEP's length units. */
   readonly maxDistance: number;
   /** Include source-bound proof JSON for independent native reproof. */
@@ -41,7 +41,7 @@ export interface StepRepairEvidence {
   readonly family: "occt-single-pcurve-convex-arc" | "occt-grouped-pcurve-convex-arc"
     | "occt-posed-grouped-pcurve-convex-arc" | "occt-rational-posed-single-pcurve-convex-arc"
     | "occt-rational-posed-grouped-pcurve-convex-arc" | "occt-rational-posed-grouped-through-bore-pcurve-convex-arc"
-    | "mapped-chain-v13" | "occt-conical-rim-fillet-bore";
+    | "mapped-chain-v13" | "occt-conical-rim-fillet-bore" | "occt-eccentric-annular-chamfer";
   readonly sourceSHA256: string;
   /** Source length unit, in metres. */
   readonly lengthUnit: number;
@@ -66,6 +66,27 @@ export interface StepRepairEvidence {
     readonly SquaredDistance: string;
   }[];
   readonly pcurveOwners: number;
+  readonly annularChamfer?: {
+    readonly correctedSHA256: string;
+    readonly walls: readonly {
+      readonly FaceID: number;
+      readonly ConeID: number;
+      readonly PlacementID: number;
+      readonly AxisDirectionID: number;
+      readonly SeamEdgeID: number;
+      readonly SeamCurveID: number;
+      readonly CorrectedGeneratorID: number;
+      readonly RimEdgeIDs: readonly [number, number];
+      readonly SeamVertexIDs: readonly [number, number];
+      readonly AxisSign: number;
+      readonly OriginalAngle: string;
+      readonly ExactSlope: string;
+      readonly OriginalZStations: readonly [string, string];
+      readonly OriginalAxialStations: readonly [string, string];
+      readonly ConeDisplacementBound: string;
+      readonly SeamDisplacementBound: string;
+    }[];
+  };
   readonly conicalRimBore?: {
     readonly correctedSHA256: string;
     readonly ledger: {

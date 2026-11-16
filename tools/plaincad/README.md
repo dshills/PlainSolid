@@ -480,3 +480,10 @@ original bytes and the certified displacement of the affected source
 geometry. Export emits the corrected STEP, which reopens through ordinary
 strict import. The same worker fixture tests this path and the refusal at
 `1e-12` mm; use `--grep 'repaired conical bore'` to run only the repair case.
+
+The eccentric four-rim annular chamfer uses
+`stepRepair: { family: "occt-eccentric-annular-chamfer", maxDistance: 2e-12, native: true }`.
+Its receipt retains all six original wall and seam proofs. The rounded
+source requires the explicit repair and a `1.6e-12` mm limit refuses.
+Use `annular-repair` with `proved-revolution-step.mjs` for the real WASM
+display and strict corrected STEP export/reopen check.

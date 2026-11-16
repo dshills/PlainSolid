@@ -5,8 +5,8 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const [wasm, runtime, family = "annular"] = process.argv.slice(2);
-if (!wasm || !runtime || !["annular", "conical"].includes(family))
-  throw new Error("usage: node proved-revolution-step.mjs PLAINCAD_WASM WASM_EXEC_JS [annular|conical]");
+if (!wasm || !runtime || !["annular", "conical", "annular-repair"].includes(family))
+  throw new Error("usage: node proved-revolution-step.mjs PLAINCAD_WASM WASM_EXEC_JS [annular|conical|annular-repair]");
 await import(pathToFileURL(resolve(runtime)).href);
 const go = new globalThis.Go();
 const { instance } = await WebAssembly.instantiate(await readFile(wasm), go.importObject);
@@ -22,9 +22,13 @@ const invoke = req => {
   return reply.result;
 };
 
-const source = await fixture("exact");
-assert.equal(ask({ op: "importStep", source: await fixture("rounded") }).error.code, "UNSUPPORTED");
-const solid = invoke({ op: "importStep", source });
+const repaired = family === "annular-repair";
+const rounded = await fixture("rounded");
+const source = repaired ? rounded : await fixture("exact");
+assert.equal(ask({ op: "importStep", source: rounded }).error.code, "UNSUPPORTED");
+const repair = { family: "occt-eccentric-annular-chamfer", maxDistance: 2e-12, nativeText: true };
+if (repaired) assert.equal(ask({ op: "importStep", source, stepRepair: { ...repair, maxDistance: 1.6e-12 } }).error.code, "UNSUPPORTED");
+const solid = invoke({ op: "importStep", source, ...(repaired && { stepRepair: repair }) });
 assert.equal(solid.geometryAssertions.valid, true);
 assert.equal(solid.geometryAssertions.solidCount, 1);
 const volume = solid.geometryAssertions.volume;
@@ -68,11 +72,26 @@ const neutral = invoke({ op: "exportStep", handles: [solid.handle] });
 assert.equal(neutral.units, "mm");
 assert.deepEqual(neutral.before, neutral.after);
 const raw = Buffer.from(neutral.base64, "base64");
-assert.equal(raw.toString("utf8"), source);
+const sourceSHA256 = createHash("sha256").update(source).digest("hex");
+const exportSHA256 = createHash("sha256").update(raw).digest("hex");
+if (repaired) {
+  assert.notEqual(exportSHA256, sourceSHA256);
+  assert.equal(solid.repairEvidence.family, repair.family);
+  assert.equal(solid.repairEvidence.sourceSHA256, sourceSHA256);
+  assert.equal(solid.repairEvidence.annularChamfer.correctedSHA256, exportSHA256);
+  assert.equal(solid.repairEvidence.annularChamfer.walls.length, 6);
+  assert.equal(JSON.parse(solid.nativeProofJSON).Source, Buffer.from(source).toString("base64"));
+} else {
+  assert.equal(raw.toString("utf8"), source);
+}
 const replay = invoke({ op: "importStep", source: raw.toString("utf8") });
 assert.deepEqual(replay.geometryAssertions, solid.geometryAssertions);
 assert.deepEqual(replay.bounds, solid.bounds);
+if (repaired) {
+  assert.equal(replay.repairEvidence, undefined);
+  assert.equal(invoke({ op: "exportStep", handles: [replay.handle] }).base64, neutral.base64);
+}
 invoke({ op: "dispose", handle: replay.handle });
 invoke({ op: "dispose", handle: solid.handle });
 console.log(JSON.stringify({ family, triangles, vertices: vertices.size, edges: edges.size, eulerCharacteristic: 0,
-  volume, signedVolume, meshMs, originalSHA256: createHash("sha256").update(raw).digest("hex") }));
+  volume, signedVolume, meshMs, originalSHA256: sourceSHA256, ...(repaired && { exportSHA256 }) }));

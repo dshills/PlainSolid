@@ -3252,6 +3252,8 @@ every emitted directory entry to the corresponding original ID.
 The original rounded eccentric annular chamfer STEP also has an
 explicit repair. Its six signed conical band proofs preserve the
 original rims, edge endpoints and directed loop owners.
+PlainCAD exposes the repair as an explicit option with the original
+receipt, native display, and strictly reopenable corrected STEP.
 
 ### Periodic spline geometry
 

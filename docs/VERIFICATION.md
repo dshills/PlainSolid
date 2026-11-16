@@ -46,6 +46,12 @@ finite seam. All eight original vertices and 14 edges survive. Native
 material matches the independently authored exact carrier byte for
 byte. The main annular and previous conical repair race passed in
 206.686 seconds.
+The [annular PlainCAD bridge](evidence/plaincad-annular-chamfer-repair-2026-11-15.json)
+passed native receipt reproof and strict export replay in the 159.967-second
+main bridge race, which includes the previous conical controls. Actual
+Go WASM in Node closed the 1,024-triangle mesh and strictly reopened
+and re-exported the corrected STEP with identical bytes. Ordinary
+rounded import and the short repair budget remain refusals.
 
 The nested conical AP242 document passed its focused main race in 42.320
 seconds. Two exact local assets supply six leaf paths and fourteen
