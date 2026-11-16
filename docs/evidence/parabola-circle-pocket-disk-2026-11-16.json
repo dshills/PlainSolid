@@ -29,6 +29,9 @@
     "main_log_sha256": "eb4b8e4c1f8de35282b79c284ca2505ed14bac297885404711904dbef3495d8f",
     "main_seconds": 304.458,
     "isolated_native_ordinary_seconds": 227.572,
+    "isolated_native_race_log": "parabola-circle-pocket-disk-evidence/native-envelope-final-race.log",
+    "isolated_native_race_sha256": "b3e186821c5beac2c6e3457f4068860abeee3a4fbf591082ed8216e4fc5f0c7e",
+    "isolated_native_race_seconds": 1167.114,
     "isolated_source_race_three_count_seconds": 25.965,
     "isolated_source_low_gc_stress_ten_count_seconds": 21.676,
     "native_variants": 16,
@@ -50,6 +53,6 @@
       "native": 4,
       "neutral": 12
     },
-    "scope": "constant original height denominator for analytic disk measure; general volume and full native race are tracked separately"
+    "scope": "constant original height denominator for analytic disk measure; general volume remains open"
   }
 }

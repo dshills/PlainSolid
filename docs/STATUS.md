@@ -100,6 +100,11 @@ certifies seven signed regions, and retains the exact tiny disk volume.
 Native Common and Fuse assemble the nested pocket as one closed shell,
 retain its original inner wire and disk owner, and certify the tiny
 volume directly from the exact original polynomial.
+The complete native Common/Fuse race passed; the nested native Cut and
+neutral transfer still need qualification.
+The planar open sweep chain also has a durable native receipt. Reload
+rebuilds the original chart, join and separation proofs before it accepts
+the native owners or exact positive volume.
 Projectively related graph surfaces can also prove strict original
 height order or exact coincidence over their entire shared projection.
 The same full-footprint ordered proof builds closed Common, Fuse and

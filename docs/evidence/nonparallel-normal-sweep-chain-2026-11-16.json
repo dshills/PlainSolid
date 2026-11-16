@@ -232,6 +232,23 @@
       "41/32"
     ],
     "native_json_index_and_bytes_retained": true,
-    "chart_ancestry": "replay against stable native graph with the original in-memory analytic ledger; durable source receipt tracked separately"
+    "chart_ancestry": "replay against stable native graph with the original in-memory analytic ledger"
+  },
+  "durable_planar_source_receipt": {
+    "main_base": "9173ef14",
+    "isolated_revision": "74d223249823df15d91d953eabeb421dc7e345e2",
+    "patch_sha256": "ed6c3bbc7b9dd503dbde55420b280bbec6e8b205b922083a154821002057c63a",
+    "main_race_log": "normal-sweep-open-chain-receipt-main-race.jsonl",
+    "main_race_sha256": "d1b507da674a0de246af53a3dc580e0eb3f256f4423c95d73f53fb48aa16b4fc",
+    "main_race_seconds": 4.096,
+    "isolated_race_seconds": 3.222,
+    "original_charts": 5,
+    "original_joins": 4,
+    "exact_nonadjacent_separators": 6,
+    "positive_topology": [24, 44, 22],
+    "independent_exact_volumes": ["3/2", "41/32"],
+    "independent_process_byte_replay": true,
+    "two_owner_optional_axis": true,
+    "prior_analytic_display_transfer_receipts": [55, 12, 6]
   }
 }

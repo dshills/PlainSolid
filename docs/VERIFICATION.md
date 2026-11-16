@@ -303,8 +303,9 @@ on 16 cases with 14 faces, 40 edges and 29 vertices. Every result
 retains the original inner wire and disk roof, all four crossing fans,
 and independent volume and area. Eight native replays and forgery
 controls pass. The direct disk certificate requires a constant original
-height denominator; exact geometry alone can admit more. The full
-native race remains separate from the source race and ordinary matrix.
+height denominator; exact geometry alone can admit more. The complete
+native race in the sealed implementation snapshot also passed all 16
+variants, canonical replay and the unrepresentable-cap refusal.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same
@@ -513,6 +514,11 @@ indices and canonical JSON bytes across reopen. Strict STEP and IGES
 readers reproduce exact original volumes 3/2 and 41/32 with matching
 outward world-coordinate rings. Pinned OCCT independently validates
 all four single-body neutral files.
+The durable native sweep receipt reopens independently of the original
+in-memory proof. It rebuilds the five source charts, four joins and six
+separators, then compares owner indices and native bytes. Both exact
+volumes above, the two-owner form, fresh-process replay, altered-source
+and owner refusals, and the predecessor transfer tests pass.
 
 Point and pair distance queries passed focused race controls on original
 charts with both UV domains spanning `[-MaxFloat64, MaxFloat64]`. They
