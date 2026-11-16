@@ -3228,8 +3228,9 @@ certified angular display and corrected STEP export. The focused native
 bridge and both typed Chromium workflows passed.
 The independently authored rounded IGES for the same conical solid now
 has an explicit Go repair and source receipt. It preserves exact source
-vertices, the seam and directed loop ownership. Strict import still
-requires an exact carrier.
+vertices, the seam and directed loop ownership. The emitted corrected
+carrier passes both strict PlainSolid and pinned OCCT readback and maps
+every emitted directory entry to the corresponding original ID.
 
 ### Periodic spline geometry
 

@@ -1,0 +1,150 @@
+{
+  "milestone": "Strictly reopening corrected IGES carrier for the independently authored default conical double-rim fillet and eccentric bore",
+  "plainSolidRevision": "0837b9138c2267da893f18622f01718a5d864455",
+  "sourceRepairRevision": "0eee491b07a1a017675075fa225786c681bf4312",
+  "occtRevision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+  "environment": {
+    "PLAINSOLID_OCCT_CONICAL_RIM_BORE_IGES_AUTHOR": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/conical-rim-fillet-step-import/pinned-iges-author",
+    "PLAINSOLID_OCCT_CONICAL_RIM_BORE_IGES_READER": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/2026-11-15/conical-rim-fillet-step-import/pinned-step-iges-reader"
+  },
+  "testCommand": "go test -race ./exchange/iges -run 'ConicalRimFilletBoreIGES|ConicalRimFilletBorePinnedIGESAuthor' -count=1 -v",
+  "liveTests": {
+    "live.log": "4.876s",
+    "live-race.log": "123.313s"
+  },
+  "sourceDistanceBudgetMillimetres": 3e-11,
+  "correctedDirectoryCount": 58,
+  "supersededOriginalConeDatumEntries": {
+    "11": "type 116 cone location point",
+    "13": "type 123 cone axis",
+    "15": "type 123 cone phase"
+  },
+  "generatedType128SupportDirectoryID": 9,
+  "originalType194SupportDirectoryID": 9,
+  "sourceEdgeListDirectoryMapping": {
+    "corrected": 13,
+    "source": 19
+  },
+  "sourceVertexListDirectoryMapping": {
+    "corrected": 17,
+    "source": 23
+  },
+  "sourceFaceDirectoryMapping": {
+    "7": 7,
+    "53": 59,
+    "77": 83,
+    "65": 71,
+    "91": 97,
+    "105": 111
+  },
+  "originalFixtureSHA256": {
+    "occt-conical-double-rim-eccentric-bore-rounded.igs": "3846b19784ebc5fdee5ec4cd0e1c28859bb2ccb6ac127930c55f88e32915abfb",
+    "occt-conical-double-rim-eccentric-bore-exact.igs": "b714b2d6e1eea036bc32f351e88783b9b362f91a9059c2b90fd77f16ca5662f6"
+  },
+  "nativeSHA256": "df411bbb977e59552daf4bb7620ea2ff5a7263ef87be0c5248daa075ef058dec",
+  "priorReceiptUnchanged": true,
+  "pinnedCorrectedIGESReopen": {
+    "volume": 2282.401400701125,
+    "area": 1182.6440978536923,
+    "vertices": [
+      [
+        8.25,
+        2,
+        0.1875
+      ],
+      [
+        11.5,
+        2,
+        2.625
+      ],
+      [
+        7.6875,
+        2,
+        0
+      ],
+      [
+        10.375,
+        2,
+        6
+      ],
+      [
+        2.5,
+        4,
+        0
+      ],
+      [
+        2.5,
+        4,
+        6
+      ]
+    ],
+    "edges": [
+      6,
+      2,
+      2
+    ],
+    "faces": [
+      [
+        3,
+        0,
+        2,
+        0.1875,
+        8.25,
+        2.625,
+        11.5
+      ],
+      [
+        2,
+        0,
+        2,
+        0.9375,
+        7.6875,
+        0.9375,
+        0,
+        0.1875000000000001
+      ],
+      [
+        2,
+        0,
+        2,
+        4.125,
+        10.375,
+        1.875,
+        2.625,
+        6
+      ],
+      [
+        0,
+        0,
+        2
+      ],
+      [
+        0,
+        6,
+        2
+      ],
+      [
+        1,
+        1.5,
+        4,
+        1,
+        0,
+        6
+      ]
+    ]
+  },
+  "artifactSHA256": {
+    "corrected.igs": "18a6f398e5f298f9e8bdc3a76362587cbe21f33e4b87e3d598bc72b3f8685454",
+    "directory-to-original.json": "d21ae585abc612acee705853779a0a00729f673fca7cdeb7c420eb7008abfec9",
+    "source-receipt.json": "c5dccba2ac26b52d9e7216bf14fd8826027f9208b9f9a1e387f547c9775e6263",
+    "corrected-conical-rim-fillet-iges.patch": "4f932e41f6b0bbcbd659d850bfe4eedfa8fe788519e3b13606edfa9e8c98eda6",
+    "pinned-corrected-reopen.log": "41ece76497f367625a13a3da5d6c0cc9b25647b4067b944239ecd2b2e529f9ca"
+  },
+  "mainIntegration": {
+    "sourceBase": "5631af0e",
+    "elapsedSeconds": 127.705,
+    "carrierSeconds": 32.19,
+    "path": ".worktrees/qualification/2026-11-15/conical-iges-carrier-main-race.jsonl",
+    "sha256": "af7672607fc081612add846ab09c3b1f9b00cc26af78b350d62c49211deea63f"
+  }
+}

@@ -26,6 +26,12 @@ directed loop uses stay in place. A `3e-11` mm budget succeeds and
 formats. The pinned main strict, repair and receipt race passed in
 90.147 seconds; the focused main affine matrix fuzz run exercised 97,117
 inputs without failure.
+The [corrected IGES carrier](evidence/conical-rim-fillet-iges-carrier-2026-11-15.json)
+reopens as the same six-face solid in both strict PlainSolid and pinned
+OCCT. The type 128 cone net incorporates three obsolete datum entries and
+keeps a map of all 58 emitted directory IDs back to the original. Native
+material, original source receipt and repeated carrier bytes are stable.
+The complete pinned main IGES race passed in 127.704 seconds.
 
 The nested conical AP242 document passed its focused main race in 42.320
 seconds. Two exact local assets supply six leaf paths and fourteen

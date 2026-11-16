@@ -54,6 +54,7 @@ type RepairedConicalRimFilletBoreIGES struct {
 	maxDistance float64
 	material    ConicalRimFilletBoreIGES
 	evidence    ConicalRimFilletBoreRepairEvidence
+	corrected   topologySource
 }
 
 // OriginalIGES returns a copy of the byte-preserved source.
@@ -155,7 +156,7 @@ func RepairConicalRimFilletBore(ctx context.Context, r io.Reader, l Limits, o Co
 	if err != nil {
 		return zero, err
 	}
-	return RepairedConicalRimFilletBoreIGES{o.MaxDistance, material, evidence}, nil
+	return RepairedConicalRimFilletBoreIGES{maxDistance: o.MaxDistance, material: material, evidence: evidence, corrected: corrected}, nil
 }
 
 func igesConicalRepairDirectory(first, second [9]int) bool {
