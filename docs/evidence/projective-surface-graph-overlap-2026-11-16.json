@@ -138,5 +138,19 @@
       "TestProjectiveSurfaceGraphOverlapDiscoversOriginalPartialMap",
       "TestProjectiveSurfaceGraphOverlapRejectsAProjectionThatOnlyMatchesSamples"
     ]
+  },
+  "projective_trimmed_face": {
+    "log": "projective-curve-and-trim-main-race.jsonl",
+    "sha256": "3490121e794dd21cab50555fd609df6df9e6132c241f548e34c50c46e3fddcc7",
+    "main_passes": [
+      "TestSplineFaceCoincidencePermutedHolesAndRefinedOuter",
+      "TestSplineFaceCoincidenceRefinedCubic",
+      "TestSplineFaceCoincidenceRefinementRejects",
+      "TestSplineFaceCoincidenceMappedWholeTrims",
+      "TestSplineFaceCoincidenceRejectsChangedTrim",
+      "TestSplineFaceCoincidenceOriginalNativeFaces",
+      "TestSplineFaceCoincidenceProjectiveOriginalOuterAndHole"
+    ],
+    "original_uses": 8
   }
 }

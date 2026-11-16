@@ -89,6 +89,9 @@ original contact under the proved graph assumptions. If the proof does
 not conclude, ordinary coverage still retains all possible contacts.
 The proved overlap can also publish a closed analytic boundary with both
 original owners, their knot partitions and exact directed coedge clocks.
+Whole trimmed faces with paired original uses can also prove equality
+through a projective chart map, including an original outer wire and
+holes. Arbitrary wire refinements under projective maps remain open.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

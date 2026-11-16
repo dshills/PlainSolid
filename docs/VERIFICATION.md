@@ -179,6 +179,10 @@ The exact common boundary exposes four model corners, four directed
 coedge clock ratios, and each owner's original knot cuts. Independently
 evaluated owner traces coincide; short extraction limits return no
 partial cycle.
+An independent trimmed-face fixture verifies eight complete original
+coedges, a reversed chart and a hole. A changed hole curve with matching
+vertices, a short budget, and the old affine-only gate refuse the
+projective proof atomically. Previous affine wire controls pass.
 
 [Periodic IGES type 128 import](evidence/iges-periodic-128-2026-11-16.json)
 passed three independently authored pinned OCCT inputs and 54 original

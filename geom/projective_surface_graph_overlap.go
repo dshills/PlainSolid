@@ -32,26 +32,32 @@ type projectiveGraphAxis struct {
 // parameters. The returned map can transform an exact UV curve without
 // changing its clock. Its denominators are positive throughout source Areas[0].
 func (r ProjectiveSurfaceGraphOverlap) OriginalUVMap(o SurfacePatchOptions) (ProjectiveUVMap, error) {
-	var out ProjectiveUVMap
+	m, _, err := r.OriginalUVMapWithWork(o)
+	return m, err
+}
+
+// OriginalUVMapWithWork also reports the exact arithmetic work performed.
+func (r ProjectiveSurfaceGraphOverlap) OriginalUVMapWithWork(o SurfacePatchOptions) (out ProjectiveUVMap, operations int, err error) {
 	if !r.Coincident || r.NoArea {
-		return out, ErrDomain
+		return out, 0, ErrDomain
 	}
 	limits, err := patchOptions(o)
 	if err != nil {
-		return out, err
+		return out, 0, err
 	}
 	b := &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
+	defer func() { operations = b.operations }()
 	a := boundedRatArithmetic{b: b}
 	var boxes [2][2]ExactParameterInterval
 	for owner, p := range r.Areas {
 		boxes[owner] = [2]ExactParameterInterval{p.U, p.V}
 		for _, x := range boxes[owner] {
 			if x.Lower == nil || x.Upper == nil || x.Lower.Cmp(x.Upper) >= 0 {
-				return ProjectiveUVMap{}, ErrInvalid
+				return ProjectiveUVMap{}, 0, ErrInvalid
 			}
 			for _, q := range [2]*big.Rat{x.Lower, x.Upper} {
 				if err := b.check(q); err != nil {
-					return ProjectiveUVMap{}, err
+					return ProjectiveUVMap{}, 0, err
 				}
 			}
 		}
@@ -64,10 +70,10 @@ func (r ProjectiveSurfaceGraphOverlap) OriginalUVMap(o SurfacePatchOptions) (Pro
 		lo, hi := boxes[0][from], boxes[1][to]
 		ratio := r.BStationRatios[from]
 		if ratio == nil || ratio.Sign() <= 0 {
-			return ProjectiveUVMap{}, ErrInvalid
+			return ProjectiveUVMap{}, 0, ErrInvalid
 		}
 		if err := b.check(ratio); err != nil {
-			return ProjectiveUVMap{}, err
+			return ProjectiveUVMap{}, 0, err
 		}
 		// Scale numerator and denominator by the width of the original
 		// source domain so both are affine in its raw physical coordinate.
@@ -83,11 +89,11 @@ func (r ProjectiveSurfaceGraphOverlap) OriginalUVMap(o SurfacePatchOptions) (Pro
 			num[i] = a.add(a.mul(hi.Lower, den[i]), a.mul(newWidth, num[i]))
 		}
 		if a.err != nil {
-			return ProjectiveUVMap{}, a.err
+			return ProjectiveUVMap{}, 0, a.err
 		}
 		out[to] = ProjectiveUVAxisMap{from, num, den}
 	}
-	return out, nil
+	return out, 0, nil
 }
 
 // CertifyProjectiveSurfaceGraphOverlap discovers signed-axis correspondence

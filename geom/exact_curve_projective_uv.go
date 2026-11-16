@@ -17,6 +17,57 @@ type ProjectiveUVAxisMap struct {
 // must use a different source coordinate and have a nonzero determinant.
 type ProjectiveUVMap [2]ProjectiveUVAxisMap
 
+// UVControlHullInsideRational proves that a planar parameter curve's exact
+// positive-weight control hull lies in the given original rectangle. A
+// false result is inconclusive for the curve image itself. No coordinates
+// are rounded, including when a control lies on a nonbinary boundary.
+func (c *SurfaceIsoCurve) UVControlHullInsideRational(ctx context.Context, r ExactSurfaceRectangle,
+	o SurfacePatchOptions) (inside bool, operations int, err error) {
+	if ctx == nil || c == nil || c.patch == nil || len(c.patch.net) == 0 {
+		return false, 0, ErrInvalid
+	}
+	limits, err := patchOptions(o)
+	if err != nil {
+		return false, 0, err
+	}
+	if len(c.patch.net) > limits.MaxPoles {
+		return false, 0, ErrConvergence
+	}
+	b := &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
+	defer func() { operations = b.operations }()
+	bounds := [2]ExactParameterInterval{r.U, r.V}
+	for _, x := range bounds {
+		if x.Lower == nil || x.Upper == nil || x.Lower.Cmp(x.Upper) >= 0 {
+			return false, 0, ErrInvalid
+		}
+		for _, y := range [2]*big.Rat{x.Lower, x.Upper} {
+			if err := b.check(y); err != nil {
+				return false, 0, err
+			}
+		}
+	}
+	a := boundedRatArithmetic{b: b}
+	for i := 0; i < c.patch.countU; i++ {
+		if err := ctx.Err(); err != nil {
+			return false, 0, err
+		}
+		h := c.patch.net[i*c.patch.countV]
+		if h[2].Sign() != 0 || h[3].Sign() <= 0 {
+			return false, 0, ErrDomain
+		}
+		for axis, x := range bounds {
+			lo, hi := a.mul(x.Lower, h[3]), a.mul(x.Upper, h[3])
+			if a.err != nil {
+				return false, 0, a.err
+			}
+			if h[axis].Cmp(lo) < 0 || h[axis].Cmp(hi) > 0 {
+				return false, 0, nil
+			}
+		}
+	}
+	return true, 0, nil
+}
+
 // TransformProjectiveUV maps the exact original XY parameter curve by
 // independent rational projective coordinate maps. It retains physical
 // curve parameters and all original break stations. The denominators must

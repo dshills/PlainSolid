@@ -14,7 +14,11 @@ import (
 type SplineFaceCoincidenceOptions struct {
 	// MatchHolePermutation admits uniquely shared exact original hole vertices.
 	// Candidate matching never replaces the subsequent complete wire proof.
-	MatchHolePermutation   bool
+	MatchHolePermutation bool
+	// ProjectiveAxes uses a proved graph correspondence along these two
+	// model axes. This subset requires paired whole uses and matching
+	// hole order; exact original coedge clocks must agree under the map.
+	ProjectiveAxes         *[2]int
 	Patches                geom.SurfacePatchOptions
 	Trims                  trimvalidate.Options
 	MaxUses, MaxOperations int
@@ -38,7 +42,9 @@ type CoincidentSplineUse struct {
 type SplineFaceCoincidence struct {
 	Faces [2]int
 	Map   intersect.SplineChartMap
-	Uses  []CoincidentSplineUse
+	// ProjectiveMap is populated instead of Map in the projective subset.
+	ProjectiveMap *geom.ProjectiveSurfaceGraphOverlap `json:",omitempty"`
+	Uses          []CoincidentSplineUse
 	// OppositeOrientation compares oriented chart normals at regular points;
 	// it does not prove regularity.
 	OppositeOrientation bool
@@ -99,6 +105,9 @@ func (a Solid) CertifySplineFaceCoincidence(ctx context.Context, faceA int, b So
 	pb, e := patch(fb)
 	if e != nil {
 		return fail(e)
+	}
+	if o.ProjectiveAxes != nil {
+		return certifyProjectiveSplineFaceWires(ctx, [2]int{faceA, faceB}, pa, pb, [2][][]Use{loopsA, loopsB}, fa.Reversed != fb.Reversed, o)
 	}
 	for i, face := range []Face{fa, fb} {
 		bounds, err := faceUVBounds(face)
