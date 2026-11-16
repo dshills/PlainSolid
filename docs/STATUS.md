@@ -175,6 +175,8 @@ One strict periodic type 144 import subset now covers an original
 rectangular U-periodic face inside one knot cell, proving all four
 original directed model/UV edges. Valid seam-crossing topology and
 broader periodic loops remain under qualification.
+The one-cell rectangular face can also use an original V-periodic
+support. It retains the original UV orientation and derivative scales.
 The same original knot cell can now retain one or two strictly nested
 clockwise rectangular holes. Each keeps its raw support, paired curve
 owners and signed winding. Arbitrary periodic inner wires remain open.

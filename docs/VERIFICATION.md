@@ -341,6 +341,11 @@ knot rectangle. It retains 13 raw owners and proves its projected
 orientation and four directed edges. The pinned seam-crossing negative
 has a raw model/UV endpoint difference of `11/32 mm` and refuses.
 Main race, executed amd64 controls and all seven prior exports pass.
+The [original V-periodic one-cell audit](evidence/iges-periodic-v-cell-2026-11-16.json)
+also passes an independently authored type 144 face with original UV
+orientation, directed model ranges and physical derivatives. The raw
+wrong-winding source refuses even though the pinned reader rewinds it.
+Main race, full IGES, amd64 and 14 predecessor outputs pass.
 The [valid periodic seam trim](evidence/iges-periodic-seam-trimmed-2026-11-16.json)
 passes independently authored type 144, the pinned reopen and main race.
 The reader retains six original directed pairs, distinct seam stations,

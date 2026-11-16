@@ -59,20 +59,23 @@ static TopoDS_Face original(bool crossesSeam)
 static occ::handle<IGESGeom_BSplineSurface> exactCarrier(const occ::handle<Geom_BSplineSurface>& native,
                                                        double u0, double u1, double v0, double v1)
 {
-    auto ku = new NCollection_HArray1<double>(-2,7);
-    auto kv = new NCollection_HArray1<double>(-1,2);
-    auto weights = new NCollection_HArray2<double>(0,6,0,1);
-    auto poles = new NCollection_HArray2<gp_XYZ>(0,6,0,1);
-    for (int i = -2; i <= 7; ++i) ku->SetValue(i, i);
-    for (int i = -1; i <= 2; ++i) kv->SetValue(i, i <= 0 ? 0. : 4.);
-    for (int i = 0; i < 7; ++i) {
-        for (int j = 0; j < 2; ++j) {
-            poles->SetValue(i,j,native->Pole(i%5+1,j+1).XYZ());
+    const bool periodicU = native->IsUPeriodic();
+    auto periodicKnots = new NCollection_HArray1<double>(-2,7);
+    auto straightKnots = new NCollection_HArray1<double>(-1,2);
+    for (int i = -2; i <= 7; ++i) periodicKnots->SetValue(i, i);
+    for (int i = -1; i <= 2; ++i) straightKnots->SetValue(i, i <= 0 ? 0. : 4.);
+    const int lastU = periodicU ? 6 : 1, lastV = periodicU ? 1 : 6;
+    auto weights = new NCollection_HArray2<double>(0,lastU,0,lastV);
+    auto poles = new NCollection_HArray2<gp_XYZ>(0,lastU,0,lastV);
+    for (int i = 0; i <= lastU; ++i) {
+        for (int j = 0; j <= lastV; ++j) {
+            poles->SetValue(i,j,native->Pole(i%5+1,j%5+1).XYZ());
             weights->SetValue(i,j,1.);
         }
     }
     occ::handle<IGESGeom_BSplineSurface> support = new IGESGeom_BSplineSurface;
-    support->Init(6,1,2,1,true,false,true,true,false,ku,kv,weights,poles,u0,u1,v0,v1);
+    support->Init(lastU,lastV,native->UDegree(),native->VDegree(),periodicU,!periodicU,true,periodicU,!periodicU,
+                  periodicU?periodicKnots:straightKnots,periodicU?straightKnots:periodicKnots,weights,poles,u0,u1,v0,v1);
     support->InitStatus(0,1,0,0);
 
     return support;
@@ -93,7 +96,8 @@ static occ::handle<IGESGeom_CurveOnSurface> exactContour(const occ::handle<Geom_
         uv->InitStatus(0,1,0,0);
         uvMembers->SetValue(i+1,uv);
 
-        const int degree = a.X() == b.X() ? 1 : 2;
+        const bool curves = native->IsUPeriodic() ? a.X() != b.X() : a.Y() != b.Y();
+        const int degree = curves ? 2 : 1;
         const double first = station + 2.*i, last = first+1.;
         auto knots = new NCollection_HArray1<double>(-degree,degree+1);
         auto w = new NCollection_HArray1<double>(0,degree);
@@ -106,7 +110,7 @@ static occ::handle<IGESGeom_CurveOnSurface> exactContour(const occ::handle<Geom_
         if (degree == 2) {
             // Recover the middle Bézier control from the exact midpoint
             // of the independently constructed quadratic isoparametric span.
-            const gp_XYZ mid = native->Value((a.X()+b.X())/2.,a.Y()).XYZ();
+            const gp_XYZ mid = native->Value((a.X()+b.X())/2.,(a.Y()+b.Y())/2.).XYZ();
             p->SetValue(1,mid*2. - (start+end)*.5);
         }
         occ::handle<IGESGeom_BSplineCurve> model = new IGESGeom_BSplineCurve;
@@ -207,6 +211,28 @@ static bool writeExactSeamMixedHoles(const char* path, std::string_view mode)
     return writer.AddEntity(face) && writer.Write(path);
 }
 
+static bool writeExactVTrim(const char* path, std::string_view mode)
+{
+    const auto native = periodicSupport();
+    native->ExchangeUV();
+    if (native->IsUPeriodic() || !native->IsVPeriodic()) return false;
+
+    occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
+    if (mode == "write-exact-v-seam") {
+        const auto support = exactCarrier(native,0.,4.,0.,5.);
+        const std::array<gp_XY,6> outer{gp_XY(1,4.75),gp_XY(3,4.75),gp_XY(3,5),
+                                        gp_XY(3,5.25),gp_XY(1,5.25),gp_XY(1,5)};
+        face->Init(support,1,exactContour(native,support,outer,12),nullptr);
+    } else {
+        const auto support = exactCarrier(native,1.,3.,1.25,1.75);
+        std::array<gp_XY,4> outer{gp_XY(1,1.25),gp_XY(3,1.25),gp_XY(3,1.75),gp_XY(1,1.75)};
+        if (mode == "write-exact-v-cell-clockwise") std::reverse(outer.begin(),outer.end());
+        face->Init(support,1,exactContour(native,support,outer,12),nullptr);
+    }
+    IGESControl_Writer writer("MM",0);
+    return writer.AddEntity(face) && writer.Write(path);
+}
+
 static bool report(const TopoDS_Shape& shape, bool boundary = false, bool allWires = false)
 {
     NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> faces, edges, wires, vertices;
@@ -226,8 +252,9 @@ static bool report(const TopoDS_Shape& shape, bool boundary = false, bool allWir
     std::cout << std::setprecision(17) << "{\"valid\":" << (valid?"true":"false")
               << ",\"topology\":[" << faces.Extent() << "," << wires.Extent() << "," << edges.Extent() << "," << vertices.Extent()
               << "],\"area\":" << area.Mass() << ",\"perimeter\":" << length.Mass()
-              << ",\"periodicU\":" << (surface.IsUPeriodic()?"true":"false")
-              << ",\"bounds\":[" << u0 << "," << u1 << "," << v0 << "," << v1 << "],\"samples\":[";
+              << ",\"periodicU\":" << (surface.IsUPeriodic()?"true":"false");
+    if (surface.IsVPeriodic()) std::cout << ",\"periodicV\":true";
+    std::cout << ",\"bounds\":[" << u0 << "," << u1 << "," << v0 << "," << v1 << "],\"samples\":[";
     const std::array<std::array<double,2>,5> uv{{{0,0},{1,0},{1,1},{0,1},{.5,.5}}};
     for (std::size_t i = 0; i < uv.size(); ++i) {
         if (i) std::cout << ",";
@@ -304,6 +331,9 @@ int main(int argc,char** argv)
         if (mode == "write-exact-seam-mixed" || mode == "write-exact-seam-mixed-reversed" ||
             mode == "write-exact-seam-mixed-overlap" || mode == "write-exact-seam-mixed-rounded") {
             return writeExactSeamMixedHoles(argv[2],mode) ? 0 : 8;
+        }
+        if (mode == "write-exact-v-cell" || mode == "write-exact-v-cell-clockwise" || mode == "write-exact-v-seam") {
+            return writeExactVTrim(argv[2],mode) ? 0 : 8;
         }
         if (mode == "write" || mode == "write-seam") {
             const TopoDS_Face face = original(mode == "write-seam");

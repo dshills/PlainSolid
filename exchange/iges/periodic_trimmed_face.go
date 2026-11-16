@@ -21,9 +21,10 @@ type PeriodicTrimEdge struct {
 }
 
 // PeriodicTrimmedFace is one oriented, injective, exact rectangular face on a
-// U-periodic type-128 support. Support uses physical file parameters; Patch
-// maps the normalized unit square to the finite trim. All coordinates are in
-// original file length units. Bounds and KnotOwners are in U,V order.
+// type-128 support periodic only in U or only in V. Support uses physical
+// file parameters. Patch maps the normalized unit square to the finite
+// trim. All coordinates are in original file length units. Bounds and
+// KnotOwners are in U,V order.
 type PeriodicTrimmedFace struct {
 	LengthUnit                      float64
 	FaceID, SupportID, ContourID    int
@@ -44,11 +45,12 @@ func (f PeriodicTrimmedFace) OriginalIGES() string { return f.original }
 // ReadPeriodicTrimmedFace proves one standalone unplaced type-144 face with
 // an explicit outer type-142 contour, four ordered type-110 UV edges and
 // four type-126 model edges. The CCW rectangle must be strictly inside one
-// original knot cell. Each UV/model correspondence is proved over the
-// entire oriented edge under its normalized affine parameter.
+// original knot cell on a support periodic in one direction only. Each
+// UV/model correspondence is proved over the entire oriented edge under
+// its normalized affine parameter in the original source orientation.
 func ReadPeriodicTrimmedFace(ctx context.Context, r io.Reader, l Limits) (PeriodicTrimmedFace, error) {
 	var zero PeriodicTrimmedFace
-	source, err := readPeriodicTrimSource(ctx, r, l, 4)
+	source, err := readPeriodicTrimSourceForAxes(ctx, r, l, 4, true)
 	if err != nil {
 		return zero, err
 	}
@@ -103,6 +105,10 @@ type periodicTrimSource struct {
 }
 
 func readPeriodicTrimSource(ctx context.Context, r io.Reader, l Limits, edgeCount int, holeLayouts ...[]int) (periodicTrimSource, error) {
+	return readPeriodicTrimSourceForAxes(ctx, r, l, edgeCount, false, holeLayouts...)
+}
+
+func readPeriodicTrimSourceForAxes(ctx context.Context, r io.Reader, l Limits, edgeCount int, allowV bool, holeLayouts ...[]int) (periodicTrimSource, error) {
 	var zero periodicTrimSource
 	if ctx == nil {
 		return zero, geom.ErrInvalid
@@ -187,8 +193,15 @@ func readPeriodicTrimSource(ctx context.Context, r io.Reader, l Limits, edgeCoun
 	if err != nil {
 		return zero, err
 	}
-	if !support.Surface.PeriodicU || support.Surface.PeriodicV || support.Surface.ClosedV {
-		return zero, fmt.Errorf("iges: periodic trim requires one U-periodic support: %w", geom.ErrUnrepresentable)
+	s := support.Surface
+	uOnly := s.PeriodicU && !s.PeriodicV && !s.ClosedV
+	vOnly := s.PeriodicV && !s.PeriodicU && !s.ClosedU
+	if !uOnly && !(allowV && vOnly) {
+		axes := "one U-periodic support"
+		if allowV {
+			axes += " or one V-periodic support"
+		}
+		return zero, fmt.Errorf("iges: periodic trim requires %s with an open opposite axis: %w", axes, geom.ErrUnrepresentable)
 	}
 	m.Support, err = support.Surface.ExactPeriodicGeometry()
 	if err != nil {
@@ -254,10 +267,10 @@ func (m *PeriodicTrimmedFace) proveOriginalKnotCell(ctx context.Context) (geom.E
 		return zero, err
 	}
 	m.KnotOwners = owners
-	if owners[0].Cycle.Sign() != 0 {
-		return zero, fmt.Errorf("iges: periodic trim lies outside its original fundamental cycle: %w", geom.ErrUnrepresentable)
-	}
 	for i, owner := range m.KnotOwners {
+		if owner.Cycle != nil && owner.Cycle.Sign() != 0 {
+			return zero, fmt.Errorf("iges: periodic trim lies outside its original fundamental cycle: %w", geom.ErrUnrepresentable)
+		}
 		r := m.Bounds[i]
 		if r.Lower.Cmp(owner.Domain.Lower) <= 0 || r.Upper.Cmp(owner.Domain.Upper) >= 0 {
 			return zero, fmt.Errorf("iges: periodic trim meets or crosses an original knot station: %w", geom.ErrUnrepresentable)

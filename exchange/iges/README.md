@@ -105,15 +105,19 @@ rationality check.
 The standalone periodic writer accepts unplaced support surfaces.
 
 `ReadPeriodicTrimmedFace` separately admits one unplaced type-144 face with
-an explicit outer type-142 contour on a U-periodic type-128 support. Its
-CCW rectangular loop must lie strictly within one original knot cell, and
+an explicit outer type-142 contour on a type-128 support periodic in
+exactly one direction, with an open opposite axis. Its CCW rectangular
+loop must lie strictly within one original knot cell, and
 the ordered type-102 composites must own four type-110 UV lines and four
 fully clamped single-span type-126 model splines. The reader proves the
 complete directed edge correspondences with exact rational coefficients and
 certifies projected injectivity of the trimmed patch. It retains original
 file bytes, all source entity IDs, the full cyclic support, the finite UV
 bounds, original knot-cell owners and the model edge parameter ranges.
-The returned patch uses the normalized unit square.
+The returned patch uses the normalized unit square. The original U and V
+directions, physical derivative scales, and projected orientation are
+preserved on both single-axis variants. The pinned V-periodic fixture
+retains all four directed source edges and model parameter intervals.
 
 `ReadPeriodicTrimmedFaceWithHoles` admits one or two explicit rectangular
 inner type-142 contours in the same original knot cell as the outer loop.
