@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"sort"
 )
 
 type graphCubicProjection struct {
@@ -16,7 +17,7 @@ type graphCubicProjection struct {
 // difference of the exactly aligned original charts.
 func projectGraphCubicSource(ctx context.Context, a, c *SurfacePatch, axes [2]int, freeAxis int,
 	o GraphPointContactOptions) (r graphCubicProjection, err error) {
-	if ctx == nil || a == nil || c == nil || freeAxis < 0 || freeAxis > 1 {
+	if ctx == nil || a == nil || c == nil || len(a.net) == 0 || len(c.net) == 0 || freeAxis < 0 || freeAxis > 1 {
 		return r, ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -55,11 +56,14 @@ func projectGraphCubicSource(ctx context.Context, a, c *SurfacePatch, axes [2]in
 	if err != nil {
 		return r, err
 	}
-	if residual.countU != residual.degreeU+1 || residual.countV != residual.degreeV+1 ||
-		residual.degreeU > 6 || residual.degreeV > 6 {
+	if residual.degreeU > 6 || residual.degreeV > 6 {
 		return r, ErrConvergence
 	}
-	r.powers, err = graphBivariateCoefficients(residual, freeAxis, b)
+	if residual.countU == residual.degreeU+1 && residual.countV == residual.degreeV+1 {
+		r.powers, err = graphBivariateCoefficients(residual, freeAxis, b)
+	} else {
+		r.powers, err = graphCubicResidualCellLaw(ctx, residual, freeAxis, o.MaxCells, b)
+	}
 	if err != nil {
 		return r, err
 	}
@@ -172,6 +176,33 @@ func graphCubicOriginalJets(ctx context.Context, patches [2]*SurfacePatch, uv [2
 		}
 	}
 	return jets, nil
+}
+
+// Vertex jets must be unambiguous in both original charts. A source may
+// have a genuine C0 crease elsewhere along the section, but a vertex on
+// an unqualified C0 knot needs separate one-sided derivative evidence.
+func graphCubicVertexJets(ctx context.Context, patches [2]*SurfacePatch, uv [2][2]*big.Rat,
+	b *polynomialBudget) (jets [2]RationalSurfacePatchJet, err error) {
+	for owner, p := range patches {
+		if err := ctx.Err(); err != nil {
+			return jets, err
+		}
+		for axis, data := range []struct {
+			knots         []float64
+			degree, count int
+		}{{p.knotsU, p.degreeU, p.countU}, {p.knotsV, p.degreeV, p.countV}} {
+			value, exact := uv[owner][axis].Float64()
+			if !exact || value <= data.knots[data.degree] || value >= data.knots[data.count] {
+				continue
+			}
+			interior := data.knots[data.degree+1 : data.count]
+			first := sort.SearchFloat64s(interior, value)
+			if last := first + data.degree - 1; last < len(interior) && interior[first] == value && interior[last] == value {
+				return jets, ErrConvergence
+			}
+		}
+	}
+	return graphCubicOriginalJets(ctx, patches, uv, b)
 }
 
 func bindGraphCubicModelVector(uv [2][2]*big.Rat, jets [2]RationalSurfacePatchJet,

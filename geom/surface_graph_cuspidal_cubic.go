@@ -47,21 +47,18 @@ type CuspidalCubicRegion struct {
 }
 
 // DiscoverProjectedGraphCuspidalCubic recovers the entire triple-root
-// identity from the original homogeneous height coefficients. Each owner has
-// a single Bézier span, with invertible affine projection onto the shared
-// physical footprint. Both germs must exit on the same longitudinal side
-// at rational parameters strictly between the corners. The original charts
-// can be independently signed, swapped and scaled. Failure returns nil.
+// identity from the original homogeneous height coefficients. The charts
+// have invertible affine projection onto the shared physical footprint. On
+// every knot cell the height residual must have the same signed cubic law.
+// Both germs must exit on the same longitudinal side at rational parameters
+// strictly between the corners. Their cusp and exit jets must be unambiguous
+// in both original charts, which can be independently signed, swapped and
+// scaled. Failure returns nil.
 func DiscoverProjectedGraphCuspidalCubic(ctx context.Context, a, c *SurfacePatch, axes [2]int, freeAxis int,
 	o GraphPointContactOptions) (*CuspidalCubicSection, error) {
 	projection, err := projectGraphCubicSource(ctx, a, c, axes, freeAxis, o)
 	if err != nil {
 		return nil, err
-	}
-	for _, source := range [2]*SurfacePatch{a, c} {
-		if source.countU != source.degreeU+1 || source.countV != source.degreeV+1 {
-			return nil, ErrConvergence
-		}
 	}
 	b := projection.budget
 	coefficients, err := recoverGraphCubicCoefficients(projection.powers, b)

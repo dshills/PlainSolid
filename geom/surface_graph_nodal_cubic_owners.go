@@ -34,7 +34,11 @@ func bindNodalCubicSection(ctx context.Context, patches [2]*SurfacePatch, axes [
 		if err != nil {
 			return nil, err
 		}
-		jets, err := graphCubicOriginalJets(ctx, patches, v.UV, b)
+		evaluate := graphCubicOriginalJets
+		if i == 0 {
+			evaluate = graphCubicVertexJets
+		}
+		jets, err := evaluate(ctx, patches, v.UV, b)
 		if err != nil {
 			return nil, err
 		}

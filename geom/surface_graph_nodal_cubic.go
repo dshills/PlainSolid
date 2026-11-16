@@ -52,11 +52,12 @@ type NodalCubicRegion struct {
 
 // DiscoverProjectedGraphNodalCubic recovers a complete real nodal cubic with
 // one interior loop and two exits on the same original boundary. It checks
-// every homogeneous height coefficient on a common single Bézier span and
-// matches the full identity y²=Scale*x²*(x+LoopDepth). The independently
+// every original knot cell for the signed homogeneous height identity
+// y²=Scale*x²*(x+LoopDepth). The independently
 // authored charts may be swapped, signed and scaled over the same footprint.
-// Exact rational node and exit parameters are required. A clipped loop or a
-// terminal on a transverse side is outside this section family.
+// Exact rational node and exit parameters and unambiguous node tangents are
+// required. A clipped loop or a terminal on a transverse side is outside
+// this section family.
 func DiscoverProjectedGraphNodalCubic(ctx context.Context, a, c *SurfacePatch, axes [2]int, freeAxis int,
 	o GraphPointContactOptions) (*NodalCubicSection, error) {
 	projection, err := projectGraphCubicSource(ctx, a, c, axes, freeAxis, o)

@@ -314,7 +314,12 @@ admitted order now also transfers through STEP and IGES (`bffac9bc`),
 with independent positive signed volume for both separate components.
 Exact cuspidal cubic discovery (`ffc10247`) separately proves a genuine
 zero first jet, a shared second jet and opposite third jets in the
-original owner charts. Native Common (`fea3d0b4`) and Fuse (`750c9e80`)
+original owner charts. Nodal and cuspidal discovery also prove the same
+signed equation on each original knot cell. This accepts an actual
+shared carrier crease away from the required jets and refuses a changed
+residual or an ambiguous cusp or node tangent. This is a section proof;
+support across those knots in native Boolean assembly and exchange needs
+its own qualification. Native Common (`fea3d0b4`) and Fuse (`750c9e80`)
 preserve this singularity in both source orders and in closed displays.
 [Independent STEP and IGES](../exchange/CUSPIDAL_CUBIC.md) (`5a296f9c`)
 retain the zero first, shared second and opposite third derivatives on

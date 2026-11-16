@@ -216,6 +216,16 @@ failures across 6,216 top-level cases. Its eight trimmed lanes passed
 cross-builds also passed on this snapshot; these do not substitute
 for native runtime qualification on those platforms.
 
+The multispan cubic section race check passed on main in 2.280 seconds.
+An ordinary node and a true cusp give the same exact original charts,
+vertices, jets and signed regions after independent knots are inserted
+in both owners and across both source orders. A physically creased
+pair reproduces the exact cusp and the changed original exit heights.
+Changing only the later knot cell's residual, placing an ambiguous
+crease at the cusp, or constraining the cell budget produces no result.
+The native solid and neutral paths require separate evidence for this
+class of sources.
+
 The older full native race `491b18f1` reproduced the same five shaded
 signed-frame failures as ordinary `5181d219`. Its `packages.jsonl` is
 retained in `.worktrees/qualification/2026-11-15/go-491b18f1-race`.

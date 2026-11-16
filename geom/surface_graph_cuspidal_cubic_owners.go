@@ -20,7 +20,7 @@ func bindCuspidalCubicOwners(ctx context.Context, sources [2]*SurfacePatch, out 
 		if err != nil {
 			return err
 		}
-		jets[i], err = graphCubicOriginalJets(ctx, sources, v.UV, b)
+		jets[i], err = graphCubicVertexJets(ctx, sources, v.UV, b)
 		if err != nil {
 			return err
 		}
