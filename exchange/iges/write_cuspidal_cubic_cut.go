@@ -14,7 +14,7 @@ func WriteCuspidalCubicCut(ctx context.Context, w io.Writer, cut *trimmed.Cuspid
 	if cut == nil {
 		return geom.ErrInvalid
 	}
-	return writeExactBezierSingleIGES(ctx, w, cut.Boundary(), unit, l, o)
+	return writeExactBezierSingleIGESMode(ctx, w, cut.Boundary(), unit, l, o, true)
 }
 
 // VerifyCuspidalCubicCutIGES authenticates the topology, original

@@ -14,7 +14,7 @@ func WriteCuspidalCubicFuse(ctx context.Context, w io.Writer, fuse *trimmed.Cusp
 	if fuse == nil {
 		return geom.ErrInvalid
 	}
-	return writeExactBezierSingleSTEP(ctx, w, fuse.Boundary(), name, unit, l, o)
+	return writeExactBezierSingleSTEPMode(ctx, w, fuse.Boundary(), name, unit, l, o, true)
 }
 
 // VerifyCuspidalCubicFuseSTEP checks the canonical topology, physical
