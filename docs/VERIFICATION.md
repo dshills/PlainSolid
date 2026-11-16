@@ -259,6 +259,12 @@ controls on 48 files and 80 positive bodies. Pinned OCCT verifies the
 36 directed original coedges, 32 rays, both cap vertices and the pocket
 midpoint. The exact rotated quarter carriers retain the original trim
 clock; twelve prior neutral carriers are unchanged.
+The [nested pocket source audit](evidence/parabola-circle-pocket-disk-2026-11-16.json)
+proves a separate original circle entirely in the bounded pocket and
+checks all seven exact signed region integrals. Four original fans
+and the inner circle cardinal jets are retained in both chart orders.
+The independently signed disk volume is about -3.86e-15; four prior
+native and twelve neutral exports retain their bytes.
 
 [Fourth-order STEP/IGES exchange](evidence/parabola-circle-osculation-neutral-2026-11-16.json)
 separately qualifies 40 files and 48 positive solids from the same

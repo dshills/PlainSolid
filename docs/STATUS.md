@@ -92,6 +92,10 @@ Native Cut now retains two components sharing four point contacts in
 one order, and the four-component contact cycle in the other.
 Both neutral formats preserve these four-contact materials, their
 original coedges and cap/pocket subdivisions through pinned readback.
+A separate original circle can now be proved wholly inside that
+bounded pocket. The source keeps all four earlier transverse junctions,
+certifies seven signed regions, and retains the exact tiny disk volume.
+Native assembly for that nested pocket is qualified separately.
 Projectively related graph surfaces can also prove strict original
 height order or exact coincidence over their entire shared projection.
 The same full-footprint ordered proof builds closed Common, Fuse and

@@ -214,6 +214,12 @@ func checkFourCrossingCircleMeasures(t *testing.T, stocks [3]*geom.BSplineSurfac
 		{"12021671951207/47287796087390208", "0", "-9347096113125/18014398509481984", "9347096113125/18014398509481984"},
 		{"-12021671951207/23643898043695104", "-9347096113125/9007199254740992", "9347096113125/9007199254740992", "-9347096113125/9007199254740992"},
 	}
+	checkParabolaCircleGreenMeasures(t, stocks, sides[:], areas[:], volumes[:], big.NewRat(int64(-sign), 1), order)
+}
+
+func checkParabolaCircleGreenMeasures(t *testing.T, stocks [3]*geom.BSplineSurface, sides []int,
+	areas, volumes [][4]string, orientation *big.Rat, order int) {
+	t.Helper()
 	parse := func(r string) *big.Rat {
 		q, ok := new(big.Rat).SetString(r)
 		if !ok {
@@ -232,7 +238,7 @@ func checkFourCrossingCircleMeasures(t *testing.T, stocks [3]*geom.BSplineSurfac
 		areaBound, signedBound := new(big.Rat), new(big.Rat)
 		for j, angle := range angles {
 			a := parse(areas[i][j])
-			v := new(big.Rat).Mul(parse(volumes[i][j]), big.NewRat(int64(-sign), 1))
+			v := new(big.Rat).Mul(parse(volumes[i][j]), orientation)
 			areaSum[j].Add(&areaSum[j], a)
 			volSum[j].Add(&volSum[j], v)
 			v.Mul(v, big.NewRat(int64(side), 1))
@@ -256,15 +262,15 @@ func checkFourCrossingCircleMeasures(t *testing.T, stocks [3]*geom.BSplineSurfac
 			t.Fatal("coverage should cancel every circular angle", j)
 		}
 	}
-	// Integrating the original unweighted degree-four stock independently
-	// gives the mean of its 25 binary64-exact Bernstein poles.
+	// Integrating either unweighted tensor stock independently gives
+	// the mean of its original binary64-exact Bernstein poles.
 	actual := new(big.Rat)
 	other := stocks[2-order].Data().Poles
 	for i, pole := range stocks[1+order].Data().Poles {
 		a, b := new(big.Rat).SetFloat64(pole.Z), new(big.Rat).SetFloat64(other[i].Z)
 		actual.Add(actual, a.Sub(a, b))
 	}
-	actual.Quo(actual, big.NewRat(25, 1))
+	actual.Quo(actual, big.NewRat(int64(len(other)), 1))
 	if areaSum[0].Cmp(big.NewRat(1, 1)) != 0 || volSum[0].Cmp(actual) != 0 {
 		t.Fatal("independent integrals leave a coverage gap", &areaSum[0], &volSum[0], actual)
 	}

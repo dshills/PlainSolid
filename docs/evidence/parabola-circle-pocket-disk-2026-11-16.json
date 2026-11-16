@@ -1,0 +1,24 @@
+{
+  "scope": "Exact nested circle wholly inside the bounded original four-crossing parabola/circle pocket",
+  "main_base": "0d31bbf7",
+  "isolated_revision": "3668c5fa2a757c36f3e7bbb6cba20d1482f710e6",
+  "patch_sha256": "234a8992da108f1dab4d686b2e8562bc63052cb1e88917c839e2c23a944e89ee",
+  "main_race_log": "parabola-circle-pocket-disk-main-race.jsonl",
+  "main_race_sha256": "83340b06af5533caedd9c9bb67d430acc1cb2a9cafdd7c2e1615e2d0ddff5719",
+  "main_race_seconds": 7.873,
+  "isolated_broad_source_race_seconds": 93.801,
+  "original_regions": 7,
+  "original_unchanged_transverse_fans": 4,
+  "independent_axis_order_cases": 8,
+  "negative_cases": 8,
+  "nested_center": [
+    "1/2",
+    "21/128"
+  ],
+  "nested_radius": "1/512",
+  "independent_pocket_minimum": "65/4194304",
+  "independent_circle_squared_gap": "343/262144",
+  "independent_signed_volume_B_minus_A": "-1115390675*pi/906694364710971881029632",
+  "prior_native_bytes_unchanged": 4,
+  "prior_neutral_bytes_unchanged": 12
+}

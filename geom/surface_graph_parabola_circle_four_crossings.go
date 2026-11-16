@@ -60,7 +60,14 @@ func DiscoverSplineGraphParabolaCircleFourCrossings(ctx context.Context, a, c *S
 	if err != nil {
 		return nil, err
 	}
-	radius, projection, err := graphCircleStockProjection(GraphContactCircle{Center: center, RadiusSquared: squared}, b)
+	return proveParabolaCircleFourCrossingFactors(ctx, [2]*SurfacePatch{a, c}, freeAxis, p,
+		GraphContactCircle{Center: center, RadiusSquared: squared}, sign, o.MaxCells, b)
+}
+
+func proveParabolaCircleFourCrossingFactors(ctx context.Context, patches [2]*SurfacePatch, freeAxis int, p rationalPolynomial,
+	circle GraphContactCircle, sign, maxCells int, b *polynomialBudget) (*SplineGraphParabolaCircleFourCrossings, error) {
+	center, squared := circle.Center, circle.RadiusSquared
+	radius, projection, err := graphCircleStockProjection(circle, b)
 	if err != nil {
 		return nil, err
 	}
@@ -69,14 +76,13 @@ func DiscoverSplineGraphParabolaCircleFourCrossings(ctx context.Context, a, c *S
 		return nil, err
 	}
 	var visits int
-	roots, initial, err := discoverGraphPolynomialPairRoots(ctx, q, polynomialGraphContactMode{crossings: 4}, o.MaxCells, &visits, b)
+	roots, initial, err := discoverGraphPolynomialPairRoots(ctx, q, polynomialGraphContactMode{crossings: 4}, maxCells, &visits, b)
 	if err != nil {
 		return nil, err
 	}
 	if initial != 1 || roots[0].Cmp(projection[0]) <= 0 || roots[3].Cmp(projection[1]) >= 0 {
 		return nil, ErrConvergence
 	}
-	patches := [2]*SurfacePatch{a, c}
 	out := &SplineGraphParabolaCircleFourCrossings{FreeAxis: freeAxis, CircleRadius: radius, CircleProjection: projection,
 		Circle: GraphContactCircle{Center: parabolaTwoCrossingCirclesUV(freeAxis, center[0], center[1]), RadiusSquared: squared}}
 	out.ParabolaControls, out.ParabolaExits, err = originalCrossingParabola(ctx, patches, freeAxis, p, b)
@@ -151,26 +157,35 @@ func (out *SplineGraphParabolaCircleFourCrossings) bindFourCircleWitnesses(p, q 
 		if err := b.check(x); err != nil {
 			return err
 		}
-		y, err := polynomialValue(p, x, b)
-		if err != nil {
-			return err
-		}
-		gap, err := polynomialValue(q, x, b)
-		if err != nil {
-			return err
-		}
-		if (interval == 1 && (gap.Sign() <= 0 || y.Cmp(center[1]) != out.CircleSide)) || (interval != 1 && gap.Sign() >= 0) {
-			return ErrConvergence
-		}
-		step := new(big.Rat).Quo(new(big.Rat).Abs(gap), big.NewRat(int64(4*out.CircleSide), 1))
+		direction := out.CircleSide
 		if i == 0 || i == 3 {
-			step.Neg(step)
+			direction = -direction
 		}
-		y.Add(y, step)
-		if err := b.check(y); err != nil {
+		out.RegionWitnesses[2+i], err = out.circleWitnessAt(p, q, x, center[1], interval != 1, direction, b)
+		if err != nil {
 			return err
 		}
-		out.RegionWitnesses[2+i] = parabolaTwoCrossingCirclesUV(out.FreeAxis, x, y)
 	}
 	return nil
+}
+
+func (out *SplineGraphParabolaCircleFourCrossings) circleWitnessAt(p, q rationalPolynomial, x, centerY *big.Rat,
+	inside bool, direction int, b *polynomialBudget) ([2]*big.Rat, error) {
+	y, err := polynomialValue(p, x, b)
+	if err != nil {
+		return [2]*big.Rat{}, err
+	}
+	gap, err := polynomialValue(q, x, b)
+	if err != nil {
+		return [2]*big.Rat{}, err
+	}
+	if (inside && gap.Sign() >= 0) || (!inside && (gap.Sign() <= 0 || y.Cmp(centerY) != out.CircleSide)) {
+		return [2]*big.Rat{}, ErrConvergence
+	}
+	step := new(big.Rat).Quo(new(big.Rat).Abs(gap), big.NewRat(int64(4*direction), 1))
+	y.Add(y, step)
+	if err := b.check(y); err != nil {
+		return [2]*big.Rat{}, err
+	}
+	return parabolaTwoCrossingCirclesUV(out.FreeAxis, x, y), nil
 }
