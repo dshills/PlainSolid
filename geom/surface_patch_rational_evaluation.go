@@ -23,7 +23,14 @@ type RationalSurfacePatchJet struct {
 // EvaluateRational evaluates at exact rational original UV. Neither knot
 // selection nor the evaluation parameter is rounded to float64. Inputs are
 // read-only; all returned rationals are independent of inputs and patch storage.
-func (p *SurfacePatch) EvaluateRational(ctx context.Context, u, v *big.Rat, o SurfacePatchEvaluationOptions) (r RationalSurfacePatchJet, err error) {
+func (p *SurfacePatch) EvaluateRational(ctx context.Context, u, v *big.Rat, o SurfacePatchEvaluationOptions) (RationalSurfacePatchJet, error) {
+	return p.evaluateRationalOnKnotSide(ctx, u, v, [2]int{}, o)
+}
+
+// A negative side selects the left cell at an exact internal knot equality.
+// Callers must prove that the intended source curve enters that cell.
+func (p *SurfacePatch) evaluateRationalOnKnotSide(ctx context.Context, u, v *big.Rat, side [2]int,
+	o SurfacePatchEvaluationOptions) (r RationalSurfacePatchJet, err error) {
 	if ctx == nil || p == nil || len(p.net) == 0 || u == nil || v == nil {
 		return r, ErrInvalid
 	}
@@ -63,11 +70,12 @@ func (p *SurfacePatch) EvaluateRational(ctx context.Context, u, v *big.Rat, o Su
 		if e != nil {
 			return r, e
 		}
-		parameter := u
+		parameter, direction := u, side[0]
 		if !axis {
-			parameter = v
+			parameter, direction = v, side[1]
 		}
-		if parameter.Cmp(new(big.Rat).SetFloat64(t)) < 0 {
+		comparison := parameter.Cmp(new(big.Rat).SetFloat64(t))
+		if comparison < 0 || (comparison == 0 && direction < 0) {
 			current = left
 		} else {
 			current = right
