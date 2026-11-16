@@ -219,5 +219,39 @@
       "6",
       "7"
     ]
+  },
+  "height_residual_atlas": {
+    "log": "projective-height-difference-main-race.jsonl",
+    "sha256": "aa79993273affb306f99ce9c30bb2f35c1da9caa6e0ae13500b039ba3fe7bf89",
+    "main_passes": [
+      "TestCompareExactCurvesFractionalOriginalClockAndKnot",
+      "TestTransformProjectiveUVKeepsOriginalCurveKnotsAndPhysicalDerivatives",
+      "TestProjectiveSurfaceGraphOverlapMapsAnOriginalUVCurve",
+      "TestExactSurfaceComparisonFractionalOriginalKnotMaps",
+      "TestProjectiveGraphBoundaryContactAuthenticatesCompleteEdge",
+      "TestProjectiveGraphBoundaryContactSeparatesOnePointFromNoContact",
+      "TestProjectiveGraphBoundaryEventsRetainSimpleAndTangentOriginalRoots",
+      "TestProjectiveGraphBoundaryEventsKeepAnIrrationalRootOnBothOwners",
+      "TestProjectiveGraphBoundaryEventsSeparateCoincidentRunAndIsolatedPoint",
+      "TestProjectiveGraphContactBoundaryKeepsBothDirectedOriginalCurves",
+      "TestProjectiveGraphContactBoundaryRefusesPartialProof",
+      "TestProjectiveSurfaceGraphOverlapDiscoversOriginalPartialMap",
+      "TestProjectiveSurfaceGraphOverlapRejectsAProjectionThatOnlyMatchesSamples",
+      "TestSurfaceSurfaceProjectiveCoincidenceKeepsExactCompleteContact",
+      "TestProjectiveSurfaceHeightDifferencePreservesOriginalUnionAndTinySigns",
+      "TestSurfaceHeightDifferenceExactAndOutside",
+      "TestSurfaceHeightDifferenceRationalCommonBasis",
+      "TestGeneralSurfaceHeightDifferentDegreesAndKnots",
+      "TestGeneralSurfaceHeightNonproportionalWeights",
+      "TestGeneralSurfaceHeightExactSubtractionAndErrors",
+      "TestExactSurfaceHeightDifferenceNonrepresentable",
+      "TestExactSurfaceHeightDifferenceProportionalWeights",
+      "TestSurfaceNormalOffsetSeamAuthenticatesExactFractionalStation",
+      "TestVerticalProjectiveChartPreservesWholeSurface"
+    ],
+    "common_rectangles": 4,
+    "common_nonbinary_cut": "9/10",
+    "lift_scale": "2^-120",
+    "placements": 2
   }
 }

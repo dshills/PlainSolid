@@ -104,6 +104,10 @@ edge. Unequal edge traces may still meet and are retained for further
 classification. For bounded polynomial residuals, the algebraic query
 now separates every isolated root from coincident intervals and retains
 both owners' exact original parameters and one-sided root orders.
+For a positive-area common projection, an exact height residual atlas
+now retains both original knot owners and nonbinary common cuts. It
+provides the scalar residual for contour discovery; it does not yet
+assemble all contours into a global contact graph.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows
