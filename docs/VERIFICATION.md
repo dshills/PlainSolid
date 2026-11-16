@@ -216,6 +216,12 @@ failures across 6,216 top-level cases. Its eight trimmed lanes passed
 cross-builds also passed on this snapshot; these do not substitute
 for native runtime qualification on those platforms.
 
+The [full ordinary Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
+later passed all nine lanes on macOS ARM64. The independent inventory
+contains 6,254 cases: 5,666 passes and 588 explicit optional skips,
+including 1,520 passes and 51 optional skips across the eight trimmed
+lanes. No failed or unfinished cases remain on this snapshot.
+
 The multispan cubic section race check passed on main in 2.280 seconds.
 An ordinary node and a true cusp give the same exact original charts,
 vertices, jets and signed regions after independent knots are inserted

@@ -93,8 +93,11 @@ passes and 51 optional skips. The newer ordinary and corrected race
 runs were then refreshed separately. The [full ordinary run on `b6335d3c`](evidence/main-b6335d3c-qualification-2026-11-15.json)
 passed 5,630 of 6,216 listed cases, with 586 optional skips and no
 failures. It includes 1,502 trimmed passes and 51 optional skips. It
-pairs with the full PlainCAD pass on that same kernel. The `01d12dab`
-ordinary run and corrected `ab33a412` race remain in progress.
+pairs with the full PlainCAD pass on that same kernel. The [full ordinary
+Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
+later passed 5,666 cases with 588 optional skips across 6,254 listed
+cases. The corrected `ab33a412` macOS race and the full native Linux
+ARM64 `7569bd36` archive run are still in progress.
 The browser suites on `b6335d3c` required scoped loopback access after
 the default sandbox denied their local test servers; preserve those startup
 logs separately from the browser results. Scoped browser reruns then
@@ -337,8 +340,7 @@ The pointed Cut has a closed preview at the documented settings;
 the exterior preview still needs a conforming mesh. Its exact material
 proof remains available. Broader contact discovery, finite angle display
 and advanced edge modifications remain in progress.
-Ordinary Go is also running on `01d12dab`; the full PlainCAD run on
-`a296b700` has passed.
+Full ordinary Go on `01d12dab` and PlainCAD on `a296b700` have passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,
 exchange and native platform gates remain open.
