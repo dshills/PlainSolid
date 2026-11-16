@@ -9,10 +9,11 @@ import (
 )
 
 func (m *PeriodicTrimmedFace) proveEdges(ctx context.Context, graph periodicTrimGraph, cell geom.ExactPeriodicSurfaceBezierCell, uvIDs, modelIDs []int, remaining int) (int, error) {
-	uv, _, err := readPeriodicTrimUVRectangle(graph, uvIDs)
-	if err != nil {
+	var uv [4]periodicTrimUVEdge
+	if _, err := readPeriodicTrimUVEdges(graph, uvIDs, uv[:]); err != nil {
 		return 0, err
 	}
+	var err error
 	m.Edges, remaining, err = provePeriodicTrimRectangle(ctx, graph, cell, m.Bounds, uv, modelIDs, 1, remaining)
 	return remaining, err
 }
@@ -22,15 +23,16 @@ type periodicTrimUVEdge struct {
 	start, end [2]*big.Rat
 }
 
-func readPeriodicTrimUVRectangle(graph periodicTrimGraph, ids []int) (uv [4]periodicTrimUVEdge, bounds [2]geom.ExactParameterInterval, err error) {
+func readPeriodicTrimUVEdges(graph periodicTrimGraph, ids []int, uv []periodicTrimUVEdge) ([2]geom.ExactParameterInterval, error) {
+	var bounds [2]geom.ExactParameterInterval
 	for i, uvID := range ids {
 		rec, err := graph.take(uvID, 110)
 		if err != nil {
-			return uv, bounds, err
+			return bounds, err
 		}
 		a, b, err := periodicTrimUVLine(rec)
 		if err != nil {
-			return uv, bounds, fmt.Errorf("iges: periodic UV line #%d: %w", uvID, err)
+			return bounds, fmt.Errorf("iges: periodic UV line #%d: %w", uvID, err)
 		}
 		uv[i] = periodicTrimUVEdge{id: uvID, start: a, end: b}
 		for _, p := range [2][2]*big.Rat{a, b} {
@@ -45,7 +47,7 @@ func readPeriodicTrimUVRectangle(graph periodicTrimGraph, ids []int) (uv [4]peri
 			}
 		}
 	}
-	return uv, bounds, nil
+	return bounds, nil
 }
 
 func provePeriodicTrimRectangle(ctx context.Context, graph periodicTrimGraph, cell geom.ExactPeriodicSurfaceBezierCell,

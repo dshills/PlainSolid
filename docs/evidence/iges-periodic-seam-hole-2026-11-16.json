@@ -1,0 +1,299 @@
+{
+  "implementationCommit": "f38b815de204bac752d85c0e2e6700523e3ec4e5",
+  "dependency": "3d6b21e3e0245262df1d9e0869ba3415c406688d",
+  "patch": {
+    "name": "import-periodic-trimmed-iges-128-seam-hole.patch",
+    "sha256": "3d55740b13369f3dff769b5350cf716f3530dbe80cdba7381f6006ca67284a93",
+    "bytes": 54680
+  },
+  "sourceScope": "One originally clockwise rectangular inner contour crossing the same original upper U seam as its outer contour. Exact injective projection of the entire lifted chart and opposite original wire winding.",
+  "chart": {
+    "fileUnits": "mm",
+    "fullSupport": [
+      [
+        "0",
+        "5"
+      ],
+      [
+        "0",
+        "4"
+      ]
+    ],
+    "originalKnotOwnersU": [
+      [
+        "4",
+        "5"
+      ],
+      [
+        "5",
+        "6"
+      ]
+    ],
+    "originalKnotOwnersV": [
+      [
+        "0",
+        "4"
+      ],
+      [
+        "0",
+        "4"
+      ]
+    ],
+    "UStationCycles": [
+      0,
+      1
+    ],
+    "USeam": "5",
+    "outerBounds": [
+      [
+        "19/4",
+        "21/4"
+      ],
+      [
+        "1",
+        "3"
+      ]
+    ],
+    "projectionAxes": [
+      "Y",
+      "Z"
+    ],
+    "projectionOrientation": 1,
+    "holeBounds": [
+      [
+        "39/8",
+        "41/8"
+      ],
+      [
+        "3/2",
+        "5/2"
+      ]
+    ],
+    "leftAndRightNormalizedDuScale": "1/8",
+    "normalizedDvScale": "1"
+  },
+  "graph": {
+    "type144FaceID": 1,
+    "type128SupportID": 3,
+    "type142ContourIDs": [
+      5,
+      35
+    ],
+    "type102UVAndModelIDs": [
+      [
+        7,
+        21
+      ],
+      [
+        37,
+        51
+      ]
+    ],
+    "UVLineOwnerIDs": [
+      [
+        9,
+        11,
+        13,
+        15,
+        17,
+        19
+      ],
+      [
+        39,
+        41,
+        43,
+        45,
+        47,
+        49
+      ]
+    ],
+    "modelSplineOwnerIDs": [
+      [
+        23,
+        25,
+        27,
+        29,
+        31,
+        33
+      ],
+      [
+        53,
+        55,
+        57,
+        59,
+        61,
+        63
+      ]
+    ],
+    "modelRangeStarts": [
+      [
+        0,
+        2,
+        4,
+        6,
+        8,
+        10
+      ],
+      [
+        20,
+        22,
+        24,
+        26,
+        28,
+        30
+      ]
+    ]
+  },
+  "pinnedOCCT": {
+    "revision": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+    "binary": {
+      "name": "author",
+      "sha256": "f42655d8dfd74ac98999f4a0fe05f478ae5545d994fbd7d3b230cb165f101509",
+      "bytes": 130072
+    },
+    "source": {
+      "name": "iges_periodic_128_trim.cxx",
+      "sha256": "13a363a46be91fa2dd16f1e02a3d88335042d799135117f1dfef00b2a5c2bb7f",
+      "bytes": 13799
+    },
+    "readMode": "read-wires"
+  },
+  "fixtures": {
+    "seamHole": {
+      "source": {
+        "name": "exact-seam-hole.iges",
+        "sha256": "22968158cfe98e74e02fdb30a2c40fbbca82678b159f4ad8f2bd07d3bed3bcd6",
+        "bytes": 9477
+      },
+      "strictExactInput": "Exact source proof with 32 source owners, 46 controls and 12 directed pairs",
+      "originalUVSignedAreas": [
+        "1",
+        "-1/4"
+      ],
+      "pinnedReadLog": {
+        "name": "exact-seam-hole.reader.log",
+        "sha256": "2b97a710647888aead0be9b945b17015e8bd91a9bf3f2f74f97184a187369578",
+        "bytes": 2836
+      },
+      "pinnedReaderExit": 0,
+      "pinnedReopen": {
+        "valid": true,
+        "topology": [
+          1,
+          2,
+          12,
+          12
+        ],
+        "area": 3.067009869638307,
+        "perimeter": 12.123779934675332,
+        "periodicU": true,
+        "bounds": [
+          4.75,
+          5.25,
+          1,
+          3
+        ],
+        "samplesCount": 5,
+        "wiresCount": 2
+      }
+    },
+    "touchingSeamHole": {
+      "source": {
+        "name": "exact-seam-touching-hole.iges",
+        "sha256": "48162b4ac92702489189b3cc6e96bd02be95562b2d99b82300a22a3c80a4a861",
+        "bytes": 9477
+      },
+      "strictExactInput": "Reject strict containment at V=1; OCCT splits two outer edges and reports a valid transferred face",
+      "originalUVSignedAreas": [
+        "1",
+        "-3/8"
+      ],
+      "pinnedReadLog": {
+        "name": "exact-seam-touching-hole.reader.log",
+        "sha256": "abfddb32f1dc7cca9e57dfcc026af1138b7f15c6cc3fcb87bf180aee9405295e",
+        "bytes": 3232
+      },
+      "pinnedReaderExit": 0,
+      "pinnedReopen": {
+        "valid": true,
+        "topology": [
+          1,
+          2,
+          14,
+          11
+        ],
+        "area": 2.5575696522043003,
+        "perimeter": 13.123779934776612,
+        "periodicU": true,
+        "bounds": [
+          4.75,
+          5.25,
+          1,
+          3
+        ],
+        "samplesCount": 5,
+        "wiresCount": 2
+      }
+    }
+  },
+  "tests": {
+    "focused": {
+      "name": "focused.log",
+      "sha256": "6c21183cf28b03add93fecc0349fcbf01d150287bc6477d090f9f682bd73d6ba",
+      "bytes": 4326,
+      "seconds": 1.935,
+      "passed": true
+    },
+    "race": {
+      "name": "race.log",
+      "sha256": "cf5ec0293d3cf71e433c54ffa48a26414dbc4cf0847399cff8ed0a218cc04a63",
+      "bytes": 12844,
+      "seconds": 7.199,
+      "passed": true
+    },
+    "raceFilter": "^(TestWritePeriodic(SeamTrimmedFace|TrimmedFaceWithHoles)|TestReadPeriodic(Seam)?TrimmedFace|TestPeriodicTrimmedFaceSeam|TestReadExactPeriodicSurface128|TestWriteExactPeriodicSurface128|TestNewExactPeriodicSurface128|TestSurfaceExchange|TestIndependentSurfaceParameters|TestExactCurveOnSurface|TestCurveOnSurfaceRejectsMismatch|TestCurveOnSurfacePointerAndLimits|TestMalformedRecordsAndPointers|TestLimits|TestOrthogonalSurface|TestPlacedRectangularSurface|TestQuadraticOvalSurface|TestCurvedOvalSurface|TestPlanarSolidIGES)",
+    "darwinAMD64": {
+      "name": "amd64.log",
+      "sha256": "2af6107a6f0cfc669e82ca3ceda84f3b4271aee8836e1fd3317e65af6d9a313c",
+      "bytes": 707,
+      "seconds": null,
+      "passed": true
+    },
+    "fullIGES": {
+      "name": "full.log",
+      "sha256": "2dd8964dc75526c5d817c9a14ae42d72dacb615087615db7cb9e7c587ad10857",
+      "bytes": 39,
+      "seconds": 130.951,
+      "passed": true
+    }
+  },
+  "atomicNegatives": [
+    "Duplicate contour or model owner",
+    "Inner contour references wrong support",
+    "Wrong lifted seam station and model departures below a binary64 ULP",
+    "Right UV owners moved to previous cycle with unchanged original physical model splines",
+    "One entity or control too few"
+  ],
+  "unchangedPredecessorOutputs": {
+    "legacy/one-hole.iges": "deb74dcd6a9d28b5b5bf879596718e43746a801c1c1d06ae16007ab351ac772e",
+    "legacy/ordinary/curves.iges": "e7306c47f1c1b717d0b4dcbc988eb9f42ca22207962c334c8250cd9cc4fdbca3",
+    "legacy/ordinary/rectangular-spline-face.igs": "30b5dd8b91a26096740288382b4c2c8c0d514732cc0d165e5d1fdd5cec2fd26b",
+    "legacy/ordinary/translated-trimmed-rational-128.iges": "ab24c50ad001536723860888a87376f38b9be3a9e08e6aae46eac59d9ddba72d",
+    "legacy/periodic/native-rephased.iges": "2d7538bdad0be19a9f8181c8f71edf0a6a972b50642efe73e5dea93f25a8ca65",
+    "legacy/periodic/u.iges": "27caf6f5f36ba1a16050b139072f35e17a084b5641fcd33fccb4547eac752310",
+    "legacy/periodic/uv.iges": "8190bed840cf2723f44f2754f78fcdb8019deddbfe1a7f97f9f53f92e3cb3156",
+    "legacy/periodic/v.iges": "b543d8b06967e59cd06b20598c6bafeb1e918fe5d445bda36556a4cac6068b60",
+    "legacy/planar.iges": "992bbaa2bcd500dc22dc973966ede61632acb7c4b66eff90fedd0abaf18343cd",
+    "legacy/seam.iges": "c323d9b453c627dc16b42833d058d71cbd14313947c8d94d5fbdf4f1154b2b2e",
+    "legacy/two-holes.iges": "f8d62d3bccc673ebf24bdc404a26c69f3f3171b3dd446d42cab036a201eab359"
+  },
+  "sourceQualificationSHA256": "a8be111fec73860f3e2dd9ffb620048214e9f47953757b5df8229e7518996541",
+  "mainRace": {
+    "sourceBase": "acf54c33",
+    "name": "iges-periodic-seam-hole-main-race.jsonl",
+    "sha256": "138a2b358166f30578867c3a3724a6d2a3f84ecb7872ed96a4c887c15a70948f",
+    "seconds": 6.447,
+    "failures": 0,
+    "skips": 0
+  }
+}

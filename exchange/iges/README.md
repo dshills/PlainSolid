@@ -156,6 +156,16 @@ IGES entities. The pinned reader reopens its six directed edges with the
 same UV stations, model points, and model parameter ranges. It assigns each
 pcurve the parameter interval of its paired model spline on transfer.
 
+`ReadPeriodicSeamTrimmedFaceWithHole` admits one clockwise rectangular
+inner contour crossing the same original U seam as its outer loop. Both
+type-102 composites of the inner contour preserve six paired edges at
+their original lifted stations and model intervals. The proof requires
+strict containment in the outer lift and uses its common projection
+certificate. Each inner cell retains the original knot span and cycle.
+The pinned reader reopens the independent source with twelve original
+edges. For the outer-touch control it splits two outer edges and reports
+a valid transferred face. The strict source proof refuses the contact.
+
 `WritePeriodicSeamTrimmedFace` emits a canonical carrier for an original
 face proved by `ReadPeriodicSeamTrimmedFace`. It replays the source proof
 and strictly reopens the complete output before writing to the stream.

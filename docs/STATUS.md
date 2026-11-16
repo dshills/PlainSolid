@@ -160,6 +160,9 @@ A verified type 144 rectangular trim can also cross the original upper
 U seam. It retains six original trim/model pairs and proves continuous
 geometry and injectivity on the lifted chart. The inconsistent seam
 sample still refuses.
+One original clockwise rectangular hole can cross the same upper seam.
+Its six directed model and UV pairs retain their original seam split,
+and the outer wire and inner wire stay strictly separated.
 Canonical export can emit that verified six-edge seam trim with its
 original identifiers, parameter ranges and geometry. General editable
 periodic trim construction and export remain open.

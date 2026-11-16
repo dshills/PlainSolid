@@ -322,6 +322,12 @@ reopens both exports in the strict reader and pinned OCCT. Original and
 emitted pinned reports agree byte for byte: loop winding, edge stations,
 ranges, face geometry and jets match. Main race, full IGES, both executed
 macOS architectures and nine predecessor outputs pass.
+The [periodic seam hole import audit](evidence/iges-periodic-seam-hole-2026-11-16.json)
+checks 12 original directed model and UV pairs on a lifted chart across
+the same U seam. The independently authored positive reopens with one
+face, two wires, 12 edges and 12 vertices. The touching source whose
+outer edges OCCT splits, mixed cycle stations and model perturbations
+refuse. The main race, full IGES, amd64 replay and eleven earlier files pass.
 
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips

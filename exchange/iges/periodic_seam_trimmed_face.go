@@ -55,6 +55,17 @@ func ReadPeriodicSeamTrimmedFace(ctx context.Context, r io.Reader, l Limits) (Pe
 }
 
 func provePeriodicSeamTrimmedFace(ctx context.Context, source periodicTrimSource) (PeriodicSeamTrimmedFace, error) {
+	m, err := provePeriodicSeamTrimmedOuter(ctx, &source)
+	if err != nil {
+		return PeriodicSeamTrimmedFace{}, err
+	}
+	if len(source.graph.claimed) != len(source.graph.records) {
+		return PeriodicSeamTrimmedFace{}, geom.ErrUnrepresentable
+	}
+	return m, nil
+}
+
+func provePeriodicSeamTrimmedOuter(ctx context.Context, source *periodicTrimSource) (PeriodicSeamTrimmedFace, error) {
 	var zero PeriodicSeamTrimmedFace
 	base := source.face
 	m := PeriodicSeamTrimmedFace{
@@ -70,7 +81,9 @@ func provePeriodicSeamTrimmedFace(ctx context.Context, source periodicTrimSource
 		}
 	}
 	m.SeamU = u.Knots[u.Count]
-	uv, err := m.readLiftedUV(source.graph, source.uv)
+	var uv [6]periodicTrimUVEdge
+	var err error
+	m.Bounds, err = readPeriodicTrimUVEdges(source.graph, source.uv, uv[:])
 	if err != nil {
 		return zero, err
 	}
@@ -82,11 +95,9 @@ func provePeriodicSeamTrimmedFace(ctx context.Context, source periodicTrimSource
 	if err != nil {
 		return zero, err
 	}
-	if err := m.proveLiftedEdges(ctx, source, uv, cells); err != nil {
+	m.Edges, source.remaining, err = proveLiftedTrimEdges(ctx, source.graph, m.Bounds, m.SeamU, uv, source.model, cells, 1, source.remaining)
+	if err != nil {
 		return zero, err
-	}
-	if len(source.graph.claimed) != len(source.graph.records) {
-		return zero, geom.ErrUnrepresentable
 	}
 	if err := m.proveLiftInjectivity(ctx, period); err != nil {
 		return zero, err
@@ -142,42 +153,13 @@ func (m *PeriodicSeamTrimmedFace) proveSeamCells(ctx context.Context) ([]geom.Ex
 	return cells, nil
 }
 
-type periodicSeamUVEdge struct {
-	start, end [2]*big.Rat
-}
-
-func (m *PeriodicSeamTrimmedFace) readLiftedUV(graph periodicTrimGraph, ids []int) ([6]periodicSeamUVEdge, error) {
-	var uv [6]periodicSeamUVEdge
-	for i, id := range ids {
-		edge, err := graph.take(id, 110)
-		if err != nil {
-			return uv, err
-		}
-		a, b, err := periodicTrimUVLine(edge)
-		if err != nil {
-			return uv, fmt.Errorf("iges: periodic UV line #%d: %w", id, err)
-		}
-		uv[i] = periodicSeamUVEdge{a, b}
-		for _, p := range [2][2]*big.Rat{a, b} {
-			for axis, q := range p {
-				bound := &m.Bounds[axis]
-				if bound.Lower == nil || q.Cmp(bound.Lower) < 0 {
-					bound.Lower = q
-				}
-				if bound.Upper == nil || q.Cmp(bound.Upper) > 0 {
-					bound.Upper = q
-				}
-			}
-		}
-	}
-	return uv, nil
-}
-
-func (m *PeriodicSeamTrimmedFace) proveLiftedEdges(ctx context.Context, s periodicTrimSource, uv [6]periodicSeamUVEdge,
-	cells []geom.ExactPeriodicSurfaceBezierCell) error {
-	u, v := m.Bounds[0], m.Bounds[1]
-	stations := [6][2]*big.Rat{{u.Lower, v.Lower}, {m.SeamU, v.Lower}, {u.Upper, v.Lower},
-		{u.Upper, v.Upper}, {m.SeamU, v.Upper}, {u.Lower, v.Upper}}
+func proveLiftedTrimEdges(ctx context.Context, graph periodicTrimGraph, bounds [2]geom.ExactParameterInterval,
+	seam *big.Rat, uv [6]periodicTrimUVEdge, model []int, cells []geom.ExactPeriodicSurfaceBezierCell,
+	winding, remaining int) ([6]PeriodicTrimEdge, int, error) {
+	var zero, pairs [6]PeriodicTrimEdge
+	u, v := bounds[0], bounds[1]
+	stations := [6][2]*big.Rat{{u.Lower, v.Lower}, {seam, v.Lower}, {u.Upper, v.Lower},
+		{u.Upper, v.Upper}, {seam, v.Upper}, {u.Lower, v.Upper}}
 	station := func(q [2]*big.Rat) int {
 		for i, point := range stations {
 			if q[0].Cmp(point[0]) == 0 && q[1].Cmp(point[1]) == 0 {
@@ -186,27 +168,37 @@ func (m *PeriodicSeamTrimmedFace) proveLiftedEdges(ctx context.Context, s period
 		}
 		return -1
 	}
-	// Every directed rectangle segment owns one side of one exact cell.
+	// Each CCW rectangle segment owns one side of one exact cell.
 	cellSides := [6][2]int{{0, 0}, {1, 0}, {1, 1}, {1, 2}, {0, 2}, {0, 3}}
 	first := station(uv[0].start)
 	for i, edge := range uv {
-		start := (first + i) % 6
-		if first < 0 || station(edge.start) != start || station(edge.end) != (start+1)%6 {
-			return fmt.Errorf("iges: original periodic UV line #%d does not follow the directed split rectangle: %w", s.uv[i], geom.ErrUnrepresentable)
+		start := (first + i*winding + 6) % 6
+		end := (start + winding + 6) % 6
+		if first < 0 || station(edge.start) != start || station(edge.end) != end {
+			return zero, 0, fmt.Errorf("iges: original periodic UV line #%d does not follow the directed split rectangle: %w", edge.id, geom.ErrUnrepresentable)
 		}
 		owner := cellSides[start]
+		if winding < 0 {
+			owner = cellSides[end]
+		}
 		expected, err := periodicTrimCellEdge(ctx, cells[owner[0]], owner[1])
 		if err != nil {
-			return err
+			return zero, 0, err
 		}
-		pair, used, err := provePeriodicTrimEdge(ctx, s.graph, s.uv[i], s.model[i], edge.start, edge.end, expected, s.remaining)
+		if winding < 0 {
+			expected, err = expected.Reparameterize(0, 1, true, geom.SurfacePatchOptions{})
+			if err != nil {
+				return zero, 0, err
+			}
+		}
+		pair, used, err := provePeriodicTrimEdge(ctx, graph, edge.id, model[i], edge.start, edge.end, expected, remaining)
 		if err != nil {
-			return err
+			return zero, 0, err
 		}
-		s.remaining -= used
-		m.Edges[i] = pair
+		remaining -= used
+		pairs[i] = pair
 	}
-	return nil
+	return pairs, remaining, nil
 }
 
 func (m *PeriodicSeamTrimmedFace) proveLiftInjectivity(ctx context.Context, period *big.Rat) error {

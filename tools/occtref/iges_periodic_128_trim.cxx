@@ -166,6 +166,24 @@ static bool writeExactHoles(const char* path, std::string_view mode)
     return writer.AddEntity(face) && writer.Write(path);
 }
 
+static bool writeExactSeamHole(const char* path, bool touching)
+{
+    const auto native = periodicSupport();
+    const auto support = exactCarrier(native,0.,5.,0.,4.);
+    const std::array<gp_XY,6> outer{gp_XY(4.75,3),gp_XY(4.75,1),gp_XY(5,1),
+                                    gp_XY(5.25,1),gp_XY(5.25,3),gp_XY(5,3)};
+    const double lo = touching ? 1. : 1.5;
+    const std::array<gp_XY,6> hole{gp_XY(4.875,lo),gp_XY(4.875,2.5),gp_XY(5,2.5),
+                                   gp_XY(5.125,2.5),gp_XY(5.125,lo),gp_XY(5,lo)};
+    using Contours = NCollection_HArray1<occ::handle<IGESGeom_CurveOnSurface>>;
+    occ::handle<Contours> inner = new Contours(1,1);
+    inner->SetValue(1,exactContour(native,support,hole,20));
+    occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
+    face->Init(support,1,exactContour(native,support,outer,0),inner);
+    IGESControl_Writer writer("MM",0);
+    return writer.AddEntity(face) && writer.Write(path);
+}
+
 static bool report(const TopoDS_Shape& shape, bool boundary = false, bool allWires = false)
 {
     NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> faces, edges, wires, vertices;
@@ -256,6 +274,9 @@ int main(int argc,char** argv)
         if (mode == "write-one-hole" || mode == "write-two-holes" ||
             mode == "write-overlapping-holes" || mode == "write-touching-hole" || mode == "write-wrong-hole-winding") {
             return writeExactHoles(argv[2],mode) ? 0 : 8;
+        }
+        if (mode == "write-exact-seam-hole" || mode == "write-exact-seam-touching-hole") {
+            return writeExactSeamHole(argv[2],mode == "write-exact-seam-touching-hole") ? 0 : 8;
         }
         if (mode == "write" || mode == "write-seam") {
             const TopoDS_Face face = original(mode == "write-seam");

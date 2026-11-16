@@ -31,7 +31,7 @@ type PeriodicTrimmedFaceWithHoles struct {
 // the entire directed edge. One projection proves injectivity of the whole
 // outer rectangle before the result is published.
 func ReadPeriodicTrimmedFaceWithHoles(ctx context.Context, r io.Reader, l Limits) (PeriodicTrimmedFaceWithHoles, error) {
-	source, err := readPeriodicTrimSourceWithHoles(ctx, r, l, 4, 2)
+	source, err := readPeriodicTrimSourceWithHoles(ctx, r, l, 4, 4, 2)
 	if err != nil {
 		return PeriodicTrimmedFaceWithHoles{}, err
 	}
@@ -51,7 +51,8 @@ func provePeriodicTrimmedFaceWithHoles(ctx context.Context, source periodicTrimS
 	}
 	holes := make([]PeriodicTrimHole, len(source.holes))
 	for i, owner := range source.holes {
-		uv, bounds, err := readPeriodicTrimUVRectangle(source.graph, owner.uv)
+		var uv [4]periodicTrimUVEdge
+		bounds, err := readPeriodicTrimUVEdges(source.graph, owner.uv, uv[:])
 		if err != nil {
 			return zero, err
 		}
@@ -67,10 +68,8 @@ func provePeriodicTrimmedFaceWithHoles(ctx context.Context, source periodicTrimS
 			return zero, fmt.Errorf("iges: periodic hole #%d: %w", owner.contourID, err)
 		}
 		remaining = left
-		for axis, interval := range bounds {
-			if interval.Lower.Cmp(m.Bounds[axis].Lower) <= 0 || interval.Upper.Cmp(m.Bounds[axis].Upper) >= 0 {
-				return zero, fmt.Errorf("iges: periodic hole #%d is not strictly contained in its outer loop: %w", owner.contourID, geom.ErrUnrepresentable)
-			}
+		if err := provePeriodicTrimHoleContainment(owner.contourID, bounds, m.Bounds); err != nil {
+			return zero, err
 		}
 		for _, prior := range holes[:i] {
 			if !disjointPeriodicTrimRectangles(bounds, prior.Bounds) {
@@ -87,6 +86,15 @@ func provePeriodicTrimmedFaceWithHoles(ctx context.Context, source periodicTrimS
 		return zero, err
 	}
 	return PeriodicTrimmedFaceWithHoles{PeriodicTrimmedFace: m, Holes: holes}, nil
+}
+
+func provePeriodicTrimHoleContainment(owner int, hole, outer [2]geom.ExactParameterInterval) error {
+	for axis, interval := range hole {
+		if interval.Lower.Cmp(outer[axis].Lower) <= 0 || interval.Upper.Cmp(outer[axis].Upper) >= 0 {
+			return fmt.Errorf("iges: periodic hole #%d is not strictly contained in its outer loop: %w", owner, geom.ErrUnrepresentable)
+		}
+	}
+	return nil
 }
 
 func disjointPeriodicTrimRectangles(a, b [2]geom.ExactParameterInterval) bool {

@@ -208,9 +208,9 @@ func TestWritePeriodicTrimmedFaceWithHolesPinnedOCCT(t *testing.T) {
 				len(got.Samples) != 5 || len(got.Wires) != wires || !reflect.DeepEqual(got, original) {
 				t.Fatal("pinned reader changed the source wires, samples, or measures", got)
 			}
-			checkPeriodicHoleOracleWire(t, ctx, face.Support, got.Wires[0], face.Edges, true)
+			checkPeriodicTrimOracleWire(t, ctx, face.Support, got.Wires[0], face.Edges[:], true, face.ProjectionAxes, face.ProjectionOrientation)
 			for i, hole := range face.Holes {
-				checkPeriodicHoleOracleWire(t, ctx, face.Support, got.Wires[i+1], hole.Edges, false)
+				checkPeriodicTrimOracleWire(t, ctx, face.Support, got.Wires[i+1], hole.Edges[:], false, face.ProjectionAxes, face.ProjectionOrientation)
 			}
 		})
 	}

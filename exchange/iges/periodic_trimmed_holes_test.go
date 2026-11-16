@@ -56,14 +56,14 @@ func TestReadPeriodicTrimmedFaceWithHoles(t *testing.T) {
 			if !uBasis.Periodic || vBasis.Periodic || uBasis.Knots[0].Sign() != 0 || uBasis.Knots[uBasis.Count].Cmp(big.NewRat(5, 1)) != 0 {
 				t.Fatal("trim narrowed the original full cyclic support")
 			}
-			checkPeriodicHoleSourceEdges(t, m.Edges, 9, 19, 0, "9/4")
+			checkPeriodicTrimSourceWire(t, m.Edges[:], 9, 19, 0, "9/4")
 			for k, hole := range m.Holes {
 				bounds := [2][2][2]string{{{"5/4", "23/16"}, {"1", "2"}}, {{"25/16", "7/4"}, {"2", "3"}}}
 				if [3]int{hole.ContourID, hole.UVCompositeID, hole.ModelCompositeID} != ([3]int{27 + 22*k, 29 + 22*k, 39 + 22*k}) ||
 					periodicTrimIntervalStrings(hole.Bounds) != bounds[k] {
 					t.Fatal("lost an original inner owner or its bounds", hole)
 				}
-				checkPeriodicHoleSourceEdges(t, hole.Edges, 31+22*k, 41+22*k, 20+20*k, "-3/16")
+				checkPeriodicTrimSourceWire(t, hole.Edges[:], 31+22*k, 41+22*k, 20+20*k, "-3/16")
 			}
 			if old, err := ReadPeriodicTrimmedFace(ctx, bytes.NewReader(raw), Limits{}); err == nil || old.Support != nil {
 				t.Fatal("outer-only reader admitted inner topology", err)
@@ -78,7 +78,7 @@ func TestReadPeriodicTrimmedFaceWithHoles(t *testing.T) {
 	}
 }
 
-func checkPeriodicHoleSourceEdges(t *testing.T, pairs [4]PeriodicTrimEdge, firstUV, firstModel, firstStation int, area string) {
+func checkPeriodicTrimSourceWire(t *testing.T, pairs []PeriodicTrimEdge, firstUV, firstModel, firstStation int, area string) {
 	t.Helper()
 	twiceArea := new(big.Rat)
 	for i, edge := range pairs {
@@ -111,7 +111,7 @@ func TestReadPeriodicTrimmedFaceWithHolesReject(t *testing.T) {
 	refuse(periodicHoleFixture(t, "overlapping-holes"), Limits{}, "holes #27 and #49 overlap or meet")
 	refuse(periodicHoleFixture(t, "touching-hole"), Limits{}, "hole #27 is not strictly contained")
 	refuse(periodicHoleFixture(t, "wrong-hole-winding"), Limits{}, "does not follow the directed rectangle")
-	refuse(periodicTrimmedFixture(t, false), Limits{}, "expected one or two explicit periodic trim holes")
+	refuse(periodicTrimmedFixture(t, false), Limits{}, "invalid explicit periodic trim hole count")
 
 	raw := periodicHoleFixture(t, "two-holes")
 	doc := periodicTrimmedRecords(t, raw)
@@ -191,20 +191,21 @@ func TestReadPeriodicTrimmedFaceWithHolesPinnedOCCT(t *testing.T) {
 			if math.Abs(report.Area-example.area) > 1e-10 || math.Abs(report.Perimeter-example.perimeter) > 1e-10 {
 				t.Fatal("pinned reader changed the physical area or perimeter", report)
 			}
-			checkPeriodicHoleOracleWire(t, ctx, m.Support, report.Wires[0], m.Edges, true)
+			checkPeriodicTrimOracleWire(t, ctx, m.Support, report.Wires[0], m.Edges[:], true, m.ProjectionAxes, m.ProjectionOrientation)
 			for i, hole := range m.Holes {
-				checkPeriodicHoleOracleWire(t, ctx, m.Support, report.Wires[i+1], hole.Edges, false)
+				checkPeriodicTrimOracleWire(t, ctx, m.Support, report.Wires[i+1], hole.Edges[:], false, m.ProjectionAxes, m.ProjectionOrientation)
 			}
 		})
 	}
 }
 
-func checkPeriodicHoleOracleWire(t *testing.T, ctx context.Context, support *geom.ExactPeriodicSplineSurface, wire periodicTrimOracleWire, pairs [4]PeriodicTrimEdge, outer bool) {
+func checkPeriodicTrimOracleWire(t *testing.T, ctx context.Context, support *geom.ExactPeriodicSplineSurface, wire periodicTrimOracleWire, pairs []PeriodicTrimEdge, outer bool, projection [2]int, orientation int) {
 	t.Helper()
 	if wire.Outer != outer || len(wire.Edges) != len(pairs) {
 		t.Fatal("pinned transfer changed the directed wire role or edge count", wire)
 	}
 	projectedTwiceArea := 0.
+	x, y := projection[0], projection[1]
 	for i, e := range wire.Edges {
 		raw := pairs[i]
 		lo, _ := raw.ModelParameter.Lower.Float64()
@@ -229,9 +230,10 @@ func checkPeriodicHoleOracleWire(t *testing.T, ctx context.Context, support *geo
 			}
 			checkPeriodic128Vector(t, jet.Point, [3][3]float64{e.ModelStart, e.ModelMid, e.ModelEnd}[j])
 		}
-		projectedTwiceArea += e.ModelStart[0]*e.ModelEnd[2] - e.ModelStart[2]*e.ModelEnd[0]
+		projectedTwiceArea += e.ModelStart[x]*e.ModelEnd[y] - e.ModelStart[y]*e.ModelEnd[x]
 	}
-	if (outer && projectedTwiceArea >= 0) || (!outer && projectedTwiceArea <= 0) {
-		t.Fatal("pinned reader changed the model-space XZ winding", projectedTwiceArea)
+	oriented := float64(orientation) * projectedTwiceArea
+	if (outer && oriented <= 0) || (!outer && oriented >= 0) {
+		t.Fatal("pinned reader changed the projected model winding", projectedTwiceArea)
 	}
 }
