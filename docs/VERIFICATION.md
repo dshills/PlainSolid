@@ -216,6 +216,12 @@ positive shells, 320 directed original jets, and 64 normal bridge
 uses. Cut keeps one point with separate local IDs. A 1.104-second main
 bridge race verifies exact equivalence of the degree-five curve and
 unchanged original p-curves. Prior apex digests remain byte identical.
+The [nonapex Cut display race](evidence/parabola-circle-oblique-tangency-cut-display-2026-11-16.json)
+passed in 234.919 seconds with the prior apex controls. The four admitted
+Cuts preserve the original `3/4` ray and conic second derivatives on both
+roof charts. The largest certified distance is below `0.021799` mm,
+facet deviation below `0.135797` radians, and source turn below
+`0.286843` radians. The earlier apex displays retain their digests.
 
 The [proper-similarity display milestone](evidence/parabola-circle-proper-similarity-2026-11-16.json)
 passed its main focused race in 322.877 seconds. Eight components from four

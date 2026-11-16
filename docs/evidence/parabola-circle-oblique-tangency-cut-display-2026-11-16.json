@@ -1,0 +1,31 @@
+{
+  "isolate_commit": "6cb3bd544f843638083084f457e9f981c4ca259d",
+  "artifacts": {
+    "parabola-circle-oblique-tangency-certified-cut-display.patch": "3253888f32b081fc5c7d92375865125364800338cb588d26b71f9b2103fecd00",
+    "oblique-cut-display-qualification.md": "a783d6ba782259732e7e70b0c6b27e07cb12951dd7892148735208c8d4583ef6",
+    "oblique-cut-display-final-native.log": "aa7abe96c9bf92a36016aad434314665ea5369733e113d70a1c139f90894ce3d",
+    "oblique-cut-display-final-race.jsonl": "d7e08d8cb51c03ae2be57476f8b36938ca9fb7e8987511230278d220dfde67f9",
+    "oblique-cut-display-strict-source.log": "daed24c5fe25fa6895c18eaebf0399da6197eb5005fada95aa0fe99312e1907c",
+    "oblique-cut-prior-apex-cut.log": "c79b55773cd88a37b9202b46bd4474ee19ca108ede80109c913523297e8aab07",
+    "oblique-cut-prior-apex-envelope.log": "572c90bb01537f22e444c0aef7e2a3dad6f201cc9e1096d7fb63a67b8c5e8a23"
+  },
+  "main_integration": {
+    "log": "circle-oblique-cut-display-main-race.jsonl",
+    "sha256": "60de490836a981d8ca34bdf38a421b456760edda5b6a50e4fa83feccac882181",
+    "elapsed_seconds": 234.919,
+    "required_passes": {
+      "TestCertifiedParabolaCircleObliqueTangencyCut": 101.32,
+      "TestCertifiedParabolaCircleApexTangencyEnvelope": 79.9,
+      "TestCertifiedParabolaCircleApexTangencyCut": 52.27
+    }
+  },
+  "qualification": {
+    "cases": 4,
+    "shells_per_case": 2,
+    "contact_pairs_per_case": 1,
+    "max_physical_distance": 0.02179819,
+    "max_facet_radians": 0.135796301,
+    "max_turn_radians": 0.286842631,
+    "max_relative_volume_error": 0.01823
+  }
+}

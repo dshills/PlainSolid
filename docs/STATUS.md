@@ -143,6 +143,8 @@ bridge to enter the interior of a stock side. Admitted two-shell Cuts
 retain one original point; pinched reverse orientations refuse.
 The admitted nonapex results also transfer through exact STEP and IGES,
 including the exact degree-five form of the original varying-roof bridge.
+The admitted nonapex Cuts also have certified display with distinct
+component identities and exactly one registered oblique contact.
 Certified display of the separated two-circle Cuts now accepts proper
 rational similarities. The proof uses the original world coedge owners
 and reports distance in physical units after rotation and scaling.

@@ -45,60 +45,19 @@ func (r *ParabolaCircleApexTangencyCut) TessellateCertified(ctx context.Context,
 	if err != nil {
 		return empty, err
 	}
-	var height [2]parabolaCircleMeshHeight
-	var patches [2]*geom.SurfacePatch
-	for i := range height {
-		height[i], patches[i], err = parabolaCircleDisplayHeight(ctx, r.sources[i+1])
-		if err != nil {
-			return empty, err
-		}
-		height[i].normalHessian = parabolaCircleMeshHessian(r.sources[i+1])
-		height[i].hessian = height[i].normalHessian
+	height, patches, err := parabolaCircleCutDisplayHeights(ctx, r.sources)
+	if err != nil {
+		return empty, err
 	}
 	proof, err := geom.DiscoverSplineGraphParabolaCircleApexTangency(ctx, patches[0], patches[1], r.axis, geom.GraphPointContactOptions{})
 	if err != nil {
 		return empty, err
 	}
-	volumes := parabolaCircleApexCutMeshVolumes(height, proof)
-	plane, err := parabolaCircleMeshUVPlane(ctx)
-	if err != nil {
-		return empty, err
-	}
-	source := r.Contact()
-	if source.Parameters[0].Cmp(proof.Parameters[0]) != 0 || source.Parameters[1].Cmp(proof.Parameters[1]) != 0 ||
-		!exactPointCoordinatesEqual(source.Point, proof.Point) {
-		return empty, geom.ErrConvergence
-	}
 	result := CertifiedParabolaCircleApexTangencyMesh{Contact: ParabolaCircleApexMeshContact{
-		Source: source, Owners: proof.Owners,
+		Source: r.Contact(), Owners: proof.Owners,
 		DependentSecond: [2]*big.Rat{proof.ParabolaSecondDerivative, proof.CircleSecondDerivative},
 	}}
-	var meshes [2]mesh.Mesh
-	var vertices [2]collision.AssemblyVertex
-	triangleBudget := o.MaxTriangles
-	for i, s := range r.components {
-		h := r.history[i]
-		region := [2]int{1 - proof.DiskRegion, 2}[i]
-		if h.Region != region || proof.RegionSides[region] <= 0 || volumes[i][0].Sign() <= 0 {
-			return empty, geom.ErrConvergence
-		}
-		if o.MaxTriangles < len(s.faces) {
-			return empty, parametric.ErrBudget
-		}
-		native := source.Vertices[i]
-		if native < 0 || native >= len(s.vertices) {
-			return empty, geom.ErrConvergence
-		}
-		second := result.Contact.DependentSecond[i]
-		for direction, ray := range source.Rays[i] {
-			if ray < 0 || ray >= len(s.edges) {
-				return empty, geom.ErrConvergence
-			}
-			sign, err := parabolaCircleApexRay(s, ray, native, proof.FreeAxis, second)
-			if err != nil || sign != 2*direction-1 {
-				return empty, geom.ErrConvergence
-			}
-		}
+	for i, second := range result.Contact.DependentSecond {
 		for owner, first := range proof.Owners {
 			lift := &result.Contact.ModelSecond[i][owner]
 			for axis, slope := range first.DependentPartial {
@@ -111,13 +70,95 @@ func (r *ParabolaCircleApexTangencyCut) TessellateCertified(ctx context.Context,
 		if !exactPointCoordinatesEqual(result.Contact.ModelSecond[i][0], result.Contact.ModelSecond[i][1]) {
 			return empty, geom.ErrConvergence
 		}
+	}
+	source := parabolaCircleTangentMeshSource{
+		name: "apex", axis: proof.FreeAxis, diskRegion: proof.DiskRegion, regionSides: proof.RegionSides,
+		parameters: proof.Parameters, point: proof.Point, slope: new(big.Rat), second: result.Contact.DependentSecond,
+	}
+	volumes := parabolaCircleApexCutMeshVolumes(height, proof)
+	display, err := displayParabolaCircleTangentCut(ctx, r, height, source, volumes, o)
+	if err != nil {
+		return empty, err
+	}
+	result.Components, result.Contact.Display, result.Assembly = display.components, display.contact, display.assembly
+	return result, nil
+}
+
+func parabolaCircleCutDisplayHeights(ctx context.Context, sources [3]*geom.BSplineSurface) (
+	height [2]parabolaCircleMeshHeight, patches [2]*geom.SurfacePatch, err error) {
+	for i := range height {
+		height[i], patches[i], err = parabolaCircleDisplayHeight(ctx, sources[i+1])
+		if err != nil {
+			return height, patches, err
+		}
+		height[i].normalHessian = parabolaCircleMeshHessian(sources[i+1])
+		height[i].hessian = height[i].normalHessian
+	}
+	return height, patches, nil
+}
+
+type parabolaCircleTangentMeshSource struct {
+	name             string
+	axis, diskRegion int
+	regionSides      [3]int
+	parameters       [2]*big.Rat
+	point            [3]*big.Rat
+	slope            *big.Rat
+	second           [2]*big.Rat
+}
+
+type parabolaCircleTangentMeshDisplay struct {
+	components [2]CertifiedParabolaTwoCirclesComponentMesh
+	contact    collision.AssemblyVertexContact
+	assembly   collision.VertexContactAssemblyReport
+}
+
+func displayParabolaCircleTangentCut(ctx context.Context, r *ParabolaCircleApexTangencyCut, height [2]parabolaCircleMeshHeight,
+	p parabolaCircleTangentMeshSource, volumes [2][2]*big.Rat, o ParabolaTwoCirclesMeshOptions) (parabolaCircleTangentMeshDisplay, error) {
+	var empty parabolaCircleTangentMeshDisplay
+	plane, err := parabolaCircleMeshUVPlane(ctx)
+	if err != nil {
+		return empty, err
+	}
+	source := r.Contact()
+	if source.Parameters[0].Cmp(p.parameters[0]) != 0 || source.Parameters[1].Cmp(p.parameters[1]) != 0 ||
+		!exactPointCoordinatesEqual(source.Point, p.point) {
+		return empty, geom.ErrConvergence
+	}
+	var result parabolaCircleTangentMeshDisplay
+	var meshes [2]mesh.Mesh
+	var vertices [2]collision.AssemblyVertex
+	triangleBudget := o.MaxTriangles
+	for i, s := range r.components {
+		h := r.history[i]
+		region := [2]int{1 - p.diskRegion, 2}[i]
+		if h.Region != region || p.regionSides[region] <= 0 || volumes[i][0].Sign() <= 0 {
+			return empty, geom.ErrConvergence
+		}
+		if o.MaxTriangles < len(s.faces) {
+			return empty, parametric.ErrBudget
+		}
+		native := source.Vertices[i]
+		if native < 0 || native >= len(s.vertices) {
+			return empty, geom.ErrConvergence
+		}
+		second := p.second[i]
+		for direction, ray := range source.Rays[i] {
+			if ray < 0 || ray >= len(s.edges) {
+				return empty, geom.ErrConvergence
+			}
+			sign, err := parabolaCircleTangentRay(s, ray, native, p.axis, p.slope, second)
+			if err != nil || sign != 2*direction-1 {
+				return empty, geom.ErrConvergence
+			}
+		}
 		owners := ParabolaCircleCutComponentHistory{Region: h.Region, RoofFaces: h.RoofFaces, WallFaces: h.WallFaces}
 		m, err := parabolaTwoCirclesComponentDisplay(ctx, s, owners, height, plane, volumes[i], o, nil, true)
 		if err != nil {
-			return empty, fmt.Errorf("trimmed: parabola-circle apex display region %d: %w", region, err)
+			return empty, fmt.Errorf("trimmed: parabola-circle %s display region %d: %w", p.name, region, err)
 		}
 		vertex := m.OriginalVertices[native]
-		if !exactPointCoordinatesEqual(exactBoundPoint(m.Mesh.Vertices[vertex]), proof.Point) {
+		if !exactPointCoordinatesEqual(exactBoundPoint(m.Mesh.Vertices[vertex]), p.point) {
 			return empty, geom.ErrConvergence
 		}
 		for direction, ray := range source.Rays[i] {
@@ -128,29 +169,29 @@ func (r *ParabolaCircleApexTangencyCut) TessellateCertified(ctx context.Context,
 			} else if edge[0] != vertex {
 				return empty, geom.ErrConvergence
 			}
-			station := exactBoundPoint(m.Mesh.Vertices[adjacent])[proof.FreeAxis]
-			if station.Cmp(source.Parameters[proof.FreeAxis]) != 2*direction-1 {
+			station := exactBoundPoint(m.Mesh.Vertices[adjacent])[p.axis]
+			if station.Cmp(source.Parameters[p.axis]) != 2*direction-1 {
 				return empty, geom.ErrConvergence
 			}
 		}
-		result.Components[i], meshes[i] = m, m.Mesh
+		result.components[i], meshes[i] = m, m.Mesh
 		vertices[i] = collision.AssemblyVertex{Solid: i, Vertex: vertex}
 		o.MaxTriangles -= len(m.Mesh.Triangles)
 	}
-	result.Contact.Display = collision.AssemblyVertexContact{A: vertices[0], B: vertices[1]}
+	result.contact = collision.AssemblyVertexContact{A: vertices[0], B: vertices[1]}
 	pairs := o.Collision.MaxPairs
 	if pairs == 0 {
 		pairs = collision.DefaultMaxPairs
 	}
-	result.Assembly, err = collision.ValidateMeshVertexContactAssembly(ctx, meshes[:], []collision.AssemblyVertexContact{result.Contact.Display},
+	result.assembly, err = collision.ValidateMeshVertexContactAssembly(ctx, meshes[:], []collision.AssemblyVertexContact{result.contact},
 		collision.VertexContactAssemblyOptions{MaxSolids: 2, MaxDeclaredContacts: 1, MaxCrossPairs: pairs, CrossBVH: true,
 			Validation: collision.LocationOptions{MaxTriangles: triangleBudget, MaxCollisionPairs: pairs}})
 	if err != nil {
-		return empty, fmt.Errorf("trimmed: parabola-circle apex display assembly: %w", err)
+		return empty, fmt.Errorf("trimmed: parabola-circle %s display assembly: %w", p.name, err)
 	}
-	signed := new(big.Rat).Add(result.Components[0].SignedDisplayVolume, result.Components[1].SignedDisplayVolume)
-	if len(result.Assembly.Contacts) != 1 || result.Assembly.Contacts[0] != result.Contact.Display ||
-		result.Assembly.SignedVolume.Cmp(signed) != 0 {
+	signed := new(big.Rat).Add(result.components[0].SignedDisplayVolume, result.components[1].SignedDisplayVolume)
+	if len(result.assembly.Contacts) != 1 || result.assembly.Contacts[0] != result.contact ||
+		result.assembly.SignedVolume.Cmp(signed) != 0 {
 		return empty, geom.ErrConvergence
 	}
 	return result, nil
@@ -184,7 +225,10 @@ func parabolaCircleApexFreeSecond(h parabolaCircleMeshHeight, uv [2]*big.Rat, fr
 func parabolaCircleApexCutMeshVolumes(height [2]parabolaCircleMeshHeight, p *geom.SplineGraphParabolaCircleApexTangency) [2][2]*big.Rat {
 	// Only the strip opposite the disk survives the native Cut gate.
 	strips, disk := parabolaCircleApexSignedMoments(height, p)
-	strip := strips[1-p.DiskRegion]
+	return parabolaCircleTangentCutVolumes(strips[1-p.DiskRegion], disk)
+}
+
+func parabolaCircleTangentCutVolumes(strip, disk *big.Rat) [2][2]*big.Rat {
 	pi := parabolaCircleMeshPi()
 	return [2][2]*big.Rat{{strip, new(big.Rat).Set(strip)},
 		{new(big.Rat).Mul(disk, pi[0]), new(big.Rat).Mul(disk, pi[1])}}
@@ -193,9 +237,13 @@ func parabolaCircleApexCutMeshVolumes(height [2]parabolaCircleMeshHeight, p *geo
 // The whole strips are rational. The disk moment excludes its factor pi.
 func parabolaCircleApexSignedMoments(height [2]parabolaCircleMeshHeight, p *geom.SplineGraphParabolaCircleApexTangency) (
 	strips [2]*big.Rat, disk *big.Rat) {
-	free := p.FreeAxis
-	powers := parabolaCircleMeshStripPowers(p.ParabolaControls, free)
-	circle := geom.GraphContactCircle{Center: p.CircleCenter, RadiusSquared: p.RadiusSquared}
+	return parabolaCircleTangentSignedMoments(height, p.ParabolaControls, p.FreeAxis,
+		geom.GraphContactCircle{Center: p.CircleCenter, RadiusSquared: p.RadiusSquared})
+}
+
+func parabolaCircleTangentSignedMoments(height [2]parabolaCircleMeshHeight, controls [3][2]*big.Rat,
+	free int, circle geom.GraphContactCircle) (strips [2]*big.Rat, disk *big.Rat) {
+	powers := parabolaCircleMeshStripPowers(controls, free)
 	lower, unit := new(big.Rat), new(big.Rat)
 	disk = new(big.Rat)
 	for owner, h := range height {
