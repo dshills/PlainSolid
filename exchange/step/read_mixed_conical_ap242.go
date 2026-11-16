@@ -59,6 +59,11 @@ func readMixedConicalAP242Assembly(ctx context.Context, r io.Reader, l Limits, o
 	if err != nil {
 		return zero, err
 	}
+	return readMixedConicalAP242Materials(ctx, h, l, o)
+}
+
+func readMixedConicalAP242Materials(ctx context.Context, h mixedConicalAP242Hierarchy, l Limits, o geom.SurfacePatchOptions) (mixedConicalAP242Source, error) {
+	var zero mixedConicalAP242Source
 	a, layout, records := h.assembly, h.layout, h.records
 	f := a.Source
 	out := mixedConicalAP242Source{
@@ -128,28 +133,56 @@ type mixedConicalAP242Hierarchy struct {
 	records  mixedConicalAP242Records
 }
 
+type mixedConicalAP242Mode uint8
+
+const (
+	mixedConicalAP242Flat mixedConicalAP242Mode = iota
+	mixedConicalAP242Nested
+	mixedConicalAP242DAG
+)
+
 func readMixedConicalAP242Hierarchy(r io.Reader, l Limits, nested bool) (mixedConicalAP242Hierarchy, error) {
+	mode := mixedConicalAP242Flat
+	if nested {
+		mode = mixedConicalAP242Nested
+	}
+	return readMixedConicalAP242HierarchyMode(r, l, mode)
+}
+
+func readMixedConicalAP242HierarchyMode(r io.Reader, l Limits, mode mixedConicalAP242Mode) (mixedConicalAP242Hierarchy, error) {
 	var zero mixedConicalAP242Hierarchy
 	a, err := ReadAssembly(r, l)
 	if err != nil {
 		return zero, err
 	}
-	products, minUses := 3, 2
-	if nested {
-		products, minUses = 4, 4
+	minProducts, maxProducts, minUses, maxUses := 3, 3, 2, 16
+	switch mode {
+	case mixedConicalAP242Nested:
+		minProducts, maxProducts, minUses = 4, 4, 4
+	case mixedConicalAP242DAG:
+		maxProducts, maxUses = 16, 64
 	}
-	if len(a.Products) != products || len(a.Roots) != 1 || len(a.Occurrences) < minUses || len(a.Occurrences) > 16 {
+	if len(a.Roots) != 1 || len(a.Products) < minProducts || len(a.Products) > maxProducts ||
+		len(a.Occurrences) < minUses || len(a.Occurrences) > maxUses {
 		return zero, errMixedConicalAP242
 	}
 	f := a.Source
 	if !mixedConicalAP242Schema(f) {
 		return zero, errMixedConicalAP242
 	}
-	layout, err := mixedConicalAP242Parts(a, l, nested)
+	layout, err := mixedConicalAP242Parts(a, l, mode)
 	if err != nil {
 		return zero, err
 	}
-	records, err := proveMixedConicalAP242Records(a, layout, l)
+	useIndex := mixedConicalAP242UseIndex
+	if mode == mixedConicalAP242DAG {
+		useIndex = mixedConicalAP242DAGUseIndex
+	}
+	uses, err := useIndex(a, layout)
+	if err != nil {
+		return zero, err
+	}
+	records, err := proveMixedConicalAP242Records(a, layout, uses, l)
 	if err != nil {
 		return zero, err
 	}
@@ -181,7 +214,7 @@ type mixedConicalAP242Layout struct {
 	group    AssemblyProduct
 }
 
-func mixedConicalAP242Parts(a Assembly, l Limits, nested bool) (mixedConicalAP242Layout, error) {
+func mixedConicalAP242Parts(a Assembly, l Limits, mode mixedConicalAP242Mode) (mixedConicalAP242Layout, error) {
 	var zero mixedConicalAP242Layout
 	f := a.Source
 	out := mixedConicalAP242Layout{parts: map[int64]int64{}, geometry: map[int64]bool{}}
@@ -192,13 +225,15 @@ func mixedConicalAP242Parts(a Assembly, l Limits, nested bool) (mixedConicalAP24
 			return zero, errMixedConicalAP242
 		}
 		assemblyOnly := p.DefinitionID == a.Roots[0]
-		if nested && !assemblyOnly {
+		if mode != mixedConicalAP242Flat && !assemblyOnly {
 			if _, err := simple(f, p.Representations[0], "SHAPE_REPRESENTATION", 3); err == nil {
-				if out.group.DefinitionID != 0 {
-					return zero, errMixedConicalAP242
-				}
-				out.group = p
 				assemblyOnly = true
+				if mode == mixedConicalAP242Nested {
+					if out.group.DefinitionID != 0 {
+						return zero, errMixedConicalAP242
+					}
+					out.group = p
+				}
 			}
 		}
 		kind := "ADVANCED_BREP_SHAPE_REPRESENTATION"
@@ -259,7 +294,7 @@ func mixedConicalAP242Parts(a Assembly, l Limits, nested bool) (mixedConicalAP24
 		}
 		out.geometry[id] = true
 	}
-	if len(out.parts) != 2 || nested != (out.group.DefinitionID != 0) {
+	if len(out.parts) != 2 || (mode == mixedConicalAP242Nested) != (out.group.DefinitionID != 0) {
 		return zero, errMixedConicalAP242
 	}
 	return out, nil

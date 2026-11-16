@@ -38,11 +38,13 @@
 #include <TopoDS.hxx>
 #include <XCAFDoc_DocumentTool.hxx>
 #include <XCAFDoc_ShapeTool.hxx>
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <string_view>
+#include <vector>
 
 using ShapeMap = NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>;
 
@@ -201,7 +203,7 @@ static TopoDS_Shape chamfered() {
 }
 
 static void describeUse(const TopoDS_Shape& shape, const TopoDS_Shape& local, const gp_Trsf& pose,
-                        bool shared, int outer = 0, int inner = 0) {
+                        bool shared, const std::vector<int>& path = {}, int definition = 0) {
     GProp_GProps mass, area;
     BRepGProp::VolumeProperties(shape, mass, 1e-10, true);
     BRepGProp::SurfaceProperties(shape, area, 1e-10);
@@ -212,7 +214,15 @@ static void describeUse(const TopoDS_Shape& shape, const TopoDS_Shape& local, co
     TopExp::MapShapes(shape, TopAbs_VERTEX, vertices);
     const auto c = mass.CentreOfMass();
     std::cout << '{';
-    if (outer != 0) std::cout << "\"path\":[" << outer << ',' << inner << "],";
+    if (!path.empty()) {
+        std::cout << "\"path\":[";
+        for (std::size_t i = 0; i < path.size(); ++i) {
+            if (i != 0) std::cout << ',';
+            std::cout << path[i];
+        }
+        std::cout << "],";
+    }
+    if (definition != 0) std::cout << "\"definition\":" << definition << ',';
     std::cout << "\"sharedWithFirst\":" << (shared ? "true" : "false")
               << ",\"valid\":" << (BRepCheck_Analyzer(local).IsValid() ? "true" : "false")
               << ",\"volume\":" << mass.Mass() << ",\"area\":" << area.Mass()
@@ -266,8 +276,79 @@ static bool describeNested(const occ::handle<XCAFDoc_ShapeTool>& shapes, const T
             if (i != 1 || j != 1) std::cout << ',';
             const auto local = shapes->GetShape(product);
             const auto world = parent * shapes->GetShape(label).Location();
-            describeUse(local.Moved(world), local, world.Transformation(), product == first, i, j);
+            describeUse(local.Moved(world), local, world.Transformation(), product == first, {i, j});
         }
+    }
+    std::cout << "]}\n";
+    return true;
+}
+
+// Independently inspect the transferred XCAF graph and expanded worlds.
+// Shared assembly definitions are counted by distinct parent definitions.
+struct DAGAssembly {
+    TDF_Label definition;
+    std::vector<TDF_Label> parents;
+};
+
+struct DAGOccurrence {
+    TopoDS_Shape local;
+    TopLoc_Location world;
+    std::vector<int> path;
+    int definition;
+};
+
+struct DAGDescription {
+    std::vector<DAGAssembly> assemblies;
+    std::vector<TDF_Label> materials;
+    std::vector<DAGOccurrence> occurrences;
+};
+
+static bool collectDAG(const occ::handle<XCAFDoc_ShapeTool>& shapes, const TDF_Label& definition,
+                       const TopLoc_Location& world, std::vector<int>& path, DAGDescription& report) {
+    NCollection_Sequence<TDF_Label> uses;
+    if (!shapes->GetComponents(definition, uses, false) || uses.IsEmpty() || path.size() >= 8) return false;
+    for (int i = 1; i <= uses.Length(); ++i) {
+        const auto use = uses.Value(i);
+        TDF_Label child;
+        if (!shapes->GetReferredShape(use, child)) return false;
+        auto location = world * shapes->GetShape(use).Location();
+        path.push_back(i);
+        if (shapes->IsAssembly(child)) {
+            auto found = std::find_if(report.assemblies.begin(), report.assemblies.end(),
+                                      [&](const auto& a) { return a.definition == child; });
+            if (found == report.assemblies.end()) {
+                report.assemblies.push_back({child, {definition}});
+            } else if (std::find(found->parents.begin(), found->parents.end(), definition) == found->parents.end()) {
+                found->parents.push_back(definition);
+            }
+            if (!collectDAG(shapes, child, location, path, report)) return false;
+        } else {
+            if (report.occurrences.size() >= 256) return false;
+            auto found = std::find(report.materials.begin(), report.materials.end(), child);
+            const auto index = int(found - report.materials.begin()) + 1;
+            if (found == report.materials.end()) report.materials.push_back(child);
+            report.occurrences.push_back({shapes->GetShape(child), location, path, index});
+        }
+        path.pop_back();
+    }
+    return true;
+}
+
+static bool describeDAG(const occ::handle<XCAFDoc_ShapeTool>& shapes, const TDF_Label& root) {
+    DAGDescription report;
+    report.assemblies.push_back({root, {}});
+    std::vector<int> path;
+    if (!collectDAG(shapes, root, {}, path, report)) return false;
+    const auto shared = std::count_if(report.assemblies.begin(), report.assemblies.end(),
+                                     [](const auto& a) { return a.parents.size() > 1; });
+    std::cout << std::setprecision(17) << "{\"sharedAssemblies\":" << shared
+              << ",\"assemblyDefinitions\":" << report.assemblies.size()
+              << ",\"materialDefinitions\":" << report.materials.size() << ",\"occurrences\":[";
+    for (std::size_t i = 0; i < report.occurrences.size(); ++i) {
+        if (i != 0) std::cout << ',';
+        const auto& use = report.occurrences[i];
+        describeUse(use.local.Moved(use.world), use.local, use.world.Transformation(),
+                    use.definition == 1, use.path, use.definition);
     }
     std::cout << "]}\n";
     return true;
@@ -279,8 +360,10 @@ int main(int argc, char** argv) {
     auto shapes = XCAFDoc_DocumentTool::ShapeTool(doc->Main());
     const std::string_view mode(argv[1]);
     const bool nest = mode == "write-nested" || mode == "write-nested-exact" || mode == "read-nested";
-    const bool exact = mode == "write-exact" || mode == "write-nested-exact";
-    if (mode == "write" || mode == "write-exact" || mode == "write-nested" || mode == "write-nested-exact") {
+    const bool dag = mode == "write-dag" || mode == "write-dag-exact" || mode == "read-dag";
+    const bool exact = mode == "write-exact" || mode == "write-nested-exact" || mode == "write-dag-exact";
+    if (mode == "write" || mode == "write-exact" || mode == "write-nested" || mode == "write-nested-exact" ||
+        mode == "write-dag" || mode == "write-dag-exact") {
         const auto fillet = rounded(), chamfer = chamfered();
         if (fillet.IsNull() || chamfer.IsNull() || !BRepCheck_Analyzer(fillet).IsValid() || !BRepCheck_Analyzer(chamfer).IsValid()) return 2;
         auto root = shapes->NewShape(), f = shapes->AddShape(fillet, false), c = shapes->AddShape(chamfer, false);
@@ -291,7 +374,7 @@ int main(int argc, char** argv) {
         a.SetTranslation(gp_Vec(30,2,4));
         b.SetValues(0,0,1,-30, 1,0,0,24, 0,1,0,3);
         d.SetValues(.6,-.8,0,0, .8,.6,0,-30, 0,0,1,8);
-        const auto group = nest ? shapes->NewShape() : root;
+        const auto group = (nest || dag) ? shapes->NewShape() : root;
         shapes->AddComponent(group, f, TopLoc_Location(a));
         shapes->AddComponent(group, f, TopLoc_Location(b));
         shapes->AddComponent(group, c, TopLoc_Location(d));
@@ -304,6 +387,24 @@ int main(int argc, char** argv) {
             shapes->AddComponent(root, group, TopLoc_Location(outerA));
             shapes->AddComponent(root, group, TopLoc_Location(outerB));
         }
+        if (dag) {
+            TDataStd_Name::Set(root, TCollection_ExtendedString("Mixed conical DAG root"));
+            TDataStd_Name::Set(group, TCollection_ExtendedString("Shared conical core"));
+            auto branchA = shapes->NewShape(), branchB = shapes->NewShape();
+            TDataStd_Name::Set(branchA, TCollection_ExtendedString("First conical parent"));
+            TDataStd_Name::Set(branchB, TCollection_ExtendedString("Second conical parent"));
+            gp_Trsf first, second, direct, middleA, middleB;
+            first.SetValues(.6,-.8,0,100, .8,.6,0,20, 0,0,1,12);
+            second.SetValues(1,0,0,-100, 0,.6,-.8,-20, 0,.8,.6,30);
+            direct.SetTranslation(gp_Vec(0,150,40));
+            middleA.SetValues(0,0,1,12, 1,0,0,4, 0,1,0,-6);
+            middleB.SetValues(.6,0,.8,-4, 0,1,0,7, -.8,0,.6,9);
+            shapes->AddComponent(branchA, group, TopLoc_Location(middleA));
+            shapes->AddComponent(branchB, group, TopLoc_Location(middleB));
+            shapes->AddComponent(root, branchA, TopLoc_Location(first));
+            shapes->AddComponent(root, branchB, TopLoc_Location(second));
+            shapes->AddComponent(root, c, TopLoc_Location(direct));
+        }
         shapes->UpdateAssemblies();
         STEPCAFControl_Writer writer;
         DESTEP_Parameters params;
@@ -312,16 +413,18 @@ int main(int argc, char** argv) {
         if (!writer.Transfer(doc,params) ||
             (exact && !selectExactCarriers(writer.ChangeWriter().Model())) ||
             writer.Write(argv[2]) != IFSelect_RetDone) return 3;
+        if (dag) return describeDAG(shapes, root) ? 0 : 7;
         if (nest) return describeNested(shapes, root) ? 0 : 7;
         describe(shapes,root);
         return 0;
     }
-    if (mode != "read" && mode != "read-nested") return 4;
+    if (mode != "read" && mode != "read-nested" && mode != "read-dag") return 4;
     STEPCAFControl_Reader reader;
     if (reader.ReadFile(argv[2]) != IFSelect_RetDone || !reader.Transfer(doc)) return 5;
     NCollection_Sequence<TDF_Label> roots;
     shapes->GetFreeShapes(roots);
     if (roots.Length() != 1) return 6;
+    if (dag) return describeDAG(shapes, roots.Value(1)) ? 0 : 7;
     if (nest) return describeNested(shapes, roots.Value(1)) ? 0 : 7;
     describe(shapes,roots.Value(1));
     return 0;

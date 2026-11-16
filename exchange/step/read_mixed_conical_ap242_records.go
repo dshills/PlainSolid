@@ -8,7 +8,7 @@ type mixedConicalAP242Records struct {
 	occurrences                  []ExactNAUOOccurrence
 }
 
-func proveMixedConicalAP242Records(a Assembly, layout mixedConicalAP242Layout, l Limits) (mixedConicalAP242Records, error) {
+func proveMixedConicalAP242Records(a Assembly, layout mixedConicalAP242Layout, uses map[int64]AssemblyOccurrence, l Limits) (mixedConicalAP242Records, error) {
 	var zero mixedConicalAP242Records
 	f := a.Source
 	productIDs := map[int64]bool{}
@@ -17,10 +17,6 @@ func proveMixedConicalAP242Records(a Assembly, layout mixedConicalAP242Layout, l
 			return zero, errMixedConicalAP242
 		}
 		productIDs[p.ProductID] = true
-	}
-	uses, err := mixedConicalAP242UseIndex(a, layout)
-	if err != nil {
-		return zero, err
 	}
 	out := mixedConicalAP242Records{definitionShapes: map[int64]int64{}, categories: map[int64]int64{}}
 	linked, relationships, transforms := map[int64]bool{}, map[int64]bool{}, map[int64]bool{}
