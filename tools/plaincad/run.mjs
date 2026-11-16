@@ -264,7 +264,7 @@ async function runOrderedMappedStepWorkerFixture() {
     },
     pageName: "plainsolid-ordered-mapped-step-worker.html",
     pageTitle: "PlainSolid ordered mapped STEP worker",
-    expectedCount: 1,
+    expectedCount: 2,
   });
 }
 async function runSupplementalSTEPWorker({ sourceFiles, pageName, pageTitle, expectedCount }) {

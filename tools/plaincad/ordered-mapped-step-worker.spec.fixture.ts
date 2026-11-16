@@ -95,3 +95,51 @@ test("PlainSolid module workers preserve the ordered v13 STEP receipt and distan
     distanceFailure: original.distanceFailure, angularFailure: original.angularFailure, proof,
   }, null, 2) });
 });
+
+test("PlainSolid module worker verifies the ordered v13 normal turn at 0.35 radians", async ({ page }, info) => {
+  test.setTimeout(1_200_000);
+  const wasmLoads: number[] = [];
+  const workers: string[] = [];
+  const occtRequests: string[] = [];
+  page.on("worker", worker => workers.push(new URL(worker.url()).pathname));
+  page.on("response", response => {
+    if (new URL(response.url()).pathname === "/assets/plainsolid-kernel.wasm") wasmLoads.push(response.status());
+  });
+  page.on("request", request => {
+    if (/opencascade.*\.(?:wasm|js)/i.test(request.url())) occtRequests.push(request.url());
+  });
+  await page.goto("/plainsolid-ordered-mapped-step-worker.html");
+  const proof = await page.evaluate(async () => {
+    const response = await fetch("/plainsolid-ordered-mapped-step-input.step");
+    if (!response.ok) throw new Error("Authored STEP fixture fetch failed");
+    const source = await response.text();
+    const worker = new Worker("/src/cad/kernel/plainSolidOrderedMappedStepProbe.ts", { type: "module" });
+    const result = await new Promise<OrderedMappedStepReply>((resolve, reject) => {
+      worker.onmessage = event => { worker.terminate(); resolve(event.data); };
+      worker.onerror = event => { worker.terminate(); reject(new Error(event.message)); };
+      worker.onmessageerror = () => { worker.terminate(); reject(new Error("Unreadable module worker message")); };
+      worker.postMessage({ operation: "turn", source } satisfies OrderedMappedStepRequest);
+    });
+    if (!result.ok) throw new Error(result.error);
+    if (result.operation !== "turn") throw new Error("Unexpected normal-turn reply");
+    return result;
+  });
+  expect(workers).toEqual(["/src/cad/kernel/plainSolidOrderedMappedStepProbe.ts"]);
+  expect(wasmLoads).toContain(200);
+  expect(occtRequests).toEqual([]);
+  expect(proof.genericFailure).toMatch(/^PlainSolid UNSUPPORTED:/);
+  expect(proof.angularFailure).toMatch(/^PlainSolid UNSUPPORTED:/);
+  expect(proof.evidence.repairEvidence.mappedChain?.boundaryVersion).toBe(13);
+  const nativeSHA256 = sha256(proof.evidence.nativeProofJSON!);
+  expect(nativeSHA256).toBe("c705f9dbb44f21d4e14ae38dea64fa6c00fe207e4c96dddb95ad28b9b663eaa0");
+  expect(proof.display).toMatchObject({ source: "plainsolid", operation: "stepImport", eulerCharacteristic: 2,
+    geometryAssertions: { valid: true, solidCount: 1 } });
+  expect(proof.display.triangles).toBeGreaterThan(0);
+  expect(proof.display.edges).toBe(proof.display.triangles * 3 / 2);
+  expect(proof.display.geometryAssertions?.volume).toBeCloseTo(.6448671346810797, 8);
+  expect(proof.display.geometryAssertions?.surfaceArea).toBeCloseTo(4.6513347531185012, 8);
+  await info.attach("ordered-mapped-normal-turn-worker-proof", { contentType: "application/json", body: JSON.stringify({
+    angularDeflection: .35, linearDeflection: 1, nativeSHA256, wasmLoads, occtRequests, workers,
+    durationMs: proof.durationMs, display: proof.display, angularFailure: proof.angularFailure, genericFailure: proof.genericFailure,
+  }, null, 2) });
+});

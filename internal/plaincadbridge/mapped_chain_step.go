@@ -21,11 +21,13 @@ import (
 const (
 	orderedMappedSTEPFamily      = "mapped-chain-v13"
 	orderedMappedDisplayDistance = .36
+	orderedMappedDisplayTurn     = .35
 )
 
 type orderedMappedSTEPBody struct {
-	source  step.MappedChainSTEPModel
-	display *mesh.Mesh
+	source      step.MappedChainSTEPModel
+	display     *mesh.Mesh
+	turnDisplay *mesh.Mesh
 }
 
 type mappedChainStepEvidence struct {
@@ -128,7 +130,10 @@ func (p *orderedMappedSTEPBody) tessellate(ctx context.Context, q request) (mesh
 		return mesh.Mesh{}, unsupportedEdge("ordered mapped STEP display requires linear deflection of at least 0.36 mm")
 	}
 	if q.AngularDeflection.set && float64(q.AngularDeflection.value) < math.Pi {
-		return mesh.Mesh{}, unsupportedEdge("ordered mapped STEP display certifies linear distance and requires angular deflection pi when supplied")
+		if float64(q.AngularDeflection.value) < orderedMappedDisplayTurn {
+			return mesh.Mesh{}, unsupportedEdge("ordered mapped STEP display certifies linear distance and requires angular deflection pi on the distance-only path. Certified normal-turn display requires at least 0.35 radians")
+		}
+		return p.tessellateNormalTurn(ctx)
 	}
 	if p.display != nil {
 		return *p.display, nil
@@ -155,6 +160,34 @@ func (p *orderedMappedSTEPBody) tessellate(ctx context.Context, q request) (mesh
 	}
 	p.display = &display.Mesh
 	return *p.display, nil
+}
+
+func (p *orderedMappedSTEPBody) tessellateNormalTurn(ctx context.Context) (mesh.Mesh, error) {
+	if p.turnDisplay != nil {
+		return *p.turnDisplay, nil
+	}
+	fill := trimmed.MixedExactMultiSpanMeshOptions{
+		Span: trimmed.MultiSpanTriangleBoundOptions{MaxDegree: 4}, MaxResidualOperations: 1000000000,
+		Face: trimmed.MixedExactCurvedMeshOptions{
+			BoundaryModelBudget: .065,
+			Interior:            trimmed.CurvedQuadraticTrimMeshOptions{Deflection: .30, MaxSubdivisions: 128},
+		},
+	}
+	display, err := p.source.Shell.TessellateClosedCertified(ctx, nil, trimmed.MappedChainClosedMeshOptions{
+		AlignSupportKnots: true, MaxKnotCellFlips: 100000, NormalTurn: orderedMappedDisplayTurn, MaxTriangles: 10000,
+		Boundary:  trimmed.MappedChainPolylineOptions{Deflection: .01875},
+		Curved:    [2]trimmed.MixedExactMultiSpanMeshOptions{fill, fill},
+		Collision: collision.Options{MaxPairs: 4_000_000},
+	})
+	if err != nil {
+		return mesh.Mesh{}, err
+	}
+	if display.SquaredNormalTurnTangent == nil || display.SquaredDistance.Cmp(big.NewRat(9, 100)) > 0 ||
+		!display.DisplayCollision.Complete || len(display.DisplayCollision.Contacts) != 0 {
+		return mesh.Mesh{}, geom.ErrConvergence
+	}
+	p.turnDisplay = &display.Mesh
+	return *p.turnDisplay, nil
 }
 
 func (s stored) exportOrderedMappedSTEP(ctx context.Context) (stepExport, error) {
