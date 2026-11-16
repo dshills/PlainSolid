@@ -489,8 +489,9 @@ STEP and IGES and the certified identity or placed display preserve
 both components and their source ownership.
 For one circle crossing the open parabola, geometry now proves the
 two original transverse intersections and all four connected signed
-regions in an exact retained chart. Native shell assembly for this
-crossing case is in progress.
+regions in an exact retained chart. Native Common, Fuse and both Cuts
+preserve the original roof charts, signed material and exact source nodes.
+The two Cut components meet at those two documented points.
 Full ordinary Go and PlainCAD on `a3b7548d` have passed.
 Wider independent STEP and IGES graphs are still required.
 Wider contact discovery, advanced modeling,

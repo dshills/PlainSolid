@@ -614,6 +614,13 @@ proves the complete residual, two exact original intersections, both
 source jets and four signed regions through the two axis and operand
 orders. Tangency, moved coefficients, unsupported exits and short
 limits fail closed. The focused main geometry race passed in 1.778 seconds.
+The [transverse native Booleans](evidence/parabola-circle-crossings-native-2026-11-15.json)
+retain the exact original arc and parabola pieces, with 11 faces,
+25 edges and 16 vertices in each closed envelope. Both Cut orders
+retain two positive components and a two-pair point contact ledger
+without welding their local vertex IDs. Independent source moments,
+pinned direct OCCT, original coedges and source replay check all 12
+axis/order/operation cases. The main combined race passed in 90.701 seconds.
 
 A separate isolated real double-point proof passes with and without a
 disjoint regular branch, including source order swaps and rotated
