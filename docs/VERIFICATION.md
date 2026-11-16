@@ -45,6 +45,11 @@ The [shared contact curve audit](evidence/projective-surface-graph-overlap-2026-
 proves both original pcurves compose to the same curved model law
 `(x,x,x²)` in a reversed/swapped rational chart. A false chord that
 shares the endpoints, cancellation and short exact work refuse.
+The [native face imprint audit](evidence/projective-surface-graph-overlap-2026-11-16.json)
+splits both original wires into valid fragments, with one shared analytic
+edge, opposing directions and all original boundary ranges covered.
+The reversed/swapped chart retains the nonlinear exact station `1/3`.
+Short work and a terminal inside the other face publish no fragment.
 
 The [full Go run on `c7afb429`](evidence/main-c7afb429-qualification-2026-11-16.json)
 passed all nine lanes: 6,018 passes, 599 optional skips, and no failures

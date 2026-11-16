@@ -415,5 +415,16 @@
     "main_passes": ["TestProjectiveContactSplineKeepsBothOriginalPcurvesAndCurvedModel", "TestProjectiveContactSplineRejectsTheChordOfAnOriginalCurve"],
     "independent_model_law": ["x", "x", "x^2"],
     "exact_replay_stations": ["0", "2/7", "1/2", "1"]
+  },
+  "native_face_imprint": {
+    "main_base": "86293eb7",
+    "log": "projective-split-face-main-race.jsonl",
+    "sha256": "8a8c38fa839c5cb2a981c373be50bf012106a55f11410f780b0a5be73094f971",
+    "main_pass": "TestImprintProjectiveSplineFacePairRetainsNativeSeamAndOriginalFragments",
+    "output_faces": 4,
+    "original_source_edge_ids_per_owner": 4,
+    "original_splits_per_owner": 2,
+    "shared_exact_model_midpoint": ["1/2", "1/2", "1/4"],
+    "fractional_original_B_midpoint": ["1/3", "1/2"]
   }
 }
