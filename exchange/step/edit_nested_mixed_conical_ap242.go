@@ -12,18 +12,20 @@ import (
 
 // MixedConicalAP242OccurrenceEdit updates one original STEP relationship.
 // A nil field retains the original value. Translation specifies the exact new
-// child-to-parent origin in file units; the original rotation is preserved.
+// child-to-parent origin in file units. Rotation is the rows of a proper
+// exact child-to-parent rigid orientation.
 type MixedConicalAP242OccurrenceEdit struct {
 	NAUOID      int64
 	Name        *string
 	Translation *[3]*big.Rat
+	Rotation    *[3][3]*big.Rat
 }
 
 // NestedMixedConicalAP242OccurrenceEdit is the same relationship edit on the
 // original two-level nested source family.
 type NestedMixedConicalAP242OccurrenceEdit = MixedConicalAP242OccurrenceEdit
 
-// WriteNestedMixedConicalAP242Edits rewrites names and translations in the
+// WriteNestedMixedConicalAP242Edits rewrites names and rigid placements in the
 // proved source hierarchy. Every edit applies to all expanded uses of its
 // original relationship. The writer keeps local geometry and proves the full
 // edited graph and exact local poses before publishing any bytes.
@@ -38,7 +40,7 @@ func WriteNestedMixedConicalAP242Edits(ctx context.Context, w io.Writer, origina
 	return writeMixedConicalAP242Edits(ctx, w, original, edits, read)
 }
 
-// WriteMixedConicalAP242DAGEdits transfers names and exact translations to
+// WriteMixedConicalAP242DAGEdits transfers names and exact rigid placements to
 // proved original STEP relationships in a bounded product DAG. Edits apply
 // consistently to all expanded uses of each relationship. The full result
 // is re-proved with the same limits before any bytes are written.
@@ -108,7 +110,7 @@ func editMixedConicalAP242Occurrences(ctx context.Context, base mixedConicalEdit
 			return nil, err
 		}
 		o, ok := known[e.NAUOID]
-		if !ok || seen[e.NAUOID] || e.Name == nil && e.Translation == nil {
+		if !ok || seen[e.NAUOID] || e.Name == nil && e.Translation == nil && e.Rotation == nil {
 			return nil, geom.ErrInvalid
 		}
 		seen[e.NAUOID] = true
@@ -120,8 +122,15 @@ func editMixedConicalAP242Occurrences(ctx context.Context, base mixedConicalEdit
 			o.Name = name
 			f.Entities[o.NAUOID].Records[0].Args[1] = Value{Kind: String, Text: name}
 		}
+		changed := false
+		if e.Rotation != nil {
+			var err error
+			changed, err = setMixedConicalOccurrenceRotation(&o.pose, *e.Rotation)
+			if err != nil {
+				return nil, err
+			}
+		}
 		if e.Translation != nil {
-			changed := false
 			for i, q := range *e.Translation {
 				if q == nil || q.Num().BitLen() > 256 || q.Denom().BitLen() > 256 {
 					return nil, geom.ErrUnrepresentable
@@ -129,13 +138,19 @@ func editMixedConicalAP242Occurrences(ctx context.Context, base mixedConicalEdit
 				changed = changed || q.Cmp(o.pose.Origin[i]) != 0
 				o.pose.Origin[i] = new(big.Rat).Set(q)
 			}
-			if changed {
-				// The source's child frame is the exact identity. Its proved
-				// target frame therefore is the requested child-to-parent pose.
-				if err := setAssemblyOccurrenceTarget(f, o.TransformationID, products[o.ParentID], o.pose); err != nil {
-					return nil, err
-				}
-				o.ToPlacementID = f.Entities[o.TransformationID].Records[0].Args[3].Ref
+		}
+		if changed {
+			// The proved child frame is the exact identity. Its target
+			// frame therefore is the requested child-to-parent pose.
+			target := o.pose
+			target.X = mixedConicalDirectionRatios(target.X)
+			target.Z = mixedConicalDirectionRatios(target.Z)
+			if err := setAssemblyOccurrenceTarget(f, o.TransformationID, products[o.ParentID], target); err != nil {
+				return nil, err
+			}
+			o.ToPlacementID = f.Entities[o.TransformationID].Records[0].Args[3].Ref
+			if e.Rotation != nil && !mixedConicalRotationProjectsExactly(f, o.ToPlacementID, o.pose) {
+				return nil, geom.ErrUnrepresentable
 			}
 		}
 		known[o.NAUOID] = o
