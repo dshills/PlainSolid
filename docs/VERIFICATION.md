@@ -237,6 +237,12 @@ Cuts preserve the original `3/4` ray and conic second derivatives on both
 roof charts. The largest certified distance is below `0.021799` mm,
 facet deviation below `0.135797` radians, and source turn below
 `0.286843` radians. The earlier apex displays retain their digests.
+The [oblique Common/Fuse display milestone](evidence/parabola-circle-oblique-tangency-envelope-display-2026-11-16.json)
+passed the integrated race in 298.202 seconds. All 16 layouts preserve
+their original bridge, tangent rays, and the two roof jet lifts. Tight
+display stays below `0.001244` mm, `0.088225` radian facet deviation
+and 0.0025% relative signed-volume error. The earlier apex and nonapex
+Cut outputs remain byte identical.
 
 The [proper-similarity display milestone](evidence/parabola-circle-proper-similarity-2026-11-16.json)
 passed its main focused race in 322.877 seconds. Eight components from four

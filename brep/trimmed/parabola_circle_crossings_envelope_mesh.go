@@ -172,7 +172,7 @@ type parabolaCircleEnvelopeLayout struct {
 	roofFaces, roofOwners [4]int
 	base                  int
 	walls                 []int
-	apex                  [4]authenticatedParabolaCircleApexLoop
+	tangent               [4]authenticatedParabolaCircleTangentLoop
 }
 
 type crossingEnvelopeDisplay struct {
@@ -209,7 +209,7 @@ func displayParabolaCircleEnvelopeCandidate(ctx context.Context, s Solid, layout
 	}
 	topArea := new(big.Rat)
 	for i, id := range layout.roofFaces {
-		area, err := d.addGraphFace(ctx, s, id, plane, height[1+layout.roofOwners[i]], cuts, o, layout.apex[i])
+		area, err := d.addGraphFace(ctx, s, id, plane, height[1+layout.roofOwners[i]], cuts, o, layout.tangent[i])
 		if err != nil {
 			return empty, err
 		}
@@ -240,7 +240,7 @@ func displayParabolaCircleEnvelopeCandidate(ctx context.Context, s Solid, layout
 }
 
 func (d *crossingEnvelopeDisplay) addGraphFace(ctx context.Context, s Solid, id int, plane *geom.SurfacePatch,
-	h parabolaCircleMeshHeight, cuts []*big.Rat, o ParabolaTwoCirclesMeshOptions, apex authenticatedParabolaCircleApexLoop) (*big.Rat, error) {
+	h parabolaCircleMeshHeight, cuts []*big.Rat, o ParabolaTwoCirclesMeshOptions, tangent authenticatedParabolaCircleTangentLoop) (*big.Rat, error) {
 	f := s.faces[id]
 	if len(f.Holes) != 0 {
 		return nil, geom.ErrConvergence
@@ -258,11 +258,11 @@ func (d *crossingEnvelopeDisplay) addGraphFace(ctx context.Context, s Solid, id 
 	if remaining < 1 {
 		return nil, parametric.ErrBudget
 	}
-	foot, err := tessellateMixedExactAffineRegionWithApex(ctx, plane, curves, nil, [][][]*big.Rat{fixed}, MixedExactAffineMeshOptions{
+	foot, err := tessellateMixedExactAffineRegionWithTangentLoop(ctx, plane, curves, nil, [][][]*big.Rat{fixed}, MixedExactAffineMeshOptions{
 		MaxBoundaryVertices: 2048, MaxTriangulationWork: 10000000, MaxTriangles: remaining,
 		Topology: trimvalidate.Options{MaxEdges: 2048, MaxWork: 10000000},
 		Display:  geom.ComposedCollectionPolylineOptions{ComposedCurvePolylineOptions: geom.ComposedCurvePolylineOptions{Deflection: o.Deflection / 8}},
-	}, apex)
+	}, tangent)
 	if errors.Is(err, geom.ErrConvergence) {
 		return nil, errRefine
 	}

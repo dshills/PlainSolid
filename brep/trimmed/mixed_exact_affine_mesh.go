@@ -63,11 +63,11 @@ func TessellateMixedExactAffineRegionCertified(ctx context.Context, p *geom.Surf
 }
 
 func tessellateMixedExactAffineRegionCuts(ctx context.Context, p *geom.SurfacePatch, outer []PCurve, holes [][]PCurve, cuts [][][]*big.Rat, o MixedExactAffineMeshOptions) (CertifiedMixedExactAffineMesh, error) {
-	return tessellateMixedExactAffineRegionWithApex(ctx, p, outer, holes, cuts, o, nil)
+	return tessellateMixedExactAffineRegionWithTangentLoop(ctx, p, outer, holes, cuts, o, nil)
 }
 
-func tessellateMixedExactAffineRegionWithApex(ctx context.Context, p *geom.SurfacePatch, outer []PCurve, holes [][]PCurve,
-	cuts [][][]*big.Rat, o MixedExactAffineMeshOptions, apex authenticatedParabolaCircleApexLoop) (CertifiedMixedExactAffineMesh, error) {
+func tessellateMixedExactAffineRegionWithTangentLoop(ctx context.Context, p *geom.SurfacePatch, outer []PCurve, holes [][]PCurve,
+	cuts [][][]*big.Rat, o MixedExactAffineMeshOptions, tangent authenticatedParabolaCircleTangentLoop) (CertifiedMixedExactAffineMesh, error) {
 	var empty CertifiedMixedExactAffineMesh
 	if ctx == nil || p == nil || len(holes) > 64 || o.Display.EndpointPoints != nil || o.Display.JunctionPoints != nil {
 		return empty, geom.ErrInvalid
@@ -132,10 +132,10 @@ func tessellateMixedExactAffineRegionWithApex(ctx context.Context, p *geom.Surfa
 	}
 	var proof trimvalidate.Report
 	var domainSubdivisions int
-	if apex == nil {
+	if tangent == nil {
 		proof, domainSubdivisions, e = proveMixedExactTrimLoops(ctx, p.Domain(), input, o.DomainSubdivisions, o.DomainDepth, o.Topology)
 	} else {
-		proof, e = apex.authenticate(ctx, p.Domain(), input, o.Topology.MaxEdges)
+		proof, e = tangent.authenticate(ctx, p.Domain(), input, o.Topology.MaxEdges)
 	}
 	if e != nil {
 		return empty, e

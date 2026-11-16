@@ -43,6 +43,32 @@ func (r *ParabolaCircleApexTangencyEnvelope) TessellateCertified(ctx context.Con
 	if err != nil {
 		return empty, err
 	}
+	section := source.tangentSection()
+	height, _, err := parabolaCircleEnvelopeHeights(ctx, r.sources)
+	if err != nil {
+		return empty, err
+	}
+	volume := parabolaCircleApexEnvelopeVolume(height, r.history.RoofOwners, source.proof)
+	out, err := displayParabolaCircleTangentEnvelope(ctx, r, section, regions, bridge, height, volume, o)
+	if err != nil {
+		return empty, err
+	}
+	return CertifiedParabolaCircleApexEnvelopeMesh{
+		CertifiedParabolaTwoCirclesComponentMesh: out.component,
+		ApexVertex:                               out.vertex, Rays: r.history.Rays, Bridge: r.history.Bridge, DependentSecond: section.second,
+	}, nil
+}
+
+type parabolaCircleTangentEnvelopeDisplay struct {
+	component CertifiedParabolaTwoCirclesComponentMesh
+	vertex    int
+	bridgeUV  [2]geom.Vec2
+}
+
+func displayParabolaCircleTangentEnvelope(ctx context.Context, r *ParabolaCircleApexTangencyEnvelope,
+	section parabolaCircleTangentSection, regions [4]openGraphRegion, bridge openSectionPiece, height [3]parabolaCircleMeshHeight,
+	volume [2]*big.Rat, o ParabolaTwoCirclesMeshOptions) (parabolaCircleTangentEnvelopeDisplay, error) {
+	var empty parabolaCircleTangentEnvelopeDisplay
 	layout := parabolaCircleEnvelopeLayout{
 		roofFaces: r.history.RoofFaces, roofOwners: r.history.RoofOwners,
 		base: r.history.Base, walls: r.history.WallFaces[:],
@@ -59,36 +85,43 @@ func (r *ParabolaCircleApexTangencyEnvelope) TessellateCertified(ctx context.Con
 		// Only the two reconstructed cusp-ended Jordan regions are
 		// authorized to use the source-specific proof. The base, disk
 		// and opposite stock region use ordinary trim validation.
-		if i == source.proof.DiskRegion || i == 3 {
-			layout.apex[i] = authenticatedParabolaCircleApexLoop(region.loop)
+		if i == section.diskRegion || i == 3 {
+			layout.tangent[i] = authenticatedParabolaCircleTangentLoop(region.loop)
 		}
 	}
 	h := r.history
+	if h.Bridge < 0 || h.Bridge >= len(r.solid.edges) || h.Vertex < 0 || h.Vertex >= len(r.solid.vertices) {
+		return empty, geom.ErrConvergence
+	}
 	model, ok := r.solid.edges[h.Bridge].Curve.(surfaceTrimCurve)
-	if !ok || model.curve != nil || model.surface != r.sources[1+h.RoofOwners[source.proof.DiskRegion]] ||
+	if !ok || model.curve != nil || model.surface != r.sources[1+h.RoofOwners[section.diskRegion]] ||
 		!(model.a == bridge.a && model.b == bridge.b || model.a == bridge.b && model.b == bridge.a) {
 		return empty, geom.ErrConvergence
 	}
-	second := [2]*big.Rat{source.proof.ParabolaSecondDerivative, source.proof.CircleSecondDerivative}
+	a, b := [2]float64{model.a.X, model.a.Y}, [2]float64{model.b.X, model.b.Y}
+	free, dependent := section.axis, 1-section.axis
+	du := new(big.Rat).Sub(ratInset(b[free]), ratInset(a[free]))
+	dv := new(big.Rat).Sub(ratInset(b[dependent]), ratInset(a[dependent]))
+	if dv.Sign() == 0 || du.Add(du, new(big.Rat).Mul(section.slope, dv)).Sign() != 0 {
+		return empty, geom.ErrConvergence
+	}
 	for i, rays := range h.Rays {
 		for direction, id := range rays {
-			sign, err := parabolaCircleApexRay(r.solid, id, h.Vertex, r.axis, second[i])
+			if id < 0 || id >= len(r.solid.edges) {
+				return empty, geom.ErrConvergence
+			}
+			sign, err := parabolaCircleTangentRay(r.solid, id, h.Vertex, section.axis, section.slope, section.second[i])
 			if err != nil || sign != 2*direction-1 {
 				return empty, geom.ErrConvergence
 			}
 		}
 	}
-	height, _, err := parabolaCircleEnvelopeHeights(ctx, r.sources)
-	if err != nil {
-		return empty, err
-	}
-	volume := parabolaCircleApexEnvelopeVolume(height, h.RoofOwners, source.proof)
 	display, err := certifyParabolaCircleEnvelopeDisplay(ctx, r.solid, layout, height, volume, o)
 	if err != nil {
 		return empty, err
 	}
 	vertex := display.OriginalVertices[h.Vertex]
-	if !exactPointCoordinatesEqual(exactBoundPoint(display.Mesh.Vertices[vertex]), source.proof.Point) {
+	if !exactPointCoordinatesEqual(exactBoundPoint(display.Mesh.Vertices[vertex]), section.point) {
 		return empty, geom.ErrConvergence
 	}
 	for _, rays := range h.Rays {
@@ -100,26 +133,23 @@ func (r *ParabolaCircleApexTangencyEnvelope) TessellateCertified(ctx context.Con
 			} else if edge[0] != vertex {
 				return empty, geom.ErrConvergence
 			}
-			station := exactBoundPoint(display.Mesh.Vertices[next])[r.axis]
-			if station.Cmp(source.proof.Parameters[r.axis]) != 2*direction-1 {
+			station := exactBoundPoint(display.Mesh.Vertices[next])[section.axis]
+			if station.Cmp(section.parameters[section.axis]) != 2*direction-1 {
 				return empty, geom.ErrConvergence
 			}
 		}
 	}
-	return CertifiedParabolaCircleApexEnvelopeMesh{
-		CertifiedParabolaTwoCirclesComponentMesh: display,
-		ApexVertex:                               vertex, Rays: h.Rays, Bridge: h.Bridge, DependentSecond: second,
-	}, nil
+	return parabolaCircleTangentEnvelopeDisplay{component: display, vertex: vertex, bridgeUV: [2]geom.Vec2{model.a, model.b}}, nil
 }
 
-// authenticatedParabolaCircleApexLoop carries the original coedges from the
-// reconstructed apex partition. Those loops are simple and CCW by the
+// authenticatedParabolaCircleTangentLoop carries the original coedges from the
+// reconstructed tangent partition. Those loops are simple and CCW by the
 // complete circle–parabola factor contact proof and the outward bridge.
 // Authenticate every sampled coefficient against that partition. The
 // sampled chord polygon still receives its independent ordinary proof.
-type authenticatedParabolaCircleApexLoop []openSectionPiece
+type authenticatedParabolaCircleTangentLoop []openSectionPiece
 
-func (a authenticatedParabolaCircleApexLoop) authenticate(ctx context.Context, domain geom.ParameterRectangle,
+func (a authenticatedParabolaCircleTangentLoop) authenticate(ctx context.Context, domain geom.ParameterRectangle,
 	input [][]PCurve, maximumEdges int) (trimvalidate.Report, error) {
 	report := trimvalidate.Report{LoopA: -1, EdgeA: -1, LoopB: -1, EdgeB: -1}
 	if domain != (geom.ParameterRectangle{UMax: 1, VMax: 1}) || len(input) != 1 || len(input[0]) != len(a) {
@@ -138,12 +168,18 @@ func (a authenticatedParabolaCircleApexLoop) authenticate(ctx context.Context, d
 		}
 	}
 	report.Status = trimvalidate.Certified
-	report.Reason = "exact parabola-circle apex sector and bridge"
+	report.Reason = "exact parabola-circle tangent sector and bridge"
 	return report, nil
 }
 
 func parabolaCircleApexEnvelopeVolume(height [3]parabolaCircleMeshHeight, owners [4]int,
 	p *geom.SplineGraphParabolaCircleApexTangency) [2]*big.Rat {
+	strips, disk := parabolaCircleApexSignedMoments([2]parabolaCircleMeshHeight{height[1], height[2]}, p)
+	return parabolaCircleTangentEnvelopeVolume(height, owners, p.DiskRegion, strips, disk)
+}
+
+func parabolaCircleTangentEnvelopeVolume(height [3]parabolaCircleMeshHeight, owners [4]int, diskRegion int,
+	strips [2]*big.Rat, disk *big.Rat) [2]*big.Rat {
 	net := new(big.Rat)
 	for owner, h := range height[:2] {
 		for u, row := range h.coefficients {
@@ -161,13 +197,12 @@ func parabolaCircleApexEnvelopeVolume(height [3]parabolaCircleMeshHeight, owners
 	// Start from A over the stock. Apply the signed A−B moments only
 	// where the original envelope chooses B. The enclosing cusp faces
 	// share one owner and together exclude the disk from their strip.
-	strips, disk := parabolaCircleApexSignedMoments([2]parabolaCircleMeshHeight{height[1], height[2]}, p)
 	for i, strip := range strips {
 		if owners[i] == 1 {
 			net.Sub(net, strip)
 		}
 	}
-	factor := new(big.Rat).Mul(disk, big.NewRat(int64(owners[p.DiskRegion]-owners[2]), 1))
+	factor := new(big.Rat).Mul(disk, big.NewRat(int64(owners[diskRegion]-owners[2]), 1))
 	pi := parabolaCircleMeshPi()
 	if factor.Sign() < 0 {
 		pi[0], pi[1] = pi[1], pi[0]

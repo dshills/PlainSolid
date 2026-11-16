@@ -152,6 +152,8 @@ The admitted nonapex results also transfer through exact STEP and IGES,
 including the exact degree-five form of the original varying-roof bridge.
 The admitted nonapex Cuts also have certified display with distinct
 component identities and exactly one registered oblique contact.
+Their Common and Fuse envelopes also have certified closed display
+with the original normal bridge and authenticated tangent-loop supports.
 Certified display of the separated two-circle Cuts now accepts proper
 rational similarities. The proof uses the original world coedge owners
 and reports distance in physical units after rotation and scaling.

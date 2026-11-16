@@ -121,7 +121,7 @@ func checkApexEnvelopeSourceGate(t *testing.T, ctx context.Context, r *ParabolaC
 	if err != nil {
 		t.Fatal(err)
 	}
-	loop := authenticatedParabolaCircleApexLoop(regions[side].loop)
+	loop := authenticatedParabolaCircleTangentLoop(regions[side].loop)
 	face := r.solid.faces[r.history.RoofFaces[side]]
 	curves := make([]PCurve, len(face.Outer))
 	for i, use := range face.Outer {
@@ -148,7 +148,7 @@ func checkApexEnvelopeSourceGate(t *testing.T, ctx context.Context, r *ParabolaC
 		if err != nil {
 			t.Fatal(err)
 		}
-		m, err := tessellateMixedExactAffineRegionWithApex(ctx, plane, curves, nil, nil, opts, loop)
+		m, err := tessellateMixedExactAffineRegionWithTangentLoop(ctx, plane, curves, nil, nil, opts, loop)
 		if !errors.Is(err, geom.ErrConvergence) || len(m.Mesh.Triangles) != 0 {
 			t.Fatal("a changed original cusp coefficient passed authentication", err)
 		}
