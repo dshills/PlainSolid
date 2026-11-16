@@ -33,7 +33,11 @@ type CertifiedFilletedFrustumMesh struct {
 // boundary residual contracts by the radial fraction. Exact simple star-fan
 // validation proves full represented cap coverage. All retries share the
 // supplied triangle-check budget; failure returns no partial result.
-func TessellateFilletedFrustumClosedCertified(ctx context.Context, source Solid, lower, upper float64, o CertifiedWrappedFrustumMeshOptions) (out CertifiedFilletedFrustumMesh, err error) {
+func TessellateFilletedFrustumClosedCertified(ctx context.Context, source Solid, lower, upper float64, o CertifiedWrappedFrustumMeshOptions) (CertifiedFilletedFrustumMesh, error) {
+	return tessellateFilletedFrustumClosed(ctx, source, lower, upper, o, nil)
+}
+
+func tessellateFilletedFrustumClosed(ctx context.Context, source Solid, lower, upper float64, o CertifiedWrappedFrustumMeshOptions, angles *filletedFrustumFacetAngles) (out CertifiedFilletedFrustumMesh, err error) {
 	defer func() {
 		if err != nil {
 			out = CertifiedFilletedFrustumMesh{}
@@ -62,6 +66,24 @@ func TessellateFilletedFrustumClosedCertified(ctx context.Context, source Solid,
 		return out, e
 	}
 	owners := [3]int{h.Blends[0], h.Lateral, h.Blends[1]}
+	var normals [3]filletedFrustumGridNormals
+	if angles != nil {
+		core, ok := stock.faces[h.Lateral].Surface.(*geom.WrappedSurfacePatch)
+		if !ok {
+			return out, geom.ErrConvergence
+		}
+		normals[1], e = frustumGridNormalSource(ctx, core, false, o.Embedding)
+		if e != nil {
+			return out, e
+		}
+		for end, id := range h.Blends {
+			blend, ok := stock.faces[id].Surface.(*geom.WrappedSurfacePatch)
+			if !ok {
+				return out, geom.ErrConvergence
+			}
+			normals[2*end] = filletGridNormalSource(blend, normals[1].center, &h.Circles[end], end == 1)
+		}
+	}
 	var grids [3]CertifiedKnotPatchMesh
 	minimum := 1
 	checks := 0
@@ -87,6 +109,25 @@ func TessellateFilletedFrustumClosedCertified(ctx context.Context, source Solid,
 			}
 			if grids[i].Subdivisions > next {
 				next = grids[i].Subdivisions
+			}
+		}
+		if angles != nil && next == minimum {
+			maximum := new(big.Rat)
+			for i, id := range owners {
+				q, err := normals[i].certify(ctx, grids[i], stock.faces[id].Reversed, angles.limit, o.Patch.Evaluation)
+				if err != nil {
+					return out, err
+				}
+				if q == nil {
+					next = 2 * minimum
+					break
+				}
+				if q.Cmp(maximum) > 0 {
+					maximum.Set(q)
+				}
+			}
+			if next == minimum {
+				angles.maximum.Set(maximum)
 			}
 		}
 		if next == minimum {
@@ -215,6 +256,9 @@ func TessellateFilletedFrustumClosedCertified(ctx context.Context, source Solid,
 			tri := [3]int{centerID, a, b}
 			if end == 0 {
 				tri[1], tri[2] = tri[2], tri[1]
+			}
+			if angles != nil && !frustumCapFacetNormalMatches(out.Mesh.Vertices, tri, end == 1) {
+				return out, geom.ErrConvergence
 			}
 			out.Mesh.Triangles = append(out.Mesh.Triangles, tri)
 			out.OriginalFace = append(out.OriginalFace, h.Caps[end])

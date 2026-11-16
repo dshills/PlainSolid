@@ -13,7 +13,9 @@ import (
 // eccentric through bore. Rims[end][0/1] retain outer/inner cap rows, with
 // actual native edge ownership. SquaredDeflection bounds both directions
 // between the entire source boundary and mesh, including planar annular fill.
-// It does not assert a per-cap-triangle source parameterization or angular bound.
+// The angular route also sets SquaredNormalTangent, a bound on the squared
+// tangent between each facet and the original oriented material normals.
+// Cap correspondence is setwise and their material normal is constant.
 type CertifiedFilletedFrustumBoreMesh struct {
 	Mesh                                   mesh.Mesh
 	Source                                 Solid
@@ -23,6 +25,7 @@ type CertifiedFilletedFrustumBoreMesh struct {
 	RimEdges                               [2][2][]int
 	RimParameters                          [2][2][]*big.Rat // original increasing model-edge parameter
 	SquaredDeflection, SignedDisplayVolume *big.Rat
+	SquaredNormalTangent                   *big.Rat
 	Collision                              collision.Report
 	TriangleChecks, Predicates             int
 }
@@ -36,7 +39,11 @@ type CertifiedFilletedFrustumBoreMesh struct {
 // support uses its original native parameterization; no rounded surrogate is
 // introduced. Triangle checks and polygon predicates are cumulative; default
 // trim-loop validation and collision work limits remain independently bounded.
-func TessellateFilletedFrustumThroughBoreCertified(ctx context.Context, source Solid, lower, upper float64, center geom.Vec2, radius float64, o CertifiedWrappedFrustumMeshOptions) (out CertifiedFilletedFrustumBoreMesh, err error) {
+func TessellateFilletedFrustumThroughBoreCertified(ctx context.Context, source Solid, lower, upper float64, center geom.Vec2, radius float64, o CertifiedWrappedFrustumMeshOptions) (CertifiedFilletedFrustumBoreMesh, error) {
+	return tessellateFilletedFrustumThroughBore(ctx, source, lower, upper, center, radius, o, nil)
+}
+
+func tessellateFilletedFrustumThroughBore(ctx context.Context, source Solid, lower, upper float64, center geom.Vec2, radius float64, o CertifiedWrappedFrustumMeshOptions, angles *filletedFrustumFacetAngles) (out CertifiedFilletedFrustumBoreMesh, err error) {
 	defer func() {
 		if err != nil {
 			out = CertifiedFilletedFrustumBoreMesh{}
@@ -54,7 +61,7 @@ func TessellateFilletedFrustumThroughBoreCertified(ctx context.Context, source S
 	if o.MaxPredicates == 0 {
 		o.MaxPredicates = 1000000
 	}
-	outer, e := TessellateFilletedFrustumClosedCertified(ctx, source, lower, upper, o)
+	outer, e := tessellateFilletedFrustumClosed(ctx, source, lower, upper, o, angles)
 	if e != nil {
 		return out, e
 	}
@@ -72,15 +79,43 @@ func TessellateFilletedFrustumThroughBoreCertified(ctx context.Context, source S
 	if po.MaxTriangleChecks < 1 {
 		return out, geom.ErrConvergence
 	}
-	inner, e := TessellateWrappedKnotPatchCertified(ctx, w, po)
-	if e != nil {
-		return out, e
+	var normals filletedFrustumGridNormals
+	if angles != nil {
+		normals, e = frustumGridNormalSource(ctx, w, true, o.Embedding)
+		if e != nil {
+			return out, e
+		}
 	}
-	if !inner.BothDirections {
-		return out, geom.ErrConvergence
+	var inner CertifiedKnotPatchMesh
+	for minimum := 1; ; minimum = 2 * inner.Subdivisions {
+		if po.MaxTriangleChecks < 1 {
+			return out, geom.ErrConvergence
+		}
+		inner, e = tessellateCertifiedKnotGridFrom(ctx, w.FundamentalPatch(), [2]bool{true, false}, po, minimum)
+		if e != nil {
+			return out, e
+		}
+		po.MaxTriangleChecks -= inner.TriangleChecks
+		if !inner.BothDirections {
+			return out, geom.ErrConvergence
+		}
+		if angles == nil {
+			break
+		}
+		q, err := normals.certify(ctx, inner, face.Reversed, angles.limit, po.Evaluation)
+		if err != nil {
+			return out, err
+		}
+		if q != nil {
+			if q.Cmp(angles.maximum) > 0 {
+				angles.maximum.Set(q)
+			}
+			out.SquaredNormalTangent = angles.maximum
+			break
+		}
 	}
 	out.Source, out.History = body, h
-	out.TriangleChecks = outer.TriangleChecks + inner.TriangleChecks
+	out.TriangleChecks = o.Patch.MaxTriangleChecks - po.MaxTriangleChecks
 	out.Predicates = outer.Predicates
 	out.SquaredDeflection = new(big.Rat).Set(outer.SquaredDeflection)
 	for _, bound := range inner.SquaredErrors {
@@ -202,6 +237,9 @@ func TessellateFilletedFrustumThroughBoreCertified(ctx context.Context, source S
 			t := [3]int{ids[tri[0]], ids[tri[1]], ids[tri[2]]}
 			if end == 0 {
 				t[1], t[2] = t[2], t[1]
+			}
+			if angles != nil && !frustumCapFacetNormalMatches(out.Mesh.Vertices, t, end == 1) {
+				return out, geom.ErrConvergence
 			}
 			out.Mesh.Triangles = append(out.Mesh.Triangles, t)
 			out.OriginalFace = append(out.OriginalFace, h.Fillets.Caps[end])
