@@ -3231,6 +3231,8 @@ tensor supports certified point distance and bounded rational line
 contacts. The native geometry codec now round-trips exact rational
 knots and controls without choosing floating poles. The ordinary
 curve/surface interfaces evaluate the represented query values and
-round only their results. Periodic seam multiplicity changes, general
-tensor trim arrangements and neutral exchange of these edited splines
-remain open.
+round only their results. Exact insertion also handles repeated seam
+knots through the degree, and the same physical curve or surface can
+use any original knot as its fundamental seam. General tensor trim
+arrangements, knot removal and neutral exchange of these edited
+splines remain open.

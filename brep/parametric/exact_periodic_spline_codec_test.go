@@ -24,11 +24,15 @@ func TestExactNonuniformPeriodicCurveCodec(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	c, err = c.InsertKnot(ctx, big.NewRat(-2, 1), geom.SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
 	raw, err := EncodeCurve(c)
 	if err != nil || !bytes.Contains(raw, []byte(`"-15/11"`)) {
 		t.Fatal("curve codec rounded the inserted knot", string(raw), err)
 	}
-	curve, err := DecodeCurve(raw, 5)
+	curve, err := DecodeCurve(raw, 6)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,18 +60,18 @@ func TestExactNonuniformPeriodicCurveCodec(t *testing.T) {
 	}
 	for _, tc := range [][2]string{
 		{`"-15/11"`, `"-30/22"`}, {`"-15/11"`, `"1e100000000"`},
-		{`"-15/11"`, `"-2"`}, {`"Version":1`, `"Version":2`},
+		{`"-15/11"`, `"-3"`}, {`"Version":1`, `"Version":2`},
 		{`"Kind":`, `"Start":1,"Kind":`},
 	} {
 		changed := bytes.Replace(raw, []byte(tc[0]), []byte(tc[1]), 1)
 		if bytes.Equal(raw, changed) {
 			t.Fatal("bad negative fixture", tc)
 		}
-		if out, err := DecodeCurve(changed, 5); err == nil || out != nil {
+		if out, err := DecodeCurve(changed, 6); err == nil || out != nil {
 			t.Fatal("accepted a forged exact curve recipe", string(changed), err)
 		}
 	}
-	if out, err := DecodeCurve(raw, 4); out != nil || !errors.Is(err, geom.ErrConvergence) {
+	if out, err := DecodeCurve(raw, 5); out != nil || !errors.Is(err, geom.ErrConvergence) {
 		t.Fatal("short curve control budget published geometry", err)
 	}
 }

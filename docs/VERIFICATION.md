@@ -275,6 +275,14 @@ knot. Numerical adapters agree after reload. Noncanonical fractions,
 exponent payloads, changed knot modes, unknown controls and short pole
 budgets refuse without returning geometry. Main's sealed geometry
 and parametric codec race groups passed in 6.687 and 1.397 seconds.
+Repeated seams now use all coincident start knots and one closing
+endpoint. Inserting at the original seam or moving the fundamental
+seam to a repeated knot retains exact points and physical jets on
+both sides, including a seam moved by `2^100` cycles. Tensor controls
+rotate in only the selected direction, and the native codec stores
+the repeated seam byte for byte. Nonknots, excessive multiplicity and
+short bit budgets refuse. Main's sealed periodic and persistence race
+passed in 6.177 and 1.171 seconds.
 
 The [full ordinary Go run on `01d12dab`](evidence/main-01d12dab-qualification-2026-11-15.json)
 later passed all nine lanes on macOS ARM64. The independent inventory

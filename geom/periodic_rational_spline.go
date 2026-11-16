@@ -7,8 +7,9 @@ import (
 )
 
 // ExactPeriodicSplineCurve is one closed cyclic rational B-spline net with
-// exact, potentially nonuniform knot intervals. It owns its input. The
-// original seam knot is simple; interior knot multiplicity may reach degree.
+// exact, potentially nonuniform knot intervals. It owns its input. Knot
+// multiplicity may reach degree; seam repetitions are stored at the start
+// of the fundamental interval, with just one closing endpoint.
 type ExactPeriodicSplineCurve struct {
 	exactCyclicAxis
 	net []exactHomogeneous
@@ -67,7 +68,7 @@ func newExactCyclicAxis(ctx context.Context, degree int, knots []*big.Rat, b *po
 				return exactCyclicAxis{}, ErrInvalid
 			case 0:
 				mult++
-				if i == 1 || i == len(knots)-1 || mult > degree {
+				if i == len(knots)-1 || mult > degree {
 					return exactCyclicAxis{}, ErrInvalid
 				}
 			default:
@@ -178,8 +179,8 @@ func (c *ExactPeriodicSplineCurve) HomogeneousControls() [][4]*big.Rat {
 
 // InsertKnot inserts t modulo the original period throughout the cyclic net.
 // This is exact homogeneous knot insertion, including in a nonuniform span
-// or at a repeated interior knot. The seam remains simple, and introducing
-// interior multiplicity greater than degree is outside the supported domain.
+// or at a repeated interior knot or seam. Introducing multiplicity greater
+// than the degree is outside the supported domain.
 func (c *ExactPeriodicSplineCurve) InsertKnot(ctx context.Context, t *big.Rat, o SurfacePatchOptions) (*ExactPeriodicSplineCurve, error) {
 	if ctx == nil || c == nil || len(c.net) == 0 || t == nil {
 		return nil, ErrInvalid
@@ -236,11 +237,8 @@ func (c exactCyclicAxis) insertion(ctx context.Context, t *big.Rat, b *polynomia
 	if err != nil {
 		return exactCyclicAxis{}, nil, err
 	}
-	if x.Cmp(c.knots[0]) == 0 {
-		return exactCyclicAxis{}, nil, ErrDomain
-	}
 	m := 0
-	for j := s; j > 0 && c.knots[j].Cmp(x) == 0; j-- {
+	for j := s; j >= 0 && c.knots[j].Cmp(x) == 0; j-- {
 		m++
 	}
 	if m >= c.degree {

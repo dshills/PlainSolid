@@ -7,8 +7,9 @@ import (
 )
 
 // ExactTensorSplineAxis specifies a rational tensor spline basis. A
-// periodic axis has Count+1 knot entries, including both simple seam
-// ends. An ordinary axis has the full Count+Degree+1 knot vector and
+// periodic axis has Count+1 knot entries, including its closing seam
+// endpoint. Additional seam copies belong at the start of that list.
+// An ordinary axis has the full Count+Degree+1 knot vector and
 // the usual active domain [Knots[Degree], Knots[Count]].
 type ExactTensorSplineAxis struct {
 	Degree, Count int
