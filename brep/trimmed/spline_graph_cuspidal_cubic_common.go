@@ -52,71 +52,91 @@ func (r *CuspidalCubicCommon) History() CuspidalCubicCommonHistory {
 // must be exactly represented. The original cusp has zero first derivative.
 func CommonCuspidalCubicSplineGraphs(ctx context.Context, base, a, c *geom.BSplineSurface, freeAxis int,
 	tolerance float64, o CuspidalCubicCommonOptions) (*CuspidalCubicCommon, error) {
+	boundary, err := buildCuspidalCubicEnvelope(ctx, base, a, c, freeAxis, tolerance, false, o)
+	if err != nil {
+		return nil, err
+	}
+	return &CuspidalCubicCommon{solid: boundary.solid, history: boundary.history, section: boundary.section,
+		sources: [3]*geom.BSplineSurface{base, a, c}, freeAxis: freeAxis, tolerance: tolerance}, nil
+}
+
+type cuspidalCubicEnvelopeBoundary struct {
+	solid   Solid
+	history CuspidalCubicCommonHistory
+	section *geom.CuspidalCubicSection
+}
+
+func buildCuspidalCubicEnvelope(ctx context.Context, base, a, c *geom.BSplineSurface, freeAxis int,
+	tolerance float64, upper bool, o CuspidalCubicCommonOptions) (out cuspidalCubicEnvelopeBoundary, err error) {
 	if ctx == nil || base == nil || a == nil || c == nil || freeAxis < 0 || freeAxis > 1 || !finite(tolerance) ||
 		tolerance <= 0 || o.Section.Domain != (geom.ParameterRectangle{}) {
-		return nil, geom.ErrInvalid
+		return out, geom.ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return out, err
 	}
 	stock, err := prepareRectangularPolynomialStock(ctx, base, a, c, o)
 	if err != nil {
-		return nil, err
+		return out, err
 	}
 	proof, err := geom.DiscoverProjectedGraphCuspidalCubic(ctx, stock.roofs[0], stock.roofs[1], [2]int{0, 1}, freeAxis, o.Proof)
 	if err != nil {
-		return nil, err
+		return out, err
 	}
 	d := stock.reference.Domain()
-	pieces, xyz, err := cuspidalCubicCommonPieces(proof, d)
+	pieces, xyz, err := cuspidalCubicEnvelopePieces(proof, d)
 	if err != nil {
-		return nil, err
+		return out, err
 	}
-	regions, err := cuspidalCubicCommonRegions(proof, pieces, d)
+	regions, err := cuspidalCubicEnvelopeRegions(proof, pieces, d)
 	if err != nil {
-		return nil, err
+		return out, err
+	}
+	if upper {
+		for i := range regions {
+			regions[i].first = !regions[i].first
+		}
 	}
 	baseChart, err := polynomialEnvelopeBaseChart(stock.base)
 	if err != nil {
-		return nil, err
+		return out, err
 	}
 	var charts [2]graphEnvelopeChart
 	for i, roof := range stock.roofs {
 		aligned, err := geom.AlignAffineXYCharts(ctx, stock.reference, roof, o.Section.Patch)
 		if err != nil {
-			return nil, err
+			return out, err
 		}
 		charts[i], err = polynomialEnvelopeBaseChart(aligned)
 		if err != nil {
-			return nil, err
+			return out, err
 		}
 	}
 	solid, envelope, err := assembleSplineEnvelopeOnCharts(ctx, base, a, c, regions[:], d, baseChart,
 		charts, nodalCubicReferenceXY, tolerance, exactGraphVertexEvaluator(ctx, o.Proof))
 	if err != nil {
-		return nil, err
+		return out, err
 	}
 	if err := validateExactGraphPartitionEdges(ctx, solid, o.Proof); err != nil {
-		return nil, err
+		return out, err
 	}
 	if err := bindPolynomialEnvelopeBase(solid, base, baseChart, envelope, nodalCubicReferenceXY); err != nil {
-		return nil, err
+		return out, err
 	}
 	if err := affineMaterialVertexLinks(ctx, solid); err != nil {
-		return nil, err
+		return out, err
 	}
-	history, err := bindCuspidalCubicCommon(solid, envelope, [2]*geom.BSplineSurface{a, c}, charts, proof, xyz, pieces, regions)
+	history, err := bindCuspidalCubicEnvelope(solid, envelope, [2]*geom.BSplineSurface{a, c}, charts, proof, xyz, pieces, regions)
 	if err != nil {
-		return nil, err
+		return out, err
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return out, err
 	}
-	return &CuspidalCubicCommon{solid: solid, history: history, section: proof, sources: [3]*geom.BSplineSurface{base, a, c},
-		freeAxis: freeAxis, tolerance: tolerance}, nil
+	return cuspidalCubicEnvelopeBoundary{solid: solid, history: history, section: proof}, nil
 }
 
-func cuspidalCubicCommonPieces(p *geom.CuspidalCubicSection, d geom.ParameterRectangle) (pieces [2]openSectionPiece, xyz [3]geom.Vec3, err error) {
+func cuspidalCubicEnvelopePieces(p *geom.CuspidalCubicSection, d geom.ParameterRectangle) (pieces [2]openSectionPiece, xyz [3]geom.Vec3, err error) {
 	for i, v := range p.Vertices {
 		xyz[i], err = geom.RepresentedExactPoint(v.Point)
 		if err != nil {
@@ -168,7 +188,7 @@ func cuspidalCubicBezierControls(point [3]*big.Rat, xScale, yScale *big.Rat, spa
 	return control
 }
 
-func cuspidalCubicCommonRegions(p *geom.CuspidalCubicSection, pieces [2]openSectionPiece, d geom.ParameterRectangle) (out [2]graphEnvelopeRegion, err error) {
+func cuspidalCubicEnvelopeRegions(p *geom.CuspidalCubicSection, pieces [2]openSectionPiece, d geom.ParameterRectangle) (out [2]graphEnvelopeRegion, err error) {
 	for i, exit := range [2][2]geom.Vec2{{pieces[1].b, pieces[0].a}, {pieces[0].a, pieces[1].b}} {
 		perimeter, err := saddleRectangleArc(exit[0], exit[1], d)
 		if err != nil {

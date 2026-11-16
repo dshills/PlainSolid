@@ -8,7 +8,7 @@ import (
 	"plainsolid/geom"
 )
 
-func bindCuspidalCubicCommon(s Solid, envelope SplineGraphBooleanHistory, roofs [2]*geom.BSplineSurface, charts [2]graphEnvelopeChart,
+func bindCuspidalCubicEnvelope(s Solid, envelope SplineGraphBooleanHistory, roofs [2]*geom.BSplineSurface, charts [2]graphEnvelopeChart,
 	p *geom.CuspidalCubicSection, xyz [3]geom.Vec3, pieces [2]openSectionPiece,
 	regions [2]graphEnvelopeRegion) (h CuspidalCubicCommonHistory, err error) {
 	topology := s.Topology()
