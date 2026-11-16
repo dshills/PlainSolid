@@ -34,29 +34,34 @@ type SweepBRepVertexSource struct {
 
 // VerifiedSweepOpenChainBRep is an immutable planar solid and its
 // original analytic ancestry. The source charts retain their original
-// parameter domains and complete joining maps.
+// parameter domains and complete joining maps. A joined wall corner
+// records both original owners.
 type VerifiedSweepOpenChainBRep struct {
+	sweepPlanarBRepBoundary
+	original *geom.VerifiedNormalOffsetSweepOpenChain
+}
+
+type sweepPlanarBRepBoundary struct {
 	solid      brep.Solid
-	original   *geom.VerifiedNormalOffsetSweepOpenChain
 	faceSource []SweepBRepFaceSource
 	vertices   [][]SweepBRepVertexSource
 	volume     *big.Rat
 }
 
-func (r VerifiedSweepOpenChainBRep) Solid() brep.Solid { return r.solid }
+func (r sweepPlanarBRepBoundary) Solid() brep.Solid { return r.solid }
 
 func (r VerifiedSweepOpenChainBRep) Original() *geom.VerifiedNormalOffsetSweepOpenChain {
 	return r.original
 }
 
 // FaceSources gives one source record per native face in solid order.
-func (r VerifiedSweepOpenChainBRep) FaceSources() []SweepBRepFaceSource {
+func (r sweepPlanarBRepBoundary) FaceSources() []SweepBRepFaceSource {
 	return slices.Clone(r.faceSource)
 }
 
 // VertexSources gives the raw corner of each incident original owner at
-// the native vertex. A joined wall corner carries both original owners.
-func (r VerifiedSweepOpenChainBRep) VertexSources(vertex int) []SweepBRepVertexSource {
+// the native vertex.
+func (r sweepPlanarBRepBoundary) VertexSources(vertex int) []SweepBRepVertexSource {
 	if vertex < 0 || vertex >= len(r.vertices) {
 		return nil
 	}
@@ -65,7 +70,7 @@ func (r VerifiedSweepOpenChainBRep) VertexSources(vertex int) []SweepBRepVertexS
 
 // ExactVolume returns the positive volume agreed by the original
 // analytic prisms and the native planar boundary.
-func (r VerifiedSweepOpenChainBRep) ExactVolume() *big.Rat {
+func (r sweepPlanarBRepBoundary) ExactVolume() *big.Rat {
 	if r.volume == nil {
 		return nil
 	}
@@ -86,54 +91,71 @@ func PlanarBRepFromVerifiedNormalOffsetSweepOpenChain(ctx context.Context, chain
 	if err != nil {
 		return empty, err
 	}
+	boundary, _, err := buildSweepPlanarBRepBoundary(ctx, prisms, chain.Joins(), chain.Boundary(), nil, o.Validation)
+	if err != nil {
+		return empty, err
+	}
+	return VerifiedSweepOpenChainBRep{sweepPlanarBRepBoundary: boundary, original: chain}, nil
+}
+
+func buildSweepPlanarBRepBoundary(ctx context.Context, prisms []geom.VerifiedNormalOffsetSweepPlanarPrism,
+	joins []geom.VerifiedNormalOffsetSweepChainJoin, retained []geom.VerifiedNormalOffsetSweepBoundaryFace,
+	contact *geom.PlanarSweepElbowContact, validation collision.LocationOptions) (sweepPlanarBRepBoundary, int, error) {
+	var empty sweepPlanarBRepBoundary
 	builder := sweepPlanarBRepBuilder{
 		corners: make([][2][2][2]int, len(prisms)),
 		seen:    make(map[geom.Vec3]bool, 4*(len(prisms)+1)),
 		edgeIDs: make(map[[2]int]int, 8*len(prisms)+4),
 	}
-	joins := chain.Joins()
 	volume := new(big.Rat)
 	for owner, prism := range prisms {
 		if err := ctx.Err(); err != nil {
-			return empty, err
+			return empty, -1, err
 		}
-		if err := builder.addCorners(owner, prism, joins); err != nil {
-			return empty, fmt.Errorf("offset: original sweep owner %d corners: %w", owner, err)
+		if err := builder.addCorners(owner, prism, joins, contact); err != nil {
+			return empty, -1, fmt.Errorf("offset: original sweep owner %d corners: %w", owner, err)
 		}
 		volume.Add(volume, prism.Volume)
 	}
-	retained := chain.Boundary()
 	faces := make([]brep.Face, 0, len(retained))
 	sources := make([]SweepBRepFaceSource, 0, len(retained))
 	for _, source := range retained {
 		if err := ctx.Err(); err != nil {
-			return empty, err
+			return empty, -1, err
 		}
 		faces = append(faces, builder.face(source))
 		sources = append(sources, SweepBRepFaceSource{Owner: source.Owner, Side: source.Side})
 	}
 	if len(builder.points) != 4*(len(prisms)+1) || len(builder.edges) != 8*len(prisms)+4 || len(faces) != 4*len(prisms)+2 {
-		return empty, geom.ErrDomain
+		return empty, -1, geom.ErrDomain
+	}
+	reentrant := -1
+	if contact != nil {
+		var ok bool
+		reentrant, ok = builder.elbowReentrantEdge(*contact, faces, sources)
+		if !ok {
+			return empty, -1, geom.ErrDomain
+		}
 	}
 	solid, err := brep.NewSolid(builder.points, builder.edges, faces)
 	if err != nil {
-		return empty, fmt.Errorf("offset: planar sweep boundary: %w", err)
+		return empty, -1, fmt.Errorf("offset: planar sweep boundary: %w", err)
 	}
-	locator, err := collision.NewPointLocator(ctx, solid, o.Validation)
+	locator, err := collision.NewPointLocator(ctx, solid, validation)
 	if err != nil {
-		return empty, fmt.Errorf("offset: planar sweep embedding: %w", err)
+		return empty, -1, fmt.Errorf("offset: planar sweep embedding: %w", err)
 	}
 	shells := locator.Shells()
 	if len(shells) != 1 || shells[0].Parent != -1 || shells[0].Depth != 0 ||
 		shells[0].SignedVolume.Sign() <= 0 || shells[0].SignedVolume.Cmp(volume) != 0 {
-		return empty, geom.ErrDomain
+		return empty, -1, geom.ErrDomain
 	}
 	if err := ctx.Err(); err != nil {
-		return empty, err
+		return empty, -1, err
 	}
-	return VerifiedSweepOpenChainBRep{
-		solid: solid, original: chain, faceSource: sources, vertices: builder.sources, volume: volume,
-	}, nil
+	return sweepPlanarBRepBoundary{
+		solid: solid, faceSource: sources, vertices: builder.sources, volume: volume,
+	}, reentrant, nil
 }
 
 type sweepPlanarBRepBuilder struct {
@@ -146,7 +168,7 @@ type sweepPlanarBRepBuilder struct {
 }
 
 func (b *sweepPlanarBRepBuilder) addCorners(owner int, prism geom.VerifiedNormalOffsetSweepPlanarPrism,
-	joins []geom.VerifiedNormalOffsetSweepChainJoin) error {
+	joins []geom.VerifiedNormalOffsetSweepChainJoin, contact *geom.PlanarSweepElbowContact) error {
 	for u := range 2 {
 		for v := range 2 {
 			for d := range 2 {
@@ -164,7 +186,7 @@ func (b *sweepPlanarBRepBuilder) addCorners(owner int, prism geom.VerifiedNormal
 					peer, shared := previousSweepBRepCorner(joins[owner-1].Original, raw)
 					if shared {
 						id := b.corners[owner-1][peer[0]][peer[1]][peer[2]]
-						if b.points[id] != point || len(b.sources[id]) != 1 {
+						if b.points[id] != point || !validSweepBRepCornerOwners(b.sources[id], source, contact) {
 							return geom.ErrDomain
 						}
 						b.corners[owner][u][v][d] = id
