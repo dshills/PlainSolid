@@ -142,15 +142,20 @@ func TestEditMixedConicalAP242DAGRationalRotationReject(t *testing.T) {
 	raw := mixedConicalAP242DAGFixture(t, "exact")
 	reflection := conicalRotationAboutZ(5, 12, 13)
 	reflection[2][2] = big.NewRat(-1, 1)
-	// Exact vector (20,21,0)/29 is proper. The ordinary STEP frame
-	// projection rounds it differently from the strict rational frame.
+	// The proper orientation from quaternion (1,1,1,4) has no fixed
+	// Cartesian axis and its ordinary projection disagrees.
+	unsupported := &[3][3]*big.Rat{
+		{big.NewRat(-15, 19), big.NewRat(-6, 19), big.NewRat(10, 19)},
+		{big.NewRat(10, 19), big.NewRat(-15, 19), big.NewRat(6, 19)},
+		{big.NewRat(6, 19), big.NewRat(10, 19), big.NewRat(15, 19)},
+	}
 	for _, tc := range []struct {
 		name  string
 		edits []MixedConicalAP242OccurrenceEdit
 		cause error
 	}{
 		{"reflection", []MixedConicalAP242OccurrenceEdit{{NAUOID: 251, Rotation: reflection}}, geom.ErrUnrepresentable},
-		{"strict frame projection", []MixedConicalAP242OccurrenceEdit{{NAUOID: 251, Rotation: conicalRotationAboutZ(20, 21, 29)}}, geom.ErrUnrepresentable},
+		{"strict frame projection", []MixedConicalAP242OccurrenceEdit{{NAUOID: 251, Rotation: unsupported}}, geom.ErrUnrepresentable},
 		{"conflicting shared relationship", []MixedConicalAP242OccurrenceEdit{
 			{NAUOID: 251, Rotation: conicalRotationAboutZ(5, 12, 13)}, {NAUOID: 251, Rotation: conicalRotationAboutZ(3, 4, 5)},
 		}, geom.ErrInvalid},

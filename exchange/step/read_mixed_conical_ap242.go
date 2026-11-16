@@ -186,6 +186,17 @@ func readMixedConicalAP242HierarchyMode(r io.Reader, l Limits, mode mixedConical
 	if err != nil {
 		return zero, err
 	}
+	// Project the proved source frames for the specialized view. The
+	// general assembly reader keeps its ordinary frame interpretation.
+	poses := make(map[int64]geom.Affine, len(records.occurrences))
+	for _, use := range records.occurrences {
+		poses[use.NAUOID] = projectMixedConicalFrame(use.pose)
+	}
+	for i, use := range a.Occurrences {
+		if pose := poses[use.ID]; use.Transform != pose {
+			a.Occurrences[i].Transform = pose
+		}
+	}
 	return mixedConicalAP242Hierarchy{assembly: a, layout: layout, records: records}, nil
 }
 

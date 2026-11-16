@@ -57,22 +57,21 @@ func mixedConicalDirectionRatios(axis [3]*big.Rat) [3]*big.Rat {
 	return axis
 }
 
-// The existing strict reader requires the ordinary assembly's binary64
-// frame to agree with the projection of the independently proved rational
-// frame. Apply the same gate before publishing a new rotation.
+// Verify the emitted target using the same exact and ordinary projections as
+// the specialized reader before staging the edited graph.
 func mixedConicalRotationProjectsExactly(f *File, id int64, want mappedRationalBasis) bool {
-	frame, err := placement(f, id)
+	exact, err := mappedRationalFrame(f, id)
 	if err != nil {
 		return false
 	}
-	pose := frameTransform(frame)
-	for j, axis := range [3][3]*big.Rat{want.X, want.Y, want.Z} {
+	got := [4][3]*big.Rat{exact.X, exact.Y, exact.Z, exact.Origin}
+	for j, axis := range [4][3]*big.Rat{want.X, want.Y, want.Z, want.Origin} {
 		for i, q := range axis {
-			component, _ := q.Float64()
-			if pose[i][j] != component {
+			if got[j][i].Cmp(q) != 0 {
 				return false
 			}
 		}
 	}
-	return true
+	frame, err := placement(f, id)
+	return err == nil && mixedConicalFrameProjection(frame, exact)
 }
