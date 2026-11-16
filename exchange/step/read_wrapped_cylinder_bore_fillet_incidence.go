@@ -74,53 +74,60 @@ func readBoreRimSTEPFaces(f *File, ids []int64) ([]boreRimSTEPFace, error) {
 		if err != nil || len(bounds) > 2 {
 			return nil, errBoreRimFilletSTEP
 		}
-		for _, boundID := range bounds {
-			b := f.Entities[boundID].Records
-			if len(b) != 1 || len(b[0].Args) != 3 || (b[0].Type != "FACE_BOUND" && b[0].Type != "FACE_OUTER_BOUND") || !claim(boundID) {
-				return nil, errBoreRimFilletSTEP
-			}
-			direction, err := boolean(b[0].Args[2])
-			if err != nil {
-				return nil, err
-			}
-			loopID, err := ref(b[0].Args[1])
-			if err != nil || !claim(loopID) {
-				return nil, errBoreRimFilletSTEP
-			}
-			loop, err := simple(f, loopID, "EDGE_LOOP", 2)
-			if err != nil {
-				return nil, err
-			}
-			uses, err := listRefs(loop.Args[1], 1)
-			if err != nil || len(uses) > 10 {
-				return nil, errBoreRimFilletSTEP
-			}
-			wire := make([]analyticUse, len(uses))
-			for j, uid := range uses {
-				u, err := simple(f, uid, "ORIENTED_EDGE", 5)
-				if err != nil || u.Args[1].Kind != Derived || u.Args[2].Kind != Derived || !claim(uid) {
-					return nil, errBoreRimFilletSTEP
-				}
-				e, err := ref(u.Args[3])
-				if err != nil {
-					return nil, err
-				}
-				sense, err := boolean(u.Args[4])
-				if err != nil {
-					return nil, err
-				}
-				k := j
-				if !direction {
-					k = len(uses) - 1 - j
-				}
-				wire[k] = analyticUse{id: e, sense: sense == direction}
-			}
-			p.loops = append(p.loops, wire)
-			p.outerBounds = append(p.outerBounds, b[0].Type == "FACE_OUTER_BOUND")
+		if err := readModelOnlyCircularSTEPWires(f, bounds, &p, claim); err != nil {
+			return nil, err
 		}
 		faces = append(faces, p)
 	}
 	return faces, nil
+}
+
+func readModelOnlyCircularSTEPWires(f *File, bounds []int64, p *boreRimSTEPFace, claim func(int64) bool) error {
+	for _, boundID := range bounds {
+		b := f.Entities[boundID].Records
+		if len(b) != 1 || len(b[0].Args) != 3 || (b[0].Type != "FACE_BOUND" && b[0].Type != "FACE_OUTER_BOUND") || !claim(boundID) {
+			return errBoreRimFilletSTEP
+		}
+		direction, err := boolean(b[0].Args[2])
+		if err != nil {
+			return err
+		}
+		loopID, err := ref(b[0].Args[1])
+		if err != nil || !claim(loopID) {
+			return errBoreRimFilletSTEP
+		}
+		loop, err := simple(f, loopID, "EDGE_LOOP", 2)
+		if err != nil {
+			return err
+		}
+		uses, err := listRefs(loop.Args[1], 1)
+		if err != nil || len(uses) > 10 {
+			return errBoreRimFilletSTEP
+		}
+		wire := make([]analyticUse, len(uses))
+		for j, uid := range uses {
+			u, err := simple(f, uid, "ORIENTED_EDGE", 5)
+			if err != nil || u.Args[1].Kind != Derived || u.Args[2].Kind != Derived || !claim(uid) {
+				return errBoreRimFilletSTEP
+			}
+			e, err := ref(u.Args[3])
+			if err != nil {
+				return err
+			}
+			sense, err := boolean(u.Args[4])
+			if err != nil {
+				return err
+			}
+			k := j
+			if !direction {
+				k = len(uses) - 1 - j
+			}
+			wire[k] = analyticUse{id: e, sense: sense == direction}
+		}
+		p.loops = append(p.loops, wire)
+		p.outerBounds = append(p.outerBounds, b[0].Type == "FACE_OUTER_BOUND")
+	}
+	return nil
 }
 
 type boreRimSTEPIncidence struct {

@@ -4,6 +4,7 @@
 #include <BRepGProp.hxx>
 #include <BRep_Tool.hxx>
 #include <GProp_GProps.hxx>
+#include <Geom_BSplineCurve.hxx>
 #include <Geom_BSplineSurface.hxx>
 #include <IGESControl_Reader.hxx>
 #include <NCollection_IndexedMap.hxx>
@@ -80,7 +81,8 @@ static bool readRevolvedCone(const BRepAdaptor_Surface& s, Band& data) {
 }
 
 int main(int argc, char** argv) {
-    if (argc != 2) return 1;
+    const bool fullRims = argc == 3 && std::string_view(argv[2]) == "--full-rims";
+    if (argc != 2 && !fullRims) return 1;
     const std::string_view name(argv[1]);
     const bool iges = name.size() >= 4 && name.substr(name.size() - 4) == ".igs";
     TopoDS_Shape shape;
@@ -116,8 +118,13 @@ int main(int argc, char** argv) {
         const auto edge = TopoDS::Edge(edges(i));
         const BRepAdaptor_Curve curve(edge);
         const bool circle = curve.GetType() == GeomAbs_Circle;
-        if (curve.GetType() != GeomAbs_Line && !circle) return 4;
-        if (circle && std::abs(curve.LastParameter() - curve.FirstParameter() - std::acos(-1.) / 2) > 1e-8) return 4;
+        if (!circle && curve.GetType() != GeomAbs_Line) {
+            if (!fullRims || curve.GetType() != GeomAbs_BSplineCurve) return 4;
+            const auto segment = curve.BSpline();
+            if (segment->Degree() != 1 || segment->NbPoles() != 2 || segment->IsRational()) return 4;
+        }
+        const double angle = std::acos(-1.) * (fullRims ? 2 : .5);
+        if (circle && std::abs(curve.LastParameter() - curve.FirstParameter() - angle) > 1e-8) return 4;
         std::cout << '[' << vertices.FindIndex(TopExp::FirstVertex(edge)) - 1 << ','
                   << vertices.FindIndex(TopExp::LastVertex(edge)) - 1 << ',' << (circle ? 1 : 0) << ']';
     }

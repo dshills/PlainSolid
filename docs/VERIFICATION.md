@@ -619,7 +619,17 @@ separate from the refreshed ordinary, race and PlainCAD runs.
   supplied aligned circles to the diagonal check. The original failure
   is retained. A rational enclosure independently proves the default
   OCCT decimal cone angles do not have the slope forced by their exact
-  shoulder circles. Those foreign files do not establish strict import.
+  shoulder circles. Those default foreign files are refused by the
+  strict reader.
+- The [independent exact chamfer STEP import](evidence/eccentric-annular-chamfer-step-import-2026-11-15.json)
+  reconstructs the pinned OCCT authored body with exact two-pole wall
+  generators and seams. It preserves both cap holes and maps all
+  14 original edges and 8 original vertices into the reconstructed
+  8-face, 38-edge, 32-vertex solid. The independent canonical re-export
+  retains positive signed material. The live author regenerates
+  both fixture DATA sections byte for byte; changed support, seam,
+  orientation and resource controls refuse. Main new and existing
+  bore STEP races passed in 50.099 and 47.305 seconds respectively.
 - The [diagonal circle cap and wall proof](evidence/eccentric-annular-cap-nesting-2026-11-15.json)
   (`a296b700`) qualifies the independent offset `(1.5,2)` with exact
   circular rim laws and shell-wide clearance. A targeted raw constructor
