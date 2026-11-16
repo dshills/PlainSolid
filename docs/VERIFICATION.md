@@ -86,6 +86,12 @@ registered node pairs, and bounded signed volumes, distance and angles.
 Exact cross-component checks refuse an unregistered intersection. The
 reverse axis-zero cap needs an explicit 1.25 million self-candidate limit.
 All 34 previous distance, turn and facet output digests match.
+The [transversal Common and Fuse display milestone](evidence/parabola-circle-crossings-envelope-display-2026-11-16.json)
+passed its main race in 338.727 seconds with the older Cut regression.
+Eight curved results each have one positive Euler-2 shell and retain the
+original rays at both nodes. Distance is below `0.016655` mm and continuous
+normal turn below `0.333092` radians with the stated options. All four
+previous Cut display hashes and all eight new source replays match.
 The [native local separation milestone](evidence/parabola-circle-local-separation-native-2026-11-16.json)
 passed a 515.792-second focused race on main. Both axes and operand
 orders produce 16 positive bodies across 12 cases, including the
