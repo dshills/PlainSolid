@@ -355,5 +355,19 @@
     "placements": 2,
     "topology_each": {"vertices": 7, "arcs": 6, "quadratic_saddles": 1, "terminal_paths": 4},
     "irrational_interior_polynomial": ["7/32", "-1", "1"]
+  },
+  "surface_pair_integration": {
+    "main_base": "acf54c33",
+    "log": "projective-surface-pair-main-race-2.jsonl",
+    "sha256": "4a391d5a0dd654f4f38b4bfc62fcba0591f770953d75e1707ec83d374f070c03",
+    "initial_order_dependent_arc_count_expectation": {
+      "log": "projective-surface-pair-main-race.jsonl",
+      "sha256": "67c12f7f0d8197534db085364745ff995924f5f5f5b9297dbe844fd0eb1dc091"
+    },
+    "main_passes": [
+      "TestSurfaceSurfaceProjectiveContactsRetainsExactIntersection",
+      "TestSurfaceSurfaceProjectiveContactsFallbackRemainsConservative",
+      "TestTraceProjectiveSurfaceContactsJoinsQuadraticSaddleAcrossOriginalKnots"
+    ]
   }
 }

@@ -28,6 +28,12 @@ type SurfaceSurfaceIsolationOptions struct {
 	// charged to MaxOperations.
 	ProjectiveGraphAxes       *[2]int
 	ProjectiveGraphOperations int
+	// ProjectiveGraphContacts also attempts a complete original contour
+	// graph on the selected axes. It uses the remaining graph budget after
+	// the coincidence attempt. QuadraticSaddles admits proved degree-four
+	// junctions; it requires ProjectiveGraphContacts. Unproved topology
+	// is never substituted for the ordinary conservative cover.
+	ProjectiveGraphContacts, ProjectiveGraphQuadraticSaddles bool
 }
 
 // SurfaceSurfaceCell covers possible contact between two parameter rectangles.
@@ -45,9 +51,9 @@ type SurfaceSurfaceCell struct {
 // proportional homogeneous control nets, hence identical parameterizations.
 // No geometric equality is inferred merely from overlapping or planar hulls.
 // Complete means every possible contact is covered by Candidates, proven
-// Coincident pairs, or a ProjectiveCoincidence. Candidates may contain no
-// intersection or whole overlapping surfaces. Pending preserves unprocessed
-// contact on resource loss.
+// Coincident pairs, a ProjectiveCoincidence, or exact ProjectiveContacts.
+// Candidates may contain no intersection or whole overlapping surfaces.
+// Pending preserves unprocessed contact on resource loss.
 type SurfaceSurfaceIsolation struct {
 	Candidates, Coincident, Pending []SurfaceSurfaceCell
 	VisitedPairs, ExactOperations   int
@@ -58,6 +64,9 @@ type SurfaceSurfaceIsolation struct {
 	// original pair, with exact rational UV endpoints and correspondence.
 	// It is separate from same-parameter Coincident cells.
 	ProjectiveCoincidence *ProjectiveSurfaceGraphOverlap `json:",omitempty"`
+	// ProjectiveContacts, when present, gives the complete noncoincident
+	// intersection topology. An empty graph proves absence of contact.
+	ProjectiveContacts *ProjectiveSurfaceContactGraph `json:",omitempty"`
 }
 
 func pairCell(a, b *SurfacePatch, depth int) (SurfaceSurfaceCell, bool) {
@@ -132,6 +141,9 @@ func BoundSurfaceSurfaceContext(ctx context.Context, a, b *SurfacePatch, options
 	if axes := o.ProjectiveGraphAxes; axes != nil && (axes[0] < 0 || axes[0] > 2 || axes[1] < 0 || axes[1] > 2 || axes[0] == axes[1]) {
 		return result, ErrInvalid
 	}
+	if (o.ProjectiveGraphContacts && o.ProjectiveGraphAxes == nil) || (o.ProjectiveGraphQuadraticSaddles && !o.ProjectiveGraphContacts) {
+		return result, ErrInvalid
+	}
 	if o.ProjectiveGraphOperations == 0 {
 		o.ProjectiveGraphOperations = 250_000
 	}
@@ -192,8 +204,9 @@ func BoundSurfaceSurfaceContext(ctx context.Context, a, b *SurfacePatch, options
 				pending(&n)
 				return result, ErrConvergence
 			}
+			graphBudget := min(left, o.ProjectiveGraphOperations)
 			proof, err := CertifyProjectiveSurfaceGraphOverlap(ctx, n.a, n.b, *o.ProjectiveGraphAxes, SurfacePatchOptions{
-				MaxOperations: min(left, o.ProjectiveGraphOperations), MaxCoefficientBits: budget.maxBits})
+				MaxOperations: graphBudget, MaxCoefficientBits: budget.maxBits})
 			budget.operations += proof.ExactOperations
 			if err != nil && !errors.Is(err, ErrDomain) && !errors.Is(err, ErrConvergence) {
 				pending(&n)
@@ -205,6 +218,27 @@ func BoundSurfaceSurfaceContext(ctx context.Context, a, b *SurfacePatch, options
 				result.ProjectiveCoincidence = &proof
 				result.Complete = true
 				return result, nil
+			}
+			if left := graphBudget - proof.ExactOperations; left >= 4 && o.ProjectiveGraphContacts && !proof.NoArea {
+				join := left / 4
+				contact, err := TraceProjectiveSurfaceContacts(ctx, n.a, n.b, *o.ProjectiveGraphAxes, ProjectiveSurfaceContactGraphOptions{
+					Cover: ProjectiveSurfaceContactCoverOptions{
+						Atlas:              GeneralSurfaceHeightOptions{MaxCoefficientBits: budget.maxBits, MaxPoles: o.MaxQueuedPoles},
+						Arcs:               SurfacePlaneArcOptions{MaxCoefficientBits: budget.maxBits, MaxQueuedPoles: o.MaxQueuedPoles},
+						MaxExactOperations: left - join, IsolateQuadraticSaddles: o.ProjectiveGraphQuadraticSaddles,
+					},
+					MaxArcs: o.MaxPairs, MaxJoinOperations: join,
+				})
+				budget.operations += contact.Cover.ExactOperations + contact.JoinOperations
+				if err != nil && !errors.Is(err, ErrDomain) && !errors.Is(err, ErrConvergence) {
+					pending(&n)
+					return result, err
+				}
+				if err == nil && contact.Complete {
+					result.ProjectiveContacts = &contact
+					result.Complete = true
+					return result, nil
+				}
 			}
 			if budget.operations >= budget.maxOperations {
 				pending(&n)

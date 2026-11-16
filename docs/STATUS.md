@@ -132,6 +132,9 @@ saddle: one exact junction and four separate rays clipped against the
 cell boundary. The optional contact network joins those four rays to
 regular arcs across the original rational knot boundaries. Other
 singularities remain unresolved.
+The surface-pair query can opt into this exact contour graph. If that
+proof cannot finish, the ordinary conservative cover still accounts for
+the unresolved contact.
 Exact periodic spline curves and cyclic tensor directions now support
 physical parameter reversal, including repeated seam knots and original
 one-sided derivatives. Exact curve length bounds cover nonuniform windows

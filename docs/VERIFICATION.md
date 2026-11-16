@@ -16,6 +16,10 @@ and two regular continuations through original knot boundaries in two
 placements. Rational replay agrees on both original model surfaces,
 and irrational interior branch stations satisfy their exact polynomial.
 Limits and the default regular-only path publish no unproved network.
+The same audit qualifies the surface-pair query: exact open contacts in
+both operand orders, quadratic networks in two placements, and exact
+absence with overlapping boxes. An isolated tangency and short graph
+budget still leave valid conservative candidates.
 
 The [full Go run on `c7afb429`](evidence/main-c7afb429-qualification-2026-11-16.json)
 passed all nine lanes: 6,018 passes, 599 optional skips, and no failures
