@@ -103,6 +103,9 @@ walls and a split base wire, with unchanged independent material and
 byte-identical native replay. Matching original exterior partitions
 also permit both Cut orders with volume 1/8 and no common base face.
 An unmatched partition and a short sewing budget refuse.
+An independent oblique adjacent-side seam also qualifies both Cut
+orders with exact volumes 25/48 and 1/48 and separate native pentagonal
+and triangular original footprints. Both axis orders pass.
 The [ordinary exact spline jet audit](evidence/exact-spline-rational-evaluation-2026-11-16.json)
 passes a nonbinary station, a right-hand interior derivative and a
 left-hand final derivative. Its outward boxes and short work refusal

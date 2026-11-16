@@ -694,5 +694,43 @@
       "insufficient sewing comparisons",
       "unmatched top and floor exterior partitions"
     ]
+  },
+  "adjacent_side_cut": {
+    "main_base": "2520c628",
+    "main_race_log": "projective-roof-adjacent-termini-main-race.jsonl",
+    "main_race_sha256": "f63f95bac92d763c7e0613cbe2222c0ef0afc19f57474f62f268a6224405c0b2",
+    "main_race_seconds": 2.412,
+    "independent_section": "x+y=1/2",
+    "original_seam_xy_terminals": [
+      [
+        "0",
+        "1/2"
+      ],
+      [
+        "1/2",
+        "0"
+      ]
+    ],
+    "original_footprint_volumes": [
+      "25/48",
+      "1/48"
+    ],
+    "independent_planar_centroids": [
+      "129/200",
+      "1/8"
+    ],
+    "topology_by_order": [
+      [
+        6,
+        12,
+        8
+      ],
+      [
+        4,
+        6,
+        4
+      ]
+    ],
+    "axis_orders": 2
   }
 }
