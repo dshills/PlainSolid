@@ -73,6 +73,11 @@ rational paraboloid charts with opposite station order and a different
 homogeneous scale prove the same oriented unit normals along their whole
 nonlinear edge. A changed station correspondence, a crease, reversed
 normal orientation and an interior even-root singularity each refuse.
+The fractional seam race passed in 4.482 seconds. Two independently
+parameterized rational graph edges with equal endpoints prove a whole
+edge match only after the exact positive fractional map and chart
+reversal are applied. The inverse ratio and the linear reversal alone
+do not prove the shared edge.
 The exact convex-hull separation race passed in geometry and intersection
 (25.901 and 1.207 seconds). A weighted curved pair separated on an exact
 new support direction, with the gap independently projected from the

@@ -10,8 +10,11 @@ import (
 // and the original face orientations. ReverseB aligns B's decreasing free
 // parameter with A's increasing one. FlipNormal selects the outward
 // orientation when an original face chart has the opposite winding.
+// A positive BStationRatio r maps the normalized A station t to
+// r*t/(1+(r-1)*t) on B, before accounting for ReverseB. Nil is the identity.
 type SurfaceNormalOffsetSeamOptions struct {
 	ReverseB, FlipNormalA, FlipNormalB bool
+	BStationRatio                      *big.Rat
 	MaxOperations, MaxCoefficientBits  int
 }
 
@@ -33,7 +36,8 @@ type SurfaceNormalOffsetSeam struct {
 func CertifySurfaceNormalOffsetSeam(ctx context.Context, a, b *SurfacePatch, edgeA, edgeB SurfaceEdge,
 	o SurfaceNormalOffsetSeamOptions) (r SurfaceNormalOffsetSeam, err error) {
 	if ctx == nil || a == nil || b == nil || len(a.net) == 0 || len(b.net) == 0 ||
-		edgeA > SurfaceEdgeVMax || edgeB > SurfaceEdgeVMax {
+		edgeA > SurfaceEdgeVMax || edgeB > SurfaceEdgeVMax ||
+		(o.BStationRatio != nil && o.BStationRatio.Sign() <= 0) {
 		return r, ErrInvalid
 	}
 	if a.countU != a.degreeU+1 || a.countV != a.degreeV+1 || b.countU != b.degreeU+1 || b.countV != b.degreeV+1 {
@@ -45,11 +49,20 @@ func CertifySurfaceNormalOffsetSeam(ctx context.Context, a, b *SurfacePatch, edg
 	}
 	budget := &polynomialBudget{maxOperations: limits.MaxOperations, maxBits: limits.MaxCoefficientBits}
 	defer func() { r.ExactOperations = budget.operations }()
-	x, err := offsetEdgePowers(ctx, a, edgeA, false, budget)
+	ratio := o.BStationRatio
+	if ratio != nil && ratio.Cmp(big.NewRat(1, 1)) == 0 {
+		ratio = nil
+	}
+	if ratio != nil {
+		if err := budget.check(ratio); err != nil {
+			return r, err
+		}
+	}
+	x, err := offsetEdgePowers(ctx, a, edgeA, false, nil, budget)
 	if err != nil {
 		return r, err
 	}
-	y, err := offsetEdgePowers(ctx, b, edgeB, o.ReverseB, budget)
+	y, err := offsetEdgePowers(ctx, b, edgeB, o.ReverseB, ratio, budget)
 	if err != nil {
 		return r, err
 	}
@@ -117,10 +130,21 @@ func CertifySurfaceNormalOffsetSeam(ctx context.Context, a, b *SurfacePatch, edg
 // station of the requested correspondence. Each partial omits one positive
 // constant scale (degree divided by physical width). This does not change
 // the normal direction. Reversing the station never flips a source partial.
-func offsetEdgePowers(ctx context.Context, p *SurfacePatch, edge SurfaceEdge, reverse bool,
+func offsetEdgePowers(ctx context.Context, p *SurfacePatch, edge SurfaceEdge, reverse bool, stationRatio *big.Rat,
 	b *polynomialBudget) (jet [3][4]rationalPolynomial, err error) {
 	indices := p.edgeIndices(edge)
 	a := boundedRatArithmetic{b: b}
+	var scale []*big.Rat
+	if stationRatio != nil {
+		scale = make([]*big.Rat, len(indices))
+		scale[0] = big.NewRat(1, 1)
+		for i := 1; i < len(scale); i++ {
+			scale[i] = a.mul(scale[i-1], stationRatio)
+		}
+		if a.err != nil {
+			return jet, a.err
+		}
+	}
 	stride, fixed, free := p.countV, 1, 2
 	if edge >= SurfaceEdgeVMin {
 		stride, fixed, free = 1, 2, 1
@@ -155,6 +179,19 @@ func offsetEdgePowers(ctx context.Context, p *SurfacePatch, edge SurfaceEdge, re
 		for dir, controls := range byDirection {
 			if reverse {
 				slices.Reverse(controls)
+			}
+			if scale != nil {
+				// The fractional station multiplies degree-d Bernstein
+				// controls by r^i after removing the common positive
+				// denominator (1+(r-1)*t)^d. This scales each
+				// homogeneous tangent numerator uniformly and keeps
+				// the direction of the original physical derivative.
+				for i, value := range controls {
+					controls[i] = a.mul(value, scale[i])
+				}
+				if a.err != nil {
+					return jet, a.err
+				}
 			}
 			jet[dir][axis], err = bernsteinToPower(controls, b)
 			if err != nil {

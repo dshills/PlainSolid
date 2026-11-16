@@ -67,6 +67,53 @@ func TestSurfaceNormalOffsetSeamFindsAnInteriorSingularStation(t *testing.T) {
 	}
 }
 
+func TestSurfaceNormalOffsetSeamAuthenticatesExactFractionalStation(t *testing.T) {
+	ctx := context.Background()
+	a := normalSeamParaboloidPatch(t, false, false, 0)
+	originalB := normalSeamParaboloidPatch(t, true, true, 0)
+	recipe, err := originalB.ExportExactBezierRecipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// This changes B's original parameter to u unchanged and
+	// v -> 2v/(1+v). Scaling all four homogeneous coordinates of
+	// each V control by 2^j represents that law exactly.
+	for i, h := range recipe.Controls {
+		j := uint(i % (recipe.DegreeV + 1))
+		factor := new(big.Rat).SetInt(new(big.Int).Lsh(big.NewInt(1), j))
+		for axis, raw := range h {
+			x, ok := new(big.Rat).SetString(raw)
+			if !ok {
+				t.Fatal("invalid exact fixture weight", raw)
+			}
+			recipe.Controls[i][axis] = x.Mul(x, factor).RatString()
+		}
+	}
+	b, err := ImportExactBezierSurfaceRecipe(ctx, recipe, SurfacePatchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// B is originally reversed and then reparameterized, so the old
+	// linear reversal shares only the endpoints.
+	o := SurfaceNormalOffsetSeamOptions{ReverseB: true, FlipNormalB: true}
+	refused, err := CertifySurfaceNormalOffsetSeam(ctx, a, b, SurfaceEdgeUMax, SurfaceEdgeUMin, o)
+	if err != nil || refused.Complete || refused.SharedOriginalEdge {
+		t.Fatal("matching endpoints do not prove a station map", refused, err)
+	}
+	// With the final reversal, B's parameter is (1-t)/(1+t),
+	// whose remap 2v/(1+v) is exactly 1-t.
+	o.BStationRatio = big.NewRat(2, 1)
+	got, err := CertifySurfaceNormalOffsetSeam(ctx, a, b, SurfaceEdgeUMax, SurfaceEdgeUMin, o)
+	if err != nil || !got.Complete || !got.SharedOriginalEdge {
+		t.Fatal("exact fractional map failed original point and normal identity", got, err)
+	}
+	o.BStationRatio = big.NewRat(1, 2)
+	bad, err := CertifySurfaceNormalOffsetSeam(ctx, a, b, SurfaceEdgeUMax, SurfaceEdgeUMin, o)
+	if err != nil || bad.Complete || bad.SharedOriginalEdge {
+		t.Fatal("incorrect positive station ratio should refuse", bad, err)
+	}
+}
+
 func normalSeamParaboloidPatch(t *testing.T, right, reverse bool, crease int64) *SurfacePatch {
 	t.Helper()
 	var h [][4]*big.Rat
