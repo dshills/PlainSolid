@@ -241,6 +241,11 @@ knot rectangle. It retains 13 raw owners and proves its projected
 orientation and four directed edges. The pinned seam-crossing negative
 has a raw model/UV endpoint difference of `11/32 mm` and refuses.
 Main race, executed amd64 controls and all seven prior exports pass.
+The [valid periodic seam trim](evidence/iges-periodic-seam-trimmed-2026-11-16.json)
+passes independently authored type 144, the pinned reopen and main race.
+The reader retains six original directed pairs, distinct seam stations,
+original model ranges and physical jets. Both strict readers still reject
+the earlier mismatched source. All seven prior outputs match.
 
 The [full Go run on `946f7a04`](evidence/main-946f7a04-qualification-2026-11-16.json)
 passed all nine lanes, with 5,865 passes and 595 explicit optional skips

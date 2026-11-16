@@ -120,6 +120,10 @@ One strict periodic type 144 import subset now covers an original
 rectangular U-periodic face inside one knot cell, proving all four
 original directed model/UV edges. Valid seam-crossing topology and
 broader periodic loops remain under qualification.
+A verified type 144 rectangular trim can also cross the original upper
+U seam. It retains six original trim/model pairs and proves continuous
+geometry and injectivity on the lifted chart. The inconsistent seam
+sample still refuses.
 Standalone unplaced periodic type 128 export now reconstructs the
 original expanded owners from an exact cyclic tensor. Finite decimal
 encoding and transfer limits are enforced before any output is written.

@@ -27,33 +27,43 @@ func (m *PeriodicTrimmedFace) proveEdges(ctx context.Context, graph periodicTrim
 			first = start
 		}
 		previous = end
-		source, err := graph.take(modelIDs[i], 126)
-		if err != nil {
-			return err
-		}
-		curve, domain, used, err := periodicTrimModelEdge(ctx, source, remaining)
-		if err != nil {
-			return fmt.Errorf("iges: periodic model edge #%d: %w", source.id, err)
-		}
-		remaining -= used
 		expected, err := periodicTrimCellEdge(ctx, cell, start)
 		if err != nil {
 			return err
 		}
-		same, err := geom.CompareExactCurvesContext(ctx, expected, curve, geom.ExactCurveComparisonOptions{NormalizeDomains: true, MaxSpans: 1})
+		edge, used, err := provePeriodicTrimEdge(ctx, graph, uvID, modelIDs[i], a, b, expected, remaining)
 		if err != nil {
 			return err
 		}
-		if !same.Complete || !same.Equal {
-			return fmt.Errorf("iges: periodic model edge #%d disagrees with UV line #%d: %w", source.id, uvID, geom.ErrUnrepresentable)
-		}
-		m.Edges[i] = PeriodicTrimEdge{UVSourceID: uvID, ModelSourceID: source.id, UVStart: a, UVEnd: b,
-			ModelParameter: domain, ModelCurve: curve}
+		remaining -= used
+		m.Edges[i] = edge
 	}
 	if previous != first {
 		return geom.ErrUnrepresentable
 	}
 	return nil
+}
+
+func provePeriodicTrimEdge(ctx context.Context, graph periodicTrimGraph, uvID, modelID int,
+	a, b [2]*big.Rat, expected *geom.ExactSplineCurve, remaining int) (PeriodicTrimEdge, int, error) {
+	var zero PeriodicTrimEdge
+	source, err := graph.take(modelID, 126)
+	if err != nil {
+		return zero, 0, err
+	}
+	curve, domain, used, err := periodicTrimModelEdge(ctx, source, remaining)
+	if err != nil {
+		return zero, 0, fmt.Errorf("iges: periodic model edge #%d: %w", source.id, err)
+	}
+	same, err := geom.CompareExactCurvesContext(ctx, expected, curve, geom.ExactCurveComparisonOptions{NormalizeDomains: true, MaxSpans: 1})
+	if err != nil {
+		return zero, 0, err
+	}
+	if !same.Complete || !same.Equal {
+		return zero, 0, fmt.Errorf("iges: periodic model edge #%d disagrees with UV line #%d: %w", source.id, uvID, geom.ErrUnrepresentable)
+	}
+	return PeriodicTrimEdge{UVSourceID: uvID, ModelSourceID: source.id, UVStart: a, UVEnd: b,
+		ModelParameter: domain, ModelCurve: curve}, used, nil
 }
 
 func periodicTrimUVLine(r topologyRecord) (a, b [2]*big.Rat, err error) {

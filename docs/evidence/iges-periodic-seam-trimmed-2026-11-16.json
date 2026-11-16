@@ -1,0 +1,816 @@
+{
+  "implementationCommit": "0a7d7b01baa8ba179683edde43e75274abc6d36d",
+  "singleCellDependency": "9fcc482cc4fdccecc1e7ea0b40a5106bcf3b7b65",
+  "patch": {
+    "name": "import-periodic-seam-trimmed-iges-128.patch",
+    "sha256": "e3e908968094c2d5c1acacb86e0dc512290c8f61cc4d0c9efd30f85e16d5d0d7",
+    "bytes": 45113
+  },
+  "scope": "One original U-periodic type-128 support with a type-144 rectangular face on the two immediate knot cells adjacent to its original upper seam. Two type-102 composites retain all six exact directed pairs. Unplaced carrier and exact working UV endpoints.",
+  "oracle": {
+    "pin": "4dbfdcc448c0b3e565488afcd626c84483172db9",
+    "binary": {
+      "name": "author",
+      "sha256": "31f9253a3a457266c1ade4693ed124eee772d7e799e3a906079024ce0c273e94",
+      "bytes": 125608
+    },
+    "sourceSHA256": "58843b788e04bae4dc98a109ff45562d3ec9e3b3459f5f035b07e952d5aace3c",
+    "env": "PLAINSOLID_OCCT_PERIODIC_128_TRIM_IGES",
+    "authorMode": "write-exact-seam",
+    "readerMode": "read-edges"
+  },
+  "positive": {
+    "source": {
+      "name": "valid.iges",
+      "sha256": "6e95947116ee1086ead3b08e1e9286cd7f217e9f5962692d2502e6b7e116699b",
+      "bytes": 5346
+    },
+    "reader": {
+      "valid": true,
+      "topology": [
+        1,
+        1,
+        6,
+        6
+      ],
+      "area": 4.08589030450632,
+      "perimeter": 8.086024487851825,
+      "periodicU": true,
+      "bounds": [
+        4.75,
+        5.25,
+        1,
+        3
+      ],
+      "samples": [
+        {
+          "uv": [
+            4.75,
+            1
+          ],
+          "point": [
+            5.46875,
+            1,
+            1
+          ],
+          "du": [
+            1.25,
+            4,
+            0
+          ],
+          "dv": [
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "uv": [
+            5.25,
+            1
+          ],
+          "point": [
+            5.15625,
+            2.96875,
+            1
+          ],
+          "du": [
+            -1.75,
+            3.75,
+            0
+          ],
+          "dv": [
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "uv": [
+            5.25,
+            3
+          ],
+          "point": [
+            5.15625,
+            2.96875,
+            3
+          ],
+          "du": [
+            -1.75,
+            3.75,
+            0
+          ],
+          "dv": [
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "uv": [
+            4.75,
+            3
+          ],
+          "point": [
+            5.46875,
+            1,
+            3
+          ],
+          "du": [
+            1.25,
+            4,
+            0
+          ],
+          "dv": [
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "uv": [
+            5,
+            2
+          ],
+          "point": [
+            5.5,
+            2,
+            2
+          ],
+          "du": [
+            -1,
+            4,
+            0
+          ],
+          "dv": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "uvStart": [
+            4.75,
+            3
+          ],
+          "uvEnd": [
+            4.75,
+            1
+          ],
+          "modelStart": [
+            5.46875,
+            1,
+            3
+          ],
+          "modelEnd": [
+            5.46875,
+            1,
+            1
+          ],
+          "uvMid": [
+            4.75,
+            2
+          ],
+          "modelMid": [
+            5.46875,
+            1,
+            2
+          ],
+          "uvRange": [
+            0,
+            1
+          ],
+          "modelRange": [
+            0,
+            1
+          ]
+        },
+        {
+          "uvStart": [
+            4.75,
+            1
+          ],
+          "uvEnd": [
+            5,
+            1
+          ],
+          "modelStart": [
+            5.46875,
+            1,
+            1
+          ],
+          "modelEnd": [
+            5.5,
+            2,
+            1
+          ],
+          "uvMid": [
+            4.875,
+            1
+          ],
+          "modelMid": [
+            5.5546875,
+            1.5,
+            1
+          ],
+          "uvRange": [
+            2,
+            3
+          ],
+          "modelRange": [
+            2,
+            3
+          ]
+        },
+        {
+          "uvStart": [
+            5,
+            1
+          ],
+          "uvEnd": [
+            5.25,
+            1
+          ],
+          "modelStart": [
+            5.5,
+            2,
+            1
+          ],
+          "modelEnd": [
+            5.15625,
+            2.96875,
+            1
+          ],
+          "uvMid": [
+            5.125,
+            1
+          ],
+          "modelMid": [
+            5.3515625,
+            2.4921875,
+            1
+          ],
+          "uvRange": [
+            4,
+            5
+          ],
+          "modelRange": [
+            4,
+            5
+          ]
+        },
+        {
+          "uvStart": [
+            5.25,
+            1
+          ],
+          "uvEnd": [
+            5.25,
+            3
+          ],
+          "modelStart": [
+            5.15625,
+            2.96875,
+            1
+          ],
+          "modelEnd": [
+            5.15625,
+            2.96875,
+            3
+          ],
+          "uvMid": [
+            5.25,
+            2
+          ],
+          "modelMid": [
+            5.15625,
+            2.96875,
+            2
+          ],
+          "uvRange": [
+            6,
+            7
+          ],
+          "modelRange": [
+            6,
+            7
+          ]
+        },
+        {
+          "uvStart": [
+            5.25,
+            3
+          ],
+          "uvEnd": [
+            5,
+            3
+          ],
+          "modelStart": [
+            5.15625,
+            2.96875,
+            3
+          ],
+          "modelEnd": [
+            5.5,
+            2,
+            3
+          ],
+          "uvMid": [
+            5.125,
+            3
+          ],
+          "modelMid": [
+            5.3515625,
+            2.4921875,
+            3
+          ],
+          "uvRange": [
+            8,
+            9
+          ],
+          "modelRange": [
+            8,
+            9
+          ]
+        },
+        {
+          "uvStart": [
+            5,
+            3
+          ],
+          "uvEnd": [
+            4.75,
+            3
+          ],
+          "modelStart": [
+            5.5,
+            2,
+            3
+          ],
+          "modelEnd": [
+            5.46875,
+            1,
+            3
+          ],
+          "uvMid": [
+            4.875,
+            3
+          ],
+          "modelMid": [
+            5.5546875,
+            1.5,
+            3
+          ],
+          "uvRange": [
+            10,
+            11
+          ],
+          "modelRange": [
+            10,
+            11
+          ]
+        }
+      ]
+    },
+    "fileUnit": "millimetre",
+    "type144Face": 1,
+    "type128Support": 3,
+    "type142Contour": 5,
+    "uvAndModelComposites": [
+      7,
+      21
+    ],
+    "carrierRectangle": [
+      [
+        "0",
+        "5"
+      ],
+      [
+        "0",
+        "4"
+      ]
+    ],
+    "liftedRectangle": [
+      [
+        "19/4",
+        "21/4"
+      ],
+      [
+        "1",
+        "3"
+      ]
+    ],
+    "seamU": "5",
+    "clippedCells": [
+      [
+        [
+          "19/4",
+          "5"
+        ],
+        [
+          "1",
+          "3"
+        ]
+      ],
+      [
+        [
+          "5",
+          "21/4"
+        ],
+        [
+          "1",
+          "3"
+        ]
+      ]
+    ],
+    "originalKnotOwnersU": [
+      {
+        "cycle": 0,
+        "span": 4,
+        "physicalRange": [
+          "4",
+          "5"
+        ]
+      },
+      {
+        "cycle": 1,
+        "span": 0,
+        "physicalRange": [
+          "5",
+          "6"
+        ]
+      }
+    ],
+    "originalKnotOwnerV": {
+      "span": 0,
+      "physicalRange": [
+        "0",
+        "4"
+      ]
+    },
+    "orderedUVEdges": [
+      9,
+      11,
+      13,
+      15,
+      17,
+      19
+    ],
+    "orderedModelEdges": [
+      23,
+      25,
+      27,
+      29,
+      31,
+      33
+    ],
+    "expandedSourceControlsTotal": 30,
+    "commonProjectionAxes": [
+      "Y",
+      "Z"
+    ],
+    "projectionSign": 1,
+    "pinnedReparameterization": "Reader assigns each pcurve the original paired model interval. Exact original directed UV stations and model positions remain unchanged."
+  },
+  "malformedControl": {
+    "oldSourceSHA256": "a0f2e23a48f9ff53d5d1473345c18802aee17dbe3c0baacd89577fe3830f9677",
+    "exactModelEndpointResidualMM": "11/32",
+    "pinnedReaderAfterRepair": {
+      "valid": true,
+      "topology": [
+        1,
+        1,
+        4,
+        4
+      ],
+      "area": 4.08589030450632,
+      "perimeter": 8.0860244880544,
+      "periodicU": true,
+      "bounds": [
+        4.75,
+        5.25,
+        1,
+        3
+      ],
+      "samples": [
+        {
+          "uv": [
+            4.75,
+            1
+          ],
+          "point": [
+            5.46875,
+            1,
+            1
+          ],
+          "du": [
+            1.25,
+            4,
+            0
+          ],
+          "dv": [
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "uv": [
+            5.25,
+            1
+          ],
+          "point": [
+            5.15625,
+            2.96875,
+            1
+          ],
+          "du": [
+            -1.75,
+            3.75,
+            0
+          ],
+          "dv": [
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "uv": [
+            5.25,
+            3
+          ],
+          "point": [
+            5.15625,
+            2.96875,
+            3
+          ],
+          "du": [
+            -1.75,
+            3.75,
+            0
+          ],
+          "dv": [
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "uv": [
+            4.75,
+            3
+          ],
+          "point": [
+            5.46875,
+            1,
+            3
+          ],
+          "du": [
+            1.25,
+            4,
+            0
+          ],
+          "dv": [
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "uv": [
+            5,
+            2
+          ],
+          "point": [
+            5.5,
+            2,
+            2
+          ],
+          "du": [
+            -1,
+            4,
+            0
+          ],
+          "dv": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "uvStart": [
+            4.75,
+            3
+          ],
+          "uvEnd": [
+            4.75,
+            1
+          ],
+          "modelStart": [
+            5.46875,
+            1,
+            3
+          ],
+          "modelEnd": [
+            5.46875,
+            1,
+            1
+          ],
+          "uvMid": [
+            4.75,
+            2
+          ],
+          "modelMid": [
+            5.46875,
+            1,
+            2
+          ],
+          "uvRange": [
+            1,
+            3
+          ],
+          "modelRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "uvStart": [
+            4.75,
+            1
+          ],
+          "uvEnd": [
+            5.25,
+            1
+          ],
+          "modelStart": [
+            5.46875,
+            1,
+            1
+          ],
+          "modelEnd": [
+            5.15625,
+            2.96875,
+            1
+          ],
+          "uvMid": [
+            5,
+            1
+          ],
+          "modelMid": [
+            5.5,
+            2,
+            1
+          ],
+          "uvRange": [
+            0,
+            0.5
+          ],
+          "modelRange": [
+            0,
+            0.5
+          ]
+        },
+        {
+          "uvStart": [
+            5.25,
+            1
+          ],
+          "uvEnd": [
+            5.25,
+            3
+          ],
+          "modelStart": [
+            5.15625,
+            2.96875,
+            1
+          ],
+          "modelEnd": [
+            5.15625,
+            2.96875,
+            3
+          ],
+          "uvMid": [
+            5.25,
+            2
+          ],
+          "modelMid": [
+            5.15625,
+            2.96875,
+            2
+          ],
+          "uvRange": [
+            1,
+            3
+          ],
+          "modelRange": [
+            1,
+            3
+          ]
+        },
+        {
+          "uvStart": [
+            5.25,
+            3
+          ],
+          "uvEnd": [
+            4.75,
+            3
+          ],
+          "modelStart": [
+            5.15625,
+            2.96875,
+            3
+          ],
+          "modelEnd": [
+            5.46875,
+            1,
+            3
+          ],
+          "uvMid": [
+            5,
+            3
+          ],
+          "modelMid": [
+            5.5,
+            2,
+            3
+          ],
+          "uvRange": [
+            0,
+            0.5
+          ],
+          "modelRange": [
+            0,
+            0.5
+          ]
+        }
+      ]
+    },
+    "observedRepair": "OCCT reconstructs both full horizontal model edges, changes their ranges to [0,1/2], and publishes a four-edge wire."
+  },
+  "live": {
+    "name": "focus.log",
+    "sha256": "071ed951d286e26d1d0f27c4146ec5a148d61c2bdc09f9e4b705d45cc6713180",
+    "bytes": 1060,
+    "seconds": 0.509
+  },
+  "race": {
+    "name": "race.log",
+    "sha256": "6a31525e1972d24b895db79912d956a35ec9fa37e658e3abe81441ca5250d1d3",
+    "bytes": 9578,
+    "seconds": 3.816
+  },
+  "executedDarwinAMD64": {
+    "name": "amd64.log",
+    "sha256": "f8f792d8ff8cb91c782e2b7e522312c7260c128b91c4a951968af1025cf35a53",
+    "bytes": 1023
+  },
+  "matchedLegacyHashes": {
+    "ordinaryExports": {
+      "curves.iges": "e7306c47f1c1b717d0b4dcbc988eb9f42ca22207962c334c8250cd9cc4fdbca3",
+      "rectangular-spline-face.igs": "30b5dd8b91a26096740288382b4c2c8c0d514732cc0d165e5d1fdd5cec2fd26b",
+      "translated-trimmed-rational-128.iges": "ab24c50ad001536723860888a87376f38b9be3a9e08e6aae46eac59d9ddba72d"
+    },
+    "periodicExports": {
+      "u.iges": "27caf6f5f36ba1a16050b139072f35e17a084b5641fcd33fccb4547eac752310",
+      "native-rephased.iges": "2d7538bdad0be19a9f8181c8f71edf0a6a972b50642efe73e5dea93f25a8ca65",
+      "v.iges": "b543d8b06967e59cd06b20598c6bafeb1e918fe5d445bda36556a4cac6068b60",
+      "uv.iges": "8190bed840cf2723f44f2754f78fcdb8019deddbfe1a7f97f9f53f92e3cb3156"
+    },
+    "predecessorRawFixtures": {
+      "occt-periodic-trimmed-128.iges": "80fb00e5b2e622caf90ab20eb8c8d9b6955f5f520a773cfa184b1e2fd4ea5514",
+      "occt-periodic-trimmed-128-seam.iges": "a0f2e23a48f9ff53d5d1473345c18802aee17dbe3c0baacd89577fe3830f9677"
+    }
+  },
+  "main_integration": {
+    "agent_evidence_sha256": "4ae6a96ea6b1e2cfd4698eff25c2fe30aa5f1ce4a5c5b2ef4b66b605168f1710",
+    "log": "iges-periodic-seam-main-race.jsonl",
+    "sha256": "367b7a45f257b9c6fa08b6c837669602e662aadfcf9c3dba8783a3c00947fd33",
+    "named_passes": [
+      "TestReadPeriodicSeamTrimmedFace",
+      "TestReadPeriodicSeamTrimmedFaceReject",
+      "TestReadPeriodicSeamTrimmedFacePinnedOCCT",
+      "TestReadExactPeriodicSurface128",
+      "TestReadExactPeriodicSurface128Reject",
+      "TestReadExactPeriodicSurface128PinnedOCCT",
+      "TestReadPeriodicTrimmedFace",
+      "TestReadPeriodicTrimmedFaceRefusesUnsupportedSource",
+      "TestPeriodicTrimmedFaceSeamSourceHasIncompleteModelEdge",
+      "TestReadPeriodicTrimmedFacePinnedOCCT",
+      "TestWriteExactPeriodicSurface128",
+      "TestNewExactPeriodicSurface128",
+      "TestWriteExactPeriodicSurface128Reject",
+      "TestWriteExactPeriodicSurface128UnsupportedBasis",
+      "TestWriteExactPeriodicSurface128PinnedOCCT"
+    ],
+    "package_seconds": [
+      2.759
+    ]
+  }
+}
