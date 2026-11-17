@@ -419,6 +419,9 @@ func (b *Bridge) execute(q request) (any, error) {
 			if result, handled, err := b.cutRoundedStack(a, c); handled {
 				return result, err
 			}
+			if result, handled, err := b.cutRoundedSideBores(a, []stored{c}); handled {
+				return result, err
+			}
 			if result, _, handled, err := cutRoundedBores(a, []stored{c}); handled {
 				if err != nil {
 					return nil, err
