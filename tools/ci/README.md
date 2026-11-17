@@ -1,4 +1,24 @@
-# Go qualification evidence
+# Go CI and qualification
+
+Go CI runs on pull requests to `main`, pushes to `main`, and manual dispatch.
+The Linux and Windows jobs compile all packages and run bounded tests selected
+in [smoke.sh](smoke.sh). Stable Go on Linux also checks formatting, vet and the
+PlainCAD WASM build. Superseded runs for the same pull request or ref are
+canceled. Each job has an eight-minute timeout.
+
+```sh
+bash tools/ci/smoke.sh
+```
+
+Go qualification runs the full platform, toolchain, race and fuzz matrix on
+demand. From GitHub Actions select **Go qualification**, then **Run workflow**
+and select the ref to qualify. Qualify a release using its exact source commit.
+
+```sh
+gh workflow run go-qualification.yml --ref main
+```
+
+## Full test inventory and local evidence
 
 `test-shard.sh` selects disjoint top-level tests, examples and fuzz seeds
 from a package. Selecting a parent includes all its subtests. GitHub

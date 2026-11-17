@@ -1,0 +1,279 @@
+name: Go qualification
+on:
+  workflow_dispatch:
+concurrency:
+  group: go-qualification
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ['1.23.x', stable]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ matrix.go }}
+          cache: false
+      - name: General package tests
+        shell: bash
+        run: |
+          go list ./... | awk '$0 !~ /^plainsolid\/(brep\/trimmed|intersect|exchange|exchange\/step)$/' | xargs go test -timeout 55m
+      - run: go vet ./...
+      - name: Race detector
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          go list ./... | awk '$0 !~ /^plainsolid\/(brep\/trimmed|intersect|exchange|exchange\/step)$/' | xargs go test -race -timeout 100m
+  exchange:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ['1.23.x', stable]
+        lane: [exchange-0, exchange-1, step-0, step-1, step-2, step-3]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 250
+    env:
+      TEST_LANE: ${{ matrix.lane }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ matrix.go }}
+          cache: false
+      - name: Exchange tests
+        shell: bash
+        run: |
+          case "$TEST_LANE" in
+            exchange-*) bash tools/ci/test-shard.sh ./exchange "${TEST_LANE#exchange-}" 2 -timeout 75m ;;
+            step-*) bash tools/ci/test-shard.sh ./exchange/step "${TEST_LANE#step-}" 4 -timeout 75m ;;
+            *) exit 2 ;;
+          esac
+      - name: Exchange race detector
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          case "$TEST_LANE" in
+            exchange-*) bash tools/ci/test-shard.sh ./exchange "${TEST_LANE#exchange-}" 2 -race -timeout 150m ;;
+            step-*) bash tools/ci/test-shard.sh ./exchange/step "${TEST_LANE#step-}" 4 -race -timeout 150m ;;
+            *) exit 2 ;;
+          esac
+  trimmed:
+    name: trimmed (${{ matrix.target.runner }}, ${{ matrix.target.go }}, ${{ matrix.shard }})
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - {runner: ubuntu-latest, go: '1.23.x'}
+          - {runner: ubuntu-latest, go: stable}
+          - {runner: macos-latest, go: '1.23.x'}
+          # Go 1.27.4 reproduces a GC pointer crash on macOS ARM64 in this suite.
+          - {runner: macos-15-intel, go: stable}
+          - {runner: windows-latest, go: '1.23.x'}
+          - {runner: windows-latest, go: stable}
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    runs-on: ${{ matrix.target.runner }}
+    timeout-minutes: 280
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ matrix.target.go }}
+          cache: false
+      - name: Trimmed-solid tests
+        shell: bash
+        run: bash tools/ci/trimmed-shard.sh ${{ matrix.shard }} 8 --regular -timeout 80m
+      - name: Trimmed-solid race detector
+        if: runner.os != 'Windows'
+        shell: bash
+        run: bash tools/ci/trimmed-shard.sh ${{ matrix.shard }} 8 --regular -race -timeout 180m
+  intersect:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ['1.23.x', stable]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 260
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ matrix.go }}
+          cache: false
+      - name: Intersection tests
+        run: go test ./intersect -timeout 65m
+      - name: Intersection race detector
+        if: runner.os != 'Windows'
+        run: go test -race ./intersect -timeout 175m
+  trimmed-long:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ['1.23.x', stable]
+        shard: [0, 1, 2]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 290
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ matrix.go }}
+          cache: false
+      - name: Long trimmed-solid test
+        shell: bash
+        run: bash tools/ci/trimmed-shard.sh ${{ matrix.shard }} 3 --long -timeout 65m
+      - name: Long trimmed-solid race test
+        if: runner.os != 'Windows'
+        shell: bash
+        run: bash tools/ci/trimmed-shard.sh ${{ matrix.shard }} 3 --long -race -timeout 205m
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache: false
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+      - run: go test ./exchange -run=^$ -fuzz=^FuzzReadSTL$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange -run=^$ -fuzz=^FuzzReadOBJ$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange -run=^$ -fuzz=^FuzzReadJSON$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange -run=^$ -fuzz=^FuzzReadPLY$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange -run=^$ -fuzz=^FuzzReadBRepJSON$ -fuzztime=10s -parallel=2
+      - run: go test ./document -run=^$ -fuzz=^FuzzRead$ -fuzztime=10s -parallel=2
+      - run: go test ./query -run=^$ -fuzz=^FuzzTriangleQueries$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange -run=^$ -fuzz=^FuzzReadGLTF$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange/step -run=^$ -fuzz=^FuzzParse$ -fuzztime=10s -parallel=2
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzReadWrappedCylinderBoreRimFilletSTEP$ -fuzztime=64x -parallel=1 -timeout=180s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzReadWrappedCylinderBoreRimFilletIGES$ -fuzztime=64x -parallel=1 -timeout=180s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzIndependentFrustumHierarchyNative$ -fuzztime=40x -parallel=1 -timeout=180s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzReadSideCutProducts$ -fuzztime=128x -parallel=1 -timeout=180s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzEllipseConic$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzQuarterEllipseConic$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzEllipseConicRing$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzEllipseTabulated$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzEllipseDiskFace$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzEllipseAnnulusFace$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzEllipticalPrismTopology$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzEllipticalPrismMaterialNative$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzEllipticalAnnularPrismTopology$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzEllipticalAnnularPrismMaterialNative$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzPlacedEllipticalPrism$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzReindexedEllipticalPrism$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzConicCircularPrism$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzReindexedConicCircularPrism$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzConicCircularAnnularPrism$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzReindexedConicCircularAnnularPrism$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzPlacedConicCircularPrism$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzReindexedPlacedConicCircularPrism$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzConical45FrustumMaterial$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzPlacedConical45Frustum$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzReindexedConical45Material$ -fuzztime=100x -parallel=1 -timeout=90s
+      - name: Bounded fuzzing for analytic IGES solids and cavities
+        shell: bash
+        run: |
+          targets=$(go test ./exchange/iges -list '^Fuzz' | awk '/^Fuzz((Placed|Reindexed)?(Toroidal|Spherical|SphericalCavity|Conical45Cavity|Conical45CylinderThrough|CylinderSphereCavity)(Material)?|AnalyticMaterial(Dispatch|Native))$/ { print }')
+          test -n "$targets"
+          for target in $targets; do
+            GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz="^${target}$" -fuzztime=100x -parallel=1 -timeout=120s
+          done
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzCompositeCurves$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzTangentCompositeCurves$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzGeometricTangentComposite$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzSplineGeneratrixCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzTrimmedGeneratrixCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzPlanarSplineAssembly$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzCylinderMaterialAssembly$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzDiskHoleAssembly$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzDiskHoleBoundEncoding$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzMappedPlanarMaterial$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzMultipleMappedPlanarMaterials$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzPythagoreanMapped$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzRationalMappedOccurrences$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzNestedRationalMapped$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzTwoLevelRationalMapped$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzDAGRationalMapped$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzDAGSharedPlacements$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzExactPlanarNAUO$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzExactPlanarNAUOProducts$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzExactNestedPlanarNAUO$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzExactDAGPlanarNAUO$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzExactDAGNAUORootEdit$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzExactDAGNAUOSharedEdit$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzInspectCircularNAUO$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzRepairCircularNAUO$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzRepairedCircularNAUOAssembly$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzRepairCircularTubeNAUO$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzEllipticalWire$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzRepairRoundedEllipticalWire$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: go test ./exchange/step -run=^$ -fuzz=^FuzzLinearExtrusions$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange/step -run=^$ -fuzz=^FuzzRationalLinearExtrusions$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange/step -run=^$ -fuzz=^FuzzRevolutionSurfaces$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange/revolution -run=^$ -fuzz=^FuzzRevolutionSurfacesNative$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange/iges -run=^$ -fuzz=^FuzzRead$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange/iges -run=^$ -fuzz=^FuzzCompositeCurves$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange/iges -run=^$ -fuzz=^FuzzIGESRevolution$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange/iges -run=^$ -fuzz=^FuzzIGESTabulated$ -fuzztime=10s -parallel=2
+      - name: Bounded fuzzing for exact and repaired STEP ellipses
+        shell: bash
+        run: |
+          for target in FuzzEllipticalWire FuzzRepairRoundedEllipticalWire FuzzEllipticalDiskFace FuzzEllipticalAnnulusFace FuzzEccentricEllipticalFace FuzzTwoEllipticalHoleFace FuzzRepairEllipseExtrusion FuzzRepairEllipticalPrism FuzzEllipticalPrismMaterialNative FuzzWriteEllipticalPrismMaterialSTEP FuzzReadModelOnlyEllipticalPrism FuzzPythagoreanEllipticalPrism FuzzTiltedEllipticalPrism FuzzEllipticalAnnularPrism FuzzNestedEllipticalAnnularPrism FuzzOrthogonalEllipticalAnnularPrism FuzzExactEllipticalPrismFamily FuzzExactEllipticalPrismCompound FuzzExactEllipticalPrismCollection; do
+            GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz="^${target}$" -fuzztime=100x -parallel=1 -timeout=120s
+          done
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzIndependentExactMaterials$ -fuzztime=100x -parallel=1 -timeout=120s
+      - run: GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz=^FuzzIndependentExactMaterialsNative$ -fuzztime=100x -parallel=1 -timeout=120s
+      - name: Bounded fuzzing for independent STEP products and units
+        shell: bash
+        run: |
+          for target in FuzzIndependentCylinderMaterials FuzzIndependentCylinderMaterialsNative FuzzIndependentSphereMaterials FuzzIndependentSphereMaterialsNative FuzzSelectedIndependentMaterials FuzzIndependentRoundUnits FuzzIndependentRoundUnitsNative FuzzIndependentPlanarUnits FuzzIndependentPlanarUnitsNative FuzzIndependentHeterogeneousUnits FuzzIndependentHeterogeneousUnitsNative FuzzIndependentToroidalMaterials FuzzIndependentToroidalMaterialsNative FuzzIndependentToroidalUnits FuzzIndependentToroidalUnitsNative FuzzIndependentTorusAssembly FuzzIndependentTorusAssemblyNative FuzzIndependentAnalyticAssembly FuzzIndependentAnalyticAssemblyNative FuzzIndependentAnalyticDAGAssembly FuzzIndependentAnalyticDAGAssemblyNative FuzzIndependentAnalyticHierarchy FuzzIndependentAnalyticHierarchyNative FuzzNormalizedAnalyticHierarchy FuzzNormalizedAnalyticHierarchyNative FuzzOCCTAnalyticHierarchy FuzzOCCTAnalyticHierarchyNative FuzzIndependentSphericalHierarchy FuzzIndependentSphericalHierarchyNative; do
+            GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz="^${target}$" -fuzztime=100x -parallel=1 -timeout=120s
+          done
+      - name: Bounded fuzzing for rational STEP hierarchy persistence and bounds
+        shell: bash
+        run: |
+          for target in FuzzRationalSphericalHierarchy FuzzRationalSphericalHierarchyNative FuzzOCCTRationalSphericalHierarchy FuzzOCCTRationalSphericalHierarchyNative FuzzRationalHierarchyBounds; do
+            GOMAXPROCS=2 go test ./exchange/step -run=^$ -fuzz="^${target}$" -fuzztime=100x -parallel=1 -timeout=120s
+          done
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzTetrahedronSolid$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzHexahedronSolid$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzBiquadraticSolid$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzParabolicRoof$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMappedParabolicRoof$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzPlacedParabolicRoof$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMixedPlacedParabolicRoof$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMixedTopologySolids$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzThreeFamilyTopology$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzCircularCylinderSolid$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMixedCircularMaterial$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzPlacedCircularCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMixedPlacedCircularMaterial$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzBlindCircularCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzThroughCircularCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzEccentricThroughCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzEccentricBlindCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMixedEccentricMaterial$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzConical45Frustum$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzQuarterCylinder$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: GOMAXPROCS=2 go test ./exchange/iges -run=^$ -fuzz=^FuzzMixedBoredMaterial$ -fuzztime=100x -parallel=1 -timeout=90s
+      - run: go test ./brep/parametric -run=^$ -fuzz=^FuzzReadJSON$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange/step -run=^$ -fuzz=^FuzzReadCurves$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange/step -run=^$ -fuzz=^FuzzReadSurfaces$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange/step -run=^$ -fuzz=^FuzzWrappedSurface$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange/step -run=^$ -fuzz=^FuzzWrappedCavity$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange -run=^$ -fuzz=^FuzzReadGLB$ -fuzztime=10s -parallel=2
+      - run: go test ./exchange -run=^$ -fuzz=^FuzzBinaryPLY$ -fuzztime=10s -parallel=2
+      - run: go test ./brep/trimmed -run=^$ -fuzz=^FuzzTrimmedJSON$ -fuzztime=10s -parallel=2
+      - run: go test ./brep/trimmed -run=^$ -fuzz=^FuzzAlgebraicTubeRecipe$ -fuzztime=10s -parallel=2
+      - run: GOMAXPROCS=2 go test ./brep/trimmed -run=^$ -fuzz=^FuzzWrappedQuadraticFaceJSON$ -fuzztime=100x -parallel=1 -timeout=120s
+      - run: go test ./brep/trimvalidate -run=^$ -fuzz=^FuzzExactRationalCircleContainment$ -fuzztime=10s -parallel=2
+      - run: go test ./geom -run=^$ -fuzz=^FuzzOrient3DAntisymmetry$ -fuzztime=10s -parallel=2
+      - run: go test ./internal/plaincadbridge -run=^$ -fuzz=^FuzzBoundedRequests$ -fuzztime=10s -parallel=2

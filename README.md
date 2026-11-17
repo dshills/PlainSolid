@@ -179,10 +179,10 @@ go test ./exchange -fuzz=FuzzReadBRepJSON -fuzztime=10s
 go test ./... -bench=. -benchmem
 ```
 
-CI is configured to run unit tests and vet on Linux, macOS and Windows, race tests on Linux and
-macOS, and short parser fuzz campaigns on Linux. Remote CI has not yet been run. Tests cover analytic examples,
-malformed inputs, topology checks and algebraic properties. Passing these tests
-establishes only the tested subset. An [optional pinned OCCT oracle](tools/occtref/README.md)
+Go CI compiles all packages and runs focused smoke cases on pull requests to
+`main` and pushes to `main`. The separate Go qualification workflow runs the
+full Linux, macOS and Windows matrix, race checks and fuzz campaigns on demand.
+See [CI commands](tools/ci/README.md). An [optional pinned OCCT oracle](tools/occtref/README.md)
 checks selected modeling and exchange cases. The [pressure cap example](examples/pressurecap)
 writes both an exact curved boundary and its conforming STL tessellation.
 
