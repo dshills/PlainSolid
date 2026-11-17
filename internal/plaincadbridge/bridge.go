@@ -482,6 +482,9 @@ func (b *Bridge) execute(q request) (any, error) {
 			if result, handled, err := b.fuseRoundedWeb(a, c); handled {
 				return result, err
 			}
+			if result, handled, err := b.fuseAnnularUpperExtension(a, c); handled {
+				return result, err
+			}
 			if result, handled, err := b.fuseAnnularPedestal(a, c); handled {
 				return result, err
 			}

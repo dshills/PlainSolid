@@ -11,7 +11,7 @@ import (
 type annularStock struct {
 	trimmed.ChamferedAnnularPrism
 	lowerFace, upperFace int
-	cut                  bool
+	cut, extended        bool
 }
 
 func (b *Bridge) chamferAnnularStock(s stored, q request) (Shape, error) {
