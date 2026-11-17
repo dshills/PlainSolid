@@ -13,6 +13,20 @@ OCCT test results, PlainSolid Go tests, a successful WASM build, and
 extracted/reimplemented fixtures are not substitutes for running these scenarios
 against the selected PlainSolid kernel.
 
+## Authored gallery projects
+
+On November 17, PlainSolid `e4658697` rebuilt 14 original gallery projects and
+their documented edits using the shipped PlainCAD adapter from `ff9287dd`.
+The five repaired cases are the angle bracket, motor flange, robot gripper,
+twin pulley, and heat exchanger. Chromium also opened and rendered each of
+those five files and rebuilt its edit. The compared models matched the
+recorded OpenCascade counts, volumes and bounds within the harness limits.
+The M6 and UNC projects retain the same authored sketch warnings as the
+pinned baseline. The valve cartridge remains the open gallery case on this
+revision. [Qualification record](evidence/plaincad-gallery-e4658697-2026-11-17.json)
+
+The focused runner and its invocation are in [tools/plaincad](../tools/plaincad/README.md).
+
 ## Current PlainCAD revision
 
 The isolated PlainCAD branch `codex/plainsolid-backend` selects PlainSolid in

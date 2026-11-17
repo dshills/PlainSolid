@@ -1,5 +1,12 @@
 # Verification record
 
+The [November 17 PlainCAD gallery run](evidence/plaincad-gallery-e4658697-2026-11-17.json)
+passed 28 authored and edited cases on sealed kernel `e4658697` and the
+original PlainCAD provider at `ff9287dd`. The same WASM passed five
+Chromium File → Open checks and their live parameter edits. The evidence
+includes original file hashes, native body counts, and OpenCascade
+volume and bound comparisons where the app publishes them.
+
 The [full Go run on `9f95a188`](evidence/main-9f95a188-qualification-2026-11-16.json)
 passed 6,121 top-level cases, with 608 explicit optional skips and zero
 failures. All nine lanes and 6,729 inventoried cases reconcile. The
