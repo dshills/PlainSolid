@@ -9,6 +9,12 @@ shards also keep the test filter well within Windows' command line limit.
 its separate long cases. Fuzz jobs use `-run=^$` and an exact target name
 so that ordinary tests run only in their assigned jobs.
 
+The regular trimmed-solid suite tests Go 1.23 on Apple Silicon and the
+current stable Go release on Intel macOS. The Intel runner avoids a
+reproducible Go 1.27.4 garbage collection crash on macOS ARM64 while
+keeping the regular suite's test inventory and race coverage. The other
+macOS jobs continue to run on Apple Silicon with both Go versions.
+
 An independent `go test -json -list '^(Test|Fuzz|Example)'` run
 establishes the expected cases for local qualification.
 

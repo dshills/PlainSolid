@@ -64,19 +64,26 @@ jobs:
             *) exit 2 ;;
           esac
   trimmed:
+    name: trimmed (${{ matrix.target.runner }}, ${{ matrix.target.go }}, ${{ matrix.shard }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        go: ['1.23.x', stable]
+        target:
+          - {runner: ubuntu-latest, go: '1.23.x'}
+          - {runner: ubuntu-latest, go: stable}
+          - {runner: macos-latest, go: '1.23.x'}
+          # Go 1.27.4 reproduces a GC pointer crash on macOS ARM64 in this suite.
+          - {runner: macos-15-intel, go: stable}
+          - {runner: windows-latest, go: '1.23.x'}
+          - {runner: windows-latest, go: stable}
         shard: [0, 1, 2, 3, 4, 5, 6, 7]
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.target.runner }}
     timeout-minutes: 280
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go }}
+          go-version: ${{ matrix.target.go }}
           cache: false
       - name: Trimmed-solid tests
         shell: bash
