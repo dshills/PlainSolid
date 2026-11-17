@@ -77,6 +77,35 @@ func TestMixedRoundedRectangleWholeCapFillet(t *testing.T) {
 	near(t, result.GeometryAssertions.SurfaceArea, actual.Area)
 }
 
+func TestAngleFixtureRoundedFootChamfer(t *testing.T) {
+	b := New()
+	base, err := b.mixedExtrude(mixedProfileRequest{Kind: "roundedRectangle", Origin: &vector{}, Normal: &vector{0, 0, 1},
+		XDirection: &vector{1, 0, 0}, Min: []number{-30, -20}, Max: []number{30, 20}, Radii: []number{4, 4, 4, 4}, Height: 6})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := shape(t, b, map[string]any{"op": "capChamfer", "handle": base.Handle, "normal": vector{0, 0, -1}, "origin": vector{}, "distance": .8})
+	const chamfer = .8
+	cap := 60*40 - (4-math.Pi)*16
+	perimeter := 200 - (8-2*math.Pi)*4
+	wantVolume := cap*6 - perimeter*chamfer*chamfer/2 + math.Pi*chamfer*chamfer*chamfer/3
+	wantArea := 2*cap + perimeter*6 + perimeter*chamfer*(math.Sqrt2-2) + math.Pi*chamfer*chamfer*(1-math.Sqrt2)
+	actual, err := b.shapes[result.Handle].analytic.solid.MassProperties(context.Background(), parametric.IntegrationOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	near(t, result.GeometryAssertions.Volume, wantVolume)
+	near(t, actual.Volume, wantVolume)
+	near(t, actual.Area, wantArea)
+	bound := result.Bounds
+	for i, want := range [3]float64{-30, -20, 0} {
+		near(t, bound.Min[i], want)
+	}
+	for i, want := range [3]float64{30, 20, 6} {
+		near(t, bound.Max[i], want)
+	}
+}
+
 func TestRoundedCableGuideWithDecimalFilletAndBores(t *testing.T) {
 	b := New()
 	base, err := b.mixedExtrude(mixedProfileRequest{Kind: "roundedRectangle", Origin: &vector{}, Normal: &vector{0, 0, 1},

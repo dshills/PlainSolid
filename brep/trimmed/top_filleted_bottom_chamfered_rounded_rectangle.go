@@ -11,6 +11,17 @@ import (
 // and an independent equal-distance lower perimeter chamfer. Caps remain
 // faces 0 (lower) and 1 (upper), with exact planar circular trim loops.
 func TopFilletedBottomChamferedRoundedRectangle(ctx context.Context, frame geom.Frame, profile RoundedRectangle, height, radius, chamfer, tolerance float64) (Solid, error) {
+	return buildBottomChamferedRoundedRectangle(ctx, frame, profile, height, radius, chamfer, tolerance, true)
+}
+
+// BottomChamferedRoundedRectangle bevels the lower cap perimeter of a
+// uniformly rounded rectangular extrusion. It retains the original upper
+// cap, the cylindrical corner walls, and the conical corner transitions.
+func BottomChamferedRoundedRectangle(ctx context.Context, frame geom.Frame, profile RoundedRectangle, height, chamfer, tolerance float64) (Solid, error) {
+	return buildBottomChamferedRoundedRectangle(ctx, frame, profile, height, 0, chamfer, tolerance, false)
+}
+
+func buildBottomChamferedRoundedRectangle(ctx context.Context, frame geom.Frame, profile RoundedRectangle, height, radius, chamfer, tolerance float64, withFillet bool) (Solid, error) {
 	if ctx == nil || !finite(height) || !finite(radius) || !finite(chamfer) || !finite(tolerance) || tolerance <= 0 {
 		return Solid{}, geom.ErrInvalid
 	}
@@ -19,7 +30,10 @@ func TopFilletedBottomChamferedRoundedRectangle(ctx context.Context, frame geom.
 	}
 	pad := 8 * tolerance
 	corner := profile.Radii[0]
-	if !finite(pad) || radius <= pad || chamfer <= pad || corner-chamfer <= pad || height-radius-chamfer <= pad || !finite(corner) || corner-2*radius <= pad {
+	if !finite(pad) || chamfer <= pad || corner-chamfer <= pad || height-radius-chamfer <= pad || !finite(corner) {
+		return Solid{}, geom.ErrDomain
+	}
+	if withFillet && (radius <= pad || corner-2*radius <= pad) {
 		return Solid{}, geom.ErrDomain
 	}
 	for _, r := range profile.Radii {
@@ -38,16 +52,19 @@ func TopFilletedBottomChamferedRoundedRectangle(ctx context.Context, frame geom.
 	// centers. Derive their tangent vertices from those same supports.
 	// Decimal fillets may round a coordinate addition, which final
 	// shared-edge validation checks against the specified tolerance.
-	upper := make([]geom.Vec2, 8)
-	upperArcs := append([]extrusionQuarterArc(nil), arcs...)
-	for i, arc := range upperArcs {
-		if arc.circle.Radius > 0 {
-			upperArcs[i].circle.Radius = corner - radius
-			points := [4]geom.Vec2{{X: arc.circle.Center.X + (corner - radius), Y: arc.circle.Center.Y},
-				{X: arc.circle.Center.X, Y: arc.circle.Center.Y + (corner - radius)},
-				{X: arc.circle.Center.X - (corner - radius), Y: arc.circle.Center.Y},
-				{X: arc.circle.Center.X, Y: arc.circle.Center.Y - (corner - radius)}}
-			upper[i], upper[(i+1)%8] = points[arc.quadrant], points[(arc.quadrant+1)%4]
+	upper, upperArcs := lower, arcs
+	if withFillet {
+		upper = make([]geom.Vec2, 8)
+		upperArcs = append([]extrusionQuarterArc(nil), arcs...)
+		for i, arc := range upperArcs {
+			if arc.circle.Radius > 0 {
+				upperArcs[i].circle.Radius = corner - radius
+				points := [4]geom.Vec2{{X: arc.circle.Center.X + (corner - radius), Y: arc.circle.Center.Y},
+					{X: arc.circle.Center.X, Y: arc.circle.Center.Y + (corner - radius)},
+					{X: arc.circle.Center.X - (corner - radius), Y: arc.circle.Center.Y},
+					{X: arc.circle.Center.X, Y: arc.circle.Center.Y - (corner - radius)}}
+				upper[i], upper[(i+1)%8] = points[arc.quadrant], points[(arc.quadrant+1)%4]
+			}
 		}
 	}
 	lowerCap := make([]geom.Vec2, 8)
@@ -106,6 +123,9 @@ func TopFilletedBottomChamferedRoundedRectangle(ctx context.Context, frame geom.
 			if e = b.face(surface, points, uv[:], nil, false); e != nil {
 				return Solid{}, e
 			}
+			if !withFillet {
+				continue
+			}
 			f, e := geom.NewFrame(frame.ToWorld(geom.Vec3{X: a.circle.Center.X, Y: a.circle.Center.Y, Z: height - radius}), frame.XAxis(), frame.ZAxis())
 			if e != nil {
 				return Solid{}, e
@@ -123,6 +143,9 @@ func TopFilletedBottomChamferedRoundedRectangle(ctx context.Context, frame geom.
 		} else {
 			if e = b.wall(p, q, chamfer, height-radius); e != nil {
 				return Solid{}, e
+			}
+			if !withFillet {
+				continue
 			}
 			edge := geom.Vec3{X: q.X - p.X, Y: q.Y - p.Y}
 			axis, e := edge.Unit()

@@ -46,14 +46,21 @@ func (b *Bridge) filletRoundedStock(s stored, q request) (Shape, error) {
 
 func (b *Bridge) chamferRoundedStock(s stored, q request) (Shape, error) {
 	p := *s.analytic.rounded
-	if p.cut || p.pedestal != nil || p.stack != nil || p.fillet <= 0 || p.chamfer != 0 ||
+	if p.cut || p.pedestal != nil || p.stack != nil || p.chamfer != 0 ||
 		q.Normal == nil || q.Origin == nil || q.Distance <= 0 || len(q.Edges) != 0 ||
 		q.Normal.vec() != p.frame.ZAxis().Scale(-1) || exactDotDifference(q.Origin.vec(), p.frame.Origin(), p.frame.ZAxis()) != 0 {
-		return Shape{}, unsupportedEdge("rounded chamfer requires the original lower cap opposite the fillet")
+		return Shape{}, unsupportedEdge("rounded chamfer requires the original lower cap")
 	}
 	c := float64(q.Distance)
-	solid, err := trimmed.TopFilletedBottomChamferedRoundedRectangle(context.Background(), p.frame, p.profile, p.height,
-		p.fillet, c, s.analytic.solid.Tolerance())
+	ctx := context.Background()
+	tol := s.analytic.solid.Tolerance()
+	var solid trimmed.Solid
+	var err error
+	if p.fillet > 0 {
+		solid, err = trimmed.TopFilletedBottomChamferedRoundedRectangle(ctx, p.frame, p.profile, p.height, p.fillet, c, tol)
+	} else {
+		solid, err = trimmed.BottomChamferedRoundedRectangle(ctx, p.frame, p.profile, p.height, c, tol)
+	}
 	if err != nil {
 		return Shape{}, err
 	}
