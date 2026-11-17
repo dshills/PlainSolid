@@ -1,8 +1,16 @@
 # Go qualification evidence
 
-`trimmed-shard.sh` selects disjoint top-level trimmed-solid tests. The
-same parent selection includes all its subtests. An independent `go test
--json -list '^(Test|Fuzz|Example)'` run establishes the expected cases.
+`test-shard.sh` selects disjoint top-level tests, examples and fuzz seeds
+from a package. Selecting a parent includes all its subtests. GitHub
+Actions gives `exchange` and `exchange/step` dedicated shards so their
+ordinary and race runs have separate package timeouts. The four STEP
+shards also keep the test filter well within Windows' command line limit.
+`trimmed-shard.sh` uses the same selector for the trimmed-solid suite and
+its separate long cases. Fuzz jobs use `-run=^$` and an exact target name
+so that ordinary tests run only in their assigned jobs.
+
+An independent `go test -json -list '^(Test|Fuzz|Example)'` run
+establishes the expected cases for local qualification.
 
 Run all packages from an immutable archive of a committed tree. The launcher
 uses previous test timings only to balance shards; the new independent
