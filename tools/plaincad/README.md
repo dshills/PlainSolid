@@ -103,6 +103,37 @@ report requires an actual pass for every start count, records individual test
 times, and hashes the original and staged cases, the runtime, the WASM binary,
 and its Go sources. The ordinary PlainCAD Vitest suite still uses OpenCascade.
 
+### Gallery document rebuilds
+
+Run selected original gallery documents with the real Go WASM provider in
+an isolated archive of PlainCAD revision `ff9287dd`. The stage uses that
+revision's application adapter and production provider resolution.
+
+```sh
+node tools/plaincad/gallery.mjs \
+  --app /absolute/path/to/PlainCAD \
+  --work /absolute/path/to/new-gallery-stage \
+  --kernel-revision <PlainSolid-commit> \
+  --select 03,07,08,09
+```
+
+The selector accepts gallery numbers 01 through 14 and original file
+names without `.pcaddoc`, including `orbit-drive-housing`. The app checkout
+supplies its installed npm dependencies. Every selected project uses its
+original source bytes and a second in-memory edit. The original ten use
+the parameter edits from `docs/examples/VALIDATION.json`. The four
+threaded projects and ORBIT use concrete edits of the features suggested
+by the gallery. The M6 and UNC cases require the exact sketch warnings
+observed in the unchanged authored input.
+
+The harness checks native rebuilds, stable body identities, one valid
+solid per body, meshes, feature counts, and geometry changes after edits.
+It compares each available OCCT reference body and total volume within
+the greater of 0.001 mm³ or one part in ten million. The recorded OCCT
+bounds come from display meshes, so bounds comparisons allow the default
+0.5 mm linear deflection. The focused Node test report retains all
+individual differences and hashes the source documents, adapter, Go
+runtime and WASM module.
 
 The opt-in side-opening overlap fixture runs through the actual application
 commands, viewer and exchange workers, and is recorded separately from
