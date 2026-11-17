@@ -154,8 +154,12 @@ func (p roundedStock) boreSite(c *cylinderBody) (roundedBoreSite, trimmed.AxialB
 		step.Depth = stack.top - lo
 		return site, step, nil
 	}
-	if site.center == (geom.Vec2{}) && stack.pocketCap >= 0 && hi >= stack.floor {
-		site.upper, site.span = stack.pocketCap, stack.floor
+	if site.center == (geom.Vec2{}) {
+		if stack.pocketCap >= 0 && hi >= stack.floor {
+			site.upper, site.span = stack.pocketCap, stack.floor
+		} else if stack.centerBoss {
+			site.upper, site.span = stack.upper, stack.top
+		}
 	}
 	if hi < site.span || lo >= site.span {
 		return fail()
