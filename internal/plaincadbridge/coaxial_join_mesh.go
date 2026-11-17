@@ -36,18 +36,16 @@ func (p *coaxialBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, e
 		}
 		n *= 2
 	}
-	if n > limit || len(p.spans) > budget/(4*n) {
+	profile := p.profile()
+	triangles := 4 * n * len(p.spans)
+	segments := len(profile) - 1
+	if p.inner > 0 {
+		triangles += 4 * n
+		segments++
+	}
+	if n > limit || triangles > budget {
 		return mesh.Mesh{}, parametric.ErrBudget
 	}
-	first, last := p.spans[0], p.spans[len(p.spans)-1]
-	profile := []geom.Vec2{{Y: first.lo}, {X: first.radius, Y: first.lo}}
-	for i, s := range p.spans {
-		profile = append(profile, geom.Vec2{X: s.radius, Y: s.hi})
-		if i+1 < len(p.spans) {
-			profile = append(profile, geom.Vec2{X: p.spans[i+1].radius, Y: s.hi})
-		}
-	}
-	profile = append(profile, geom.Vec2{Y: last.hi})
 	m := mesh.Mesh{}
 	rings := make([][]int, len(profile))
 	for k, q := range profile {
@@ -78,8 +76,8 @@ func (p *coaxialBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, e
 		}
 		rings[k] = ring
 	}
-	for k := 0; k+1 < len(rings); k++ {
-		a, b := rings[k], rings[k+1]
+	for k := range segments {
+		a, b := rings[k], rings[(k+1)%len(rings)]
 		for j := range n {
 			next := (j + 1) % n
 			if a[j] != a[next] {

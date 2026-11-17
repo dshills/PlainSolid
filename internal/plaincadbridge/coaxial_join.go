@@ -13,35 +13,37 @@ type coaxialSpan struct{ lo, hi, radius float64 }
 type coaxialBody struct {
 	frame geom.Frame
 	spans []coaxialSpan
+	inner float64
 }
 
 func coaxialRecipe(s stored) (*coaxialBody, bool) {
 	if c := s.cylinder; c != nil {
-		return &coaxialBody{c.frame, []coaxialSpan{{0, c.height, c.radius}}}, cardinalFrame(c.frame)
+		return &coaxialBody{frame: c.frame, spans: []coaxialSpan{{0, c.height, c.radius}}}, cardinalFrame(c.frame)
 	}
 	if a := s.analytic; a != nil {
 		if a.coaxial != nil {
 			return a.coaxial, true
 		}
 		if p := a.shaft; p != nil && len(p.Socket) == 0 {
-			return &coaxialBody{p.Frame, []coaxialSpan{{-p.ShaftLength, 0, p.ShaftRadius}, {0, p.HeadHeight, p.HeadRadius}}}, cardinalFrame(p.Frame)
+			return &coaxialBody{frame: p.Frame, spans: []coaxialSpan{{-p.ShaftLength, 0, p.ShaftRadius}, {0, p.HeadHeight, p.HeadRadius}}}, cardinalFrame(p.Frame)
 		}
-		if r := a.sector; r != nil && r.inner == 0 && r.angle == 2*math.Pi {
-			return &coaxialBody{r.frame, []coaxialSpan{{0, r.height, r.radius}}}, cardinalFrame(r.frame)
+		if r := a.sector; r != nil && r.angle == 2*math.Pi {
+			return &coaxialBody{frame: r.frame, spans: []coaxialSpan{{0, r.height, r.radius}}, inner: r.inner}, cardinalFrame(r.frame)
 		}
 	}
 	return nil, false
 }
 
-// fuseCoaxial retains the exact radius envelope of connected coaxial cylinders.
-// Every original axial endpoint is preserved; no mesh participates in the union.
+// fuseCoaxial takes the outer radius envelope of connected coaxial stock
+// with a common inner radius. The original axial spans determine the
+// steps and, for annular stock, the continuous bore.
 func (b *Bridge) fuseCoaxial(a, c stored) (Shape, bool, error) {
 	x, ok := coaxialRecipe(a)
 	if !ok {
 		return Shape{}, false, nil
 	}
 	y, ok := coaxialRecipe(c)
-	if !ok {
+	if !ok || x.inner != y.inner {
 		return Shape{}, false, nil
 	}
 	axis := x.frame.ZAxis()
@@ -85,7 +87,7 @@ func (b *Bridge) fuseCoaxial(a, c stored) (Shape, bool, error) {
 			unique = append(unique, z)
 		}
 	}
-	result := &coaxialBody{frame: x.frame}
+	result := &coaxialBody{frame: x.frame, inner: x.inner}
 	for i := 0; i+1 < len(unique); i++ {
 		lo, hi := unique[i], unique[i+1]
 		radius := 0.
@@ -111,22 +113,34 @@ func (b *Bridge) fuseCoaxial(a, c stored) (Shape, bool, error) {
 	return shape, true, err
 }
 
-func (b *Bridge) putCoaxial(p *coaxialBody) (Shape, error) {
+func (p *coaxialBody) profile() []geom.Vec2 {
 	first, last := p.spans[0], p.spans[len(p.spans)-1]
-	profile := []geom.Vec2{{Y: first.lo}, {X: first.radius, Y: first.lo}}
-	volume, area := 0., math.Pi*(first.radius*first.radius+last.radius*last.radius)
-	for i, s := range p.spans {
-		volume += math.Pi * s.radius * s.radius * (s.hi - s.lo)
-		area += 2 * math.Pi * s.radius * (s.hi - s.lo)
-		profile = append(profile, geom.Vec2{X: s.radius, Y: s.hi})
+	profile := []geom.Vec2{{X: p.inner, Y: first.lo}, {X: first.radius, Y: first.lo}}
+	for i, span := range p.spans {
+		profile = append(profile, geom.Vec2{X: span.radius, Y: span.hi})
 		if i+1 < len(p.spans) {
-			r := p.spans[i+1].radius
-			profile = append(profile, geom.Vec2{X: r, Y: s.hi})
-			area += math.Pi * math.Abs(r*r-s.radius*s.radius)
+			profile = append(profile, geom.Vec2{X: p.spans[i+1].radius, Y: span.hi})
 		}
 	}
-	profile = append(profile, geom.Vec2{Y: last.hi})
-	patches, err := parametric.Revolve(p.frame, profile)
+	return append(profile, geom.Vec2{X: p.inner, Y: last.hi})
+}
+
+func (b *Bridge) putCoaxial(p *coaxialBody) (Shape, error) {
+	first, last := p.spans[0], p.spans[len(p.spans)-1]
+	ringArea := func(r float64) float64 { return (r - p.inner) * (r + p.inner) }
+	volume := 0.0
+	area := math.Pi * (ringArea(first.radius) + ringArea(last.radius))
+	area += 2 * math.Pi * p.inner * (last.hi - first.lo)
+	for i, span := range p.spans {
+		length := span.hi - span.lo
+		volume += math.Pi * (span.radius - p.inner) * (span.radius + p.inner) * length
+		area += 2 * math.Pi * span.radius * length
+		if i+1 < len(p.spans) {
+			r := p.spans[i+1].radius
+			area += math.Pi * math.Abs(r*r-span.radius*span.radius)
+		}
+	}
+	patches, err := parametric.Revolve(p.frame, p.profile())
 	if err != nil {
 		return Shape{}, err
 	}
@@ -165,7 +179,7 @@ func (p *coaxialBody) transformed(m geom.Affine) (*coaxialBody, error) {
 	if err != nil || !cardinalFrame(f) || f.YAxis() != m.ApplyVector(p.frame.YAxis()) {
 		return nil, geom.ErrUnrepresentable
 	}
-	out := &coaxialBody{f, append([]coaxialSpan(nil), p.spans...)}
+	out := &coaxialBody{frame: f, spans: append([]coaxialSpan(nil), p.spans...), inner: p.inner}
 	_, err = out.bounds()
 	return out, err
 }
