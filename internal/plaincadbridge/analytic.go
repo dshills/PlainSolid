@@ -122,7 +122,7 @@ func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, 
 	if a.coaxial != nil {
 		return a.coaxial.tessellate(o)
 	}
-	if a.annular != nil && !a.annular.cut {
+	if a.annular != nil && !a.annular.cut && !a.annular.extended {
 		return a.annular.Tessellate(context.Background(), o)
 	}
 	// The bridge populates this sampled cache with a 256-subdivision limit.

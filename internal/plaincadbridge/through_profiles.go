@@ -34,8 +34,14 @@ func (p throughProfileStock) clipTool(ctx context.Context, tool stored) (trimmed
 			return geom.Vec3{}, false
 		}
 		start := p.frame.ToLocal(origin)
-		end := start.Z + height*axis.Dot(n)
-		return start, p.frame.ToWorld(start) == origin && min(start.Z, end) <= p.low && max(start.Z, end) >= p.high
+		base := p.frame.Origin()
+		if !exactAxisDistance(origin.Dot(p.frame.XAxis()), base.Dot(p.frame.XAxis()), start.X) ||
+			!exactAxisDistance(origin.Dot(p.frame.YAxis()), base.Dot(p.frame.YAxis()), start.Y) {
+			return geom.Vec3{}, false
+		}
+		first, last := exactAxialInterval(origin.Dot(n), base.Dot(n), height*axis.Dot(n))
+		return start, first.Cmp(new(big.Rat).SetFloat64(p.low)) <= 0 &&
+			last.Cmp(new(big.Rat).SetFloat64(p.high)) >= 0
 	}
 	h := p.high - p.low
 	frame, err := geom.NewFrame(p.frame.ToWorld(geom.Vec3{Z: p.low}), p.frame.XAxis(), n)
