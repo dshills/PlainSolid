@@ -90,6 +90,9 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 		if result, handled, err := b.cutCircularStockBores(a, inputs); handled {
 			return result, err
 		}
+		if result, handled, err := b.cutRoundedSideBores(a, inputs); handled {
+			return result, err
+		}
 	}
 	if result, _, handled, err := cutRoundedBores(a, inputs); handled {
 		if err != nil {

@@ -99,6 +99,12 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 		}
 		return result(volume)
 	}
+	if volume, handled, err := overlapRoundedSideBore(circularStock, circularTool); handled {
+		if err != nil {
+			return nil, err
+		}
+		return result(volume)
+	}
 	if volume, handled, err := overlapRoundedBore(a, c); handled {
 		if err != nil {
 			return nil, err
