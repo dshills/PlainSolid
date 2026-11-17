@@ -1,11 +1,18 @@
 # Verification record
 
-The [November 17 PlainCAD gallery run](evidence/plaincad-gallery-e4658697-2026-11-17.json)
-passed 28 authored and edited cases on sealed kernel `e4658697` and the
-original PlainCAD provider at `ff9287dd`. The same WASM passed five
-Chromium File → Open checks and their live parameter edits. The evidence
-includes original file hashes, native body counts, and OpenCascade
-volume and bound comparisons where the app publishes them.
+The November 17 PlainCAD gallery run passed all 30 saved and edited cases on
+sealed kernel `c10afb21` and the original PlainCAD provider at `ff9287dd`.
+All 266 body results were valid native PlainSolid solids. The same WASM
+passed six Chromium File → Open, render and live-edit checks without console
+or rebuild errors. The focused native race run passed 19 top-level Go cases
+across the trimmed B-rep and PlainCAD bridge packages. The evidence records
+the original file hashes and OpenCascade volume and bound comparisons for
+the 20 cases with published reference measurements.
+[Gallery verification](evidence/plaincad-gallery-complete-2026-11-17.json)
+
+The five earlier repairs and the regression projects produced identical
+mesh hashes and native metrics across the 28 cases also run on `e4658697`.
+[Earlier gallery verification](evidence/plaincad-gallery-e4658697-2026-11-17.json)
 
 The [full Go run on `9f95a188`](evidence/main-9f95a188-qualification-2026-11-16.json)
 passed 6,121 top-level cases, with 608 explicit optional skips and zero

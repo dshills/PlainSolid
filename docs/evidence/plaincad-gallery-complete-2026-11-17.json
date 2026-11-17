@@ -1,0 +1,489 @@
+{
+  "scope": "Fifteen unchanged PlainCAD projects rebuilt with the shipped application adapter and sealed Go WASM",
+  "app_revision": "ff9287dd57303bb416fbaf8226902133ef013e99",
+  "kernel_revision": "c10afb21910821e733feacd42ba979e913ec271c",
+  "go_version": "go version go1.27.4 darwin/arm64",
+  "node_version": "v26.13.1",
+  "occt_reference_app_revision": "2733e69",
+  "worklist": [
+    "03-angle-fixture",
+    "05-motor-flange",
+    "06-flanged-valve",
+    "07-robot-gripper",
+    "08-belt-drive",
+    "09-heat-exchanger"
+  ],
+  "qualification_sha256": "97c8794c799979e8f369f5c1e1b4147033b41c3a9b12eec14709009ea040918d",
+  "artifact_digests": {
+    "PlainSolidKernel.ts": "6d4b20b704edbc884dab071495e4deae7318d578ec92532a876e28a57964547d",
+    "vite.config.ts": "8f213adcc6ddee9eac302bca08ec0ee4dc9ed15f7221348d12bd9167810eec74",
+    "wasm_exec.js": "0c949f4996f9a89698e4b5c586de32249c3b69b7baadb64d220073cc04acba14",
+    "plainsolid-kernel.wasm": "72f8756c8040d0957f578987deeac013112f27da1caa2447761be1e01c9ff037",
+    "plainsolid-gallery.focus.test.ts": "e974c10d92a5664470170e00ce4af1eb9f3e75d7d936e8a4c174ab4833e29ea9",
+    "vitest.gallery.config.ts": "1c7e00329c73592768c37b0d37e5c96b199b6ec4ed854510eda94dcedff038ad",
+    "vitest.log": "dd6c007e569a335190c15ce7e1ca6ce12f4ac11db4d7241eb4ca4bb13ff73d34",
+    "vitest.json": "cbca4d1cabc60a1356586b90953cc30345a9f266c2f905f033dfe4a62d6b6521"
+  },
+  "fixture_digests": {
+    "VALIDATION.json": "0557bbaa5b28a1277fd5340cacae2c8cd4175f73377bf76763e7867f094c764d",
+    "01-cable-guide.pcaddoc": "2cca6cb80f1023c35d3cc59a05d917eb8b17be11880f6b136226c64ed01a36af",
+    "02-spacer-stack.pcaddoc": "412f958b82751eb0988b1f3a14ca3abf20df3a0183a8b10e6ae0b0de312d1849",
+    "03-angle-fixture.pcaddoc": "5a70451f1cebaecb9820716833d1cd54112343bb49fcf7c49b8405fba5661d15",
+    "04-panel-standoffs.pcaddoc": "84bdfaabc8ddf025d0480839026c19d9633f13fcdea29dd89e22618753dde9d7",
+    "05-motor-flange.pcaddoc": "7d0ad0f408d8edff2048c1c0bab2865461dc1b049d3b09473a9a991f08e99c14",
+    "06-flanged-valve.pcaddoc": "cda01cc75939b1829608cd53d6b4e2ea3bc7ae8df2825e585e5a24951b759285",
+    "07-robot-gripper.pcaddoc": "28eec1f34c3f0e6b80d2cc355651eb9d03d25d431fefafcf9ecd594d837461fd",
+    "08-belt-drive.pcaddoc": "0ddd96e6957585f41eebe1c64585fce4b73add78141ccc62c15bd2d7da87aee4",
+    "09-heat-exchanger.pcaddoc": "81779c676942860640d7590553234e95f7bad29b996382451880b67c2ecbe0c4",
+    "10-rotary-fixture.pcaddoc": "63dbaebb5b5463a0e1d4b5bd2846dac5bfa89ed63db1cde9a61a32ad7f69bf7f",
+    "11-trapezoidal-lead-screw.pcaddoc": "89d83e3ee4f037feca102d0b48c668d96e3ec23f84f716adae075ef8eaa5ccc6",
+    "12-acme-lead-screw.pcaddoc": "8383556534436f83448176e70afbf6af1dd3ac26615c7951e965e0e06e5cfaae",
+    "13-m6-threaded-pair.pcaddoc": "8529bfb92582273df8fa79a8f5cfe52ebf8b0f534e7f3bb8614f06c4d44d29ae",
+    "14-quarter-inch-unc.pcaddoc": "96e3298a60b885dcf0c0406d966d12fbcc2747a1a84f2f279761b2570af5daad",
+    "orbit-drive-housing.pcaddoc": "c05d3ae2b76273ee371f4cd411712f4b84c8ac11859680a1d32b70b82fbf83da"
+  },
+  "successful_rebuilds": 30,
+  "failed_rebuilds": 0,
+  "valid_native_body_results": 266,
+  "maximum_comparison_differences": {
+    "occt_body_volume_mm3": 0.0009073171822819859,
+    "occt_display_bound_coordinate_mm": 0.09696014518520712
+  },
+  "sketch_warning_baseline": {
+    "kernel_revision": "71f6197633972d74b6c1301b13db8e1f1b2fbb90",
+    "comparison_sha256": "d628190c8766a060dfb047b703725e0c677ae6f1bc03c3cfbc9c43d02f9ba44f",
+    "scope": "M6 and UNC authored sketch warnings exactly match the approved baseline"
+  },
+  "prior_gallery_mesh_and_metrics_comparison_sha256": "37982e94a2bf704c1970d4d88fa3373433ed902bd7fb698dc94673eec986c002",
+  "native_race": {
+    "top_level_cases_passed": 19,
+    "packages": {
+      "plainsolid/brep/trimmed": "21.592s",
+      "plainsolid/internal/plaincadbridge": "28.315s"
+    },
+    "log_sha256": "5bb6f0a403a823c181f9a9b41803bfec1ed63474da0a49a7d892a2884cbe170a"
+  },
+  "chromium": {
+    "version": "153.0.8010.12",
+    "kernel_wasm_sha256": "72f8756c8040d0957f578987deeac013112f27da1caa2447761be1e01c9ff037",
+    "successful_file_opens_and_live_edits": 6,
+    "checks": [
+      {
+        "project": "03-angle-fixture",
+        "report_sha256": "a8fe59386ca736b1993c3e681054d5133b100380b81b6b83ff606407160adc8d",
+        "original": {
+          "visible_native_bodies": 3,
+          "viewer_triangles": 1820,
+          "total_volume_mm3": 26693.547838175073
+        },
+        "variant": {
+          "visible_native_bodies": 3,
+          "viewer_triangles": 1820,
+          "total_volume_mm3": 28133.547838175073
+        }
+      },
+      {
+        "project": "05-motor-flange",
+        "report_sha256": "0e1343fbfa5a2d9e95f9f6317726bec83eebe28f0f9bdb657887bd2021b4c715",
+        "original": {
+          "visible_native_bodies": 6,
+          "viewer_triangles": 5064,
+          "total_volume_mm3": 84225.84854560887
+        },
+        "variant": {
+          "visible_native_bodies": 6,
+          "viewer_triangles": 5064,
+          "total_volume_mm3": 99047.90171444674
+        }
+      },
+      {
+        "project": "06-flanged-valve",
+        "report_sha256": "ae221008c05ab2d0d670275024251411bf3b2baf417b73cf60f2448415ffed24",
+        "original": {
+          "visible_native_bodies": 8,
+          "viewer_triangles": 3616,
+          "total_volume_mm3": 165316.84337826792
+        },
+        "variant": {
+          "visible_native_bodies": 8,
+          "viewer_triangles": 3616,
+          "total_volume_mm3": 177020.65831365742
+        }
+      },
+      {
+        "project": "07-robot-gripper",
+        "report_sha256": "b7b85d625a1360d7a2578a9145d6ed84aa39f25d75f5c59a7b3e8de8d37c3a7d",
+        "original": {
+          "visible_native_bodies": 11,
+          "viewer_triangles": 4244,
+          "total_volume_mm3": 49914.12371496661
+        },
+        "variant": {
+          "visible_native_bodies": 11,
+          "viewer_triangles": 4244,
+          "total_volume_mm3": 49914.12371496661
+        }
+      },
+      {
+        "project": "08-belt-drive",
+        "report_sha256": "4e4571104fb19a79f25f6b3ccb3355e83ee11e0203fcdd00195077f9128feb4e",
+        "original": {
+          "visible_native_bodies": 18,
+          "viewer_triangles": 8916,
+          "total_volume_mm3": 287026.3787719249
+        },
+        "variant": {
+          "visible_native_bodies": 18,
+          "viewer_triangles": 8916,
+          "total_volume_mm3": 293460.3605264768
+        }
+      },
+      {
+        "project": "09-heat-exchanger",
+        "report_sha256": "a96b0c62812f5a03701055ed19b4f1a457c9db3d266c8a8c67d60a7d7bbce98c",
+        "original": {
+          "visible_native_bodies": 28,
+          "viewer_triangles": 12004,
+          "total_volume_mm3": 489340.1130623239
+        },
+        "variant": {
+          "visible_native_bodies": 28,
+          "viewer_triangles": 12004,
+          "total_volume_mm3": 494638.8739834189
+        }
+      }
+    ]
+  },
+  "cases": [
+    {
+      "project": "01-cable-guide",
+      "variant": "original",
+      "operations": 4,
+      "native_bodies": 2,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 12033.484082433615,
+      "occt_total_volume_mm3": 12033.484080406244,
+      "max_occt_body_volume_difference_mm3": 2.027371920121368e-06,
+      "max_occt_body_bounds_difference_mm": 0.01740310307529036
+    },
+    {
+      "project": "01-cable-guide",
+      "variant": "foot_thickness 5 to 6 mm",
+      "operations": 4,
+      "native_bodies": 2,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 13613.338948004302,
+      "occt_total_volume_mm3": 13613.338945976931,
+      "max_occt_body_volume_difference_mm3": 2.0273710106266662e-06,
+      "max_occt_body_bounds_difference_mm": 0.01740310307529036
+    },
+    {
+      "project": "02-spacer-stack",
+      "variant": "original",
+      "operations": 3,
+      "native_bodies": 3,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 10518.052204218628,
+      "occt_total_volume_mm3": 10518.052204218628,
+      "max_occt_body_volume_difference_mm3": 0,
+      "max_occt_body_bounds_difference_mm": 0.019889260657478758
+    },
+    {
+      "project": "02-spacer-stack",
+      "variant": "spacer_height 20 to 24 mm",
+      "operations": 3,
+      "native_bodies": 3,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 11460.530000295565,
+      "occt_total_volume_mm3": 11460.530000295565,
+      "max_occt_body_volume_difference_mm3": 0,
+      "max_occt_body_bounds_difference_mm": 0.019889260657478758
+    },
+    {
+      "project": "03-angle-fixture",
+      "variant": "original",
+      "operations": 7,
+      "native_bodies": 3,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 26693.547838175073,
+      "occt_total_volume_mm3": 26693.547838175073,
+      "max_occt_body_volume_difference_mm3": 0,
+      "max_occt_body_bounds_difference_mm": 0.0024861575743528874
+    },
+    {
+      "project": "03-angle-fixture",
+      "variant": "web_height 36 to 40 mm",
+      "operations": 7,
+      "native_bodies": 3,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 28133.547838175073,
+      "occt_total_volume_mm3": 28133.547838175084,
+      "max_occt_body_volume_difference_mm3": 1.0913936421275139e-11,
+      "max_occt_body_bounds_difference_mm": 0.0024861575743528874
+    },
+    {
+      "project": "04-panel-standoffs",
+      "variant": "original",
+      "operations": 7,
+      "native_bodies": 5,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 22944.09164003237,
+      "occt_total_volume_mm3": 22944.091541007707,
+      "max_occt_body_volume_difference_mm3": 9.902466263156384e-05,
+      "max_occt_body_bounds_difference_mm": 0.006215394085970161
+    },
+    {
+      "project": "04-panel-standoffs",
+      "variant": "post_height 18 to 22 mm",
+      "operations": 7,
+      "native_bodies": 5,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 23957.443766374294,
+      "occt_total_volume_mm3": 23957.44366734963,
+      "max_occt_body_volume_difference_mm3": 9.902466263156384e-05,
+      "max_occt_body_bounds_difference_mm": 0.006215394125966611
+    },
+    {
+      "project": "05-motor-flange",
+      "variant": "original",
+      "operations": 16,
+      "native_bodies": 6,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 84225.84854560887,
+      "occt_total_volume_mm3": 84225.84851544954,
+      "max_occt_body_volume_difference_mm3": 3.0159324523992836e-05,
+      "max_occt_body_bounds_difference_mm": 0.011187709077765007
+    },
+    {
+      "project": "05-motor-flange",
+      "variant": "flange_thickness 8 to 10 mm",
+      "operations": 16,
+      "native_bodies": 6,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 99047.90171444674,
+      "occt_total_volume_mm3": 99047.90168428747,
+      "max_occt_body_volume_difference_mm3": 3.0159266316331923e-05,
+      "max_occt_body_bounds_difference_mm": 0.011187709077765007
+    },
+    {
+      "project": "06-flanged-valve",
+      "variant": "original",
+      "operations": 16,
+      "native_bodies": 8,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 165316.84337826792,
+      "occt_total_volume_mm3": 165316.84336968925,
+      "max_occt_body_volume_difference_mm3": 8.578630513511598e-06,
+      "max_occt_body_bounds_difference_mm": 0.057181624390238994
+    },
+    {
+      "project": "06-flanged-valve",
+      "variant": "valve_height 32 to 36 mm",
+      "operations": 16,
+      "native_bodies": 8,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 177020.65831365742,
+      "occt_total_volume_mm3": 177020.65830507874,
+      "max_occt_body_volume_difference_mm3": 8.578630513511598e-06,
+      "max_occt_body_bounds_difference_mm": 0.057181624390238994
+    },
+    {
+      "project": "07-robot-gripper",
+      "variant": "original",
+      "operations": 22,
+      "native_bodies": 11,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 49914.12371496661,
+      "occt_total_volume_mm3": 49914.123671801535,
+      "max_occt_body_volume_difference_mm3": 1.510666697868146e-05,
+      "max_occt_body_bounds_difference_mm": 0.004475083611879427
+    },
+    {
+      "project": "07-robot-gripper",
+      "variant": "jaw_span 56 to 60 mm",
+      "operations": 22,
+      "native_bodies": 11,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 49914.12371496661,
+      "occt_total_volume_mm3": 49914.123671801535,
+      "max_occt_body_volume_difference_mm3": 1.5106667888176162e-05,
+      "max_occt_body_bounds_difference_mm": 0.004475083611879427
+    },
+    {
+      "project": "08-belt-drive",
+      "variant": "original",
+      "operations": 29,
+      "native_bodies": 18,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 287026.3787719249,
+      "occt_total_volume_mm3": 287026.37851163925,
+      "max_occt_body_volume_difference_mm3": 0.00019715848611667752,
+      "max_occt_body_bounds_difference_mm": 0.029833890745862846
+    },
+    {
+      "project": "08-belt-drive",
+      "variant": "pulley_height 10 to 12 mm",
+      "operations": 29,
+      "native_bodies": 18,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 293460.3605264768,
+      "occt_total_volume_mm3": 293460.3602661912,
+      "max_occt_body_volume_difference_mm3": 0.00019715848611667752,
+      "max_occt_body_bounds_difference_mm": 0.029833890745862846
+    },
+    {
+      "project": "09-heat-exchanger",
+      "variant": "original",
+      "operations": 37,
+      "native_bodies": 28,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 489340.1130623239,
+      "occt_total_volume_mm3": 489340.11217076535,
+      "max_occt_body_volume_difference_mm3": 0.0008854505576891825,
+      "max_occt_body_bounds_difference_mm": 0.006215394446968503
+    },
+    {
+      "project": "09-heat-exchanger",
+      "variant": "tube_length 148 to 152 mm",
+      "operations": 37,
+      "native_bodies": 28,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 494638.8739834189,
+      "occt_total_volume_mm3": 494638.87306999415,
+      "max_occt_body_volume_difference_mm3": 0.0009073171822819859,
+      "max_occt_body_bounds_difference_mm": 0.006215394446996925
+    },
+    {
+      "project": "10-rotary-fixture",
+      "variant": "original",
+      "operations": 68,
+      "native_bodies": 40,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 1000130.5836626807,
+      "occt_total_volume_mm3": 1000130.5834973933,
+      "max_occt_body_volume_difference_mm3": 0.00013351623783819377,
+      "max_occt_body_bounds_difference_mm": 0.09696014518520712
+    },
+    {
+      "project": "10-rotary-fixture",
+      "variant": "platter_thickness 14 to 16 mm",
+      "operations": 68,
+      "native_bodies": 40,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 1035316.9416199832,
+      "occt_total_volume_mm3": 1035316.9414546961,
+      "max_occt_body_volume_difference_mm3": 0.0001335160923190415,
+      "max_occt_body_bounds_difference_mm": 0.09696014518520712
+    },
+    {
+      "project": "11-trapezoidal-lead-screw",
+      "variant": "original",
+      "operations": 2,
+      "native_bodies": 2,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 1372.524540029871,
+      "occt_total_volume_mm3": null,
+      "max_occt_body_volume_difference_mm3": null,
+      "max_occt_body_bounds_difference_mm": null
+    },
+    {
+      "project": "11-trapezoidal-lead-screw",
+      "variant": "screw length 18 to 20 mm",
+      "operations": 2,
+      "native_bodies": 2,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 1456.6762711327956,
+      "occt_total_volume_mm3": null,
+      "max_occt_body_volume_difference_mm3": null,
+      "max_occt_body_bounds_difference_mm": null
+    },
+    {
+      "project": "12-acme-lead-screw",
+      "variant": "original",
+      "operations": 2,
+      "native_bodies": 2,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 2092.618122299877,
+      "occt_total_volume_mm3": null,
+      "max_occt_body_volume_difference_mm3": null,
+      "max_occt_body_bounds_difference_mm": null
+    },
+    {
+      "project": "12-acme-lead-screw",
+      "variant": "left to right hand",
+      "operations": 2,
+      "native_bodies": 2,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 2092.618122299877,
+      "occt_total_volume_mm3": null,
+      "max_occt_body_volume_difference_mm3": null,
+      "max_occt_body_bounds_difference_mm": null
+    },
+    {
+      "project": "13-m6-threaded-pair",
+      "variant": "original",
+      "operations": 5,
+      "native_bodies": 2,
+      "sketch_warnings": 3,
+      "total_volume_mm3": 1381.7446604040638,
+      "occt_total_volume_mm3": null,
+      "max_occt_body_volume_difference_mm3": null,
+      "max_occt_body_bounds_difference_mm": null
+    },
+    {
+      "project": "13-m6-threaded-pair",
+      "variant": "external thread length 8 to 7 mm",
+      "operations": 5,
+      "native_bodies": 2,
+      "sketch_warnings": 3,
+      "total_volume_mm3": 1387.2908821062424,
+      "occt_total_volume_mm3": null,
+      "max_occt_body_volume_difference_mm3": null,
+      "max_occt_body_bounds_difference_mm": null
+    },
+    {
+      "project": "14-quarter-inch-unc",
+      "variant": "original",
+      "operations": 5,
+      "native_bodies": 2,
+      "sketch_warnings": 3,
+      "total_volume_mm3": 2015.3962319032967,
+      "occt_total_volume_mm3": null,
+      "max_occt_body_volume_difference_mm3": null,
+      "max_occt_body_bounds_difference_mm": null
+    },
+    {
+      "project": "14-quarter-inch-unc",
+      "variant": "internal thread length 0.25 to 0.2 in",
+      "operations": 5,
+      "native_bodies": 2,
+      "sketch_warnings": 3,
+      "total_volume_mm3": 2021.0513454097154,
+      "occt_total_volume_mm3": null,
+      "max_occt_body_volume_difference_mm3": null,
+      "max_occt_body_bounds_difference_mm": null
+    },
+    {
+      "project": "orbit-drive-housing",
+      "variant": "original",
+      "operations": 16,
+      "native_bodies": 1,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 272452.3691843343,
+      "occt_total_volume_mm3": null,
+      "max_occt_body_volume_difference_mm3": null,
+      "max_occt_body_bounds_difference_mm": null
+    },
+    {
+      "project": "orbit-drive-housing",
+      "variant": "bearing bore diameter 40 to 42 mm",
+      "operations": 16,
+      "native_bodies": 1,
+      "sketch_warnings": 0,
+      "total_volume_mm3": 269361.042013202,
+      "occt_total_volume_mm3": null,
+      "max_occt_body_volume_difference_mm3": null,
+      "max_occt_body_bounds_difference_mm": null
+    }
+  ]
+}

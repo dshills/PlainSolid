@@ -15,15 +15,31 @@ against the selected PlainSolid kernel.
 
 ## Authored gallery projects
 
-On November 17, PlainSolid `e4658697` rebuilt 14 original gallery projects and
-their documented edits using the shipped PlainCAD adapter from `ff9287dd`.
-The five repaired cases are the angle bracket, motor flange, robot gripper,
-twin pulley, and heat exchanger. Chromium also opened and rendered each of
-those five files and rebuilt its edit. The compared models matched the
-recorded OpenCascade counts, volumes and bounds within the harness limits.
-The M6 and UNC projects retain the same authored sketch warnings as the
-pinned baseline. The valve cartridge remains the open gallery case on this
-revision. [Qualification record](evidence/plaincad-gallery-e4658697-2026-11-17.json)
+On November 17, PlainSolid `c10afb21` rebuilt all 14 original gallery projects
+and ORBIT, including a parameter edit for each, using the shipped PlainCAD
+adapter from `ff9287dd`. Chromium also opened, rendered and edited each of the
+six repaired projects on the same WASM.
+
+| Project | Modeling exercised by the repair | Live edit |
+| --- | --- | --- |
+| Angle fixture | Rounded foot chamfer, web join and both hole patterns | Web height 36 to 40 mm |
+| Motor flange | Circular boss join, through holes and rounded reliefs | Flange thickness 8 to 10 mm |
+| Flanged valve cartridge | Annular flange join and both bolt patterns | Valve height 32 to 36 mm |
+| Robot gripper | Rounded blind pocket and palm holes | Jaw span 56 to 60 mm |
+| Twin-pulley cassette | Coaxial annular join with a continuous bore | Pulley height 10 to 12 mm |
+| Heat exchanger | Blind side cuts in the rounded headers | Tube length 148 to 152 mm |
+
+The 30 rebuilds returned 266 valid native single-solid body results with zero
+feature errors. The M6 and UNC projects each reproduced the three sketch
+warnings from the pinned baseline. For the ten projects with published
+OpenCascade measurements, the maximum differences were 0.0009074 mm³ in body
+volume and 0.096961 mm in a display bound coordinate.
+[Qualification record](evidence/plaincad-gallery-complete-2026-11-17.json)
+
+The qualified kernel commit is available on `codex/plaincad-gallery` for the
+PlainCAD provider pin. The valve cover path qualifies direct planar support
+charts, including the two measured placements along the cartridge axis.
+Tessellation through arbitrary mapped planar support charts remains open.
 
 The focused runner and its invocation are in [tools/plaincad](../tools/plaincad/README.md).
 

@@ -4,10 +4,12 @@ The full OCCT replacement is **not complete**. This document distinguishes the
 implemented, tested kernel from the much larger specification. Full replacement
 and general-purpose production use remain unqualified.
 
-The November 17 PlainCAD gallery worklist has five qualified fixes on
-the gallery branch. The unchanged projects and their documented edits
-also pass the original provider qualification. The valve cartridge is still
-in progress. [Gallery evidence](evidence/plaincad-gallery-e4658697-2026-11-17.json)
+The November 17 PlainCAD gallery worklist is qualified on `c10afb21`.
+All six repairs passed Chromium File → Open, rendering and live edits on that
+kernel. All 14 gallery documents and ORBIT passed both original and edited
+WASM rebuilds through the app adapter. The next application integration step
+is to update the PlainCAD provider pin to the qualified kernel.
+[Gallery evidence](evidence/plaincad-gallery-complete-2026-11-17.json)
 
 The latest completed paired run is [Go](evidence/main-9f95a188-qualification-2026-11-16.json)
 and [PlainCAD](evidence/plaincad-main-9f95a188-2026-11-16.json) on
