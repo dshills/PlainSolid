@@ -83,14 +83,22 @@ func (b *Bridge) fuseRoundedStack(a, tool stored) (Shape, bool, error) {
 }
 
 func (b *Bridge) cutRoundedStack(a, tool stored) (Shape, bool, error) {
-	if a.analytic == nil || a.analytic.rounded == nil || a.analytic.rounded.stack == nil ||
+	if a.analytic == nil || a.analytic.rounded == nil ||
 		tool.analytic == nil || tool.analytic.rounded == nil {
 		return Shape{}, false, nil
 	}
 	base := *a.analytic.rounded
-	stack := *base.stack
+	// A plain positive extrusion already has its original upper cap at index 1.
+	stack := roundedStack{top: base.height, upper: 1, pocketCap: -1}
+	minFloor := 0.0
+	if base.stack != nil {
+		stack = *base.stack
+		minFloor = base.height
+	} else if base.height <= 0 || !base.isPlainExtrusion() {
+		return Shape{}, false, nil
+	}
 	profile, lo, hi, ok := roundedToolExtent(&base, tool.analytic.rounded)
-	if !ok || lo <= base.height || lo >= stack.top || hi < stack.top {
+	if !ok || lo <= minFloor || lo >= stack.top || hi < stack.top {
 		return Shape{}, false, nil
 	}
 	ctx := context.Background()
