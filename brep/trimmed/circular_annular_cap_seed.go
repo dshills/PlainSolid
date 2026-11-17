@@ -58,10 +58,21 @@ func certifyCircularAnnularSeedCap(ctx context.Context, f Face) (circularSeedCap
 // Search only the already authenticated annular cap's represented polygons.
 // Original vertices and trim parameterization remain the native source.
 func circularAnnularSeedLevel(ctx context.Context, f Face) (int, error) {
+	return sampledCircularCapLevel(ctx, [][]Use{f.Outer, f.Holes[0]})
+}
+
+func sampledCircularCapLevel(ctx context.Context, loops [][]Use) (int, error) {
+	vertices := 0
+	for _, loop := range loops {
+		vertices += len(loop)
+	}
 	for level := 1; level <= maxCircularAnnularSeedLevel; level++ {
-		var rings [2][]geom.Vec3
 		n := 1 << level
-		for i, loop := range [2][]Use{f.Outer, f.Holes[0]} {
+		if vertices > brep.MaxHoledFaceVertices/n {
+			break
+		}
+		rings := make([][]geom.Vec3, len(loops))
+		for i, loop := range loops {
 			for _, u := range loop {
 				for j := range n {
 					if err := ctx.Err(); err != nil {
@@ -75,7 +86,7 @@ func circularAnnularSeedLevel(ctx context.Context, f Face) (int, error) {
 				}
 			}
 		}
-		if _, err := triangulateExactUVFallback(ctx, rings[:], brep.MaxHoledFaceVertices); err == nil {
+		if _, err := triangulateExactUVFallback(ctx, rings, brep.MaxHoledFaceVertices); err == nil {
 			return level, nil
 		}
 		if err := ctx.Err(); err != nil {
@@ -253,6 +264,17 @@ func circularSeedWallChain(bands []geom.WrappedFrustumEmbedding) (WrappedStation
 func (s Solid) sampledAnnularEdges() []bool {
 	rim := make([]bool, len(s.edges))
 	for _, f := range s.faces {
+		if s.sampledAnalyticCaps {
+			if _, planar := f.Surface.(geom.PlaneSurface); planar {
+				for _, loop := range append([][]Use{f.Outer}, f.Holes...) {
+					if _, ok := capSeedCircle(loop); ok {
+						for _, u := range loop {
+							rim[u.Edge] = true
+						}
+					}
+				}
+			}
+		}
 		if w, ok := f.Surface.(*geom.WrappedSurfacePatch); ok {
 			_, curvedSeam := circularBoreBlendEnd(w, f)
 			for _, u := range f.Outer {

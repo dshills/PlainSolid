@@ -41,26 +41,46 @@ func circularStockSpan(p step.DiskHoleExtrusionBody, tool *cylinderBody) (trimme
 	}
 	origin := p.Frame.Origin()
 	start := p.Frame.ToLocal(tool.frame.Origin())
-	if p.Frame.ToWorld(start) != tool.frame.Origin() ||
-		!exactAxisDistance(tool.frame.Origin().Dot(p.Frame.XAxis()), origin.Dot(p.Frame.XAxis()), start.X) ||
-		!exactAxisDistance(tool.frame.Origin().Dot(p.Frame.YAxis()), origin.Dot(p.Frame.YAxis()), start.Y) ||
-		!exactAxisDistance(tool.frame.Origin().Dot(axis), origin.Dot(axis), start.Z) {
+	if !exactAxisDistance(tool.frame.Origin().Dot(p.Frame.XAxis()), origin.Dot(p.Frame.XAxis()), start.X) ||
+		!exactAxisDistance(tool.frame.Origin().Dot(p.Frame.YAxis()), origin.Dot(p.Frame.YAxis()), start.Y) {
 		return trimmed.ExtrusionCircle{}, 0, 0, false
 	}
-	end := start.Z + tool.height
-	if drill != axis {
-		end = start.Z - tool.height
+
+	// Through tools may end outside the stock at a station that has no
+	// binary64 representation in the stock chart. Clip the exact original
+	// interval first, then require both retained stations to be representable.
+	first, last := exactAxialInterval(tool.frame.Origin().Dot(axis), origin.Dot(axis), tool.height*drill.Dot(axis))
+	low := new(big.Rat).SetFloat64(min(0, p.Height))
+	high := new(big.Rat).SetFloat64(max(0, p.Height))
+	if first.Cmp(low) < 0 {
+		first = low
 	}
-	finish := p.Frame.ToWorld(geom.Vec3{X: start.X, Y: start.Y, Z: end})
-	if finish != tool.frame.ToWorld(geom.Vec3{Z: tool.height}) ||
-		!exactAxisDistance(finish.Dot(axis), tool.frame.Origin().Dot(axis), end-start.Z) ||
-		!exactAxisDistance(max(start.Z, end), min(start.Z, end), tool.height) {
-		return trimmed.ExtrusionCircle{}, 0, 0, false
+	if last.Cmp(high) > 0 {
+		last = high
 	}
 	hole := trimmed.ExtrusionCircle{Center: geom.Vec2{X: start.X, Y: start.Y}, Radius: tool.radius}
-	lo := max(min(0, p.Height), min(start.Z, end))
-	hi := min(max(0, p.Height), max(start.Z, end))
+	if first.Cmp(last) >= 0 {
+		return hole, 0, 0, true
+	}
+	lo, err := geom.RepresentedExactScalar(first)
+	if err != nil {
+		return trimmed.ExtrusionCircle{}, 0, 0, false
+	}
+	hi, err := geom.RepresentedExactScalar(last)
+	if err != nil {
+		return trimmed.ExtrusionCircle{}, 0, 0, false
+	}
 	return hole, lo, hi, true
+}
+
+func exactAxialInterval(toolOrigin, stockOrigin, signedHeight float64) (*big.Rat, *big.Rat) {
+	rat := func(x float64) *big.Rat { return new(big.Rat).SetFloat64(x) }
+	lo := new(big.Rat).Sub(rat(toolOrigin), rat(stockOrigin))
+	hi := new(big.Rat).Add(lo, rat(signedHeight))
+	if lo.Cmp(hi) > 0 {
+		return hi, lo
+	}
+	return lo, hi
 }
 
 // A negative result places the center distance strictly below the exact

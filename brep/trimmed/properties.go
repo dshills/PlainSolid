@@ -84,11 +84,11 @@ func (s Solid) MassProperties(ctx context.Context, o parametric.IntegrationOptio
 			}
 			continue
 		}
-		if len(s.seeds[i]) == 0 && s.sampledAnnularCaps {
-			// Signed planar polygon fans of the two original chord rings
+		if len(s.seeds[i]) == 0 && (s.sampledAnnularCaps || s.sampledAnalyticCaps) {
+			// Signed planar polygon fans of the original chord rings
 			// cancel in the overlap. The corrections below use the actual
 			// original curved trims, irrespective of display subdivision.
-			for _, loop := range [2][]Use{f.Outer, f.Holes[0]} {
+			for _, loop := range append([][]Use{f.Outer}, f.Holes...) {
 				for j := 1; j+1 < len(loop); j++ {
 					p := [3]geom.Vec2{loop[0].UVStart, loop[j].UVStart, loop[j+1].UVStart}
 					appendTriangle(f, triangleSurface{surface: f.Surface, p: p})
