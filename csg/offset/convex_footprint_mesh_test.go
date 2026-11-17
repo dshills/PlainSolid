@@ -77,8 +77,18 @@ func TestTessellateCertifiedConvexFootprintAtomic(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := bare.TessellateCertified(ctx, ConvexFootprintMeshOptions{Deflection: 1e-8, MaxRimIntervals: 3})
-	if err != nil || len(got.Rim) != 3 || got.SquaredNormalTangent.Sign() != 0 || got.Mesh.SignedVolume() != 16 {
+	if err != nil || len(got.Rim) != 3 || got.SquaredNormalTangent.Sign() != 0 {
 		t.Fatal("zero-radius prismatic mesh", got.Distance, got.SquaredNormalTangent, err)
+	}
+	// The rounded fan centers stay in their cap planes. Check the exact
+	// enclosed volume without relying on floating-point determinant rounding.
+	locator, err := collision.NewMeshPointLocator(ctx, got.Mesh, nil, collision.LocationOptions{})
+	if err != nil {
+		t.Fatal("zero-radius prismatic shell", err)
+	}
+	shells := locator.Shells()
+	if len(shells) != 1 || shells[0].SignedVolume.Cmp(big.NewRat(16, 1)) != 0 {
+		t.Fatal("zero-radius prismatic volume", shells)
 	}
 	triangle[2].Y = 3
 	shape, err := DilateConvexPrismFootprint(ctx, frame, triangle, 2, .625, 1e-9)
