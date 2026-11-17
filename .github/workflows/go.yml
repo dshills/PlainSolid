@@ -14,8 +14,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 180
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go }}
           cache: false
@@ -41,8 +41,8 @@ jobs:
     env:
       TEST_LANE: ${{ matrix.lane }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go }}
           cache: false
@@ -80,8 +80,8 @@ jobs:
     runs-on: ${{ matrix.target.runner }}
     timeout-minutes: 280
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.target.go }}
           cache: false
@@ -101,8 +101,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 260
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go }}
           cache: false
@@ -121,8 +121,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 290
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go }}
           cache: false
@@ -136,8 +136,8 @@ jobs:
   fuzz:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: stable
           cache: false
