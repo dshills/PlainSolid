@@ -91,6 +91,12 @@ func (s Solid) compactCylinderMeshWithNormals(ctx context.Context, o parametric.
 	levels := make([]int, len(curved))
 	for i := range levels {
 		levels[i] = 1
+		if s.sampledAnalyticCaps && curved[i] {
+			levels[i] = 1 << s.minimumLevel
+			if levels[i] > o.MaxSubdivisions {
+				return mesh.Mesh{}, true, parametric.ErrBudget
+			}
+		}
 	}
 	for iteration := 0; iteration <= len(s.edges)*11; iteration++ {
 		if err := ctx.Err(); err != nil {

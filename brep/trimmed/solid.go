@@ -44,15 +44,16 @@ type Face struct {
 // sides are permitted. A collapsed edge has equal ends, nil model curve,
 // and exactly one face use.
 type Solid struct {
-	vertices           []geom.Vec3
-	edges              []parametric.Edge
-	faces              []Face
-	tolerance          float64
-	seeds              [][]seed
-	minimumLevel       int
-	sampledAnnularCaps bool
-	splitSeeds         []bool
-	clippedFuseAxis    int // 0 for ordinary shells, 1 or 2 for an original-source clipped Fuse
+	vertices            []geom.Vec3
+	edges               []parametric.Edge
+	faces               []Face
+	tolerance           float64
+	seeds               [][]seed
+	minimumLevel        int
+	sampledAnnularCaps  bool
+	sampledAnalyticCaps bool
+	splitSeeds          []bool
+	clippedFuseAxis     int // 0 for ordinary shells, 1 or 2 for an original-source clipped Fuse
 }
 type seed struct {
 	uv  [3]geom.Vec2
@@ -297,7 +298,15 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 			return Solid{}, fmt.Errorf("trimmed: face vertex limit exceeded")
 		}
 		triangles, err := triangulateUV(rings)
-		if err != nil {
+		if err != nil && len(f.Holes) > 1 && certifyAnalyticCircularCap(f) {
+			level, seedErr := sampledCircularCapLevel(ctx, append([][]Use{f.Outer}, f.Holes...))
+			if seedErr != nil {
+				return Solid{}, fmt.Errorf("trimmed: face %d circular seed: %w", fi, seedErr)
+			}
+			triangles = nil // Integration uses the original signed chord rings.
+			s.sampledAnalyticCaps = true
+			s.minimumLevel = max(s.minimumLevel, level)
+		} else if err != nil {
 			if len(f.Holes) != 1 {
 				return Solid{}, fmt.Errorf("trimmed: face %d domain: %w", fi, err)
 			}
@@ -500,6 +509,12 @@ func (s Solid) tessellateWithTrimMemo(ctx context.Context, o parametric.Tessella
 			s.sampledAnnularCaps = true
 			s.minimumLevel = max(s.minimumLevel, 1)
 		}
+	}
+	if s.sampledAnalyticCaps {
+		if m, ok, err := s.compactCylinderMesh(ctx, o); ok {
+			return m, err
+		}
+		return mesh.Mesh{}, parametric.ErrDeflectionUnsupported
 	}
 	s = s.withTessellationTrimMemo(memo)
 	if s.sampledAnnularCaps {

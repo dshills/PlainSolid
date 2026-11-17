@@ -21,7 +21,7 @@ type interiorSample struct {
 }
 
 func (s Solid) refine(ctx context.Context, level int, deflection, angle float64) (mesh.Mesh, error) {
-	if s.sampledAnnularCaps {
+	if s.sampledAnnularCaps || s.sampledAnalyticCaps {
 		return s.refineFrom(ctx, level, level, deflection, angle)
 	}
 	m, e := s.refineFrom(ctx, level, 0, deflection, angle)
@@ -271,7 +271,7 @@ func appendFixedBoundary(dst []samples, t samples, p [3]geom.Vec2, id [3]int, sp
 func (s Solid) sampledSeeds(ctx context.Context, level int, m *mesh.Mesh, boundary map[sharedSample]int) ([][]samples, error) {
 	n := 1 << level
 	var rim []bool
-	if s.sampledAnnularCaps {
+	if s.sampledAnnularCaps || s.sampledAnalyticCaps {
 		rim = s.sampledAnnularEdges()
 	}
 	out := make([][]samples, len(s.faces))
