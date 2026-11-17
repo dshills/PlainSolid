@@ -13,6 +13,7 @@ type roundedStack struct {
 	upper, pocketCap int
 	bores            *roundedBores
 	web              *roundedWebBoreFaces
+	centerBoss       bool
 }
 
 func roundedToolExtent(base, tool *roundedStock) (trimmed.RoundedRectangle, float64, float64, bool) {
@@ -55,11 +56,17 @@ func buildRoundedLayer(ctx context.Context, frame geom.Frame, p trimmed.RoundedR
 }
 
 func (b *Bridge) fuseRoundedStack(a, tool stored) (Shape, bool, error) {
-	if a.analytic == nil || a.analytic.rounded == nil || tool.analytic == nil || tool.analytic.rounded == nil {
+	if a.analytic == nil || a.analytic.rounded == nil {
 		return Shape{}, false, nil
 	}
 	base := *a.analytic.rounded
 	if base.height <= 0 || base.cut || base.stack != nil || base.pedestal != nil {
+		return Shape{}, false, nil
+	}
+	if tool.cylinder != nil {
+		return b.fuseRoundedCircularBoss(a.analytic, base, tool.cylinder)
+	}
+	if tool.analytic == nil || tool.analytic.rounded == nil {
 		return Shape{}, false, nil
 	}
 	profile, lo, hi, ok := roundedToolExtent(&base, tool.analytic.rounded)
