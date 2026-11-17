@@ -12,6 +12,7 @@ type roundedStack struct {
 	top, floor       float64
 	upper, pocketCap int
 	bores            *roundedBores
+	web              *roundedWebBoreFaces
 }
 
 func roundedToolExtent(base, tool *roundedStock) (trimmed.RoundedRectangle, float64, float64, bool) {

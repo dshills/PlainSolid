@@ -132,6 +132,9 @@ func cutRoundedBores(a stored, tools []stored) (*analyticBody, float64, bool, er
 func (p roundedStock) boreSite(c *cylinderBody) (roundedBoreSite, trimmed.AxialBoreStep, error) {
 	start := p.frame.ToLocal(c.frame.Origin())
 	axis, normal := c.frame.ZAxis(), p.frame.ZAxis()
+	if web := p.stack.web; web != nil && (axis == web.frame.ZAxis() || axis == web.frame.ZAxis().Scale(-1)) {
+		return web.throughSite(c)
+	}
 	fail := func() (roundedBoreSite, trimmed.AxialBoreStep, error) {
 		return roundedBoreSite{}, trimmed.AxialBoreStep{}, geom.ErrDomain
 	}
