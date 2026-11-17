@@ -1,0 +1,6 @@
+# Preserve original CAD exchange bytes across checkouts. IGES fixtures use
+# fixed-width records, and STEP fixtures can be bound to exact source bytes.
+*.igs -text
+*.iges -text
+*.step -text
+*.stp -text
