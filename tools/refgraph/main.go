@@ -1,155 +1,104 @@
-// Command refgraph type-checks one package, with its in-package tests, and
-// prints every cross-file reference to a package-level object, method or
-// struct field. It measures how separable the files of a large package are.
+// Command refgraph measures how separable the files of one large package are.
+// It type-checks the package with its in-package tests, records every
+// cross-file reference to a package-level object, method or struct field, and
+// partitions the files into those other packages reach and those they do not.
 //
-//	go list -export -deps -test -f '{{if .Export}}{{.ImportPath}}={{.Export}}{{end}}' ./brep/trimmed > exports.txt
-//	go run ./tools/refgraph brep/trimmed plainsolid/brep/trimmed exports.txt > edges.tsv
+//	go run ./tools/refgraph -pkg brep/trimmed -exclude examples -out specs/brep-trimmed-split
+//	go run ./tools/refgraph -pkg brep/trimmed -edges edges.tsv
 //
-// Each output line is: using file, defining file, kind, name, exported, count.
-// Kind is func, type, var, const, method, field, or recv. A recv line means a
-// method is declared in a different file from its receiver type; the two files
-// must stay in one package.
+// The rules are in specs/brep-trimmed-split/PLAN.md. Run it from the module
+// root. -out writes core-files.txt, research-files.txt, research-tests.txt,
+// mixed-tests.txt and outside-files.txt. -edges writes one line per
+// reference: using file and declaration, defining file and declaration,
+// kind, name and count. Kind "recv" means a method is declared in a different
+// file from its receiver type, so the two files must stay in one package.
 package main
 
 import (
-	"bufio"
+	"flag"
 	"fmt"
-	"go/ast"
-	"go/build"
-	"go/importer"
-	"go/parser"
-	"go/token"
-	"go/types"
-	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
 func main() {
-	if len(os.Args) != 4 {
-		fmt.Fprintln(os.Stderr, "usage: refgraph <pkgdir> <importpath> <exports.txt>")
+	pkg := flag.String("pkg", "", "package directory relative to the module root")
+	exclude := flag.String("exclude", "", "comma-separated directories whose files are not roots")
+	out := flag.String("out", "", "directory for the file lists")
+	edges := flag.String("edges", "", "file for the reference list")
+	flag.Parse()
+	if *pkg == "" || flag.NArg() != 0 {
+		flag.Usage()
 		os.Exit(2)
 	}
-	dir, path := os.Args[1], os.Args[2]
-	exports := map[string]string{}
-	f, err := os.Open(os.Args[3])
+	if err := run(*pkg, *exclude, *out, *edges); err != nil {
+		fmt.Fprintln(os.Stderr, "refgraph:", err)
+		os.Exit(1)
+	}
+}
+
+func run(pkg, exclude, out, edges string) error {
+	root, err := os.Getwd()
 	if err != nil {
-		panic(err)
+		return err
 	}
-	defer func() { _ = f.Close() }()
-	sc := bufio.NewScanner(f)
-	sc.Buffer(make([]byte, 1<<20), 1<<20)
-	for sc.Scan() {
-		k, v, ok := strings.Cut(sc.Text(), "=")
-		if ok && !strings.Contains(k, " ") {
-			exports[k] = v
-		}
-	}
-	bp, err := build.ImportDir(dir, 0)
+	mod, err := exec.Command("go", "list", "-m").Output()
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("go list -m: %v", err)
 	}
-	fset := token.NewFileSet()
-	var files []*ast.File
-	for _, name := range append(append([]string{}, bp.GoFiles...), bp.TestGoFiles...) {
-		af, err := parser.ParseFile(fset, filepath.Join(dir, name), nil, parser.SkipObjectResolution)
-		if err != nil {
-			panic(err)
-		}
-		files = append(files, af)
+	importPath := strings.TrimSpace(string(mod)) + "/" + filepath.ToSlash(pkg)
+	dir := filepath.Join(root, pkg)
+	a, err := analyze(root, dir, importPath)
+	if err != nil {
+		return err
 	}
-	lookup := func(p string) (io.ReadCloser, error) {
-		e, ok := exports[p]
-		if !ok {
-			return nil, fmt.Errorf("no export data for %s", p)
+	if edges != "" {
+		var lines []string
+		for r, n := range a.refs {
+			lines = append(lines, fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%d", r.useFile, r.useDecl, r.defFile, r.defDecl, r.kind, r.name, n))
 		}
-		return os.Open(e)
-	}
-	nerr := 0
-	conf := types.Config{Importer: importer.ForCompiler(fset, "gc", lookup), Error: func(err error) {
-		if nerr < 5 {
-			fmt.Fprintln(os.Stderr, "typecheck:", err)
-		}
-		nerr++
-	}}
-	info := &types.Info{Uses: map[*ast.Ident]types.Object{}, Defs: map[*ast.Ident]types.Object{}}
-	pkg, _ := conf.Check(path, fset, files, info)
-	fmt.Fprintln(os.Stderr, "files", len(files), "xtest", len(bp.XTestGoFiles), "type errors", nerr)
-	base := func(p token.Pos) string { return filepath.Base(fset.Position(p).Filename) }
-	type key struct{ use, def, kind, name string }
-	count := map[key]int{}
-	classify := func(obj types.Object) string {
-		switch o := obj.(type) {
-		case *types.Func:
-			if sig, ok := o.Type().(*types.Signature); ok && sig.Recv() != nil {
-				return "method"
-			}
-			if o.Parent() == pkg.Scope() {
-				return "func"
-			}
-		case *types.Var:
-			if o.IsField() {
-				return "field"
-			}
-			if o.Parent() == pkg.Scope() {
-				return "var"
-			}
-		case *types.TypeName:
-			if o.Parent() == pkg.Scope() {
-				return "type"
-			}
-		case *types.Const:
-			if o.Parent() == pkg.Scope() {
-				return "const"
-			}
-		}
-		return ""
-	}
-	for id, obj := range info.Uses {
-		if obj == nil || obj.Pkg() != pkg || !obj.Pos().IsValid() {
-			continue
-		}
-		kind := classify(obj)
-		if kind == "" {
-			continue
-		}
-		u, d := base(id.Pos()), base(obj.Pos())
-		if u != d {
-			count[key{u, d, kind, obj.Name()}]++
+		if err := writeLines(edges, lines); err != nil {
+			return err
 		}
 	}
-	// A method must live in the package of its receiver type.
-	for _, af := range files {
-		for _, decl := range af.Decls {
-			fd, ok := decl.(*ast.FuncDecl)
-			if !ok || fd.Recv == nil || len(fd.Recv.List) == 0 {
-				continue
-			}
-			t := fd.Recv.List[0].Type
-			if s, ok := t.(*ast.StarExpr); ok {
-				t = s.X
-			}
-			if ix, ok := t.(*ast.IndexExpr); ok {
-				t = ix.X
-			}
-			id, ok := t.(*ast.Ident)
-			if !ok {
-				continue
-			}
-			if obj := pkg.Scope().Lookup(id.Name); obj != nil {
-				u, d := base(fd.Pos()), base(obj.Pos())
-				if u != d {
-					count[key{u, d, "recv", id.Name}]++
-				}
-			}
+	outside, err := scanOutside(root, root, dir, importPath)
+	if err != nil {
+		return err
+	}
+	var excluded []string
+	if exclude != "" {
+		excluded = strings.Split(exclude, ",")
+	}
+	c, err := classify(a, a.exports, outside, dir, importPath, excluded)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("production files %d: core %d, research %d; core-to-research references %d\n", len(a.prod), len(c.Core), len(c.Research), c.CoreToResearch)
+	fmt.Printf("in-package test files %d: research %d (of which mixed %d); external-package test files %d: research %d\n",
+		len(a.tests), len(c.ResearchTests), len(c.MixedTests), len(a.xtests), len(c.ResearchXTests))
+	fmt.Printf("files elsewhere naming a research symbol: %d\n", len(c.Outside))
+	if out == "" {
+		return nil
+	}
+	for name, lines := range map[string][]string{
+		"core-files.txt": c.Core, "research-files.txt": c.Research, "mixed-tests.txt": c.MixedTests,
+		"research-tests.txt": append(append([]string{}, c.ResearchTests...), c.ResearchXTests...), "outside-files.txt": c.Outside,
+	} {
+		if err := writeLines(filepath.Join(out, name), lines); err != nil {
+			return err
 		}
 	}
-	var out strings.Builder
-	for k, n := range count {
-		fmt.Fprintf(&out, "%s\t%s\t%s\t%s\t%t\t%d\n", k.use, k.def, k.kind, k.name, ast.IsExported(k.name), n)
+	return nil
+}
+
+func writeLines(path string, lines []string) error {
+	sort.Strings(lines)
+	text := strings.Join(lines, "\n")
+	if text != "" {
+		text += "\n"
 	}
-	if _, err := os.Stdout.WriteString(out.String()); err != nil {
-		panic(err)
-	}
+	return os.WriteFile(path, []byte(text), 0o644)
 }

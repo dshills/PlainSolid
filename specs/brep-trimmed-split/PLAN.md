@@ -12,8 +12,11 @@ symbols linked into a native build of `internal/plaincadbridge`.
   also `-tags research`.
 - **Core**: production files of `brep/trimmed` reachable from a root.
   **Research**: all other production files of the package.
-- **Root**: a `trimmed.Name` reference in a non-test Go file outside
-  `brep/trimmed`, excluding everything under `examples/`.
+- **Root**: anything a non-test Go file outside `brep/trimmed` uses from it,
+  excluding everything under `examples/`: a function, type, method or field,
+  and every method needed when a package type is used as an interface. Roots
+  are found by type-checking the calling packages, because a method call or
+  an interface conversion does not name the package.
 
 ## Goal
 
@@ -23,7 +26,8 @@ symbols linked into a native build of `internal/plaincadbridge`.
    compiles research code on every push so that it cannot rot.
 2. The default tier for `brep/trimmed` should take under 60 s of wall time on
    the 14-core development machine.
-3. No change to behavior, and no change to the PlainCAD WASM binary.
+3. No change to behavior, and no change to the code linked into the PlainCAD
+   kernel.
 
 ## Compatibility boundary
 
@@ -51,11 +55,11 @@ decision D1 below.
 | Largest group of mutually dependent files | 400 files, 96,153 lines, including `solid.go`, `persistence.go`, and 98 `spline_graph` and `algebraic_shell` files |
 | Files that depend on that group and that nothing in it depends on | 665 files, 113,606 lines |
 | Files with no dependency either way | 28 files (`native_prism`) |
-| Files reachable from any non-example package outside `brep/trimmed` | 542 files, 123,212 lines ("core") |
-| Files reachable from no outside package | 559 files, 96,194 lines ("research") |
+| Files reachable from any non-example package outside `brep/trimmed` | 561 files, 124,961 lines ("core") |
+| Files reachable from no outside package | 540 files, 94,416 lines ("research") |
 | References from core files to research files | 0 |
-| Unexported names research files use from core | 900 (450 fields, 306 functions, 77 methods, 56 types, 11 other) |
-| Methods research files declare on core types | 232 (80 on `Solid`) |
+| Unexported names research files use from core | 873 (438 fields, 298 functions, 72 methods, 55 types, 10 other) |
+| Methods research files declare on core types | 326 (125 on `Solid`) |
 | File pairs to cut before the 400-file group falls below 20 files | about 350 (about 1,000 references) |
 | Functions linked into the PlainCAD bridge | 784 of 4,807, in 246 of 1,101 files |
 
@@ -64,17 +68,17 @@ files:
 
 | Tier | Core tests | Research tests |
 |---|---|---|
-| Default tier | 560 tests, 62 s | 575 tests, 63 s |
-| Complete run | 4,439 s | 9,565 s |
+| Default tier | 567 tests, 63 s | 568 tests, 62 s |
+| Complete run | 4,225 s | 9,779 s |
 
-The package's default tier takes about 267 s of wall time because its tests run
+The package's default tier takes 261 s of wall time because its tests run
 one at a time; only 10 `t.Parallel` calls exist in `brep/trimmed` and
 `exchange/step` together.
 
 ## Decision
 
 A package boundary between core and research would require exporting about
-900 internal names and rewriting 232 methods as functions. That makes the
+870 internal names and rewriting 326 methods as functions. That makes the
 public API worse to buy a compile-time boundary. A build tag gives the same
 separation with no API change, because core never references research.
 
@@ -89,12 +93,14 @@ build tag, then decide what to do with the quarantined code. Breaking up the
    - `sha256` of the PlainCAD WASM built with
      `GOOS=js GOARCH=wasm go build -trimpath -buildvcs=false ./cmd/plaincadwasm`.
      Build it twice from a clean cache directory and require identical hashes.
-     A reproducible baseline is a prerequisite for Phase 2. If the two builds
-     differ, stop, find the source of the difference and fix the build
-     command; do not substitute a weaker check without the owner's approval.
+   - The linked-code fingerprint of the bridge: a native build of a one-line
+     `main` that calls `plaincadbridge.New().Call`, then the sorted list of
+     `go tool nm -size` text symbols with their sizes, and the size of the
+     code section.
    - The `go test -list '^(Test|Fuzz|Example)'` inventory for every package.
    - Default-tier wall time, measured three times.
-2. Add `tools/refgraph/classify.py`. Inputs: `refgraph` output for
+2. Extend `tools/refgraph` with a classifier, written in Go so that
+   `go test ./tools/refgraph` covers it. Inputs: the reference graph of
    `brep/trimmed` and the roots as defined above. Rules:
    - Core is the transitive closure of the root-defining files over every
      reference kind `refgraph` reports, in non-test files. Research is the
@@ -110,32 +116,39 @@ build tag, then decide what to do with the quarantined code. Breaking up the
      is research if it names an exported symbol declared in a research file.
    - `refgraph` runs on the default configuration for `darwin/arm64`,
      `linux/amd64` and `js/wasm`; the three results must agree.
-3. Write the resulting lists to `specs/brep-trimmed-split/core-files.txt`,
-   `research-files.txt` and `research-tests.txt` so the membership is
-   reviewed, not just counted.
+3. Write the resulting lists to `specs/brep-trimmed-split/`:
+   `core-files.txt`, `research-files.txt`, `research-tests.txt`,
+   `mixed-tests.txt` (research test files that also hold core declarations)
+   and `outside-files.txt`, so the membership is reviewed, not just counted.
 4. Give the classifier a test with a small fixture package covering a
    core-looking test that reaches research code only through helpers in two
    other files, a helper file shared by core and research tests, an
    external-package test, and an excluded `examples/` root.
+5. Dry-run the quarantine without editing any source: use `go build -overlay`
+   to delete the research production files and the outside non-test files;
+   it must succeed for every package. Then build the tests of `brep/trimmed`
+   with every research test file deleted except those in `mixed-tests.txt`;
+   every error must be in a mixed file.
 
 `refgraph` models static references only: calls, type and field uses, and
 method selections on a concrete type. It does not model a method reached only
 through an interface value, a type assertion, or reflection. The package has
 no `init` function, so there is no registration at start-up. Three checks
 cover what the graph cannot see: a core type that loses a method it needs to
-satisfy an interface fails the default build; the PlainCAD binary is compared
-byte for byte; and before tagging, every `.(interface{...})` assertion and
-`reflect` use in the package is reviewed against the 232 methods that research
-files declare on core types.
+satisfy an interface fails the default build; the code linked into the
+PlainCAD bridge is compared function by function; and every
+`.(interface{...})` assertion and `reflect` use in the module is reviewed
+against the 326 methods that research files declare on core types.
 
 Timing is always measured the same way: `go test -count=1 ./brep/trimmed`
 with a warm build cache and the default `-parallel`, three runs, median
 reported. `-count=1` disables test-result caching.
 
-Acceptance: the classifier test passes; the script reproduces 542 core and
-559 research files with 0 core-to-research references; the three lists are
-committed; the review of assertions and reflection is recorded in the phase
-report.
+Acceptance: the classifier test passes; the tool reports 561 core and 540
+research files with 0 core-to-research references on `darwin/arm64`,
+`linux/amd64` and `js/wasm`; the lists are committed; the dry run in step 5 succeeds; the review of assertions and
+reflection is recorded in `specs/brep-trimmed-split/BASELINE.md` with the
+baseline figures.
 
 ## Phase 1: run default-tier tests in parallel
 
@@ -163,21 +176,26 @@ This phase is independent of the others and delivers goal 2 by itself.
 
 ## Phase 2: quarantine research files behind a build tag
 
-Prerequisites: the owner has approved decision D1 in writing, and the Phase 0
-WASM baseline is reproducible. Without D1 approval this effort ends after
-Phase 1.
+Prerequisites: the owner has approved decisions D1 and D3 in writing. Without
+D1 approval this effort ends after Phase 1.
 
-1. Add `//go:build research` to the 559 research production files.
-2. Add the same tag to every test file that references a research file:
-   507 in-package files and 24 of the 29 external-package test files in the
-   directory.
-3. Resolve the 76 core test files that use a helper declared in a research
-   test file. For each helper: if it references no research file, move it to
-   an untagged `*_helpers_test.go` file; otherwise the test that uses it is
-   research and gets the tag.
-4. Tag the 28 files in other packages that reference research symbols: 27
-   test files (`exchange` 13, `internal/occtcheck` 8, `exchange/step` 4,
-   `exchange/iges` 1, `document` 1) and `examples/tubelens`.
+1. Add `//go:build research` to the 540 research production files.
+2. Split the 126 in-package test files in `mixed-tests.txt`. Each holds
+   research declarations next to a core test, or next to a helper that a core
+   test in another file uses. Move the research declarations to a new
+   `*_research_test.go` file beside it and leave the core ones in place.
+3. Add the tag to every test file that then holds a research declaration:
+   498 in-package files before the split, and 24 of the 29 external-package
+   test files in the directory. Rerun the classifier; `mixed-tests.txt` must
+   be empty.
+4. Tag the 33 files in other packages listed in `outside-files.txt`: test
+   files in `exchange`, `exchange/step`, `exchange/iges`, `document` and
+   `internal/occtcheck`, and the `examples/tubelens` program. Some of those
+   test files also declare helpers that core tests of the same package use;
+   the Phase 0 dry run found `runOracle` in `internal/occtcheck`,
+   `checkTwoCirclesExchangeReadback` in `exchange` and
+   `rationalStationSTEPFixture` in `exchange/step`. Move each such helper to
+   an untagged test file first.
 5. Keep research code compiling automatically, and its tests under an
    explicit manual gate:
    - `go.yml` (every push and pull request): keep the default build, vet and
@@ -195,8 +213,13 @@ Phase 1.
 Acceptance:
 
 - `go build ./...` and `go vet ./...` pass with and without `-tags research`.
-- Without the tag, `brep/trimmed` compiles 542 production files.
-- The PlainCAD WASM `sha256` equals the Phase 0 baseline.
+- Without the tag, `brep/trimmed` compiles 561 production files.
+- The linked-code fingerprint of the bridge equals the Phase 0 baseline: the
+  same text symbols, each with the same size, and the same code-section size.
+  The WASM file itself is expected to shrink by about 14 KB, because type
+  descriptors no longer list the research methods of core types and the line
+  tables no longer name research files. Record its new size and hash.
+- `go test ./internal/plaincadbridge` passes with `PLAINSOLID_SLOW=1`.
 - With `-tags research`, the test inventory equals the Phase 0 inventory.
 - The default tier passes, and `go test -tags research ./...` passes.
 - A push to a scratch branch shows the two new `go.yml` steps running.
@@ -223,7 +246,7 @@ while. The options, cheapest first:
   run only in qualification.
 - Move it to a long-lived branch and delete it from `main`. History and the
   `refs/archive` refs keep it.
-- Promote it to a real package. Cost: export about 900 names and convert 232
+- Promote it to a real package. Cost: export about 870 names and convert 326
   methods. Not recommended.
 
 Acceptance: the owner's choice is recorded in `docs/STATUS.md` with its date.
@@ -247,14 +270,20 @@ component. Only when it is below about 50 files is a package split of core
 worth planning.
 
 Acceptance for each hub cut: the largest component is smaller than before,
-the default tier passes, and the PlainCAD WASM baseline check from Phase 0
-still holds.
+the default tier passes, and the linked-code fingerprint from Phase 0 still
+holds.
 
 ## Decisions for the owner
 
 - **D1.** Is it acceptable that research exported names leave the default
   build? This plan assumes yes. If no, stop after Phase 1.
 - **D2.** The fate of the quarantined code (Phase 3).
+- **D3.** The original gate for Phase 2 was a byte-identical PlainCAD WASM.
+  The Phase 0 dry run showed that cannot hold: removing research files leaves
+  every linked function and its size unchanged but shrinks type descriptors
+  and line tables, so the file differs. This plan now uses the linked-code
+  fingerprint plus the bridge tests instead. Approve that, or name the gate
+  you want.
 
 ## Risks
 
