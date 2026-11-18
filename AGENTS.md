@@ -1,7 +1,75 @@
 # PlainSolid repository instructions
 
-- When asked to build the OCCT replacement, keep working until the library is complete and tested against the acceptance criteria in [the specification](docs/SPECIFICATION.md) and [the implementation plan](docs/IMPLEMENTATION_PLAN.md). A passing milestone is a progress checkpoint; proceed to the next actionable work without waiting for another prompt. Use commentary for progress updates.
-- Track evidence, open requirements, and the next actionable work in [the status document](docs/STATUS.md) and [the verification record](docs/VERIFICATION.md). Mark the replacement complete only when all required capabilities and qualification checks have passed. If a hard limit interrupts work, record exactly what remains so it can resume. When resuming, read those records and continue the next unfinished implementation task without requiring the user to restate the objective.
-- Parallelize independent implementation and verification where available. Keep external dependencies to a minimum and document any additions.
-- Use a separate `codex/` branch and Git worktree for independent chats. Assign disjoint files to cooperating subagents and review their combined changes before committing. Leave another agent's checkout, branch, and uncommitted work untouched.
-- Commit coherent, verified milestones. Stage only owned changes, label unqualified snapshots as work in progress, and do not treat a Git checkpoint as an acceptance pass.
+PlainSolid is a Go solid-modeling kernel. Its working goal is to be the kernel
+that PlainCAD runs on, as defined by the gates in
+[PlainCAD readiness](docs/PLAINCAD_READINESS.md). The full OCCT replacement in
+[the specification](docs/SPECIFICATION.md) is a long-term direction, not a
+task: work on a part of it only when the user asks for that part. Where
+[the implementation plan](docs/IMPLEMENTATION_PLAN.md) or
+[the status document](docs/STATUS.md) says to continue full-target work in
+parallel or without a prompt, this file wins.
+
+## Scope
+
+- Do the task the user gave, then stop and report what changed, what you ran,
+  what you did not verify, and what you would do next. Do not start the next
+  item unprompted. Earlier runs that chose their own next work added several
+  hundred thousand lines that PlainCAD never calls.
+- With no specific task, the next work is the first failing PlainCAD acceptance
+  case. If none fails, say so and stop.
+- A kernel capability is in scope when an operation in
+  `internal/plaincadbridge` needs it. Anything else needs the user's request.
+- Do not add a function, type or file family that handles one named
+  arrangement of inputs, such as `CutParabolaThreeCirclesSplineGraphs`. If a
+  task seems to need one, extend a general mechanism so the new case is data,
+  or stop and describe the gap to the user. Enumerating arrangements does not
+  converge on a kernel.
+- A new capability does not automatically get native persistence, STEP and
+  IGES. Add each only when the task needs it.
+- A new exported identifier needs a caller outside its package in the same
+  change.
+- Prefer a new package to more files in `brep/trimmed`. That package has about
+  2,000 files, so any edit to it reruns its tests and those of every package
+  that imports it.
+- Unsupported input returns an explicit error. Never return a plausible but
+  incorrect shape, and never call a faceted approximation exact.
+- The kernel uses the standard library only. Ask before adding a dependency.
+
+## Verification budget
+
+- For each change: `go build ./...`, `go vet ./...`, and `go test` on the
+  packages you changed. Before merging to `main`: `go test ./...`. These run
+  the fast tier described in [the CI notes](tools/ci/README.md#test-tiers).
+- Run a slow test by name, with `PLAINSOLID_SLOW=1`, only when your change
+  touches the code it covers.
+- Run the complete suite, race runs, `tools/ci/run-go-qualification.py`,
+  cross-platform builds and the PlainCAD browser gates only when the user asks.
+  Never run them per commit: the complete Go suite is hours of machine time,
+  and each qualification stage copies the whole tree. Delete a stage directory
+  once you have reported its result.
+- Write one test per behavior, table-driven where inputs vary. A new test
+  finishes in under two seconds or starts with `slowtest.Skip(t)`.
+- If a check fails for a reason unrelated to your change, report it and leave
+  it alone.
+
+## Records
+
+- `docs/STATUS.md` and `docs/VERIFICATION.md` are archives of about 1 MB. Do
+  not read them in full and do not append to them. Search them with `rg` when
+  you need the history of one feature.
+- Do not add files under `docs/evidence`. The record of a change is its commit
+  message: what changed, what was run, and what was not.
+- If a change alters what the kernel supports, update the capability summary
+  in [the README](README.md) in a line or two.
+- When resuming, read this file and `git log -15`. If work is interrupted,
+  leave a commit labeled work in progress whose message says what remains.
+
+## Git
+
+- Use a separate `codex/` branch and Git worktree for each independent chat,
+  and remove the worktree once its branch is merged. Leave another agent's
+  checkout, branch and uncommitted work untouched.
+- Use subagents only for independent parts of the task at hand. Give them
+  disjoint files and review their combined changes before committing.
+- Commit coherent, verified pieces. Stage only your own changes. A commit is a
+  checkpoint, not an acceptance pass.
