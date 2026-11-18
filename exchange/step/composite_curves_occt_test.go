@@ -12,6 +12,7 @@ import (
 )
 
 func TestOCCTCompositeCurves(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_STEP_COMPOSITE")
 	if oracle == "" {
 		t.Skip("optional independent STEP composite oracle")

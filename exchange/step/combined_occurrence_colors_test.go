@@ -24,6 +24,7 @@ func combinedColorsFixture(t testing.TB) []byte {
 	return b
 }
 func TestCombinedOccurrenceColors(t *testing.T) {
+	t.Parallel()
 	raw := combinedColorsFixture(t)
 	ctx := context.Background()
 	m, e := ReadCombinedOccurrenceColoredAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -48,6 +49,7 @@ func TestCombinedOccurrenceColors(t *testing.T) {
 }
 
 func TestCombinedOccurrenceColorsLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_AP242_COMBINED_CONTEXT")
 	if bin == "" {
 		t.Skip("optional pinned XCAF SHUO observer")
@@ -133,6 +135,7 @@ func TestCombinedOccurrenceColorsLive(t *testing.T) {
 }
 
 func TestCombinedOccurrenceColorsReject(t *testing.T) {
+	t.Parallel()
 	raw := string(combinedColorsFixture(t))
 	ctx := context.Background()
 	for _, c := range [][2]string{
@@ -168,6 +171,7 @@ func TestCombinedOccurrenceColorsReject(t *testing.T) {
 	}
 }
 func TestCombinedOccurrenceColorsNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m, e := ReadCombinedOccurrenceColoredAssembly(ctx, bytes.NewReader(combinedColorsFixture(t)), Limits{})
 	if e != nil {

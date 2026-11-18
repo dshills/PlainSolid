@@ -21,6 +21,7 @@ func diskBoundSource(t testing.TB) []byte {
 	return b
 }
 func TestDiskHoleBoundEncoding(t *testing.T) {
+	t.Parallel()
 	raw := diskBoundSource(t)
 	v, e := ReadDiskHoleBoundEncoding(bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -52,6 +53,7 @@ func TestDiskHoleBoundEncoding(t *testing.T) {
 	}
 }
 func TestDiskHoleBoundEncodingRejects(t *testing.T) {
+	t.Parallel()
 	raw := diskBoundSource(t)
 	base, e := ReadDiskHoleBoundEncoding(bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -121,6 +123,7 @@ func TestDiskHoleBoundEncodingRejects(t *testing.T) {
 	}
 }
 func TestOCCTDiskHoleBoundEncoding(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_DISK_BOUND_MASS")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

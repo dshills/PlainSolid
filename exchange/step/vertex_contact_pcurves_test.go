@@ -37,6 +37,7 @@ func checkPlanarContactPCurveTransfer(t *testing.T, source []byte) {
 }
 
 func TestPlanarVertexContactAssemblySTEPOCCTOriginalPCurves(t *testing.T) {
+	t.Parallel()
 	source, err := os.ReadFile(occtPlanarContactPCurves)
 	if err != nil {
 		t.Fatal(err)
@@ -65,6 +66,7 @@ func TestPlanarVertexContactAssemblySTEPOCCTOriginalPCurves(t *testing.T) {
 }
 
 func TestPlanarVertexContactAssemblySTEPOCCTLivePCurves(t *testing.T) {
+	t.Parallel()
 	author := os.Getenv("PLAINSOLID_OCCT_PLANAR_CONTACT_AUTHOR")
 	if author == "" {
 		t.Skip("optional pinned OCCT planar contact author")

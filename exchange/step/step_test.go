@@ -22,6 +22,7 @@ func fixture(t testing.TB) string {
 	return string(b)
 }
 func TestIndependentFixture(t *testing.T) {
+	t.Parallel()
 	m, e := Read(strings.NewReader(fixture(t)), Limits{})
 	if e != nil {
 		t.Fatal(e)
@@ -38,6 +39,7 @@ func TestIndependentFixture(t *testing.T) {
 	}
 }
 func TestExportRoundTrip(t *testing.T) {
+	t.Parallel()
 	s, e := brep.Box(geom.Vec3{X: -1, Y: -2, Z: -3}, geom.Vec3{X: 2, Y: 3, Z: 4})
 	if e != nil {
 		t.Fatal(e)
@@ -84,6 +86,7 @@ func TestExportRoundTrip(t *testing.T) {
 	}
 }
 func TestHoledPrism(t *testing.T) {
+	t.Parallel()
 	outer := []geom.Vec3{{}, {X: 4}, {X: 4, Y: 4}, {Y: 4}}
 	hole := []geom.Vec3{{X: 1, Y: 1}, {X: 2, Y: 1}, {X: 2, Y: 2}, {X: 1, Y: 2}}
 	s, e := brep.PrismWithHoles(outer, [][]geom.Vec3{hole}, geom.Vec3{Z: 2})
@@ -114,6 +117,7 @@ func TestHoledPrism(t *testing.T) {
 	}
 }
 func TestSyntaxAndLimits(t *testing.T) {
+	t.Parallel()
 	valid := fixture(t)
 	for _, l := range []Limits{{MaxBytes: 10}, {MaxEntities: 1}, {MaxValues: 1}, {MaxDepth: 1}, {MaxDepth: 257}, {MaxVertices: 2}, {MaxFaces: 2}, {MaxBytes: -1}} {
 		if _, e := Read(strings.NewReader(valid), l); e == nil {
@@ -127,6 +131,7 @@ func TestSyntaxAndLimits(t *testing.T) {
 	}
 }
 func TestUnsupportedAndMalformedTopology(t *testing.T) {
+	t.Parallel()
 	valid := fixture(t)
 	for _, s := range []string{strings.Replace(valid, "FACETED_BREP_SHAPE_REPRESENTATION", "ADVANCED_BREP_SHAPE_REPRESENTATION", 1), strings.Replace(valid, "FACETED_BREP('tetra", "MANIFOLD_SOLID_BREP('tetra", 1), strings.Replace(valid, "FACE_OUTER_BOUND('',#11", "FACE_BOUND('',#11", 1), strings.Replace(valid, "FACE_OUTER_BOUND('',#12", "FACE_BOUND('',#12", 1), strings.Replace(valid, ".MILLI.,.METRE.", ".MILLI.,.SECOND.", 1), strings.Replace(valid, "CONTEXT(3)", "CONTEXT(2)", 1), strings.Replace(valid, "#100,#102,#101", "#100,#101,#102", 1), strings.Replace(valid, "#100,#102,#101", "#100,#100,#101", 1), strings.Replace(valid, ".T.", ".U.", 1)} {
 		if s == valid {
@@ -150,6 +155,7 @@ type shortWriter struct{}
 
 func (shortWriter) Write(b []byte) (int, error) { return len(b) / 2, nil }
 func TestIOErrors(t *testing.T) {
+	t.Parallel()
 	if _, e := Parse(nil, Limits{}); e == nil {
 		t.Fatal("nil")
 	}
@@ -194,11 +200,13 @@ func FuzzRead(f *testing.F) {
 }
 
 func TestExpandedEdgeUseBudget(t *testing.T) {
+	t.Parallel()
 	if _, e := Read(strings.NewReader(fixture(t)), Limits{MaxEdgeUses: 11}); e == nil {
 		t.Fatal("edge-use limit")
 	}
 }
 func TestComplexAndEscapedValues(t *testing.T) {
+	t.Parallel()
 	s := strings.Replace(fixture(t), "#2=FACETED_BREP('tetra''s'", `#2=FACETED_BREP('\X2\0394\X0\'`, 1)
 	m, e := Read(strings.NewReader(s), Limits{})
 	if e != nil || m.Bodies[0].Name != "Δ" {
@@ -211,6 +219,7 @@ func TestComplexAndEscapedValues(t *testing.T) {
 	}
 }
 func TestRejectAssemblyEntities(t *testing.T) {
+	t.Parallel()
 	s := strings.Replace(fixture(t), "#100=CARTESIAN_POINT", "#200=NEXT_ASSEMBLY_USAGE_OCCURRENCE('','','',#2,#2,$);\n#100=CARTESIAN_POINT", 1)
 	if _, e := Read(strings.NewReader(s), Limits{}); e == nil {
 		t.Fatal("silently ignored assembly")
@@ -218,6 +227,7 @@ func TestRejectAssemblyEntities(t *testing.T) {
 }
 
 func TestPart21NumericLexemes(t *testing.T) {
+	t.Parallel()
 	valid := fixture(t)
 	for _, bad := range []string{".5", "1E2", "1.e2", "1.2E3.", "+"} {
 		s := strings.Replace(valid, "0.,0.,1.", "0.,0.,"+bad, 1)
@@ -240,6 +250,7 @@ func explicitPlaneFixture(t testing.TB) string {
 	return strings.Replace(s, "#90=(", extra+"#90=(", 1)
 }
 func TestExplicitPlanarFace(t *testing.T) {
+	t.Parallel()
 	s := explicitPlaneFixture(t)
 	m, e := Read(strings.NewReader(s), Limits{})
 	if e != nil || math.Abs(m.Bodies[0].Solid.Tessellate().SignedVolume()-1.0/6) > 1e-14 {
@@ -260,6 +271,7 @@ func TestExplicitPlanarFace(t *testing.T) {
 	}
 }
 func TestExporterDeclaresFaceSurfaces(t *testing.T) {
+	t.Parallel()
 	s, e := brep.Box(geom.Vec3{}, geom.Vec3{X: 1, Y: 2, Z: 3})
 	if e != nil {
 		t.Fatal(e)

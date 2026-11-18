@@ -8,8 +8,12 @@ import (
 	"testing"
 )
 
-func TestCurvedOvalFaceOCCT(t *testing.T) { checkCurvedOvalOCCT(t, "write-step-curved-oval-face") }
+func TestCurvedOvalFaceOCCT(t *testing.T) {
+	t.Parallel()
+	checkCurvedOvalOCCT(t, "write-step-curved-oval-face")
+}
 func TestRationalCurvedOvalFaceOCCT(t *testing.T) {
+	t.Parallel()
 	checkCurvedOvalOCCT(t, "write-step-rational-curved-oval-face")
 }
 func checkCurvedOvalOCCT(t *testing.T, mode string) {

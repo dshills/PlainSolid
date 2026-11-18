@@ -10,6 +10,7 @@ import (
 )
 
 func TestIndependentConcurrentRationalLens(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/concurrent-rational-lens.step")
 	if e != nil {
 		t.Fatal(e)
@@ -34,6 +35,7 @@ func TestIndependentConcurrentRationalLens(t *testing.T) {
 	}
 }
 func TestRationalLensOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-concurrent-rational-lens")
 	raw, e := os.ReadFile(source)

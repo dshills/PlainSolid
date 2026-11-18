@@ -70,6 +70,7 @@ func sideDiskReversePlanes(t *testing.T, raw []byte, mode string) ([]byte, int) 
 	return out, n
 }
 func TestReadSideOpenDualDiskProductOppositePlanes(t *testing.T) {
+	t.Parallel()
 	for _, through := range []bool{false, true} {
 		var b bytes.Buffer
 		if e := WriteSideOpenDualDiskProduct(context.Background(), &b, sideDiskDescriptor(t, through)); e != nil {
@@ -111,6 +112,7 @@ func TestReadSideOpenDualDiskProductOppositePlanes(t *testing.T) {
 	}
 }
 func TestReadSideOpenDualDiskProductOppositePlanesRejects(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteSideOpenDualDiskProduct(context.Background(), &b, sideDiskDescriptor(t, false)); e != nil {
 		t.Fatal(e)
@@ -145,6 +147,7 @@ func TestReadSideOpenDualDiskProductOppositePlanesRejects(t *testing.T) {
 	}
 }
 func TestOCCTSideOpenDualDiskOppositePlanes(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS")
 	if oracle == "" {
 		t.Skip("optional independent OCCT helper")

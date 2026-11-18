@@ -13,6 +13,7 @@ import (
 )
 
 func TestCylinderSupportsRetained(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/cylinder-support.step")
 	if e != nil {
 		t.Fatal(e)
@@ -26,6 +27,7 @@ func TestCylinderSupportsRetained(t *testing.T) {
 	}
 }
 func TestOCCTCylinderSupports(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_CYLINDER_SUPPORT")
 	if bin == "" {
 		t.Skip("optional OCCT")

@@ -20,6 +20,7 @@ func twoEllipseFixture(t testing.TB) []byte {
 	return b
 }
 func TestTwoEllipticalHoleFace(t *testing.T) {
+	t.Parallel()
 	raw := twoEllipseFixture(t)
 	f, e := ReadTwoEllipticalHoleFace(bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -74,6 +75,7 @@ func TestTwoEllipticalHoleFace(t *testing.T) {
 	}
 }
 func TestTwoEllipticalHoleFaceReject(t *testing.T) {
+	t.Parallel()
 	raw := twoEllipseFixture(t)
 	for _, m := range [][2]string{{"#18,#42,#61", "#18,#42,#42"}, {"#68,(#73)", "#68,(#54)"}, {"#73 = PCURVE('',#31,#74)", "#73 = PCURVE('',#25,#74)"}, {"#65 = VERTEX_POINT('',#66)", "#65 = VERTEX_POINT('',#47)"}, {"#61 = FACE_BOUND('',#62,.F.)", "#61 = FACE_BOUND('',#62,.T.)"}, {"#75),#79", "#56),#79"}, {"#68 = ELLIPSE('',#69,2.,1.)", "#68 = ELLIPSE('',#69,2.,1.00000000000000001)"}} {
 		b := bytes.Replace(raw, []byte(m[0]), []byte(m[1]), 1)
@@ -144,6 +146,7 @@ func twoEllipseMoveSecond(t testing.TB, c geom.Vec2) []byte {
 	return raw
 }
 func TestTwoEllipticalHoleSeparation(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		c    geom.Vec2
 		ok   bool

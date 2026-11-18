@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestNativeParabolaThreeCrossingCirclesCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	// Independent exact Green integrals of the original signed height
 	// difference and of xF, yF, and 2F + F²/2 over each source region.

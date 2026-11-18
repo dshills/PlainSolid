@@ -171,6 +171,7 @@ func TestRationalHierarchyPlanarLine(t *testing.T) {
 }
 
 func TestHierarchyPlanarLineRejectsUnsupportedConvexity(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	outer := []geom.Vec3{{X: 0, Y: 0}, {X: 4, Y: 0}, {X: 4, Y: 1}, {X: 1, Y: 1}, {X: 1, Y: 4}, {X: 0, Y: 4}}
 	solid, e := brep.Prism(outer, geom.Vec3{Z: 2})
@@ -211,6 +212,7 @@ func TestHierarchyPlanarLineRejectsUnsupportedConvexity(t *testing.T) {
 }
 
 func TestHierarchyPlanarLineForgedSource(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, _ := os.ReadFile("testdata/rational-spherical-hierarchy.step")
 	m, e := readRationalSphericalHierarchy(ctx, bytes.NewReader(raw), Limits{}, 1e-9, false)

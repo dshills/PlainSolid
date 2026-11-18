@@ -186,6 +186,7 @@ func TestRepairedMixedConicalAP242FrameReceipt(t *testing.T) {
 }
 
 func TestRepairMixedConicalAP242FramePinnedAuthor(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_MIXED_CONICAL_AP242_FRAME_REPAIR")
 	if oracle == "" {
 		t.Skip("pinned rounded occurrence author not configured")

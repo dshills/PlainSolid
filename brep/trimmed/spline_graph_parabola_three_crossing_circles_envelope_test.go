@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestNativeParabolaThreeCrossingCirclesEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	original := [2]float64{
 		969374254391585495.0/486388759756013568 - 2837911685.0*math.Pi/211106232532992,
 		1077841223684269609.0/486388759756013568 + 2837911685.0*math.Pi/211106232532992,

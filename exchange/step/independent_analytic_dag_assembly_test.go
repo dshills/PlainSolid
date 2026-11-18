@@ -27,6 +27,7 @@ func independentAnalyticDAGModel(t testing.TB) IndependentAnalyticDAGAssemblyMod
 	return IndependentAnalyticDAGAssemblyModel(m)
 }
 func TestIndependentAnalyticDAGAssembly(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/independent-analytic-dag-assembly.step")
 	if e != nil {

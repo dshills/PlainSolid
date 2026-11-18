@@ -14,6 +14,7 @@ import (
 )
 
 func TestWrappedIsoSourceDecimals(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile("testdata/wrapped-tube.step")
 	if err != nil {
 		t.Fatal(err)
@@ -35,6 +36,7 @@ func TestWrappedIsoSourceDecimals(t *testing.T) {
 }
 
 func TestWrappedIsoSourceKnots(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile("testdata/wrapped-tube.step")
 	if err != nil {
 		t.Fatal(err)
@@ -52,6 +54,7 @@ func TestWrappedIsoSourceKnots(t *testing.T) {
 }
 
 func TestWrappedIsoSourceNumber(t *testing.T) {
+	t.Parallel()
 	for _, s := range []string{"0", "0.5", "5.E-1", "-0.125", "2."} {
 		if _, err := wrappedIsoSourceNumber(Value{Kind: Number, Text: s}); err != nil {
 			t.Fatalf("%s: %v", s, err)
@@ -65,6 +68,7 @@ func TestWrappedIsoSourceNumber(t *testing.T) {
 }
 
 func TestWrappedIsoSourceLiveOCCT(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_FRUSTUM_HIERARCHY")
 	if bin == "" {
 		t.Skip("set PLAINSOLID_OCCT_FRUSTUM_HIERARCHY for adaptive original/output transfer")

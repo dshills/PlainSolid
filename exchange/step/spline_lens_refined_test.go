@@ -32,6 +32,7 @@ func refinedLensFixture(t testing.TB) SplineLensBody {
 	return m
 }
 func TestRefinedSplineLens(t *testing.T) {
+	t.Parallel()
 	m := refinedLensFixture(t)
 	var b bytes.Buffer
 	if e := WriteSplineLensBody(&b, m, CurvedOvalOptions{}); e != nil {
@@ -67,6 +68,7 @@ func TestRefinedSplineLens(t *testing.T) {
 	}
 }
 func TestRefinedSplineLensRejections(t *testing.T) {
+	t.Parallel()
 	m := refinedLensFixture(t)
 	var b bytes.Buffer
 	if e := WriteSplineLensBody(&b, m, CurvedOvalOptions{MaxPoles: 18}); e == nil || b.Len() != 0 {
@@ -92,6 +94,7 @@ func TestRefinedSplineLensRejections(t *testing.T) {
 	}
 }
 func TestRefinedBothSplineLensSupports(t *testing.T) {
+	t.Parallel()
 	m := refinedLensFixture(t)
 	p, e := geom.NewSurfacePatch(m.Upper, geom.SurfacePatchOptions{})
 	if e != nil {
@@ -115,6 +118,7 @@ func TestRefinedBothSplineLensSupports(t *testing.T) {
 	}
 }
 func TestIndependentRefinedLens(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/refined-spline-lens.step")
 	if e != nil {
 		t.Fatal(e)
@@ -151,6 +155,7 @@ func TestIndependentRefinedLens(t *testing.T) {
 	}
 }
 func TestRefinedLensRejectsFullMultiplicityBreak(t *testing.T) {
+	t.Parallel()
 	m := splineLensFixture(t)
 	var e error
 	m.Lower, e = m.Lower.InsertUKnot(.5, 3)

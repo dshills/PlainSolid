@@ -77,6 +77,7 @@ func TestNestedWrappedAnisotropicAssemblies(t *testing.T) {
 	}
 }
 func TestNestedWrappedAnisotropicReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, bore := range []bool{false, true} {
 		raw := nestedAnisotropicFixture(t, bore)
@@ -138,6 +139,7 @@ func TestNestedWrappedAnisotropicReject(t *testing.T) {
 	}
 }
 func TestNestedWrappedAnisotropicLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_ANISOTROPIC_STATION")
 	if bin == "" {
 		t.Skip("optional independent XCAF")

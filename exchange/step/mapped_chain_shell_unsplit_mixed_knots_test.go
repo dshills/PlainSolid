@@ -35,6 +35,7 @@ func unsplitMixedKnotFixture(t *testing.T) ([]byte, MappedChainShellSTEPOptions)
 }
 
 func TestOCCTMappedChainRectangularUnsplitMixedSupportKnots(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, o := unsplitMixedKnotFixture(t)
 	for _, disabled := range []MappedChainShellSTEPOptions{
@@ -158,6 +159,7 @@ func TestOCCTMappedChainRectangularUnsplitMixedSupportKnots(t *testing.T) {
 }
 
 func TestOCCTMappedChainRectangularUnsplitMixedSupportKnotsRejectsInvalidSourceEvents(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, o := unsplitMixedKnotFixture(t)
 	tests := []struct {
@@ -197,6 +199,7 @@ func TestOCCTMappedChainRectangularUnsplitMixedSupportKnotsRejectsInvalidSourceE
 }
 
 func TestOCCTMappedChainRectangularUnsplitMixedSupportKnotsReversedEdge(t *testing.T) {
+	t.Parallel()
 	raw, o := unsplitMixedKnotFixture(t)
 	f, err := Parse(bytes.NewReader(raw), Limits{})
 	if err != nil {
@@ -220,6 +223,7 @@ func TestOCCTMappedChainRectangularUnsplitMixedSupportKnotsReversedEdge(t *testi
 }
 
 func TestOCCTMappedChainRectangularUnsplitMixedSupportKnotsPreservesExistingModes(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	_, o := unsplitMixedKnotFixture(t)
 	o.AllowAsynchronousSupportKnots = true
@@ -244,6 +248,7 @@ func TestOCCTMappedChainRectangularUnsplitMixedSupportKnotsPreservesExistingMode
 }
 
 func TestOCCTMappedChainRectangularUnsplitMixedSupportKnotsLive(t *testing.T) {
+	t.Parallel()
 	exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if exe == "" {
 		t.Skip("optional pinned OCCT STEP consumer")

@@ -37,6 +37,7 @@ func checkRationalTiltGroupedMeasures(t testing.TB, volume, area float64, center
 }
 
 func TestRepairRationalPosedGroupedPCurveOCCTConvexArc(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := rationalTiltGroupedSource(t)
 	opts := ConvexArcRepairOptions{MaxDistance: 1e-12}
@@ -170,6 +171,7 @@ func TestRepairRationalPosedGroupedPCurveOCCTConvexArc(t *testing.T) {
 }
 
 func TestRepairRationalPosedGroupedPCurveOCCTConvexArcReject(t *testing.T) {
+	t.Parallel()
 	raw := rationalTiltGroupedSource(t)
 	ctx := context.Background()
 	opts := ConvexArcRepairOptions{MaxDistance: 1e-12}
@@ -219,6 +221,7 @@ func TestRepairRationalPosedGroupedPCurveOCCTConvexArcReject(t *testing.T) {
 }
 
 func TestRepairRationalPosedGroupedPCurveOCCTConvexArcLive(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL to the pinned author helper")

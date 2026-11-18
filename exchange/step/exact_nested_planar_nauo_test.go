@@ -9,6 +9,7 @@ import (
 )
 
 func TestExactNestedPlanarNAUO(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-exact-nested-nauo.step")
 	if e != nil {
 		t.Fatal(e)
@@ -52,6 +53,7 @@ func TestExactNestedPlanarNAUO(t *testing.T) {
 }
 
 func TestExactNestedPlanarNAUOReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-exact-nested-nauo.step")
 	if e != nil {
 		t.Fatal(e)

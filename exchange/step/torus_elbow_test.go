@@ -34,6 +34,7 @@ func checkElbow(t *testing.T, m AnalyticModel, angle float64) {
 	}
 }
 func TestTorusElbowRoundtrip(t *testing.T) {
+	t.Parallel()
 	for _, angle := range []float64{math.Pi / 2, 1.3 * math.Pi} {
 		var b bytes.Buffer
 		if e := WriteTorusElbows(&b, elbowModel(t, angle)); e != nil {
@@ -50,6 +51,7 @@ func TestTorusElbowRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTTorusElbow(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "reference.step")
 	stepOracle(t, path, "write-step-torus-elbow")
 	raw, e := os.ReadFile(path)
@@ -84,6 +86,7 @@ func TestOCCTTorusElbow(t *testing.T) {
 }
 
 func TestIndependentTorusElbow(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/torus-elbow.step")
 	if e != nil {
 		t.Fatal(e)
@@ -95,6 +98,7 @@ func TestIndependentTorusElbow(t *testing.T) {
 	checkElbow(t, m, math.Pi/2)
 }
 func TestTorusElbowRejectsGraphs(t *testing.T) {
+	t.Parallel()
 	var raw bytes.Buffer
 	if e := WriteTorusElbows(&raw, elbowModel(t, math.Pi/2)); e != nil {
 		t.Fatal(e)

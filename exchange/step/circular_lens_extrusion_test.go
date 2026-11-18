@@ -14,6 +14,7 @@ import (
 )
 
 func TestCircularLensSTEP(t *testing.T) {
+	t.Parallel()
 	for _, normal := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		for _, r := range []float64{10, 12} {
 			f, _ := geom.FrameFromNormal(geom.Vec3{}, normal)
@@ -70,6 +71,7 @@ func TestCircularLensSTEP(t *testing.T) {
 }
 
 func TestUnequalCircularLensSTEP(t *testing.T) {
+	t.Parallel()
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	level := 8.75
 	x := math.Sqrt(100 - level*level)
@@ -125,6 +127,7 @@ func TestUnequalCircularLensSTEP(t *testing.T) {
 }
 
 func TestCircularLensSTEPRejectsTampering(t *testing.T) {
+	t.Parallel()
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	x, y := 5., 5*math.Sqrt(3)
 	theta := math.Atan2(y, x)

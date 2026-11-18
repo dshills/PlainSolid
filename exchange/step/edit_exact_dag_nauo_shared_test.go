@@ -15,6 +15,7 @@ func exactDAGSharedEdit(a ExactDAGPlanarNAUO) ExactNAUOPlacement {
 	return p
 }
 func TestEditExactDAGNAUOShared(t *testing.T) {
+	t.Parallel()
 	a := exactDAGEditSource(t)
 	p := exactDAGSharedEdit(a)
 	before, e := mappedPlanarSourceBytes(a.Source)
@@ -99,6 +100,7 @@ func TestEditExactDAGNAUOShared(t *testing.T) {
 	}
 }
 func TestEditExactDAGNAUOSharedReject(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"empty", "duplicate", "root", "unknown", "nonterminating", "nonorthogonal", "irrational", "nil", "large", "shared-target", "limit"} {
 		t.Run(kind, func(t *testing.T) {
 			a := exactDAGEditSource(t)
@@ -184,6 +186,7 @@ func FuzzExactDAGNAUOSharedEdit(f *testing.F) {
 }
 
 func TestEditExactDAGNAUOInternalGroup(t *testing.T) {
+	t.Parallel()
 	a := exactDAGEditSource(t)
 	u := a.Occurrences[3].Path[1]
 	p := exactDAGSharedEdit(a)

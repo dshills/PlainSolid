@@ -36,6 +36,7 @@ func checkCap(t *testing.T, m AnalyticModel, latitude float64) {
 	}
 }
 func TestSphericalCapRoundtrip(t *testing.T) {
+	t.Parallel()
 	for _, latitude := range []float64{0, math.Pi / 6, -math.Pi / 6} {
 		var b bytes.Buffer
 		if e := WriteSphericalCaps(&b, capModel(t, latitude)); e != nil {
@@ -49,6 +50,7 @@ func TestSphericalCapRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTSphericalCap(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "hemisphere.step")
 	stepOracle(t, path, "write-step-hemisphere")
 	raw, e := os.ReadFile(path)
@@ -86,6 +88,7 @@ func TestOCCTSphericalCap(t *testing.T) {
 }
 
 func TestIndependentHemisphere(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/hemisphere.step")
 	if e != nil {
 		t.Fatal(e)
@@ -97,6 +100,7 @@ func TestIndependentHemisphere(t *testing.T) {
 	checkCap(t, m, 0)
 }
 func TestSphericalCapInvalidGraphs(t *testing.T) {
+	t.Parallel()
 	var raw bytes.Buffer
 	if e := WriteSphericalCaps(&raw, capModel(t, 0)); e != nil {
 		t.Fatal(e)
@@ -163,6 +167,7 @@ func TestSphericalCapInvalidGraphs(t *testing.T) {
 	}
 }
 func TestSphericalCapWriterInvalid(t *testing.T) {
+	t.Parallel()
 	for _, latitude := range []float64{math.Pi / 2, -math.Pi / 2, math.NaN(), math.Inf(1)} {
 		var b bytes.Buffer
 		if e := WriteSphericalCaps(&b, capModel(t, latitude)); e == nil || b.Len() != 0 {

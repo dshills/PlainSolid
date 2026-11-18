@@ -36,6 +36,7 @@ func TestRationalLensStyle(t *testing.T) {
 	}
 }
 func TestRationalLensAssemblyStyles(t *testing.T) {
+	t.Parallel()
 	m := lensAssemblyFixture(t)
 	r := rationalConcurrentLensFixture(t)
 	m.Products[1].Bodies = []SplineLensBody{r.Body}
@@ -56,6 +57,7 @@ func TestRationalLensAssemblyStyles(t *testing.T) {
 }
 
 func TestIndependentRationalLensAssemblyStyles(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/rational-lens-assembly.step")
 	if e != nil {
 		t.Fatal(e)
@@ -70,6 +72,7 @@ func TestIndependentRationalLensAssemblyStyles(t *testing.T) {
 	}
 }
 func TestRationalLensAssemblyStylesOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-rational-lens-assembly")
 	raw, e := os.ReadFile(source)
@@ -143,6 +146,7 @@ func nearLensStyle(a, b LensStyle) bool {
 }
 
 func TestRationalLensRejectsOccurrenceStyle(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/rational-lens-assembly.step")
 	if e != nil {
 		t.Fatal(e)

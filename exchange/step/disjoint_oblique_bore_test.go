@@ -12,6 +12,7 @@ import (
 )
 
 func TestDisjointObliqueSTEP(t *testing.T) {
+	t.Parallel()
 	m := DisjointObliqueBoreModel{Name: "mixed", Stock: geom.Box{Max: geom.Vec3{X: 20, Y: 20, Z: 20}}, LengthUnit: .001, Cuts: []trimmed.CylinderCut{{Entry: 0, Exit: 1, AxisPoint: geom.Vec3{X: 2, Y: 4}, Direction: geom.Vec3{X: 1, Z: 4}, Radius: 1}, {Entry: 0, Exit: 1, AxisPoint: geom.Vec3{X: 16, Y: 16}, Direction: geom.Vec3{Z: 1}, Radius: 1}}}
 	var b bytes.Buffer
 	if e := WriteDisjointObliqueBores(&b, m); e != nil {
@@ -54,6 +55,7 @@ func TestDisjointObliqueSTEP(t *testing.T) {
 }
 
 func TestDisjointObliqueSTEPVariants(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"reversed", "multiple-oblique", "three", "translated"} {
 		t.Run(kind, func(t *testing.T) {
 			m := DisjointObliqueBoreModel{Name: kind, Stock: geom.Box{Max: geom.Vec3{X: 20, Y: 20, Z: 20}}, LengthUnit: .001, Cuts: []trimmed.CylinderCut{{Entry: 0, Exit: 1, AxisPoint: geom.Vec3{X: 2, Y: 4}, Direction: geom.Vec3{X: 1, Z: 4}, Radius: 1}, {Entry: 0, Exit: 1, AxisPoint: geom.Vec3{X: 16, Y: 16}, Direction: geom.Vec3{Z: 1}, Radius: 1}}}

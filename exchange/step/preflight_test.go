@@ -14,6 +14,7 @@ func preflightFile(data string) string {
 	return "ISO-10303-21;HEADER;FILE_DESCRIPTION(('inventory'),'2;1');FILE_NAME('','',(''),(''),'','','');FILE_SCHEMA(('AUTOMOTIVE_DESIGN'));ENDSEC;DATA;" + data + "ENDSEC;END-ISO-10303-21;"
 }
 func TestPreflightIndependentFixtures(t *testing.T) {
+	t.Parallel()
 	paths, e := filepath.Glob("testdata/*.step")
 	if e != nil || len(paths) < 20 {
 		t.Fatal(e, len(paths))
@@ -39,6 +40,7 @@ func TestPreflightIndependentFixtures(t *testing.T) {
 	}
 }
 func TestPreflightUnknownAndComplex(t *testing.T) {
+	t.Parallel()
 	raw := preflightFile("#8=UNSUPPORTED_SWEPT_PATCH('',#2);#2=(REPRESENTATION_ITEM('')B_SPLINE_SURFACE()FUTURE_SURFACE());#3=UNSUPPORTED_SWEPT_PATCH('',#2);")
 	r, e := Preflight(strings.NewReader(raw), Limits{})
 	if e != nil {
@@ -59,6 +61,7 @@ func TestPreflightUnknownAndComplex(t *testing.T) {
 }
 
 func TestPreflightNaturalSphereProductRoute(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile("testdata/occt-independent-sphere-product.step")
 	if err != nil {
 		t.Fatal(err)
@@ -69,6 +72,7 @@ func TestPreflightNaturalSphereProductRoute(t *testing.T) {
 	}
 }
 func TestPreflightMalformedAndBounds(t *testing.T) {
+	t.Parallel()
 	for _, raw := range []string{"", preflightFile("#1=UNKNOWN(#2);"), preflightFile("#1=UNKNOWN();#1=UNKNOWN();"), preflightFile("#1=UNKNOWN(1.E999);")} {
 		if _, e := Preflight(strings.NewReader(raw), Limits{}); e == nil {
 			t.Fatal(raw)

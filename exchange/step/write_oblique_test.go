@@ -23,6 +23,7 @@ func obliqueModel(t *testing.T) ObliqueCylinderModel {
 	return ObliqueCylinderModel{LengthUnit: .001, Bodies: []ObliqueCylinderBody{{Name: "slanted", Frame: f, Radius: 2, Plane: p}}}
 }
 func TestObliqueExportRoundtrip(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteObliqueCylinders(&b, obliqueModel(t)); e != nil {
 		t.Fatal(e)
@@ -55,6 +56,7 @@ func TestObliqueExportRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTObliqueExport(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteObliqueCylinders(&b, obliqueModel(t)); e != nil {
 		t.Fatal(e)

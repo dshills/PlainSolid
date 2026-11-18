@@ -13,6 +13,7 @@ import (
 )
 
 func TestGroupedRationalCapEvidence(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-both-default-oblique-prism-fillet.step")
 	if e != nil {
 		t.Fatal(e)
@@ -35,6 +36,7 @@ func TestGroupedRationalCapEvidence(t *testing.T) {
 }
 
 func TestGroupedRationalCapEvidenceReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-both-default-oblique-prism-fillet.step")
 	if e != nil {
 		t.Fatal(e)
@@ -128,6 +130,7 @@ func TestGroupedRationalCapEvidenceReject(t *testing.T) {
 }
 
 func TestGroupedRationalCapEvidenceLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if bin == "" {
 		t.Skip("set pinned OCCT author")

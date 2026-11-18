@@ -18,6 +18,7 @@ import (
 )
 
 func TestReadSideOpenDualDiskProduct(t *testing.T) {
+	t.Parallel()
 	for _, through := range []bool{false, true} {
 		d := sideDiskDescriptor(t, through)
 		var b bytes.Buffer
@@ -148,6 +149,7 @@ func TestReadSideOpenDualDiskProductRejectsTampering(t *testing.T) {
 	}
 }
 func TestReadSideOpenDualDiskProductPosesAndReordering(t *testing.T) {
+	t.Parallel()
 	for _, through := range []bool{false, true} {
 		for pose := 0; pose < 3; pose++ {
 			d := sideDiskDescriptor(t, through)
@@ -193,6 +195,7 @@ func TestReadSideOpenDualDiskProductPosesAndReordering(t *testing.T) {
 	}
 }
 func TestReadSideOpenDualDiskProductLimits(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteSideOpenDualDiskProduct(context.Background(), &b, sideDiskDescriptor(t, false)); e != nil {
 		t.Fatal(e)
@@ -216,6 +219,7 @@ func TestReadSideOpenDualDiskProductLimits(t *testing.T) {
 }
 
 func TestOCCTReadSideOpenDualDiskProduct(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS")
 	if oracle == "" {
 		t.Skip("optional independent OCCT helper")
@@ -265,6 +269,7 @@ func TestOCCTReadSideOpenDualDiskProduct(t *testing.T) {
 }
 
 func TestReadSideOpenDualDiskProductPreservesSourceUnits(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	d := sideDiskDescriptor(t, true)
 	if e := WriteSideOpenDualDiskProduct(context.Background(), &b, d); e != nil {

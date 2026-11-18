@@ -9,6 +9,7 @@ import (
 )
 
 func TestTwoLevelRationalMapped(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-two-level-rational-mapped.step")
 	if e != nil {
 		t.Fatal(e)
@@ -41,6 +42,7 @@ func TestTwoLevelRationalMapped(t *testing.T) {
 }
 
 func TestTwoLevelRationalMappedReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-two-level-rational-mapped.step")
 	if e != nil {
 		t.Fatal(e)

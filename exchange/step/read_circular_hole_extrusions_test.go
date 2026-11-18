@@ -10,6 +10,7 @@ import (
 )
 
 func TestReadCircularExtrusions(t *testing.T) {
+	t.Parallel()
 	for _, height := range []float64{3, -3} {
 		for _, mode := range []int{0, 1, 2} {
 			m := circularHoleExtrusionFixture(t, height)
@@ -44,6 +45,7 @@ func TestReadCircularExtrusions(t *testing.T) {
 	}
 }
 func TestReadCircularExtrusionRejects(t *testing.T) {
+	t.Parallel()
 	m := circularBlindExtrusionFixture(t, -3, false)
 	var raw bytes.Buffer
 	if e := WriteCircularHoleExtrusions(&raw, m); e != nil {
@@ -156,6 +158,7 @@ func circularExtrusionFuzzFrame() CircularHoleExtrusionModel {
 }
 
 func TestReadCircularExtrusionRenumbering(t *testing.T) {
+	t.Parallel()
 	m := circularBlindExtrusionFixture(t, -3, false)
 	var raw bytes.Buffer
 	if e := WriteCircularHoleExtrusions(&raw, m); e != nil {
@@ -195,6 +198,7 @@ func TestReadCircularExtrusionRenumbering(t *testing.T) {
 }
 
 func TestIndependentOCCTCircularExtrusionBoundary(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/circular-pocket-occt.step")
 	if e != nil {
 		t.Fatal(e)

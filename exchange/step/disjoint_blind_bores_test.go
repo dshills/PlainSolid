@@ -90,6 +90,7 @@ func TestDisjointBlindBoresSTEP(t *testing.T) {
 	}
 }
 func TestDisjointBlindBoresReject(t *testing.T) {
+	t.Parallel()
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	p := DisjointBoresBody{Frame: f, Dimensions: geom.Vec3{X: 24, Y: 24, Z: 24}, Bores: []DisjointBore{{0, geom.Vec3{Y: 4, Z: 4}, 1}}, Blind: []DisjointBlindBore{{DisjointBore{1, geom.Vec3{X: 12, Z: 12}, 2}, 5, false}}}
 	for _, depth := range []float64{-1, 0, 24, 25, math.NaN(), math.Inf(1)} {
@@ -102,6 +103,7 @@ func TestDisjointBlindBoresReject(t *testing.T) {
 }
 
 func TestDisjointBlindBoresCorruptFloor(t *testing.T) {
+	t.Parallel()
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	p := DisjointBoresBody{Frame: f, Dimensions: geom.Vec3{X: 24, Y: 24, Z: 24}, Bores: []DisjointBore{{0, geom.Vec3{Y: 4, Z: 4}, 1}}, Blind: []DisjointBlindBore{{DisjointBore{1, geom.Vec3{X: 12, Z: 12}, 2}, 5, true}}}
 	var out bytes.Buffer

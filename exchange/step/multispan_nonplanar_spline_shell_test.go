@@ -24,6 +24,7 @@ func multispanNonplanarRoofFixture(t testing.TB) []byte {
 	return b
 }
 func TestMultispanNonplanarSplineShellOriginal(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := multispanNonplanarRoofFixture(t)
 	if _, e := ReadSplineShells(bytes.NewReader(raw), Limits{}); e == nil {
@@ -121,6 +122,7 @@ func TestMultispanNonplanarSplineShellOriginal(t *testing.T) {
 	}
 }
 func TestMultispanNonplanarSplineShellReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := multispanNonplanarRoofFixture(t)
 	m, e := ReadMultispanNonplanarSplineShellSource(ctx, bytes.NewReader(raw), Limits{})
@@ -213,6 +215,7 @@ func TestMultispanNonplanarSplineShellReject(t *testing.T) {
 	}
 }
 func TestMultispanNonplanarSplineShellLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_MULTISPAN_SPLINE_ROOF")
 	if bin == "" {
 		t.Skip("standalone OCCT helper")

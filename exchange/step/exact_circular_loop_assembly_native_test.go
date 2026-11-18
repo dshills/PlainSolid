@@ -28,6 +28,7 @@ func exactLoopAssemblyNativeFixture(t testing.TB) []byte {
 	return b.Bytes()
 }
 func TestExactCircularLoopAssemblyNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := exactLoopAssemblyNativeFixture(t)
 	m, e := ReadExactCircularLoopAssemblyJSON(ctx, bytes.NewReader(raw), IndependentMaterialJSONLimits{})

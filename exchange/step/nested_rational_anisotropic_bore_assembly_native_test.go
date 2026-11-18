@@ -95,6 +95,7 @@ func TestNestedRationalAnisotropicBoreNative(t *testing.T) {
 	}
 }
 func TestNestedRationalAnisotropicBoreLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_ANISOTROPIC_STATION")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

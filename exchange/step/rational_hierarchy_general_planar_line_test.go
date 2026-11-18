@@ -14,6 +14,7 @@ import (
 )
 
 func TestGeneralPlanarHierarchyLine(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, vendor := range []bool{false, true} {
 		name := "rational-spherical-hierarchy-reentrant.step"

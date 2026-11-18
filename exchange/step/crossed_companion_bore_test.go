@@ -14,6 +14,7 @@ import (
 )
 
 func TestCrossedCompanionBoreSTEP(t *testing.T) {
+	t.Parallel()
 	for i, n := range []geom.Vec3{{Z: 1}, {X: -1}, {Y: 1}, {Z: -1}} {
 		f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
 		if err != nil {

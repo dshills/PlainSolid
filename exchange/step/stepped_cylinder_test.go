@@ -30,6 +30,7 @@ func checkStepped(t *testing.T, m AnalyticModel) {
 	}
 }
 func TestSteppedCylinderRoundtrip(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteSteppedCylinders(&b, steppedModel(t)); e != nil {
 		t.Fatal(e)
@@ -41,6 +42,7 @@ func TestSteppedCylinderRoundtrip(t *testing.T) {
 	checkStepped(t, m)
 }
 func TestOCCTSteppedCylinder(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "reference.step")
 	stepOracle(t, path, "write-step-stepped-cylinder")
 	raw, e := os.ReadFile(path)
@@ -76,6 +78,7 @@ func TestOCCTSteppedCylinder(t *testing.T) {
 }
 
 func TestSteppedCylinderCoverage(t *testing.T) {
+	t.Parallel()
 	var raw bytes.Buffer
 	if e := WriteSteppedCylinders(&raw, steppedModel(t)); e != nil {
 		t.Fatal(e)
@@ -129,6 +132,7 @@ func TestSteppedCylinderCoverage(t *testing.T) {
 	}
 }
 func TestIndependentSteppedCylinder(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/stepped-cylinder.step")
 	if e != nil {
 		t.Fatal(e)
@@ -140,6 +144,7 @@ func TestIndependentSteppedCylinder(t *testing.T) {
 	checkStepped(t, m)
 }
 func TestSteppedCylinderWriterInvalid(t *testing.T) {
+	t.Parallel()
 	for _, r := range []float64{0, 3, 4, math.NaN()} {
 		m := steppedModel(t)
 		m.Bodies[0].UpperRadius = r

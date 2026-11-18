@@ -24,6 +24,7 @@ func shuoFixture(t testing.TB) []byte {
 	return b
 }
 func TestSHUOOccurrenceColors(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := shuoFixture(t)
 	m, e := ReadSHUOOccurrenceColoredAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -69,6 +70,7 @@ func TestSHUOOccurrenceColors(t *testing.T) {
 	}
 }
 func TestSHUOOccurrenceColorsReject(t *testing.T) {
+	t.Parallel()
 	raw := string(shuoFixture(t))
 	for _, c := range [][2]string{
 		{"#5,#62,$,#58,#413", "#31,#62,$,#58,#413"},
@@ -98,6 +100,7 @@ func TestSHUOOccurrenceColorsReject(t *testing.T) {
 	}
 }
 func TestSHUOOccurrenceColorsLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_AP242_SHUO")
 	if bin == "" {
 		t.Skip("optional pinned XCAF SHUO observer")
@@ -183,6 +186,7 @@ func TestSHUOOccurrenceColorsLive(t *testing.T) {
 }
 
 func TestSHUOOccurrenceColorsNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m, e := ReadSHUOOccurrenceColoredAssembly(ctx, bytes.NewReader(shuoFixture(t)), Limits{})
 	if e != nil {
@@ -278,6 +282,7 @@ func FuzzSHUOOccurrenceColors(f *testing.F) {
 }
 
 func TestSHUOOccurrenceColorsLimits(t *testing.T) {
+	t.Parallel()
 	raw := shuoFixture(t)
 	ctx := context.Background()
 	for _, l := range []Limits{{MaxBytes: int64(len(raw) - 1)}, {MaxEntities: 796}} {

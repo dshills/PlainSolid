@@ -44,6 +44,7 @@ func exactLoopSTEPFixture(t testing.TB, negative bool) ExactCircularLoopExtrusio
 	return ExactCircularLoopExtrusion{Name: "Exact nonbinary rounded triangle", Frame: f, Segments: loop, Height: h, LengthUnit: .001}
 }
 func TestExactCircularLoopExtrusionSTEP(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, negative := range []bool{false, true} {
 		d := exactLoopSTEPFixture(t, negative)
@@ -96,6 +97,7 @@ func TestExactCircularLoopExtrusionSTEP(t *testing.T) {
 	}
 }
 func TestExactCircularLoopExtrusionSTEPReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, mutate := range []func(*ExactCircularLoopExtrusion){func(d *ExactCircularLoopExtrusion) { d.Segments[1].Radius = 1 }, func(d *ExactCircularLoopExtrusion) { d.Segments[1].End.X = math.Nextafter(d.Segments[1].End.X, 10) }, func(d *ExactCircularLoopExtrusion) { d.Height = 0 }, func(d *ExactCircularLoopExtrusion) {
 		d.Frame, _ = geom.NewFrame(geom.Vec3{X: math.Ldexp(1, 54)}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
@@ -117,6 +119,7 @@ func TestExactCircularLoopExtrusionSTEPReject(t *testing.T) {
 	}
 }
 func TestExactCircularLoopExtrusionSTEPLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_EXACT_CIRCULAR_LOOP")
 	if bin == "" {
 		t.Skip("optional independent analytic author and TransferRoots")

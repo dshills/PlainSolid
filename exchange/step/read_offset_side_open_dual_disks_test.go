@@ -58,6 +58,7 @@ func TestReadOffsetSideOpenDualDiskProduct(t *testing.T) {
 	}
 }
 func TestReadOffsetSideOpenDualDiskRejects(t *testing.T) {
+	t.Parallel()
 	d := offsetSideDiskDescriptor(t, false, false, false)
 	var b bytes.Buffer
 	if e := WriteOffsetSideOpenDualDiskProduct(context.Background(), &b, d); e != nil {
@@ -98,6 +99,7 @@ func TestReadOffsetSideOpenDualDiskRejects(t *testing.T) {
 }
 
 func TestReadOffsetSideOpenDualDiskProductEncodingProofs(t *testing.T) {
+	t.Parallel()
 	for _, through := range []bool{false, true} {
 		var b bytes.Buffer
 		if e := WriteOffsetSideOpenDualDiskProduct(context.Background(), &b, offsetSideDiskDescriptor(t, through, true, true)); e != nil {
@@ -124,6 +126,7 @@ func TestReadOffsetSideOpenDualDiskProductEncodingProofs(t *testing.T) {
 	}
 }
 func TestReadOffsetSideOpenDualDiskGraphOwnership(t *testing.T) {
+	t.Parallel()
 	d := offsetSideDiskDescriptor(t, false, false, true)
 	var b bytes.Buffer
 	if e := WriteOffsetSideOpenDualDiskProduct(context.Background(), &b, d); e != nil {
@@ -173,6 +176,7 @@ func TestReadOffsetSideOpenDualDiskGraphOwnership(t *testing.T) {
 }
 
 func TestReadOffsetSideOpenDualDiskExactSIRescale(t *testing.T) {
+	t.Parallel()
 	d := offsetSideDiskDescriptor(t, false, false, true)
 	d.LengthUnit = 1
 	scaled := d
@@ -210,6 +214,7 @@ func TestReadOffsetSideOpenDualDiskExactSIRescale(t *testing.T) {
 }
 
 func TestOCCTReadOffsetSideOpenDualDiskProduct(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS")
 	if oracle == "" {
 		t.Skip("optional independent OCCT helper")
@@ -271,6 +276,7 @@ func TestOCCTReadOffsetSideOpenDualDiskProduct(t *testing.T) {
 	}
 }
 func TestReadOffsetSideOpenDualDiskStockOrigin(t *testing.T) {
+	t.Parallel()
 	d := offsetSideDiskDescriptor(t, false, false, true)
 	d.Min = geom.Vec2{X: 2, Y: 3}
 	d.Max = geom.Vec2{X: 42, Y: 13}
@@ -302,6 +308,7 @@ func TestReadOffsetSideOpenDualDiskStockOrigin(t *testing.T) {
 	}
 }
 func TestReadOffsetSideOpenDualDiskVendorRejection(t *testing.T) {
+	t.Parallel()
 	for _, name := range []string{"side", "through"} {
 		raw, e := os.ReadFile("testdata/occt_offset_dual_disk_" + name + ".step")
 		if e != nil {

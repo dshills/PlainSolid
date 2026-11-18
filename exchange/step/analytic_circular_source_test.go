@@ -10,6 +10,7 @@ import (
 )
 
 func TestCircularSourceIndependentPCurves(t *testing.T) {
+	t.Parallel()
 	r, e := os.Open("testdata/circular-pocket-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -60,6 +61,7 @@ func TestCircularSourceIndependentPCurves(t *testing.T) {
 }
 
 func TestReadIndependentCircularThrough(t *testing.T) {
+	t.Parallel()
 	r, e := os.Open("testdata/circular-through-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -75,6 +77,7 @@ func TestReadIndependentCircularThrough(t *testing.T) {
 }
 
 func TestAnalyticCircularThroughRejects(t *testing.T) {
+	t.Parallel()
 	data, e := os.ReadFile("testdata/circular-through-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -178,6 +181,7 @@ func TestAnalyticCircularThroughRejects(t *testing.T) {
 	}
 }
 func TestAnalyticCircularThroughCanonicalSigned(t *testing.T) {
+	t.Parallel()
 	for _, h := range []float64{3, -3} {
 		var b bytes.Buffer
 		if e := WriteCircularHoleExtrusions(&b, circularHoleExtrusionFixture(t, h)); e != nil {
@@ -189,6 +193,7 @@ func TestAnalyticCircularThroughCanonicalSigned(t *testing.T) {
 	}
 }
 func TestAnalyticCircularThroughOCCT(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-circular-through")
 	data, e := os.ReadFile(source)

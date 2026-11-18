@@ -8,6 +8,7 @@ import (
 )
 
 func TestCylinderPCurveEvidenceOCCT(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -25,6 +26,7 @@ func TestCylinderPCurveEvidenceOCCT(t *testing.T) {
 	t.Log("U range", r.UStart.RatString(), r.UEnd.RatString(), "spans", len(r.DerivativeSpans))
 }
 func TestCylinderPCurveEvidenceRejects(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -63,6 +65,7 @@ func TestCylinderPCurveEvidenceRejects(t *testing.T) {
 }
 
 func TestPCurvePiEnclosure(t *testing.T) {
+	t.Parallel()
 	lo, hi := pcurvePiBounds()
 	if lo.Cmp(big.NewRat(314159, 100000)) <= 0 || hi.Cmp(big.NewRat(314160, 100000)) >= 0 || lo.Cmp(hi) >= 0 {
 		t.Fatal(lo, hi)
@@ -82,6 +85,7 @@ func FuzzCylinderPCurveEvidence(f *testing.F) {
 }
 
 func TestCylinderPCurveDoesNotInferMatching(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)

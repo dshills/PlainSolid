@@ -27,6 +27,7 @@ func circularBlindExtrusionFixture(t *testing.T, height float64, all bool) Circu
 	return m
 }
 func TestCircularBlindExtrusionTopology(t *testing.T) {
+	t.Parallel()
 	for _, height := range []float64{3, -3} {
 		for _, all := range []bool{false, true} {
 			m := circularBlindExtrusionFixture(t, height, all)
@@ -144,6 +145,7 @@ func TestCircularBlindExtrusionTopology(t *testing.T) {
 	}
 }
 func TestCircularBlindExtrusionOCCT(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("PLAINSOLID_OCCT_STEP") == "" {
 		t.Skip("optional OCCT")
 	}

@@ -20,6 +20,7 @@ func checkAffineShear(t testing.TB, m AffineSplineShellModel) {
 	}
 }
 func TestAffineSplineShellRoundtrip(t *testing.T) {
+	t.Parallel()
 	m := placedAffineShell(t, geom.Affine{{1, 1, 0, 7}, {0, 1, 1, 11}, {0, 0, 1, 13}})
 	var b bytes.Buffer
 	if e := WriteAffineSplineShells(&b, m); e != nil {
@@ -44,6 +45,7 @@ func TestAffineSplineShellRoundtrip(t *testing.T) {
 	}
 }
 func TestAffineSplineShellRejectCurvature(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/spline-shell.step")
 	if e != nil {
 		t.Fatal(e)
@@ -68,6 +70,7 @@ func TestAffineSplineShellRejectCurvature(t *testing.T) {
 	}
 }
 func TestOCCTAffineSplineShell(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-affine-spline-shell")
 	raw, e := os.ReadFile(source)
@@ -102,6 +105,7 @@ func TestOCCTAffineSplineShell(t *testing.T) {
 }
 
 func TestIndependentAffineSplineShell(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/affine-spline-shell.step")
 	if e != nil {
 		t.Fatal(e)

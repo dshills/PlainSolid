@@ -84,6 +84,7 @@ func TestExactEllipticalPrismFamily(t *testing.T) {
 	}
 }
 func TestExactEllipticalPrismFamilyReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := familyFixtures(t)[EllipticalTilted]
 	for _, b := range [][]byte{[]byte("ISO-10303-21;"), bytes.Replace(raw, []byte("CLOSED_SHELL"), []byte("OPEN_SHELL"), 1), bytes.Replace(raw, []byte("5.,2."), []byte("6.,2."), 1), bytes.Replace(raw, []byte("END-ISO-10303-21;"), []byte("END-ISO-10303-21;garbage"), 1)} {

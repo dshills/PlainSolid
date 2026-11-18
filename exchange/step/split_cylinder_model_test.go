@@ -9,6 +9,7 @@ import (
 )
 
 func TestSplitCylinderModel(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/split-cylinder-model.step")
 	if e != nil {
 		t.Fatal(e)
@@ -36,6 +37,7 @@ func TestSplitCylinderModel(t *testing.T) {
 }
 
 func TestSplitCylinderModelOwnership(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/split-cylinder-model.step")
 	if e != nil {
 		t.Fatal(e)
@@ -91,6 +93,7 @@ func FuzzSplitCylinderModel(f *testing.F) {
 }
 
 func TestSplitCylinderModelPose(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/split-cylinder-model-posed.step")
 	if e != nil {
 		t.Fatal(e)

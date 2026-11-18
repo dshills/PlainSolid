@@ -32,6 +32,7 @@ func circularTubeSource(t testing.TB) ([]byte, int64) {
 	return nil, 0
 }
 func TestRepairCircularTubeNAUO(t *testing.T) {
+	t.Parallel()
 	b, id := circularTubeSource(t)
 	a, e := RepairCircularTubeNAUOProduct(bytes.NewReader(b), Limits{}, id, CircularNAUORepairOptions{1e-9})
 	if e != nil {
@@ -55,6 +56,7 @@ func TestRepairCircularTubeNAUO(t *testing.T) {
 }
 
 func TestRepairCircularTubeNativeAndAuthoredSTEP(t *testing.T) {
+	t.Parallel()
 	raw, id := circularTubeSource(t)
 	a, e := RepairCircularTubeNAUOProduct(bytes.NewReader(raw), Limits{}, id, CircularNAUORepairOptions{1e-9})
 	if e != nil {
@@ -100,6 +102,7 @@ func TestRepairCircularTubeNativeAndAuthoredSTEP(t *testing.T) {
 	}
 }
 func TestRepairCircularTubeNAUOReject(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"tolerance", "small", "faces", "vertices", "uses", "inner-positive", "cap-sense", "cap-loop-sense", "shared-loop", "wrong-master", "wrong-owner", "wrong-radius", "noncoaxial", "height", "seam-gap", "cross-product", "extra-face"} {
 		t.Run(kind, func(t *testing.T) {
 			raw, id := circularTubeSource(t)
@@ -162,6 +165,7 @@ func TestRepairCircularTubeNAUOReject(t *testing.T) {
 	}
 }
 func TestOCCTRepairCircularTubeNAUO(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_DISK_BOUND_MASS")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

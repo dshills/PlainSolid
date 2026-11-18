@@ -189,6 +189,7 @@ func verifySeparatedCellMaterial(t *testing.T, ctx context.Context, native trimm
 }
 
 func TestOCCTMappedChainRectangularSeparatedSupportKnotCells(t *testing.T) {
+	t.Parallel()
 	verifySeparatedCellMappedChain(t, context.Background(), readSeparatedCellMappedChainFixture(t))
 }
 
@@ -203,6 +204,7 @@ func TestOCCTMappedChainRectangularSeparatedSupportKnotCellsClosedDisplay(t *tes
 }
 
 func TestOCCTMappedChainRectangularSeparatedSupportKnotCellsRejectsInvalidSource(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := readSeparatedCellMappedChainFixture(t)
 	o := separatedCellMappedChainOptions()
@@ -310,6 +312,7 @@ func moveSeparatedSouthCrease(t *testing.T, f *File, faceID int64, x float64) {
 }
 
 func TestOCCTMappedChainRectangularSeparatedSupportKnotCellsLive(t *testing.T) {
+	t.Parallel()
 	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_SEPARATED_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT source author and STEP consumer")

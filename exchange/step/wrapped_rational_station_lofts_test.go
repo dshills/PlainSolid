@@ -181,6 +181,7 @@ func rationalStationSTEPArea() float64 {
 }
 
 func TestWrappedRationalStationSTEPMass(t *testing.T) {
+	t.Parallel()
 	m := rationalStationSTEPFixture(t, 2)
 	var raw bytes.Buffer
 	if e := WriteWrappedRationalStationLoft(&raw, m); e != nil {
@@ -201,6 +202,7 @@ func TestWrappedRationalStationSTEPMass(t *testing.T) {
 }
 
 func TestWrappedRationalStationSTEPOCCT(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("PLAINSOLID_OCCT_ORACLE") == "" {
 		t.Skip("set PLAINSOLID_OCCT_ORACLE and PLAINSOLID_OCCT_STEP=1")
 	}
@@ -233,6 +235,7 @@ func TestWrappedRationalStationSTEPOCCT(t *testing.T) {
 }
 
 func TestWrappedRationalStationSTEPAtomic(t *testing.T) {
+	t.Parallel()
 	m := rationalStationSTEPFixture(t, 2)
 	var raw bytes.Buffer
 	m.Walls[1].Geometry = m.Walls[0].Geometry // overlapping, unequal shared stations

@@ -14,6 +14,7 @@ func coloredModel(t *testing.T) ColoredModel {
 	return ColoredModel{LengthUnit: .001, Bodies: []ColoredBody{{Body: Body{Name: "part", Solid: advancedSolids(t)[0]}, SurfaceColor: &RGB{.2, .4, .6}}}}
 }
 func TestColoredRoundtrip(t *testing.T) {
+	t.Parallel()
 	m := coloredModel(t)
 	var b bytes.Buffer
 	if e := WriteColoredPlanar(&b, m); e != nil {
@@ -47,6 +48,7 @@ func TestColoredRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTColorBothDirections(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "occt.step")
 	stepOracle(t, path, "write-step-color")
 	raw, e := os.ReadFile(path)
@@ -93,6 +95,7 @@ func TestOCCTColorBothDirections(t *testing.T) {
 }
 
 func TestColoredOptionalAndBounds(t *testing.T) {
+	t.Parallel()
 	m := coloredModel(t)
 	uncolored := m.Bodies[0]
 	uncolored.SurfaceColor = nil
@@ -135,6 +138,7 @@ func FuzzColoredSTEP(f *testing.F) {
 }
 
 func TestIndependentColorFixture(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/colored-box.step")
 	if e != nil {
 		t.Fatal(e)

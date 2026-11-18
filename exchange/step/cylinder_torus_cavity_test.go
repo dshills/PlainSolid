@@ -12,6 +12,7 @@ import (
 )
 
 func TestCylinderTorusCavitySTEP(t *testing.T) {
+	t.Parallel()
 	b := CylinderTorusCavityBody{"cavity", 5, 2, 8, -3, 4}
 	var out bytes.Buffer
 	if e := WriteCylinderTorusCavity(&out, b, .001); e != nil {
@@ -74,6 +75,7 @@ func TestCylinderTorusCavitySTEP(t *testing.T) {
 }
 
 func TestCylinderTorusCavityPairedImport(t *testing.T) {
+	t.Parallel()
 	b := CylinderTorusCavityBody{"observed", 5, 2, 8, -3, 4}
 	var raw bytes.Buffer
 	WriteCylinderTorusCavity(&raw, b, .001)
@@ -136,6 +138,7 @@ func TestCylinderTorusCavityPairedImport(t *testing.T) {
 }
 
 func TestCylinderTorusCavityDyadic(t *testing.T) {
+	t.Parallel()
 	b := CylinderTorusCavityBody{"dyadic", 5.125, 2.25, 8.5, -3.25, 4.5}
 	var out bytes.Buffer
 	if e := WriteCylinderTorusCavity(&out, b, .001); e != nil {

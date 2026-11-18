@@ -182,6 +182,7 @@ func TestSideOpeningPairDifferentSidesSTEP(t *testing.T) {
 }
 
 func TestSideOpeningPairSTEPRejectsOppositeThroughSplit(t *testing.T) {
+	t.Parallel()
 	frame, e := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	if e != nil {
 		t.Fatal(e)
@@ -252,6 +253,7 @@ func TestSideOpeningCutsSTEP(t *testing.T) {
 }
 
 func TestSideOpeningPairLegacySTEPBytes(t *testing.T) {
+	t.Parallel()
 	f, e := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, geom.Vec3{Z: 1})
 	if e != nil {
 		t.Fatal(e)
@@ -274,6 +276,7 @@ func TestSideOpeningPairLegacySTEPBytes(t *testing.T) {
 }
 
 func TestSideOpeningCutsSTEPRejectsOverBudget(t *testing.T) {
+	t.Parallel()
 	frame, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	p := SideOpeningCutsBody{Name: "too many sites", Frame: frame, Width: 100, Back: 20, Length: 8}
 	for i := 0; i <= trimmed.MaxSideOpeningCuts; i++ {
@@ -286,6 +289,7 @@ func TestSideOpeningCutsSTEPRejectsOverBudget(t *testing.T) {
 }
 
 func TestSideOpeningCutsSTEPInteriorOnlySite(t *testing.T) {
+	t.Parallel()
 	for _, opposite := range []bool{false, true} {
 		frame, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 		p := SideOpeningCutsBody{Name: "interior-only cylindrical support", Frame: frame, Width: 20, Back: 10, Length: 8, Cuts: []trimmed.SideOpeningCut{
@@ -307,6 +311,7 @@ func TestSideOpeningCutsSTEPInteriorOnlySite(t *testing.T) {
 }
 
 func TestSideOpeningCutsSTEPAtLimit(t *testing.T) {
+	t.Parallel()
 	frame, _ := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, geom.Vec3{Z: 1})
 	p := SideOpeningCutsBody{Name: "sixteen side opening cutters", Frame: frame, Width: 72, Back: 20, Length: 8}
 	for i := 0; i < trimmed.MaxSideOpeningCuts; i++ {
@@ -335,6 +340,7 @@ func TestSideOpeningCutsSTEPAtLimit(t *testing.T) {
 }
 
 func TestSideOpeningCutsSTEPThroughSiteBuriedAtBothCaps(t *testing.T) {
+	t.Parallel()
 	frame, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	p := SideOpeningCutsBody{Name: "buried through site", Frame: frame, Width: 20, Back: 10, Length: 8, Cuts: []trimmed.SideOpeningCut{
 		{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 5.5}, Radius: 1}, Depth: 8},
@@ -354,6 +360,7 @@ func TestSideOpeningCutsSTEPThroughSiteBuriedAtBothCaps(t *testing.T) {
 }
 
 func TestSideOpeningCutsSTEPNestedBlindFloor(t *testing.T) {
+	t.Parallel()
 	frame, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	p := SideOpeningCutsBody{Name: "connected material with nested blind floor", Frame: frame, Width: 12, Back: 10, Length: 8}
 	for _, center := range []geom.Vec2{{X: 4.75, Y: 1}, {X: 4.75, Y: 9}, {X: 10.5, Y: 5}} {
@@ -383,6 +390,7 @@ func TestSideOpeningCutsSTEPNestedBlindFloor(t *testing.T) {
 }
 
 func TestSideOpeningCutsSTEPRedundantSiteCanonicalBytes(t *testing.T) {
+	t.Parallel()
 	frame, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	p := SideOpeningCutsBody{Name: "canonical redundant site", Frame: frame, Width: 20, Back: 10, Length: 8, Cuts: []trimmed.SideOpeningCut{
 		{ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 6}, Radius: 3}, Depth: 3},
@@ -515,6 +523,7 @@ func TestCornerSideOpeningCutsSTEP(t *testing.T) {
 }
 
 func TestSideOpeningPairWriterRejectsSingleRecoveredSupport(t *testing.T) {
+	t.Parallel()
 	frame, err := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	if err != nil {
 		t.Fatal(err)
@@ -578,6 +587,7 @@ func TestVertexSideOpeningCutsSTEP(t *testing.T) {
 }
 
 func TestVertexSideOpeningSharedIntersectionSTEP(t *testing.T) {
+	t.Parallel()
 	for ni, normal := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		t.Run(fmt.Sprint(ni), func(t *testing.T) {
 			frame, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, normal)
@@ -646,6 +656,7 @@ func TestSideOpeningCutsSTEPConcealedCanonicalBytes(t *testing.T) {
 }
 
 func TestSideOpeningCutsSTEPOneCapBuriedThrough(t *testing.T) {
+	t.Parallel()
 	for ni, normal := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		t.Run(fmt.Sprint(ni), func(t *testing.T) {
 			frame, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, normal)

@@ -10,6 +10,7 @@ import (
 )
 
 func TestOCCTConversionUnits(t *testing.T) {
+	t.Parallel()
 	for _, item := range []struct {
 		name string
 		unit float64

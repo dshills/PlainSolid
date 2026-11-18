@@ -25,6 +25,7 @@ func weightedAssemblyNativeFixture(t testing.TB) (WrappedRationalStationAssembly
 	return m, b.Bytes()
 }
 func TestWrappedRationalStationAssemblyNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	original, b := weightedAssemblyNativeFixture(t)
 	m, e := ReadWrappedRationalStationAssemblyJSON(ctx, bytes.NewReader(b), IndependentMaterialJSONLimits{})

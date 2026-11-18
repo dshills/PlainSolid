@@ -20,6 +20,7 @@ func orthogonalFixture(t testing.TB) []byte {
 	return b
 }
 func TestOrthogonalSplineFace(t *testing.T) {
+	t.Parallel()
 	raw := orthogonalFixture(t)
 	m, e := ReadOrthogonalSplineFaces(bytes.NewReader(raw), Limits{})
 	if e != nil || len(m.Faces) != 1 || len(m.Faces[0].Boundary) != 6 {
@@ -59,6 +60,7 @@ func TestOrthogonalSplineFace(t *testing.T) {
 	}
 }
 func TestOrthogonalSplinePolygonReject(t *testing.T) {
+	t.Parallel()
 	raw := orthogonalFixture(t)
 	m, e := ReadOrthogonalSplineFaces(bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -101,6 +103,7 @@ func TestOrthogonalSplinePolygonReject(t *testing.T) {
 	}
 }
 func TestOCCTOrthogonalSplineFace(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-orthogonal-spline-face")
 	raw, e := os.ReadFile(source)
@@ -132,6 +135,7 @@ func FuzzOrthogonalSplineFace(f *testing.F) {
 }
 
 func TestExactSplineWeightNormalization(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		values   string
 		accepted bool

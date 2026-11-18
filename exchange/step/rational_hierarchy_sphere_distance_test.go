@@ -14,6 +14,7 @@ import (
 )
 
 func TestHierarchySphereDistance(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, vendor := range []bool{false, true} {
 		name := "rational-spherical-hierarchy.step"
@@ -206,6 +207,7 @@ func TestHierarchySphereDistance(t *testing.T) {
 	}
 }
 func TestHierarchySphereDistanceGuards(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, _ := os.ReadFile("testdata/rational-spherical-hierarchy.step")
 	m, e := ReadRationalSphericalHierarchy(ctx, bytes.NewReader(raw), Limits{}, 1e-9)

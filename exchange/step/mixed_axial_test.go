@@ -30,6 +30,7 @@ func checkMixedAxial(t *testing.T, m AnalyticModel) {
 	}
 }
 func TestMixedAxialRoundtrip(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteMixedAxialProfiles(&b, mixedAxialModel(t)); e != nil {
 		t.Fatal(e)
@@ -44,6 +45,7 @@ func TestMixedAxialRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTMixedAxial(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "tube.step")
 	stepOracle(t, path, "write-step-mixed-axial")
 	raw, e := os.ReadFile(path)
@@ -79,6 +81,7 @@ func TestOCCTMixedAxial(t *testing.T) {
 }
 
 func TestIndependentMixedAxial(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/mixed-axial.step")
 	if e != nil {
 		t.Fatal(e)
@@ -90,6 +93,7 @@ func TestIndependentMixedAxial(t *testing.T) {
 	checkMixedAxial(t, m)
 }
 func TestMixedAxialInvalid(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"no-shoulder", "apex", "widening", "nan", "short"} {
 		m := mixedAxialModel(t)
 		switch kind {
@@ -171,6 +175,7 @@ func FuzzMixedAxialSTEP(f *testing.F) {
 }
 
 func TestMixedAxialWideningShoulder(t *testing.T) {
+	t.Parallel()
 	m := mixedAxialModel(t)
 	m.Bodies[0].Sections = []AxialSection{{4, 4, 1}, {3, 1, 1}, {2, 2, 1}}
 	var b bytes.Buffer

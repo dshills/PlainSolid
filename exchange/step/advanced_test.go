@@ -24,6 +24,7 @@ func advancedFixture(t testing.TB) string {
 	return string(b)
 }
 func TestIndependentAdvancedTetra(t *testing.T) {
+	t.Parallel()
 	m, e := Read(strings.NewReader(advancedFixture(t)), Limits{})
 	if e != nil {
 		t.Fatal(e)
@@ -48,6 +49,7 @@ func TestIndependentAdvancedTetra(t *testing.T) {
 	}
 }
 func TestAdvancedGraphGeometryFailures(t *testing.T) {
+	t.Parallel()
 	valid := advancedFixture(t)
 	for _, kind := range []string{"EDGE_CURVE", "ORIENTED_EDGE", "ADVANCED_FACE"} {
 		lines := strings.Split(valid, "\n")
@@ -71,6 +73,7 @@ func TestAdvancedGraphGeometryFailures(t *testing.T) {
 	}
 }
 func TestAdvancedLimits(t *testing.T) {
+	t.Parallel()
 	for _, l := range []Limits{{MaxVertices: 3}, {MaxFaces: 3}, {MaxEdgeUses: 11}} {
 		if _, e := Read(strings.NewReader(advancedFixture(t)), l); e == nil {
 			t.Fatal(l)
@@ -90,6 +93,7 @@ func stepOracle(t *testing.T, out string, args ...string) {
 	}
 }
 func TestOCCTAdvancedSTEPImport(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "occt.step")
 	stepOracle(t, path, "write-step")
 	f, e := os.Open(path)

@@ -35,6 +35,7 @@ func verifyAxisAlignedShell(t testing.TB, raw []byte) {
 	}
 }
 func TestIndependentAxisAlignedSplineShell(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/axis-aligned-spline-shell.step")
 	if e != nil {
 		t.Fatal(e)
@@ -42,6 +43,7 @@ func TestIndependentAxisAlignedSplineShell(t *testing.T) {
 	verifyAxisAlignedShell(t, raw)
 }
 func TestAxisAlignedSplineShellReject(t *testing.T) {
+	t.Parallel()
 	for _, name := range []string{"spline-shell.step", "orthogonal-open-shell.step", "orthogonal-holed-open-shell.step"} {
 		raw, e := os.ReadFile("testdata/" + name)
 		if e != nil {
@@ -58,6 +60,7 @@ func TestAxisAlignedSplineShellReject(t *testing.T) {
 	}
 }
 func TestAxisAlignedAffineSupport(t *testing.T) {
+	t.Parallel()
 	k := []float64{0, 0, 1, 1}
 	for _, kind := range []string{"plane", "warped", "skew", "weights"} {
 		p := []geom.Vec3{{}, {Y: 2}, {X: 2}, {X: 2, Y: 2}}
@@ -81,6 +84,7 @@ func TestAxisAlignedAffineSupport(t *testing.T) {
 	}
 }
 func TestOCCTAxisAlignedSplineShell(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, path, "write-step-axis-aligned-spline-shell")
 	raw, e := os.ReadFile(path)
@@ -122,6 +126,7 @@ func TestOCCTAxisAlignedSplineShell(t *testing.T) {
 }
 
 func TestAxisAlignedShellRejectsInwardBoundary(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/axis-aligned-spline-shell.step")
 	if e != nil {
 		t.Fatal(e)

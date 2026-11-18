@@ -26,6 +26,7 @@ func posedOCCTLoopFixture(t testing.TB) []byte {
 	return b
 }
 func TestPosedOCCTExactCircularLoop(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := posedOCCTLoopFixture(t)
 	m, e := ReadPosedOCCTExactCircularLoopExtrusion(ctx, bytes.NewReader(raw), Limits{})
@@ -74,6 +75,7 @@ func TestPosedOCCTExactCircularLoop(t *testing.T) {
 	}
 }
 func TestPosedOCCTExactCircularLoopDirectionRatios(t *testing.T) {
+	t.Parallel()
 	raw := sideDiskMutateSource(t, posedOCCTLoopFixture(t), func(f *File) {
 		sideDiskEditRecord(f, "CIRCLE", func(r *Record) {
 			p := f.Entities[r.Args[1].Ref].Records[0]
@@ -90,6 +92,7 @@ func TestPosedOCCTExactCircularLoopDirectionRatios(t *testing.T) {
 }
 
 func TestPosedOCCTExactCircularLoopReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := posedOCCTLoopFixture(t)
 	for _, edit := range []func(*File){func(f *File) {
@@ -127,6 +130,7 @@ func TestPosedOCCTExactCircularLoopReject(t *testing.T) {
 	}
 }
 func TestPosedOCCTExactCircularLoopLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_EXACT_CIRCULAR_LOOP")
 	if bin == "" {
 		t.Skip("optional independent posed author")

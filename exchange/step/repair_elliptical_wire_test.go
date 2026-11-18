@@ -18,6 +18,7 @@ func roundedEllipseFixture(t testing.TB) []byte {
 	return b
 }
 func TestRepairRoundedEllipticalWire(t *testing.T) {
+	t.Parallel()
 	raw := roundedEllipseFixture(t)
 	m, e := RepairRoundedEllipticalWire(bytes.NewReader(raw), Limits{}, EllipticalWireRepairOptions{MaxDistance: 1e-11})
 	if e != nil {
@@ -77,6 +78,7 @@ func TestRepairRoundedEllipticalWire(t *testing.T) {
 	}
 }
 func TestRepairRoundedEllipticalWireReject(t *testing.T) {
+	t.Parallel()
 	raw := roundedEllipseFixture(t)
 	changes := []func(*File){
 		func(f *File) {
@@ -152,6 +154,7 @@ func TestRepairRoundedEllipticalWireReject(t *testing.T) {
 	}
 }
 func TestRepairRoundedEllipticalWireUnderTurn(t *testing.T) {
+	t.Parallel()
 	raw := bytes.Replace(roundedEllipseFixture(t), []byte("6.28318530718"), []byte("6.283185307179"), 1)
 	m, e := RepairRoundedEllipticalWire(bytes.NewReader(raw), Limits{}, EllipticalWireRepairOptions{MaxDistance: 1e-11})
 	if e != nil || m.Bounds.SignedEndResidual[1].Sign() >= 0 {

@@ -27,6 +27,7 @@ func nativeMappedFixture(t *testing.T) NativeMappedPlanarModel {
 	return NativeMappedPlanarModel{Name: "native mapped products", LengthUnit: .001, Products: []Body{{Name: "first", Solid: a}, {Name: "second", Solid: b}}, Uses: []NativeMappedPlanarUse{{Name: "first translated", Product: 0, Transform: geom.Translation(geom.Vec3{X: 10})}, {Name: "first rotated", Product: 0, Transform: geom.Affine{{0, 0, 1, 0}, {1, 0, 0, 20}, {0, 1, 0, 0}}}, {Name: "second translated", Product: 1, Transform: geom.Translation(geom.Vec3{X: -10})}}}
 }
 func TestNativeMappedPlanar(t *testing.T) {
+	t.Parallel()
 	m := nativeMappedFixture(t)
 	var b bytes.Buffer
 	if e := WriteNativeMappedPlanarMaterials(&b, m, Limits{}); e != nil {
@@ -42,6 +43,7 @@ func TestNativeMappedPlanar(t *testing.T) {
 }
 
 func TestNativeMappedPlanarRejections(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"orphan", "product", "scale", "unit", "geometry", "noncardinal", "limit", "name"} {
 		t.Run(kind, func(t *testing.T) {
 			m := nativeMappedFixture(t)
@@ -74,6 +76,7 @@ func TestNativeMappedPlanarRejections(t *testing.T) {
 	}
 }
 func TestOCCTNativeMappedPlanar(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_DISK_BOUND_MASS")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")
@@ -116,6 +119,7 @@ func TestOCCTNativeMappedPlanar(t *testing.T) {
 }
 
 func TestNativeMappedPlanarHolesAndOwnerProof(t *testing.T) {
+	t.Parallel()
 	m := nativeMappedFixture(t)
 	rect := func(a, b, c, d float64) []geom.Vec3 {
 		return []geom.Vec3{{X: a, Y: b}, {X: c, Y: b}, {X: c, Y: d}, {X: a, Y: d}}

@@ -25,6 +25,7 @@ func planarSplineFixture(t testing.TB) PlanarSplineAssemblyModel {
 	return PlanarSplineAssemblyModel{LengthUnit: .001, Products: []PlanarSplinePart{{ID: "root", Name: "Mixed assembly", Family: PlanarSplineNode}, {ID: "curve", Name: "Warped material", Family: PlanarSplineSpline, Splines: s.Products[1].Bodies}, {ID: "box", Name: "Planar material", Family: PlanarSplinePlanar, Planar: []Body{{Name: "Box", Solid: b}}}}, Occurrences: []AssemblyInstance{{ID: "left", Name: "Curved left", Parent: "root", Child: "curve", Transform: geom.Translation(geom.Vec3{X: 10})}, {ID: "right", Name: "Curved right", Parent: "root", Child: "curve", Transform: geom.Affine{{0, -1, 0, 0}, {1, 0, 0, 20}, {0, 0, 1, 0}}}, {ID: "stock", Name: "Planar instance", Parent: "root", Child: "box", Transform: geom.Translation(geom.Vec3{X: -10})}}}
 }
 func TestPlanarSplineAssembly(t *testing.T) {
+	t.Parallel()
 	m := planarSplineFixture(t)
 	var b bytes.Buffer
 	if e := WritePlanarSplineAssembly(&b, m); e != nil {
@@ -82,6 +83,7 @@ func TestPlanarSplineAssembly(t *testing.T) {
 	}
 }
 func TestPlanarSplineAssemblyRejects(t *testing.T) {
+	t.Parallel()
 	m := planarSplineFixture(t)
 	var b bytes.Buffer
 	if e := WritePlanarSplineAssembly(&b, m); e != nil {
@@ -120,6 +122,7 @@ func TestPlanarSplineAssemblyRejects(t *testing.T) {
 	}
 }
 func TestPlanarSplineAssemblyRejectsSharedDefinitionGeometry(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WritePlanarSplineAssembly(&b, planarSplineFixture(t)); e != nil {
 		t.Fatal(e)
@@ -204,6 +207,7 @@ func mixedAssemblyOracle(t *testing.T, bin, path string) {
 	}
 }
 func TestOCCTPlanarSplineAssembly(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_MIXED_ASSEMBLY")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

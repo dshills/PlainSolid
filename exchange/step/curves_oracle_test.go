@@ -43,6 +43,7 @@ func curveFile(t *testing.T, m CurveModel) string {
 	return p
 }
 func TestOCCTSTEPCurveExport(t *testing.T) {
+	t.Parallel()
 	m, e := ReadCurves(strings.NewReader(independentCurve), Limits{})
 	if e != nil {
 		t.Fatal(e)
@@ -50,6 +51,7 @@ func TestOCCTSTEPCurveExport(t *testing.T) {
 	curveOracleCheck(t, curveFile(t, m))
 }
 func TestOCCTSTEPCurveImport(t *testing.T) {
+	t.Parallel()
 	p := filepath.Join(t.TempDir(), "occt.step")
 	stepOracle(t, p, "write-step-curves")
 	f, e := os.Open(p)

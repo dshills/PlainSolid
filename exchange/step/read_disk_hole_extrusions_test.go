@@ -7,6 +7,7 @@ import (
 )
 
 func TestReadDiskHoleExtrusionsCanonical(t *testing.T) {
+	t.Parallel()
 	for _, height := range []float64{-3, 3} {
 		for _, kind := range []string{"mixed", "through", "solid"} {
 			t.Run(kind+real(height), func(t *testing.T) {
@@ -50,6 +51,7 @@ func TestReadDiskHoleExtrusionsCanonical(t *testing.T) {
 }
 
 func TestReadDiskHoleExtrusionsRejectsNoncanonicalOuter(t *testing.T) {
+	t.Parallel()
 	var out bytes.Buffer
 	if e := WriteDiskHoleExtrusions(&out, diskExtrusionFixture(t, -3)); e != nil {
 		t.Fatal(e)

@@ -11,6 +11,7 @@ import (
 )
 
 func TestBoxPocketSTEPFullGraphRoundTrip(t *testing.T) {
+	t.Parallel()
 	for _, axis := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		frame, e := geom.FrameFromNormal(geom.Vec3{X: 26, Y: -17, Z: 9}, axis)
 		if e != nil {
@@ -67,6 +68,7 @@ func TestBoxPocketSTEPFullGraphRoundTrip(t *testing.T) {
 }
 
 func TestBoxPocketSTEPFaceLimit(t *testing.T) {
+	t.Parallel()
 	frame, err := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	if err != nil {
 		t.Fatal(err)

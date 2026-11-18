@@ -10,6 +10,7 @@ import (
 )
 
 func TestPolynomialAzimuthIndependent(t *testing.T) {
+	t.Parallel()
 	raw := strings.Replace(polynomialResidualFixture(), "(0.,0.,0.)", "(0.,1.,0.)", 1)
 	for _, sign := range []int{-1, 1} {
 		source := raw
@@ -35,6 +36,7 @@ func TestPolynomialAzimuthIndependent(t *testing.T) {
 	}
 }
 func TestPolynomialAzimuthOCCT(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)

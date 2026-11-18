@@ -23,6 +23,7 @@ func coloredAssemblyModel(t *testing.T) ColoredAssemblyModel {
 	return m
 }
 func TestColoredAssemblyRoundtrip(t *testing.T) {
+	t.Parallel()
 	m := coloredAssemblyModel(t)
 	var b bytes.Buffer
 	if e := WriteColoredAssembly(&b, m); e != nil {
@@ -60,6 +61,7 @@ func TestColoredAssemblyRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTColoredAssembly(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-colored-assembly")
 	raw, e := os.ReadFile(source)
@@ -154,6 +156,7 @@ func TestOCCTColoredAssembly(t *testing.T) {
 }
 
 func TestIndependentColoredAssembly(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/colored-assembly.step")
 	if e != nil {
 		t.Fatal(e)
@@ -185,6 +188,7 @@ func TestIndependentColoredAssembly(t *testing.T) {
 	}
 }
 func TestColoredAssemblyMalformed(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/colored-assembly.step")
 	if e != nil {
 		t.Fatal(e)

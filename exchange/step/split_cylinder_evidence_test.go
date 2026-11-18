@@ -10,6 +10,7 @@ import (
 // The independently transferred OCCT shape is valid at its tolerance, but its
 // represented generatrices and vertices do not lie on the exact cylinder.
 func TestSplitCylinderOCCTExactSourceDiscrepancy(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/split-cylinder-occt.step")
 	if e != nil {
 		t.Fatal(e)

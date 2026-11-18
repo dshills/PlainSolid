@@ -16,6 +16,7 @@ func ovalShellFixture(t *testing.T) QuadraticOvalOpenShell {
 	return QuadraticOvalOpenShell{Annulus: annulus, Disk: disk, LengthUnit: .001}
 }
 func TestQuadraticOvalConnectedShell(t *testing.T) {
+	t.Parallel()
 	m := ovalShellFixture(t)
 	var b bytes.Buffer
 	if e := WriteQuadraticOvalOpenShell(&b, m); e != nil {
@@ -58,6 +59,7 @@ func TestQuadraticOvalConnectedShell(t *testing.T) {
 }
 
 func TestOCCTQuadraticOvalConnectedShell(t *testing.T) {
+	t.Parallel()
 	m := ovalShellFixture(t)
 	var out bytes.Buffer
 	if e := WriteQuadraticOvalOpenShell(&out, m); e != nil {
@@ -101,6 +103,7 @@ func TestOCCTQuadraticOvalConnectedShell(t *testing.T) {
 }
 
 func TestIndependentQuadraticConnectedShell(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/quadratic-connected-shell.step")
 	if e != nil {
 		t.Fatal(e)
@@ -119,6 +122,7 @@ func TestIndependentQuadraticConnectedShell(t *testing.T) {
 }
 
 func TestQuadraticConnectedShellReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/quadratic-connected-shell.step")
 	if e != nil {
 		t.Fatal(e)
@@ -172,6 +176,7 @@ func TestQuadraticConnectedShellReject(t *testing.T) {
 	}
 }
 func TestOCCTIndependentConnectedShell(t *testing.T) {
+	t.Parallel()
 	source := "testdata/quadratic-connected-shell.step"
 	out := t.TempDir() + "/mass.json"
 	stepOracle(t, out, "step-surface", source)

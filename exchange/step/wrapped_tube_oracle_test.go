@@ -13,6 +13,7 @@ import (
 )
 
 func TestWrappedTubeIndependentOCCT(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/wrapped-cylinder.step")
 	if e != nil {

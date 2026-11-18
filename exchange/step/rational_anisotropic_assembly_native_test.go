@@ -27,6 +27,7 @@ func rationalAnisotropicNativeFixture(t testing.TB) []byte {
 	return b.Bytes()
 }
 func TestRationalAnisotropicNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := rationalAnisotropicNativeFixture(t)
 	m, e := ReadRationalWrappedAnisotropicStationAssemblyJSON(ctx, bytes.NewReader(raw), IndependentMaterialJSONLimits{})
@@ -82,6 +83,7 @@ func TestRationalAnisotropicNative(t *testing.T) {
 	}
 }
 func TestRationalAnisotropicLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_ANISOTROPIC_STATION")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

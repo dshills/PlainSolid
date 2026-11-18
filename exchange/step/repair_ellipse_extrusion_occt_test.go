@@ -13,6 +13,7 @@ import (
 )
 
 func TestOCCTRepairEllipseExtrusion(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_ELLIPSE_EXTRUSION")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")
@@ -78,6 +79,7 @@ func TestOCCTRepairEllipseExtrusion(t *testing.T) {
 	}
 }
 func TestRepairEllipseExtrusionNative(t *testing.T) {
+	t.Parallel()
 	f, e := RepairRoundedEllipseExtrusionFace(bytes.NewReader(extrusionFaceFixture(t)), Limits{}, EllipticalWireRepairOptions{MaxDistance: 1e-11})
 	if e != nil {
 		t.Fatal(e)

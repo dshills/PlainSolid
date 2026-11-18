@@ -13,6 +13,7 @@ import (
 )
 
 func TestCylinderCellBoundOrientation(t *testing.T) {
+	t.Parallel()
 	for _, cells := range []int{2, 4} {
 		prefix := "split"
 		if cells == 4 {
@@ -65,6 +66,7 @@ func TestCylinderCellBoundOrientation(t *testing.T) {
 	}
 }
 func TestCylinderCellBoundOrientationOCCT(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_SPLIT_CYLINDER")
 	if bin == "" {
 		t.Skip("optional OCCT")

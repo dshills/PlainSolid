@@ -204,6 +204,7 @@ func checkThreeConvertedConvexArcSource(t *testing.T, tc threeConvertedFixture) 
 }
 
 func TestRepairThreeConvertedMetreConvexArcRejectsChangedCharts(t *testing.T) {
+	t.Parallel()
 	raw := rationalTiltUnitFixtures[0].source(t, threeConvertedSource)
 	for _, test := range []struct {
 		name  string
@@ -224,6 +225,7 @@ func TestRepairThreeConvertedMetreConvexArcRejectsChangedCharts(t *testing.T) {
 }
 
 func TestRepairThreeConvertedInchConvexArcRejectsChangedCharts(t *testing.T) {
+	t.Parallel()
 	raw := threeConvertedInch.unit.source(t, threeConvertedSource)
 	for _, test := range []struct {
 		name  string
@@ -252,6 +254,7 @@ func checkThreeConvertedInchUnscaled(t *testing.T, raw []byte) {
 }
 
 func TestRepairThreeConvertedInchConvexArcRejectsRoundedSupports(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile("testdata/" + threeConvertedSource + "-inch-unscaled.step")
 	if err != nil {
 		t.Fatal(err)
@@ -260,10 +263,12 @@ func TestRepairThreeConvertedInchConvexArcRejectsRoundedSupports(t *testing.T) {
 }
 
 func TestRepairThreeConvertedMetreConvexArcLive(t *testing.T) {
+	t.Parallel()
 	checkThreeConvertedConvexArcLive(t, threeConvertedMetre)
 }
 
 func TestRepairThreeConvertedInchConvexArcLive(t *testing.T) {
+	t.Parallel()
 	checkThreeConvertedConvexArcLive(t, threeConvertedInch)
 	oracle := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	unscaled := filepath.Join(t.TempDir(), "unscaled.step")

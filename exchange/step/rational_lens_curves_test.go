@@ -11,6 +11,7 @@ import (
 )
 
 func TestRationalLensUnnormalizedWeights(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/partitioned-spline-lens.step")
 	if e != nil {
 		t.Fatal(e)
@@ -133,6 +134,7 @@ func rationalConcurrentLensFixture(t testing.TB) RationalSplineLens {
 	return out
 }
 func TestConcurrentRationalLens(t *testing.T) {
+	t.Parallel()
 	m := rationalConcurrentLensFixture(t)
 	if len(m.Curves) != 7 {
 		t.Fatal(len(m.Curves))
@@ -150,6 +152,7 @@ func TestConcurrentRationalLens(t *testing.T) {
 	}
 }
 func TestRationalLensPoleChange(t *testing.T) {
+	t.Parallel()
 	for role := 0; role < 3; role++ {
 		m := rationalConcurrentLensFixture(t)
 		m.Curves[0][role].Poles[1].X = math.Nextafter(m.Curves[0][role].Poles[1].X, math.Inf(1))
@@ -160,6 +163,7 @@ func TestRationalLensPoleChange(t *testing.T) {
 	}
 }
 func TestRationalLensInvalidWeightsAndBudgets(t *testing.T) {
+	t.Parallel()
 	for _, weight := range []float64{0, -1, math.Inf(1), math.NaN()} {
 		m := rationalConcurrentLensFixture(t)
 		m.Curves[0][0].Weights[0] = weight

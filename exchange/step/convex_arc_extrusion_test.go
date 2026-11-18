@@ -37,6 +37,7 @@ func convexArcFixture(t *testing.T) (ConvexArcExtrusionModel, trimmed.Solid) {
 	return ConvexArcExtrusionModel{Body: ConvexArcExtrusionBody{Name: "original 3-4-5 fillet", Frame: h.Section.Frame, Height: h.Section.Height, Segments: h.Section.Segments}, LengthUnit: .001}, native
 }
 func TestConvexArcExtrusionSTEP(t *testing.T) {
+	t.Parallel()
 	m, original := convexArcFixture(t)
 	for _, normal := range []geom.Vec3{{Z: 1}, {X: -1}} {
 		m.Body.Frame, _ = geom.NewFrame(geom.Vec3{}, geom.Vec3{Y: 1}, normal)
@@ -83,6 +84,7 @@ func TestConvexArcExtrusionSTEP(t *testing.T) {
 }
 
 func TestConvexArcExtrusionReject(t *testing.T) {
+	t.Parallel()
 	m, _ := convexArcFixture(t)
 	var good bytes.Buffer
 	if e := WriteConvexArcExtrusion(&good, m); e != nil {
@@ -144,6 +146,7 @@ func TestConvexArcExtrusionReject(t *testing.T) {
 	}
 }
 func TestConvexArcExtrusionLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_STEP")
 	if bin == "" {
 		t.Skip("set PLAINSOLID_OCCT_CONVEX_ARC_STEP to the pinned read comparator")
@@ -185,6 +188,7 @@ func TestConvexArcExtrusionLive(t *testing.T) {
 }
 
 func TestConvexArcExtrusionTwoFillets(t *testing.T) {
+	t.Parallel()
 	stock, e := brep.Prism([]geom.Vec3{{}, {X: 4}, {Y: 3}}, geom.Vec3{Z: 5})
 	if e != nil {
 		t.Fatal(e)

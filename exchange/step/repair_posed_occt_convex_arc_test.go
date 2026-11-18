@@ -25,6 +25,7 @@ func posedConvexArcOriginal(t *testing.T) []byte {
 	return raw
 }
 func TestRepairPosedOCCTConvexArc(t *testing.T) {
+	t.Parallel()
 	raw := posedConvexArcOriginal(t)
 	ctx := context.Background()
 	if _, e := RepairOCCTConvexArcExtrusion(ctx, bytes.NewReader(raw), Limits{}, ConvexArcRepairOptions{1e-12}); e == nil {
@@ -82,6 +83,7 @@ func TestRepairPosedOCCTConvexArc(t *testing.T) {
 	}
 }
 func TestRepairPosedOCCTConvexArcReject(t *testing.T) {
+	t.Parallel()
 	raw := posedConvexArcOriginal(t)
 	ctx := context.Background()
 	for _, name := range []string{"noncardinal circle", "disagreeing cylinder", "metadata pose", "wrong owner"} {
@@ -147,6 +149,7 @@ func TestRepairPosedOCCTConvexArcReject(t *testing.T) {
 	}
 }
 func TestRepairPosedOCCTConvexArcLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if bin == "" {
 		t.Skip("set pinned independent author/read comparator")
@@ -228,6 +231,7 @@ func FuzzRepairPosedOCCTConvexArc(f *testing.F) {
 // The second actual OCCT fillet has an oppositely parameterized model circle,
 // not merely an extra copy of the first cylinder's graph.
 func TestRepairOCCTGroupedFilletsRemainExplicitlyUnsupported(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-model-only-two-oblique-prism-fillets.step")
 	if e != nil {
 		t.Fatal(e)

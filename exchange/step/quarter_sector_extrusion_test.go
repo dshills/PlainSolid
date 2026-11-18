@@ -13,6 +13,7 @@ import (
 )
 
 func TestQuarterSectorSTEP(t *testing.T) {
+	t.Parallel()
 	for _, n := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		for q := 0; q < 4; q++ {
 			f, _ := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
@@ -63,6 +64,7 @@ func TestQuarterSectorSTEP(t *testing.T) {
 }
 
 func TestQuarterSectorSTEPRejectsTampering(t *testing.T) {
+	t.Parallel()
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	m := QuarterSectorExtrusionModel{LengthUnit: .001, Body: QuarterSectorExtrusionBody{Name: "sector", Frame: f, Radius: 3, Height: 2}}
 	var b bytes.Buffer

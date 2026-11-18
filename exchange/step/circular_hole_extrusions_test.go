@@ -22,6 +22,7 @@ func circularHoleExtrusionFixture(t *testing.T, height float64) CircularHoleExtr
 	return CircularHoleExtrusionModel{LengthUnit: .001, Bodies: []CircularHoleExtrusionBody{{Name: "two bores", Frame: f, Outer: []geom.Vec2{{}, {X: 6}, {X: 7, Y: 3}, {X: 4, Y: 5}, {Y: 4}}, Holes: []trimmed.ExtrusionCircle{{Center: geom.Vec2{X: 2, Y: 2}, Radius: .5}, {Center: geom.Vec2{X: 5, Y: 2}, Radius: .75}}, Height: height}}}
 }
 func TestCircularHoleExtrusionSTEP(t *testing.T) {
+	t.Parallel()
 	for _, height := range []float64{3, -3} {
 		m := circularHoleExtrusionFixture(t, height)
 		var b bytes.Buffer
@@ -98,6 +99,7 @@ func TestCircularHoleExtrusionSTEP(t *testing.T) {
 	}
 }
 func TestCircularHoleExtrusionSTEPOCCT(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("PLAINSOLID_OCCT_STEP") == "" {
 		t.Skip("optional OCCT")
 	}
@@ -168,6 +170,7 @@ func TestCircularHoleExtrusionSTEPOCCT(t *testing.T) {
 }
 
 func TestCircularHoleExtrusionWinding(t *testing.T) {
+	t.Parallel()
 	m := circularHoleExtrusionFixture(t, -3)
 	before := append([]geom.Vec2(nil), m.Bodies[0].Outer...)
 	for a, z := 0, len(before)-1; a < z; a, z = a+1, z-1 {

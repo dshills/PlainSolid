@@ -21,6 +21,7 @@ func pcurveConvexArcOriginal(t *testing.T) []byte {
 	return raw
 }
 func TestRepairPCurveOCCTConvexArc(t *testing.T) {
+	t.Parallel()
 	raw := pcurveConvexArcOriginal(t)
 	ctx := context.Background()
 	m, e := RepairPCurveOCCTConvexArcExtrusion(ctx, bytes.NewReader(raw), Limits{}, ConvexArcRepairOptions{1e-12})
@@ -84,6 +85,7 @@ func TestRepairPCurveOCCTConvexArc(t *testing.T) {
 	}
 }
 func TestRepairPCurveOCCTConvexArcReject(t *testing.T) {
+	t.Parallel()
 	raw := pcurveConvexArcOriginal(t)
 	ctx := context.Background()
 	m, e := RepairPCurveOCCTConvexArcExtrusion(ctx, bytes.NewReader(raw), Limits{}, ConvexArcRepairOptions{1e-12})
@@ -232,6 +234,7 @@ func TestRepairPCurveOCCTConvexArcReject(t *testing.T) {
 	}
 }
 func TestRepairPCurveOCCTConvexArcLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if bin == "" {
 		t.Skip("set pinned author/read comparator")

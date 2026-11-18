@@ -15,6 +15,7 @@ func lensAssemblyFixture(t testing.TB) SplineLensAssemblyModel {
 	return SplineLensAssemblyModel{LengthUnit: body.LengthUnit, Products: []SplineLensAssemblyPart{{ID: "root", Name: "Lens group"}, {ID: "lens", Name: "Shared local lens", Bodies: []SplineLensBody{body}}}, Occurrences: []AssemblyInstance{{ID: "a", Name: "Translated", Parent: "root", Child: "lens", Transform: geom.Translation(geom.Vec3{X: 4})}, {ID: "b", Name: "Rotated", Parent: "root", Child: "lens", Transform: geom.Affine{{0, 0, 1, 8}, {0, 1, 0, 0}, {-1, 0, 0, 4}}}}}
 }
 func TestSplineLensAssembly(t *testing.T) {
+	t.Parallel()
 	m := lensAssemblyFixture(t)
 	var b bytes.Buffer
 	if e := WriteSplineLensAssembly(&b, m); e != nil {
@@ -51,6 +52,7 @@ func TestSplineLensAssembly(t *testing.T) {
 	}
 }
 func TestSplineLensAssemblyOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-spline-lens-assembly")
 	raw, e := os.ReadFile(source)
@@ -113,6 +115,7 @@ func TestSplineLensAssemblyOCCT(t *testing.T) {
 	}
 }
 func TestSplineLensAssemblyRejections(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"near-rigid", "reflection", "two-bodies"} {
 		m := lensAssemblyFixture(t)
 		switch kind {
@@ -196,6 +199,7 @@ func FuzzSplineLensAssembly(f *testing.F) {
 }
 
 func TestSplineLensNestedAssembly(t *testing.T) {
+	t.Parallel()
 	m := lensAssemblyFixture(t)
 	m.Products = append(m.Products, SplineLensAssemblyPart{ID: "group", Name: "Repeated nested group"})
 	for i := range m.Occurrences {

@@ -24,6 +24,7 @@ func axisAlignedShellFixture(t testing.TB) AxisAlignedSplineShellModel {
 	return m
 }
 func TestWriteAxisAlignedSplineShells(t *testing.T) {
+	t.Parallel()
 	m := axisAlignedShellFixture(t)
 	m.Bodies[0].Name = "L-shaped source"
 	m.LengthUnit = .0254
@@ -52,6 +53,7 @@ func TestWriteAxisAlignedSplineShells(t *testing.T) {
 	}
 }
 func TestWriteAxisAlignedSplineShellsReject(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"missing-use", "sense", "wrong-vertex", "duplicate-face", "empty"} {
 		t.Run(kind, func(t *testing.T) {
 			m := axisAlignedShellFixture(t)
@@ -79,6 +81,7 @@ func TestWriteAxisAlignedSplineShellsReject(t *testing.T) {
 	}
 }
 func TestOCCTWriteAxisAlignedSplineShells(t *testing.T) {
+	t.Parallel()
 	m := axisAlignedShellFixture(t)
 	var b bytes.Buffer
 	if e := WriteAxisAlignedSplineShells(&b, m); e != nil {

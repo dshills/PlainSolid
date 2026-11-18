@@ -22,6 +22,7 @@ func tangentCompositeFixture(t testing.TB, closed bool) []byte {
 	return b
 }
 func TestTangentCompositeCurvesRoundtrip(t *testing.T) {
+	t.Parallel()
 	for _, closed := range []bool{false, true} {
 		raw := tangentCompositeFixture(t, closed)
 		if _, e := ReadCompositeCurves(bytes.NewReader(raw), Limits{}); e == nil {
@@ -52,6 +53,7 @@ func TestTangentCompositeCurvesRoundtrip(t *testing.T) {
 	}
 }
 func TestTangentCompositeCurvesRejects(t *testing.T) {
+	t.Parallel()
 	raw := tangentCompositeFixture(t, false)
 	edits := []func(*File){
 		func(f *File) {
@@ -98,6 +100,7 @@ func TestTangentCompositeCurvesRejects(t *testing.T) {
 	}
 }
 func TestTangentCompositeEndpointProofs(t *testing.T) {
+	t.Parallel()
 	m, e := ReadTangentCompositeCurves(bytes.NewReader(tangentCompositeFixture(t, false)), Limits{})
 	if e != nil {
 		t.Fatal(e)
@@ -126,6 +129,7 @@ func TestTangentCompositeEndpointProofs(t *testing.T) {
 	}
 }
 func TestTangentCompositeClosedLastJoin(t *testing.T) {
+	t.Parallel()
 	p := [4][3]geom.Vec3{{{X: 1}, {X: 1, Y: 1}, {Y: 1}}, {{Y: 1}, {X: -1, Y: 1}, {X: -1}}, {{X: -1}, {X: -1, Y: -1}, {Y: -1}}, {{Y: -1}, {X: 1, Y: -1}, {X: 1}}}
 	c := CompositeSplineCurve{Name: "four exact rational quarters", Closed: true}
 	for _, v := range p {
@@ -146,6 +150,7 @@ func TestTangentCompositeClosedLastJoin(t *testing.T) {
 	}
 }
 func TestTangentCompositeMatrixAndLimits(t *testing.T) {
+	t.Parallel()
 	raw := tangentCompositeFixture(t, false)
 	m, e := ReadTangentCompositeCurves(bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -197,6 +202,7 @@ func FuzzTangentCompositeCurves(f *testing.F) {
 	})
 }
 func TestTangentCompositeThreeDimensionalParameters(t *testing.T) {
+	t.Parallel()
 	m, e := ReadTangentCompositeCurves(bytes.NewReader(tangentCompositeFixture(t, false)), Limits{})
 	if e != nil {
 		t.Fatal(e)

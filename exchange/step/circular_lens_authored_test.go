@@ -9,6 +9,7 @@ import (
 )
 
 func TestCircularLensAuthoredUnequalSweep(t *testing.T) {
+	t.Parallel()
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	p := CircularLensExtrusionBody{Name: "actual", Frame: f, Height: 10}
 	p.Arcs = [2]trimmed.ExtrusionSegment{

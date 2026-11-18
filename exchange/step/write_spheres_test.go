@@ -13,6 +13,7 @@ import (
 )
 
 func TestWriteSpheres(t *testing.T) {
+	t.Parallel()
 	m := SphereModel{LengthUnit: .001, Bodies: []SphereBody{{Name: "sphere α", Center: geom.Vec3{X: 1, Y: 2, Z: 3}, Radius: 2}}}
 	var b, again bytes.Buffer
 	if e := WriteSpheres(&b, m); e != nil {
@@ -45,6 +46,7 @@ func TestWriteSpheres(t *testing.T) {
 	}
 }
 func TestWriteMultipleSpheres(t *testing.T) {
+	t.Parallel()
 	m := SphereModel{LengthUnit: 1, Bodies: []SphereBody{{Radius: 1}, {Center: geom.Vec3{X: 5}, Radius: 2}}}
 	var b bytes.Buffer
 	if e := WriteSpheres(&b, m); e != nil {
@@ -56,6 +58,7 @@ func TestWriteMultipleSpheres(t *testing.T) {
 	}
 }
 func TestOCCTSphericalSTEPExport(t *testing.T) {
+	t.Parallel()
 	m := SphereModel{LengthUnit: .001, Bodies: []SphereBody{{Center: geom.Vec3{X: 1, Y: 2, Z: 3}, Radius: 2}}}
 	p := filepath.Join(t.TempDir(), "sphere.step")
 	f, e := os.Create(p)

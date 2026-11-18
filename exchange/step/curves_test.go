@@ -23,6 +23,7 @@ DATA;
 ENDSEC;END-ISO-10303-21;`
 
 func TestIndependentSTEPBSpline(t *testing.T) {
+	t.Parallel()
 	m, e := ReadCurves(strings.NewReader(independentCurve), Limits{})
 	if e != nil {
 		t.Fatal(e)
@@ -58,6 +59,7 @@ func TestIndependentSTEPBSpline(t *testing.T) {
 	}
 }
 func TestSTEPBSplineFailures(t *testing.T) {
+	t.Parallel()
 	for _, pair := range [][2]string{{"(3,3)", "(300000000,3)"}, {"(0.,1.)", "(1.,0.)"}, {"0.7071067811865476", "-1."}, {".CIRCULAR_ARC.", ".UNKNOWN."}, {".F.,.F.", ".BAD.,.F."}, {"(#4)", "(#1)"}} {
 		bad := strings.Replace(independentCurve, pair[0], pair[1], 1)
 		if _, e := ReadCurves(strings.NewReader(bad), Limits{}); e == nil {
@@ -87,6 +89,7 @@ func FuzzReadCurves(f *testing.F) {
 }
 
 func TestCurveWriterFailures(t *testing.T) {
+	t.Parallel()
 	m, e := ReadCurves(strings.NewReader(independentCurve), Limits{})
 	if e != nil {
 		t.Fatal(e)
@@ -103,6 +106,7 @@ func TestCurveWriterFailures(t *testing.T) {
 }
 
 func TestFullDomainCurveWrapper(t *testing.T) {
+	t.Parallel()
 	wrapper := "\n#9=TRIMMED_CURVE('wrapped',#4,(#1,PARAMETER_VALUE(0.)),(#3,PARAMETER_VALUE(1.)),.T.,.PARAMETER.);\n"
 	text := strings.Replace(independentCurve, "#7=GEOMETRIC_CURVE_SET('',(#4));", "#7=GEOMETRIC_CURVE_SET('',(#9));"+wrapper, 1)
 	m, e := ReadCurves(strings.NewReader(text), Limits{})
@@ -118,6 +122,7 @@ func TestFullDomainCurveWrapper(t *testing.T) {
 }
 
 func TestEmptyRationalCurveWeights(t *testing.T) {
+	t.Parallel()
 	f, e := Parse(strings.NewReader(independentCurve), Limits{})
 	if e != nil {
 		t.Fatal(e)

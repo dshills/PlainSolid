@@ -121,6 +121,7 @@ func TestGeneralPlanarHierarchyReentrant(t *testing.T) {
 }
 
 func TestGeneralPlanarFiniteHoles(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	outer := []geom.Vec3{{X: -10, Y: -4, Z: -2}, {X: -6, Y: -4, Z: -2}, {X: -6, Y: 0, Z: -2}, {X: -10, Y: 0, Z: -2}}
 	hole := []geom.Vec3{{X: -9, Y: -3, Z: -2}, {X: -9, Y: -1, Z: -2}, {X: -7, Y: -1, Z: -2}, {X: -7, Y: -3, Z: -2}}

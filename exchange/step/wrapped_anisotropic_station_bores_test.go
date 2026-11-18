@@ -127,6 +127,7 @@ func TestWrappedAnisotropicStationBoreSTEPReject(t *testing.T) {
 	}
 }
 func TestWrappedAnisotropicStationBoreSTEPLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_ANISOTROPIC_STATION")
 	if bin == "" {
 		t.Skip("optional independent OCCT")

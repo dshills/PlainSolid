@@ -22,6 +22,7 @@ func circleRevolveFixture(t *testing.T, angle float64) CircleRevolveModel {
 	return CircleRevolveModel{LengthUnit: .001, Bodies: []CircleRevolveBody{{Name: "signed disk", Frame: f, MajorRadius: 3, AxialCenter: 1.25, MinorRadius: .5, Angle: angle}}}
 }
 func TestCircleRevolveSignedRoundtrip(t *testing.T) {
+	t.Parallel()
 	for _, angle := range []float64{math.Pi / 2, -math.Pi / 2, 1.3 * math.Pi, -1.3 * math.Pi, 2 * math.Pi, -2 * math.Pi} {
 		t.Run(real(angle), func(t *testing.T) {
 			m := circleRevolveFixture(t, angle)
@@ -68,6 +69,7 @@ func TestCircleRevolveSignedRoundtrip(t *testing.T) {
 	}
 }
 func TestCircleRevolveRejects(t *testing.T) {
+	t.Parallel()
 	m := circleRevolveFixture(t, -1)
 	var raw bytes.Buffer
 	if e := WriteCircleRevolves(&raw, m); e != nil {
@@ -153,6 +155,7 @@ func TestCircleRevolveRejects(t *testing.T) {
 	}
 }
 func TestCircleRevolveSignedOCCT(t *testing.T) {
+	t.Parallel()
 	for _, angle := range []float64{-math.Pi / 2, -1.3 * math.Pi, -2 * math.Pi} {
 		t.Run(real(angle), func(t *testing.T) {
 			m := circleRevolveFixture(t, angle)
@@ -203,6 +206,7 @@ func TestCircleRevolveSignedOCCT(t *testing.T) {
 }
 
 func TestCircleRevolveIndependentResolution(t *testing.T) {
+	t.Parallel()
 	// This independently generated positive-chart elbow also has a valid negative
 	// feature description starting at its other cap. The hint explicitly supplies
 	// that history; it is never guessed from the STEP material graph.
@@ -258,6 +262,7 @@ func TestCircleRevolveIndependentResolution(t *testing.T) {
 	}
 }
 func TestCircleRevolveUnrepresentableResolution(t *testing.T) {
+	t.Parallel()
 	m := circleRevolveFixture(t, 1)
 	var raw bytes.Buffer
 	if e := WriteCircleRevolves(&raw, m); e != nil {

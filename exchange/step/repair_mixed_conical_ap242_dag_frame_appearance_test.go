@@ -212,6 +212,7 @@ func TestRepairedMixedConicalAP242DAGFrameAppearanceReceipt(t *testing.T) {
 }
 
 func TestRepairMixedConicalAP242DAGFrameAppearancePinnedAuthor(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv(roundedConicalFrameAppearanceOracle)
 	if oracle == "" {
 		t.Skip("pinned combined rounded AP242 author unavailable")

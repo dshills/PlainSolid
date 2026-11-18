@@ -102,6 +102,7 @@ func nurbsNativeBody(q *nurbsAssemblyEnvelope) *occurrenceColorNativeBody {
 	return nil
 }
 func TestNURBSAssemblyNativeRoundtrip(t *testing.T) {
+	t.Parallel()
 	for _, mode := range nurbsNativeModes {
 		t.Run(mode, func(t *testing.T) {
 			m, raw := nurbsNativeTestBytes(t, mode)
@@ -247,6 +248,7 @@ func nurbsNativeGeometry(m nurbsNativeModel) *ColoredAssembly {
 	return &m.oblique.Geometry
 }
 func TestNURBSAssemblyNativeLimitsAtomicity(t *testing.T) {
+	t.Parallel()
 	for _, mode := range nurbsNativeModes {
 		t.Run(mode, func(t *testing.T) {
 			m, raw := nurbsNativeTestBytes(t, mode)
@@ -327,6 +329,7 @@ func TestNURBSAssemblyNativeLimitsAtomicity(t *testing.T) {
 	}
 }
 func TestNURBSAssemblyNativeLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_AP242_NURBS_NATIVE")
 	if bin == "" {
 		t.Skip("set PLAINSOLID_OCCT_AP242_NURBS_NATIVE to the independent oblique observer")

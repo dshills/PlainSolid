@@ -14,6 +14,7 @@ import (
 )
 
 func TestOCCTAnalyticHierarchy(t *testing.T) {
+	t.Parallel()
 	for _, name := range []string{"independent-analytic-hierarchy-units-nonzero-origin.step", "independent-analytic-hierarchy-occt-frames.step"} {
 		t.Run(name, func(t *testing.T) {
 			raw, e := os.ReadFile("testdata/" + name)
@@ -156,6 +157,7 @@ func TestOCCTAnalyticHierarchy(t *testing.T) {
 	}
 }
 func TestOCCTAnalyticHierarchyReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, _ := os.ReadFile("testdata/independent-analytic-hierarchy-occt-frames.step")
 	target := IndependentMaterialSIUnit(RoundMillimetre)
@@ -259,6 +261,7 @@ func FuzzOCCTAnalyticHierarchyNative(f *testing.F) {
 	})
 }
 func TestOCCTAnalyticHierarchyLimits(t *testing.T) {
+	t.Parallel()
 	raw, _ := os.ReadFile("testdata/independent-analytic-hierarchy-occt-frames.step")
 	ctx := context.Background()
 	target := IndependentMaterialSIUnit(RoundMillimetre)

@@ -21,6 +21,7 @@ func holedSplineFixture(t testing.TB) []byte {
 	return b
 }
 func TestHoledSplineFaceRoundtrip(t *testing.T) {
+	t.Parallel()
 	raw := holedSplineFixture(t)
 	m, e := ReadHoledSplineFaces(bytes.NewReader(raw), Limits{})
 	if e != nil || len(m.Faces) != 1 {
@@ -58,6 +59,7 @@ func TestHoledSplineFaceRoundtrip(t *testing.T) {
 	}
 }
 func TestHoledSplineFaceReject(t *testing.T) {
+	t.Parallel()
 	raw := string(holedSplineFixture(t))
 	for _, mutation := range [][2]string{{"#85 = FACE_BOUND('',#86,.F.)", "#85 = FACE_BOUND('',#86,.T.)"}, {"#17 = ADVANCED_FACE('',(#18,#85),#31,.T.)", "#17 = ADVANCED_FACE('',(#18,#85),#31,.F.)"}, {"#17 = ADVANCED_FACE('',(#18,#85),#31,.T.)", "#17 = ADVANCED_FACE('',(#18,#18),#31,.T.)"}, {"#87 = ORIENTED_EDGE('',*,*,#88,.F.)", "#87 = ORIENTED_EDGE('',*,*,#88,.T.)"}, {"#90 = CARTESIAN_POINT('',(20.,0.5,2.5))", "#90 = CARTESIAN_POINT('',(20.,0.5,2.5000000000000004))"}, {"#96 = CARTESIAN_POINT('',(20.,2.,10.))", "#96 = CARTESIAN_POINT('',(20.,2.,10.000000000000002))"}} {
 		bad := strings.Replace(raw, mutation[0], mutation[1], 1)
@@ -105,6 +107,7 @@ func stepHoledArea(t *testing.T, path string) float64 {
 	return r.Area
 }
 func TestOCCTHoledSplineFace(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-holed-spline-face")
 	raw, e := os.ReadFile(source)

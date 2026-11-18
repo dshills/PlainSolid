@@ -45,6 +45,7 @@ func checkSphere(t *testing.T, m AnalyticModel) {
 	}
 }
 func TestIndependentSphereBody(t *testing.T) {
+	t.Parallel()
 	m, e := ReadAnalyticBodies(strings.NewReader(independentSphere), Limits{})
 	if e != nil {
 		t.Fatal(e)
@@ -56,6 +57,7 @@ func TestIndependentSphereBody(t *testing.T) {
 	}
 }
 func TestSphereBodyFailures(t *testing.T) {
+	t.Parallel()
 	for _, pair := range [][2]string{{"(1.,2.,5.)", "(3.,2.,3.)"}, {"(1.,2.,5.)", "(1.,2.,4.)"}, {"(#9),#5,.T.", "(#9),#5,.F."}, {"#8,.T.", "#8,.F."}, {"VERTEX_LOOP", "EDGE_LOOP"}, {"CLOSED_SHELL", "OPEN_SHELL"}, {"#4,2.", "#4,-2."}, {"(#10)", "(#10,#10)"}, {"(1.,0.,0.)", "(0.,0.,1.)"}} {
 		bad := strings.Replace(independentSphere, pair[0], pair[1], 1)
 		if bad == independentSphere {
@@ -72,6 +74,7 @@ func TestSphereBodyFailures(t *testing.T) {
 	}
 }
 func TestElementarySurfaceDecode(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		entity string
 		want   geom.Vec3
@@ -91,6 +94,7 @@ func TestElementarySurfaceDecode(t *testing.T) {
 	}
 }
 func TestOCCTAnalyticSphereImport(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "sphere.step")
 	stepOracle(t, path, "write-step-sphere")
 	f, e := os.Open(path)
@@ -112,6 +116,7 @@ func FuzzReadAnalyticBodies(f *testing.F) {
 }
 
 func TestRotatedSpherePoleFrame(t *testing.T) {
+	t.Parallel()
 	text := strings.Replace(independentSphere, "#2=DIRECTION('',(0.,0.,1.))", "#2=DIRECTION('',(1.,0.,0.))", 1)
 	text = strings.Replace(text, "#3=DIRECTION('',(1.,0.,0.))", "#3=DIRECTION('',(0.,1.,0.))", 1)
 	text = strings.Replace(text, "(1.,2.,5.)", "(3.,2.,3.)", 1)

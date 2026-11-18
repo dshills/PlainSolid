@@ -85,6 +85,7 @@ func TestWriteGeneralSideOpenDualDiskProduct(t *testing.T) {
 	}
 }
 func TestWriteGeneralSideOpenDualDiskProductRejects(t *testing.T) {
+	t.Parallel()
 	edits := []struct {
 		name string
 		edit func(*GeneralSideOpenDualDiskDescriptor)
@@ -122,6 +123,7 @@ func TestWriteGeneralSideOpenDualDiskProductRejects(t *testing.T) {
 	}
 }
 func TestOCCTWriteGeneralSideOpenDualDiskProduct(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS")
 	if oracle == "" {
 		t.Skip("optional independent OCCT helper")
@@ -185,6 +187,7 @@ func TestOCCTWriteGeneralSideOpenDualDiskProduct(t *testing.T) {
 }
 
 func TestWriteGeneralSideOpenDualDiskCategoryAndRightJoin(t *testing.T) {
+	t.Parallel()
 	between := GeneralSideOpenDualDiskDescriptor(unequalSideDiskDescriptor(t, false, false, false))
 	var b bytes.Buffer
 	if e := WriteGeneralSideOpenDualDiskProduct(context.Background(), &b, between); e == nil || b.Len() != 0 {

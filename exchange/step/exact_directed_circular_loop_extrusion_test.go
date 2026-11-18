@@ -101,6 +101,7 @@ func TestExactDirectedCircularLoopExtrusionSTEPRoundTrip(t *testing.T) {
 }
 
 func TestExactDirectedCircularLoopExtrusionSTEPLiveOCCT(t *testing.T) {
+	t.Parallel()
 	reader := os.Getenv("PLAINSOLID_OCCT_DIRECTED_CIRCULAR_STEP")
 	if reader == "" {
 		t.Skip("optional pinned independent STEP reader")

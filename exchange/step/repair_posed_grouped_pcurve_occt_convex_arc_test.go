@@ -138,6 +138,7 @@ func TestRepairPosedGroupedPCurve(t *testing.T) {
 	}
 }
 func TestRepairPosedGroupedPCurveReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	b := posedGroupedSource(t, "x")
 	m, e := RepairPosedGroupedPCurveOCCTConvexArcExtrusion(ctx, bytes.NewReader(b), Limits{}, ConvexArcRepairOptions{1e-12})
@@ -232,6 +233,7 @@ func TestRepairPosedGroupedPCurveReject(t *testing.T) {
 	}
 }
 func TestRepairPosedGroupedPCurveLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if bin == "" {
 		t.Skip("set pinned author")

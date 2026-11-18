@@ -131,6 +131,7 @@ func TestColoredWrappedMaterialAssembly(t *testing.T) {
 	}
 }
 func TestColoredWrappedMaterialAssemblyOCCT(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteColoredWrappedMaterialAssembly(&b, coloredWrappedFixture(t)); e != nil {
 		t.Fatal(e)

@@ -203,6 +203,7 @@ func checkFourConvertedConvexArcSource(t *testing.T, tc groupedConvertedFixture,
 }
 
 func TestRepairFourConvertedMetreConvexArcRejectsChangedCharts(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(fourConvertedMetreSource + ".step")
 	if err != nil {
 		t.Fatal(err)
@@ -238,10 +239,12 @@ func TestRepairFourConvertedMetreConvexArcRejectsChangedCharts(t *testing.T) {
 }
 
 func TestRepairFourConvertedMetreConvexArcLive(t *testing.T) {
+	t.Parallel()
 	checkFourConvertedConvexArcLive(t, groupedConvertedMetre)
 }
 
 func TestRepairFourConvertedInchConvexArcLive(t *testing.T) {
+	t.Parallel()
 	checkFourConvertedConvexArcLive(t, groupedConvertedInch)
 }
 
@@ -313,6 +316,7 @@ func checkFourConvertedConvexArcLive(t *testing.T, tc groupedConvertedFixture) {
 }
 
 func TestRepairFourConvertedInchConvexArcRejectsChangedCharts(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(fourConvertedInchSource + ".step")
 	if err != nil {
 		t.Fatal(err)
@@ -344,6 +348,7 @@ func checkFourConvertedUnscaledInch(t *testing.T, raw []byte) {
 }
 
 func TestRepairFourConvertedInchConvexArcRejectsRoundedSupports(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(fourConvertedInchSource + "-unscaled.step")
 	if err != nil {
 		t.Fatal(err)

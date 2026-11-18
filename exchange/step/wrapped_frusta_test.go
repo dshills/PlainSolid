@@ -12,6 +12,7 @@ import (
 )
 
 func TestWrappedFrustaStoredOCCT(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"wrapped-frustum", "wrapped-circular-frustum"} {
 		t.Run(kind, func(t *testing.T) {
 			raw, e := os.ReadFile("testdata/" + kind + ".step")
@@ -56,6 +57,7 @@ func TestWrappedFrustaStoredOCCT(t *testing.T) {
 }
 
 func TestWrappedFrustaLiveOCCT(t *testing.T) {
+	t.Parallel()
 	for _, mode := range []string{"write-step-wrapped-frustum", "write-step-wrapped-circular-frustum"} {
 		t.Run(mode, func(t *testing.T) {
 			source := t.TempDir() + "/source.step"
@@ -102,6 +104,7 @@ func TestWrappedFrustaLiveOCCT(t *testing.T) {
 }
 
 func TestWrappedFrustaReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-frustum.step")
 	if e != nil {
 		t.Fatal(e)

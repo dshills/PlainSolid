@@ -12,6 +12,7 @@ import (
 )
 
 func TestIndependentHeterogeneousUnitsNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	source, e := os.ReadFile("testdata/independent-heterogeneous-units.step")
 	if e != nil {

@@ -142,10 +142,12 @@ func checkConvertedGroupAxialMap(t *testing.T, span ConvexArcCylinderSpanOwner, 
 }
 
 func TestRepairGroupedConvertedMetreConvexArcSource(t *testing.T) {
+	t.Parallel()
 	checkGroupedConvertedSource(t, groupedConvertedMetre)
 }
 
 func TestRepairGroupedConvertedInchConvexArcSource(t *testing.T) {
+	t.Parallel()
 	checkGroupedConvertedSource(t, groupedConvertedInch)
 }
 
@@ -181,6 +183,7 @@ func checkGroupedConvertedSource(t *testing.T, tc groupedConvertedFixture) {
 }
 
 func TestRepairGroupedConvertedMetreConvexArcRejectsChangedCharts(t *testing.T) {
+	t.Parallel()
 	raw := groupedConvertedMetre.source(t)
 	for _, test := range []struct {
 		name  string
@@ -206,6 +209,7 @@ func TestRepairGroupedConvertedMetreConvexArcRejectsChangedCharts(t *testing.T) 
 }
 
 func TestRepairGroupedConvertedInchConvexArcRejectsChangedCharts(t *testing.T) {
+	t.Parallel()
 	raw := groupedConvertedInch.source(t)
 	for _, test := range []struct {
 		name  string
@@ -248,6 +252,7 @@ func rejectChangedGroupedConversion(t *testing.T, raw []byte, maxDistance float6
 }
 
 func TestRepairGroupedConvertedInchConvexArcRejectsRoundedSupports(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile("testdata/" + groupedTiltUnitSource + "-converted-inch-unscaled.step")
 	if err != nil {
 		t.Fatal(err)
@@ -304,10 +309,12 @@ func checkUnscaledInchSupports(t *testing.T, raw []byte, pairs []roundedInchSupp
 }
 
 func TestRepairGroupedConvertedMetreConvexArcLive(t *testing.T) {
+	t.Parallel()
 	checkGroupedConvertedLive(t, groupedConvertedMetre)
 }
 
 func TestRepairGroupedConvertedInchConvexArcLive(t *testing.T) {
+	t.Parallel()
 	checkGroupedConvertedLive(t, groupedConvertedInch)
 }
 

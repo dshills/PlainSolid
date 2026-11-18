@@ -25,6 +25,7 @@ func rationalSpeedNonplanarRoofFixture(t testing.TB) []byte {
 	return b
 }
 func TestRationalSpeedNonplanarSplineShellOriginal(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := rationalSpeedNonplanarRoofFixture(t)
 	if _, e := ReadSplineShells(bytes.NewReader(raw), Limits{}); e == nil {
@@ -109,6 +110,7 @@ func TestRationalSpeedNonplanarSplineShellOriginal(t *testing.T) {
 	}
 }
 func TestRationalSpeedNonplanarSplineShellReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := rationalSpeedNonplanarRoofFixture(t)
 	m, e := ReadRationalSpeedNonplanarSplineShellSource(ctx, bytes.NewReader(raw), Limits{})
@@ -220,6 +222,7 @@ func TestRationalSpeedNonplanarSplineShellReject(t *testing.T) {
 	}
 }
 func TestRationalSpeedNonplanarSplineShellLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_RATIONAL_SPEED_ROOF")
 	if bin == "" {
 		t.Skip("standalone OCCT helper")
@@ -303,6 +306,7 @@ func FuzzRationalSpeedNonplanarSplineShellSource(f *testing.F) {
 }
 
 func TestRationalSpeedNonplanarSplineShellMapIdentity(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := rationalSpeedNonplanarRoofFixture(t)
 	m, e := ReadRationalSpeedNonplanarSplineShellSource(ctx, bytes.NewReader(raw), Limits{})
@@ -387,6 +391,7 @@ func TestRationalSpeedNonplanarSplineShellMapIdentity(t *testing.T) {
 }
 
 func TestRationalSpeedNonplanarSplineShellCommonWeightScale(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := rationalSpeedNonplanarRoofFixture(t)
 	f, e := Parse(bytes.NewReader(raw), Limits{})

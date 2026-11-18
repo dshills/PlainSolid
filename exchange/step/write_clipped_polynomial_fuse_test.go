@@ -106,6 +106,7 @@ func TestWriteClippedPolynomialFuse(t *testing.T) {
 }
 
 func TestClippedFuseSTEPNonDecimalPoleRequiresExplicitBound(t *testing.T) {
+	t.Parallel()
 	q := func(a, b int64) *big.Rat { return big.NewRat(a, b) }
 	s := geom.ExactBezierSpan{Start: 0, End: 1, Control: [][4]*big.Rat{
 		{q(0, 1), q(0, 1), q(0, 1), q(1, 1)},

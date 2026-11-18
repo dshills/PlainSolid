@@ -30,6 +30,7 @@ func torusAssemblyNativeFixture(t testing.TB) (IndependentTorusAssembly, []byte)
 	return m, b.Bytes()
 }
 func TestIndependentTorusAssemblyNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m, raw := torusAssemblyNativeFixture(t)
 	n, e := ReadIndependentTorusAssemblyJSON(ctx, bytes.NewReader(raw), IndependentMaterialJSONLimits{})

@@ -21,6 +21,7 @@ func compositeFixture(t testing.TB, closed bool) []byte {
 	return b
 }
 func TestCompositeCurvesIndependentRoundtrip(t *testing.T) {
+	t.Parallel()
 	for _, closed := range []bool{false, true} {
 		raw := compositeFixture(t, closed)
 		m, e := ReadCompositeCurves(bytes.NewReader(raw), Limits{})
@@ -60,6 +61,7 @@ func TestCompositeCurvesIndependentRoundtrip(t *testing.T) {
 	}
 }
 func TestCompositeCurvesRejectGraph(t *testing.T) {
+	t.Parallel()
 	raw := compositeFixture(t, false)
 	edits := []func(*File){
 		func(f *File) {
@@ -103,6 +105,7 @@ func TestCompositeCurvesRejectGraph(t *testing.T) {
 	}
 }
 func TestCompositeCurvesWriterAndMultiple(t *testing.T) {
+	t.Parallel()
 	m, e := ReadCompositeCurves(bytes.NewReader(compositeFixture(t, false)), Limits{})
 	if e != nil {
 		t.Fatal(e)
@@ -152,6 +155,7 @@ func FuzzCompositeCurves(f *testing.F) {
 	})
 }
 func TestCompositeCurvesPositionalAndClosureClaims(t *testing.T) {
+	t.Parallel()
 	raw := compositeFixture(t, false)
 	for _, mode := range []string{"gap", "false-close", "inner-break", "shared-point", "orphan"} {
 		b := sideDiskMutateSource(t, raw, func(f *File) {

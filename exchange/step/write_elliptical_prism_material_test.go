@@ -24,6 +24,7 @@ func nativeEllipsePrism(t testing.TB) EllipticalPrismMaterial {
 	return m
 }
 func TestWriteEllipticalPrismMaterialSTEP(t *testing.T) {
+	t.Parallel()
 	m := nativeEllipsePrism(t)
 	for _, o := range []EllipticalPrismSTEPOptions{{}, {Name: "authored 'ellipse'", Translation: geom.Vec3{X: 8, Y: -2, Z: 4}}} {
 		var b bytes.Buffer

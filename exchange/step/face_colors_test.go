@@ -13,6 +13,7 @@ func faceColorModel(t *testing.T) FaceColoredModel {
 	return FaceColoredModel{LengthUnit: .001, Bodies: []FaceColoredBody{{Body: coloredModel(t).Bodies[0].Body, FaceColors: map[int]RGB{0: {.8, .1, .3}}}}}
 }
 func TestFaceColorsRoundtrip(t *testing.T) {
+	t.Parallel()
 	m := faceColorModel(t)
 	m.Bodies[0].SurfaceColor = &RGB{.2, .4, .6}
 	m.Bodies[0].FaceColors[3] = RGB{1, 0, 0}
@@ -48,6 +49,7 @@ func TestFaceColorsRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTFaceColors(t *testing.T) {
+	t.Parallel()
 	fixture := filepath.Join(t.TempDir(), "occt.step")
 	stepOracle(t, fixture, "write-step-face-color")
 	raw, e := os.ReadFile(fixture)
@@ -91,6 +93,7 @@ func TestOCCTFaceColors(t *testing.T) {
 }
 
 func TestIndependentFaceColorFixture(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/face-colored-box.step")
 	if e != nil {
 		t.Fatal(e)

@@ -14,6 +14,7 @@ import (
 )
 
 func TestAxisPolygonRevolveSTEPOCCT(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("PLAINSOLID_OCCT_STEP") == "" {
 		t.Skip("optional OCCT")
 	}
@@ -91,6 +92,7 @@ func TestAxisPolygonRevolveSTEPOCCT(t *testing.T) {
 }
 
 func TestAxisPolygonRevolveSTEPTopology(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"axis-concave", "apex"} {
 		m := polygonRevolveFixture(t, kind, math.Pi/2)
 		var b bytes.Buffer

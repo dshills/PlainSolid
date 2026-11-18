@@ -27,6 +27,7 @@ func weightedAssemblyFixture(t testing.TB) []byte {
 	return b
 }
 func TestWrappedRationalStationAssembly(t *testing.T) {
+	t.Parallel()
 	raw := weightedAssemblyFixture(t)
 	m, e := ReadWrappedRationalStationAssembly(context.Background(), bytes.NewReader(raw), Limits{}, WrappedSurfaceOptions{})
 	if e != nil {
@@ -120,6 +121,7 @@ func TestWrappedRationalStationAssemblyRoundTrip(t *testing.T) {
 	}
 }
 func TestWrappedRationalStationAssemblyReject(t *testing.T) {
+	t.Parallel()
 	raw := string(weightedAssemblyFixture(t))
 	ctx := context.Background()
 	for _, c := range [][2]string{
@@ -166,6 +168,7 @@ func TestWrappedRationalStationAssemblyReject(t *testing.T) {
 	}
 }
 func TestWrappedRationalStationAssemblyLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_WEIGHTED_STATION_ASSEMBLY")
 	if bin == "" {
 		t.Skip("optional independent XCAF author/observer")
@@ -286,6 +289,7 @@ func FuzzWrappedRationalStationAssembly(f *testing.F) {
 }
 
 func TestWrappedRationalStationAssemblyReordered(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	f, e := Parse(bytes.NewReader(weightedAssemblyFixture(t)), Limits{})
 	if e != nil {

@@ -14,6 +14,7 @@ import (
 )
 
 func TestSteppedShaftSTEP(t *testing.T) {
+	t.Parallel()
 	f, err := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	if err != nil {
 		t.Fatal(err)

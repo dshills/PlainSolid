@@ -94,6 +94,7 @@ func TestWrappedAnisotropicStationSTEP(t *testing.T) {
 }
 
 func TestWrappedAnisotropicStationSTEPReject(t *testing.T) {
+	t.Parallel()
 	raw := anisotropicSTEPFixture(t)
 	for index, edit := range []func(*File){
 		func(f *File) { sideDiskEditRecord(f, "PCURVE", func(r *Record) { r.Args[1] = r.Args[2] }) },
@@ -137,6 +138,7 @@ func TestWrappedAnisotropicStationSTEPReject(t *testing.T) {
 	}
 }
 func TestWrappedAnisotropicStationSTEPLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_ANISOTROPIC_STATION")
 	if bin == "" {
 		t.Skip("optional independent OCCT author")

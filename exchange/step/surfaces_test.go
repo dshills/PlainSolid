@@ -23,6 +23,7 @@ DATA;
 ENDSEC;END-ISO-10303-21;`
 
 func TestIndependentSTEPBSplineSurface(t *testing.T) {
+	t.Parallel()
 	m, e := ReadSurfaces(strings.NewReader(independentSurface), Limits{})
 	if e != nil {
 		t.Fatal(e)
@@ -61,6 +62,7 @@ func TestIndependentSTEPBSplineSurface(t *testing.T) {
 	}
 }
 func TestSTEPBSplineSurfaceFailures(t *testing.T) {
+	t.Parallel()
 	for _, pair := range [][2]string{{"(3,3)", "(300000000,3)"}, {"(#3,#4)", "(#3)"}, {"(0.,1.)", "(1.,0.)"}, {"0.7071067811865476", "-1."}, {".CYLINDRICAL_SURF.", ".BAD."}, {".F.,.F.,.F.", ".BAD.,.F.,.F."}} {
 		if _, e := ReadSurfaces(strings.NewReader(strings.Replace(independentSurface, pair[0], pair[1], 1)), Limits{}); e == nil {
 			t.Fatal(pair)
@@ -95,6 +97,7 @@ func FuzzReadSurfaces(f *testing.F) {
 }
 
 func TestEmptyRationalSurfaceWeights(t *testing.T) {
+	t.Parallel()
 	f, e := Parse(strings.NewReader(independentSurface), Limits{})
 	if e != nil {
 		t.Fatal(e)

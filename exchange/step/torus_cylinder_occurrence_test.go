@@ -33,6 +33,7 @@ func torusCylinderExportPose(t *testing.T, mode int) rigidplacement.RationalRigi
 	return p
 }
 func TestTorusCylinderSTEPExactOccurrence(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	r := big.NewRat
 	for _, mode := range []int{1, 2} {
@@ -129,6 +130,7 @@ func TestTorusCylinderSTEPExactOccurrence(t *testing.T) {
 	}
 }
 func TestOCCTPlacedTorusCylinderSTEP(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_TORUS_CYLINDER_PLACED_STEP")
 	if oracle == "" {
 		t.Skip("set pinned placed STEP oracle")

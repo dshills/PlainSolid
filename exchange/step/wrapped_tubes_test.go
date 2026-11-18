@@ -10,6 +10,7 @@ import (
 )
 
 func TestReadWrappedTubeOCCTFixture(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-tube.step")
 	if e != nil {
 		t.Fatal(e)
@@ -24,6 +25,7 @@ func TestReadWrappedTubeOCCTFixture(t *testing.T) {
 }
 
 func TestWrappedTubeRoundtripOCCT(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-tube.step")
 	if e != nil {
 		t.Fatal(e)
@@ -70,6 +72,7 @@ func TestWrappedTubeRoundtripOCCT(t *testing.T) {
 	}
 }
 func TestWrappedTubeReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-tube.step")
 	if e != nil {
 		t.Fatal(e)

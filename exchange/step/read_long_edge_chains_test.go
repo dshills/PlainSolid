@@ -11,6 +11,7 @@ import (
 )
 
 func TestReadLongEdgeRecipes(t *testing.T) {
+	t.Parallel()
 	for _, setback := range [][2]float64{{1, 1}, {.5, 1.5}, {1, 2}} {
 		for _, full := range []bool{false, true} {
 			m := longEdgeChainFixture()
@@ -54,6 +55,7 @@ func TestReadLongEdgeRecipes(t *testing.T) {
 }
 
 func TestReadLongEdgeRecipeRejects(t *testing.T) {
+	t.Parallel()
 	m := longEdgeChainFixture()
 	var raw bytes.Buffer
 	if e := WriteLongEdgeChains(&raw, m); e != nil {
@@ -159,6 +161,7 @@ func TestReadLongEdgeRecipeRejects(t *testing.T) {
 	}
 }
 func TestReadLongEdgeRenumbering(t *testing.T) {
+	t.Parallel()
 	m := longEdgeChainFixture()
 	var raw bytes.Buffer
 	if e := WriteLongEdgeChains(&raw, m); e != nil {
@@ -214,6 +217,7 @@ func FuzzReadLongEdgeRecipes(f *testing.F) {
 }
 
 func TestReadLongEdgeOCCT(t *testing.T) {
+	t.Parallel()
 	for _, full := range []bool{false, true} {
 		m := longEdgeChainFixture()
 		var raw, out bytes.Buffer
@@ -291,6 +295,7 @@ func TestReadLongEdgeOCCT(t *testing.T) {
 }
 
 func TestReadLongEdgeFeatureParameters(t *testing.T) {
+	t.Parallel()
 	for _, unit := range []float64{.001, 1} {
 		m := longEdgeChainFixture()
 		m.LengthUnit = unit

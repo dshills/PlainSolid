@@ -34,6 +34,7 @@ func occurrenceColorsNativeFixture(t testing.TB) (OccurrenceColoredAssembly, []b
 	return m, out.Bytes()
 }
 func TestOccurrenceColorsNative(t *testing.T) {
+	t.Parallel()
 	m, raw := occurrenceColorsNativeFixture(t)
 	n, e := ReadOccurrenceColoredAssemblyJSON(context.Background(), bytes.NewReader(raw), IndependentMaterialJSONLimits{})
 	if e != nil {
@@ -56,6 +57,7 @@ func TestOccurrenceColorsNative(t *testing.T) {
 	}
 }
 func TestOccurrenceColorsNativeTamper(t *testing.T) {
+	t.Parallel()
 	_, raw := occurrenceColorsNativeFixture(t)
 	mutations := []func(*occurrenceColorsEnvelope){
 		func(q *occurrenceColorsEnvelope) {
@@ -93,6 +95,7 @@ func TestOccurrenceColorsNativeTamper(t *testing.T) {
 }
 
 func TestOccurrenceColorsNativeLimitsAndAtomicity(t *testing.T) {
+	t.Parallel()
 	m, raw := occurrenceColorsNativeFixture(t)
 	ctx := context.Background()
 	for _, l := range []IndependentMaterialJSONLimits{{MaxBytes: int64(len(raw) - 1)}, {MaxBytes: -1}, {MaxBytes: 9 << 20}, {Source: Limits{MaxEntities: 700}}} {
@@ -170,6 +173,7 @@ type occurrenceShortWriter struct{}
 func (occurrenceShortWriter) Write(b []byte) (int, error) { return len(b) - 1, nil }
 
 func TestOccurrenceColorsNativeLive(t *testing.T) {
+	t.Parallel()
 	_, raw := occurrenceColorsNativeFixture(t)
 	m, e := ReadOccurrenceColoredAssemblyJSON(context.Background(), bytes.NewReader(raw), IndependentMaterialJSONLimits{})
 	if e != nil {

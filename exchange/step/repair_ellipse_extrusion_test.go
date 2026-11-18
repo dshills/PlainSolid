@@ -20,6 +20,7 @@ func extrusionFaceFixture(t testing.TB) []byte {
 	return b
 }
 func TestRepairEllipseExtrusion(t *testing.T) {
+	t.Parallel()
 	raw := extrusionFaceFixture(t)
 	f, e := RepairRoundedEllipseExtrusionFace(bytes.NewReader(raw), Limits{}, EllipticalWireRepairOptions{MaxDistance: 1e-11})
 	if e != nil {
@@ -86,6 +87,7 @@ func FuzzRepairEllipseExtrusion(f *testing.F) {
 }
 
 func TestRepairEllipseExtrusionPoseAndHeight(t *testing.T) {
+	t.Parallel()
 	raw := strings.ReplaceAll(string(extrusionFaceFixture(t)), "(1.,5.,", "(1.,7.,")
 	raw = strings.ReplaceAll(raw, "(0.,-3.)", "(0.,-5.)")
 	f, e := Parse(strings.NewReader(raw), Limits{})

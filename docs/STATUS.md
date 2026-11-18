@@ -29,6 +29,21 @@ commit, curved modeling beyond the subsets in the matrix below, independent
 exchange beyond the listed families, and the release matrix in
 [the specification](SPECIFICATION.md).
 
+## Known defects
+
+- **Heap abort in `brep/trimmed` tests on Apple Silicon.** With Go 1.25.14
+  through 1.27.4 on macOS ARM64 the test binary can abort with "found pointer
+  to free object". A serial default-tier run aborted about one time in ten on
+  the development machine; `go test -count=40 -run
+  ProjectiveSplineRoofAdjacentStep ./brep/trimmed` aborts within seconds. Go
+  1.23.12 is not affected. No data race, `unsafe`, cgo or assembly is
+  involved, so the Go toolchain is the suspect. Do not add `t.Parallel()` to
+  tests in `brep/trimmed`; it raises the abort rate to about one run in two.
+  Details are in [the separation plan](../specs/brep-trimmed-split/PLAN.md).
+- **`TestBuildProjectiveSplineRoofAdjacentStepFuse` depends on the Go
+  version.** It fails with Go 1.26.0 on Linux ARM64 and Go 1.26.4 on macOS,
+  and passes with 1.23.12, 1.25.14, 1.26.8, 1.27.1 and 1.27.4.
+
 ## PlainCAD gates
 
 The gates PC0 to PC5 and their ordering are defined in

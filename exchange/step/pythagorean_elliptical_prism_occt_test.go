@@ -16,6 +16,7 @@ import (
 )
 
 func TestOCCTPythagoreanEllipticalPrism(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_PYTHAGOREAN_ELLIPTICAL_PRISM")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

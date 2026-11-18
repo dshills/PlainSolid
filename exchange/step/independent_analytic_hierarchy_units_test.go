@@ -13,6 +13,7 @@ import (
 )
 
 func TestNormalizedAnalyticHierarchy(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/independent-analytic-hierarchy-units.step")
 	if e != nil {
 		t.Fatal(e)
@@ -141,6 +142,7 @@ func TestNormalizedAnalyticHierarchy(t *testing.T) {
 }
 
 func TestNormalizedAnalyticHierarchyReject(t *testing.T) {
+	t.Parallel()
 	raw, _ := os.ReadFile("testdata/independent-analytic-hierarchy-units.step")
 	ctx := context.Background()
 	target := IndependentMaterialSIUnit(RoundMillimetre)

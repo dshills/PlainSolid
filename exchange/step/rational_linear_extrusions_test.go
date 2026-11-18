@@ -28,6 +28,7 @@ func rationalExtrusionFixture(t *testing.T, weighted bool) RationalLinearExtrusi
 	return s
 }
 func TestRationalLinearExtrusionExactIdentity(t *testing.T) {
+	t.Parallel()
 	s := rationalExtrusionFixture(t, true)
 	g, e := s.Surface()
 	if e != nil {
@@ -82,6 +83,7 @@ func TestRationalLinearExtrusionExactIdentity(t *testing.T) {
 	}
 }
 func TestRationalLinearExtrusionOwnershipAndLimits(t *testing.T) {
+	t.Parallel()
 	s := rationalExtrusionFixture(t, false)
 	ratios := [3]*big.Rat{big.NewRat(3, 5), big.NewRat(4, 5), new(big.Rat)}
 	copy, e := NewRationalLinearExtrusionSurface("copy", s.Profile, ratios, 0, 5)
@@ -140,6 +142,7 @@ func FuzzRationalLinearExtrusions(f *testing.F) {
 }
 
 func TestRationalLinearExtrusionSourceTrims(t *testing.T) {
+	t.Parallel()
 	s := rationalExtrusionFixture(t, false)
 	var b bytes.Buffer
 	if e := WriteRationalLinearExtrusions(&b, RationalLinearExtrusionModel{Surfaces: []RationalLinearExtrusionSurface{s}, LengthUnit: .001}); e != nil {
@@ -175,6 +178,7 @@ func TestRationalLinearExtrusionSourceTrims(t *testing.T) {
 }
 
 func TestRationalLinearExtrusionMultiSpan(t *testing.T) {
+	t.Parallel()
 	c, e := geom.NewBSpline(1, []geom.Vec3{{}, {X: -4, Y: 3, Z: 1}, {Z: 2}}, []float64{0, 0, .5, 1, 1}, []float64{1, .75, 1})
 	if e != nil {
 		t.Fatal(e)
@@ -211,6 +215,7 @@ func TestRationalLinearExtrusionMultiSpan(t *testing.T) {
 }
 
 func TestRationalLinearExtrusionConcurrentCopies(t *testing.T) {
+	t.Parallel()
 	s := rationalExtrusionFixture(t, true)
 	var wg sync.WaitGroup
 	errs := make(chan error, 4)

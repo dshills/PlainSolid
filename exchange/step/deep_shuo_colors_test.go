@@ -24,6 +24,7 @@ func deepSHUOFixture(t testing.TB) []byte {
 	return b
 }
 func TestOCCTDeepSHUO(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := deepSHUOFixture(t)
 	m, e := ReadOCCTDeepSHUOAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -62,6 +63,7 @@ func TestOCCTDeepSHUO(t *testing.T) {
 	}
 }
 func TestOCCTDeepSHUOReject(t *testing.T) {
+	t.Parallel()
 	raw := string(deepSHUOFixture(t))
 	for _, c := range [][2]string{
 		{"#5,#89,$,#801,#440", "#5,#58,$,#801,#440"},
@@ -94,6 +96,7 @@ func TestOCCTDeepSHUOReject(t *testing.T) {
 	}
 }
 func TestOCCTDeepSHUONative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m, e := ReadOCCTDeepSHUOAssembly(ctx, bytes.NewReader(deepSHUOFixture(t)), Limits{})
 	if e != nil {
@@ -148,6 +151,7 @@ func TestOCCTDeepSHUONative(t *testing.T) {
 	}
 }
 func TestOCCTDeepSHUOLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_AP242_DEEP_SHUO")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

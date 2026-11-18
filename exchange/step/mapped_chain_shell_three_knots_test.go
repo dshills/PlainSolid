@@ -47,6 +47,7 @@ func mappedChainThreeSource(t *testing.T, ctx context.Context) trimmed.MappedSpl
 }
 
 func TestMappedChainRectangularSTEPThreeSupportKnots(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, o, shell := mappedChainThreeSTEP(t, ctx)
 	m, err := ReadMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, o)
@@ -125,6 +126,7 @@ func verifyThreeKnotMaterial(t *testing.T, ctx context.Context, m MappedChainSTE
 }
 
 func TestMappedChainRectangularSTEPThreeSupportKnotsOCCT(t *testing.T) {
+	t.Parallel()
 	exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if exe == "" {
 		t.Skip("optional pinned OCCT STEP consumer")
@@ -307,6 +309,7 @@ func verifyPinnedMappedChainTransfer(t *testing.T, ctx context.Context, exe stri
 }
 
 func TestOCCTMappedChainRectangularThreeSupportKnotsRecorded(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile("testdata/occt_mapped_chain_three_crossings.step")
 	if err != nil {
 		t.Fatal(err)
@@ -315,6 +318,7 @@ func TestOCCTMappedChainRectangularThreeSupportKnotsRecorded(t *testing.T) {
 }
 
 func TestMappedChainRectangularSTEPRejectsInvalidIndependentBasisGraph(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, err := os.ReadFile("testdata/occt_mapped_chain_three_crossings.step")
 	if err != nil {
@@ -367,6 +371,7 @@ func TestMappedChainRectangularSTEPRejectsInvalidIndependentBasisGraph(t *testin
 }
 
 func TestOCCTMappedChainRectangularThreeSupportKnotsLive(t *testing.T) {
+	t.Parallel()
 	exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_THREE_AUTHOR")
 	if exe == "" {
 		t.Skip("optional pinned OCCT three-crossing STEP author")

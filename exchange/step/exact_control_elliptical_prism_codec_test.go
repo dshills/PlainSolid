@@ -10,6 +10,7 @@ import (
 )
 
 func TestExactControlEllipticalPrismCodec(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-exact-control-elliptical-prism.step")
 	if e != nil {
 		t.Fatal(e)

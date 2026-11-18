@@ -216,6 +216,7 @@ func TestNonplanarSplineCavityReject(t *testing.T) {
 	}
 }
 func TestNonplanarSplineCavityLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_SPLINE_ROOF_VOID")
 	if bin == "" {
 		t.Skip("independent OCCT")

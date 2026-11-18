@@ -14,6 +14,7 @@ import (
 )
 
 func TestOCCTEllipticalAnnulusFace(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_ELLIPSE_ANNULUS")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

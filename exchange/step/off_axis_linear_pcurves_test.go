@@ -9,6 +9,7 @@ import (
 )
 
 func TestOffAxisLinearPCurves(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)

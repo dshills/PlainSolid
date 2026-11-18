@@ -15,6 +15,7 @@ import (
 )
 
 func TestWrappedStationLoftRoundtrip(t *testing.T) {
+	t.Parallel()
 	m := WrappedStationLoftBody{Name: "Station loft", Stations: []trimmed.WrappedLoftStation{{Z: 0, Radius: 2}, {Z: 2, Radius: 1}, {Z: 4, Radius: 2}}, LengthUnit: .001}
 	var b bytes.Buffer
 	if e := WriteWrappedStationLoft(&b, m); e != nil {
@@ -69,6 +70,7 @@ func TestWrappedStationLoftStoredOCCT(t *testing.T) {
 	}
 }
 func TestWrappedStationLoftOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-wrapped-station-loft")
 	raw, e := os.ReadFile(source)
@@ -127,6 +129,7 @@ func TestWrappedStationLoftOCCT(t *testing.T) {
 }
 
 func TestWrappedStationLoftRejectOwnership(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-station-loft.step")
 	if e != nil {
 		t.Fatal(e)
@@ -182,6 +185,7 @@ func TestWrappedStationLoftRejectOwnership(t *testing.T) {
 	}
 }
 func TestWrappedStationLoftThreeBands(t *testing.T) {
+	t.Parallel()
 	m := WrappedStationLoftBody{Center: geom.Vec2{X: 4, Y: 8}, Stations: []trimmed.WrappedLoftStation{{Z: 0, Radius: 2}, {Z: 2, Radius: 1}, {Z: 4, Radius: 3}, {Z: 6, Radius: 2}}, LengthUnit: .0254}
 	var b bytes.Buffer
 	if e := WriteWrappedStationLoft(&b, m); e != nil {

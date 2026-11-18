@@ -36,6 +36,7 @@ func hierarchyTestWorldLine(u RationalHierarchyInstance, f geom.Frame, o, d [3]i
 	return
 }
 func TestRationalHierarchyLine(t *testing.T) {
+	t.Parallel()
 	for _, vendor := range []bool{false, true} {
 		name := "rational-spherical-hierarchy.step"
 		if vendor {
@@ -208,6 +209,7 @@ func sameLinePath(a, b []int64) bool {
 }
 
 func TestRationalHierarchyLineSimultaneousAndEndpoints(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, _ := os.ReadFile("testdata/rational-spherical-hierarchy.step")
 	m, e := readRationalSphericalHierarchy(ctx, bytes.NewReader(raw), Limits{}, 1e-9, false)

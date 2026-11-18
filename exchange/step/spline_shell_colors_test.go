@@ -26,6 +26,7 @@ func coloredSplineAssemblyFixture(t testing.TB) ColoredSplineShellAssemblyModel 
 	return m
 }
 func TestColoredSplineShellAssembly(t *testing.T) {
+	t.Parallel()
 	m := coloredSplineAssemblyFixture(t)
 	var b bytes.Buffer
 	if e := WriteColoredSplineShellAssembly(&b, m); e != nil {
@@ -88,6 +89,7 @@ func TestColoredSplineShellAssembly(t *testing.T) {
 	}
 }
 func TestColoredSplineShellReject(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"index", "nan", "negative", "invalid-body"} {
 		t.Run(kind, func(t *testing.T) {
 			m := coloredSplineAssemblyFixture(t)
@@ -110,6 +112,7 @@ func TestColoredSplineShellReject(t *testing.T) {
 	}
 }
 func TestOCCTColoredSplineShellAssembly(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-colored-spline-assembly")
 	raw, e := os.ReadFile(source)
@@ -170,6 +173,7 @@ func TestOCCTColoredSplineShellAssembly(t *testing.T) {
 }
 
 func TestIndependentColoredSplineAssembly(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/colored-spline-assembly.step")
 	if e != nil {
 		t.Fatal(e)

@@ -161,6 +161,7 @@ func TestWriteRationalAnisotropicReject(t *testing.T) {
 	}
 }
 func TestWriteRationalAnisotropicLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_ANISOTROPIC_STATION")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")
@@ -255,6 +256,7 @@ func TestWriteRationalAnisotropicLive(t *testing.T) {
 }
 
 func TestRationalAnisotropicUseCopies(t *testing.T) {
+	t.Parallel()
 	p := RationalAnisotropicAssemblyInstance{ID: "a", Parent: "root", Child: "leaf", Origin: [3]*big.Rat{big.NewRat(1, 10), big.NewRat(0, 1), big.NewRat(0, 1)}, XAxis: [3]*big.Rat{big.NewRat(3, 1), big.NewRat(4, 1), big.NewRat(0, 1)}, ZAxis: [3]*big.Rat{big.NewRat(0, 1), big.NewRat(0, 1), big.NewRat(1, 1)}}
 	q := p
 	q.ID = "b"

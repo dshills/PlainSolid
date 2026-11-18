@@ -14,6 +14,7 @@ import (
 )
 
 func TestIndependentRoundUnits(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/independent-round-units.step")
 	if e != nil {

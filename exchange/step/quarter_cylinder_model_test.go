@@ -9,6 +9,7 @@ import (
 )
 
 func TestQuarterCylinderModel(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/quarter-cylinder-model.step")
 	if e != nil {
 		t.Fatal(e)
@@ -71,6 +72,7 @@ func TestQuarterCylinderModel(t *testing.T) {
 }
 
 func TestQuarterCylinderModelLongArcReject(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/quarter-cylinder-model.step")
 	if e != nil {
 		t.Fatal(e)

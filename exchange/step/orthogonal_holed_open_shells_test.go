@@ -25,6 +25,7 @@ func holedOpenShellFixture(t testing.TB) OrthogonalSplineOpenShellModel {
 	return m
 }
 func TestOrthogonalHoledOpenShell(t *testing.T) {
+	t.Parallel()
 	m := holedOpenShellFixture(t)
 	s := m.Shells[0]
 	if len(s.Faces) != 2 || len(s.FaceHoles) != 2 || len(s.FaceHoles[0]) != 1 || len(s.FaceHoles[1]) != 0 || len(s.Uses) != 14 {
@@ -55,6 +56,7 @@ func TestOrthogonalHoledOpenShell(t *testing.T) {
 	}
 }
 func TestOrthogonalHoledOpenShellReject(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"unowned", "loop-index", "nested"} {
 		t.Run(kind, func(t *testing.T) {
 			m := holedOpenShellFixture(t)
@@ -116,6 +118,7 @@ func TestOrthogonalHoledOpenShellReject(t *testing.T) {
 	}
 }
 func TestOCCTOrthogonalHoledOpenShell(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-orthogonal-holed-open-shell")
 	raw, e := os.ReadFile(source)

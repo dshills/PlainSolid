@@ -211,6 +211,7 @@ func TestOCCTMappedChainRectangularMultipleSupportKnotsClosedDisplay(t *testing.
 }
 
 func TestOCCTMappedChainRectangularMultipleSupportKnotsRejectsOverlap(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, err := os.ReadFile(mappedChainMultipleKnotFixtures[1].path)
 	if err != nil {
@@ -259,6 +260,7 @@ func TestOCCTMappedChainRectangularMultipleSupportKnotsRejectsOverlap(t *testing
 }
 
 func TestOCCTMappedChainRectangularMultipleSupportKnotsNativeBound(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, err := os.ReadFile(mappedChainMultipleKnotFixtures[1].path)
 	if err != nil {
@@ -326,6 +328,7 @@ func TestOCCTMappedChainRectangularMultipleSupportKnotsNativeBound(t *testing.T)
 }
 
 func TestOCCTMappedChainRectangularMultipleSupportKnotsLive(t *testing.T) {
+	t.Parallel()
 	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_MULTIPLE_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT multiple-knots author and STEP consumer")

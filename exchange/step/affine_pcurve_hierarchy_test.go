@@ -15,6 +15,7 @@ import (
 )
 
 func TestAffinePCurveHierarchyOriginal(t *testing.T) {
+	t.Parallel()
 	for _, vendor := range []bool{false, true} {
 		name := "rational-spherical-hierarchy-affine-pcurve-holed.step"
 		if vendor {
@@ -39,6 +40,7 @@ func TestAffinePCurveHierarchyOriginal(t *testing.T) {
 }
 
 func TestAffinePCurveHierarchyPersistenceAndQueries(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, vendor := range []bool{false, true} {
 		name := "rational-spherical-hierarchy-affine-pcurve-holed.step"
@@ -207,6 +209,7 @@ func (m AffinePCurveHierarchy) modelSourceForTest(t *testing.T) string {
 }
 
 func TestAffinePCurveHierarchyReject(t *testing.T) {
+	t.Parallel()
 	raw, _ := os.ReadFile("testdata/rational-spherical-hierarchy-affine-pcurve-holed.step")
 	m, e := ReadAffinePCurveRationalHierarchy(context.Background(), bytes.NewReader(raw), Limits{}, 1e-9)
 	if e != nil {
@@ -260,6 +263,7 @@ func TestAffinePCurveHierarchyReject(t *testing.T) {
 }
 
 func TestAffinePCurveJointDirectedEdgeReversal(t *testing.T) {
+	t.Parallel()
 	raw, _ := os.ReadFile("testdata/rational-spherical-hierarchy-affine-pcurve-holed.step")
 	ctx := context.Background()
 	m, e := ReadAffinePCurveRationalHierarchy(ctx, bytes.NewReader(raw), Limits{}, 1e-9)

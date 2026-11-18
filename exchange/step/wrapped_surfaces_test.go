@@ -47,6 +47,7 @@ func wrappedCylinder(t testing.TB) *geom.WrappedSurfacePatch {
 	return w
 }
 func TestWrappedSurfaceRoundtrip(t *testing.T) {
+	t.Parallel()
 	w := wrappedCylinder(t)
 	m := WrappedSurfaceModel{LengthUnit: .001, Surfaces: []WrappedSplineSurface{{Name: "closed cylinder", Geometry: w, SelfIntersect: "U"}}}
 	var b bytes.Buffer
@@ -91,6 +92,7 @@ func TestWrappedSurfaceRoundtrip(t *testing.T) {
 	}
 }
 func TestWrappedSurfaceSeamReject(t *testing.T) {
+	t.Parallel()
 	w := wrappedCylinder(t)
 	recipe, _ := w.ExportRecipe()
 	d := recipe.Surface.Data()
@@ -120,6 +122,7 @@ func TestWrappedSurfaceSeamReject(t *testing.T) {
 	}
 }
 func TestWrappedSurfaceC0NotC1(t *testing.T) {
+	t.Parallel()
 	xy := []geom.Vec2{{X: 1}, {X: 1, Y: 1}, {Y: 1}, {}, {X: 1}}
 	p := []geom.Vec3{}
 	for _, v := range xy {
@@ -160,6 +163,7 @@ func wrappedFromOCCT(t testing.TB, raw []byte) WrappedSplineSurface {
 	return WrappedSplineSurface{}
 }
 func TestOCCTWrappedSurface(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-wrapped-surface")
 	raw, e := os.ReadFile(source)
@@ -194,6 +198,7 @@ func TestOCCTWrappedSurface(t *testing.T) {
 }
 
 func TestWrappedSurfaceSourceWeights(t *testing.T) {
+	t.Parallel()
 	w := wrappedCylinder(t)
 	var b bytes.Buffer
 	if e := WriteWrappedSurfaces(&b, WrappedSurfaceModel{LengthUnit: 1, Surfaces: []WrappedSplineSurface{{Geometry: w}}}); e != nil {
@@ -238,6 +243,7 @@ func TestWrappedSurfaceSourceWeights(t *testing.T) {
 	}
 }
 func TestIndependentWrappedSurface(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-surface.step")
 	if e != nil {
 		t.Fatal(e)
@@ -263,6 +269,7 @@ func FuzzWrappedSurface(f *testing.F) {
 }
 
 func TestWrappedSurfaceVAxisAndLogicalFlags(t *testing.T) {
+	t.Parallel()
 	recipe, _ := wrappedCylinder(t).ExportRecipe()
 	d := recipe.Surface.Data()
 	poles := []geom.Vec3{}

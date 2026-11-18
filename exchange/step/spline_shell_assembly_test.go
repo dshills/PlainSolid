@@ -24,6 +24,7 @@ func splineAssemblyFixture(t testing.TB) SplineShellAssemblyModel {
 	return SplineShellAssemblyModel{LengthUnit: m.LengthUnit, Products: []SplineShellAssemblyPart{{ID: "root", Name: "Spline assembly"}, {ID: "part", Name: "Warped part", Bodies: m.Bodies}}, Occurrences: []AssemblyInstance{{ID: "left", Name: "Left instance", Parent: "root", Child: "part", Transform: geom.Translation(geom.Vec3{X: 10})}, {ID: "right", Name: "Right instance", Parent: "root", Child: "part", Transform: geom.Affine{{0, -1, 0, 0}, {1, 0, 0, 20}, {0, 0, 1, 0}}}}}
 }
 func TestSplineShellAssemblyRoundtrip(t *testing.T) {
+	t.Parallel()
 	m := splineAssemblyFixture(t)
 	var b bytes.Buffer
 	if e := WriteSplineShellAssembly(&b, m); e != nil {
@@ -107,6 +108,7 @@ func TestSplineShellAssemblyRoundtrip(t *testing.T) {
 	}
 }
 func TestSplineShellAssemblyReject(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"scale", "cycle", "invalid-shell"} {
 		t.Run(kind, func(t *testing.T) {
 			m := splineAssemblyFixture(t)
@@ -190,6 +192,7 @@ func checkOCCTSplineAssembly(t *testing.T, path string) {
 	}
 }
 func TestOCCTSplineShellAssembly(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-spline-shell-assembly")
 	raw, e := os.ReadFile(source)
@@ -220,6 +223,7 @@ func TestOCCTSplineShellAssembly(t *testing.T) {
 }
 
 func TestIndependentSplineShellAssembly(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/spline-shell-assembly.step")
 	if e != nil {
 		t.Fatal(e)

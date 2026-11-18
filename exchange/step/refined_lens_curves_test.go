@@ -62,6 +62,7 @@ func refinedCurveLensFixture(t testing.TB) RefinedSplineLens {
 	return out
 }
 func TestRefinedLensCurves(t *testing.T) {
+	t.Parallel()
 	m := refinedCurveLensFixture(t)
 	var b bytes.Buffer
 	if e := WriteRefinedSplineLensBody(&b, m, CurvedOvalOptions{}); e != nil {
@@ -83,6 +84,7 @@ func TestRefinedLensCurves(t *testing.T) {
 	}
 }
 func TestIndependentRefinedLensCurves(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/refined-curve-lens.step")
 	if e != nil {
 		t.Fatal(e)
@@ -111,6 +113,7 @@ func TestIndependentRefinedLensCurves(t *testing.T) {
 }
 
 func TestRefinedLensCurveChangesRejected(t *testing.T) {
+	t.Parallel()
 	for _, role := range []int{0, 1, 2} {
 		m := refinedCurveLensFixture(t)
 		c := m.Curves[0][role]
@@ -133,6 +136,7 @@ func TestRefinedLensCurveChangesRejected(t *testing.T) {
 	}
 }
 func TestRefinedLensWeightNormalizationRejected(t *testing.T) {
+	t.Parallel()
 	m := refinedCurveLensFixture(t)
 	var b bytes.Buffer
 	if e := WriteRefinedSplineLensBody(&b, m, CurvedOvalOptions{}); e != nil {

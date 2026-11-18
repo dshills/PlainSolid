@@ -12,6 +12,7 @@ func sphereSupportFixture() SphereSupportModel {
 	return SphereSupportModel{Name: "supports", SetName: "set", LengthUnit: .001, Surfaces: []SphereSupport{{Name: "sphere", PlacementName: "frame", LocationName: "center", AxisName: "axis", ReferenceName: "radial", Location: geom.Vec3{X: 2, Y: 3, Z: 4}, Axis: geom.Vec3{X: -1}, Reference: geom.Vec3{Z: -1}, Radius: 2.5}}}
 }
 func TestSphereSupportsRoundtrip(t *testing.T) {
+	t.Parallel()
 	for _, unit := range []float64{.001, .3048, 1} {
 		m := sphereSupportFixture()
 		m.LengthUnit = unit
@@ -44,6 +45,7 @@ func TestSphereSupportsRoundtrip(t *testing.T) {
 	}
 }
 func TestSphereSupportsReject(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	_ = WriteSphereSupports(&b, sphereSupportFixture())
 	s := b.String()
@@ -64,6 +66,7 @@ func TestSphereSupportsReject(t *testing.T) {
 }
 
 func TestSphereSupportsOwnershipAndAtomicity(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	_ = WriteSphereSupports(&b, sphereSupportFixture())
 	s := b.String()

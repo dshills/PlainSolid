@@ -66,6 +66,7 @@ func checkConvertedInchConvexArc(t *testing.T, raw []byte) (RationalPosedPCurveR
 }
 
 func TestRepairConvertedInchConvexArcSource(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, err := os.ReadFile(convertedInchConvexArcFixture)
 	if err != nil {
@@ -94,6 +95,7 @@ func TestRepairConvertedInchConvexArcSource(t *testing.T) {
 }
 
 func TestRepairConvertedInchConvexArcRejectsChangedCharts(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(convertedInchConvexArcFixture)
 	if err != nil {
 		t.Fatal(err)
@@ -156,6 +158,7 @@ func checkUnscaledConvertedInchTangency(t *testing.T, raw []byte) {
 }
 
 func TestRepairConvertedInchConvexArcRejectsRoundedTangency(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(unscaledConvertedInchConvexArcFixture)
 	if err != nil {
 		t.Fatal(err)
@@ -164,6 +167,7 @@ func TestRepairConvertedInchConvexArcRejectsRoundedTangency(t *testing.T) {
 }
 
 func TestRepairConvertedInchConvexArcLive(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL to the pinned author helper")

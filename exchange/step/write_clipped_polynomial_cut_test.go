@@ -17,6 +17,7 @@ import (
 )
 
 func TestWriteClippedPolynomialCut(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for layout, count := range map[string]int{"partial": 3, "dependent": 4} {
 		t.Run(layout, func(t *testing.T) {

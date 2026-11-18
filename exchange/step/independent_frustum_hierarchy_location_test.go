@@ -180,6 +180,7 @@ func TestIndependentCircularFrustumHierarchyPoint(t *testing.T) {
 	}
 }
 func TestIndependentCircularFrustumPointNoncircular(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	model := frustumHierarchyModel(t)
 	raw, e := os.ReadFile("testdata/wrapped-frustum.step")

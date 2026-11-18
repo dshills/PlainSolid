@@ -7,6 +7,7 @@ import (
 )
 
 func TestDAGRationalMapped(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-dag-rational-mapped.step")
 	if e != nil {
 		t.Fatal(e)
@@ -38,6 +39,7 @@ func TestDAGRationalMapped(t *testing.T) {
 }
 
 func TestDAGRationalMappedRejectAndDepth(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-dag-rational-mapped.step")
 	if e != nil {
 		t.Fatal(e)

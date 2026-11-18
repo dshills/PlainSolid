@@ -20,6 +20,7 @@ func massValue(p PiPolynomial) float64 {
 	return v
 }
 func TestRationalHierarchyMass(t *testing.T) {
+	t.Parallel()
 	for _, vendor := range []bool{false, true} {
 		name := "rational-spherical-hierarchy.step"
 		if vendor {
@@ -183,6 +184,7 @@ func TestRationalHierarchyMass(t *testing.T) {
 }
 
 func TestSymbolicMassArithmeticLimits(t *testing.T) {
+	t.Parallel()
 	a := massArithmetic{bits: 256}
 	p := a.scalar(new(big.Rat).SetInt(new(big.Int).Lsh(big.NewInt(1), 200)), 0)
 	_ = a.mul(p, p)

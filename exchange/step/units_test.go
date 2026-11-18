@@ -7,6 +7,7 @@ import (
 )
 
 func TestConversionUnits(t *testing.T) {
+	t.Parallel()
 	for _, u := range []float64{.0254, .3048, 1.23456789} {
 		m := Model{LengthUnit: u, Bodies: []Body{{"part", advancedSolids(t)[0]}}}
 		var b bytes.Buffer
@@ -32,6 +33,7 @@ func TestConversionUnits(t *testing.T) {
 	}
 }
 func TestUnitCyclesAndExactChain(t *testing.T) {
+	t.Parallel()
 	raw := `ISO-10303-21;HEADER;FILE_DESCRIPTION(('units'),'2;1');FILE_NAME('','',(''),(''),'','','');FILE_SCHEMA(('CONFIG_CONTROL_DESIGN'));ENDSEC;DATA;
 #1=(CONVERSION_BASED_UNIT('foot',#2) LENGTH_UNIT() NAMED_UNIT(#3));
 #2=MEASURE_WITH_UNIT(LENGTH_MEASURE(12.),#4);

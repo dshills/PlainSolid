@@ -36,6 +36,7 @@ func nestedOuterEdits(t *testing.T) (NestedRationalMappedPlanarMaterials, []Rati
 	return a, ps
 }
 func TestEditedNestedRationalMapped(t *testing.T) {
+	t.Parallel()
 	a, ps := nestedOuterEdits(t)
 	var before, out, after bytes.Buffer
 	if e := WriteNestedRationalMappedPlanarSource(&before, a.Source, Limits{}); e != nil {
@@ -93,6 +94,7 @@ func TestEditedNestedRationalMapped(t *testing.T) {
 	}
 }
 func TestEditedNestedRationalReject(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"inner", "missing", "duplicate", "irrational", "limit"} {
 		t.Run(kind, func(t *testing.T) {
 			a, ps := nestedOuterEdits(t)

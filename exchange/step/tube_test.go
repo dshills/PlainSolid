@@ -30,6 +30,7 @@ func checkTube(t *testing.T, m AnalyticModel) {
 	}
 }
 func TestTubeRoundtrip(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteTubes(&b, tubeModel(t)); e != nil {
 		t.Fatal(e)
@@ -44,6 +45,7 @@ func TestTubeRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTTube(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "tube.step")
 	stepOracle(t, path, "write-step-tube")
 	raw, e := os.ReadFile(path)
@@ -76,6 +78,7 @@ func TestOCCTTube(t *testing.T) {
 }
 
 func TestTubeMalformedGraphs(t *testing.T) {
+	t.Parallel()
 	var raw bytes.Buffer
 	if e := WriteTubes(&raw, tubeModel(t)); e != nil {
 		t.Fatal(e)
@@ -127,6 +130,7 @@ func TestTubeMalformedGraphs(t *testing.T) {
 	}
 }
 func TestIndependentTubeFixture(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/tube.step")
 	if e != nil {
 		t.Fatal(e)
@@ -138,6 +142,7 @@ func TestIndependentTubeFixture(t *testing.T) {
 	checkTube(t, m)
 }
 func TestTubeWriterInvalid(t *testing.T) {
+	t.Parallel()
 	for _, r := range []float64{0, 3, 4, math.NaN()} {
 		m := tubeModel(t)
 		m.Bodies[0].InnerRadius = r

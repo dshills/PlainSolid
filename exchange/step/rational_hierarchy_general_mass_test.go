@@ -44,6 +44,7 @@ func generalMassBox(bounds [3][2]int64) (v *big.Rat, f [3]*big.Rat, q [3][3]*big
 	return
 }
 func TestGeneralHierarchySignedMass(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, vendor := range []bool{false, true} {
 		for _, family := range []string{"reentrant", "holed", "affine-pcurve-holed"} {
@@ -211,6 +212,7 @@ func TestGeneralHierarchySignedMass(t *testing.T) {
 	}
 }
 func TestGeneralHierarchyMassRejectsSourceMutation(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, _ := os.ReadFile("testdata/rational-spherical-hierarchy-holed.step")
 	m, e := ReadRationalSphericalHierarchy(ctx, bytes.NewReader(raw), Limits{}, 1e-9)

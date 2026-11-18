@@ -13,6 +13,7 @@ import (
 )
 
 func TestWrappedShoulderStoredOCCT(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-shoulder.step")
 	if e != nil {
 		t.Fatal(e)
@@ -35,6 +36,7 @@ func TestWrappedShoulderStoredOCCT(t *testing.T) {
 }
 
 func TestWrappedShoulderLiveOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-wrapped-shoulder")
 	raw, e := os.ReadFile(source)
@@ -89,6 +91,7 @@ func TestWrappedShoulderLiveOCCT(t *testing.T) {
 	}
 }
 func TestWrappedShoulderScope(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-shoulder.step")
 	if e != nil {
 		t.Fatal(e)

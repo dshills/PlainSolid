@@ -27,6 +27,7 @@ func independentAnalyticHierarchyModel(t testing.TB) IndependentAnalyticHierarch
 	return IndependentAnalyticHierarchyModel(m)
 }
 func TestIndependentAnalyticHierarchy(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/independent-analytic-hierarchy.step")
 	if e != nil {
@@ -198,6 +199,7 @@ func TestIndependentAnalyticHierarchyBounds(t *testing.T) {
 	}
 }
 func TestIndependentAnalyticHierarchyNativeReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/independent-analytic-hierarchy.step")
 	if e != nil {

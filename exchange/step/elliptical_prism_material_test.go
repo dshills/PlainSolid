@@ -15,6 +15,7 @@ import (
 )
 
 func TestEllipticalPrismMaterial(t *testing.T) {
+	t.Parallel()
 	shell, e := RepairRoundedEllipticalPrismShell(bytes.NewReader(ellipticalPrismFixture(t)), Limits{}, EllipticalWireRepairOptions{MaxDistance: 1e-11})
 	if e != nil {
 		t.Fatal(e)
@@ -97,6 +98,7 @@ func TestEllipticalPrismMaterial(t *testing.T) {
 }
 
 func TestEllipticalPrismMaterialUnrepresentable(t *testing.T) {
+	t.Parallel()
 	raw := string(ellipticalPrismFixture(t))
 	raw = strings.ReplaceAll(raw, "(0.,0.,-1.)", "(0.,0.,1.)")
 	raw = strings.ReplaceAll(raw, "(1.,2.,3.)", "(1.,2.,-36028797018963968.)")

@@ -9,6 +9,7 @@ import (
 )
 
 func TestTranslatedCylinderTorusCavitySTEP(t *testing.T) {
+	t.Parallel()
 	b := TranslatedCylinderTorusCavityBody{Name: "eccentric", MajorRadius: 5, MinorRadius: 2, CylinderRadius: 10, Lower: 0, Upper: 7, OffsetX: 1, OffsetY: -1, OffsetZ: 3}
 	var raw bytes.Buffer
 	if e := WriteTranslatedCylinderTorusCavity(&raw, b, .001); e != nil {

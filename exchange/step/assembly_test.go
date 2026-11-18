@@ -30,6 +30,7 @@ DATA;
 ENDSEC;END-ISO-10303-21;`
 
 func TestIndependentAssembly(t *testing.T) {
+	t.Parallel()
 	a, e := ReadAssembly(strings.NewReader(independentAssembly), Limits{})
 	if e != nil {
 		t.Fatal(e)
@@ -46,6 +47,7 @@ func TestIndependentAssembly(t *testing.T) {
 	}
 }
 func TestAssemblyFailures(t *testing.T) {
+	t.Parallel()
 	for _, pair := range [][2]string{{"#6,#9,$", "#6,#6,$"}, {"#17,#16)", "#16,#17)"}, {"#11,#13);", "#13,#11);"}, {"ITEM_DEFINED_TRANSFORMATION", "CARTESIAN_TRANSFORMATION_OPERATOR_3D"}, {"CONTEXT_DEPENDENT_SHAPE_REPRESENTATION", "UNKNOWN"}, {"AUTOMOTIVE_DESIGN", "UNKNOWN"}} {
 		bad := strings.Replace(independentAssembly, pair[0], pair[1], 1)
 		if bad == independentAssembly {
@@ -62,6 +64,7 @@ func TestAssemblyFailures(t *testing.T) {
 	}
 }
 func TestOCCTAssemblyImport(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "assembly.step")
 	stepOracle(t, path, "write-step-assembly")
 	f, e := os.Open(path)
@@ -120,6 +123,7 @@ func FuzzReadAssembly(f *testing.F) {
 }
 
 func TestAssemblyCycleAndNonidentitySourceFrame(t *testing.T) {
+	t.Parallel()
 	cycle := `#27=NEXT_ASSEMBLY_USAGE_OCCURRENCE('b','cycle','',#9,#6,$);
 #28=PRODUCT_DEFINITION_SHAPE('','',#27);
 #29=ITEM_DEFINED_TRANSFORMATION('','',#11,#11);

@@ -7,6 +7,7 @@ import (
 )
 
 func TestAnalyticSupportContextStrict(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name  string
 		write func(*bytes.Buffer) error

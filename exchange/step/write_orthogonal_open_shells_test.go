@@ -25,6 +25,7 @@ func openShellFixture(t testing.TB) OrthogonalSplineOpenShellModel {
 	return m
 }
 func TestWriteOrthogonalOpenShell(t *testing.T) {
+	t.Parallel()
 	m := openShellFixture(t)
 	m.Shells[0].Name = "joined patches"
 	m.LengthUnit = .0254
@@ -46,6 +47,7 @@ func TestWriteOrthogonalOpenShell(t *testing.T) {
 	}
 }
 func TestWriteOrthogonalOpenShellReject(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"sense", "vertex", "edge", "face-index", "face-id", "curve", "empty"} {
 		t.Run(kind, func(t *testing.T) {
 			m := openShellFixture(t)
@@ -89,6 +91,7 @@ type openShellShortWriter struct{}
 
 func (openShellShortWriter) Write(b []byte) (int, error) { return len(b) - 1, nil }
 func TestWriteOrthogonalOpenShellIO(t *testing.T) {
+	t.Parallel()
 	m := openShellFixture(t)
 	if e := WriteOrthogonalSplineOpenShells(openShellShortWriter{}, m); e != io.ErrShortWrite {
 		t.Fatal(e)
@@ -112,6 +115,7 @@ func openShellArea(t *testing.T, path string) float64 {
 	return m.Area
 }
 func TestOCCTWriteOrthogonalOpenShell(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-orthogonal-open-shell")
 	raw, e := os.ReadFile(source)

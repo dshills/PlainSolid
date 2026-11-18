@@ -50,6 +50,7 @@ func checkRevolutionOCCT(t *testing.T, raw []byte, curved bool) {
 	}
 }
 func TestRevolutionSurfaceRetainedOCCT(t *testing.T) {
+	t.Parallel()
 	for _, curved := range []bool{false, true} {
 		name := "revolution-surface-occt.step"
 		if curved {
@@ -63,6 +64,7 @@ func TestRevolutionSurfaceRetainedOCCT(t *testing.T) {
 	}
 }
 func TestOCCTRevolutionSurfaces(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_REVOLUTION_SURFACE")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_REVOLUTION_SURFACE to standalone helper")

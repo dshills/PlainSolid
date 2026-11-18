@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"strings"
@@ -18,6 +19,7 @@ import (
 )
 
 func TestNativeParabolaCirclePocketDiskEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	volumes := [2]float64{1.9524360713221687, 2.159320603153823}
 	areas := [2][2]float64{{9.7482283627751123, 13.592188631621307}, {9.6024932436292865, 10.474984021412073}}

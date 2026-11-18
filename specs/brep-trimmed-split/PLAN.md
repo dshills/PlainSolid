@@ -170,7 +170,37 @@ under 60 s on the 14-core machine. The complete suite also runs these tests in
 parallel from now on, so Phase 1 is confirmed for the complete suite by the
 next complete run the owner requests, at the latest the one in Phase 2.
 
-This phase is independent of the others and delivers goal 2 by itself.
+This phase is independent of the others.
+
+### Outcome (2026-11-18)
+
+- `exchange/step`: 1,296 default-tier tests now call `t.Parallel()`. Its
+  default tier went from 135 s to 51 s. Three shuffled race-detector passes
+  found no data race, and six runs at the default parallelism and one at
+  `-parallel 2` passed.
+- `brep/trimmed`: **not parallelized.** Parallel tests made an existing fault
+  frequent enough to block: the test binary aborts with "found pointer to free
+  object" or "found bad pointer in Go heap". The fault is not a data race in
+  the tests: the race detector finds none under Go 1.23.12, and the abort
+  reproduces with one goroutine and `GOMAXPROCS=1`. It needs no parallelism
+  at all; one serial run in three aborted during this work. Reproducer:
+  `go test -count=40 -run ProjectiveSplineRoofAdjacentStep ./brep/trimmed`
+  aborts within seconds on macOS ARM64 with Go 1.25.14, 1.26.8, 1.27.1 and
+  1.27.4, and passes with Go 1.23.12 and with `GOGC=off`. The module has no
+  `unsafe`, cgo, assembly or compiler pragma, so this points at the Go
+  toolchain; it has not been reported upstream.
+- The same feature's test `TestBuildProjectiveSplineRoofAdjacentStepFuse`
+  fails outright with Go 1.26.0 on Linux ARM64 and Go 1.26.4 on macOS.
+- Six tests in `brep/trimmed` were in the default tier by mistake. They run
+  their subtests in parallel, so `go test` reported 0.01 s for tests that take
+  3 to 50 s. `tools/ci/mark-slow-tests.py` now measures wall time, and those
+  six are in the slow tier. The package's default tier went from 261 s to
+  about 116 s.
+- Goal 2 (under 60 s for `brep/trimmed`) is therefore not met by this phase.
+  Phase 2 is expected to meet it without parallelism, because research tests
+  are about half of the remaining time, and the adjacent-step feature that
+  reproduces the abort is research code.
+- The test inventory is unchanged apart from the new `TestClassifyFixture`.
 
 ## Phase 2: quarantine research files behind a build tag
 

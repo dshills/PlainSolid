@@ -12,6 +12,7 @@ import (
 )
 
 func TestObliqueCylinderTorusCavityObliqueOccurrence(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	var raw bytes.Buffer
 	WriteObliqueCylinderTorusCavity(&raw, ObliqueCylinderTorusCavityBody{Name: "placed", MajorRadius: 3, MinorRadius: 1, CylinderRadius: 8, Lower: -6, Upper: 6, Frame: [3][4]*big.Rat{{big.NewRat(3, 5), big.NewRat(0, 1), big.NewRat(4, 5), big.NewRat(1, 1)}, {big.NewRat(0, 1), big.NewRat(1, 1), big.NewRat(0, 1), big.NewRat(0, 1)}, {big.NewRat(-4, 5), big.NewRat(0, 1), big.NewRat(3, 5), big.NewRat(0, 1)}}}, .001)

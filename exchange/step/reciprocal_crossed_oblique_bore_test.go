@@ -15,6 +15,7 @@ import (
 )
 
 func TestReciprocalCrossedObliqueBoreSTEP(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		axis   geom.Vec3
 		ratio  geom.Vec2
@@ -86,6 +87,7 @@ func TestReciprocalCrossedObliqueBoreSTEP(t *testing.T) {
 }
 
 func TestReciprocalCrossedObliqueSTEPRejectsUnsupportedRatio(t *testing.T) {
+	t.Parallel()
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	for _, ratio := range []geom.Vec2{{X: 4, Y: 3}, {X: 6, Y: 8}, {X: 3, Y: -4}, {X: math.NaN(), Y: 4}} {
 		var b bytes.Buffer
@@ -97,6 +99,7 @@ func TestReciprocalCrossedObliqueSTEPRejectsUnsupportedRatio(t *testing.T) {
 }
 
 func TestBlindCrossedObliqueBoreSTEP(t *testing.T) {
+	t.Parallel()
 	for _, normal := range []geom.Vec3{{Z: 1}, {Y: -1}} {
 		f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, normal)
 		if err != nil {

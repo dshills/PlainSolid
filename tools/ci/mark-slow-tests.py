@@ -15,27 +15,56 @@ import re
 import subprocess
 import sys
 from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
 
 MODULE = "plainsolid"
 IMPORT = f'"{MODULE}/internal/slowtest"'
 
 
+def timestamp(text):
+    """Parse a go test -json time, which may carry nanoseconds."""
+    text = text.replace("Z", "+00:00")
+    head, zone = text[:-6], text[-6:]
+    if "." in head:
+        whole, fraction = head.split(".")
+        head = whole + "." + (fraction + "000000")[:6]
+    return datetime.fromisoformat(head + zone)
+
+
 def slow_tests(paths, seconds):
+    """Return {directory: {test: seconds}} for tests at least `seconds` long.
+
+    A test's duration is the wall time from its start to its end, less the
+    time it spent paused by t.Parallel. The Elapsed field alone is not enough:
+    for a test whose subtests call t.Parallel it covers only the parent's own
+    statements and can read 0.01 s for a test that takes a minute.
+    """
     found = defaultdict(dict)
     for path in paths:
+        started, paused_at, paused = {}, {}, defaultdict(float)
         with open(path, encoding="utf-8") as lines:
             for line in lines:
                 if not line.startswith("{"):
                     continue
                 event = json.loads(line)
-                name, package = event.get("Test"), event.get("Package", "")
-                if event.get("Action") != "pass" or not name or "/" in name or not name.startswith("Test"):
+                name, package, action = event.get("Test"), event.get("Package", ""), event.get("Action")
+                if not name or "/" in name or not name.startswith("Test") or not package.startswith(MODULE):
                     continue
-                if event.get("Elapsed", 0) < seconds or not package.startswith(MODULE):
-                    continue
-                directory = package[len(MODULE):].lstrip("/") or "."
-                found[directory][name] = max(event["Elapsed"], found[directory].get(name, 0))
+                key = (package, name)
+                if action == "run":
+                    started[key] = timestamp(event["Time"])
+                elif action == "pause":
+                    paused_at[key] = timestamp(event["Time"])
+                elif action == "cont" and key in paused_at:
+                    paused[key] += (timestamp(event["Time"]) - paused_at.pop(key)).total_seconds()
+                elif action == "pass":
+                    wall = event.get("Elapsed", 0)
+                    if key in started:
+                        wall = max(wall, (timestamp(event["Time"]) - started[key]).total_seconds() - paused[key])
+                    if wall >= seconds:
+                        directory = package[len(MODULE):].lstrip("/") or "."
+                        found[directory][name] = max(wall, found[directory].get(name, 0))
     return found
 
 

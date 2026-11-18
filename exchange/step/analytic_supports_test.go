@@ -16,6 +16,7 @@ func mixedSupportFixture() AnalyticSupportModel {
 	return AnalyticSupportModel{Name: "mixed", SetName: "supports", LengthUnit: .3048, Surfaces: []AnalyticSupport{{Torus: &t}, {Plane: &p}, {Sphere: &s}, {Cylinder: &c}}}
 }
 func TestAnalyticSupportsRoundtrip(t *testing.T) {
+	t.Parallel()
 	m := mixedSupportFixture()
 	var b bytes.Buffer
 	if e := WriteAnalyticSupports(&b, m); e != nil {
@@ -49,6 +50,7 @@ func TestAnalyticSupportsRoundtrip(t *testing.T) {
 	}
 }
 func TestAnalyticSupportsOwnership(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	_ = WriteAnalyticSupports(&b, mixedSupportFixture())
 	f, e := Parse(bytes.NewReader(b.Bytes()), Limits{})
@@ -88,6 +90,7 @@ func TestAnalyticSupportsOwnership(t *testing.T) {
 	}
 }
 func TestAnalyticSupportsAtomicWriter(t *testing.T) {
+	t.Parallel()
 	m := mixedSupportFixture()
 	m.Surfaces[3].Plane = m.Surfaces[1].Plane
 	var b bytes.Buffer
@@ -113,6 +116,7 @@ type mixedSupportShortWriter struct{}
 
 func (mixedSupportShortWriter) Write(p []byte) (int, error) { return len(p) - 1, nil }
 func TestAnalyticSupportsBoundaries(t *testing.T) {
+	t.Parallel()
 	m := mixedSupportFixture()
 	p := m.Surfaces[1].Plane
 	m.Surfaces = nil

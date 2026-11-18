@@ -45,6 +45,7 @@ func partitionedLensFixture(t testing.TB) SplineLensBody {
 	return m
 }
 func TestPartitionedLensPlan(t *testing.T) {
+	t.Parallel()
 	m := partitionedLensFixture(t)
 	o, _ := (CurvedOvalOptions{}).defaults()
 	pieces, e := lensPiecePlan(m, o)
@@ -71,6 +72,7 @@ func TestPartitionedLensPlan(t *testing.T) {
 	}
 }
 func TestPartitionedSplineLens(t *testing.T) {
+	t.Parallel()
 	m := partitionedLensFixture(t)
 	var b bytes.Buffer
 	if e := WritePartitionedSplineLensBody(&b, m, CurvedOvalOptions{}); e != nil {
@@ -99,6 +101,7 @@ func TestPartitionedSplineLens(t *testing.T) {
 }
 
 func TestIndependentPartitionedLens(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/partitioned-spline-lens.step")
 	if e != nil {
 		t.Fatal(e)

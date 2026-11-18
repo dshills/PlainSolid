@@ -114,6 +114,7 @@ func checkRoundedMixedConicalStylesRetained(t *testing.T, raw []byte, after *Fil
 }
 
 func TestRepairMixedConicalAP242DAGAppearanceReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := roundedMixedConicalDAGAppearanceFixture(t)
 	check := func(input []byte, l MixedConicalAP242DAGLimits, budget float64, cause error, detail string) {
@@ -202,6 +203,7 @@ func TestRepairedMixedConicalAP242DAGAppearanceReceipt(t *testing.T) {
 }
 
 func TestRepairMixedConicalAP242DAGAppearancePinnedAuthor(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_MIXED_CONICAL_AP242_ROUNDED_APPEARANCE")
 	if oracle == "" {
 		t.Skip("pinned XCAF rounded appearance author not configured")

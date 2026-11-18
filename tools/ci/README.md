@@ -35,8 +35,14 @@ when changing the code a slow test covers. To run one slow test:
 PLAINSOLID_SLOW=1 go test ./brep/trimmed -run '^TestNestedQuarticTubeMaterial$'
 ```
 
+Default-tier tests in `exchange/step` call `t.Parallel()` first; a new test
+there should too, unless it writes shared state. Tests in `brep/trimmed` must
+stay serial: see the known defects in [the status page](../../docs/STATUS.md).
+
 A new test that takes about two seconds or more should call
-`slowtest.Skip(t)` first. To re-tier from measurements, feed `go test -json`
+`slowtest.Skip(t)` first. Judge that by wall time. For a test whose subtests
+call `t.Parallel`, `go test` reports only the parent's own statements, which
+can read 0.01 s for a test that takes a minute; the marker accounts for this. To re-tier from measurements, feed `go test -json`
 output from a complete run to the marker; it only adds marks and is safe to
 rerun. Fuzz targets are never marked.
 

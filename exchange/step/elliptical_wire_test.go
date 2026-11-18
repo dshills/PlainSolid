@@ -19,6 +19,7 @@ func ellipticalWireFixture(t testing.TB) []byte {
 	return b
 }
 func TestEllipticalWire(t *testing.T) {
+	t.Parallel()
 	m, e := ReadEllipticalWire(bytes.NewReader(ellipticalWireFixture(t)), Limits{})
 	if e != nil {
 		t.Fatal(e)
@@ -69,6 +70,7 @@ func TestEllipticalWire(t *testing.T) {
 	}
 }
 func TestEllipticalWireReject(t *testing.T) {
+	t.Parallel()
 	raw := ellipticalWireFixture(t)
 	for _, m := range [][2]string{{"4.,2.)", "2.,4.)"}, {"4.,2.)", "4.00000000000000001,2.)"}, {"(0.,1.,0.)", "(0.,1.,0.00000000000000001)"}, {"('',(#16))", "('',(#16,#16))"}, {"#15 = GEOMETRIC_CURVE_SET", "#15 = GEOMETRIC_SET"}, {"(#4,#10)", "(#4,#15)"}, {"SI_UNIT(.MILLI.,.METRE.)", "SI_UNIT($,.METRE.)"}, {"(#25))", "(#23))"}} {
 		b := bytes.Replace(raw, []byte(m[0]), []byte(m[1]), 1)
@@ -119,6 +121,7 @@ func FuzzEllipticalWire(f *testing.F) {
 }
 
 func TestEllipticalWireWriterBound(t *testing.T) {
+	t.Parallel()
 	m, e := ReadEllipticalWire(bytes.NewReader(ellipticalWireFixture(t)), Limits{})
 	if e != nil {
 		t.Fatal(e)

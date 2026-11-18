@@ -15,6 +15,7 @@ import (
 )
 
 func TestRationalSphericalHierarchy(t *testing.T) {
+	t.Parallel()
 	raw, _ := os.ReadFile("testdata/rational-spherical-hierarchy.step")
 	ctx := context.Background()
 	m, e := ReadRationalSphericalHierarchy(ctx, bytes.NewReader(raw), Limits{}, 1e-9)
@@ -123,6 +124,7 @@ func TestRationalSphericalHierarchy(t *testing.T) {
 	}
 }
 func TestRationalSphericalHierarchyReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, _ := os.ReadFile("testdata/rational-spherical-hierarchy.step")
 	m, e := ReadRationalSphericalHierarchy(ctx, bytes.NewReader(raw), Limits{}, 1e-9)

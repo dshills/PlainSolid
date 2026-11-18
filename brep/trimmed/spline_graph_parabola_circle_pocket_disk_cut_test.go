@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"strings"
@@ -18,6 +19,7 @@ import (
 )
 
 func TestNativeParabolaCirclePocketDiskCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	// Independent exact Green integrals of the authored height law
 	// on each original region. The full disk uses polar moments.

@@ -394,6 +394,7 @@ func verifyJoinedClosedDisplay(t *testing.T, ctx context.Context, m MappedChainS
 }
 
 func TestOCCTMappedChainRectangularThreeJoinedIndependentRoofsRejectsMissingJoint(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, threeJoinedRoofPath)
 	older := joinedRationalCellOptions()
@@ -416,6 +417,7 @@ func rejectThreeJoinedRoofMissingJoint(t *testing.T, ctx context.Context, raw, b
 }
 
 func TestOCCTMappedChainRectangularThreeJoinedIndependentRoofsLive(t *testing.T) {
+	t.Parallel()
 	verifyPinnedThreeJoinedRoofs(t, threeJoinedShared)
 }
 

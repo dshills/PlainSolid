@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestNativeParabolaCircleFourCrossingsCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	// Independent exact integrals of F, xF, yF, and 2F+F²/2 over the
 	// authored original regions. The two caps retain positive volumes

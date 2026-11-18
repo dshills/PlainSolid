@@ -14,6 +14,7 @@ import (
 )
 
 func TestRationalHierarchyBounds(t *testing.T) {
+	t.Parallel()
 	for _, vendor := range []bool{false, true} {
 		name := "rational-spherical-hierarchy.step"
 		if vendor {
@@ -132,6 +133,7 @@ func TestRationalHierarchyBounds(t *testing.T) {
 	}
 }
 func TestHierarchySqrtEnclosure(t *testing.T) {
+	t.Parallel()
 	for _, q := range []*big.Rat{big.NewRat(0, 1), big.NewRat(1, 1), big.NewRat(9, 25), big.NewRat(2, 3), big.NewRat(399, 625)} {
 		lo, hi, e := hierarchySqrtEnclosure(q, 80, 2048)
 		if e != nil {
@@ -152,6 +154,7 @@ func TestHierarchySqrtEnclosure(t *testing.T) {
 	}
 }
 func TestRationalHierarchyBoundsReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, _ := os.ReadFile("testdata/occt-rational-spherical-hierarchy.step")
 	m, e := ReadOCCTRationalSphericalHierarchy(ctx, bytes.NewReader(raw), Limits{}, 1e-9)

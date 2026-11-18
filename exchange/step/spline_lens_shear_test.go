@@ -37,6 +37,7 @@ func shearedLensFixture(t testing.TB) SplineLensBody {
 	return m
 }
 func TestShearedSplineLens(t *testing.T) {
+	t.Parallel()
 	m := shearedLensFixture(t)
 	var b bytes.Buffer
 	if e := WriteSplineLensBody(&b, m, CurvedOvalOptions{}); e != nil {
@@ -61,6 +62,7 @@ func TestShearedSplineLens(t *testing.T) {
 	}
 }
 func TestShearedSplineLensUnrepresentable(t *testing.T) {
+	t.Parallel()
 	m := shearedLensFixture(t)
 	m.Shear = math.SmallestNonzeroFloat64
 	var b bytes.Buffer
@@ -80,6 +82,7 @@ func TestShearedSplineLensUnrepresentable(t *testing.T) {
 	}
 }
 func TestShearedSplineLensOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-sheared-spline-lens")
 	raw, e := os.ReadFile(source)
@@ -126,6 +129,7 @@ func TestShearedSplineLensOCCT(t *testing.T) {
 	}
 }
 func TestIndependentShearedLens(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/sheared-spline-lens.step")
 	if e != nil {
 		t.Fatal(e)

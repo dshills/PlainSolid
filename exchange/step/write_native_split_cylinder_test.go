@@ -10,6 +10,7 @@ import (
 )
 
 func TestNativeSplitCylinderProductChain(t *testing.T) {
+	t.Parallel()
 	d := splitWriterFixture(t)
 	s, e := parametric.Cylinder(d.Frame, d.Radius, d.Height)
 	if e != nil {
@@ -48,6 +49,7 @@ func TestNativeSplitCylinderProductChain(t *testing.T) {
 type splitForeignSurface struct{ geom.Surface }
 
 func TestNativeSplitCylinderRejectForeignGeometry(t *testing.T) {
+	t.Parallel()
 	d := splitWriterFixture(t)
 	s, e := parametric.Cylinder(d.Frame, d.Radius, d.Height)
 	if e != nil {

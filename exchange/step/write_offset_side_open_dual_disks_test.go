@@ -91,6 +91,7 @@ func TestWriteOffsetSideOpenDualDiskProduct(t *testing.T) {
 	}
 }
 func TestOCCTWriteOffsetSideOpenDualDiskProduct(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS")
 	if oracle == "" {
 		t.Skip("optional independent OCCT helper")
@@ -145,6 +146,7 @@ func TestOCCTWriteOffsetSideOpenDualDiskProduct(t *testing.T) {
 }
 
 func TestWriteOffsetSideOpenDualDiskClassProof(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	binary := OffsetSideOpenDualDiskDescriptor(generalSideDiskDescriptor(t, false, false, false))
 	if e := WriteOffsetSideOpenDualDiskProduct(context.Background(), &b, binary); e == nil || b.Len() != 0 {
@@ -176,6 +178,7 @@ func TestWriteOffsetSideOpenDualDiskClassProof(t *testing.T) {
 }
 
 func TestWriteOffsetSideOpenDualDiskRejects(t *testing.T) {
+	t.Parallel()
 	for _, edit := range []func(*OffsetSideOpenDualDiskDescriptor){
 		func(d *OffsetSideOpenDualDiskDescriptor) { d.Discs[0].Center.Y = 0 },
 		func(d *OffsetSideOpenDualDiskDescriptor) { d.Discs[1].Center.Y = -7 },
@@ -210,6 +213,7 @@ func TestWriteOffsetSideOpenDualDiskRejects(t *testing.T) {
 }
 
 func TestOffsetSideDiskVendorFixtureRemainsUnsupported(t *testing.T) {
+	t.Parallel()
 	for _, name := range []string{"side", "through"} {
 		raw, e := os.ReadFile("testdata/occt_offset_dual_disk_" + name + ".step")
 		if e != nil {

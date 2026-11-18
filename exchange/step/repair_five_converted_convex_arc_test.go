@@ -221,6 +221,7 @@ func TestRepairFiveConvertedConvexArcSource(t *testing.T) {
 }
 
 func TestRepairFiveConvertedConvexArcRejectsChangedCharts(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(fiveConvertedMetreSource + ".step")
 	if err != nil {
 		t.Fatal(err)
@@ -252,6 +253,7 @@ func checkFiveConvertedInchUnscaled(t *testing.T, raw []byte) {
 }
 
 func TestRepairFiveConvertedConvexArcLive(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL to the pinned author helper")

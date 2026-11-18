@@ -11,6 +11,7 @@ import (
 )
 
 func TestSplineLensSourceFailures(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/spline-lens.step")
 	if e != nil {
 		t.Fatal(e)
@@ -101,6 +102,7 @@ func TestSplineLensSourceFailures(t *testing.T) {
 	}
 }
 func TestSplineLensIndependentFixture(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/spline-lens.step")
 	if e != nil {
 		t.Fatal(e)
@@ -148,6 +150,7 @@ func TestSplineLensIndependentFixture(t *testing.T) {
 	}
 }
 func TestSplineLensInvalidMaterial(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"reverse", "wrong-seam", "outside"} {
 		m := splineLensFixture(t)
 		switch kind {
@@ -186,6 +189,7 @@ func FuzzSplineLens(f *testing.F) {
 }
 
 func TestSplineLensNativeRecoveryExact(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/spline-lens.step")
 	if e != nil {
 		t.Fatal(e)

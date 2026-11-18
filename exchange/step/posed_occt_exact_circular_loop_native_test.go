@@ -10,6 +10,7 @@ import (
 )
 
 func TestPosedOCCTExactCircularLoopNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m, e := ReadPosedOCCTExactCircularLoopExtrusion(ctx, bytes.NewReader(posedOCCTLoopFixture(t)), Limits{})
 	if e != nil {

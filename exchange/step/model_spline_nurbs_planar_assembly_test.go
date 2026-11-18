@@ -26,6 +26,7 @@ func modelSplineNURBSFixture(t testing.TB) []byte {
 	return b
 }
 func TestModelSplineNURBSPlanarAssembly(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := modelSplineNURBSFixture(t)
 	m, e := ReadModelSplineNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -100,6 +101,7 @@ func TestModelSplineNURBSPlanarAssembly(t *testing.T) {
 	}
 }
 func TestModelSplineNURBSPlanarReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := modelSplineNURBSFixture(t)
 	m, e := ReadModelSplineNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -172,6 +174,7 @@ func modelSplineNURBSNativeFixture(t testing.TB) []byte {
 	return out.Bytes()
 }
 func TestModelSplineNURBSNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := modelSplineNURBSNativeFixture(t)
 	m, e := ReadModelSplineNURBSPlanarAssemblyJSON(ctx, bytes.NewReader(raw), IndependentMaterialJSONLimits{})
@@ -234,6 +237,7 @@ func TestModelSplineNURBSNative(t *testing.T) {
 	}
 }
 func TestModelSplineNURBSLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_MODEL_SPLINE_NURBS_PLANAR")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")
@@ -315,6 +319,7 @@ func FuzzModelSplineNURBSPlanar(f *testing.F) {
 }
 
 func TestModelSplineNURBSModelProof(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := modelSplineNURBSFixture(t)
 	m, e := ReadModelSplineNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})

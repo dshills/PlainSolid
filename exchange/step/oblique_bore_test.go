@@ -9,6 +9,7 @@ import (
 )
 
 func TestObliqueBoreSTEP(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name                 string
 		axisPoint, direction geom.Vec3
@@ -56,6 +57,7 @@ func TestObliqueBoreSTEP(t *testing.T) {
 }
 
 func TestObliqueBoreSTEPRejectsGrazingOrPerpendicular(t *testing.T) {
+	t.Parallel()
 	stock := geom.Box{Max: geom.Vec3{X: 4, Y: 5, Z: 6}}
 	for _, body := range []ObliqueBoreBody{
 		{Stock: stock, Entry: 0, Exit: 3, AxisPoint: geom.Vec3{X: 1, Y: 2}, Direction: geom.Vec3{X: 1, Z: 1e-6}, Radius: .35},

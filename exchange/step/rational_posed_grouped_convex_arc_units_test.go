@@ -94,6 +94,7 @@ func TestRationalPosedGroupedConvexArcNonMillimetreUnits(t *testing.T) {
 }
 
 func TestRationalPosedGroupedConvexArcNonMillimetreUnitsLive(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL to the pinned author helper")

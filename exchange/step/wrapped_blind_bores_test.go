@@ -13,6 +13,7 @@ import (
 )
 
 func TestWrappedBlindBoreStoredOCCT(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-blind-bore.step")
 	if e != nil {
 		t.Fatal(e)
@@ -34,6 +35,7 @@ func TestWrappedBlindBoreStoredOCCT(t *testing.T) {
 }
 
 func TestWrappedBlindBoreLiveOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-wrapped-blind-bore")
 	raw, e := os.ReadFile(source)
@@ -88,6 +90,7 @@ func TestWrappedBlindBoreLiveOCCT(t *testing.T) {
 	}
 }
 func TestWrappedBlindBoreScope(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-blind-bore.step")
 	if e != nil {
 		t.Fatal(e)

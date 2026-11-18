@@ -10,6 +10,7 @@ import (
 )
 
 func TestCurvedOvalSourceRejections(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/rational-curved-oval-face.step")
 	if e != nil {
 		t.Fatal(e)
@@ -104,6 +105,7 @@ func TestCurvedOvalSourceRejections(t *testing.T) {
 	}
 }
 func TestCurvedOvalSourceScaleAndRotation(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/rational-curved-oval-face.step")
 	if e != nil {
 		t.Fatal(e)
@@ -138,6 +140,7 @@ func TestCurvedOvalSourceScaleAndRotation(t *testing.T) {
 	}
 }
 func TestCurvedOvalWriterRejections(t *testing.T) {
+	t.Parallel()
 	m := curvedOvalFixture(t)
 	m.Outer.QuarterWeight = .75
 	var b bytes.Buffer
@@ -165,6 +168,7 @@ func TestCurvedOvalWriterRejections(t *testing.T) {
 	}
 }
 func TestIndependentCurvedOvalFaces(t *testing.T) {
+	t.Parallel()
 	for _, name := range []string{"curved-oval-face", "rational-curved-oval-face", "curved-oval-hole"} {
 		raw, e := os.ReadFile("testdata/" + name + ".step")
 		if e != nil {

@@ -188,6 +188,7 @@ func TestRationalHierarchyBoundaryArea(t *testing.T) {
 	}
 }
 func TestHierarchyAreaRejectsForgedSource(t *testing.T) {
+	t.Parallel()
 	raw, _ := os.ReadFile("testdata/rational-spherical-hierarchy-holed.step")
 	ctx := context.Background()
 	m, e := ReadRationalSphericalHierarchy(ctx, bytes.NewReader(raw), Limits{}, 1e-9)

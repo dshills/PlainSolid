@@ -16,6 +16,7 @@ import (
 )
 
 func TestPlanarEdgeContactPairSTEP(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m := Model{LengthUnit: .001}
 	for i, p := range []geom.Vec3{{}, {X: 1, Y: 1}} {
@@ -40,10 +41,12 @@ func TestPlanarEdgeContactPairSTEP(t *testing.T) {
 }
 
 func TestPlanarEdgeContactPairSTEPLiveOCCT(t *testing.T) {
+	t.Parallel()
 	checkPlanarEdgePairSTEPLiveOCCT(t, false)
 }
 
 func TestPlanarEdgeIntervalContactPairSTEPLiveOCCT(t *testing.T) {
+	t.Parallel()
 	checkPlanarEdgePairSTEPLiveOCCT(t, true)
 }
 

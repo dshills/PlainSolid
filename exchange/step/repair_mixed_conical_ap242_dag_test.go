@@ -92,6 +92,7 @@ func TestRepairMixedConicalAP242DAG(t *testing.T) {
 }
 
 func TestRepairMixedConicalAP242DAGReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := mixedConicalAP242DAGFixture(t, "rounded")
 	check := func(input []byte, l MixedConicalAP242DAGLimits, budget float64, target error, detail string) {

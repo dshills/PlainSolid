@@ -32,6 +32,7 @@ func nestedLoopModel(t testing.TB) ExactCircularLoopAssemblyModel {
 	return ExactCircularLoopAssemblyModel{LengthUnit: m.Descriptor.LengthUnit, Products: []ExactCircularLoopAssemblyPart{{ID: "root", Name: "Root"}, {ID: "group", Name: "Shared group"}, {ID: "leaf", Name: "Rounded", Source: m.Source}}, Occurrences: []AssemblyInstance{{ID: "a", Parent: "root", Child: "group", Transform: geom.Identity()}, {ID: "b", Parent: "root", Child: "group", Transform: geom.Affine{{0, 0, 1, 10}, {1, 0, 0, -2}, {0, 1, 0, 3}}}, {ID: "c", Parent: "group", Child: "leaf", Transform: geom.Affine{{1, 0, 0, 1}, {0, 1, 0, 2}, {0, 0, 1, 0}}}}}
 }
 func TestNestedExactCircularLoopAssembly(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	var authored bytes.Buffer
 	if e := WriteNestedExactCircularLoopAssembly(ctx, &authored, nestedLoopModel(t), Limits{}); e != nil {
@@ -75,6 +76,7 @@ func TestNestedExactCircularLoopAssembly(t *testing.T) {
 	}
 }
 func TestNestedExactCircularLoopAssemblyReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := nestedLoopFixture(t)
 	for _, edit := range []func(*File){
@@ -148,6 +150,7 @@ func TestNestedExactCircularLoopAssemblyReject(t *testing.T) {
 	}
 }
 func TestNestedExactCircularLoopAssemblyLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_EXACT_CIRCULAR_LOOP")
 	if bin == "" {
 		t.Skip("optional XCAF")

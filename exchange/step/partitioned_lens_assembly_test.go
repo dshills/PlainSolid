@@ -9,6 +9,7 @@ import (
 )
 
 func TestPartitionedLensAssembly(t *testing.T) {
+	t.Parallel()
 	m := lensAssemblyFixture(t)
 	m.Products[1].Bodies[0] = partitionedLensFixture(t)
 	var b bytes.Buffer
@@ -39,6 +40,7 @@ func TestPartitionedLensAssembly(t *testing.T) {
 	}
 }
 func TestPartitionedLensAssemblyOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-partitioned-spline-lens-assembly")
 	raw, e := os.ReadFile(source)
@@ -95,6 +97,7 @@ func FuzzPartitionedLensAssembly(f *testing.F) {
 }
 
 func TestPartitionedLensAssemblyCumulativeBudget(t *testing.T) {
+	t.Parallel()
 	m := lensAssemblyFixture(t)
 	m.Products[1].Bodies[0] = partitionedLensFixture(t)
 	other := m.Products[1]

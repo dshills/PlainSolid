@@ -11,6 +11,7 @@ import (
 )
 
 func TestMixedWrappedMaterials(t *testing.T) {
+	t.Parallel()
 	read := func(name string) []byte {
 		raw, e := os.ReadFile("testdata/" + name + ".step")
 		if e != nil {
@@ -79,6 +80,7 @@ func TestMixedWrappedMaterials(t *testing.T) {
 }
 
 func TestMixedWrappedMaterialsOCCT(t *testing.T) {
+	t.Parallel()
 	m := WrappedMaterialModel{LengthUnit: .001}
 	sources := []string{"testdata/wrapped-toroid.step", "testdata/wrapped-cylinder.step", "testdata/wrapped-frustum.step", "testdata/wrapped-tube.step", "testdata/wrapped-blind-bore.step", "testdata/wrapped-shoulder.step", "testdata/wrapped-cavity.step", "testdata/wrapped-toroidal-void.step", "testdata/wrapped-station-loft.step", "testdata/wrapped-rim-fillet.step", "testdata/wrapped-station-bore.step", "testdata/wrapped-annular-frustum.step"}
 	for i, path := range sources {
@@ -236,6 +238,7 @@ func TestMixedWrappedBoreTags(t *testing.T) {
 }
 
 func TestMixedWrappedSharedVertexReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-cylinder.step")
 	if e != nil {
 		t.Fatal(e)

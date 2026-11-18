@@ -26,6 +26,7 @@ func multispanNURBSFixture(t testing.TB) []byte {
 	return b
 }
 func TestMultispanNURBSPlanarAssembly(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := multispanNURBSFixture(t)
 	m, e := ReadMultispanNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -97,6 +98,7 @@ func TestMultispanNURBSPlanarAssembly(t *testing.T) {
 	}
 }
 func TestMultispanNURBSPlanarReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := multispanNURBSFixture(t)
 	m, e := ReadMultispanNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -169,6 +171,7 @@ func multispanNURBSNativeFixture(t testing.TB) []byte {
 	return out.Bytes()
 }
 func TestMultispanNURBSNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := multispanNURBSNativeFixture(t)
 	m, e := ReadMultispanNURBSPlanarAssemblyJSON(ctx, bytes.NewReader(raw), IndependentMaterialJSONLimits{})
@@ -231,6 +234,7 @@ func TestMultispanNURBSNative(t *testing.T) {
 	}
 }
 func TestMultispanNURBSLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_MULTISPAN_NURBS_PLANAR")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")
@@ -312,6 +316,7 @@ func FuzzMultispanNURBSPlanar(f *testing.F) {
 }
 
 func TestMultispanNURBSBasis(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, file := range []string{"occt-ap242-multispan-nurbs-planar.step", "occt-ap242-multispan-mixed-nurbs-planar.step", "occt-ap242-multispan-quarter-nurbs-planar.step"} {
 		raw, e := os.ReadFile("testdata/" + file)

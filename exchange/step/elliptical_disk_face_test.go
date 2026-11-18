@@ -20,6 +20,7 @@ func ellipticalDiskFixture(t testing.TB) []byte {
 	return b
 }
 func TestEllipticalDiskFace(t *testing.T) {
+	t.Parallel()
 	raw := ellipticalDiskFixture(t)
 	f, e := ReadEllipticalDiskFace(bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -72,6 +73,7 @@ func TestEllipticalDiskFace(t *testing.T) {
 	}
 }
 func TestEllipticalDiskFaceReject(t *testing.T) {
+	t.Parallel()
 	raw := ellipticalDiskFixture(t)
 	for _, m := range [][2]string{{"#30 = PCURVE('',#31,#36)", "#30 = PCURVE('',#25,#36)"}, {"#37),#41)", "#37),#42)"}, {"#22,#22,#24,.T.", "#22,#22,#24,.F."}, {"#21,.T.", "#21,.F."}, {"#19,.T.", "#19,.F."}, {"#31,.T.", "#31,.F."}, {"#22 = VERTEX_POINT('',#23)", "#22 = VERTEX_POINT('',#27)"}, {"#37 = ELLIPSE('',#38,4.,2.)", "#37 = ELLIPSE('',#38,4.,2.00000000000000001)"}, {"#40 = DIRECTION('',(1.,0.))", "#40 = DIRECTION('',(-1.,0.))"}, {"#35 = DIRECTION('',(0.,0.,-1.))", "#35 = DIRECTION('',(1.,0.,0.))"}, {".PCURVE_S1.", ".CURVE_3D."}, {"(1.,2.,-1.)", "(1.,2.,-1.00000000000000001)"}, {"SI_UNIT(.MILLI.,.METRE.)", "SI_UNIT($,.METRE.)"}} {
 		b := bytes.Replace(raw, []byte(m[0]), []byte(m[1]), 1)
@@ -135,6 +137,7 @@ func FuzzEllipticalDiskFace(f *testing.F) {
 }
 
 func TestEllipticalDiskFaceIDsAndWriterBound(t *testing.T) {
+	t.Parallel()
 	f, e := ReadEllipticalDiskFace(bytes.NewReader(ellipticalDiskFixture(t)), Limits{})
 	if e != nil {
 		t.Fatal(e)

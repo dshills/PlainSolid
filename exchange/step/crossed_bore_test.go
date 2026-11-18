@@ -18,6 +18,7 @@ import (
 )
 
 func TestCrossedBoreSTEP(t *testing.T) {
+	t.Parallel()
 	for ni, n := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		frame, e := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
 		if e != nil {
@@ -84,6 +85,7 @@ func TestCrossedBoreSTEP(t *testing.T) {
 }
 
 func TestCrossedBoreSTEPRejectsMalformedEllipse(t *testing.T) {
+	t.Parallel()
 	frame, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	m := CrossedBoreModel{Body: CrossedBoreBody{Name: "ellipse proof", Frame: frame, Dimensions: geom.Vec3{X: 20, Y: 16, Z: 12}, Crossing: geom.Vec3{X: 10, Y: 8, Z: 6}, Radius: 2}, LengthUnit: .001}
 	var out bytes.Buffer

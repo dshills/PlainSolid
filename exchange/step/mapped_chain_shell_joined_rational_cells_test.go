@@ -301,6 +301,7 @@ func verifyJoinedRationalDisplay(t *testing.T, raw []byte) {
 }
 
 func TestOCCTMappedChainRectangularJoinedRationalSupportCellsRejectsMissingJoint(t *testing.T) {
+	t.Parallel()
 	raw := readInferredSharedMappedChainFixture(t, joinedRationalCellsPath)
 	badSource := readInferredSharedMappedChainFixture(t, joinedRationalMissingJointPath)
 	rejectJoinedRationalMissingJoint(t, context.Background(), raw, badSource)
@@ -366,6 +367,7 @@ func rejectChangedNativeJoinedRoof(t *testing.T, ctx context.Context, m MappedCh
 }
 
 func TestOCCTMappedChainRectangularJoinedRationalSupportCellsLive(t *testing.T) {
+	t.Parallel()
 	verifyPinnedJoinedRationalSource(t, os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_JOINED_RATIONAL_AUTHOR"), false)
 }
 
@@ -381,12 +383,14 @@ func TestOCCTMappedChainRectangularJoinedIndependentRoofsClosedDisplay(t *testin
 }
 
 func TestOCCTMappedChainRectangularJoinedIndependentRoofsRejectsMissingJoint(t *testing.T) {
+	t.Parallel()
 	raw := readInferredSharedMappedChainFixture(t, joinedIndependentRoofsPath)
 	bad := readInferredSharedMappedChainFixture(t, joinedIndependentMissingJointPath)
 	rejectJoinedRationalMissingJoint(t, context.Background(), raw, bad)
 }
 
 func TestOCCTMappedChainRectangularJoinedIndependentRoofsRejectsFalseWeight(t *testing.T) {
+	t.Parallel()
 	raw := readInferredSharedMappedChainFixture(t, joinedIndependentRoofsPath)
 	bad := readInferredSharedMappedChainFixture(t, joinedIndependentFalseWeightPath)
 	ctx := context.Background()
@@ -395,6 +399,7 @@ func TestOCCTMappedChainRectangularJoinedIndependentRoofsRejectsFalseWeight(t *t
 }
 
 func TestOCCTMappedChainRectangularJoinedIndependentRoofsLive(t *testing.T) {
+	t.Parallel()
 	verifyPinnedJoinedRationalSource(t, os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_INDEPENDENT_JOINED_ROOFS_AUTHOR"), true)
 }
 

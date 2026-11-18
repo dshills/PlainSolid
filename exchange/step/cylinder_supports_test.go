@@ -12,6 +12,7 @@ func cylinderSupportFixture() CylinderSupportModel {
 	return CylinderSupportModel{Name: "supports", SetName: "set", LengthUnit: .001, Surfaces: []CylinderSupport{{Name: "cylinder", PlacementName: "frame", LocationName: "center", AxisName: "axis", ReferenceName: "radial", Location: geom.Vec3{X: 2, Y: 3, Z: 4}, Axis: geom.Vec3{X: -1}, Reference: geom.Vec3{Z: -1}, Radius: 2.5}}}
 }
 func TestCylinderSupportsRoundtrip(t *testing.T) {
+	t.Parallel()
 	for _, unit := range []float64{.001, .3048, 1} {
 		m := cylinderSupportFixture()
 		m.LengthUnit = unit
@@ -44,6 +45,7 @@ func TestCylinderSupportsRoundtrip(t *testing.T) {
 	}
 }
 func TestCylinderSupportsReject(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	_ = WriteCylinderSupports(&b, cylinderSupportFixture())
 	s := b.String()
@@ -64,6 +66,7 @@ func TestCylinderSupportsReject(t *testing.T) {
 }
 
 func TestCylinderSupportsOwnershipAndAtomicity(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	_ = WriteCylinderSupports(&b, cylinderSupportFixture())
 	s := b.String()

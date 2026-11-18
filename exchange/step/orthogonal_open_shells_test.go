@@ -55,6 +55,7 @@ func verifyOrthogonalOpenShell(t testing.TB, raw []byte) {
 	}
 }
 func TestIndependentOrthogonalOpenShell(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/orthogonal-open-shell.step")
 	if e != nil {
 		t.Fatal(e)
@@ -62,6 +63,7 @@ func TestIndependentOrthogonalOpenShell(t *testing.T) {
 	verifyOrthogonalOpenShell(t, raw)
 }
 func TestOCCTOrthogonalOpenShell(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, path, "write-step-orthogonal-open-shell")
 	raw, e := os.ReadFile(path)
@@ -71,6 +73,7 @@ func TestOCCTOrthogonalOpenShell(t *testing.T) {
 	verifyOrthogonalOpenShell(t, raw)
 }
 func TestOpenShellIncidenceReject(t *testing.T) {
+	t.Parallel()
 	// Two quads share one oppositely traversed edge. Canonical source vertices
 	// are retained, rather than replaced by a tolerance-based positional weld.
 	base := OrthogonalSplineOpenShell{Faces: make([]OrthogonalSplineFace, 2), Uses: []OrthogonalShellUse{{0, 1, 1, 2, true, 0}, {0, 2, 2, 3, true, 0}, {0, 3, 3, 4, true, 0}, {0, 4, 4, 1, true, 0}, {1, 2, 2, 3, false, 0}, {1, 5, 2, 5, true, 0}, {1, 6, 5, 6, true, 0}, {1, 7, 6, 3, true, 0}}}
@@ -99,6 +102,7 @@ func TestOpenShellIncidenceReject(t *testing.T) {
 }
 
 func TestOrthogonalOpenShellSourceReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/orthogonal-open-shell.step")
 	if e != nil {
 		t.Fatal(e)

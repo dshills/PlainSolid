@@ -14,6 +14,7 @@ import (
 )
 
 func TestRationalHierarchyAnalyticPoint(t *testing.T) {
+	t.Parallel()
 	for _, vendor := range []bool{false, true} {
 		name := "rational-spherical-hierarchy.step"
 		if vendor {
@@ -160,6 +161,7 @@ func TestRationalHierarchyAnalyticPoint(t *testing.T) {
 }
 
 func TestRationalHierarchyPointFailures(t *testing.T) {
+	t.Parallel()
 	p := [3]*big.Rat{big.NewRat(0, 1), big.NewRat(0, 1), big.NewRat(0, 1)}
 	if r, e := LocateRationalHierarchyAnalyticPoint(nil, RationalSphericalHierarchy{}, p, RationalHierarchyPointOptions{}); e == nil || len(r.Leaves) != 0 {
 		t.Fatal("nil context")

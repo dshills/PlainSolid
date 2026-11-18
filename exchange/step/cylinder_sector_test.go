@@ -13,6 +13,7 @@ import (
 )
 
 func TestIndependentCylinderSector(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/cylinder-sector.step")
 	if e != nil {
 		t.Fatal(e)
@@ -28,6 +29,7 @@ func TestIndependentCylinderSector(t *testing.T) {
 }
 
 func TestCylinderSectorRoundtrip(t *testing.T) {
+	t.Parallel()
 	frame, e := geom.NewFrame(geom.Vec3{X: 1, Y: 2, Z: 3}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	if e != nil {
 		t.Fatal(e)
@@ -48,6 +50,7 @@ func TestCylinderSectorRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTCylinderSector(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, path, "write-step-cylinder-sector")
 	raw, e := os.ReadFile(path)
@@ -84,6 +87,7 @@ func TestOCCTCylinderSector(t *testing.T) {
 }
 
 func TestCylinderSectorMalformed(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/cylinder-sector.step")
 	if e != nil {
 		t.Fatal(e)

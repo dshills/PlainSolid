@@ -145,6 +145,7 @@ func TestWrappedStationBoreSourceRejections(t *testing.T) {
 }
 
 func TestWrappedStationBoreOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-wrapped-station-bore")
 	raw, e := os.ReadFile(source)
@@ -309,6 +310,7 @@ func TestWrappedStationBoreSingleWall(t *testing.T) {
 }
 
 func TestWrappedStationBoreSingleOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-wrapped-station-bore-single")
 	raw, e := os.ReadFile(source)
@@ -347,6 +349,7 @@ func TestWrappedStationBoreSingleOCCT(t *testing.T) {
 }
 
 func TestIndependentWrappedStationBoreSingle(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-station-bore-single.step")
 	if e != nil {
 		t.Fatal(e)

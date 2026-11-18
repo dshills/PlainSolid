@@ -180,6 +180,7 @@ func TestOCCTMappedChainRectangularNonplanarRationalRoofsClosedDisplay(t *testin
 }
 
 func TestOCCTMappedChainRectangularNonplanarRationalRoofsRejectsFalseWeight(t *testing.T) {
+	t.Parallel()
 	valid := readInferredSharedMappedChainFixture(t, nonplanarRationalRoofsPath)
 	bad := readInferredSharedMappedChainFixture(t, nonplanarFalseRoofWeightPath)
 	rejectNonplanarFalseRoofWeight(t, context.Background(), valid, bad)
@@ -234,6 +235,7 @@ func rejectFalseRationalRoofWeight(t *testing.T, ctx context.Context, valid, bad
 }
 
 func TestOCCTMappedChainRectangularNonplanarRationalRoofsLive(t *testing.T) {
+	t.Parallel()
 	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_RATIONAL_ROOFS_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT source author and STEP consumer")

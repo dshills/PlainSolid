@@ -25,6 +25,7 @@ func mixedGeometry(s AnalyticSupport) (geom.Surface, error) {
 	}
 }
 func TestAnalyticSupportsRetained(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/analytic-supports.step")
 	if e != nil {
 		t.Fatal(e)
@@ -38,6 +39,7 @@ func TestAnalyticSupportsRetained(t *testing.T) {
 	}
 }
 func TestOCCTAnalyticSupports(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_ANALYTIC_SUPPORTS")
 	if bin == "" {
 		t.Skip("optional independent OCCT")

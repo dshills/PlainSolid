@@ -8,6 +8,7 @@ import (
 )
 
 func TestCurvedOvalShellSourceRejections(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/curved-oval-shell.step")
 	if e != nil {
 		t.Fatal(e)
@@ -85,6 +86,7 @@ func TestCurvedOvalShellSourceRejections(t *testing.T) {
 	}
 }
 func TestCurvedOvalShellFixtureAndLimits(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/curved-oval-shell.step")
 	if e != nil {
 		t.Fatal(e)
@@ -117,6 +119,7 @@ func TestCurvedOvalShellFixtureAndLimits(t *testing.T) {
 	}
 }
 func TestCurvedOvalShellWriterRejectsSeamMismatch(t *testing.T) {
+	t.Parallel()
 	m := curvedOvalShellFixture(t)
 	m.Disk.Outer.Radii = geom.Vec2{X: .125, Y: .125}
 	var b bytes.Buffer

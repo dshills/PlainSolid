@@ -44,6 +44,7 @@ func steppedOracleCylinder(t *testing.T, radius, lo, hi float64) trimmed.Solid {
 	return s
 }
 func TestWrappedSteppedIndependentOCCT(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	a := steppedOracleCylinder(t, 2, 0, 4)
 	b := steppedOracleCylinder(t, 1, 2, 6)

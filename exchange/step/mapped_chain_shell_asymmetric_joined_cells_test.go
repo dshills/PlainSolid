@@ -23,6 +23,7 @@ func TestOCCTMappedChainRectangularAsymmetricJoinedIndependentRoofsClosedDisplay
 }
 
 func TestOCCTMappedChainRectangularAsymmetricJoinedIndependentRoofsRejectsMissingJoint(t *testing.T) {
+	t.Parallel()
 	raw := readInferredSharedMappedChainFixture(t, asymmetricJoinedRoofPath)
 	bad := readInferredSharedMappedChainFixture(t, asymmetricJoinedMissingJointPath)
 	rejectAsymmetricJoinedRoofMissingJoint(t, context.Background(), raw, bad)
@@ -39,6 +40,7 @@ func rejectAsymmetricJoinedRoofMissingJoint(t *testing.T, ctx context.Context, r
 }
 
 func TestOCCTMappedChainRectangularAsymmetricJoinedIndependentRoofsRejectsFalseMasks(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, asymmetricJoinedRoofPath)
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, threeJoinedRoofOptions())
@@ -82,5 +84,6 @@ func TestOCCTMappedChainRectangularAsymmetricJoinedIndependentRoofsRejectsFalseM
 }
 
 func TestOCCTMappedChainRectangularAsymmetricJoinedIndependentRoofsLive(t *testing.T) {
+	t.Parallel()
 	verifyPinnedThreeJoinedRoofs(t, threeJoinedAsymmetric)
 }

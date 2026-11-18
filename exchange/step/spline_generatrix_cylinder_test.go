@@ -14,6 +14,7 @@ import (
 )
 
 func TestSplineGeneratrixCylinder(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/spline-generatrix-cylinder.step")
 	if e != nil {
 		t.Fatal(e)
@@ -37,6 +38,7 @@ func TestSplineGeneratrixCylinder(t *testing.T) {
 }
 
 func TestSplineGeneratrixCylinderRejects(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/spline-generatrix-cylinder.step")
 	if e != nil {
 		t.Fatal(e)
@@ -66,6 +68,7 @@ func TestSplineGeneratrixCylinderRejects(t *testing.T) {
 	}
 }
 func TestOCCTSplineGeneratrixCylinder(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_SPLIT_CYLINDER")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

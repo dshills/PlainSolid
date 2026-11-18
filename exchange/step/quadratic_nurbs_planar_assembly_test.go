@@ -25,6 +25,7 @@ func quadraticNURBSFixture(t testing.TB) []byte {
 	return b
 }
 func TestQuadraticNURBSPlanarAssembly(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := quadraticNURBSFixture(t)
 	m, e := ReadQuadraticNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -90,6 +91,7 @@ func TestQuadraticNURBSPlanarAssembly(t *testing.T) {
 	}
 }
 func TestQuadraticNURBSPlanarReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := quadraticNURBSFixture(t)
 	m, e := ReadQuadraticNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -157,6 +159,7 @@ func quadraticNURBSNativeFixture(t testing.TB) []byte {
 	return out.Bytes()
 }
 func TestQuadraticNURBSNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := quadraticNURBSNativeFixture(t)
 	m, e := ReadQuadraticNURBSPlanarAssemblyJSON(ctx, bytes.NewReader(raw), IndependentMaterialJSONLimits{})
@@ -219,6 +222,7 @@ func TestQuadraticNURBSNative(t *testing.T) {
 	}
 }
 func TestQuadraticNURBSLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_QUADRATIC_NURBS_PLANAR")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

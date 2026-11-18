@@ -73,6 +73,7 @@ func TestSphereLiftMismatchAndSubset(t *testing.T) {
 	}
 }
 func TestSphereLiftFrameAndTaylor(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -130,6 +131,7 @@ func FuzzSphereLiftAgreement(f *testing.F) {
 }
 
 func TestSphereLiftExactConstantIdentity(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)

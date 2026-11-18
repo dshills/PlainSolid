@@ -77,6 +77,7 @@ func creasedCanonicalMappedSTEP(t *testing.T) []byte {
 }
 
 func TestMappedChainRectangularSTEPOriginalSupportKnot(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	file := creasedCanonicalMappedSTEP(t)
 	if _, err := ReadMappedChainRectangularShell(ctx, bytes.NewReader(file), Limits{}, MappedChainShellSTEPOptions{}); err == nil {
@@ -108,6 +109,7 @@ func TestMappedChainRectangularSTEPOriginalSupportKnot(t *testing.T) {
 }
 
 func TestMappedChainRectangularSTEPOriginalSupportKnotOCCT(t *testing.T) {
+	t.Parallel()
 	exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if exe == "" {
 		t.Skip("optional pinned OCCT STEP consumer")
@@ -172,6 +174,7 @@ func verifyForeignCreasedMappedSTEP(t *testing.T, file []byte) parametric.Proper
 }
 
 func TestOCCTMappedChainRectangularOriginalSupportKnotRecorded(t *testing.T) {
+	t.Parallel()
 	b, err := os.ReadFile("testdata/occt_mapped_chain_creased.step")
 	if err != nil {
 		t.Fatal(err)
@@ -180,6 +183,7 @@ func TestOCCTMappedChainRectangularOriginalSupportKnotRecorded(t *testing.T) {
 }
 
 func TestOCCTMappedChainRectangularOriginalSupportKnotLive(t *testing.T) {
+	t.Parallel()
 	exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_AUTHOR")
 	if exe == "" {
 		t.Skip("optional pinned OCCT source author")

@@ -134,6 +134,7 @@ func TestReadConicalRimFilletBoreSTEPReject(t *testing.T) {
 }
 
 func TestConicalRimFilletBorePinnedSTEPAuthor(t *testing.T) {
+	t.Parallel()
 	author := os.Getenv("PLAINSOLID_OCCT_CONICAL_RIM_BORE_STEP_AUTHOR")
 	if author == "" {
 		t.Skip("pinned OCCT conical rim author not configured")

@@ -49,6 +49,7 @@ func checkRationalTiltMeasures(t testing.TB, volume, area float64, center [3]flo
 }
 
 func TestRepairRationalPosedPCurveOCCTConvexArc(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	opts := ConvexArcRepairOptions{MaxDistance: 1e-12}
 	for _, tc := range rationalTiltFixtures {
@@ -147,6 +148,7 @@ func TestRepairRationalPosedPCurveOCCTConvexArc(t *testing.T) {
 }
 
 func TestRepairRationalPosedPCurveOCCTConvexArcReject(t *testing.T) {
+	t.Parallel()
 	raw := rationalTiltSource(t, rationalTiltFixtures[0])
 	ctx := context.Background()
 	opts := ConvexArcRepairOptions{MaxDistance: 1e-12}
@@ -184,6 +186,7 @@ func TestRepairRationalPosedPCurveOCCTConvexArcReject(t *testing.T) {
 }
 
 func TestRepairRationalPosedPCurveOCCTConvexArcLive(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL to the pinned author helper")

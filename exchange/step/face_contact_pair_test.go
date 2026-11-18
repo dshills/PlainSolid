@@ -9,6 +9,7 @@ import (
 )
 
 func TestOriginalFinitePlanarPCurveCoverage(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile("testdata/occt-planar-annular-contact.step")
 	if err != nil {
 		t.Fatal(err)

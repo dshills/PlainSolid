@@ -26,6 +26,7 @@ func tensorRationalAffineNURBSFixture(t testing.TB) []byte {
 	return b
 }
 func TestTensorRationalAffineNURBSPlanarAssembly(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := tensorRationalAffineNURBSFixture(t)
 	m, e := ReadTensorRationalAffineNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -115,6 +116,7 @@ func tensorRationalAffineNURBSNativeFixture(t testing.TB) []byte {
 	return out.Bytes()
 }
 func TestTensorRationalAffineNURBSNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := tensorRationalAffineNURBSNativeFixture(t)
 	m, e := ReadTensorRationalAffineNURBSPlanarAssemblyJSON(ctx, bytes.NewReader(raw), IndependentMaterialJSONLimits{})
@@ -180,6 +182,7 @@ func TestTensorRationalAffineNURBSNative(t *testing.T) {
 	}
 }
 func TestTensorRationalAffineNURBSLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_TENSOR_RATIONAL_AFFINE_NURBS_PLANAR")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")
@@ -261,6 +264,7 @@ func FuzzTensorRationalAffineNURBSPlanar(f *testing.F) {
 }
 
 func TestTensorRationalAffineNURBSHomogeneousProof(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := tensorRationalAffineNURBSFixture(t)
 	m, e := ReadTensorRationalAffineNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})

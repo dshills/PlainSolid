@@ -160,6 +160,7 @@ func verifyInferredMixedMaterial(t *testing.T, ctx context.Context, m trimmed.Ma
 }
 
 func TestOCCTMappedChainRectangularInferredMixedSupportKnots(t *testing.T) {
+	t.Parallel()
 	verifyInferredMixedMappedChain(t, context.Background(), readInferredSharedMappedChainFixture(t, inferredMixedMappedChainPath))
 }
 
@@ -175,6 +176,7 @@ func TestOCCTMappedChainRectangularInferredMixedSupportKnotsClosedDisplay(t *tes
 }
 
 func TestOCCTMappedChainRectangularInferredMixedSupportKnotsRejectsInvalidSource(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, inferredMixedMappedChainPath)
 	o := inferredMixedMappedChainOptions()
@@ -222,6 +224,7 @@ func rejectInferredMixedRedundantModelKnot(t *testing.T, ctx context.Context, ra
 }
 
 func TestOCCTMappedChainRectangularInferredMixedSupportKnotsLive(t *testing.T) {
+	t.Parallel()
 	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_INFERRED_MIXED_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT source author and STEP consumer")

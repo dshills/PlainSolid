@@ -13,6 +13,7 @@ import (
 )
 
 func TestSphereSupportsRetained(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/sphere-support.step")
 	if e != nil {
 		t.Fatal(e)
@@ -26,6 +27,7 @@ func TestSphereSupportsRetained(t *testing.T) {
 	}
 }
 func TestOCCTSphereSupports(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_SPHERE_SUPPORT")
 	if bin == "" {
 		t.Skip("optional OCCT")

@@ -73,6 +73,7 @@ func TestReadSideOpenDualDiskProductOppositeCircleNormals(t *testing.T) {
 	}
 }
 func TestReadSideOpenDualDiskProductOppositeCircleRejects(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteSideOpenDualDiskProduct(context.Background(), &b, sideDiskDescriptor(t, false)); e != nil {
 		t.Fatal(e)
@@ -107,6 +108,7 @@ func TestReadSideOpenDualDiskProductOppositeCircleRejects(t *testing.T) {
 	}
 }
 func TestOCCTSideOpenDualDiskOppositeCircleNormals(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS")
 	if oracle == "" {
 		t.Skip("optional independent OCCT helper")

@@ -208,6 +208,7 @@ func verifyLocalCellMaterial(t *testing.T, ctx context.Context, native trimmed.M
 }
 
 func TestOCCTMappedChainRectangularLocalSupportKnotCells(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(localCellMappedChainPath)
 	if err != nil {
 		t.Fatal(err)
@@ -216,6 +217,7 @@ func TestOCCTMappedChainRectangularLocalSupportKnotCells(t *testing.T) {
 }
 
 func TestOCCTMappedChainRectangularLocalSupportKnotCellsClosedDisplay(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, err := os.ReadFile(localCellMappedChainPath)
 	if err != nil {
@@ -229,6 +231,7 @@ func TestOCCTMappedChainRectangularLocalSupportKnotCellsClosedDisplay(t *testing
 }
 
 func TestOCCTMappedChainRectangularLocalSupportKnotCellsRejectsInvalidSource(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, err := os.ReadFile(localCellMappedChainPath)
 	if err != nil {
@@ -356,6 +359,7 @@ func moveLocalSouthCrease(t *testing.T, f *File, faceID int64, x float64) {
 }
 
 func TestOCCTMappedChainRectangularLocalSupportKnotCellsLive(t *testing.T) {
+	t.Parallel()
 	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_LOCAL_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT source author and STEP consumer")
