@@ -35,10 +35,8 @@ Compatibility is promised to the packages in this repository and to PlainCAD.
 The module path `plainsolid` is provisional and the README calls the kernel
 experimental, so there are no outside importers to protect. After Phase 2 the
 exported names declared in research files are absent from the default build
-on purpose; a caller that wants them builds with `-tags research`. If the
-owner instead wants the whole exported API of `brep/trimmed` to stay in the
-default build, Phase 2 must not be done and only Phase 1 applies. This is
-decision D1 below.
+on purpose; a caller that wants them builds with `-tags research`. The owner
+approved this as decision D1.
 
 ## Non-goals
 
@@ -176,8 +174,7 @@ This phase is independent of the others and delivers goal 2 by itself.
 
 ## Phase 2: quarantine research files behind a build tag
 
-Prerequisites: the owner has approved decisions D1 and D3 in writing. Without
-D1 approval this effort ends after Phase 1.
+Prerequisites: decisions D1 and D3, both approved on 2026-11-18.
 
 1. Add `//go:build research` to the 540 research production files.
 2. Split the 126 in-package test files in `mixed-tests.txt`. Each holds
@@ -276,14 +273,14 @@ holds.
 ## Decisions for the owner
 
 - **D1.** Is it acceptable that research exported names leave the default
-  build? This plan assumes yes. If no, stop after Phase 1.
+  build? **Approved by the owner on 2026-11-18.**
 - **D2.** The fate of the quarantined code (Phase 3).
 - **D3.** The original gate for Phase 2 was a byte-identical PlainCAD WASM.
   The Phase 0 dry run showed that cannot hold: removing research files leaves
   every linked function and its size unchanged but shrinks type descriptors
   and line tables, so the file differs. This plan now uses the linked-code
-  fingerprint plus the bridge tests instead. Approve that, or name the gate
-  you want.
+  fingerprint plus the bridge tests instead. **Approved by the owner on
+  2026-11-18.**
 
 ## Risks
 

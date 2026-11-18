@@ -22,6 +22,9 @@ document in this repository conflicts with this file, this file wins.
   task seems to need one, extend a general mechanism so the new case is data,
   or stop and describe the gap to the user. Enumerating arrangements does not
   converge on a kernel.
+- Results are judged by validation within tolerance, as set out in the
+  tolerance policy of [the specification](docs/SPECIFICATION.md). Do not
+  build or require a proof for a result unless the task asks for one.
 - A new capability does not automatically get native persistence, STEP and
   IGES. Add each only when the task needs it.
 - A new exported identifier needs a caller outside its package in the same

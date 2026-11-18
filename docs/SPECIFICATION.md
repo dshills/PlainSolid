@@ -52,6 +52,40 @@ Use float64 and right-handed Cartesian coordinates. Angles are radians. Core geo
 
 Error semantics distinguish invalid input, singularity, unsupported domain, iteration exhaustion and resource limits. APIs must not panic on malformed external files or return NaN as an undocumented failure signal. Low-level vector algebra follows normal float64 arithmetic; callers must validate finite results when constructing geometry. Extreme finite values can overflow and must be included in numerical testing before production claims.
 
+## Tolerance policy
+
+Adopted by the repository owner on 2026-11-18. It governs intersections,
+Booleans, modification, healing and exchange of curved geometry.
+
+Modeling operations work within explicit numerical tolerances. An exact or
+certified computation may be used where it is cheap, but it is not required,
+and an operation must not be limited to the inputs for which a proof exists.
+
+- A general algorithm over a class of surfaces is the target. A constructor
+  for one named arrangement of inputs is not an acceptable way to add
+  capability.
+- Each tolerant operation receives its absolute, relative and angular
+  tolerances and its work limits as options. Geometry closer than the
+  tolerance is treated as coincident. There is still no package-global
+  mutable tolerance.
+- A result is accepted on validation, not on proof. Before it is returned it
+  must pass topology checks (closed where a solid is promised, consistently
+  oriented, every edge used as its shell requires), geometric residual checks
+  against the tolerance (each edge on both of its surfaces, each vertex on its
+  edges, p-curves agreeing with model curves), and for Booleans the applicable
+  volume identities within a stated bound.
+- An operation that cannot produce a result that validates returns an error
+  that says why. This preserves the rule that the kernel never returns a
+  plausible but incorrect shape.
+- A result records the tolerance it was built with, so that later operations
+  and exchange can account for it.
+- Qualification compares results with analytic values where they exist and
+  with the pinned OCCT reference otherwise, within tolerance.
+
+The word "exact" elsewhere in this document describes representation, such as
+an analytic cylinder instead of facets. It does not require exact arithmetic
+or a certificate for each result.
+
 ## Initial implemented-domain contracts
 
 ### Geometry
