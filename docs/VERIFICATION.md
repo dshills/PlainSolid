@@ -10,8 +10,8 @@ narrative that this page replaced is in git:
 | When | Command | Cost |
 |---|---|---|
 | Every change | `go build ./... && go vet ./...`, then `go test` on the changed packages | Seconds to minutes |
-| Before merging to `main` | `go test ./...` (the fast tier) | About five minutes on a 14-core machine |
-| A slow test your change touches | `PLAINSOLID_SLOW=1 go test ./pkg -run '^TestName$'` | Seconds to minutes each |
+| Before merging to `main` | `go test ./...` (the default tier), then `go build -tags research ./... && go vet -tags research ./...` | Under two minutes on a 14-core machine |
+| A slow test your change touches | `PLAINSOLID_SLOW=1 go test -tags research ./pkg -run '^TestName$'` | Seconds to minutes each |
 | Before a release, or when the user asks | `python3 tools/ci/run-go-qualification.py HEAD <new-stage>`, with `--race` for the race run | Hours of machine time |
 | Before a release, or when the user asks | `python3 tools/ci/run-plaincad-qualification.py <stage> <manifest> --app <PlainCAD checkout>`; see [the PlainCAD harness](../tools/plaincad/README.md) | The eight PlainCAD gates |
 | On demand | The **Go qualification** GitHub workflow | Full platform, toolchain, race and fuzz matrix |

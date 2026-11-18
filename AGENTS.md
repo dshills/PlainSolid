@@ -30,8 +30,12 @@ document in this repository conflicts with this file, this file wins.
 - A new exported identifier needs a caller outside its package in the same
   change.
 - Prefer a new package to more files in `brep/trimmed`. That package has about
-  2,000 files, so any edit to it reruns its tests and those of every package
-  that imports it.
+  2,000 files, so any edit to its default build reruns its tests and those of
+  every package that imports it.
+- Files that start with `//go:build research` are quarantined: they are the
+  parts of `brep/trimmed` that no other package uses, and the default build
+  does not compile them. Do not extend them, and do not remove the tag from
+  one, unless the user asks. To build or test them, pass `-tags research`.
 - Unsupported input returns an explicit error. Never return a plausible but
   incorrect shape, and never call a faceted approximation exact.
 - The kernel uses the standard library only. Ask before adding a dependency.
@@ -39,10 +43,14 @@ document in this repository conflicts with this file, this file wins.
 ## Verification budget
 
 - For each change: `go build ./...`, `go vet ./...`, and `go test` on the
-  packages you changed. Before merging to `main`: `go test ./...`. These run
-  the fast tier described in [the CI notes](tools/ci/README.md#test-tiers).
+  packages you changed. Before merging to `main`: `go test ./...`, and
+  `go build -tags research ./... && go vet -tags research ./...` so the
+  quarantined code still compiles. These run the default tier described in
+  [the CI notes](tools/ci/README.md#test-tiers).
 - Run a slow test by name, with `PLAINSOLID_SLOW=1`, only when your change
   touches the code it covers.
+- Do not add `t.Parallel()` to tests in `brep/trimmed`; see the known defects
+  on [the status page](docs/STATUS.md).
 - Run the complete suite, race runs, `tools/ci/run-go-qualification.py`,
   cross-platform builds and the PlainCAD browser gates only when the user asks.
   Never run them per commit: the complete Go suite is hours of machine time,

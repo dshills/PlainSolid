@@ -1,3 +1,5 @@
+//go:build research
+
 package trimmed
 
 import "math/big"

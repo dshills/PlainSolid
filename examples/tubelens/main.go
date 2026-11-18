@@ -1,3 +1,5 @@
+//go:build research
+
 // Command tubelens discovers an implicit section, seals both graph faces,
 // and saves the original geometry needed to reconstruct the exact lens.
 package main

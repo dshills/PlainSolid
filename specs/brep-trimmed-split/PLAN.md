@@ -264,6 +264,49 @@ tier runs about half the `brep/trimmed` tests, and an edit to a research
 file no longer invalidates the default test cache for `brep/trimmed` or its
 dependents.
 
+### Outcome (2026-11-18)
+
+Done, except for the complete-suite run, which is the owner's to request.
+
+- 540 production files and 524 test files of `brep/trimmed` carry
+  `//go:build research` (500 in-package, 24 external-package). 98 mixed test
+  files were split first; their research declarations are in new
+  `*_research_test.go` files.
+- In other packages, 35 test files and `examples/tubelens` are tagged
+  (`csg/offset` 2, `exchange` 13, `exchange/iges` 1, `exchange/step` 10,
+  `internal/occtcheck` 8, `scene` 1). 15 of those are the research halves of
+  mixed test files that were split the same way.
+- Without the tag `brep/trimmed` compiles 561 production files.
+  `go build ./...` and `go vet ./...` pass with and without the tag.
+- Linked-code fingerprint of the bridge: identical to the baseline, 7,138
+  text symbols with the same sizes, code section 6,554,116 bytes. The WASM is
+  now 22,083,545 bytes, `sha256 8f296054…95f65`.
+- `PLAINSOLID_SLOW=1 go test ./internal/plaincadbridge` passes.
+- Test inventory with the tag: the baseline's 6,908 plus `TestClassifyFixture`.
+  Without the tag: 5,998.
+- Default tier: `brep/trimmed` 63 s, 64 s, 64 s (baseline 261 s); the whole
+  module 78 s of wall time (was 281 s). Goal 2 asked for under 60 s for
+  `brep/trimmed`; it misses by about 4 s.
+- `go test -tags research ./...` (default tier plus research tests) passed
+  once, in 138 s.
+- `tools/ci/smoke.sh` passes without the tag; none of its cases is research.
+- Cache experiment: after editing a research file, all 55 packages report
+  cached and the run takes 1 s. After editing a core file, 17 packages rerun
+  (`brep/trimmed` and its importers) in 90 s, and 38 stay cached.
+- `go run ./tools/refgraph -tags research -pkg brep/trimmed -exclude examples
+  -check research` passes and runs in the new `research` job of `go.yml`,
+  which also builds and vets with the tag. That job has not run on GitHub yet.
+- The review lists from Phase 0 are removed from this directory. The tags are
+  now the record: `rg -l '^//go:build research'` lists the quarantine.
+
+Three things differ from the plan as written. The classifier had to learn
+that a method call or an interface conversion from another package is a root.
+A core test file also loses the helpers that only research tests use, so more
+files were split than first counted. And one `scene` test needed the tag
+because it passes a `trimmed` value as an interface whose method is research;
+the classifier does not see interface use inside test files, and the default
+`go vet` caught it.
+
 ## Phase 3: decide the fate of the quarantined code
 
 This is a decision for the repository owner, made after Phase 2 has run for a

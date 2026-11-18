@@ -37,6 +37,10 @@ revolutions, circular sweeps, and elliptical lofts and extrusions. General curve
 curved trim boundaries and broad CAD exchange remain open. See the
 [status matrix](docs/STATUS.md) for the implemented domains and acceptance gaps.
 
+About half of `brep/trimmed` is quarantined behind the `research` build tag:
+the spline-graph, algebraic-shell and similar families that no other package
+uses. Their exported names exist only when building with `-tags research`.
+
 Selected exact APIs cover nonlinear edge contacts with a common affine
 projection, wrapped spline plane sections, and a canonical rational toroid with
 an embedded material boundary, STEP solid exchange, and exact point queries.
@@ -166,18 +170,21 @@ Writers propagate output errors. Callers own their streams and must close files.
 See [verification record](docs/VERIFICATION.md) for local checks, coverage and
 explicit limits of the evidence.
 
-Tests come in two tiers. A plain `go test` runs the fast tier and skips every
-test that calls `slowtest.Skip`; use it while developing. Setting
-`PLAINSOLID_SLOW=1` adds the slow tier, which takes hours and is what the Go
-qualification workflow and the qualification launcher run. See
+A plain `go test` runs the default tier; use it while developing. It skips
+every test that calls `slowtest.Skip`, and it does not compile the files
+marked `//go:build research`, which are the parts of `brep/trimmed` that no
+other package uses. `PLAINSOLID_SLOW=1` and `-tags research` add them back;
+that complete suite takes hours and is what the Go qualification workflow and
+the qualification launcher run. See
 [the CI notes](tools/ci/README.md#test-tiers).
 
 ```sh
-go test ./...                    # fast tier, for every change
+go test ./...                    # default tier, for every change
 go vet ./...
-PLAINSOLID_SLOW=1 go test ./...  # complete suite, before a release
-PLAINSOLID_SLOW=1 go test -race ./...
-PLAINSOLID_SLOW=1 bash tools/ci/trimmed-shard.sh 0 3 -timeout 45m # Repeat for indices 1 and 2
+export GOFLAGS=-tags=research PLAINSOLID_SLOW=1   # complete suite, before a release
+go test ./...
+go test -race ./...
+bash tools/ci/trimmed-shard.sh 0 3 -timeout 45m # Repeat for indices 1 and 2
 go test ./exchange -fuzz=FuzzReadSTL -fuzztime=10s
 go test ./exchange -fuzz=FuzzReadOBJ -fuzztime=10s
 go test ./exchange -fuzz=FuzzReadJSON -fuzztime=10s

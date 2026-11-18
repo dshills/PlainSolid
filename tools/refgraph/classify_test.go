@@ -39,11 +39,15 @@ func TestClassifyFixture(t *testing.T) {
 	want := classification{
 		Core:           []string{"core.go", "iface_method.go", "method_core.go", "scale.go"},
 		Research:       []string{"research.go", "research2.go", "research_method.go"},
-		ResearchTests:  []string{"chain_a_test.go", "chain_b_test.go", "helpers_test.go", "looks_core_test.go"},
+		ResearchTests:  []string{"chain_a_test.go", "chain_b_test.go", "looks_core_test.go"},
 		MixedTests:     []string{"helpers_test.go"},
 		ResearchXTests: []string{"ext_test.go"},
 		Outside:        []string{"consumer/use_test.go", "examples/demo/main.go"},
 	}
+	if len(got.Moves) != 1 || got.Moves[0].File != "helpers_test.go" || got.Moves[0].Name != "mkFancy" || got.Moves[0].Partial {
+		t.Fatalf("moves: got %+v, want mkFancy out of helpers_test.go", got.Moves)
+	}
+	got.Moves = nil
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("classification\n got %+v\nwant %+v", got, want)
 	}

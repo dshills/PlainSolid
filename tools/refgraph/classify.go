@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -14,15 +16,59 @@ import (
 // can only build with the research files present.
 type classification struct {
 	Core, Research []string // production file names
-	// ResearchTests are in-package test files holding at least one research
-	// declaration. MixedTests is the subset that also holds a core test or a
-	// helper that a core declaration in another file uses; split those first.
+	// A test declaration is core when a test that needs no research code is
+	// declared there or reaches it; every other test declaration is research.
+	// ResearchTests are in-package test files holding only research
+	// declarations. MixedTests hold both kinds and must be split; Moves lists
+	// what to take out of them.
 	ResearchTests, MixedTests []string
+	Moves                     []move
 	ResearchXTests            []string // external-package test files in the directory
 	// Outside are files elsewhere under the scan root that name a research
 	// symbol: tests, and files under an excluded directory.
 	Outside        []string
 	CoreToResearch int // references from a core file to a research file
+}
+
+// move is one byte range to take out of a mixed test file. Partial is set
+// when only some declarations of a parenthesized group are research; such a
+// group has to be split by hand.
+type move struct {
+	File     string
+	From, To int
+	Name     string
+	Partial  bool
+}
+
+// groupMoves turns the declarations to remove from one file into byte ranges,
+// moving a parenthesized group as a whole when all of it goes.
+func groupMoves(file string, all, out []span) []move {
+	total := map[int]int{}
+	for _, s := range all {
+		if s.group {
+			total[s.groupFrom]++
+		}
+	}
+	leaving := map[int]int{}
+	for _, s := range out {
+		if s.group {
+			leaving[s.groupFrom]++
+		}
+	}
+	var moves []move
+	done := map[int]bool{}
+	for _, s := range out {
+		if !s.group {
+			moves = append(moves, move{File: file, From: s.from, To: s.to, Name: s.name})
+			continue
+		}
+		if done[s.groupFrom] {
+			continue
+		}
+		done[s.groupFrom] = true
+		moves = append(moves, move{File: file, From: s.groupFrom, To: s.groupTo, Name: s.name, Partial: leaving[s.groupFrom] != total[s.groupFrom]})
+	}
+	return moves
 }
 
 func isTestFunc(name string) bool {
@@ -95,61 +141,7 @@ func classify(a *analysis, exports map[string]string, outside []outsideUse, dir,
 		}
 	}
 
-	// Test declarations, to a fixed point over references between them.
-	type decl struct{ file, name string }
-	uses := map[decl][]decl{} // test declaration to the test declarations it references
-	bad := map[decl]bool{}
-	for r := range a.refs {
-		if prod[r.useFile] {
-			continue
-		}
-		u := decl{r.useFile, r.useDecl}
-		if research[r.defFile] {
-			bad[u] = true
-		} else if !prod[r.defFile] {
-			uses[u] = append(uses[u], decl{r.defFile, r.defDecl})
-		}
-	}
-	for changed := true; changed; {
-		changed = false
-		for u, ds := range uses {
-			if bad[u] {
-				continue
-			}
-			for _, d := range ds {
-				if bad[d] {
-					bad[u], changed = true, true
-					break
-				}
-			}
-		}
-	}
-	usedByCore := map[decl]bool{} // helpers a core declaration in another file relies on
-	for u, ds := range uses {
-		if bad[u] {
-			continue
-		}
-		for _, d := range ds {
-			usedByCore[d] = true
-		}
-	}
-	for _, f := range a.tests {
-		hasResearch, hasCore := false, false
-		for _, name := range a.decls[f] {
-			d := decl{f, name}
-			if bad[d] {
-				hasResearch = true
-			} else if isTestFunc(name) || usedByCore[d] {
-				hasCore = true
-			}
-		}
-		if hasResearch {
-			c.ResearchTests = append(c.ResearchTests, f)
-			if hasCore {
-				c.MixedTests = append(c.MixedTests, f)
-			}
-		}
-	}
+	c.ResearchTests, c.MixedTests, c.Moves = splitTests(a, research, nil)
 
 	xr, err := classifyXTests(a, exports, research, dir, importPath)
 	if err != nil {
@@ -169,6 +161,118 @@ func classify(a *analysis, exports map[string]string, outside []outsideUse, dir,
 	}
 	sort.Strings(c.Outside)
 	return c, nil
+}
+
+// splitTests classifies the test declarations of an analyzed group of files.
+// A declaration is research when it uses a research production file of its own
+// package, when seed reports that it uses research code of another package,
+// or when it reaches such a declaration. It returns the test files that hold
+// only research declarations, the files that hold both kinds, and the byte
+// ranges to take out of the latter.
+func splitTests(a *analysis, research map[string]bool, seed func(file, name string) bool) (researchTests, mixedTests []string, moves []move) {
+	prod := map[string]bool{}
+	for _, f := range a.prod {
+		prod[f] = true
+	}
+	// Test declarations, to a fixed point over references between them.
+	type decl struct{ file, name string }
+	uses := map[decl][]decl{} // test declaration to the test declarations it references
+	bad := map[decl]bool{}
+	for r := range a.refs {
+		if prod[r.useFile] {
+			continue
+		}
+		u := decl{r.useFile, r.useDecl}
+		if research[r.defFile] {
+			bad[u] = true
+		} else if !prod[r.defFile] {
+			uses[u] = append(uses[u], decl{r.defFile, r.defDecl})
+		}
+	}
+	if seed != nil {
+		for _, f := range a.tests {
+			for _, name := range a.decls[f] {
+				if seed(f, name) {
+					bad[decl{f, name}] = true
+				}
+			}
+		}
+	}
+	for changed := true; changed; {
+		changed = false
+		for u, ds := range uses {
+			if bad[u] {
+				continue
+			}
+			for _, d := range ds {
+				if bad[d] {
+					bad[u], changed = true, true
+					break
+				}
+			}
+		}
+	}
+	// Core declarations: tests that need no research code, and everything
+	// they reach. A method goes with its receiver type unless it is research.
+	isTest := map[string]bool{}
+	for _, f := range a.tests {
+		isTest[f] = true
+	}
+	needed := map[decl]bool{}
+	var work []decl
+	mark := func(d decl) {
+		if !needed[d] && !bad[d] {
+			needed[d] = true
+			work = append(work, d)
+		}
+	}
+	for _, f := range a.tests {
+		for _, name := range a.decls[f] {
+			if isTestFunc(name) || name == "init" || name == "_" {
+				mark(decl{f, name})
+			}
+		}
+	}
+	for grew := true; grew; {
+		for len(work) > 0 {
+			d := work[len(work)-1]
+			work = work[:len(work)-1]
+			for _, u := range uses[d] {
+				mark(u)
+			}
+		}
+		grew = false
+		for _, f := range a.tests {
+			for _, name := range a.decls[f] {
+				recv, _, isMethod := strings.Cut(name, ".")
+				d := decl{f, name}
+				if isMethod && !needed[d] && !bad[d] && isTest[a.defFile[recv]] && needed[decl{a.defFile[recv], recv}] {
+					mark(d)
+					grew = true
+				}
+			}
+		}
+	}
+	for _, f := range a.tests {
+		var out []span
+		kept := 0
+		for _, s := range a.spans[f] {
+			if needed[decl{f, s.name}] {
+				kept++
+			} else {
+				out = append(out, s)
+			}
+		}
+		switch {
+		case len(out) == 0:
+		case kept == 0:
+			researchTests = append(researchTests, f)
+		default:
+			mixedTests = append(mixedTests, f)
+			moves = append(moves, groupMoves(f, a.spans[f], out)...)
+		}
+	}
+	return researchTests, mixedTests, moves
 }
 
 // classifyXTests marks an external-package test file as research when it uses
@@ -193,7 +297,7 @@ func classifyXTests(a *analysis, exports map[string]string, research map[string]
 		if err != nil {
 			return nil, err
 		}
-		for _, s := range declSpans(f) {
+		for _, s := range declSpans(fset, f) {
 			declared[s.name] = name
 		}
 		idents[name] = map[string]bool{}
@@ -231,6 +335,76 @@ func classifyXTests(a *analysis, exports map[string]string, research map[string]
 	for _, name := range a.xtests {
 		if bad[name] {
 			out = append(out, name)
+		}
+	}
+	return out, nil
+}
+
+// dependent is one group of test files in another package: its in-package
+// tests, or its external-package tests.
+type dependent struct {
+	Dir                       string // relative to the module root
+	ResearchTests, MixedTests []string
+	Moves                     []move
+}
+
+// classifyDependents applies the declaration rules to the tests of every
+// package that uses the analyzed one. Research there means using something a
+// research file of the analyzed package declares.
+func classifyDependents(moduleDir, pkgDir, importPath string, research []string) ([]dependent, error) {
+	isResearch := map[string]bool{}
+	for _, f := range research {
+		isResearch[f] = true
+	}
+	exports, err := exportData(moduleDir, "./...")
+	if err != nil {
+		return nil, err
+	}
+	cmd := exec.Command("go", "list", "-tags", buildTags, "-f", `{{.ImportPath}}|{{.Dir}}|{{join .TestImports ","}},{{join .XTestImports ","}}`, "./...")
+	cmd.Dir = moduleDir
+	listing, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("go list: %v", err)
+	}
+	var out []dependent
+	for _, line := range strings.Split(strings.TrimSpace(string(listing)), "\n") {
+		parts := strings.SplitN(line, "|", 3)
+		if len(parts) != 3 || parts[1] == pkgDir || !strings.Contains(","+parts[2]+",", ","+importPath+",") {
+			continue
+		}
+		bp, err := buildContext().ImportDir(parts[1], 0)
+		if err != nil {
+			return nil, err
+		}
+		rel, err := filepath.Rel(moduleDir, parts[1])
+		if err != nil {
+			return nil, err
+		}
+		groups := []struct {
+			prod, tests []string
+			path        string
+		}{{bp.GoFiles, bp.TestGoFiles, parts[0]}, {nil, bp.XTestGoFiles, parts[0] + "_test"}}
+		for _, g := range groups {
+			if len(g.tests) == 0 {
+				continue
+			}
+			a, err := analyzeFiles(exports, parts[1], g.path, g.prod, g.tests, importPath, false)
+			if err != nil {
+				return nil, err
+			}
+			seed := func(file, name string) bool {
+				for _, f := range a.ext[[2]string{file, name}] {
+					if isResearch[f] {
+						return true
+					}
+				}
+				return false
+			}
+			d := dependent{Dir: filepath.ToSlash(rel)}
+			d.ResearchTests, d.MixedTests, d.Moves = splitTests(a, nil, seed)
+			if len(d.ResearchTests)+len(d.MixedTests) > 0 {
+				out = append(out, d)
+			}
 		}
 	}
 	return out, nil

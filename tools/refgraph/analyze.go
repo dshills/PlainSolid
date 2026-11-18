@@ -34,19 +34,41 @@ type analysis struct {
 	xtests  []string            // external-package test file names
 	refs    map[ref]int         // cross-file references with counts
 	decls   map[string][]string // file name to its top-level declaration names
+	spans   map[string][]span   // file name to its top-level declarations, in order
 	defFile map[string]string   // package-level name to its defining file
 	exports map[string]string   // import path to export data file
+	// ext lists, per declaration, the files of another package that declare
+	// what it uses. It is filled only when that package is named.
+	ext map[[2]string][]string
 }
 
+// span is one top-level declaration. from and to are byte offsets that take
+// in its doc comment. A declaration inside a parenthesized group also carries
+// the offsets of the whole group, so that a group can be moved as one.
 type span struct {
-	pos, end token.Pos
-	name     string
+	pos, end           token.Pos
+	name               string
+	from, to           int
+	group              bool
+	groupFrom, groupTo int
+}
+
+// buildTags are the build tags every package is loaded with. The research tag
+// makes quarantined files visible again.
+var buildTags string
+
+func buildContext() *build.Context {
+	ctx := build.Default
+	if buildTags != "" {
+		ctx.BuildTags = strings.Split(buildTags, ",")
+	}
+	return &ctx
 }
 
 // exportData asks the go command for the export files of a package's
 // dependencies, including those of its tests.
 func exportData(moduleDir, importPath string) (map[string]string, error) {
-	cmd := exec.Command("go", "list", "-export", "-deps", "-test", "-f", "{{if .Export}}{{.ImportPath}}={{.Export}}{{end}}", importPath)
+	cmd := exec.Command("go", "list", "-tags", buildTags, "-export", "-deps", "-test", "-f", "{{if .Export}}{{.ImportPath}}={{.Export}}{{end}}", importPath)
 	cmd.Dir = moduleDir
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -66,7 +88,14 @@ func exportData(moduleDir, importPath string) (map[string]string, error) {
 	return exports, sc.Err()
 }
 
-func declSpans(f *ast.File) []span {
+func declSpans(fset *token.FileSet, f *ast.File) []span {
+	offset := func(p token.Pos) int { return fset.Position(p).Offset }
+	start := func(doc *ast.CommentGroup, p token.Pos) int {
+		if doc != nil {
+			return offset(doc.Pos())
+		}
+		return offset(p)
+	}
 	var spans []span
 	for _, decl := range f.Decls {
 		switch d := decl.(type) {
@@ -75,15 +104,20 @@ func declSpans(f *ast.File) []span {
 			if r := receiverName(d); r != "" {
 				name = r + "." + name
 			}
-			spans = append(spans, span{d.Pos(), d.End(), name})
+			spans = append(spans, span{pos: d.Pos(), end: d.End(), name: name, from: start(d.Doc, d.Pos()), to: offset(d.End())})
 		case *ast.GenDecl:
+			from, to := start(d.Doc, d.Pos()), offset(d.End())
 			for _, spec := range d.Specs {
-				switch s := spec.(type) {
+				s := span{from: from, to: to, group: d.Lparen.IsValid(), groupFrom: from, groupTo: to}
+				switch x := spec.(type) {
 				case *ast.TypeSpec:
-					spans = append(spans, span{s.Pos(), s.End(), s.Name.Name})
+					s.pos, s.end, s.name = x.Pos(), x.End(), x.Name.Name
 				case *ast.ValueSpec:
-					spans = append(spans, span{s.Pos(), s.End(), s.Names[0].Name})
+					s.pos, s.end, s.name = x.Pos(), x.End(), x.Names[0].Name
+				default:
+					continue
 				}
+				spans = append(spans, s)
 			}
 		}
 	}
@@ -125,22 +159,35 @@ func analyze(moduleDir, dir, importPath string) (*analysis, error) {
 	if err != nil {
 		return nil, err
 	}
-	bp, err := build.ImportDir(dir, 0)
+	bp, err := buildContext().ImportDir(dir, 0)
 	if err != nil {
 		return nil, err
 	}
-	a := &analysis{name: bp.Name, prod: bp.GoFiles, tests: bp.TestGoFiles, xtests: bp.XTestGoFiles,
-		refs: map[ref]int{}, decls: map[string][]string{}, defFile: map[string]string{}, exports: exports}
+	a, err := analyzeFiles(exports, dir, importPath, bp.GoFiles, bp.TestGoFiles, "", true)
+	if err != nil {
+		return nil, err
+	}
+	a.name, a.xtests = bp.Name, bp.XTestGoFiles
+	return a, nil
+}
+
+// analyzeFiles type-checks one group of files as the package importPath. When
+// extPath names another package, uses of it are recorded per declaration.
+// With strict unset, type errors are tolerated and what resolved is kept.
+func analyzeFiles(exports map[string]string, dir, importPath string, prod, tests []string, extPath string, strict bool) (*analysis, error) {
+	a := &analysis{prod: prod, tests: tests, ext: map[[2]string][]string{},
+		refs: map[ref]int{}, decls: map[string][]string{}, spans: map[string][]span{}, defFile: map[string]string{}, exports: exports}
 	fset := token.NewFileSet()
 	var files []*ast.File
 	spans := map[string][]span{}
-	for _, name := range append(append([]string{}, bp.GoFiles...), bp.TestGoFiles...) {
+	for _, name := range append(append([]string{}, prod...), tests...) {
 		f, err := parser.ParseFile(fset, filepath.Join(dir, name), nil, parser.SkipObjectResolution)
 		if err != nil {
 			return nil, err
 		}
 		files = append(files, f)
-		spans[name] = declSpans(f)
+		spans[name] = declSpans(fset, f)
+		a.spans[name] = spans[name]
 		for _, s := range spans[name] {
 			a.decls[name] = append(a.decls[name], s.name)
 		}
@@ -156,7 +203,7 @@ func analyze(moduleDir, dir, importPath string) (*analysis, error) {
 	conf := types.Config{Importer: importer.ForCompiler(fset, "gc", lookup), Error: func(err error) { typeErrs = append(typeErrs, err) }}
 	info := &types.Info{Uses: map[*ast.Ident]types.Object{}}
 	pkg, _ := conf.Check(importPath, fset, files, info)
-	if len(typeErrs) > 0 {
+	if strict && len(typeErrs) > 0 {
 		return nil, fmt.Errorf("%d type errors in %s, first: %v", len(typeErrs), importPath, typeErrs[0])
 	}
 	base := func(p token.Pos) string { return filepath.Base(fset.Position(p).Filename) }
@@ -164,15 +211,30 @@ func analyze(moduleDir, dir, importPath string) (*analysis, error) {
 		a.defFile[name] = base(pkg.Scope().Lookup(name).Pos())
 	}
 	for id, obj := range info.Uses {
-		if obj == nil || obj.Pkg() != pkg || !obj.Pos().IsValid() {
+		if obj == nil || obj.Pkg() == nil || !obj.Pos().IsValid() {
+			continue
+		}
+		if extPath != "" && obj.Pkg().Path() == extPath {
+			u := base(id.Pos())
+			key := [2]string{u, enclosing(spans[u], id.Pos())}
+			a.ext[key] = append(a.ext[key], base(obj.Pos()))
+			continue
+		}
+		if obj.Pkg() != pkg {
 			continue
 		}
 		kind := classifyObject(pkg, obj)
 		u, d := base(id.Pos()), base(obj.Pos())
-		if kind == "" || u == d {
+		if kind == "" {
 			continue
 		}
-		a.refs[ref{u, enclosing(spans[u], id.Pos()), d, enclosing(spans[d], obj.Pos()), kind, obj.Name()}]++
+		r := ref{u, enclosing(spans[u], id.Pos()), d, enclosing(spans[d], obj.Pos()), kind, obj.Name()}
+		// Within one file only test declarations matter: a test may reach
+		// research code through a helper declared beside it.
+		if u == d && (!strings.HasSuffix(u, "_test.go") || r.useDecl == r.defDecl) {
+			continue
+		}
+		a.refs[r]++
 	}
 	// A method must live in the package of its receiver type.
 	for _, f := range files {
@@ -394,7 +456,7 @@ func scanOutside(moduleDir, root, pkgDir, importPath string) ([]outsideUse, erro
 	if err != nil {
 		return nil, err
 	}
-	cmd := exec.Command("go", "list", "-f", `{{.ImportPath}}|{{.Dir}}|{{join .Imports ","}},{{join .TestImports ","}},{{join .XTestImports ","}}`, pattern)
+	cmd := exec.Command("go", "list", "-tags", buildTags, "-f", `{{.ImportPath}}|{{.Dir}}|{{join .Imports ","}},{{join .TestImports ","}},{{join .XTestImports ","}}`, pattern)
 	cmd.Dir = moduleDir
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -415,7 +477,7 @@ func scanOutside(moduleDir, root, pkgDir, importPath string) ([]outsideUse, erro
 		if !imports {
 			continue
 		}
-		bp, err := build.ImportDir(parts[1], 0)
+		bp, err := buildContext().ImportDir(parts[1], 0)
 		if err != nil {
 			return nil, err
 		}
