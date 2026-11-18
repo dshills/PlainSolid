@@ -45,6 +45,14 @@ func (p *VerifiedNormalOffsetPatch) Distance() *big.Rat {
 	return new(big.Rat).Set(p.distance)
 }
 
+// Projection returns the signed model coordinates used to prove embedding.
+func (p *VerifiedNormalOffsetPatch) Projection() NormalOffsetProjection {
+	if p == nil {
+		return NormalOffsetProjection{}
+	}
+	return p.projection
+}
+
 // EvaluateRational encloses the true normal offset at original rational UV.
 func (p *VerifiedNormalOffsetPatch) EvaluateRational(ctx context.Context, u, v *big.Rat,
 	source SurfacePatchEvaluationOptions, offset SurfaceNormalOffsetEvaluationOptions) (RationalSurfaceOffsetPoint, error) {
