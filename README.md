@@ -10,6 +10,10 @@ Requires Go 1.23 or newer. No CGo, native libraries, or third-party Go modules.
 The Go module path `plainsolid` is provisional. PlainSolid is available under
 the [MIT License](LICENSE).
 
+![Isometric render of the ORBIT drive housing with a recessed pocket, central bore, and counterbored mounting holes](docs/images/orbit-drive-housing.png)
+
+*ORBIT drive housing, rebuilt in PlainCAD with the PlainSolid WebAssembly kernel.*
+
 ## Current capabilities
 
 | Package | Implemented domain |
@@ -164,8 +168,9 @@ explicit limits of the evidence.
 
 Tests come in two tiers. A plain `go test` runs the fast tier and skips every
 test that calls `slowtest.Skip`; use it while developing. Setting
-`PLAINSOLID_SLOW=1` adds the slow tier, which takes hours and is what CI and
-the qualification launcher run. See [the CI notes](tools/ci/README.md#test-tiers).
+`PLAINSOLID_SLOW=1` adds the slow tier, which takes hours and is what the Go
+qualification workflow and the qualification launcher run. See
+[the CI notes](tools/ci/README.md#test-tiers).
 
 ```sh
 go test ./...                    # fast tier, for every change
@@ -181,10 +186,10 @@ go test ./exchange -fuzz=FuzzReadBRepJSON -fuzztime=10s
 go test ./... -bench=. -benchmem
 ```
 
-CI is configured to run unit tests and vet on Linux, macOS and Windows, race tests on Linux and
-macOS, and short parser fuzz campaigns on Linux. Remote CI has not yet been run. Tests cover analytic examples,
-malformed inputs, topology checks and algebraic properties. Passing these tests
-establishes only the tested subset. An [optional pinned OCCT oracle](tools/occtref/README.md)
+Go CI compiles all packages and runs focused smoke cases on pull requests to
+`main` and pushes to `main`. The separate Go qualification workflow runs the
+full Linux, macOS and Windows matrix, race checks and fuzz campaigns on demand.
+See [CI commands](tools/ci/README.md). An [optional pinned OCCT oracle](tools/occtref/README.md)
 checks selected modeling and exchange cases. The [pressure cap example](examples/pressurecap)
 writes both an exact curved boundary and its conforming STL tessellation.
 

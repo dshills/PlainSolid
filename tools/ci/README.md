@@ -1,9 +1,30 @@
-# Test tiers
+# Go CI and qualification
+
+Go CI runs on pull requests to `main`, pushes to `main`, and manual dispatch.
+The Linux and Windows jobs compile all packages and run bounded tests selected
+in [smoke.sh](smoke.sh). Stable Go on Linux also checks formatting, vet and the
+PlainCAD WASM build. Superseded runs for the same pull request or ref are
+canceled. Each job has an eight-minute timeout.
+
+```sh
+bash tools/ci/smoke.sh
+```
+
+Go qualification runs the full platform, toolchain, race and fuzz matrix on
+demand. From GitHub Actions select **Go qualification**, then **Run workflow**
+and select the ref to qualify. Qualify a release using its exact source commit.
+
+```sh
+gh workflow run go-qualification.yml --ref main
+```
+
+## Test tiers
 
 A plain `go test ./...` runs the fast tier: every test except those whose
 first statement is `slowtest.Skip(t)` (package `plainsolid/internal/slowtest`).
-`PLAINSOLID_SLOW=1` enables the rest. The GitHub workflow and
-`run-go-qualification.py` set it, so both still run the complete suite. The
+`PLAINSOLID_SLOW=1` enables the rest. The Go qualification workflow and
+`run-go-qualification.py` set it, so both run the complete suite. `smoke.sh`
+also sets it so that each case it names runs whichever tier it is in. The
 fast tier takes about five minutes on a 14-core machine; the complete suite is
 several hours of test time.
 
@@ -24,11 +45,25 @@ python3 tools/ci/mark-slow-tests.py "$stage"/packages.jsonl "$stage"/trimmed-*.j
 python3 tools/ci/mark-slow-tests.py timings.jsonl --seconds 5
 ```
 
-# Go qualification evidence
+## Full test inventory and local evidence
 
-`trimmed-shard.sh` selects disjoint top-level trimmed-solid tests. The
-same parent selection includes all its subtests. An independent `go test
--json -list '^(Test|Fuzz|Example)'` run establishes the expected cases.
+`test-shard.sh` selects disjoint top-level tests, examples and fuzz seeds
+from a package. Selecting a parent includes all its subtests. GitHub
+Actions gives `exchange` and `exchange/step` dedicated shards so their
+ordinary and race runs have separate package timeouts. The four STEP
+shards also keep the test filter well within Windows' command line limit.
+`trimmed-shard.sh` uses the same selector for the trimmed-solid suite and
+its separate long cases. Fuzz jobs use `-run=^$` and an exact target name
+so that ordinary tests run only in their assigned jobs.
+
+The regular trimmed-solid suite tests Go 1.23 on Apple Silicon and the
+current stable Go release on Intel macOS. The Intel runner avoids a
+reproducible Go 1.27.4 garbage collection crash on macOS ARM64 while
+keeping the regular suite's test inventory and race coverage. The other
+macOS jobs continue to run on Apple Silicon with both Go versions.
+
+An independent `go test -json -list '^(Test|Fuzz|Example)'` run
+establishes the expected cases for local qualification.
 
 Run all packages from an immutable archive of a committed tree. The launcher
 uses previous test timings only to balance shards; the new independent
