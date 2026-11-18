@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -118,6 +119,7 @@ func TestDegenerateSplineGraphBooleanContact(t *testing.T) {
 }
 
 func TestCoupledQuarticSplineGraphBooleanContact(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	// The gap is 9*(x^4+y^4-x²y²), for x=u-1/2,y=v-1/2.
 	// Its exact tensor Bernstein net requires only binary coefficients.

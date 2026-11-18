@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -74,6 +75,7 @@ func TestVerifiedNormalOffsetSweepVolumeParabolicStrip(t *testing.T) {
 }
 
 func TestVerifiedNormalOffsetSweepVolumeSphericalSector(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a := big.NewRat(1, 16)
 	a2 := new(big.Rat).Mul(a, a)

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strconv"
 	"strings"
 	"testing"
@@ -19,6 +20,7 @@ import (
 )
 
 func TestWriteClippedPolynomialCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, tc := range []struct {
 		layout string

@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestGraphObliqueLineRetainedDisjoint(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	axes := [2]int{0, 2}
 	s := graphMaterialBooleanFixture(t, false, true)

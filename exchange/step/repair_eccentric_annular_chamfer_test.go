@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestRepairEccentricAnnularChamferSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := eccentricAnnularChamferSTEPFixture(t, "rounded")
 	if _, err := ReadEccentricAnnularChamfer(ctx, bytes.NewReader(raw), Limits{}, geom.SurfacePatchOptions{}); err == nil {
@@ -137,6 +139,7 @@ func TestRepairEccentricAnnularChamferSTEP(t *testing.T) {
 }
 
 func TestRepairEccentricAnnularChamferSTEPReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := eccentricAnnularChamferSTEPFixture(t, "rounded")
 	reject := func(t *testing.T, data []byte, options EccentricAnnularChamferRepairOptions, limits Limits, detail string) {
@@ -186,6 +189,7 @@ func TestRepairEccentricAnnularChamferSTEPReject(t *testing.T) {
 }
 
 func TestRepairedEccentricAnnularChamferSTEPReceipt(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := eccentricAnnularChamferSTEPFixture(t, "rounded")
 	m, err := RepairEccentricAnnularChamfer(ctx, bytes.NewReader(raw), Limits{}, EccentricAnnularChamferRepairOptions{2e-12})

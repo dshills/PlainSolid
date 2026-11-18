@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strconv"
 	"strings"
@@ -157,10 +158,12 @@ func checkFourConvertedConvexArc(t *testing.T, raw []byte, tc groupedConvertedFi
 }
 
 func TestRepairFourConvertedMetreConvexArcSource(t *testing.T) {
+	slowtest.Skip(t)
 	checkFourConvertedConvexArcSource(t, groupedConvertedMetre, "#207", `"ClippedOwnerParameters":["0","5000"]`, `"ClippedOwnerParameters":["0","5001"]`)
 }
 
 func TestRepairFourConvertedInchConvexArcSource(t *testing.T) {
+	slowtest.Skip(t)
 	checkFourConvertedConvexArcSource(t, groupedConvertedInch, "#64", `"RepairedToOwner":["-`, `"RepairedToOwner":["1`)
 }
 

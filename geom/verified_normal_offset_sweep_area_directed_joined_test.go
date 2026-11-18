@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -38,6 +39,7 @@ func TestVerifiedJoinedNormalOffsetSweepEnclosesAffineBoundaryArea(t *testing.T)
 }
 
 func TestVerifiedJoinedNormalOffsetSweepEnclosesCurvedBoundaryArea(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	q := big.NewRat
 	charts, joins := placedSweepDistanceCylinder(t)

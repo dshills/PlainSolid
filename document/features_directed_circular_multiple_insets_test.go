@@ -3,6 +3,7 @@ package document
 import (
 	"bytes"
 	"context"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/trimmed"
@@ -12,6 +13,7 @@ import (
 )
 
 func TestDirectedCircularMultipleInsetsRetainNamedMembers(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	p := func(x, y float64) geom.Vec2 { return geom.Vec2{X: x, Y: y} }
 	disk := func(x, y, r float64) []NamedCircularProfileSegment {

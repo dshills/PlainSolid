@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestNativeWrappedFrustumOpenBoreReloadAndQueries(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := geom.SurfacePatchOptions{}
 	base, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 2, 4, opts)
@@ -121,6 +123,7 @@ func TestNativeWrappedFrustumOpenBoreReloadAndQueries(t *testing.T) {
 }
 
 func TestNativeWrappedFrustumBoreLineThroughAndCavity(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := geom.SurfacePatchOptions{}
 	base, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 2, 4, opts)
@@ -219,6 +222,7 @@ func TestNativeWrappedFrustumBoreLineThroughAndCavity(t *testing.T) {
 }
 
 func TestNativeWrappedFrustumBoreRationalLineNearTangent(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	patchOptions := geom.SurfacePatchOptions{}
 	stock, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 2, 4, patchOptions)

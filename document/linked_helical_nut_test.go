@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -11,6 +12,7 @@ import (
 )
 
 func TestLinkedHelicalNutFollowsShaftEdits(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	shaft := HelicalGrooveRecipe{
 		Radial: geom.Vec3{X: 1}, Axis: geom.Vec3{Z: 1},

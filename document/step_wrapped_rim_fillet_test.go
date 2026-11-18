@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
@@ -34,6 +35,7 @@ func filletMaterialFixture(t *testing.T) step.WrappedMaterialModel {
 	return m
 }
 func TestWrappedRimFilletDocument(t *testing.T) {
+	slowtest.Skip(t)
 	d, e := FromWrappedMaterialsSTEP(filletMaterialFixture(t), 1)
 	if e != nil {
 		t.Fatal(e)
@@ -80,6 +82,7 @@ func TestWrappedRimFilletDocument(t *testing.T) {
 	}
 }
 func TestWrappedRimFilletDocumentAssembly(t *testing.T) {
+	slowtest.Skip(t)
 	model := filletMaterialFixture(t)
 	a := step.WrappedMaterialAssemblyModel{LengthUnit: .001, Products: []step.WrappedMaterialAssemblyPart{{ID: "root", Name: "Fillet assembly"}, {ID: "part", Name: "Shared fillet", Bodies: model.Bodies}}, Occurrences: []step.AssemblyInstance{{ID: "one", Name: "First", Parent: "root", Child: "part", Transform: geom.Identity()}, {ID: "two", Name: "Rotated", Parent: "root", Child: "part", Transform: geom.Affine{{0, -1, 0, 16}, {1, 0, 0, 0}, {0, 0, 1, 0}}}}}
 	var b bytes.Buffer

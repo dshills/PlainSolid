@@ -8,11 +8,13 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestRationalHierarchyBoundaryArea(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, vendor := range []bool{false, true} {
 		for _, family := range []string{"", "reentrant", "holed", "affine-pcurve-holed"} {

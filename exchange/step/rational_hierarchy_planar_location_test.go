@@ -7,12 +7,14 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strconv"
 	"testing"
 )
 
 func TestRationalHierarchyPlanarPoint(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, vendor := range []bool{false, true} {
 		name := "rational-spherical-hierarchy.step"

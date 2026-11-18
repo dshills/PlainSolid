@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -113,6 +114,7 @@ func piecewisePolynomialVolume(order int, op parametric.BooleanOp) float64 {
 	return v
 }
 func TestNativePiecewisePolynomialBooleans(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, axis := range []int{0, 1} {
 		base, a, b := piecewisePolynomialFixture(t, axis)
@@ -235,6 +237,7 @@ func TestNativePiecewisePolynomialAtomicCoverage(t *testing.T) {
 }
 
 func TestNativePiecewisePolynomialProofModes(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, mode := range []geom.PolynomialGraphMode{geom.FreeFactoredPolynomialGraph, geom.BivariatePolynomialGraph} {
 		base, a, b := nativeFactoredPolynomialFixture(t, 0)

@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -145,6 +146,7 @@ func TestIndependentAnalyticAssembly(t *testing.T) {
 }
 
 func TestIndependentAnalyticAssemblyReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/independent-analytic-assembly.step")
 	if e != nil {
@@ -352,6 +354,7 @@ func FuzzIndependentAnalyticAssemblyNative(f *testing.F) {
 }
 
 func TestIndependentAnalyticAssemblyHalfCylinder(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	m := independentAnalyticAssemblyModel(t)
 	raw, e := os.ReadFile("testdata/independent-cylinder-materials.step")

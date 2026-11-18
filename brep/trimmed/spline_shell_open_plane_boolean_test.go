@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestOpenPlaneSplineShellBoolean(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	al, ah := [3]float64{0, 0, 0}, [3]float64{1, 1, 1}
 	bl, bh := [3]float64{.5, .5, -.5}, [3]float64{1.5, 1.5, .5}

@@ -6,10 +6,12 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestMixedOriginalUniqueRoofInterior(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, p, o := mixedWallFixture(t)
 	for _, s := range []Solid{a, b} {

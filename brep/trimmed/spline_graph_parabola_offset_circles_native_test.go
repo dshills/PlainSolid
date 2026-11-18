@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestNativeParabolaOffsetCirclesEnvelopes(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ParabolaCircleGraphOptions{}
 	circles := offsetCirclesStock()
@@ -59,6 +61,7 @@ func TestNativeParabolaOffsetCirclesEnvelopes(t *testing.T) {
 }
 
 func TestNativeParabolaOffsetCirclesCuts(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ParabolaCircleGraphOptions{}
 	circles := offsetCirclesStock()
@@ -117,6 +120,7 @@ func TestNativeParabolaOffsetCirclesCuts(t *testing.T) {
 }
 
 func TestNativeStackedParabolaCirclesCutOwnerOrder(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	circles := [2]twoCircleStockProbe{twoCircleProbe(8, 9, 1, 16), twoCircleProbe(16, 27, 3, 32)}
 	src := parabolaTwoCirclesStock(t, 0, circles, false)

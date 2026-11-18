@@ -8,10 +8,12 @@ import (
 	"os"
 	"path/filepath"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestFiniteTripleBoreSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for _, mask := range []int{3, 5, 6, 7} {
 		for signs := 0; signs < 8; signs++ {
 			t.Run(fmt.Sprintf("%d/%d", mask, signs), func(t *testing.T) {

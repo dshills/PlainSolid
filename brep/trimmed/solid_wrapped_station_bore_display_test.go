@@ -5,6 +5,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestPreparedWrappedStationBoreDisplayUnequalPartitions(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	embedding := geom.SurfacePatchOptions{}
 	outer := []WrappedLoftStation{{Z: -2, Radius: 2}, {Z: 0, Radius: 2.5}, {Z: 3, Radius: 1.5}}

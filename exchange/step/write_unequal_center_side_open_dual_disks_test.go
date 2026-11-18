@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -32,6 +33,7 @@ func unequalCenterSideDiskDescriptor(t *testing.T, through, swap, posed bool) Un
 	return UnequalCenterSideOpenDualDiskDescriptor{SideOpenDualDiskDescriptor: d, Join: [2]*big.Rat{big.NewRat(10, 1), big.NewRat(1, 1)}}
 }
 func TestWriteUnequalCenterSideOpenDualDiskProduct(t *testing.T) {
+	slowtest.Skip(t)
 	for _, through := range []bool{false, true} {
 		for _, swap := range []bool{false, true} {
 			for _, posed := range []bool{false, true} {

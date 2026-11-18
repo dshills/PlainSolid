@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
@@ -81,6 +82,7 @@ func algebraicAffineRunMeshFixture(t *testing.T) AlgebraicTrimmedPairSection {
 	return r
 }
 func TestCertifiedAffineTubeLensMesh(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := algebraicAffineRunMeshFixture(t)
 	l, e := r.SealAlgebraicTubeLens(ctx, AlgebraicTubeLensOptions{})

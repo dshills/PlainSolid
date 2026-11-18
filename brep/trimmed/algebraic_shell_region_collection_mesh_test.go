@@ -4,10 +4,12 @@ import (
 	"context"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestNativeTubeRegionCollectionMesh(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := radialMaterialForBounds(t)
 	t.Log("original native radial material proved")

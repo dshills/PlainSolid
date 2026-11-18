@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 
@@ -17,6 +18,7 @@ import (
 )
 
 func TestPartialSkewBoreSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for i, tc := range []struct {
 		normal geom.Vec3
 		x, z   float64
@@ -87,6 +89,7 @@ func TestPartialSkewBoreSTEP(t *testing.T) {
 }
 
 func TestTightSkewBoreSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, tc := range []struct {
 		normal geom.Vec3

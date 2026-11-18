@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -29,6 +30,7 @@ func threePolynomialNodeCutVolumes(order int) []float64 {
 }
 
 func TestNativeThreePolynomialNodeCutComponents(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for axis := 0; axis < 2; axis++ {
 		base, a, b := nativeThreePolynomialNodeFixture(t, axis, 4, 128)
@@ -194,6 +196,7 @@ func checkThreePolynomialNodeCutLens(t *testing.T, part Solid, axis, region int)
 }
 
 func TestNativeThreePolynomialNodeCutRecipeRejections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativeThreePolynomialNodeFixture(t, 0, 4, 128)
 	cut, e := CutSplineGraphThreePolynomialNodeComponents(ctx, base, b, a, 0, 1e-9, PolynomialNodeCutOptions{})

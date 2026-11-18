@@ -4,11 +4,13 @@ import (
 	"context"
 	"math"
 	"plainsolid/collision"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
 
 func TestOriginalLeadUnitMeshes(t *testing.T) {
+	slowtest.Skip(t)
 	for _, starts := range []int{1, 2, 4} {
 		t.Run(string(rune('0'+starts)), func(t *testing.T) {
 			hand := 1

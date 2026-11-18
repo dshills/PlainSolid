@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
@@ -11,6 +12,7 @@ import (
 )
 
 func TestAlgebraicTubeHigherDegreeFaceTrims(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, axes := range [][2]int{{0, 1}, {0, 2}} {
 		t.Run(map[[2]int]string{{0, 1}: "XY", {0, 2}: "XZ"}[axes], func(t *testing.T) {

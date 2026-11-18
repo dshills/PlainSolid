@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 )
 
 func TestNativeNodalCubicFuse(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	src := nodalCubicCommonFixture(t)
 	options := NodalCubicFuseOptions{}

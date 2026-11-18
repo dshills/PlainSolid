@@ -5,10 +5,12 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestExactFilletedFrustumObliqueLine(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	w, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 8, 6, o)

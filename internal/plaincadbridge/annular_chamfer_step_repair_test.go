@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestAnnularChamferSTEPRepairBridge(t *testing.T) {
+	slowtest.Skip(t)
 	source := stepRepairFixture(t, "occt-eccentric-annular-chamfer-rounded")
 	b := New()
 	q := map[string]any{"op": "importStep", "source": source}

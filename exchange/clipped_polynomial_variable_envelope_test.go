@@ -10,6 +10,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/trimmed"
@@ -19,6 +20,7 @@ import (
 )
 
 func TestVariableTransverseClippedEnvelopeExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, c := range []struct {
 		op                            string

@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"errors"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -10,6 +11,7 @@ import (
 )
 
 func TestCombineSplineShellsClosedEllipseTangency(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	inner := quarticRoofSolid(t, 1.0/16, 1.0/16)
 	exterior, _ := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, 0)

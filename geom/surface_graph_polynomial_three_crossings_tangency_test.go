@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -29,6 +30,7 @@ func threeCrossingsTangencyStations() [4]*big.Rat {
 }
 
 func TestSplineGraphPolynomialThreeCrossingsTangency(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stations := threeCrossingsTangencyStations()
 	for tangent, tc := range []struct {

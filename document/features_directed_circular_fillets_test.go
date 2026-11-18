@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -11,6 +12,7 @@ import (
 )
 
 func TestDirectedCircularCornerFilletRetainsNamedWallsThroughEdits(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	p := func(x, y float64) geom.Vec2 { return geom.Vec2{X: x, Y: y} }
 	outer := circularDocumentRing("stock", p(0, 0), p(9, 0), p(10, 1), p(10, 8), p(0, 8))

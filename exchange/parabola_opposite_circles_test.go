@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/edgecheck"
@@ -26,6 +27,7 @@ const (
 )
 
 func TestParabolaOppositeCirclesEnvelopeExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const name, unit = "Parabola and opposite-side circles envelope", .001
 	proof := edgecheck.Options{}
@@ -73,6 +75,7 @@ func TestParabolaOppositeCirclesEnvelopeExchange(t *testing.T) {
 }
 
 func TestParabolaOppositeCirclesCutExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const name, unit = "Parabola and opposite-side circles Cut", .001
 	proof := edgecheck.Options{}

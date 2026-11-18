@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestNativeParabolaMixedCirclesCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	volumes := [2][2][]float64{
 		{

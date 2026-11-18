@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -23,6 +24,7 @@ const (
 )
 
 func TestRoundedMixedConicalAP242DAGAppearanceDocument(t *testing.T) {
+	slowtest.Skip(t)
 	raw, opened := openRoundedMixedConicalDAGAppearanceDocument(t)
 	ctx, limits := context.Background(), mixedConicalAppearanceLimits()
 	base, _ := opened.Document.Snapshot()
@@ -124,6 +126,7 @@ func TestRoundedMixedConicalAP242DAGAppearanceDocument(t *testing.T) {
 }
 
 func TestRoundedMixedConicalAP242DAGAppearanceDocumentReject(t *testing.T) {
+	slowtest.Skip(t)
 	raw, opened := openRoundedMixedConicalDAGAppearanceDocument(t)
 	ctx, limits := context.Background(), mixedConicalAppearanceLimits()
 	tight := step.MixedConicalAP242DAGRepairOptions{MaxDistance: 2.8e-12}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -11,6 +12,7 @@ import (
 )
 
 func TestMixedOriginalAutomaticCompleteMesh(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, _, sectionOptions := mixedWallFixture(t)
 	section, err := DiscoverSplineShellsMixedAlgebraic(ctx, a, b, sectionOptions, MixedRationalIsoDiscoveryOptions{})

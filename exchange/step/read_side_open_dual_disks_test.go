@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 )
@@ -72,6 +73,7 @@ func sideDiskEditRecord(f *File, kind string, edit func(*Record)) bool {
 	return false
 }
 func TestReadSideOpenDualDiskProductRejectsTampering(t *testing.T) {
+	slowtest.Skip(t)
 	var b bytes.Buffer
 	d := sideDiskDescriptor(t, false)
 	if e := WriteSideOpenDualDiskProduct(context.Background(), &b, d); e != nil {

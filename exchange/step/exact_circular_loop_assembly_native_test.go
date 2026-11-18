@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -60,6 +61,7 @@ func TestExactCircularLoopAssemblyNative(t *testing.T) {
 	}
 }
 func TestExactCircularLoopAssemblyNativeReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := exactLoopAssemblyNativeFixture(t)
 	for _, edit := range []func(*exactLoopAssemblyNativeEnvelope){

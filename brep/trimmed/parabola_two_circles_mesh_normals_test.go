@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestCertifiedParabolaTwoCirclesSourceNormalTurn(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	source := parabolaTwoCirclesStock(t, 0, twoCirclePrimaryStock(), false)
 	legacyDigest, angularDigest := sha256.New(), sha256.New()

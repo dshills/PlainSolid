@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"os"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -18,6 +19,7 @@ func rationalAnisotropicBoreFixture(t testing.TB) []byte {
 	return b
 }
 func TestRationalAnisotropicBoreAssembly(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := rationalAnisotropicBoreFixture(t)
 	m, e := ReadRationalWrappedAnisotropicStationBoreAssembly(ctx, bytes.NewReader(raw), Limits{}, WrappedSurfaceOptions{})

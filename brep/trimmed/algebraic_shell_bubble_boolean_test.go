@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestBubbleRoofAlgebraicMaterial(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, _ := crossingFootprintRoofShellShape(t, false, true)
 	b, _ := crossingFootprintRoofShellShape(t, true, true)

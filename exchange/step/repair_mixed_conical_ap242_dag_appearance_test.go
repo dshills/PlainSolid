@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"strings"
@@ -18,6 +19,7 @@ import (
 )
 
 func TestRepairMixedConicalAP242DAGAppearance(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := roundedMixedConicalDAGAppearanceFixture(t)
 	l := MixedConicalAP242DAGLimits{MaxOccurrenceDepth: 3, MaxLeafInstances: 7}
@@ -141,6 +143,7 @@ func TestRepairMixedConicalAP242DAGAppearanceReject(t *testing.T) {
 }
 
 func TestRepairedMixedConicalAP242DAGAppearanceReceipt(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := roundedMixedConicalDAGAppearanceFixture(t)
 	m, err := RepairMixedConicalAP242DAGAppearance(ctx, bytes.NewReader(raw), MixedConicalAP242DAGLimits{}, MixedConicalAP242DAGRepairOptions{3e-12})

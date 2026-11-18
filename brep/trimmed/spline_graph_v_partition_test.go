@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -77,6 +78,7 @@ func verticalGraphVolume(n, order int, op parametric.BooleanOp) float64 {
 	return 3 + 1.0/256 + delta - lens
 }
 func TestOriginalVPartitionGraphBooleans(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, n := range []int{2, 3} {
 		base, a, b := verticalGraphFixture(t, n)

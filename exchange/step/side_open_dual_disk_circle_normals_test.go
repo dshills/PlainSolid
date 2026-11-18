@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -33,6 +34,7 @@ func sideDiskReverseCircleNormals(t *testing.T, raw []byte, phase int) []byte {
 	})
 }
 func TestReadSideOpenDualDiskProductOppositeCircleNormals(t *testing.T) {
+	slowtest.Skip(t)
 	for _, through := range []bool{false, true} {
 		for phase := 0; phase < 4; phase++ {
 			var b bytes.Buffer

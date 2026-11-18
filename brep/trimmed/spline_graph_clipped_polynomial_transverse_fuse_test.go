@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -26,6 +27,7 @@ func clippedTransverseFuseStock(t *testing.T, axis, layout int, original *geom.B
 }
 
 func TestNativeClippedPolynomialTransverseFuse(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialCubicCrossingTangencyEnvelopeOptions{}
 	for axis := range 2 {

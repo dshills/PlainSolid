@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 )
 
 func TestNativeParabolaCircleOsculationCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ParabolaCircleGraphOptions{}
 	want := [2]float64{131249.0 / 27525120, 33.0 * math.Pi / 131072}

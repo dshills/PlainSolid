@@ -10,12 +10,14 @@ import (
 	"path/filepath"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"strconv"
 	"strings"
 	"testing"
 )
 
 func TestObliqueCavitySecondSource(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	frame := [3][4]*big.Rat{{r(9, 25), r(-4, 5), r(12, 25), r(-1, 2)}, {r(12, 25), r(3, 5), r(16, 25), r(3, 4)}, {r(-4, 5), r(0, 1), r(3, 5), r(1, 4)}}

@@ -9,11 +9,13 @@ import (
 	"os"
 	"os/exec"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"strconv"
 	"testing"
 )
 
 func TestHierarchyTorusDistance(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, vendor := range []bool{false, true} {
 		name := "rational-spherical-hierarchy.step"

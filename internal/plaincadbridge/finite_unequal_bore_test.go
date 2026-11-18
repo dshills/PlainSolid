@@ -4,12 +4,14 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestFiniteUnequalCrossedBoreScopeAndSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for _, q := range [][4]float64{{3, 2, 0, 11.2}, {2, 3, 14.4, 0}, {3, 2, 14.4, 11.2}} {
 		t.Run(fmt.Sprint(q), func(t *testing.T) {
 			b := New()

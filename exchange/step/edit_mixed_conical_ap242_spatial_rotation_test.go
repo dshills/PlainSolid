@@ -5,6 +5,7 @@ import (
 	"context"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestEditMixedConicalAP242DAGSpatialRationalRotation(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, options := context.Background(), geom.SurfacePatchOptions{}
 	l := MixedConicalAP242DAGLimits{MaxOccurrenceDepth: 3, MaxLeafInstances: 7}
 	raw := mixedConicalAP242DAGFixture(t, "exact")

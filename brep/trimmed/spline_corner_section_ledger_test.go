@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -39,6 +40,7 @@ func cornerLedgerFromSolids(t *testing.T, a, b Solid) *SplineCornerFan {
 	return f
 }
 func TestSplineCornerSectionLedger(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	fan := cornerLedgerFixture(t)
 	ledger, e := DiagnoseSplineCornerSections(ctx, fan, SplineCornerSectionLedgerOptions{})

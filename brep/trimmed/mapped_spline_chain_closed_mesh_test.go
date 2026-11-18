@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/edgecheck"
@@ -158,6 +159,7 @@ func mappedChainFixturePlanarFace(t *testing.T, origin, u, v geom.Vec3, reversed
 }
 
 func TestMappedSplineChainClosedMesh(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	proof, closing, planar, seams := mappedChainClosedFixture(t)
 	reversed := [2]bool{false, true}

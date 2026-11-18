@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -16,6 +17,7 @@ func simpleCubicCrossingGap(t *testing.T, simple, cubic, scale *big.Rat) rationa
 }
 
 func TestSplineGraphPolynomialSimpleCubicCrossings(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	quarter, threeQuarters := big.NewRat(1, 4), big.NewRat(3, 4)
 	for _, tc := range []struct {

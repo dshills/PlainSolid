@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -60,6 +61,7 @@ func multispanPartitionFixture(t *testing.T, crease bool) (AlgebraicSubdivision,
 	return algebraicPartitionForSolid(t, source)
 }
 func TestMultiSpanCurvedAlgebraicPartitionFill(t *testing.T) {
+	slowtest.Skip(t)
 	for _, crease := range []bool{false, true} {
 		sub, line := multispanPartitionFixture(t, crease)
 		o := MultiSpanAlgebraicPartitionMeshOptions{Partition: CurvedAlgebraicPartitionMeshOptions{Mesh: CurvedQuadraticTrimMeshOptions{Deflection: .02}}}

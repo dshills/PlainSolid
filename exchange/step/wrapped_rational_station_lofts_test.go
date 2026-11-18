@@ -9,6 +9,7 @@ import (
 	"os"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -42,6 +43,7 @@ func rationalStationSTEPFixture(t *testing.T, n int) WrappedRationalStationLoftB
 }
 
 func TestWrappedRationalStationSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for _, n := range []int{1, 2} {
 		t.Run(string(rune('0'+n)), func(t *testing.T) {
 			m := rationalStationSTEPFixture(t, n)

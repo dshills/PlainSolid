@@ -11,6 +11,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 )
@@ -41,6 +42,7 @@ func frustumHierarchyModel(t testing.TB) IndependentTorusAssemblyModel {
 	return m
 }
 func TestIndependentFrustumHierarchy(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	m := frustumHierarchyModel(t)
 	raw, e := os.ReadFile("testdata/wrapped-circular-frustum.step")

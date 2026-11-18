@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -98,6 +99,7 @@ func TestCertifiedCurvedPolygonHoleMesh(t *testing.T) {
 }
 
 func TestCertifiedRationalPolygonHoleMesh(t *testing.T) {
+	slowtest.Skip(t)
 	poles := []geom.Vec3{{}, {Y: 1}, {X: 1}, {X: 1, Y: 1, Z: 1}}
 	weights := []float64{1, 2, 3, 1}
 	knots := []float64{0, 0, 1, 1}

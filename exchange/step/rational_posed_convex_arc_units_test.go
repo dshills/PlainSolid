@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -162,6 +163,7 @@ func measureRationalTiltUnitMaterial(t *testing.T, tc rationalTiltUnitFixture, m
 const singleTiltUnitSource = "occt-default-tilted-translated-oblique-prism-fillet"
 
 func TestRationalPosedConvexArcNonMillimetreUnits(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, tc := range rationalTiltUnitFixtures {
 		t.Run(tc.name, func(t *testing.T) {

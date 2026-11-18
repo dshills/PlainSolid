@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 )
@@ -28,6 +29,7 @@ func coloredWrappedFixture(t testing.TB) ColoredWrappedMaterialAssemblyModel {
 	return ColoredWrappedMaterialAssemblyModel{LengthUnit: .001, Products: []ColoredWrappedMaterialAssemblyPart{{ID: "root", Name: "assembly"}, {ID: "part", Name: "fillet", Bodies: []ColoredWrappedMaterialBody{{Body: WrappedMaterialBody{RimFillet: &body}, SurfaceColor: &RGB{.2, .4, .6}, FaceColors: map[string]RGB{"bottom": {.8, .1, .3}, "lower blend": {.1, .8, .3}}}}}}, Occurrences: []AssemblyInstance{{ID: "one", Name: "first", Parent: "root", Child: "part", Transform: geom.Identity()}, {ID: "two", Name: "second", Parent: "root", Child: "part", Transform: geom.Translation(geom.Vec3{X: 16})}}}
 }
 func TestColoredWrappedMaterialAssembly(t *testing.T) {
+	slowtest.Skip(t)
 	m := coloredWrappedFixture(t)
 	var b bytes.Buffer
 	if e := WriteColoredWrappedMaterialAssembly(&b, m); e != nil {

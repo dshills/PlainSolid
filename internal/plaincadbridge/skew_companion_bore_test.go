@@ -3,10 +3,12 @@ package plaincadbridge
 import (
 	"encoding/base64"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestSkewCompanionBoreScopeAndSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	b := New()
 	stock := box(t, b, vector{}, vector{30, 30, 30})
 	x := circle(t, b, vector{0, 15, 15}, vector{1, 0, 0}, 4, 22)

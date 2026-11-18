@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -21,6 +22,7 @@ import (
 )
 
 func TestWrappedCylinderBoreRimFilletNeutralTransfer(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	outer, err := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{Z: 2}, 6.25, 8, o)

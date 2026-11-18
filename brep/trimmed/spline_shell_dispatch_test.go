@@ -2,6 +2,7 @@ package trimmed
 
 import (
 	"context"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -9,6 +10,7 @@ import (
 )
 
 func TestCombineSplineShellsDispatch(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a := testWarpedSplinePrism(t, false, false)
 	check := func(b Solid, op parametric.BooleanOp, method string, faces int) {
@@ -36,6 +38,7 @@ func TestCombineSplineShellsDispatch(t *testing.T) {
 }
 
 func TestCombineSplineShellsDispatchClosed(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, _ := transverseSplineCaps(t)
 	o := SplineShellCombineOptions{}
@@ -51,6 +54,7 @@ func TestCombineSplineShellsDispatchClosed(t *testing.T) {
 }
 
 func TestCombineSplineShellsDispatchAffineOpen(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, 0)
 	b, _ := makeOpenSplineBox(t, [3]float64{.5, .5, -.5}, [3]float64{1.5, 1.5, .5}, 0)
@@ -65,6 +69,7 @@ func TestCombineSplineShellsDispatchAffineOpen(t *testing.T) {
 }
 
 func TestCombineSplineShellsBoundaryContact(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, 0)
 	for _, lo := range [][3]float64{{1, 1, 0}, {1, 1, 1}} {

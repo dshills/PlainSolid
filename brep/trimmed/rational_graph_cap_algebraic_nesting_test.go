@@ -3,12 +3,14 @@ package trimmed
 import (
 	"context"
 	"errors"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestAlgebraicGraphStockPreservesIntactVoids(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stock := makeWarpedSquareRationalGraphTube(t, 1./8)
 	// Y=5/8 crosses the original outer wall at X=√5 but stays strictly

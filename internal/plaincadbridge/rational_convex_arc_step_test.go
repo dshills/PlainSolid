@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 )
 
 func TestRationalWorldSTEPRepairBridge(t *testing.T) {
+	slowtest.Skip(t)
 	const fiveSource = "occt-five-default-tilted-pentagonal-prism-fillet"
 	for _, tc := range []struct {
 		file, family string

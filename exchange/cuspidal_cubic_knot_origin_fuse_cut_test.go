@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/edgecheck"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestCuspidalCubicKnotOriginFuseExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const name, units = "Cuspidal Knot Origin Fuse", .001
 	const volume = 286551.0 / 22528

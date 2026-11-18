@@ -4,10 +4,12 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestPairedBezierCurvedGraphSeam(t *testing.T) {
+	slowtest.Skip(t)
 	patch := func(other bool) *geom.SurfacePatch {
 		var poles []geom.Vec3
 		for i, g := range []float64{.5, .5, .625} {

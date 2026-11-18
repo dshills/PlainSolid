@@ -6,12 +6,14 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"os"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/trimmed"
 )
 
 func TestMappedChainSupportKnotNativeRecordCompatibilityV8(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	// Native and canonical STEP bytes from the earlier inferred v3/v4 and the v7 through v12 proofs,
 	// captured before their support-cut bounds or cell scopes were extended.

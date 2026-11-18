@@ -9,10 +9,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestIndependentFrustumHierarchyBounds(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	var source bytes.Buffer
 	if e := WriteIndependentFrustumHierarchy(ctx, &source, IndependentFrustumHierarchyModel(frustumHierarchyModel(t)), Limits{}, 1e-9); e != nil {
@@ -114,6 +116,7 @@ func TestIndependentFrustumHierarchyBounds(t *testing.T) {
 }
 
 func TestIndependentFrustumHierarchyBoundsNoncircular(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	model := frustumHierarchyModel(t)
 	raw, e := os.ReadFile("testdata/wrapped-frustum.step")

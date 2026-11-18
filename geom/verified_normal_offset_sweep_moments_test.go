@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -111,6 +112,7 @@ func TestVerifiedNormalOffsetSweepMomentsExactRationalSlab(t *testing.T) {
 }
 
 func TestVerifiedNormalOffsetSweepMomentsCurvedAndSigned(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, negative := range []bool{false, true} {
 		name := "ordinary"

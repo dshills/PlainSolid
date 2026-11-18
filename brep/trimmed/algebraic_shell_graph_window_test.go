@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -28,6 +29,7 @@ func checkWindowSamples(t *testing.T, r AlgebraicGraphWindowDepth, w AlgebraicGr
 	}
 }
 func TestGraphWindowNestedDepth(t *testing.T) {
+	slowtest.Skip(t)
 	s := graphMaterialBooleanFixture(t, true, false)
 	q, e := s.PrepareGraphMaterialQuery(context.Background(), AlgebraicGraphMaterialOptions{})
 	if e != nil {
@@ -52,6 +54,7 @@ func TestGraphWindowNestedDepth(t *testing.T) {
 	t.Logf("depth [%s,%s], cells%d tubes%d ops%d", r.Depth[0], r.Depth[1], r.RecipeCells, r.TubeTests, r.ExactOperations)
 }
 func TestGraphWindowPlacedNonbinary(t *testing.T) {
+	slowtest.Skip(t)
 	s := graphMaterialBooleanFixture(t, false, true)
 	axes := [2]int{0, 2}
 	q, e := s.PrepareGraphMaterialQuery(context.Background(), AlgebraicGraphMaterialOptions{Projection: &axes})

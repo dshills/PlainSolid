@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -21,6 +22,7 @@ func TestSurfaceDistanceBoundsPlaneAndBoundary(t *testing.T) {
 	}
 }
 func TestSurfaceDistanceBoundsRationalCylinder(t *testing.T) {
+	slowtest.Skip(t)
 	p, _ := NewSurfacePatch(quarterCylinder(t), SurfacePatchOptions{})
 	q := Vec3{3, 3, 1}
 	distance := (math.Sqrt(18) - 2) * (math.Sqrt(18) - 2)

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestNativeClippedPolynomialTransverseCutClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	options := parametric.TessellationOptions{Deflection: .05, Angle: .15, MaxSubdivisions: 32, MaxTriangles: 80_000}
 	for axis := range 2 {

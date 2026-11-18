@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -24,6 +25,7 @@ func polynomialLobeCellVolume(w AlgebraicGraphProjectionWindow) *big.Rat {
 	return new(big.Rat).Mul(mean, area)
 }
 func TestGraphWindowPolynomialIntegral(t *testing.T) {
+	slowtest.Skip(t)
 	s := graphMaterialBooleanFixture(t, false, true)
 	axes := [2]int{0, 2}
 	q, e := s.PrepareGraphMaterialQuery(context.Background(), AlgebraicGraphMaterialOptions{Projection: &axes})

@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"plainsolid/exchange/iges"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -29,6 +30,7 @@ func partitionedIGESDocument(t *testing.T, name string) *Document {
 	return d
 }
 func TestPartitionedIGESDocumentChain(t *testing.T) {
+	slowtest.Skip(t)
 	for _, name := range []string{"partitioned-lens", "concurrent-partitioned-lens", "sheared-partitioned-lens"} {
 		t.Run(name, func(t *testing.T) {
 			raw, e := os.ReadFile("../exchange/iges/testdata/" + name + ".igs")
@@ -95,6 +97,7 @@ func TestPartitionedIGESDocumentChain(t *testing.T) {
 	}
 }
 func TestPartitionedIGESDocumentReject(t *testing.T) {
+	slowtest.Skip(t)
 	for _, kind := range []string{"cut", "cell", "id", "model", "weight", "owner", "extra-cell", "extra-id", "extra-owner", "oversize", "huge-rational", "geometry", "placement", "instances"} {
 		t.Run(kind, func(t *testing.T) {
 			d := partitionedIGESDocument(t, "concurrent-partitioned-lens")

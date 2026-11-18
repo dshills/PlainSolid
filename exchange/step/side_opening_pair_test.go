@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"regexp"
 	"testing"
@@ -19,6 +20,7 @@ import (
 )
 
 func TestSideOpeningPairSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	normals := []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}}
 	for ni, n := range normals {
 		for di, depths := range [][2]float64{{4, 4}, {4, 7}, {20, 7}, {7, 20}, {20, 20}, {14, 12}, {12, 14}} {
@@ -127,6 +129,7 @@ func checkSideOpeningCutsOCCT(t *testing.T, p SideOpeningCutsBody, data []byte) 
 }
 
 func TestSideOpeningPairDifferentSidesSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	normals := []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}}
 	for _, family := range []struct {
 		name    string
@@ -194,6 +197,7 @@ func TestSideOpeningPairSTEPRejectsOppositeThroughSplit(t *testing.T) {
 }
 
 func TestSideOpeningCutsSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	normals := []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}}
 	for _, family := range []struct {
 		name        string
@@ -434,6 +438,7 @@ func checkCornerSideOpeningSTEP(t *testing.T, p SideOpeningCutsBody) {
 }
 
 func TestCornerSideOpeningCutsSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	normals := []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}}
 	for ni, n := range normals {
 		frame, e := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
@@ -523,6 +528,7 @@ func TestSideOpeningPairWriterRejectsSingleRecoveredSupport(t *testing.T) {
 }
 
 func TestVertexSideOpeningCutsSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for ni, normal := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		frame, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, normal)
 		if err != nil {
@@ -588,6 +594,7 @@ func TestVertexSideOpeningSharedIntersectionSTEP(t *testing.T) {
 }
 
 func TestSideOpeningCutsSTEPConcealedCanonicalBytes(t *testing.T) {
+	slowtest.Skip(t)
 	for ni, normal := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		frame, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, normal)
 		if err != nil {
@@ -656,6 +663,7 @@ func TestSideOpeningCutsSTEPOneCapBuriedThrough(t *testing.T) {
 }
 
 func TestSideOpeningCutsSTEPMeetingOppositeFloors(t *testing.T) {
+	slowtest.Skip(t)
 	for ni, normal := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		frame, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, normal)
 		if err != nil {

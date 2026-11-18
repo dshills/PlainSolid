@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -52,6 +53,7 @@ func polynomialQuarticTangencyEnvelopeMeasures(profile int, op parametric.Boolea
 }
 
 func TestNativePolynomialQuarticTangencyEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for profile := 0; profile < 2; profile++ {
 		for axis := 0; axis < 2; axis++ {
@@ -209,6 +211,7 @@ func checkNativePolynomialQuarticTangencyEnvelope(t *testing.T, r *PolynomialQua
 }
 
 func TestNativePolynomialQuarticTangencyEnvelopeRejections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativeQuarticTangencyFixture(t, 0, 0)
 	r, e := CombineSplineGraphPolynomialQuarticTangency(ctx, base, a, b, 0, parametric.Intersection, 1e-9, PolynomialQuarticTangencyEnvelopeOptions{})

@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math"
+	"plainsolid/internal/slowtest"
 
 	"plainsolid/geom"
 	"plainsolid/intersect"
@@ -10,6 +11,7 @@ import (
 )
 
 func TestProjectedNativeSectionSegmentPolyline(t *testing.T) {
+	slowtest.Skip(t)
 	axes := [2]int{0, 2}
 	ctx := context.Background()
 	k := []float64{0, 0, 1, 1}

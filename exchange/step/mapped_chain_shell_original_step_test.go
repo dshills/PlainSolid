@@ -5,6 +5,7 @@ import (
 	"context"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -112,6 +113,7 @@ func TestOCCTMappedChainRectangularUnsplitMixedBasesOriginalSTEP(t *testing.T) {
 }
 
 func TestOCCTMappedChainRectangularUnsplitMixedBasesOriginalSTEPScaledReverse(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := unsplitMappedChainMixedBasisOptions()
 	input, err := os.ReadFile(mixedBasisUnsplitMappedChainPath)
@@ -192,6 +194,7 @@ func TestOCCTMappedChainRectangularUnsplitMixedBasesOriginalSTEPScaledReverse(t 
 }
 
 func TestOCCTMappedChainRectangularUnsplitMixedBasesOriginalSTEPRejectsOutsideScope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := unsplitMappedChainMixedBasisOptions()
 	input, err := os.ReadFile(mixedBasisUnsplitMappedChainPath)

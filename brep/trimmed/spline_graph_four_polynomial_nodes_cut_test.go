@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -29,6 +30,7 @@ func fourPolynomialNodeCutVolumes(order int) []*big.Rat {
 }
 
 func TestNativeFourPolynomialNodeCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for axis := 0; axis < 2; axis++ {
 		base, a, b := nativeFourPolynomialNodeFixture(t, axis, 8)
@@ -191,6 +193,7 @@ func fourPolynomialCutBranchValue(power []*big.Rat, x *big.Rat) *big.Rat {
 }
 
 func TestNativeFourPolynomialNodeCutRejections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativeFourPolynomialNodeFixture(t, 0, 8)
 	cut, e := CutSplineGraphFourPolynomialNodeComponents(ctx, base, b, a, 0, 1e-9, PolynomialNodeCutOptions{})

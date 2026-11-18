@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -15,6 +16,7 @@ import (
 )
 
 func TestNativePolynomialMixedCutExactVolumes(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, crossingNumerator := range []int64{1, 3} {
 		for axis := 0; axis < 2; axis++ {
@@ -63,6 +65,7 @@ func checkMixedExactCutVolumes(t *testing.T, cut *PolynomialMixedCut, want []*bi
 }
 
 func TestNativePolynomialMixedCutExactVolumesChangedSource(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativePolynomialMixedFixture(t, 1, 1, 4)
 	// Scale the physical gap by 3/2 using the exact A-basis coefficients

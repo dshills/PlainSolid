@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -16,6 +17,7 @@ func quarticTangencyGraphGap(t *testing.T, station, scale *big.Rat) rationalPoly
 }
 
 func TestSplineGraphPolynomialQuarticTangency(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, tc := range []struct {
 		station, scale *big.Rat

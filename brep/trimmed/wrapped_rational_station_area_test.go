@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -128,6 +129,7 @@ func TestRationalStationCertifiedBoundaryArea(t *testing.T) {
 }
 
 func TestRationalStationBoreCertifiedBoundaryArea(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	outer, _, err := NewWrappedRationalStationLoft(ctx, []*geom.WrappedSurfacePatch{

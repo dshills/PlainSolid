@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 )
 
 func TestNativeClippedPolynomialCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialNodeCutOptions{}
 	for layout := range 4 {
@@ -156,6 +158,7 @@ func checkNativeClippedCutShells(t *testing.T, r *ClippedPolynomialCut, layout, 
 }
 
 func TestNativeClippedPolynomialCutRecipeRefusals(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialNodeCutOptions{}
 	src := clippedPolynomialStock(t, 0, 0, 0)
@@ -254,6 +257,7 @@ func TestNativeClippedPolynomialCutRecipeRefusals(t *testing.T) {
 }
 
 func TestNativeClippedPolynomialCutDependentFootprint(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialNodeCutOptions{}
 	for axis := range 2 {

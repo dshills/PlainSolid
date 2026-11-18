@@ -9,6 +9,7 @@ import (
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
@@ -17,6 +18,7 @@ import (
 // representing straight UV edges on nonlinear warped support faces. Curved UV
 // image restriction is qualified independently in TestNativeAlgebraicCurvedSourceUse.
 func TestNativeAlgebraicExactSourceCurvePipeline(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	var e error
 	a := makeNativeCurvedTubeBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 1})

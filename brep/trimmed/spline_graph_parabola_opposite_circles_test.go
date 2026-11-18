@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -46,6 +47,7 @@ func TestParabolaOppositeCirclesSourceDiscovery(t *testing.T) {
 }
 
 func TestNativeParabolaOppositeCirclesEnvelopes(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ParabolaCircleGraphOptions{}
 	circles := oppositeCircleStock()
@@ -118,6 +120,7 @@ func TestNativeParabolaOppositeCirclesEnvelopes(t *testing.T) {
 }
 
 func TestNativeParabolaOppositeCirclesCuts(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	circles := oppositeCircleStock()
 	opts := ParabolaCircleGraphOptions{}
@@ -167,6 +170,7 @@ func TestNativeParabolaOppositeCirclesCuts(t *testing.T) {
 }
 
 func TestParabolaOppositeCirclesLedgerRefusals(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ParabolaCircleGraphOptions{}
 	s := parabolaTwoCirclesStock(t, 0, oppositeCircleStock(), false)

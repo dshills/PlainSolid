@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -24,6 +25,7 @@ var roundedConicalFrameAppearanceOptions = MixedConicalAP242DAGFrameAppearanceRe
 }
 
 func TestRepairMixedConicalAP242DAGFrameAppearance(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := roundedConicalFrameAppearanceFixture(t)
 	l := MixedConicalAP242DAGLimits{MaxOccurrenceDepth: 3, MaxLeafInstances: 7}
@@ -100,6 +102,7 @@ func TestRepairMixedConicalAP242DAGFrameAppearance(t *testing.T) {
 }
 
 func TestRepairMixedConicalAP242DAGFrameAppearanceReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := roundedConicalFrameAppearanceFixture(t)
 	l := MixedConicalAP242DAGLimits{}
@@ -152,6 +155,7 @@ func TestRepairMixedConicalAP242DAGFrameAppearanceReject(t *testing.T) {
 }
 
 func TestRepairedMixedConicalAP242DAGFrameAppearanceReceipt(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := roundedConicalFrameAppearanceFixture(t)
 	l := MixedConicalAP242DAGRepairJSONLimits{}

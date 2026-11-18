@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
@@ -90,6 +91,7 @@ func algebraicKnotRunMeshFixture(t *testing.T, crease bool, knot float64) Algebr
 	return r
 }
 func TestCertifiedMultiSpanTubeLensMesh(t *testing.T) {
+	slowtest.Skip(t)
 	for _, crease := range []bool{false, true} {
 		r := algebraicMultiSpanRunMeshFixture(t, crease)
 		l, e := r.SealAlgebraicTubeLens(context.Background(), AlgebraicTubeLensOptions{})
@@ -158,6 +160,7 @@ func TestCertifiedMultiSpanTubeLensMesh(t *testing.T) {
 }
 
 func TestCertifiedTubeLensActualCrossKnotCrease(t *testing.T) {
+	slowtest.Skip(t)
 	r := algebraicKnotRunMeshFixture(t, true, .5)
 	l, e := r.SealAlgebraicTubeLens(context.Background(), AlgebraicTubeLensOptions{})
 	if e != nil {
@@ -206,6 +209,7 @@ func TestCertifiedTubeLensActualCrossKnotCrease(t *testing.T) {
 // the continuous polyline distance is certified. A shell certificate must not
 // promote that independent boundary certificate to an embedded material mesh.
 func TestClosedTubeLensRejectsOutwardDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	r := algebraicKnotRunMeshFixture(t, true, .5)
 	l, e := r.SealAlgebraicTubeLens(context.Background(), AlgebraicTubeLensOptions{})
 	if e != nil {

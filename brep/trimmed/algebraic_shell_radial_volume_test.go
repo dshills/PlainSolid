@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -28,6 +29,7 @@ func radialMaterialForBounds(t *testing.T) AlgebraicShellBoolean {
 }
 
 func TestBoundRadialTubeRegionVolume(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	result := radialMaterialForBounds(t)
 	center := [2]*big.Rat{big.NewRat(1, 2), big.NewRat(1, 2)}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math"
 	"os"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 )
@@ -193,6 +194,7 @@ func TestMixedWrappedMaterialsOCCT(t *testing.T) {
 }
 
 func TestMixedWrappedBoreTags(t *testing.T) {
+	slowtest.Skip(t)
 	read := func(path string) []byte {
 		raw, e := os.ReadFile("testdata/" + path + ".step")
 		if e != nil {
@@ -285,6 +287,7 @@ func TestMixedWrappedSharedVertexReject(t *testing.T) {
 }
 
 func TestMixedWrappedVoidTagsAndSchema(t *testing.T) {
+	slowtest.Skip(t)
 	raw, e := os.ReadFile("testdata/wrapped-cavity.step")
 	if e != nil {
 		t.Fatal(e)

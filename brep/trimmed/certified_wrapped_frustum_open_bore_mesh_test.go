@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 )
 
 func TestCertifiedEccentricFrustumThroughBoreMesh(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	embedding := geom.SurfacePatchOptions{}
 	base, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 2, 4, embedding)
@@ -105,6 +107,7 @@ func TestCertifiedEccentricFrustumThroughBoreMesh(t *testing.T) {
 }
 
 func TestCertifiedEccentricFrustumCavityMesh(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	embedding := geom.SurfacePatchOptions{}
 	base, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 2, 4, embedding)
@@ -178,6 +181,7 @@ func TestCertifiedEccentricFrustumCavityMesh(t *testing.T) {
 }
 
 func TestCertifiedWrappedFrustumOpenBoreMesh(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	patch := geom.SurfacePatchOptions{}
 	base, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{X: -1, Y: 2, Z: 3}, 2, 4, patch)
@@ -257,6 +261,7 @@ func TestCertifiedWrappedFrustumOpenBoreMesh(t *testing.T) {
 }
 
 func TestCertifiedPlacedFrustumOpenBore(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := geom.SurfacePatchOptions{}
 	base, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 2, 4, opts)
@@ -314,6 +319,7 @@ func TestCertifiedPlacedFrustumOpenBore(t *testing.T) {
 }
 
 func TestCertifiedEccentricFrustumOpenBore(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := geom.SurfacePatchOptions{}
 	base, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 2, 4, opts)

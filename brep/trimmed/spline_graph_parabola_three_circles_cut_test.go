@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 )
 
 func TestNativeParabolaThreeCirclesCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	fixtures := [2]twoCircleStockProbe{twoCircleProbe(16, 6, 1, 32), twoCircleProbe(16, 12, 1, 32)}
 	for side, disk := range fixtures {
@@ -214,6 +216,7 @@ func checkThreeCirclesCutMoments(t *testing.T, ctx context.Context, part Solid, 
 }
 
 func TestNativeParabolaThreeCirclesCutSeparatedIndex(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	// This separated disk precedes both crossing circles in source order.
 	// Reversing the stock order makes its signed layer positive.

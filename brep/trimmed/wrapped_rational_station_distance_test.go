@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestRationalStationBoundaryDistance(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	body, _, e := NewWrappedRationalStationLoft(ctx, []*geom.WrappedSurfacePatch{rationalStationBand(t, 0, 1, 3, 1, .75), rationalStationBand(t, 1, 3, 1, 2, .75)}, 1e-8, geom.SurfacePatchOptions{})
@@ -110,6 +112,7 @@ func TestRationalStationBoundaryDistance(t *testing.T) {
 }
 
 func TestRationalStationBoundaryDistanceGuards(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	body, _, e := NewWrappedRationalStationLoft(ctx, []*geom.WrappedSurfacePatch{rationalStationBand(t, 0, 1, 3, 1, .75), rationalStationBand(t, 1, 3, 1, 2, .75)}, 1e-8, geom.SurfacePatchOptions{})

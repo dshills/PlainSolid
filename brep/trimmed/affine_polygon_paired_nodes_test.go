@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
@@ -25,6 +26,7 @@ func affinePolygonPairedFixture(t *testing.T, full bool) (Solid, Solid) {
 	return a, b
 }
 func TestConvexAffinePolygonPairedMaterial(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b := affinePolygonPairedFixture(t, false)
 	for order, pair := range [][2]Solid{{a, b}, {b, a}} {

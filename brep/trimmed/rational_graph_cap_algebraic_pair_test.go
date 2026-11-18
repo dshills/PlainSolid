@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -18,6 +19,7 @@ import (
 )
 
 func TestAlgebraicGraphCapPairIrrationalOwners(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stock := makeWarpedSquareRationalGraphTube(t, 1./8)
 	// Both individually rational sections cross only vertical stock

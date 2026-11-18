@@ -5,10 +5,12 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCertifiedAnisotropicBoreDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := anisotropicMeasuredBore(t) // asymmetric profile, independent cuts, reindex/reload
 	o := CertifiedWrappedStationMeshOptions{Band: CertifiedWrappedFrustumMeshOptions{Patch: CertifiedPatchMeshOptions{Deflection: .12}}}
@@ -206,6 +208,7 @@ func TestCertifiedAnisotropicBoreDisplay(t *testing.T) {
 }
 
 func TestCertifiedAnisotropicBoreCloseClearance(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	makeLoft := func(lower, upper [2]float64, knots bool) Solid {
 		w := anisotropicStationBand(t, -1, 1, lower, upper, .75)

@@ -3,10 +3,12 @@ package trimmed
 import (
 	"context"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestSplineCornerAffineBranches(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	fan := cornerLedgerFixture(t)
 	for _, anchor := range fan.anchors {

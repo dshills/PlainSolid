@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -34,6 +35,7 @@ func polynomialMixedCutVolumes(numerator int64, order int) []*big.Rat {
 }
 
 func TestNativePolynomialMixedCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, numerator := range []int64{1, 3} {
 		for axis := 0; axis < 2; axis++ {
@@ -205,6 +207,7 @@ func checkNativePolynomialMixedCutGraph(t *testing.T, r *PolynomialMixedCut, pro
 }
 
 func TestNativePolynomialMixedCutReloadRejections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativePolynomialMixedFixture(t, 0, 1, 4)
 	r, e := CutSplineGraphPolynomialMixedComponents(ctx, base, b, a, 0, 1e-9, PolynomialNodeCutOptions{})

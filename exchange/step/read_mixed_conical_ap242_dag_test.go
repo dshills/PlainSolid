@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -18,6 +19,7 @@ import (
 )
 
 func TestReadMixedConicalAP242DAG(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	data := mixedConicalAP242DAGFixture(t, "exact")
 	if _, err := ReadMixedConicalAP242Assembly(ctx, bytes.NewReader(data), Limits{}, geom.SurfacePatchOptions{}); err == nil {

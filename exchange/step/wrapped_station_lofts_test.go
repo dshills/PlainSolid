@@ -9,6 +9,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -29,6 +30,7 @@ func TestWrappedStationLoftRoundtrip(t *testing.T) {
 }
 
 func TestWrappedStationLoftStoredOCCT(t *testing.T) {
+	slowtest.Skip(t)
 	raw, e := os.ReadFile("testdata/wrapped-station-loft.step")
 	if e != nil {
 		t.Fatal(e)

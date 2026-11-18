@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 )
 
 func TestExternallyTangentSplineShells(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, 0)
 	roof := func(delta float64) Solid {
@@ -189,6 +191,7 @@ func TestExternallyTangentQuarticSplineShells(t *testing.T) {
 }
 
 func TestExternallyTangentSeparableSplineShells(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stock, _ := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, 0)
 	// The roof is z=-(x-.5)^4-(y-.5)^2. The mixed orders have no
@@ -285,6 +288,7 @@ func multipleKnotTangencyShell(t *testing.T, x, heightX []float64) Solid {
 }
 
 func TestExternallyTangentSplineShellsDistinctPairs(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stock, af := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, 0)
 	var source []*geom.BSplineSurface

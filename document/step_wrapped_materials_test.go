@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
@@ -45,6 +46,7 @@ func mixedPlacedState(t *testing.T) State {
 	return s
 }
 func TestMixedWrappedDocument(t *testing.T) {
+	slowtest.Skip(t)
 	s := mixedPlacedState(t)
 	d, e := New(s, 2)
 	if e != nil {
@@ -86,6 +88,7 @@ func TestMixedWrappedDocument(t *testing.T) {
 	}
 }
 func TestMixedWrappedDocumentReject(t *testing.T) {
+	slowtest.Skip(t)
 	for _, which := range []string{"rotation", "lossy", "family", "asset"} {
 		t.Run(which, func(t *testing.T) {
 			s := mixedPlacedState(t)
@@ -155,6 +158,7 @@ func TestOCCTMixedWrappedDocument(t *testing.T) {
 }
 
 func TestMixedWrappedAllFamiliesImport(t *testing.T) {
+	slowtest.Skip(t)
 	model := step.WrappedMaterialModel{LengthUnit: .0254}
 	for _, name := range []string{"wrapped-toroid", "wrapped-cylinder", "wrapped-frustum", "wrapped-tube", "wrapped-blind-bore", "wrapped-shoulder", "wrapped-cavity", "wrapped-toroidal-void", "wrapped-station-loft"} {
 		raw, e := os.ReadFile("../exchange/step/testdata/" + name + ".step")

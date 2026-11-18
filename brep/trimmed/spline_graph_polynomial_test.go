@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -107,6 +108,7 @@ func polynomialGraphVolume(degree, order int, op parametric.BooleanOp) float64 {
 	return v
 }
 func TestNativePolynomialGraphBooleans(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, degree := range []int{3, 4} {
 		for _, axis := range []int{0, 1} {

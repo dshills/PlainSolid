@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"plainsolid/internal/slowtest"
 	"strconv"
 	"strings"
 	"testing"
@@ -15,6 +16,7 @@ import (
 )
 
 func TestWriteClippedPolynomialThreeTransverseCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ClippedPolynomialCutIGESOptions{PoleTolerance: 1e-14}
 	for _, tc := range []struct {

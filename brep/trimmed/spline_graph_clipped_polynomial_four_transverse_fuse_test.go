@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -23,6 +24,7 @@ func clippedFourTransverseRoofFixture(t *testing.T, axis int) *geom.BSplineSurfa
 }
 
 func TestNativeClippedPolynomialFourTransverseFuse(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialCubicCrossingTangencyEnvelopeOptions{}
 	// From the independent source equations f=1/4+u⁴/8,
@@ -110,6 +112,7 @@ func TestNativeClippedPolynomialFourTransverseFuse(t *testing.T) {
 }
 
 func TestNativeClippedPolynomialFourTransverseFuseClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for axis := range 2 {
 		roof := clippedFourTransverseRoofFixture(t, axis)

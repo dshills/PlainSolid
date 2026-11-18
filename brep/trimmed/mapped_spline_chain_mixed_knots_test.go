@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 
@@ -43,6 +44,7 @@ func mappedChainMixedFixture(t *testing.T) MappedSplineChainShell {
 }
 
 func TestMappedSplineChainMixedSupportKnotsRebuild(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	original := mappedChainMixedFixture(t)
 	var data, replay bytes.Buffer

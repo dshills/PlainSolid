@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strconv"
 	"testing"
 
@@ -22,6 +23,7 @@ import (
 )
 
 func TestParabolaMixedCirclesEnvelopeExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const unit = .001
 	proof := edgecheck.Options{}
@@ -68,6 +70,7 @@ func TestParabolaMixedCirclesEnvelopeExchange(t *testing.T) {
 }
 
 func TestParabolaMixedCirclesCutExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const name, unit = "Mixed parabola-circle Cut", .001
 	proof := edgecheck.Options{}

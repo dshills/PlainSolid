@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -24,6 +25,7 @@ type sourceUnitReceipt interface {
 }
 
 func TestRationalWorldSTEPBridgeSourceUnits(t *testing.T) {
+	slowtest.Skip(t)
 	b := New()
 	stock := box(t, b, vector{}, vector{1, 2, 3})
 	var handles []string

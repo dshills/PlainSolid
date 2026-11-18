@@ -3,10 +3,12 @@ package plaincadbridge
 import (
 	"encoding/base64"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestPartialSkewBoreScopeSTEPAndSTL(t *testing.T) {
+	slowtest.Skip(t)
 	for _, radii := range [][2]float64{{5, 4}, {5, 5}} {
 		b := New()
 		stock := box(t, b, vector{}, vector{40, 40, 40})

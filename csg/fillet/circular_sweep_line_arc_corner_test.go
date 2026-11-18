@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestCircularSweepLineArcCornersRetainOriginalCircle(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	p := func(x, y float64) geom.Vec2 { return geom.Vec2{X: x, Y: y} }
 	for _, tc := range []struct {

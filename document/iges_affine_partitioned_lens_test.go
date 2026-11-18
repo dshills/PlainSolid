@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"plainsolid/exchange/iges"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -98,6 +99,7 @@ func TestAffinePartitionedIGESDocumentChain(t *testing.T) {
 	}
 }
 func TestAffinePartitionedIGESDocumentReject(t *testing.T) {
+	slowtest.Skip(t)
 	for _, kind := range []string{"conflicting-mode", "tilt", "basis", "cut", "cell", "id", "model", "weight", "owner", "extra-cell", "extra-id", "extra-owner", "oversize", "huge-rational", "geometry", "rebound-geometry", "placement", "instances"} {
 		t.Run(kind, func(t *testing.T) {
 			d := affinePartitionedIGESDocument(t, "affine-partitioned-lens")

@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -10,6 +11,7 @@ import (
 )
 
 func TestOpenPlaneShellConservativeCandidatePairs(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, .125)
 	b, _ := makeOpenSplineBox(t, [3]float64{.5, .5, -.5}, [3]float64{1.5, 1.5, .5}, .125)

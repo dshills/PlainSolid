@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestNativeParabolaCircleCrossingsEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for axis := range 2 {
 		stock := parabolaCircleCrossingsStock(t, axis)

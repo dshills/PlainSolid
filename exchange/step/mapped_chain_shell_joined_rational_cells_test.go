@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 	"time"
@@ -260,10 +261,12 @@ func verifyJoinedRationalMaterial(t *testing.T, ctx context.Context, native trim
 }
 
 func TestOCCTMappedChainRectangularJoinedRationalSupportCells(t *testing.T) {
+	slowtest.Skip(t)
 	verifyJoinedRationalSource(t, context.Background(), readInferredSharedMappedChainFixture(t, joinedRationalCellsPath), false)
 }
 
 func TestOCCTMappedChainRectangularJoinedRationalSupportCellsClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	verifyJoinedRationalDisplay(t, readInferredSharedMappedChainFixture(t, joinedRationalCellsPath))
 }
 
@@ -367,11 +370,13 @@ func TestOCCTMappedChainRectangularJoinedRationalSupportCellsLive(t *testing.T) 
 }
 
 func TestOCCTMappedChainRectangularJoinedIndependentRoofs(t *testing.T) {
+	slowtest.Skip(t)
 	raw := readInferredSharedMappedChainFixture(t, joinedIndependentRoofsPath)
 	verifyJoinedRationalSource(t, context.Background(), raw, true)
 }
 
 func TestOCCTMappedChainRectangularJoinedIndependentRoofsClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	verifyJoinedRationalDisplay(t, readInferredSharedMappedChainFixture(t, joinedIndependentRoofsPath))
 }
 

@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -20,6 +21,7 @@ import (
 )
 
 func TestParabolaTwoCirclesGraphEnvelopeExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const name, unit = "Parabola and two circles envelope", .001
 	proof := edgecheck.Options{}
@@ -62,6 +64,7 @@ func TestParabolaTwoCirclesGraphEnvelopeExchange(t *testing.T) {
 }
 
 func TestParabolaTwoCirclesGraphCutExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const name, unit = "Parabola and two circles Cut", .001
 	proof := edgecheck.Options{}

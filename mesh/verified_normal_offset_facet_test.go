@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestVerifiedNormalOffsetFacetAngle(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, rotated := range []bool{false, true} {
 		t.Run(fmt.Sprint(rotated), func(t *testing.T) {

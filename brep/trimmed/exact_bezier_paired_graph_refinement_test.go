@@ -4,10 +4,12 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestRefinedBezierCurvedScaledSeam(t *testing.T) {
+	slowtest.Skip(t)
 	_, a, _, _ := bezierSeamFixture(t, 3)
 	h := a.HomogeneousControls()
 	for i := range h {

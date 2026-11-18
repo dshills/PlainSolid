@@ -7,11 +7,13 @@ import (
 	"errors"
 	"io"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestAnalyticMaterialNative(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, fixture := range analyticDispatchFixtures {
 		t.Run(fixture.name, func(t *testing.T) {

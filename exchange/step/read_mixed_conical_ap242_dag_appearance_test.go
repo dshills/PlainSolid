@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestMixedConicalAP242DAGAppearance(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := mixedDAGAppearanceFixture(t)
 	m, err := ReadMixedConicalAP242DAGAppearance(ctx, bytes.NewReader(raw), MixedConicalAP242DAGLimits{MaxOccurrenceDepth: 3, MaxLeafInstances: 7}, geom.SurfacePatchOptions{})
@@ -52,6 +54,7 @@ func TestMixedConicalAP242DAGAppearance(t *testing.T) {
 }
 
 func TestMixedConicalAP242DAGAppearanceReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	original := mixedDAGAppearanceFixture(t)
 	for _, edits := range [][2]string{
@@ -78,6 +81,7 @@ func TestMixedConicalAP242DAGAppearanceReject(t *testing.T) {
 }
 
 func TestMixedConicalAP242DAGAppearanceRetarget(t *testing.T) {
+	slowtest.Skip(t)
 	// Both parents reach the original same inner NAUO. Only the complete
 	// prefix selects the override, even after moving it to the other branch.
 	raw := replaceMixedDAGAppearance(t, mixedDAGAppearanceFixture(t), [2]string{"#5,#58,$,#54,#85);", "#5,#58,$,#466,#472);"})

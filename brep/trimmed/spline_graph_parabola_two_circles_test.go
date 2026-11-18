@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 )
 
 func TestNativeParabolaTwoCirclesGraphEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ParabolaCircleGraphOptions{}
 	diskVolume := 5347170325.0 * math.Pi / 2251799813685248
@@ -66,6 +68,7 @@ func TestNativeParabolaTwoCirclesGraphEnvelope(t *testing.T) {
 }
 
 func TestNativeParabolaTwoCirclesGraphCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ParabolaCircleGraphOptions{}
 	// The rational strip and both radial moments are integrated independently
@@ -123,6 +126,7 @@ func TestNativeParabolaTwoCirclesGraphCut(t *testing.T) {
 }
 
 func TestNativeLowerParabolaTwoCirclesGraphRegions(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ParabolaCircleGraphOptions{}
 	src := parabolaTwoCirclesStock(t, 1, [2]twoCircleStockProbe{
@@ -166,6 +170,7 @@ func checkParabolaTwoCirclesSignedVolume(t *testing.T, ctx context.Context, s So
 }
 
 func TestParabolaTwoCirclesGraphAtomicRefusals(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ParabolaCircleGraphOptions{}
 	src := parabolaTwoCirclesStock(t, 0, twoCirclePrimaryStock(), false)

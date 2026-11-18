@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/edgecheck"
@@ -162,6 +163,7 @@ func TestCombineSplineGraphClosedContour(t *testing.T) {
 }
 
 func TestCombineSplineGraphNestedContours(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	k := []float64{0, 0, 0, 0, 0, 1, 1, 1, 1, 1}
 	lo, hi := .015625, .09375

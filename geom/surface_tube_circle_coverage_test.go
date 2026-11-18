@@ -2,10 +2,12 @@ package geom
 
 import (
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCircleTubeCoverageClosedSlabs(t *testing.T) {
+	slowtest.Skip(t)
 	a := arcTestPatch(t, func(u, v float64) Vec3 { return Vec3{u, v, 0} })
 	poles := make([]Vec3, 9)
 	q := .375 * .375

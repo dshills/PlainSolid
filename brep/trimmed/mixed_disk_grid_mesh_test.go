@@ -6,10 +6,12 @@ import (
 	"math/big"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestMixedDiskGridDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	frame, e := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	if e != nil {

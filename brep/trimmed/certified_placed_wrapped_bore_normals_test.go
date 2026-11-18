@@ -7,11 +7,13 @@ import (
 	"plainsolid/brep/placement"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestPlacedWrappedBoreExactCertificates(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	outer := certifiedWrappedFrustumFixture(t, true, 1)
 	inner := scaledWrappedCylinderFixture(t, outer, .5)
@@ -88,6 +90,7 @@ func TestPlacedWrappedBoreExactCertificates(t *testing.T) {
 }
 
 func TestPlacedWrappedBoreRejectsRoundedTranslation(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	outer := certifiedWrappedFrustumFixture(t, true, 2)
 	inner := scaledWrappedCylinderFixture(t, outer, .5)

@@ -10,6 +10,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -52,6 +53,7 @@ func rationalStationBoreSTEPFixture(t *testing.T, single ...bool) WrappedRationa
 }
 
 func TestWrappedRationalStationBoreSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	m := rationalStationBoreSTEPFixture(t)
 	var raw bytes.Buffer
 	if e := WriteWrappedRationalStationBore(&raw, m); e != nil {
@@ -222,6 +224,7 @@ func TestWrappedRationalStationBoreSTEPOCCT(t *testing.T) {
 }
 
 func TestWrappedRationalStationBoreSTEPSingle(t *testing.T) {
+	slowtest.Skip(t)
 	m := rationalStationBoreSTEPFixture(t, true)
 	var raw bytes.Buffer
 	if e := WriteWrappedRationalStationBore(&raw, m); e != nil {

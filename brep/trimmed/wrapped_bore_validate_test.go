@@ -4,10 +4,12 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCanonicalWrappedBoreRecovery(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	outer := makeCanonicalWrappedCylinder(t, true, 0)

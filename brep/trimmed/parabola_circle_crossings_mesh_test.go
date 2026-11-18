@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -18,6 +19,7 @@ import (
 )
 
 func TestCertifiedParabolaCircleCrossingsContactAssembly(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	pi := 15.0 * math.Pi / 4194304
 	expected := [2][2]float64{

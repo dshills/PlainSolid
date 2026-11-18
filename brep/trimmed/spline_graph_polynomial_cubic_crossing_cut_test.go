@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -41,6 +42,7 @@ func cubicCrossingCutVolumes(t *testing.T, profile, order int) []*big.Rat {
 }
 
 func TestNativePolynomialCubicCrossingCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for profile := 0; profile < 2; profile++ {
 		for axis := 0; axis < 2; axis++ {

@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"plainsolid/brep/placement"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -32,6 +33,7 @@ func independentAnisotropicWorld(m [3][4]*big.Rat, p [3]*big.Rat, vector bool) (
 }
 
 func TestAnisotropicOccurrenceQueries(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	bore := anisotropicMeasuredBore(t)
@@ -150,6 +152,7 @@ func TestAnisotropicOccurrenceQueries(t *testing.T) {
 }
 
 func TestAnisotropicOccurrenceDistance(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	s := anisotropicMeasuredBore(t)
@@ -216,6 +219,7 @@ func TestAnisotropicOccurrenceDistance(t *testing.T) {
 }
 
 func TestAnisotropicOccurrenceVoidDistance(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	build := func(scale [2]float64) Solid {

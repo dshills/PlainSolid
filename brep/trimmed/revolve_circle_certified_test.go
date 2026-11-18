@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestRevolveCircleCertifiedSignedAndPeriodic(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	frame, _ := geom.NewFrame(geom.Vec3{X: 1, Y: 2, Z: -3}, geom.Vec3{Y: 1}, geom.Vec3{X: 1})
 	for _, angle := range []float64{math.Pi / 2, -math.Pi / 2, 2 * math.Pi} {

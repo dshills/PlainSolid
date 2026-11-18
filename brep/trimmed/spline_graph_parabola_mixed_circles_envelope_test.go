@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 )
 
 func TestNativeParabolaMixedCirclesEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	options := ParabolaCircleGraphOptions{}
 	volumes := [2][2]float64{

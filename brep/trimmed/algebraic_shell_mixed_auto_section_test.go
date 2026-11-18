@@ -5,12 +5,14 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestDiscoverMixedRationalWallPair(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, _, o := mixedWallFixture(t)
 	patch := func(f Face) *geom.SurfacePatch {

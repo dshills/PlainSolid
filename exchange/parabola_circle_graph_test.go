@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"sort"
 	"testing"
 
@@ -20,6 +21,7 @@ import (
 )
 
 func TestParabolaCircleGraphEnvelopeExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const name, unit = "Parabola and circle envelope", .001
 	proof := edgecheck.Options{}
@@ -59,6 +61,7 @@ func TestParabolaCircleGraphEnvelopeExchange(t *testing.T) {
 }
 
 func TestParabolaCircleGraphCutExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const name, unit = "Parabola and circle Cut", .001
 	proof := edgecheck.Options{}

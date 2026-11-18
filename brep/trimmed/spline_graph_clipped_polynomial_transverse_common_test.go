@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 )
 
 func TestNativeClippedPolynomialTransverseCommon(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialCubicCrossingTangencyEnvelopeOptions{}
 	for axis := range 2 {

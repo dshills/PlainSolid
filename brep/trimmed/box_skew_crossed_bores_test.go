@@ -6,6 +6,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -49,6 +50,7 @@ func skewCrossedOracle(a, b, d float64) (v, my, s1, s2 float64) {
 	return
 }
 func TestBoxSkewCrossedBores(t *testing.T) {
+	slowtest.Skip(t)
 	dims, c := geom.Vec3{X: 24, Y: 20, Z: 16}, geom.Vec3{X: 11, Y: 9, Z: 7}
 	for _, axis := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		f, _ := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, axis)
@@ -94,6 +96,7 @@ func TestBoxSkewCrossedBores(t *testing.T) {
 	}
 }
 func TestBoxSkewCrossedBoresEmbedding(t *testing.T) {
+	slowtest.Skip(t)
 	f, _ := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, geom.Vec3{Z: 1})
 	r, e := BoxSkewCrossedBores(context.Background(), f, geom.Vec3{X: 24, Y: 20, Z: 16}, geom.Vec3{X: 11, Y: 9, Z: 7}, 4, 2, .3, 1e-9)
 	if e != nil {

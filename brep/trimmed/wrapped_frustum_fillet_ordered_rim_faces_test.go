@@ -5,10 +5,12 @@ import (
 	"math/big"
 	"plainsolid/brep/placement"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestFilletedFrustumOrderedBlindRims(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	o := geom.SurfacePatchOptions{}

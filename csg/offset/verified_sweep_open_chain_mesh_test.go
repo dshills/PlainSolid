@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 var openSweepDisplayCuts = [9][2]int64{{-4, -4}, {0, 0}, {4, 5}, {8, 7}, {12, 11}, {16, 17}, {20, 20}, {24, 25}, {28, 28}}
 
 func TestTessellateVerifiedNormalOffsetSweepOpenChain(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	chain := authoredOpenSweepDisplayChain(t, 5)
 	o := VerifiedSweepMeshOptions{Deflection: .8, NormalAngle: .15}

@@ -6,15 +6,18 @@ import (
 	"math"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
 
 func TestAlgebraicBooleanCertifiedLensFill(t *testing.T) {
+	slowtest.Skip(t)
 	t.Run("XY", func(t *testing.T) { checkAlgebraicBooleanCertifiedLensFill(t, false, false) })
 	t.Run("YZ", func(t *testing.T) { checkAlgebraicBooleanCertifiedLensFill(t, true, false) })
 }
 func TestAlgebraicBooleanCertifiedExactLensFill(t *testing.T) {
+	slowtest.Skip(t)
 	checkAlgebraicBooleanCertifiedLensFill(t, false, true)
 }
 

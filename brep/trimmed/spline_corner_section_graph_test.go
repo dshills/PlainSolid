@@ -3,10 +3,12 @@ package trimmed
 import (
 	"context"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestSplineCornerSectionGraph(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	fan := cornerLedgerFixture(t)
 	partial, e := DiagnoseSplineCornerSections(ctx, fan, SplineCornerSectionLedgerOptions{})

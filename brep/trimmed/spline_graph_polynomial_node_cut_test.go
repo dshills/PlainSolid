@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"sort"
 	"testing"
 
@@ -18,6 +19,7 @@ import (
 )
 
 func TestNativePolynomialNodeCutComponents(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, axis := range []int{0, 1} {
 		base, a, b := nativePolynomialNodeFixture(t, axis, 2)

@@ -10,11 +10,13 @@ import (
 	"os/exec"
 	"plainsolid/brep"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"strconv"
 	"testing"
 )
 
 func TestRationalHierarchyPlanarLine(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, vendor := range []bool{false, true} {
 		name := "rational-spherical-hierarchy.step"

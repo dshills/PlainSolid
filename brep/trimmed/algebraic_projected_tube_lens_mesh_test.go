@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"math"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
 
 func TestCertifiedProjectedTubeLensXZ(t *testing.T) {
+	slowtest.Skip(t)
 	for _, axes := range [][2]int{{0, 2}, {1, 2}, {2, 0}} {
 		t.Run(fmt.Sprint(axes), func(t *testing.T) { checkCertifiedProjectedTubeLens(t, axes) })
 	}

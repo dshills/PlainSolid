@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 )
 
 func TestNativeParabolaCircleGraphCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ParabolaCircleGraphOptions{}
 	const wallCap = 335081.0 / 27525120
@@ -52,6 +54,7 @@ func TestNativeParabolaCircleGraphCut(t *testing.T) {
 }
 
 func TestNativeLowerParabolaCircleGraphCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	src := parabolaCircleGraphStock(t, 1, big.NewRat(1, 8), big.NewRat(1, 256), false)
 	disk := 5763.0 * math.Pi / 8589934592

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -31,6 +32,7 @@ func TestTessellateVerifiedNormalOffsetSweepPairPlanar(t *testing.T) {
 }
 
 func TestTessellateVerifiedNormalOffsetSweepPairCurvedProjective(t *testing.T) {
+	slowtest.Skip(t)
 	pair := verifiedSweepMeshPairFixture(t, true, true, 0)
 	o := VerifiedSweepMeshOptions{Deflection: .36, NormalAngle: .16}
 	got, err := TessellateVerifiedNormalOffsetSweepPair(context.Background(), pair, o)

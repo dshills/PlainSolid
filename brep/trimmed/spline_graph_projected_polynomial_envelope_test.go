@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -45,6 +46,7 @@ func independentProjectedEnvelopeRoof(t *testing.T, physical *geom.BSplineSurfac
 }
 
 func TestNativeProjectedPolynomialEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialCubicCrossingTangencyEnvelopeOptions{}
 	for profile := 0; profile < 2; profile++ {

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -56,10 +57,12 @@ func makeOpenSplineBox(t *testing.T, lo, hi [3]float64, warp float64) (Solid, []
 }
 
 func TestCombineOpenSplineShellsBoxes(t *testing.T) {
+	slowtest.Skip(t)
 	testCombineOpenSplineShells(t, 0)
 }
 
 func TestCombineOpenSplineShellsWarpedBoxes(t *testing.T) {
+	slowtest.Skip(t)
 	testCombineOpenSplineShells(t, .125)
 }
 

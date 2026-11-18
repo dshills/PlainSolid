@@ -6,10 +6,12 @@ import (
 	"math"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCertifiedStationBoreUnequalPartitions(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	outerStations := []WrappedLoftStation{{Z: -2, Radius: 2}, {Z: 0, Radius: 2.5}, {Z: 3, Radius: 1.5}}
 	innerStations := []WrappedLoftStation{{Z: -2, Radius: .75}, {Z: -.5, Radius: 1}, {Z: 1, Radius: .5}, {Z: 3, Radius: .75}}

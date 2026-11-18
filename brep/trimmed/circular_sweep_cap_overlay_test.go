@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -28,6 +29,7 @@ func circularSweepOverlayFixture() (ExactCircularSweep, ExactCircularSweep) {
 }
 
 func TestExactCircularSweepCapOverlayPreservesBothSourceParameterMaps(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b := circularSweepOverlayFixture()
 	got, err := JoinExactCircularSweepCapOverlay(ctx, a, b, ExactCircularLoopOptions{})

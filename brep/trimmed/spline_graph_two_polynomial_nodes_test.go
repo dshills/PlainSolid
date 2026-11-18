@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -50,6 +51,7 @@ func nativeTwoPolynomialNodeVolume(op parametric.BooleanOp, wide bool) float64 {
 }
 
 func TestNativeTwoPolynomialNodeEnvelopes(t *testing.T) {
+	slowtest.Skip(t)
 	t.Run("close nodes", func(t *testing.T) { testNativeTwoPolynomialNodeEnvelopes(t, false) })
 	t.Run("wider separation", func(t *testing.T) { testNativeTwoPolynomialNodeEnvelopes(t, true) })
 }

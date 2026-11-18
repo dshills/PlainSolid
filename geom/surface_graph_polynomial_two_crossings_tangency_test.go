@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -21,6 +22,7 @@ func twoCrossingsTangentGap(t *testing.T, linear ...[2]int64) rationalPolynomial
 }
 
 func TestSplineGraphPolynomialTwoCrossingsTangency(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, tc := range []struct {
 		tangent int64

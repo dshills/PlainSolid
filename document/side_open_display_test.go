@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/trimmed"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestSideOpenDualDiskPresentationAfterDocumentReload(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	frame, e := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	if e != nil {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/trimmed"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestPlainCADSideOpenDualDiskCuts(t *testing.T) {
+	slowtest.Skip(t)
 	for _, depth := range []float64{3, 6} {
 		bridge := New()
 		stock := box(t, bridge, vector{0, 4, 0}, vector{10, 10, 6})
@@ -121,6 +123,7 @@ func TestPlainCADSideOpenDualDiskSTEPUnits(t *testing.T) {
 }
 
 func TestPlainCADUnequalSideOpenDualDiskCuts(t *testing.T) {
+	slowtest.Skip(t)
 	b := New()
 	stock := box(t, b, vector{}, vector{60, 22, 6})
 	left := circle(t, b, vector{20, 0, 0}, vector{0, 0, 1}, 13, 3)
@@ -162,6 +165,7 @@ func TestPlainCADUnequalSideOpenDualDiskCuts(t *testing.T) {
 }
 
 func TestPlainCADOffCenterSideOpenDualDisk(t *testing.T) {
+	slowtest.Skip(t)
 	b := New()
 	stock := box(t, b, vector{}, vector{50, 12, 6})
 	a := circle(t, b, vector{20, 0, 0}, vector{0, 0, 1}, 5, 3)
@@ -231,6 +235,7 @@ func TestPlainCADSideOpeningFallbackAtNonbinaryCrossing(t *testing.T) {
 }
 
 func TestPlainCADExactWallSideOpenDualDisk(t *testing.T) {
+	slowtest.Skip(t)
 	for _, depth := range []float64{3, 6} {
 		b := New()
 		stock := box(t, b, vector{}, vector{50, 22, 6})
@@ -281,6 +286,7 @@ func TestPlainCADExactWallSideOpenDualDisk(t *testing.T) {
 }
 
 func TestPlainCADOffsetSideOpenDualDisk(t *testing.T) {
+	slowtest.Skip(t)
 	for i, depth := range []float64{3, 6} {
 		b := New()
 		stock := box(t, b, vector{}, vector{40, 10, 6})
@@ -323,6 +329,7 @@ func TestPlainCADOffsetSideOpenDualDisk(t *testing.T) {
 }
 
 func TestPlainCADUnequalCenterSideOpenDualDisk(t *testing.T) {
+	slowtest.Skip(t)
 	for i, depth := range []float64{3, 6} {
 		b := New()
 		stock := box(t, b, vector{}, vector{60, 10, 6})

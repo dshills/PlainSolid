@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestMixedConicalAP242DAGDocumentExactRotation(t *testing.T) {
+	slowtest.Skip(t)
 	raw, d := openMixedConicalDAGAppearanceDocument(t)
 	base, _ := d.Snapshot()
 	tx := d.Begin()
@@ -74,6 +76,7 @@ func TestMixedConicalAP242DAGDocumentExactRotation(t *testing.T) {
 }
 
 func TestMixedConicalAP242DAGDocumentExactRotationReject(t *testing.T) {
+	slowtest.Skip(t)
 	raw, d := openMixedConicalDAGAppearanceDocument(t)
 	ctx, l := context.Background(), mixedConicalAppearanceLimits()
 	s, _ := d.Snapshot()

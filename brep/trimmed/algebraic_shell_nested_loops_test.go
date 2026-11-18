@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/edgecheck"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestAlgebraicShellImprintNestedLoops(t *testing.T) {
+	slowtest.Skip(t)
 	if testing.Short() {
 		t.Skip("independent complete quartic shell section")
 	}

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -204,6 +205,7 @@ func checkPlainCADSideNotchSTEP(t *testing.T, origin vector, depth float64) {
 }
 
 func TestSideNotchMixedBoreBatchIsAtomic(t *testing.T) {
+	slowtest.Skip(t)
 	for _, depth := range []float64{6, 10} {
 		checkSideNotchMixedBoreBatch(t, vector{10, 1, 0}, depth)
 		checkSideNotchMixedBoreBatch(t, vector{}, depth)

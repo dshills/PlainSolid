@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -136,6 +137,7 @@ func storedMixedAffineSideFixture(t *testing.T, s Solid) (Solid, int) {
 }
 
 func TestStoredMixedWeightedCurvedSeamAffineSides(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s, chosen := storedMixedCurvedWeightedFixture(t)
 	s, sideFace := storedMixedAffineSideFixture(t, s)

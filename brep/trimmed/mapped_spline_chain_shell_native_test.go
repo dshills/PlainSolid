@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 )
 
 func TestMappedSplineChainNativeShell(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	boundary, closing, planar, seams := mappedChainClosedFixture(t)
 	reversed := [2]bool{false, true}

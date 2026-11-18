@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -12,6 +13,7 @@ import (
 )
 
 func TestRationalStationOccurrenceSections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	body := stationMassFixture(t, false, 0)

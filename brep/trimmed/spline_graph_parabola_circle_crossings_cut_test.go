@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 )
 
 func TestNativeParabolaCircleCrossingsCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const piTerm = 15.0 * math.Pi / 4194304
 	volumes := [2][2]float64{

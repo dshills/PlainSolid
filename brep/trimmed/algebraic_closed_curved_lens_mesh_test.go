@@ -5,10 +5,12 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestClosedIndependentlyCurvedLensHalves(t *testing.T) {
+	slowtest.Skip(t)
 	source := algebraicCurvedCapFixture(t, big.NewRat(9, 16), 1)
 	o := ClosedAlgebraicLensMeshOptions{Boundary: AlgebraicLensBoundaryOptions{Display: geom.ComposedCurvePolylineOptions{Deflection: .001}}, Interior: CurvedQuadraticTrimMeshOptions{Deflection: .01}}
 	got, e := source.TessellateClosedHalvesCertified(context.Background(), o)

@@ -94,7 +94,8 @@ def main():
     env = os.environ.copy()
     for key in ("GOOS", "GOARCH", "GOFLAGS"):
         env.pop(key, None)
-    env.update(GOMAXPROCS=str(opts.go_workers), CGO_ENABLED="1" if opts.race else "0")
+    # Qualification covers the slow tier that a plain `go test` skips.
+    env.update(GOMAXPROCS=str(opts.go_workers), CGO_ENABLED="1" if opts.race else "0", PLAINSOLID_SLOW="1")
     if opts.cache is not None:
         env["GOCACHE"] = str(opts.cache.resolve())
     elif not env.get("GOCACHE"):

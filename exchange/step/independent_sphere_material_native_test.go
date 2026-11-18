@@ -8,10 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestIndependentSphereMaterialsNative(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	source, e := os.ReadFile("testdata/independent-sphere-materials.step")
 	if e != nil {

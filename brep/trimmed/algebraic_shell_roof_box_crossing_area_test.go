@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestDirectCrossingRoofArea(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, _, _ := mixedWallFixture(t)
 	refs := map[string]float64{"intersection": 3.992955181787411, "union": 8.487908279091027, "difference": 8.057158869984429}

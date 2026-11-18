@@ -11,10 +11,12 @@ import (
 	"path/filepath"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestReadGeneralSideOpenDualDiskProduct(t *testing.T) {
+	slowtest.Skip(t)
 	for _, through := range []bool{false, true} {
 		for _, swap := range []bool{false, true} {
 			for _, posed := range []bool{false, true} {
@@ -234,6 +236,7 @@ func TestOCCTReadGeneralSideOpenDualDiskProduct(t *testing.T) {
 }
 
 func TestReadGeneralSideOpenDualDiskProductRightAndDomain(t *testing.T) {
+	slowtest.Skip(t)
 	for _, through := range []bool{false, true} {
 		for _, swapped := range []bool{false, true} {
 			d := generalSideDiskDescriptor(t, through, false, true)

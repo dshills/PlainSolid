@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
@@ -169,6 +170,7 @@ func sideCutFuzzRead(t testing.TB, ctx context.Context, kind byte, raw []byte) (
 }
 
 func TestSideCutFuzzSeedsUnderWorkLimits(t *testing.T) {
+	slowtest.Skip(t)
 	for kind := byte(0); kind < sideCutFuzzKinds; kind++ {
 		for _, through := range []bool{false, true} {
 			raw := sideCutFuzzSeed(t, kind, through)
@@ -296,6 +298,7 @@ func sideCutFuzzSemanticSeeds(t testing.TB, raw []byte) [][]byte {
 	return out
 }
 func TestSideCutFuzzSemanticOwnersReject(t *testing.T) {
+	slowtest.Skip(t)
 	for kind := byte(0); kind < sideCutFuzzKinds; kind++ {
 		for _, through := range []bool{false, true} {
 			raw := sideCutFuzzSeed(t, kind, through)

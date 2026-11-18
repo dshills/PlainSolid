@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -18,6 +19,7 @@ import (
 )
 
 func TestReadConicalRimFilletBoreSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := conicalRimFilletBoreFixture(t, "exact")
 	p, err := ReadConicalRimFilletBore(ctx, bytes.NewReader(raw), Limits{}, geom.SurfacePatchOptions{})
@@ -87,6 +89,7 @@ func TestReadConicalRimFilletBoreSTEP(t *testing.T) {
 }
 
 func TestReadConicalRimFilletBoreSTEPReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, o := context.Background(), geom.SurfacePatchOptions{}
 	exact := conicalRimFilletBoreFixture(t, "exact")
 	rounded := conicalRimFilletBoreFixture(t, "rounded")

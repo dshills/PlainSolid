@@ -5,11 +5,13 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
 
 func TestCornerTerminalAudit(t *testing.T) {
+	slowtest.Skip(t)
 	a, af := makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 1}, .125)
 	b, bf := makeCornerShearBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 0}, 0)
 	ledger, err := CertifySplineFacePointContact(context.Background(), a, b, [2]int{4, 5}, SplineRectangleEmbeddingOptions{})

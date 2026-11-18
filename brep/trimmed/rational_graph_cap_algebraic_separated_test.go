@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestAlgebraicGraphSeparatedStockBand(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	q := big.NewRat
 	stock := reparameterizedGraphSleeveForFlux(t)

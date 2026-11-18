@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestRoundedMixedConicalAP242DAGDocument(t *testing.T) {
+	slowtest.Skip(t)
 	source, err := os.ReadFile("../exchange/step/testdata/occt-dag-mixed-conical-curved-ap242-rounded.step")
 	if err != nil {
 		t.Fatal(err)

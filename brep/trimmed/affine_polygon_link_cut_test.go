@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
@@ -24,6 +25,7 @@ func polygonLinkCutFixture(t *testing.T) (*ConvexAffinePolygonCrossing, ConvexAf
 	return c, ConvexAffinePolygonLinkCutOptions{Material: ConvexAffinePolygonMaterialOptions{RationalUVEndpoints: true}}
 }
 func TestConvexAffinePolygonLinkCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	c, o := polygonLinkCutFixture(t)
 	r, e := c.CutWithSeparatedVertexLinks(ctx, o)

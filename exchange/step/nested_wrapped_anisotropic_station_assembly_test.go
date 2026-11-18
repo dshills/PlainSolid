@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
@@ -29,6 +30,7 @@ func nestedAnisotropicFixture(t testing.TB, bore bool) []byte {
 	return b
 }
 func TestNestedWrappedAnisotropicAssemblies(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, bore := range []bool{false, true} {
 		raw := nestedAnisotropicFixture(t, bore)

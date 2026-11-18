@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestSkewCompanionBoreSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for i, n := range []geom.Vec3{{Z: 1}, {X: -1}, {Y: 1}} {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)

@@ -6,11 +6,13 @@ import (
 	"math"
 	"plainsolid/brep"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestPlainCADAxisAlignedJoinThenCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for axis := 0; axis < 3; axis++ {
 		for _, sign := range []float64{-1, 1} {

@@ -3,10 +3,12 @@ package trimmed
 import (
 	"context"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestStoredMixedCompleteBoundaryNetwork(t *testing.T) {
+	slowtest.Skip(t)
 	for _, lens := range []bool{true, false} {
 		s := solidEllipticalLensFixture(t)
 		if !lens {

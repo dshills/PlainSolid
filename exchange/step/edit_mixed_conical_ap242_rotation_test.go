@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -15,6 +16,7 @@ import (
 )
 
 func TestEditMixedConicalAP242DAGRationalRotation(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, options := context.Background(), geom.SurfacePatchOptions{}
 	raw := mixedConicalAP242DAGFixture(t, "exact")
 	l := MixedConicalAP242DAGLimits{MaxOccurrenceDepth: 3, MaxLeafInstances: 7}
@@ -108,6 +110,7 @@ func TestEditMixedConicalAP242DAGRationalRotation(t *testing.T) {
 }
 
 func TestEditMixedConicalAP242DAGStyledTerminalRationalRotation(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, options := context.Background(), geom.SurfacePatchOptions{}
 	l := MixedConicalAP242DAGLimits{}
 	source := mixedDAGAppearanceFixture(t)
@@ -137,6 +140,7 @@ func TestEditMixedConicalAP242DAGStyledTerminalRationalRotation(t *testing.T) {
 }
 
 func TestEditMixedConicalAP242DAGRationalRotationReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, options := context.Background(), geom.SurfacePatchOptions{}
 	l := MixedConicalAP242DAGLimits{}
 	raw := mixedConicalAP242DAGFixture(t, "exact")

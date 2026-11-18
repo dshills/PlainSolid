@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -75,6 +76,7 @@ func fivePolynomialNodeMeasures(t *testing.T, op parametric.BooleanOp) (float64,
 }
 
 func TestNativeFivePolynomialNodeEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for axis := 0; axis < 2; axis++ {
 		base, a, b := nativeFivePolynomialNodeFixture(t, axis, 8)
@@ -257,6 +259,7 @@ func checkFivePolynomialNodeEnvelope(t *testing.T, r *FivePolynomialNodeEnvelope
 }
 
 func TestNativeFivePolynomialNodeEnvelopeRejections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativeFivePolynomialNodeFixture(t, 0, 8)
 	r, e := CombineSplineGraphFivePolynomialNodes(ctx, base, a, b, 0, parametric.Intersection, 1e-9, FivePolynomialNodeEnvelopeOptions{})

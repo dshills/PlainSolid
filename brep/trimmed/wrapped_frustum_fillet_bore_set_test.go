@@ -6,11 +6,13 @@ import (
 	"math"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestMixedConicalFilletBores(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	w, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 8, 6, o)

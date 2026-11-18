@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 	"time"
@@ -285,6 +286,7 @@ func TestOCCTMappedChainRectangularInferredSharedSupportKnotPair(t *testing.T) {
 }
 
 func TestOCCTMappedChainRectangularInferredSharedSupportKnotPairClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, inferredSharedPairMappedChainPath)
 	o := inferredSharedMappedChainOptions()

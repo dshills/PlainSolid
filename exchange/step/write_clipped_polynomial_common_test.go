@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -19,6 +20,7 @@ import (
 )
 
 func TestWriteClippedPolynomialCommon(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, kind := range []string{"mixed", "transverse"} {
 		t.Run(kind, func(t *testing.T) {

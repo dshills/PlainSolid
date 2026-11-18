@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -51,6 +52,7 @@ func directedLoopSTEPFixture(t *testing.T, name string) ExactDirectedCircularLoo
 }
 
 func TestExactDirectedCircularLoopExtrusionSTEPRoundTrip(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, name := range []string{"clockwise corner", "two curved holes"} {
 		t.Run(name, func(t *testing.T) {

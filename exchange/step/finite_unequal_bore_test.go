@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestFiniteUnequalBoreSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for i, n := range []geom.Vec3{{Z: 1}, {X: -1}, {Y: 1}} {
 		for _, q := range [][4]float64{{3, 2, 0, 11.2}, {2, 3, 14.4, 0}, {3, 2, 14.4, 11.2}} {
 			t.Run(fmt.Sprintf("%d/%v", i, q), func(t *testing.T) {

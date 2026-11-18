@@ -11,11 +11,13 @@ import (
 	"path/filepath"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 )
 
 func TestReindexedToroidalMaterial(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, placed := range []bool{false, true} {
 		name := "toroidal-material"

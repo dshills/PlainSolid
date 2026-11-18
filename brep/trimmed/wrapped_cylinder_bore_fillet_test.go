@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -37,6 +38,7 @@ func eccentricCylinderBoreFilletFixture(t *testing.T, radius float64) Solid {
 }
 
 func TestEccentricCircularBoreRimFillet(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	const radius = 6.25

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -24,6 +25,7 @@ func weightedBoreAssemblyNativeFixture(t testing.TB) (WrappedRationalStationBore
 	return m, b.Bytes()
 }
 func TestWrappedRationalStationBoreAssemblyNative(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	original, b := weightedBoreAssemblyNativeFixture(t)
 	m, e := ReadWrappedRationalStationBoreAssemblyJSON(ctx, bytes.NewReader(b), IndependentMaterialJSONLimits{})
@@ -49,6 +51,7 @@ func TestWrappedRationalStationBoreAssemblyNative(t *testing.T) {
 	}
 }
 func TestWrappedRationalStationBoreAssemblyNativeTamper(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	m, b := weightedBoreAssemblyNativeFixture(t)
 	_, filled := weightedAssemblyNativeFixture(t)

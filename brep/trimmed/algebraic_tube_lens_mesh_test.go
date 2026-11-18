@@ -4,10 +4,12 @@ import (
 	"context"
 	"math"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCertifiedClosedAlgebraicTubeLens(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	source := algebraicRunMeshFixture(t)
 	lens, e := source.SealAlgebraicTubeLens(ctx, AlgebraicTubeLensOptions{})

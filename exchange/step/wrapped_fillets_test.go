@@ -7,10 +7,12 @@ import (
 	"math"
 	"os"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestWrappedRimFilletSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for _, r := range [][2]float64{{.5, 1}, {0, 1}, {.5, 0}} {
 		t.Run(real(r[0])+"/"+real(r[1]), func(t *testing.T) {
 			m := WrappedRimFilletBody{Name: "Fillet", Center: geom.Vec3{X: 2, Y: 4, Z: 8}, Radius: 3, Height: 5, Fillets: r, LengthUnit: .001, CapNames: [2]string{"Lower", "Upper"}}

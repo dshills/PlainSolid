@@ -5,10 +5,12 @@ import (
 	"errors"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestAlgebraicGraphOccurrenceWorldDistance(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	source := graphMaterialBooleanFixture(t, false, false)
 	identity := [3][4]*big.Rat{}

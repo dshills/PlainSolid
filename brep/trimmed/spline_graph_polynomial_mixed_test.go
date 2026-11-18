@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -44,6 +45,7 @@ func polynomialMixedEnvelopeVolume(numerator int64, op parametric.BooleanOp) flo
 }
 
 func TestNativePolynomialMixedEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, numerator := range []int64{1, 3} {
 		for axis := 0; axis < 2; axis++ {
@@ -222,6 +224,7 @@ func checkMixedEnvelopeOrdinaryWriter(t *testing.T, r *PolynomialMixedEnvelope) 
 }
 
 func TestNativePolynomialMixedEnvelopeReloadRejections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativePolynomialMixedFixture(t, 0, 1, 4)
 	r, e := CombineSplineGraphPolynomialMixedContact(ctx, base, a, b, 0, parametric.Intersection, 1e-9, PolynomialMixedEnvelopeOptions{})

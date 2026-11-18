@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
@@ -17,6 +18,7 @@ import (
 // The original solid is the sheared sleeve with positive weights that
 // change its source parameterization while preserving its model geometry.
 func TestAlgebraicGraphRationalStockFlux(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	q := big.NewRat
 	// Reparameterize the sheared square sleeve along X with

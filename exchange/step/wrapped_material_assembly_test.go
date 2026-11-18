@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -26,6 +27,7 @@ func wrappedAssemblyFixture(t *testing.T) WrappedMaterialAssemblyModel {
 	return WrappedMaterialAssemblyModel{LengthUnit: .001, Products: []WrappedMaterialAssemblyPart{{ID: "root", Name: "Mixed assembly"}, {ID: "part", Name: "Shared materials", Bodies: bodies}}, Occurrences: []AssemblyInstance{{ID: "first", Name: "First", Parent: "root", Child: "part", Transform: geom.Identity()}, {ID: "second", Name: "Second", Parent: "root", Child: "part", Transform: geom.Translation(geom.Vec3{X: 16})}}}
 }
 func TestWrappedMaterialAssembly(t *testing.T) {
+	slowtest.Skip(t)
 	m := wrappedAssemblyFixture(t)
 	var b bytes.Buffer
 	if e := WriteWrappedMaterialAssembly(&b, m); e != nil {

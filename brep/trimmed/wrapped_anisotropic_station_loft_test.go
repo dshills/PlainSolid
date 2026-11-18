@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -47,6 +48,7 @@ func anisotropicStationBand(t *testing.T, z0, z1 float64, lower, upper [2]float6
 }
 
 func TestWrappedAnisotropicNativeStations(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	a := anisotropicStationBand(t, 0, 1, [2]float64{3, 1}, [2]float64{1, 2}, .75)

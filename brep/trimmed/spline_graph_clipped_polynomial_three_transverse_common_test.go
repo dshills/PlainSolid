@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestNativeClippedPolynomialThreeTransverseCommon(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialCubicCrossingTangencyEnvelopeOptions{}
 	for axis := range 2 {
@@ -148,6 +150,7 @@ func checkThreeTransverseClippedCommonHistory(t *testing.T, r *ClippedPolynomial
 }
 
 func TestNativeClippedPolynomialThreeTransverseCommonRefusals(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialCubicCrossingTangencyEnvelopeOptions{}
 	_, a, _ := nativeThreePolynomialNodeFixture(t, 0, 4, 128)

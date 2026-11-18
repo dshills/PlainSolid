@@ -7,10 +7,12 @@ import (
 	"math/big"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestEmbeddedNativeQuadraticSeamPreservingRefinement(t *testing.T) {
+	slowtest.Skip(t)
 	a, b := mixedNativeJoinFixture(t)
 	o := ExactQuadraticFaceJoinOptions{Face: ExactQuadraticRegionMeshOptions{Face: MultiSpanCurvedTrimMeshOptions{Mesh: CurvedQuadraticTrimMeshOptions{Deflection: .3}}}}
 	got, e := StitchEmbeddedExactQuadraticFacesCertified(context.Background(), a, b, o, collision.Options{})

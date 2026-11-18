@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"os"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 )
 
 func TestWriteClippedPolynomialThreeTransverseCommon(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ClippedPolynomialCommonIGESOptions{PoleTolerance: 1e-14}
 	for _, tc := range []struct {

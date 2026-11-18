@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
@@ -11,10 +12,12 @@ import (
 )
 
 func TestProjectedLensMassOnUnequalExactRectangles(t *testing.T) {
+	slowtest.Skip(t)
 	checkProjectedLensMass(t, false)
 }
 
 func TestProjectedLensMassOnConvexTrims(t *testing.T) {
+	slowtest.Skip(t)
 	checkProjectedLensMass(t, true)
 }
 

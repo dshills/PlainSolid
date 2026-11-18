@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 )
 
 func TestRationalStationBoreCertifiedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	surface := geom.SurfacePatchOptions{}
 	outer, _, err := NewWrappedRationalStationLoft(ctx, []*geom.WrappedSurfacePatch{

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"strings"
 	"testing"
@@ -268,10 +269,12 @@ func verifyOrderedJoinedRoofs(t *testing.T, ctx context.Context, native trimmed.
 }
 
 func TestOCCTMappedChainRectangularOrderedJoinedRoofs(t *testing.T) {
+	slowtest.Skip(t)
 	verifyOrderedJoinedSource(t, context.Background(), readInferredSharedMappedChainFixture(t, orderedJoinedRoofPath))
 }
 
 func TestOCCTMappedChainRectangularOrderedJoinedRoofsClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, orderedJoinedRoofPath)
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, orderedJoinedRoofOptions())
@@ -288,6 +291,7 @@ func TestOCCTMappedChainRectangularOrderedJoinedRoofsClosedDisplay(t *testing.T)
 }
 
 func TestOCCTMappedChainRectangularOrderedJoinedRoofsRejectsMovedJoint(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, orderedJoinedRoofPath)
 	older := threeJoinedRoofOptions()
@@ -313,6 +317,7 @@ func rejectOrderedJoinedMovedJoint(t *testing.T, ctx context.Context, raw, chang
 }
 
 func TestOCCTMappedChainRectangularOrderedJoinedRoofsRejectsFalseReceipt(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, orderedJoinedRoofPath)
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, orderedJoinedRoofOptions())

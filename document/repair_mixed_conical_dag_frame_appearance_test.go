@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -21,6 +22,7 @@ var documentCombinedRepairOptions = step.MixedConicalAP242DAGFrameAppearanceRepa
 }
 
 func TestRepairedMixedConicalAP242DAGFrameAppearanceDocument(t *testing.T) {
+	slowtest.Skip(t)
 	raw, opened := openCombinedConicalRepairDocument(t)
 	ctx, l := context.Background(), mixedConicalAppearanceLimits()
 	m := opened.Repair
@@ -165,6 +167,7 @@ func TestRepairedMixedConicalAP242DAGFrameAppearanceDocument(t *testing.T) {
 }
 
 func TestRepairedMixedConicalAP242DAGFrameAppearanceDocumentReject(t *testing.T) {
+	slowtest.Skip(t)
 	raw, opened := openCombinedConicalRepairDocument(t)
 	ctx, l := context.Background(), mixedConicalAppearanceLimits()
 	if strict, err := ReadMixedConicalAP242DAGAppearanceSTEP(ctx, bytes.NewReader(raw), l, geom.SurfacePatchOptions{}, 0); err == nil || strict != nil {

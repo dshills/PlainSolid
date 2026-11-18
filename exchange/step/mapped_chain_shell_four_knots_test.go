@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"strings"
 	"testing"
@@ -203,6 +204,7 @@ func TestOCCTMappedChainRectangularFourSupportKnots(t *testing.T) {
 }
 
 func TestOCCTMappedChainRectangularFourSupportKnotsClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw, err := os.ReadFile(fourKnotMappedChainPath)
 	if err != nil {

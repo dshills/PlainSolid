@@ -5,6 +5,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -40,6 +41,7 @@ func twoAxisClippedFuseStock(t *testing.T, axis, profile, layout int) [3]*geom.B
 }
 
 func TestNativeClippedPolynomialFuseTwoAxes(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialCubicCrossingTangencyEnvelopeOptions{}
 	for layout := range 2 {
@@ -216,6 +218,7 @@ func checkClippedFuseTwoAxisMeasures(t *testing.T, out *ClippedPolynomialFuse, l
 }
 
 func TestNativeClippedPolynomialFuseTwoAxisContainment(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for axis := range 2 {
 		src := clippedPolynomialStock(t, axis, 0, 1)

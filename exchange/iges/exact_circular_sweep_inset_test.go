@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strconv"
 	"strings"
 	"testing"
@@ -50,6 +51,7 @@ func circularInsetIGESFixture(below bool) ExactCircularSweepInset {
 }
 
 func TestExactCircularSweepInsetIGESReproof(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, below := range []bool{false, true} {
 		t.Run(strconv.FormatBool(below), func(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -11,6 +12,7 @@ import (
 )
 
 func TestSimultaneousConicalRollingFillets(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	for _, fixture := range []struct {

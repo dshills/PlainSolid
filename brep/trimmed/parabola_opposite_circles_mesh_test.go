@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestCertifiedParabolaOppositeCirclesCutDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ParabolaCircleGraphOptions{}
 	for axis := range 2 {
@@ -55,6 +57,7 @@ func TestCertifiedParabolaOppositeCirclesCutDisplay(t *testing.T) {
 }
 
 func TestCertifiedPlacedParabolaOppositeCirclesCutDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const axis = 1
 	local := parabolaTwoCirclesStock(t, axis, oppositeCircleStock(), false)

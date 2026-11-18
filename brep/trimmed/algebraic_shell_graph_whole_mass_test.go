@@ -5,11 +5,13 @@ import (
 	"errors"
 	"math"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestGraphWholeMassSharedPartition(t *testing.T) {
+	slowtest.Skip(t)
 	s := graphMaterialBooleanFixture(t, false, true)
 	axes := [2]int{0, 2}
 	q, e := s.PrepareGraphMaterialQuery(context.Background(), AlgebraicGraphMaterialOptions{Projection: &axes})

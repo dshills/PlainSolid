@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -23,6 +24,7 @@ const repairedFrameLeft = "step-product-5/occ-54/occ-85/occ-251"
 const repairedFrameRight = "step-product-5/occ-466/occ-472/occ-251"
 
 func TestRepairedMixedConicalAP242FrameDocument(t *testing.T) {
+	slowtest.Skip(t)
 	raw, opened := openRepairedMixedConicalFrameDocument(t)
 	ctx, l := context.Background(), mixedConicalAppearanceLimits()
 	if strict, err := ReadMixedConicalAP242DAGSTEP(ctx, bytes.NewReader(raw), l, geom.SurfacePatchOptions{}, 0); err == nil || strict != nil {
@@ -133,6 +135,7 @@ func TestRepairedMixedConicalAP242FrameDocument(t *testing.T) {
 }
 
 func TestRepairedMixedConicalAP242FrameDocumentReject(t *testing.T) {
+	slowtest.Skip(t)
 	raw, opened := openRepairedMixedConicalFrameDocument(t)
 	ctx, l := context.Background(), mixedConicalAppearanceLimits()
 	rejectRead := func(out RepairedMixedConicalAP242FrameDocument, err, cause error) {

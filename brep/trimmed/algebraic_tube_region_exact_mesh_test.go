@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 // Qualify one annular component only: the nested inner disk touches this
 // component along its inner rim, so this is not a disjoint collection proof.
 func TestCertifiedExactOwnerAnnularRegion(t *testing.T) {
+	slowtest.Skip(t)
 	if testing.Short() {
 		t.Skip("independent nested quartic source and annular display proof")
 	}

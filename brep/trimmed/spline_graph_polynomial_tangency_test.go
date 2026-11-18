@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -37,6 +38,7 @@ func polynomialTangencyEnvelopeVolume(op parametric.BooleanOp) float64 {
 }
 
 func TestNativePolynomialTangencyEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, axis := range []int{0, 1} {
 		base, a, b := nativePolynomialTangencyFixture(t, axis, 2, 1)

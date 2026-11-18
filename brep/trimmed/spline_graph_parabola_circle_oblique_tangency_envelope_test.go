@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 )
 
 func TestNativeParabolaCircleObliqueTangencyEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ParabolaCircleGraphOptions{}
 	volumes := [2][2]float64{

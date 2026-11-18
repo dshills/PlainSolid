@@ -5,10 +5,12 @@ import (
 	"math/big"
 	"plainsolid/brep/placement"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestFilletedFrustumWorldToroidDistance(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	r := big.NewRat

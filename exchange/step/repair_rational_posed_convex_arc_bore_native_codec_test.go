@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestRationalPosedConvexArcThroughBoreJSON(t *testing.T) {
+	slowtest.Skip(t)
 	raw, err := os.ReadFile(tiltedBoreSource + "through-bore.step")
 	if err != nil {
 		t.Fatal(err)

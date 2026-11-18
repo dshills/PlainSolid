@@ -11,12 +11,14 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
 )
 
 func TestBlindTripleCrossedBoreSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for ni, n := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		for _, op := range []bool{false, true} {
 			for _, depth := range []float64{9, 9.2} {

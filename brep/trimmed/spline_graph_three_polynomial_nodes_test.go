@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -49,6 +50,7 @@ func nativeThreePolynomialNodeVolume(op parametric.BooleanOp, halfGap bool) floa
 }
 
 func TestNativeThreePolynomialNodeEnvelopes(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for axis := 0; axis < 2; axis++ {
 		base, a, b := nativeThreePolynomialNodeFixture(t, axis, 4, 128)

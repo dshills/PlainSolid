@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -74,6 +75,7 @@ func TestCertifiedPolygonShellWarpedPrism(t *testing.T) {
 }
 
 func TestCertifiedPolygonShellRationalSupports(t *testing.T) {
+	slowtest.Skip(t)
 	original := testWarpedSplinePrism(t, false, false)
 	var surfaces []*geom.BSplineSurface
 	var domains []geom.ParameterRectangle

@@ -7,10 +7,12 @@ import (
 	"plainsolid/brep/trimmed"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestWrappedPairRecoveryTopology(t *testing.T) {
+	slowtest.Skip(t)
 	for _, name := range []string{"wrapped-shoulder", "wrapped-toroidal-void"} {
 		t.Run(name, func(t *testing.T) {
 			raw, e := os.ReadFile("../exchange/step/testdata/" + name + ".step")

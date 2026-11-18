@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -30,6 +31,7 @@ func circularDocumentHole(name string, x, y, r float64) []NamedCircularProfileSe
 }
 
 func TestDirectedCircularExtrusionNamedRolesSurviveEdits(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	p := func(x, y float64) geom.Vec2 { return geom.Vec2{X: x, Y: y} }
 	r := &DirectedCircularExtrusionRecipe{
@@ -147,6 +149,7 @@ func TestDirectedCircularExtrusionNamedRolesSurviveEdits(t *testing.T) {
 }
 
 func TestDirectedCircularExtrusionOffsetChainRetainsOriginalRoles(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	p := func(x, y float64) geom.Vec2 { return geom.Vec2{X: x, Y: y} }
 	recipe := &DirectedCircularExtrusionRecipe{

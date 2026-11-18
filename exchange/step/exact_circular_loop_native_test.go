@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -29,6 +30,7 @@ func exactLoopNativeFixture(t testing.TB, vendor, negative bool) (OCCTExactCircu
 	return m, b.Bytes()
 }
 func TestExactCircularLoopNative(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, c := range []struct{ vendor, negative bool }{{false, false}, {false, true}, {true, false}} {
 		m, b := exactLoopNativeFixture(t, c.vendor, c.negative)
@@ -70,6 +72,7 @@ func TestExactCircularLoopNative(t *testing.T) {
 	}
 }
 func TestExactCircularLoopNativeCorruption(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, vendor := range []bool{false, true} {
 		m, b := exactLoopNativeFixture(t, vendor, !vendor)

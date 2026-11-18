@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestRepairConicalRimFilletBoreIGES(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := conicalRimFilletBoreIGESFixture(t, "rounded")
 	p, err := RepairConicalRimFilletBore(ctx, bytes.NewReader(raw), Limits{}, ConicalRimFilletBoreRepairOptions{3e-11})
@@ -137,6 +139,7 @@ func TestRepairConicalRimFilletBoreIGESReject(t *testing.T) {
 }
 
 func TestRepairedConicalRimFilletBoreIGESReceipt(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := conicalRimFilletBoreIGESFixture(t, "rounded")
 	m, err := RepairConicalRimFilletBore(ctx, bytes.NewReader(raw), Limits{}, ConicalRimFilletBoreRepairOptions{3e-11})

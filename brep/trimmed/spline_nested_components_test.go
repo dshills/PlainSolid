@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -11,6 +12,7 @@ import (
 )
 
 func TestNestedSplineMaterialReusesCavityAndIsland(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	outer, _, e := NewWrappedCylinder(ctx, makeCanonicalWrappedCylinder(t, true, 0), 1e-9, geom.SurfacePatchOptions{})
 	if e != nil {

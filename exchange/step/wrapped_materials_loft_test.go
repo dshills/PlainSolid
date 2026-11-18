@@ -3,10 +3,12 @@ package step
 import (
 	"bytes"
 	"os"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestMixedWrappedLoftDisambiguation(t *testing.T) {
+	slowtest.Skip(t)
 	load := func(name string) []byte {
 		t.Helper()
 		b, e := os.ReadFile("testdata/" + name + ".step")

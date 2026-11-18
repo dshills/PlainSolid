@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"strings"
@@ -21,6 +22,7 @@ import (
 var roundedConicalFrameOptions = MixedConicalAP242FrameRepairOptions{OccurrenceID: 251, MaxAxisChord: 1e-12, MaxDisplacement: 1e-10}
 
 func TestRepairMixedConicalAP242Frame(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := roundedConicalFrameFixture(t)
 	l := MixedConicalAP242DAGLimits{MaxOccurrenceDepth: 3, MaxLeafInstances: 7}
@@ -88,6 +90,7 @@ func TestRepairMixedConicalAP242Frame(t *testing.T) {
 }
 
 func TestRepairMixedConicalAP242FrameReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := roundedConicalFrameFixture(t)
 	reject := func(source []byte, options MixedConicalAP242FrameRepairOptions, limits MixedConicalAP242DAGLimits, cause error) {
@@ -133,6 +136,7 @@ func TestRepairMixedConicalAP242FrameReject(t *testing.T) {
 }
 
 func TestRepairedMixedConicalAP242FrameReceipt(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := roundedConicalFrameFixture(t)
 	m, err := RepairMixedConicalAP242Frame(ctx, bytes.NewReader(raw), MixedConicalAP242DAGLimits{}, roundedConicalFrameOptions)

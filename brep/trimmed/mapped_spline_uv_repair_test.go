@@ -8,10 +8,12 @@ import (
 	"math/big"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestMappedSplineSourceRepair(t *testing.T) {
+	slowtest.Skip(t)
 	for _, rev := range []bool{false, true} {
 		name := "forward"
 		if rev {

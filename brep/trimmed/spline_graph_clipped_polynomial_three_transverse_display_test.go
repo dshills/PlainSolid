@@ -3,10 +3,12 @@ package trimmed
 import (
 	"context"
 	"fmt"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestNativeClippedPolynomialThreeTransverseFuseClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for axis := range 2 {
 		_, roof, _ := nativeThreePolynomialNodeFixture(t, axis, 4, 128)

@@ -6,12 +6,14 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestPlacedWrappedRimFilletSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	p := WrappedRimFilletBody{Name: "round rim", Center: geom.Vec3{X: 2, Y: 4, Z: 8}, Radius: 3, Height: 5,
 		Fillets: [2]float64{.5, 1}, LengthUnit: .001}
 	for _, axis := range []geom.Vec3{{X: 1}, {Y: 1}, {Z: 1}} {

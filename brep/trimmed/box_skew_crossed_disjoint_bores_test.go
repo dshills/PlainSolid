@@ -6,6 +6,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -14,6 +15,7 @@ func companionSites() []CardinalThroughBore {
 	return []CardinalThroughBore{{1, geom.Vec3{X: 32, Z: 8}, 2}, {0, geom.Vec3{Y: 8, Z: 32}, 1}, {2, geom.Vec3{X: 8, Y: 32}, 1}, {2, geom.Vec3{X: 4, Y: 4}, 1}}
 }
 func TestSkewCrossedCompanions(t *testing.T) {
+	slowtest.Skip(t)
 	dims, c := geom.Vec3{X: 40, Y: 40, Z: 40}, geom.Vec3{X: 20, Y: 20, Z: 20}
 	ctx := context.Background()
 	for _, r := range [][2]float64{{4, 2}, {2, 4}} {
@@ -72,6 +74,7 @@ func TestSkewCrossedCompanions(t *testing.T) {
 	}
 }
 func TestSkewCrossedCompanionsMeshAndReject(t *testing.T) {
+	slowtest.Skip(t)
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	dims, c := geom.Vec3{X: 40, Y: 40, Z: 40}, geom.Vec3{X: 20, Y: 20, Z: 20}
 	ctx := context.Background()

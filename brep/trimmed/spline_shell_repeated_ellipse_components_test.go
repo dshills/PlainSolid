@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 )
 
 func TestTangentEllipseExteriorComponents(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stock, _ := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, 0)
 	tool := quarticRoofSolid(t, 1.0/16, 1.0/16)

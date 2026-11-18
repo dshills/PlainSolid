@@ -8,6 +8,7 @@ import (
 	"plainsolid/brep/placement"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -46,6 +47,7 @@ func assemblyOccurrence(t *testing.T, p *PreparedStoredMixedDisplay, x, y, z *bi
 	return out
 }
 func TestMixedDisplayAssemblyIndependentSources(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	prism, lens := prepareAssemblySource(t, false, .02), prepareAssemblySource(t, true, .02)

@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 )
 
 func TestFilletedFrustumMaterialNativeEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	w, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 8, 6, o)

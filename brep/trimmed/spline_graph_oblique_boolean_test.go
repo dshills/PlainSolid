@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -242,6 +243,7 @@ func TestOriginalSplineGraphLineSection(t *testing.T) {
 }
 
 func TestParallelObliqueSplineGraphBoolean(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	graph := func(c, f float64) *geom.BSplineSurface {
 		t.Helper()

@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"plainsolid/brep/placement"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -30,6 +31,7 @@ func TestTwoPositiveRadicalOrder(t *testing.T) {
 }
 
 func TestFilletedFrustumIndependentBlindRims(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	o := geom.SurfacePatchOptions{}

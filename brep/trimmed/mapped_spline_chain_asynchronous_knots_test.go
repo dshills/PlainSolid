@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 
@@ -133,6 +134,7 @@ func mappedChainLevelTraceFixtureShell(t *testing.T, boundary MappedSplineChainA
 }
 
 func TestMappedSplineChainAsynchronousSupportKnotsRebuild(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	source := mappedChainAsynchronousFixture(t)
 	var raw, replay bytes.Buffer

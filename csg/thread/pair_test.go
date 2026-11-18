@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -32,6 +33,7 @@ func pairFixture(t *testing.T, hand geom.HelixHandedness) PairRecipe {
 }
 
 func TestBuildPairWholeBandAndNativeVolumes(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, hand := range []geom.HelixHandedness{geom.RightHanded, geom.LeftHanded} {
 		recipe := pairFixture(t, hand)

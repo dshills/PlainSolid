@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -60,6 +61,7 @@ func TestTubeRegionHoledFootprintSeed(t *testing.T) {
 	}
 }
 func TestTubeRegionSourceFootprint(t *testing.T) {
+	slowtest.Skip(t)
 	r := disjointRegionMeshFixture(t)
 	o := AlgebraicTubeFootprintMeshOptions{Boundary: AlgebraicTubeRegionsBoundaryOptions{Loop: AlgebraicTubeLensBoundaryOptions{Run: AlgebraicTubeRunMeshOptions{Display: RationalTubePolylineOptions{Deflection: .025}}}}}
 	m, e := r.TessellateFootprintCertified(context.Background(), 0, o)

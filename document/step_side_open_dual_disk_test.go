@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/trimmed"
@@ -83,6 +84,7 @@ func TestDocumentSideOpenDualDiskUnequalRecipe(t *testing.T) {
 }
 
 func TestDocumentSideOpenDualDiskOffCenterAndExactWalls(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, setting := range []struct{ exact, allow bool }{{false, false}, {false, true}, {true, true}} {
 		exact, allow := setting.exact, setting.allow

@@ -5,6 +5,7 @@ import (
 	"context"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -105,6 +106,7 @@ func TestFiniteUnequalCompactSplineAgreement(t *testing.T) {
 }
 
 func TestFiniteUnequalCompactReadsLegacy(t *testing.T) {
+	slowtest.Skip(t)
 	frame, _ := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, geom.Vec3{Z: 1})
 	for _, offset := range []float64{0, .5} {
 		m := UnequalBoreModel{Body: UnequalBoreBody{Name: "legacy finite", Frame: frame, Dimensions: geom.Vec3{X: 20, Y: 24, Z: 18}, Crossing: geom.Vec3{X: 10, Y: 12, Z: 9}, XRadius: 4, ZRadius: 2, Offset: offset, XBlindDepth: 15.25, ZBlindDepth: 14.4, ZOppositeCap: true}, LengthUnit: .001}

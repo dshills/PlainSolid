@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -15,6 +16,7 @@ func TestCertifiedSurfaceAreaPlane(t *testing.T) {
 	}
 }
 func TestCertifiedSurfaceAreaCylinder(t *testing.T) {
+	slowtest.Skip(t)
 	p, _ := NewSurfacePatch(quarterCylinder(t), SurfacePatchOptions{})
 	r, e := BoundSurfaceArea(p, SurfaceAreaBoundOptions{Tolerance: .5, MaxOperations: 12000000})
 	if e != nil || !r.Complete || r.Lower > 2*math.Pi+1e-12 || r.Upper < 2*math.Pi-1e-12 {

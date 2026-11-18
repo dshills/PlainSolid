@@ -5,6 +5,7 @@ import (
 	"errors"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -25,6 +26,7 @@ func multiSpanCollectionFixture(t *testing.T) ([]QuadraticTrimStitchFace, []Quad
 }
 
 func TestMultiSpanTrimCollectionThreeFaceChain(t *testing.T) {
+	slowtest.Skip(t)
 	inputs, seams := multiSpanCollectionFixture(t)
 	o := MultiSpanTrimCollectionOptions{Join: MultiSpanTrimFaceJoinOptions{Face: MultiSpanCurvedTrimMeshOptions{Mesh: CurvedQuadraticTrimMeshOptions{Deflection: .2}}}, CheckDisplayEmbedding: true}
 	got, e := StitchMultiSpanTrimCollectionCertified(context.Background(), inputs, seams, o)
@@ -103,6 +105,7 @@ func TestMultiSpanTrimCollectionThreeFaceChain(t *testing.T) {
 }
 
 func TestMultiSpanTrimCollectionRejectsJunctionAndOverlap(t *testing.T) {
+	slowtest.Skip(t)
 	inputs, seams := multiSpanCollectionFixture(t)
 	o := MultiSpanTrimCollectionOptions{Join: MultiSpanTrimFaceJoinOptions{Face: MultiSpanCurvedTrimMeshOptions{Mesh: CurvedQuadraticTrimMeshOptions{Deflection: .2}}}}
 	bad := append([]QuadraticTrimStitchSeam(nil), seams...)

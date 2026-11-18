@@ -7,6 +7,7 @@ import (
 	"plainsolid/brep"
 	"plainsolid/csg"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/solid"
 	"testing"
 )
@@ -110,6 +111,7 @@ func cells(t *testing.T, coords [][3]int, xf geom.Affine) (brep.Solid, []brep.So
 	return br, pieces
 }
 func TestNonconvexThreeDimensionalIndependentOracle(t *testing.T) {
+	slowtest.Skip(t)
 	a, aa := cells(t, [][3]int{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}}, geom.Affine{{1, .25, 0, 0}, {0, 1, .25, 0}, {.25, 0, 1, 0}})
 	b, bb := cells(t, [][3]int{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, 1, 1}}, geom.Affine{{1, 0, .25, .5}, {.25, 1, 0, .25}, {0, .25, 1, .125}})
 	iv := 0.
@@ -144,6 +146,7 @@ func TestRejectNonmanifoldContact(t *testing.T) {
 }
 
 func TestCavityNestingAndIslands(t *testing.T) {
+	slowtest.Skip(t)
 	outer := box(t, 0, 0, 0, 6, 6, 6)
 	inner := box(t, 1, 1, 1, 5, 5, 5)
 	island := box(t, 2, 2, 2, 4, 4, 4)

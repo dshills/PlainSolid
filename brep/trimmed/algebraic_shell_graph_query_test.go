@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
@@ -96,6 +97,7 @@ func nestedQueryHeight(x, y *big.Rat) *big.Rat {
 	return new(big.Rat).Mul(big.NewRat(-9, 16), new(big.Rat).Mul(new(big.Rat).Sub(q, big.NewRat(25, 1024)), new(big.Rat).Sub(q, big.NewRat(25, 256))))
 }
 func TestGraphMaterialNestedRational(t *testing.T) {
+	slowtest.Skip(t)
 	if testing.Short() {
 		t.Skip("complete nested original source")
 	}
@@ -150,6 +152,7 @@ func TestGraphMaterialNestedRational(t *testing.T) {
 	checkGraphQueryFailures(t, s, q, queryPoint(x, y, half))
 }
 func TestGraphMaterialPlacedDisjointRational(t *testing.T) {
+	slowtest.Skip(t)
 	s := graphMaterialBooleanFixture(t, false, true)
 	axes := [2]int{0, 2}
 	q, e := s.PrepareGraphMaterialQuery(context.Background(), AlgebraicGraphMaterialOptions{Projection: &axes})

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -14,6 +15,7 @@ func rationalLensStyle() LensStyle {
 	return LensStyle{SurfaceColor: &a, FaceColors: [2]*RGB{&b, &c}}
 }
 func TestRationalLensStyle(t *testing.T) {
+	slowtest.Skip(t)
 	m := rationalConcurrentLensFixture(t)
 	m.Style = rationalLensStyle()
 	var b bytes.Buffer

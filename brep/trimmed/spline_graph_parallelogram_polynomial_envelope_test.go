@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -66,6 +67,7 @@ func obliquePolynomialEnvelopeMeasures(axis, profile int, op parametric.BooleanO
 }
 
 func TestNativeParallelogramPolynomialEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	options := PolynomialCubicCrossingTangencyEnvelopeOptions{}
 	for profile := 0; profile < 2; profile++ {

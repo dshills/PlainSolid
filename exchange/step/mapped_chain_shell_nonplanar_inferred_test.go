@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 	"time"
@@ -286,10 +287,12 @@ func verifyNonplanarInferredMappedChainMaterial(t *testing.T, ctx context.Contex
 }
 
 func TestOCCTMappedChainRectangularNonplanarInferredMixedSupportKnots(t *testing.T) {
+	slowtest.Skip(t)
 	verifyNonplanarInferredMappedChain(t, context.Background(), readInferredSharedMappedChainFixture(t, nonplanarInferredMappedChainPath), nonplanarPolynomialClock)
 }
 
 func TestOCCTMappedChainRectangularNonplanarInferredMixedSupportKnotsClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, nonplanarInferredMappedChainPath)
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, inferredMixedMappedChainOptions())
@@ -351,10 +354,12 @@ func TestOCCTMappedChainRectangularNonplanarInferredMixedSupportKnotsLive(t *tes
 }
 
 func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnots(t *testing.T) {
+	slowtest.Skip(t)
 	verifyNonplanarInferredMappedChain(t, context.Background(), readInferredSharedMappedChainFixture(t, nonplanarRationalInferredMappedChainPath), nonplanarRationalClock)
 }
 
 func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnotsClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, nonplanarRationalInferredMappedChainPath)
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, inferredMixedMappedChainOptions())
@@ -406,11 +411,13 @@ func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnotsLiv
 }
 
 func TestOCCTMappedChainRectangularNonplanarIndependentOwnerClocks(t *testing.T) {
+	slowtest.Skip(t)
 	raw := readInferredSharedMappedChainFixture(t, nonplanarIndependentOwnerClocksPath)
 	verifyNonplanarInferredMappedChain(t, context.Background(), raw, nonplanarIndependentOwnerClocks)
 }
 
 func TestOCCTMappedChainRectangularNonplanarIndependentOwnerClocksClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, nonplanarIndependentOwnerClocksPath)
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, inferredMixedMappedChainOptions())

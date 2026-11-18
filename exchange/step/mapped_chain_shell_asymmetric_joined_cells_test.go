@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/trimmed"
@@ -12,10 +13,12 @@ import (
 )
 
 func TestOCCTMappedChainRectangularAsymmetricJoinedIndependentRoofs(t *testing.T) {
+	slowtest.Skip(t)
 	verifyThreeJoinedRoofSource(t, context.Background(), readInferredSharedMappedChainFixture(t, asymmetricJoinedRoofPath), threeJoinedAsymmetric)
 }
 
 func TestOCCTMappedChainRectangularAsymmetricJoinedIndependentRoofsClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	verifyThreeJoinedRoofDisplay(t, readInferredSharedMappedChainFixture(t, asymmetricJoinedRoofPath), 3, .14)
 }
 

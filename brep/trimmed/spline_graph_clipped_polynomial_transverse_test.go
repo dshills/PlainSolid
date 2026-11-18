@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -45,6 +46,7 @@ func clippedTransverseStock(t *testing.T, axis, layout int, original *geom.BSpli
 }
 
 func TestNativeClippedPolynomialTransverseCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialNodeCutOptions{}
 	for axis := range 2 {

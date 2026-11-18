@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strconv"
 	"testing"
 	"time"
@@ -63,6 +64,7 @@ func writeNestedRationalTest(ctx context.Context, out *bytes.Buffer, a NestedRat
 	return WriteNestedRationalWrappedAnisotropicStationAssembly(ctx, out, a, Limits{}, WrappedSurfaceOptions{})
 }
 func TestWriteNestedRationalAnisotropic(t *testing.T) {
+	slowtest.Skip(t)
 	for _, bore := range []bool{false, true} {
 		raw := nestedRationalAnisotropicFixture(t)
 		if bore {
@@ -91,6 +93,7 @@ func TestWriteNestedRationalAnisotropic(t *testing.T) {
 	}
 }
 func TestWriteNestedRationalAnisotropicReject(t *testing.T) {
+	slowtest.Skip(t)
 	raw := nestedRationalAnisotropicFixture(t)
 	for _, edit := range []func(*NestedRationalWrappedAnisotropicStationAssemblyModel){
 		func(m *NestedRationalWrappedAnisotropicStationAssemblyModel) {

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -183,6 +184,7 @@ func checkFiveConvertedHalfTurn(t *testing.T, f *File, q ConvexArcPCurveAgreemen
 }
 
 func TestRepairFiveConvertedConvexArcSource(t *testing.T) {
+	slowtest.Skip(t)
 	for _, tc := range fiveConvertedFixtures {
 		t.Run(tc.unit.name, func(t *testing.T) {
 			ctx := context.Background()

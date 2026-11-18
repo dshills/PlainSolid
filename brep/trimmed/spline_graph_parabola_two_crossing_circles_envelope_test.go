@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 )
 
 func TestNativeParabolaTwoCrossingCirclesEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	f := parabolaTwoCrossingCirclesStaggered()
 	// Independently integrate the authored polynomial on the stock,

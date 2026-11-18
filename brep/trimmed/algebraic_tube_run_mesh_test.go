@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
@@ -59,6 +60,7 @@ func algebraicRunMeshFixture(t *testing.T) AlgebraicTrimmedPairSection {
 	return r
 }
 func TestCertifiedAlgebraicTubeRunMesh(t *testing.T) {
+	slowtest.Skip(t)
 	r := algebraicRunMeshFixture(t)
 	o := AlgebraicTubeRunMeshOptions{Display: RationalTubePolylineOptions{Deflection: .08, MaxOperations: 32000000}}
 	m, e := r.TessellateTubeRunCertified(context.Background(), 0, 0, 0, o)

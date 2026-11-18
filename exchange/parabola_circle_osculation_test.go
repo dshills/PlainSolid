@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strconv"
 	"testing"
 
@@ -21,6 +22,7 @@ import (
 )
 
 func TestParabolaCircleOsculationEnvelopeExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const unit = .001
 	proof := edgecheck.Options{}
@@ -70,6 +72,7 @@ func TestParabolaCircleOsculationEnvelopeExchange(t *testing.T) {
 }
 
 func TestParabolaCircleOsculationCutExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const name, unit = "Parabola-circle osculation Cut", .001
 	proof := edgecheck.Options{}

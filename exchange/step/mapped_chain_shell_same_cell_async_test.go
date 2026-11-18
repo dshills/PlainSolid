@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 	"time"
@@ -184,6 +185,7 @@ func TestOCCTMappedChainRectangularSameCellAsynchronousSupportKnots(t *testing.T
 }
 
 func TestOCCTMappedChainRectangularSameCellAsynchronousSupportKnotsClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(readSameCellAsynchronousFixture(t)), Limits{}, sameCellAsynchronousOptions())
 	if err != nil {

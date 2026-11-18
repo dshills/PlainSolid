@@ -8,11 +8,13 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/placement"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestFilletedFrustumRationalOccurrence(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	r := big.NewRat

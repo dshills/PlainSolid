@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -113,6 +114,7 @@ func variableClippedTransverseCutVolumes(axis, layout int, gap, roots []*big.Rat
 }
 
 func TestNativeClippedPolynomialVariableTransverseCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := PolynomialNodeCutOptions{}
 	for _, nodes := range []int{1, 4, 5} {
@@ -208,6 +210,7 @@ func checkVariableClippedCutDisplayAndRefusal(t *testing.T, cut *ClippedPolynomi
 }
 
 func TestNativeClippedPolynomialVariableTransverseCutMatchesFixedCounts(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := PolynomialNodeCutOptions{}
 	_, two, _ := nativeWideTwoPolynomialNodeFixture(t, 0)

@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestProjectedLensQueriesUseOriginalExactRoof(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	l := projectedExactRoofLens(t, true)
 	bounds := [2]*big.Rat{new(big.Rat), big.NewRat(1, 1)}

@@ -2,10 +2,12 @@ package trimmed
 
 import (
 	"context"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestStoredMixedPairedLensMismatch(t *testing.T) {
+	slowtest.Skip(t)
 	s := solidEllipticalLensFixture(t)
 	edge := s.faces[0].Outer[0].Edge
 	o := [2]SolidMixedFaceMeshOptions{{Face: MixedExactMultiSpanMeshOptions{Face: MixedExactCurvedMeshOptions{Interior: CurvedQuadraticTrimMeshOptions{Deflection: .4}}}}, {Face: MixedExactMultiSpanMeshOptions{Face: MixedExactCurvedMeshOptions{Interior: CurvedQuadraticTrimMeshOptions{Deflection: .005}}}}}

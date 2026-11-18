@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 )
 
 func TestOCCTExactDirectedCircularLoopOriginalWires(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw, err := os.ReadFile("testdata/occt-directed-two-holes.step")
 	if err != nil {

@@ -10,11 +10,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"strconv"
 	"testing"
 )
 
 func TestIndependentCircularFrustumHierarchyLine(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	var source bytes.Buffer
 	if e := WriteIndependentFrustumHierarchy(ctx, &source, IndependentFrustumHierarchyModel(frustumHierarchyModel(t)), Limits{}, 1e-9); e != nil {
@@ -211,6 +213,7 @@ func TestIndependentCircularFrustumHierarchyLine(t *testing.T) {
 }
 
 func TestIndependentCircularFrustumLineFailures(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	model := frustumHierarchyModel(t)
 	var b bytes.Buffer

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -39,6 +40,7 @@ func fivePolynomialNodeCutVolumes(t *testing.T, order int) []*big.Rat {
 }
 
 func TestNativeFivePolynomialNodeCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for axis := 0; axis < 2; axis++ {
 		base, a, b := nativeFivePolynomialNodeFixture(t, axis, 8)
@@ -223,6 +225,7 @@ func checkFivePolynomialNodeCutGraph(t *testing.T, cut *FivePolynomialNodeCut, p
 }
 
 func TestNativeFivePolynomialNodeCutRejections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativeFivePolynomialNodeFixture(t, 0, 8)
 	cut, e := CutSplineGraphFivePolynomialNodeComponents(ctx, base, b, a, 0, 1e-9, PolynomialNodeCutOptions{})

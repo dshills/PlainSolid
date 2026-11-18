@@ -8,6 +8,7 @@ import (
 	"os"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -15,6 +16,7 @@ func annularFrustumFixture() WrappedAnnularFrustumBody {
 	return WrappedAnnularFrustumBody{Name: "annular frustum", LengthUnit: .001, CapNames: [2]string{"lower annulus", "upper annulus"}, Outer: WrappedStationLoftBody{Stations: []trimmed.WrappedLoftStation{{Z: 0, Radius: 3}, {Z: 5, Radius: 4}}}, Inner: WrappedStationLoftBody{Stations: []trimmed.WrappedLoftStation{{Z: 0, Radius: 1}, {Z: 5, Radius: 1.5}}}}
 }
 func TestWrappedAnnularFrustum(t *testing.T) {
+	slowtest.Skip(t)
 	for _, kind := range []string{"both-taper", "outer-cylinder", "inner-cylinder", "narrowing"} {
 		t.Run(kind, func(t *testing.T) {
 			m := annularFrustumFixture()

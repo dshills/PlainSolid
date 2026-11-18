@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
@@ -35,6 +36,7 @@ func wrappedDocumentAssembly(t *testing.T) []byte {
 	return b.Bytes()
 }
 func TestWrappedMaterialAssemblyDocument(t *testing.T) {
+	slowtest.Skip(t)
 	d, e := ReadWrappedMaterialAssemblySTEP(bytes.NewReader(wrappedDocumentAssembly(t)), step.Limits{}, step.WrappedSurfaceOptions{}, STEPAssemblyOptions{}, 2)
 	if e != nil {
 		t.Fatal(e)
@@ -92,6 +94,7 @@ func TestWrappedMaterialAssemblyDocument(t *testing.T) {
 	}
 }
 func TestWrappedMaterialAssemblyDocumentProvenance(t *testing.T) {
+	slowtest.Skip(t)
 	raw := wrappedDocumentAssembly(t)
 	for _, kind := range []string{"stale", "inconsistent", "missing"} {
 		t.Run(kind, func(t *testing.T) {
@@ -195,6 +198,7 @@ func TestOCCTWrappedMaterialAssemblyDocument(t *testing.T) {
 }
 
 func TestWrappedAssemblyStaleBodyID(t *testing.T) {
+	slowtest.Skip(t)
 	d, e := ReadWrappedMaterialAssemblySTEP(bytes.NewReader(wrappedDocumentAssembly(t)), step.Limits{}, step.WrappedSurfaceOptions{}, STEPAssemblyOptions{}, 1)
 	if e != nil {
 		t.Fatal(e)

@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 
@@ -165,6 +166,7 @@ func TestBlindCrossedObliqueBoreSTEP(t *testing.T) {
 }
 
 func TestObliqueFloorCrossedBoreSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for _, floor := range []float64{0, 28} {
 		for _, opposite := range []bool{false, true} {
 			if floor == 0 && opposite {

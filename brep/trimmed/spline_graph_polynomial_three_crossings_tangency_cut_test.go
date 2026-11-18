@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -48,6 +49,7 @@ func threeCrossingsTangencyCutVolumes(t *testing.T, tangent, order int) []*big.R
 }
 
 func TestNativePolynomialThreeCrossingsTangencyCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for tangent := 0; tangent < 4; tangent++ {
 		for axis := 0; axis < 2; axis++ {
@@ -210,6 +212,7 @@ func checkThreeCrossingsTangencyCutGraph(t *testing.T, cut *PolynomialThreeCross
 }
 
 func TestNativePolynomialThreeCrossingsTangencyCutRejections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativeThreeCrossingsTangencyFixture(t, 0, 1, 8)
 	cut, e := CutSplineGraphPolynomialThreeCrossingsTangencyComponents(ctx, base, b, a, 0, 1e-9, PolynomialNodeCutOptions{})

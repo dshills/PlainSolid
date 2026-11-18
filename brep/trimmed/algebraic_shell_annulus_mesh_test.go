@@ -9,13 +9,23 @@ import (
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
 
-func TestCertifiedBooleanAnnulusFill(t *testing.T)   { checkCertifiedBooleanAnnulusFill(t, 0) }
-func TestCertifiedYZBooleanAnnulusFill(t *testing.T) { checkCertifiedBooleanAnnulusFill(t, 1) }
-func TestCertifiedXZBooleanAnnulusFill(t *testing.T) { checkCertifiedBooleanAnnulusFill(t, 2) }
+func TestCertifiedBooleanAnnulusFill(t *testing.T) {
+	slowtest.Skip(t)
+	checkCertifiedBooleanAnnulusFill(t, 0)
+}
+func TestCertifiedYZBooleanAnnulusFill(t *testing.T) {
+	slowtest.Skip(t)
+	checkCertifiedBooleanAnnulusFill(t, 1)
+}
+func TestCertifiedXZBooleanAnnulusFill(t *testing.T) {
+	slowtest.Skip(t)
+	checkCertifiedBooleanAnnulusFill(t, 2)
+}
 func checkCertifiedBooleanAnnulusFill(t *testing.T, projection int) {
 	checkCertifiedBooleanAnnulusOwnerFill(t, projection, false)
 }

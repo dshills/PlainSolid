@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -12,6 +13,7 @@ import (
 )
 
 func TestWrappedCylinderFeaturesRegenerateAndUndo(t *testing.T) {
+	slowtest.Skip(t)
 	features := map[string]Feature{
 		"stock": {Kind: WrappedCylinderFeature, Center: geom.Vec3{Z: -2}, Radius: 2, Offset: geom.Vec3{Z: 5}},
 		"tool":  {Kind: WrappedCylinderFeature, Center: geom.Vec3{Z: 1}, Radius: 1, Offset: geom.Vec3{Z: 2}},
@@ -66,6 +68,7 @@ func TestWrappedCylinderFeaturesRegenerateAndUndo(t *testing.T) {
 }
 
 func TestWrappedStationLoftAndOffsetRecipes(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stations := []trimmed.WrappedLoftStation{{Z: 0, Radius: 2}, {Z: 3, Radius: 1}, {Z: 5, Radius: 2}}
 	d, e := New(State{LengthUnit: 1, Features: map[string]Feature{
@@ -167,6 +170,7 @@ func TestWrappedCylinderFilletFaceRoles(t *testing.T) {
 }
 
 func TestWrappedCylinderOffsetRecipePersistenceAndRoles(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	d, e := New(State{LengthUnit: 1, Features: map[string]Feature{
 		"stock":  {Kind: WrappedCylinderFeature, Radius: 3, Offset: geom.Vec3{Z: 5}},
@@ -219,6 +223,7 @@ func TestWrappedCylinderOffsetRecipePersistenceAndRoles(t *testing.T) {
 }
 
 func TestWrappedStationBoreRecipePersistence(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	station := func(r, peak float64) Feature {
 		return Feature{Kind: WrappedStationLoftFeature, Stations: []trimmed.WrappedLoftStation{

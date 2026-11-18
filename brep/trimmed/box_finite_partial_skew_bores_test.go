@@ -5,11 +5,13 @@ import (
 	"math"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestFinitePartialSkewBores(t *testing.T) {
+	slowtest.Skip(t)
 	dims, c := geom.Vec3{X: 30, Y: 24, Z: 28}, geom.Vec3{X: 15, Y: 12, Z: 14}
 	for _, r := range [][2]float64{{4, 2}, {2, 4}, {3, 3}} {
 		for _, offset := range []float64{-3, 3} {
@@ -59,6 +61,7 @@ func TestFinitePartialSkewBores(t *testing.T) {
 	}
 }
 func TestFinitePartialSkewBoresMeshAndLimits(t *testing.T) {
+	slowtest.Skip(t)
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	dims, c := geom.Vec3{X: 30, Y: 24, Z: 28}, geom.Vec3{X: 15, Y: 12, Z: 14}
 	for _, r := range [][2]float64{{4, 2}, {2, 4}, {3, 3}} {
@@ -97,6 +100,7 @@ func TestFinitePartialSkewBoresMeshAndLimits(t *testing.T) {
 }
 
 func TestFinitePartialSkewBoreBeyondActualIntersection(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	f, err := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	if err != nil {

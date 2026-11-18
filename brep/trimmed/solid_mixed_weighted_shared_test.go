@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -170,6 +171,7 @@ func storedMixedCurvedFixture(t *testing.T, rationalSpeed bool) (Solid, int) {
 }
 
 func TestStoredMixedCurvedWeightedSharedDomains(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s, chosen := storedMixedCurvedWeightedFixture(t)
 	var e error

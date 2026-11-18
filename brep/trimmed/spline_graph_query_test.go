@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"errors"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -11,6 +12,7 @@ import (
 )
 
 func TestSplineGraphQuery(t *testing.T) {
+	slowtest.Skip(t)
 	k := []float64{0, 0, 0, 1, 1, 1}
 	q := [3]float64{.25, -.25, .25}
 	const rr = .09765625 // (5/16)^2, with exactly representable section points

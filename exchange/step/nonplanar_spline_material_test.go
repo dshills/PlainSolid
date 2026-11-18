@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"plainsolid/brep/parametric"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
@@ -36,6 +37,7 @@ func nonplanarMaterialFixture(t testing.TB, file string) []byte {
 	return b
 }
 func TestNonplanarSplineMaterialFamilies(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, c := range nonplanarMaterialCases {
 		t.Run(string(c.kind), func(t *testing.T) {

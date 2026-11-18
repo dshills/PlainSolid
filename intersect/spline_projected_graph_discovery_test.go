@@ -3,13 +3,16 @@ package intersect
 import (
 	"context"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestAutomaticClosedProjectedGraphPair(t *testing.T) {
+	slowtest.Skip(t)
 	testProjectedGraphPair(t, [3]int{0, 2, 1}, [2]int{0, 2})
 }
 func TestAutomaticClosedYZGraphPair(t *testing.T) {
+	slowtest.Skip(t)
 	testProjectedGraphPair(t, [3]int{2, 0, 1}, [2]int{1, 2})
 }
 func testProjectedGraphPair(t *testing.T, permutation [3]int, axes [2]int) {

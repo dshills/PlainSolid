@@ -7,6 +7,7 @@ import (
 	"math"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -29,6 +30,7 @@ func TestSewPlanarThroughRoundedPrism(t *testing.T) {
 	checkPrismMesh(t, result)
 }
 func TestSewPlanarThroughChamferedAnnulus(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	stock, e := (ChamferedAnnularPrism{Frame: f, OuterRadius: 78, InnerRadius: 26, Height: 12, UpperChamfer: .6}).Build(ctx)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -11,6 +12,7 @@ import (
 // projective parameterization. This independent fixture deliberately puts all
 // first moments and centroid coordinates on the negative branch of division.
 func TestRationalGraphStockTranslatedNegativeCentroid(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	rat := big.NewRat
 	shift := [3]int64{-3, -5, -2}

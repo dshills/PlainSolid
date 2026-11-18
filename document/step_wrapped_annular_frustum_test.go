@@ -5,10 +5,12 @@ import (
 	"os"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestAnnularFrustumColoredDocument(t *testing.T) {
+	slowtest.Skip(t)
 	raw, e := os.ReadFile("../exchange/step/testdata/wrapped-annular-frustum.step")
 	if e != nil {
 		t.Fatal(e)

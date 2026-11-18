@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -41,6 +42,7 @@ func quarticTangencyCutVolumes(t *testing.T, profile, order int) []*big.Rat {
 }
 
 func TestNativePolynomialQuarticTangencyCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for profile := 0; profile < 2; profile++ {
 		for axis := 0; axis < 2; axis++ {
@@ -183,6 +185,7 @@ func checkQuarticTangencyCutGraph(t *testing.T, cut *PolynomialQuarticTangencyCu
 }
 
 func TestNativePolynomialQuarticTangencyCutRejections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativeQuarticTangencyFixture(t, 0, 0)
 	cut, e := CutSplineGraphPolynomialQuarticTangencyComponents(ctx, base, b, a, 0, 1e-9, PolynomialNodeCutOptions{})

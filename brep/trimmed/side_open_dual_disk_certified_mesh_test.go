@@ -7,11 +7,13 @@ import (
 	"math/big"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
 
 func TestSideOpenDualDiskCertifiedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	frame, _ := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	discs := [2]ExtrusionCircle{{Center: geom.Vec2{X: 3.5, Y: 4}, Radius: 2.5}, {Center: geom.Vec2{X: 6.5, Y: 4}, Radius: 2.5}}
@@ -103,6 +105,7 @@ func TestSideOpenDualDiskCertifiedDisplay(t *testing.T) {
 }
 
 func TestSideOpenDualDiskApplicationTolerances(t *testing.T) {
+	slowtest.Skip(t)
 	frame, _ := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	discs := [2]ExtrusionCircle{{Center: geom.Vec2{X: 3.5, Y: 4}, Radius: 2.5}, {Center: geom.Vec2{X: 6.5, Y: 4}, Radius: 2.5}}
 	for _, depth := range []float64{3, 6} {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
@@ -63,6 +64,7 @@ func pairedOwnerRoofShell(t *testing.T, second bool) Solid {
 	return s
 }
 func TestAlgebraicShellFacePairOriginalOwners(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b := pairedOwnerRoofShell(t, false), pairedOwnerRoofShell(t, true)
 	o := AlgebraicShellFacePairOwnerOptions{}

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -79,6 +80,7 @@ func FuzzReadExactCircularSweepInsetSTEP(f *testing.F) {
 }
 
 func TestExactCircularSweepInsetSTEPRoundTrip(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, below := range []bool{false, true} {
 		t.Run(fmt.Sprint("guest-below-", below), func(t *testing.T) {

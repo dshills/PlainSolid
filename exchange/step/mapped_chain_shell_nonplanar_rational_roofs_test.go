@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 	"time"
@@ -160,11 +161,13 @@ func rationalRoofSupportID(t *testing.T, f *File, faceID int64) int64 {
 }
 
 func TestOCCTMappedChainRectangularNonplanarRationalRoofs(t *testing.T) {
+	slowtest.Skip(t)
 	raw := readInferredSharedMappedChainFixture(t, nonplanarRationalRoofsPath)
 	verifyNonplanarInferredMappedChain(t, context.Background(), raw, nonplanarRationalRoofs)
 }
 
 func TestOCCTMappedChainRectangularNonplanarRationalRoofsClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, nonplanarRationalRoofsPath)
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, inferredMixedMappedChainOptions())

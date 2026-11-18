@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 )
 
 func TestAlgebraicShellSectionOnExactBezierRoof(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, hints := transverseSplineCaps(t)
 	parts := make([]SewFace, 6)

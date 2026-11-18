@@ -5,6 +5,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/edgecheck"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestRoundedCylinderBothSharpErosion(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	for _, radii := range [][2]float64{{.5, 1}, {1, .5}, {1, 1}} {

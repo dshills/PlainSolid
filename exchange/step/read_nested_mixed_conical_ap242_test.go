@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestReadNestedMixedConicalAP242Assembly(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, o := context.Background(), geom.SurfacePatchOptions{}
 	raw := nestedMixedConicalAP242Fixture(t, "exact")
 	// These limits can hold exactly the two original material definitions.

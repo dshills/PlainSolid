@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestTessellateVerifiedNormalOffsetSweepChainPlacedClocks(t *testing.T) {
+	slowtest.Skip(t)
 	chain := authoredPlacedSweepMeshChain(t)
 	options := VerifiedSweepMeshOptions{Deflection: .43}
 	got, err := TessellateVerifiedNormalOffsetSweepChain(context.Background(), chain, options)

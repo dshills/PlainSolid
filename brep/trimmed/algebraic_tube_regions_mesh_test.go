@@ -3,10 +3,12 @@ package trimmed
 import (
 	"context"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCertifiedDisjointTubeRegionsFilled(t *testing.T) {
+	slowtest.Skip(t)
 	r := disjointRegionMeshFixture(t)
 	o := AlgebraicTubeRegionsMeshOptions{Boundary: AlgebraicTubeRegionsBoundaryOptions{Loop: AlgebraicTubeLensBoundaryOptions{Run: AlgebraicTubeRunMeshOptions{Display: RationalTubePolylineOptions{Deflection: .025}}}}, Component: AlgebraicTubeLensMeshOptions{Interior: CurvedQuadraticTrimMeshOptions{Deflection: .01}}}
 	m, e := r.TessellateDisjointClosedCertified(context.Background(), o)

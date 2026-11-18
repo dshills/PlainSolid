@@ -5,6 +5,7 @@ import (
 	"context"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/trimmed"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestImportedConicalRimFilletBoreCertifiedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const fixture = "/testdata/occt-conical-double-rim-eccentric-bore-exact."
 	read := func(path string) []byte {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 )
 
 func TestSubdivideClippedCommonLens(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for axis := range 2 {
 		for profile := range 2 {

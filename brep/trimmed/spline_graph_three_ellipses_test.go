@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -65,6 +66,7 @@ func threeEllipseVolume(order int, op parametric.BooleanOp) float64 {
 	}
 }
 func TestAutomaticThreeEllipseGraphBooleans(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := threeEllipseGraphFixture(t, false)
 	for order, pair := range [][2]*geom.BSplineSurface{{a, b}, {b, a}} {

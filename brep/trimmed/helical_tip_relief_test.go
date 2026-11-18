@@ -6,11 +6,13 @@ import (
 	"math"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestExternalHelicalTipRelief(t *testing.T) {
+	slowtest.Skip(t)
 	f, _ := geom.NewFrame(geom.Vec3{X: 2, Y: -1}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	for _, hand := range []geom.HelixHandedness{geom.LeftHanded, geom.RightHanded} {
 		recipe := HelicalGrooveRecipe{Frame: f, OuterRadius: 4, Height: 5, Profile: []geom.Vec2{{X: 3.5, Y: 1.125}, {X: 4, Y: 1}, {X: 4, Y: 1.25}}, Lead: 1, Start: .25, End: 2.25, Hand: hand, Starts: 2}

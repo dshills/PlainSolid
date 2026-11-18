@@ -5,10 +5,12 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCertifiedHelicalPolygonMultipleTurns(t *testing.T) {
+	slowtest.Skip(t)
 	frame, _ := geom.NewFrame(geom.Vec3{X: .125, Y: -.25, Z: 2}, geom.Vec3{Z: 1}, geom.Vec3{X: 1})
 	p := []geom.Vec2{{X: 1}, {X: 1.25}, {X: 1.25, Y: .125}, {X: 1.125, Y: .125}, {X: 1.125, Y: .25}, {X: 1, Y: .25}}
 	for _, hand := range []geom.HelixHandedness{geom.RightHanded, geom.LeftHanded} {

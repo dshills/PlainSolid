@@ -9,11 +9,13 @@ import (
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestOffsetSideOpenDualDiskCertifiedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, depth := range []float64{3, 6} {
 		for _, permuted := range []bool{false, true} {

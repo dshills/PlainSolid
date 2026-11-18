@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 )
 
 func TestCorrectedConicalRimFilletBoreIGES(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	original := conicalRimFilletBoreIGESFixture(t, "rounded")
 	if _, err := ReadConicalRimFilletBore(ctx, bytes.NewReader(original), Limits{}, geom.SurfacePatchOptions{}); err == nil {

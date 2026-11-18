@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 
@@ -52,6 +53,7 @@ func mappedChainCreasedHeight(x, y, knot, slope float64, extra [][2]float64) flo
 }
 
 func TestMappedSplineChainCreasedRoof(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r, closing, planar, seams := mappedChainClosedFixtureWithKnot(t, true)
 	shell, err := CertifyMappedSplineChainShell(ctx, r, closing, [2]bool{false, true}, planar, seams, MappedChainShellProofOptions{})

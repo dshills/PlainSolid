@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 	"time"
@@ -25,6 +26,7 @@ func anisotropicSTEPFixture(t testing.TB) []byte {
 	return b
 }
 func TestWrappedAnisotropicStationSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	raw := anisotropicSTEPFixture(t)
 	m, e := ReadWrappedAnisotropicStationLoft(bytes.NewReader(raw), Limits{}, WrappedSurfaceOptions{})
 	if e != nil {

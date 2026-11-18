@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/edgecheck"
@@ -336,6 +337,7 @@ func TestWrappedRationalDraftFrustum(t *testing.T) {
 }
 
 func TestSteppedCoaxialWrappedCylinders(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	aSupport, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 2, 4, o)

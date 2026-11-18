@@ -8,11 +8,13 @@ import (
 	"math/big"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestMergeAuthoredCurvedSeam(t *testing.T) {
+	slowtest.Skip(t)
 	for _, v := range []struct {
 		name    string
 		reverse bool

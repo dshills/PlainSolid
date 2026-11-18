@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
@@ -79,6 +80,7 @@ func regenerateAnisotropicAssembly(t testing.TB, source WrappedAnisotropicAssemb
 	return out.Bytes()
 }
 func TestWrappedAnisotropicStationAssemblies(t *testing.T) {
+	slowtest.Skip(t)
 	for _, bore := range []bool{false, true} {
 		t.Run(fmt.Sprint(bore), func(t *testing.T) {
 			ctx := context.Background()

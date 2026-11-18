@@ -3,10 +3,12 @@ package plaincadbridge
 import (
 	"encoding/base64"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestUnequalCrossedBoreScopeAndSTL(t *testing.T) {
+	slowtest.Skip(t)
 	b := New()
 	stock := box(t, b, vector{0, 0, 0}, vector{20, 24, 18})
 	x := circle(t, b, vector{0, 12, 9}, vector{1, 0, 0}, 4, 20)

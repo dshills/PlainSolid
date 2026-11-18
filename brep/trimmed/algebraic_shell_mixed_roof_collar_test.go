@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestMixedAllRoofCollarsAndClosedMesh(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, p, o := mixedWallFixture(t)
 	section, e := SectionSplineShellsMixedAlgebraic(ctx, a, b, p, o)

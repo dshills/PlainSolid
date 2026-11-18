@@ -7,12 +7,14 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
 )
 
 func TestWrappedAnisotropicPointOwners(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	body := anisotropicMassFixture(t, false, geom.Vec3{})

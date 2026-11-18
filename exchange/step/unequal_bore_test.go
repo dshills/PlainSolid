@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"regexp"
 	"strings"
 	"testing"
@@ -18,6 +19,7 @@ import (
 )
 
 func TestUnequalBoreSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for i, normal := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		for j, radii := range [][2]float64{{4, 2}, {2.25, 3.75}} {
 			t.Run(fmt.Sprintf("%d/%d", i, j), func(t *testing.T) {
@@ -192,6 +194,7 @@ func TestUnequalBoreSplineAgreement(t *testing.T) {
 }
 
 func TestSkewBoreSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for i, placement := range []struct {
 		normal geom.Vec3
 		x, z   float64

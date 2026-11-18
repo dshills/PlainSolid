@@ -6,11 +6,13 @@ import (
 	"errors"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestAlgebraicGraphOccurrenceWorldLines(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	source := graphMaterialBooleanFixture(t, false, false)
 	var pose [3][4]*big.Rat

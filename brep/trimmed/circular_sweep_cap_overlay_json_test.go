@@ -5,12 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestExactCircularSweepCapOverlaySourceReceipt(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b := circularSweepOverlayFixture()
 	var first, pretty, replay bytes.Buffer

@@ -5,10 +5,12 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/brep/edgecheck"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestSolidCertifiedRationalSplitCorner(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	source := solidNativeEllipseFixture(t)
 	split, history, err := source.SplitRationalEndpointQuadraticTrimEdge(ctx, 0, big.NewRat(1, 3), edgecheck.Options{})

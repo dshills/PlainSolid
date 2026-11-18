@@ -9,10 +9,12 @@ import (
 	"math/big"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestPiecewiseMappedSourceRepair(t *testing.T) {
+	slowtest.Skip(t)
 	for _, reverse := range []bool{false, true} {
 		prefix := "forward"
 		if reverse {

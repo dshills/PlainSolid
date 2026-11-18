@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"plainsolid/exchange/step"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -24,6 +25,7 @@ func rationalLensDocument(t testing.TB) *Document {
 	return d
 }
 func TestRationalLensDocument(t *testing.T) {
+	slowtest.Skip(t)
 	d := rationalLensDocument(t)
 	s, _ := d.Snapshot()
 	recipe := s.Labels["step:body-000001"].Attributes["step.lens.rational.recipe"].Text
@@ -68,6 +70,7 @@ func TestRationalLensDocument(t *testing.T) {
 	}
 }
 func TestRationalLensDocumentStale(t *testing.T) {
+	slowtest.Skip(t)
 	for _, kind := range []string{"binding", "model", "upper", "lower", "weight", "geometry", "ownership"} {
 		t.Run(kind, func(t *testing.T) {
 			s, _ := rationalLensDocument(t).Snapshot()
@@ -131,6 +134,7 @@ func TestRationalLensChangedAssetAfterReload(t *testing.T) {
 }
 
 func TestRationalLensDocumentBoundsAndStyle(t *testing.T) {
+	slowtest.Skip(t)
 	for _, kind := range []string{"recipe-bound", "bad-color", "extra-face-color"} {
 		s, _ := rationalLensDocument(t).Snapshot()
 		l := s.Labels["step:body-000001"]

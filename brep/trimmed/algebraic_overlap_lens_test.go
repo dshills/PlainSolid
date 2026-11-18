@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestOverlappingCurvedGraphLens(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	k := []float64{0, 0, 1, 1}
 	a, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{{}, {Y: 1}, {X: 1}, {X: 1, Y: 1, Z: 1.0 / 64}}, k, k, nil)

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 	"time"
@@ -23,6 +24,7 @@ func TestOCCTMappedChainRectangularThreeLocalSupportKnotCells(t *testing.T) {
 }
 
 func TestOCCTMappedChainRectangularThreeLocalSupportKnotCellsClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw, err := os.ReadFile(threeLocalCellMappedChainPath)
 	if err != nil {

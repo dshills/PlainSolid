@@ -4,12 +4,14 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestClippedCrossedBoreScopeAndSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for _, depth := range []float64{4.8, 6, 7.2} {
 		for _, opposite := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%g/%t", depth, opposite), func(t *testing.T) {

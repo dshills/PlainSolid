@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestSectionRepeatedRationalEllipseSplineGraphs(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	// In normalized original UV, B has height u*v and A has height u*v+q².
 	// The mixed term gives a rotated ellipse and its common model loop is

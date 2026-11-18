@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -12,6 +13,7 @@ import (
 )
 
 func TestNativeCuspidalCubicFuseAndCutAtLongitudinalKnot(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	src := cuspidalCubicStockWithLongitudinalKnot(t, .25)
 	// The common hinge adds 81/256 to the upper envelope. Its

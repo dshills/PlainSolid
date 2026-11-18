@@ -5,10 +5,12 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCertifiedPartialRevolvedPolygon(t *testing.T) {
+	slowtest.Skip(t)
 	frame, e := geom.NewFrame(geom.Vec3{X: 2, Y: 3, Z: 4}, geom.Vec3{Z: 1}, geom.Vec3{X: 1})
 	if e != nil {
 		t.Fatal(e)

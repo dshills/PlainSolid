@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestCertifiedTranslatedConicalFilletBoreSTEPFacetNormals(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw, err := os.ReadFile("../../exchange/step/testdata/occt-conical-double-rim-eccentric-bore-exact.step")
 	if err != nil {
@@ -110,6 +112,7 @@ func TestCertifiedTranslatedConicalFilletBoreSTEPFacetNormals(t *testing.T) {
 }
 
 func TestCertifiedTranslatedConicalFilletBoreAngularBudgetRefusesDistanceOnly(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stock, bore := translatedConicalFilletBoreStock(t, ctx)
 	o := trimmed.CertifiedWrappedFrustumMeshOptions{Patch: trimmed.CertifiedPatchMeshOptions{Deflection: 100, MaxSubdivisions: 1}}

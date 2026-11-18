@@ -6,11 +6,13 @@ import (
 	"math"
 	"plainsolid/brep/parametric"
 	"plainsolid/collision"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
 
 func TestPlainCADM3ThreadMesh(t *testing.T) {
+	slowtest.Skip(t)
 	b := New()
 	shaft := shape(t, b, map[string]any{"op": "revolvePolygon", "origin": vector{}, "direction": vector{0, 0, 1}, "angle": 2 * math.Pi, "outer": []vector{{0, 0, -12}, {1.5, 0, -12}, {1.5, 0, 0}, {2.75, 0, 0}, {2.75, 0, 3}, {0, 0, 3}}})
 	socket := shape(t, b, map[string]any{"op": "prism", "outer": []vector{{1.443375673, 0, 1.5}, {.7216878365, 1.25, 1.5}, {-.7216878365, 1.25, 1.5}, {-1.443375673, 0, 1.5}, {-.7216878365, -1.25, 1.5}, {.7216878365, -1.25, 1.5}}, "offset": vector{0, 0, 1.5}})

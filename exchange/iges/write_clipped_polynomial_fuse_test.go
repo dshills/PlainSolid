@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/trimmed"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestWriteClippedPolynomialFuse(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	input, err := os.Open("../testdata/native_clipped_polynomial_fuse.json")
 	if err != nil {

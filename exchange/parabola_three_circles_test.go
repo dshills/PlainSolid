@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strconv"
 	"testing"
 
@@ -22,6 +23,7 @@ import (
 )
 
 func TestParabolaThreeCirclesEnvelopeExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	proof := edgecheck.Options{}
 	full := hasThreeCirclesPinnedReader()
@@ -83,6 +85,7 @@ func TestParabolaThreeCirclesEnvelopeExchange(t *testing.T) {
 }
 
 func TestParabolaThreeCirclesCutExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	proof := edgecheck.Options{}
 	full := hasThreeCirclesPinnedReader()

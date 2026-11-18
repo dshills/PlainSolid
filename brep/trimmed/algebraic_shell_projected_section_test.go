@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestAlgebraicShellProjectedSharedBoundary(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, _ := transverseSplineCaps(t)
 	// A proper cyclic coordinate permutation maps the XY circle to the YZ plane.
@@ -82,6 +84,7 @@ func TestAlgebraicShellProjectedSharedBoundary(t *testing.T) {
 }
 
 func TestAlgebraicShellSectionRetainsAffinePlacement(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, _ := transverseSplineCaps(t)
 	// Reflect the cyclic YZ instance and translate it without replacing

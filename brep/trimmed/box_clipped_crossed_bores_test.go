@@ -6,6 +6,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -22,6 +23,7 @@ func clippedCrossOracle(r, h, dx, depth float64) (removed, delta, floor float64)
 	return
 }
 func TestBoxClippedCrossedBores(t *testing.T) {
+	slowtest.Skip(t)
 	for _, n := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		for _, h := range []float64{.5, 1, 1.2, 1.5} {
 			f, _ := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)

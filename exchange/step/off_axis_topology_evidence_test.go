@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -98,6 +99,7 @@ func FuzzOffAxisTopologyEvidence(f *testing.F) {
 }
 
 func TestOffAxisBoreEvidenceBundle(t *testing.T) {
+	slowtest.Skip(t)
 	b, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)

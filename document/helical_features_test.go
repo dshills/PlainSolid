@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -12,6 +13,7 @@ import (
 )
 
 func TestHelicalPartRecipesPersistAndRegenerate(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a := HelicalGrooveRecipe{
 		Origin: geom.Vec3{X: 1, Z: 2}, Radial: geom.Vec3{X: 1}, Axis: geom.Vec3{Z: 1},

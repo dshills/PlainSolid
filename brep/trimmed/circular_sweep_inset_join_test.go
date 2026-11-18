@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -30,6 +31,7 @@ func circularSweepInsetFixture() (ExactCircularSweep, ExactCircularSweep) {
 }
 
 func TestExactCircularSweepInsetOpeningsRetainOriginalFloor(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, name := range []string{"above", "below"} {
 		t.Run(name, func(t *testing.T) {

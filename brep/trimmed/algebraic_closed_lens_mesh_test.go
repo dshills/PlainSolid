@@ -7,10 +7,12 @@ import (
 	"math/big"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCertifiedClosedAlgebraicLensHalves(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	source := algebraicCapFixture(t, big.NewRat(9, 16))
 	before := source.Source.Vertices()

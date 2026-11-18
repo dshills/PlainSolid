@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -148,6 +149,7 @@ func checkRationalPosedRepairJSON[M rationalPosedPCurveRepairMaterial](t *testin
 }
 
 func TestRationalPosedPCurveRepairSourceJSON(t *testing.T) {
+	slowtest.Skip(t)
 	for _, fixture := range rationalTiltFixtures {
 		t.Run("single"+fixture.suffix, func(t *testing.T) {
 			checkRationalPosedRepairJSON(t, rationalTiltSource(t, fixture), rationalPosedPCurveRepairFormat, rationalPosedGroupedPCurveRepairFormat,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/edgecheck"
@@ -62,6 +63,7 @@ func disjointLoopRoof(t *testing.T) Solid {
 }
 
 func TestImprintDisjointClosedRoofLoops(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 1}, 0)
 	b := disjointLoopRoof(t)

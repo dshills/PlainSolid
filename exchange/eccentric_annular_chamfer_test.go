@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -22,6 +23,7 @@ import (
 )
 
 func TestEccentricAnnularChamferNeutralTransfer(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	wall := func(center geom.Vec3, lower, upper float64) *geom.WrappedSurfacePatch {

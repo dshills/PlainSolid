@@ -6,10 +6,12 @@ import (
 	"math"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestM3OverlappingEntryRelief(t *testing.T) {
+	slowtest.Skip(t)
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	for _, internal := range []bool{false, true} {
 		for _, hand := range []geom.HelixHandedness{geom.RightHanded, geom.LeftHanded} {

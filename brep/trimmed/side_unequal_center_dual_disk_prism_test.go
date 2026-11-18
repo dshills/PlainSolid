@@ -8,10 +8,12 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestUnequalCenterSideOpenDualDiskNative(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	ds := [2]ExtrusionCircle{{Center: geom.Vec2{X: 7, Y: -3}, Radius: 5}, {Center: geom.Vec2{X: 30, Y: -20}, Radius: 29}}
 	removed := 216.5*math.Pi - 409

@@ -8,10 +8,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestIndependentFrustumHierarchyNative(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	var source bytes.Buffer
 	if e := WriteIndependentFrustumHierarchy(ctx, &source, IndependentFrustumHierarchyModel(frustumHierarchyModel(t)), Limits{}, 1e-9); e != nil {

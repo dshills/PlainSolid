@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -138,6 +139,7 @@ func transverseSplineCapsDomain(t *testing.T, unit bool) (Solid, Solid, intersec
 }
 
 func TestCombineTransverseSplineShells(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, _ := transverseSplineCaps(t)
 	o := SplineShellTransverseOptions{}
@@ -171,6 +173,7 @@ func TestCombineTransverseSplineShells(t *testing.T) {
 }
 
 func TestCombineTransverseSplineShellsAdditionalOperations(t *testing.T) {
+	slowtest.Skip(t)
 	if testing.Short() {
 		t.Skip("closed transverse shell assembly")
 	}
@@ -198,6 +201,7 @@ func TestCombineTransverseSplineShellsAdditionalOperations(t *testing.T) {
 }
 
 func TestTransverseSplineContourArrangementRejectsOverlappingCharts(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, hints := transverseSplineCaps(t)
 	// Two separated instances give a controlled arrangement fixture with
@@ -335,6 +339,7 @@ func twoPeakSplineRoof(t *testing.T) (Solid, *geom.BSplineSurface) {
 }
 
 func TestTransverseSplineTwoClosedContours(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const r = 5.0 / 32
 	centers := []float64{.28125, .71875}
@@ -425,6 +430,7 @@ func TestTransverseSplineTwoClosedContours(t *testing.T) {
 }
 
 func TestTransverseSplineNestedArrangement(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	// Build nested contours independently, on two surfaces sharing the
 	// same identity XY projection. This exercises winding classification

@@ -5,10 +5,12 @@ import (
 	"errors"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestAlgebraicGraphExteriorTouchIndependent(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	q := big.NewRat
 	stock := makeWarpedSquareRationalGraphTube(t, 1./8)

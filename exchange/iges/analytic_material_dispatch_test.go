@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"plainsolid/brep/parametric"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -23,6 +24,7 @@ var analyticDispatchFixtures = []struct {
 }
 
 func TestAnalyticMaterialDispatch(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, fixture := range analyticDispatchFixtures {
 		for _, prefix := range []string{"", "placed-", "loop-start-", "loop-start-placed-"} {

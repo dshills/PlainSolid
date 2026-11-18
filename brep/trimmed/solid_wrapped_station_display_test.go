@@ -5,6 +5,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -15,6 +16,7 @@ import (
 )
 
 func TestPreparedWrappedStationDisplayCrease(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	embedding := geom.SurfacePatchOptions{}
 	stations := []WrappedLoftStation{{Z: 0, Radius: 3}, {Z: 1, Radius: 1}, {Z: 3, Radius: 2}}

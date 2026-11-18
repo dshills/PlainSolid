@@ -9,11 +9,13 @@ import (
 	"path/filepath"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestRationalIGESLens(t *testing.T) {
+	slowtest.Skip(t)
 	for _, name := range []string{"refined-curve-lens", "raw-curve-lens"} {
 		t.Run(name, func(t *testing.T) {
 			raw, e := os.ReadFile("testdata/" + name + ".igs")

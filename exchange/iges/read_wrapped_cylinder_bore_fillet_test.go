@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 
@@ -27,6 +28,7 @@ func readBoreRimOCCTFixture(t *testing.T, name string) []byte {
 }
 
 func TestReadWrappedCylinderBoreRimFilletOCCT(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, o := context.Background(), geom.SurfacePatchOptions{}
 	for _, c := range []struct {
 		name               string
@@ -142,6 +144,7 @@ func TestReadWrappedCylinderBoreRimFilletOCCT(t *testing.T) {
 }
 
 func TestReadWrappedCylinderBoreRimFilletStrict(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, o := context.Background(), geom.SurfacePatchOptions{}
 	raw := readBoreRimOCCTFixture(t, "both")
 	reject := func(t *testing.T, data []byte, l Limits) {

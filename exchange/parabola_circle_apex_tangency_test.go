@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -19,6 +20,7 @@ import (
 )
 
 func TestParabolaCircleApexTangencyEnvelopeExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const unit = .001
 	proof := edgecheck.Options{}
@@ -69,6 +71,7 @@ func TestParabolaCircleApexTangencyEnvelopeExchange(t *testing.T) {
 }
 
 func TestParabolaCircleApexTangencyCutExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const name, unit = "Parabola-circle tangent Cut", .001
 	proof := edgecheck.Options{}

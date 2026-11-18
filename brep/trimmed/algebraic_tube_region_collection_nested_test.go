@@ -7,6 +7,7 @@ import (
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/internal/testgraphfixture"
 	"plainsolid/intersect"
 	"sort"
@@ -97,6 +98,7 @@ func exactTripleRadialRegionFixture(t *testing.T) AlgebraicTubeRegions {
 }
 
 func TestCertifiedSelectedNestedDiskAnnulus(t *testing.T) {
+	slowtest.Skip(t)
 	if testing.Short() {
 		t.Skip("complete exact three-contour source and nested component fill")
 	}

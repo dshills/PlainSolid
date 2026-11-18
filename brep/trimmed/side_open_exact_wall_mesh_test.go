@@ -7,11 +7,13 @@ import (
 	"math/big"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestNonbinaryCircularWallCertifiedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	frame, _ := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	discs := [2]ExtrusionCircle{{Center: geom.Vec2{X: 20}, Radius: 13}, {Center: geom.Vec2{X: 24}, Radius: 15}}

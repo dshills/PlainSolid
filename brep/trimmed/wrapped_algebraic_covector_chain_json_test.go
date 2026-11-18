@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestWrappedAlgebraicCovectorChainJSON(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	ab, bc, h, outer := wrappedCovectorChainFixture(t)
 	s, e := NewWrappedAlgebraicCovectorChain(ctx, ab, bc, h, outer, geom.SurfaceAffineCoordinateOptions{})

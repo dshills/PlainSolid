@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -55,6 +56,7 @@ func polynomialTwoTangenciesEnvelopeMeasures(profile int, op parametric.BooleanO
 }
 
 func TestNativePolynomialTwoTangenciesEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for profile := 0; profile < 2; profile++ {
 		for axis := 0; axis < 2; axis++ {
@@ -240,6 +242,7 @@ func checkNativePolynomialTwoTangenciesEnvelope(t *testing.T, r *PolynomialTwoTa
 }
 
 func TestNativePolynomialTwoTangenciesEnvelopeRejections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativeTwoTangenciesFixture(t, 0, 0)
 	r, e := CombineSplineGraphPolynomialTwoTangencies(ctx, base, a, b, 0, parametric.Intersection, 1e-9, PolynomialTwoTangenciesEnvelopeOptions{})

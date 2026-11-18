@@ -10,11 +10,13 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestWrappedRoundedCylinderPastBlend(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	options := geom.SurfacePatchOptions{}
 	for _, radii := range [][2]float64{{.5, 1}, {1, .5}} {

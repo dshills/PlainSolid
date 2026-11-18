@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -127,6 +128,7 @@ func verifyExactJoinedSweepSlab(t *testing.T, got NormalOffsetSweepMassMoments, 
 }
 
 func TestVerifiedJoinedNormalOffsetSweepMomentsCurvedAndBudgets(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	sweeps := placedSweepChainFixture(t)
 	first, second := sweepChainPlacedJoins()

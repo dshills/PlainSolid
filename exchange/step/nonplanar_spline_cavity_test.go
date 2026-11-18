@@ -13,6 +13,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -25,6 +26,7 @@ func nonplanarCavityFixture(t testing.TB) []byte {
 	return b
 }
 func TestNonplanarSplineCavityOriginal(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := nonplanarCavityFixture(t)
 	m, e := ReadNonplanarSplineCavitySource(ctx, bytes.NewReader(raw), Limits{})
@@ -126,6 +128,7 @@ func TestNonplanarSplineCavityOriginal(t *testing.T) {
 	}
 }
 func TestNonplanarSplineCavityReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := nonplanarCavityFixture(t)
 	m, e := ReadNonplanarSplineCavitySource(ctx, bytes.NewReader(raw), Limits{})

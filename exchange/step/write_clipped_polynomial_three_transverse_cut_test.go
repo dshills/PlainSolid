@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/trimmed"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestWriteClippedPolynomialThreeTransverseCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, c := range []struct {
 		layout string

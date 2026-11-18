@@ -3,6 +3,7 @@ package plaincadbridge
 import (
 	"encoding/base64"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
@@ -101,6 +102,7 @@ func TestCrossedObliquePairWithSeparatedOppositeZOpenings(t *testing.T) {
 }
 
 func TestCrossedObliqueBoreCoordinatePlacements(t *testing.T) {
+	slowtest.Skip(t)
 	for _, axes := range [][2]geom.Vec3{
 		{{Z: 1}, {Y: 1}}, {{X: 1}, {Y: 1}}, {{Y: 1}, {X: 1}}, {{Z: 1}, {X: 1}},
 	} {
@@ -157,6 +159,7 @@ func TestCrossedObliqueBoreCoordinatePlacements(t *testing.T) {
 }
 
 func TestBlindCrossedObliqueBoreSTEPAndFurtherCut(t *testing.T) {
+	slowtest.Skip(t)
 	for _, opposite := range []bool{false, true} {
 		b := New()
 		stock := box(t, b, vector{}, vector{20, 16, 40})

@@ -5,10 +5,12 @@ import (
 	"context"
 	"math"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCertifiedWrappedStationSolid(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stations := []WrappedLoftStation{{Z: -2, Radius: 1}, {Z: -.5, Radius: 2}, {Z: 1, Radius: .75}, {Z: 3, Radius: 1.5}}
 	s, h, e := LoftWrappedCircularStations(ctx, geom.Vec2{X: .125, Y: -.25}, stations, 1e-8, geom.SurfacePatchOptions{})

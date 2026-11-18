@@ -4,10 +4,12 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestAnisotropicBoreAnnularSections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := anisotropicMeasuredBore(t)
 	r := big.NewRat

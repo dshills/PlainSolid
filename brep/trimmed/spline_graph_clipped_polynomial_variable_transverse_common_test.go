@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -47,6 +48,7 @@ func variableClippedCommonVolume(axis, layout int, gap, roots []*big.Rat) *big.R
 }
 
 func TestNativeClippedPolynomialVariableTransverseCommon(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialCubicCrossingTangencyEnvelopeOptions{}
 	for _, n := range []int{1, 4, 5} {

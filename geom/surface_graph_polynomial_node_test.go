@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestSplineGraphPolynomialNode(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, degree := range []int{3, 4} {
 		for _, axis := range []int{0, 1} {

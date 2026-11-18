@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -62,6 +63,7 @@ func rationalBezierGraphStockFrom(t *testing.T, height func(int, float64) float6
 }
 
 func TestRationalGraphPlaneQuadraticDenominator(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stock := rationalBezierGraphStockFrom(t, func(k int, y float64) float64 {
 		return (1 + float64(polynomialChoose(k, 2))/2) * y / 4
@@ -119,6 +121,7 @@ func TestRationalGraphPlaneQuadraticDenominator(t *testing.T) {
 }
 
 func TestRationalBezierGraphPlaneClip(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	tool, _ := makeOpenSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{2, 2, 3. / 16}, 0)
 	for _, n := range []int{3, 4} {
@@ -331,6 +334,7 @@ func TestRationalBezierGraphBoundaryDistance(t *testing.T) {
 }
 
 func TestPiecewiseRationalBezierGraphPlaneClip(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base := rationalBezierGraphStock(t, 3)
 	var faces []*geom.BSplineSurface

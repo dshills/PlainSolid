@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -183,6 +184,7 @@ func storedMixedWeightedKnotsFixture(t *testing.T) (Solid, int) {
 }
 
 func TestStoredMixedWeightedReversedCurvedKnots(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s, edge := storedMixedWeightedKnotsFixture(t)
 	var e error

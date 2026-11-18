@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 )
@@ -22,7 +23,10 @@ func TestReindexedEllipticalPrism(t *testing.T)  { testReindexedEllipsePrefix(t,
 func TestEllipticalLoopStart(t *testing.T)       { testReindexedEllipsePrefix(t, "loop-start-") }
 func TestEllipticalVertexListOrder(t *testing.T) { testReindexedEllipsePrefix(t, "vertex-order-") }
 func TestEllipticalEdgeListOrder(t *testing.T)   { testReindexedEllipsePrefix(t, "edge-order-") }
-func TestEllipticalShellFaceOrder(t *testing.T)  { testReindexedEllipsePrefix(t, "face-order-") }
+func TestEllipticalShellFaceOrder(t *testing.T) {
+	slowtest.Skip(t)
+	testReindexedEllipsePrefix(t, "face-order-")
+}
 func testReindexedEllipsePrefix(t *testing.T, prefix string) {
 	ctx := context.Background()
 	for _, name := range reindexedFixtureNames() {

@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestAffineTriangleCyclicFanJSON(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, count := range []int{5, 8} {
 		t.Run(string(rune('0'+count)), func(t *testing.T) {

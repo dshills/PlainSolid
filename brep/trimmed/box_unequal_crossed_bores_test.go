@@ -6,6 +6,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -57,6 +58,7 @@ func TestBoxUnequalCrossedBores(t *testing.T) {
 }
 
 func TestBoxUnequalCrossedBoresSignedAndSwapped(t *testing.T) {
+	slowtest.Skip(t)
 	d, c := geom.Vec3{X: 24, Y: 20, Z: 16}, geom.Vec3{X: 11, Y: 9, Z: 7}
 	for _, n := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		f, _ := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
@@ -115,6 +117,7 @@ func TestBoxUnequalCrossedBoresRejects(t *testing.T) {
 }
 
 func TestBoxUnequalCrossedBoresEmbedding(t *testing.T) {
+	slowtest.Skip(t)
 	f, _ := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, geom.Vec3{Z: 1})
 	r, e := BoxUnequalCrossedBores(context.Background(), f, geom.Vec3{X: 24, Y: 20, Z: 16}, geom.Vec3{X: 11, Y: 9, Z: 7}, 3, 2, 1e-9)
 	if e != nil {
@@ -204,6 +207,7 @@ func TestUnequalBoreTrimPairedSupportAndDerivative(t *testing.T) {
 }
 
 func TestBoxUnequalCrossedBoresAdaptive(t *testing.T) {
+	slowtest.Skip(t)
 	f, _ := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, geom.Vec3{Z: 1})
 	r, e := BoxUnequalCrossedBores(context.Background(), f, geom.Vec3{X: 24, Y: 20, Z: 16}, geom.Vec3{X: 11, Y: 9, Z: 7}, 4, 2, 1e-9)
 	if e != nil {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestAlgebraicShellImprintOpenCutAndClosedLoopOnSameFace(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	// The stock's left wall bisects one dome and is far from the other.
 	// Its lower plane receives an open semicircle and an independent
@@ -154,6 +156,7 @@ func TestAlgebraicShellImprintOpenCutAndClosedLoopOnSameFace(t *testing.T) {
 }
 
 func TestAlgebraicShellImprintMatchesIndependentMixedFixture(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{}, [3]float64{23.0 / 32, 1, 1}, 0)
 	b, _ := twoPeakSplineRoof(t)

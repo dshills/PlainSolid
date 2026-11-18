@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestNestedMixedConicalAP242Document(t *testing.T) {
+	slowtest.Skip(t)
 	raw, err := os.ReadFile("../exchange/step/testdata/occt-nested-mixed-conical-curved-ap242-exact.step")
 	if err != nil {
 		t.Fatal(err)

@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
@@ -61,6 +62,7 @@ func automaticEllipseGraphs(t *testing.T) (*geom.BSplineSurface, *geom.BSplineSu
 	return out[0], out[1], out[2]
 }
 func TestAutomaticRationalEllipseGraphBoolean(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := automaticEllipseGraphs(t)
 	// Complete exact conic fallback remains available when generic tracing cannot

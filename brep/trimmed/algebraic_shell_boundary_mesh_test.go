@@ -5,11 +5,13 @@ import (
 	"errors"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestAlgebraicShellBooleanSharedBoundary(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, hints := transverseSplineCaps(t)
 	o := AlgebraicShellSectionOptions{Seeds: []AlgebraicShellSectionSeed{{Faces: [2]int{0, 1}, Tubes: hints}}}

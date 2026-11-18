@@ -7,6 +7,7 @@ import (
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
@@ -206,6 +207,7 @@ func nonunitRadialTopologySeeds(t *testing.T, a, b *geom.BSplineSurface) interse
 }
 
 func TestNativeNonunitRadialAnnulus(t *testing.T) {
+	slowtest.Skip(t)
 	if testing.Short() {
 		t.Skip("complete non-unit two-circle native annulus")
 	}
@@ -286,6 +288,7 @@ func TestNativeNonunitRadialAnnulus(t *testing.T) {
 }
 
 func TestNonunitRadialExactTransfer(t *testing.T) {
+	slowtest.Skip(t)
 	if testing.Short() {
 		t.Skip("two-circle original exact transfer")
 	}

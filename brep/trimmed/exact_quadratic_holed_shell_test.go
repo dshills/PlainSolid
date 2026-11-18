@@ -7,10 +7,12 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestEmbeddedNativeHoledPrism(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	var faces []ExactQuadraticShellFace
 	var surfaces []*geom.BSplineSurface

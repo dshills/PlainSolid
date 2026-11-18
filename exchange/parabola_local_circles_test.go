@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/edgecheck"
@@ -26,6 +27,7 @@ const (
 )
 
 func TestParabolaLocalCirclesEnvelopeExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const name, unit = "Parabola and locally separated circles envelope", .001
 	for _, c := range []struct {
@@ -76,6 +78,7 @@ func TestParabolaLocalCirclesEnvelopeExchange(t *testing.T) {
 }
 
 func TestParabolaLocalCirclesCutExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const name, unit = "Parabola and locally separated circles Cut", .001
 	proof := edgecheck.Options{}

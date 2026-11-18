@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
@@ -59,6 +60,7 @@ func writeRationalAnisotropicTest(ctx context.Context, w io.Writer, a RationalWr
 	return WriteRationalWrappedAnisotropicStationAssembly(ctx, w, a, Limits{}, WrappedSurfaceOptions{})
 }
 func TestWriteRationalAnisotropicAssembly(t *testing.T) {
+	slowtest.Skip(t)
 	for _, bore := range []bool{false, true} {
 		raw := rationalAnisotropicFixture(t)
 		if bore {
@@ -116,6 +118,7 @@ func TestWriteRationalAnisotropicAssembly(t *testing.T) {
 	}
 }
 func TestWriteRationalAnisotropicReject(t *testing.T) {
+	slowtest.Skip(t)
 	for _, bore := range []bool{false, true} {
 		raw := rationalAnisotropicFixture(t)
 		if bore {

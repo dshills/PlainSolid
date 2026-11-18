@@ -6,12 +6,14 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestProvedSTEPRevolutionImportAndSourceExport(t *testing.T) {
+	slowtest.Skip(t)
 	for _, tc := range []struct {
 		name   string
 		volume float64

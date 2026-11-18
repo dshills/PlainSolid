@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 
@@ -37,6 +38,7 @@ func mappedChainThreeKnotFixture(t *testing.T) MappedSplineChainShell {
 }
 
 func TestMappedSplineChainThreeSupportKnotsRebuild(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	source := mappedChainThreeKnotFixture(t)
 	var raw, replay bytes.Buffer

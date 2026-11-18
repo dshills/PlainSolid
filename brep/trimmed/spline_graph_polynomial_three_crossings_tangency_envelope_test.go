@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -43,6 +44,7 @@ func polynomialThreeCrossingsTangencyMeasures(tangent int, op parametric.Boolean
 }
 
 func TestNativePolynomialThreeCrossingsTangencyEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for tangent := 0; tangent < 4; tangent++ {
 		for axis := 0; axis < 2; axis++ {
@@ -231,6 +233,7 @@ func checkThreeCrossingsTangencyEnvelope(t *testing.T, r *PolynomialThreeCrossin
 }
 
 func TestNativePolynomialThreeCrossingsTangencyEnvelopeRejections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativeThreeCrossingsTangencyFixture(t, 0, 1, 8)
 	r, e := CombineSplineGraphPolynomialThreeCrossingsTangency(ctx, base, a, b, 0, parametric.Intersection, 1e-9, PolynomialThreeCrossingsTangencyEnvelopeOptions{})

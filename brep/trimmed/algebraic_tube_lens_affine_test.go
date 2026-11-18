@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
@@ -11,6 +12,7 @@ import (
 )
 
 func TestAlgebraicTubeLensIndependentAffineCharts(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	k := []float64{0, 0, 1, 1}
 	// Model XY=(2*u,3*v) has Jacobian six.

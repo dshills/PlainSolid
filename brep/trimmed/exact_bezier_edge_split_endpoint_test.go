@@ -10,6 +10,7 @@ import (
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -51,6 +52,7 @@ func weightedEndpointFixture(t *testing.T) (Solid, int, map[int]SplineUV) {
 }
 
 func TestSplitWeightedExactEndpoints(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s, edge, authored := weightedEndpointFixture(t)
 	cut := big.NewRat(1, 3)

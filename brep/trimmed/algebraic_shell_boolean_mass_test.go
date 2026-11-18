@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -63,6 +64,7 @@ func TestAlgebraicShellMassBoundsSignedTranslation(t *testing.T) {
 }
 
 func TestAlgebraicShellMassBoundsClippedLens(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, hints := transverseSplineCaps(t)
 	o := AlgebraicShellSectionOptions{Seeds: []AlgebraicShellSectionSeed{{Faces: [2]int{0, 1}, Tubes: hints}}}

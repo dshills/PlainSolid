@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -81,6 +82,7 @@ func cubicCrossingTangencyBranches(profile int) func(float64) (f, g, df, dg floa
 }
 
 func TestNativePolynomialCubicCrossingTangencyEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for profile := 0; profile < 2; profile++ {
 		for axis := 0; axis < 2; axis++ {
@@ -266,6 +268,7 @@ func checkNativePolynomialCubicCrossingTangencyEnvelope(t *testing.T, r *Polynom
 }
 
 func TestNativePolynomialCubicCrossingTangencyEnvelopeRejections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativeCubicCrossingTangencyFixture(t, 0, 0)
 	r, e := CombineSplineGraphPolynomialCubicCrossingTangency(ctx, base, a, b, 0, parametric.Intersection, 1e-9, PolynomialCubicCrossingTangencyEnvelopeOptions{})

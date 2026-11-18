@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestOffAxisRimLiftPair(t *testing.T) {
+	slowtest.Skip(t)
 	raw, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)

@@ -6,11 +6,13 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestGraphRefinedObliqueWholeVolume(t *testing.T) {
+	slowtest.Skip(t)
 	s := graphMaterialBooleanFixture(t, false, true)
 	axes := [2]int{0, 2}
 	ctx := context.Background()

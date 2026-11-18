@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -147,6 +148,7 @@ func TestRationalGraphSplineShellAffineExactTerminals(t *testing.T) {
 }
 
 func TestRationalGraphSplineShellThroughHoleRegions(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := makeSquareRationalGraphTube(t)
 	domain := geom.ParameterRectangle{UMax: 1, VMax: 1}

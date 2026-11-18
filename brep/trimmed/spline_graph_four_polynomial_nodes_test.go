@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -135,6 +136,7 @@ func polynomialPairSourceEnvelopeAreaOnVectors(fuse bool, stations []float64, br
 }
 
 func TestNativeFourPolynomialNodeEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for axis := 0; axis < 2; axis++ {
 		base, a, b := nativeFourPolynomialNodeFixture(t, axis, 8)
@@ -311,6 +313,7 @@ func checkNativeFourPolynomialNodeEnvelope(t *testing.T, r *FourPolynomialNodeEn
 }
 
 func TestNativeFourPolynomialNodeEnvelopeRejections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativeFourPolynomialNodeFixture(t, 0, 8)
 	r, e := CombineSplineGraphFourPolynomialNodes(ctx, base, a, b, 0, parametric.Union, 1e-9, FourPolynomialNodeEnvelopeOptions{})

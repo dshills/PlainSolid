@@ -5,6 +5,7 @@ import (
 	"context"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestEditNestedMixedConicalAP242STEP(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := nestedMixedConicalAP242Fixture(t, "exact")
 	name := "Plant A's annulus"
@@ -93,6 +95,7 @@ func TestEditNestedMixedConicalAP242STEP(t *testing.T) {
 }
 
 func TestEditNestedMixedConicalAP242STEPReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := nestedMixedConicalAP242Fixture(t, "exact")
 	name := "new"

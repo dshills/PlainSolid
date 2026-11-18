@@ -5,10 +5,12 @@ import (
 	"context"
 	"os"
 	"plainsolid/brep/trimmed"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestExactEllipticalPrismCollection(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/occt-exact-ellipse-collection.step")
 	if e != nil {

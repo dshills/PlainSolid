@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -17,6 +18,7 @@ import (
 )
 
 func TestCertifiedParabolaCircleApexTangencyCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	options := ParabolaCircleGraphOptions{}
 	volume := [2][2]float64{

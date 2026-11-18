@@ -6,20 +6,27 @@ import (
 	"math"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
 
 func TestCertifiedDisjointBooleanLensFill(t *testing.T) {
+	slowtest.Skip(t)
 	checkDisjointBooleanLensFill(t, false, 0)
 }
 func TestCertifiedExactOwnerDisjointBooleanLensFill(t *testing.T) {
+	slowtest.Skip(t)
 	checkDisjointBooleanLensFill(t, true, 0)
 }
 func TestCertifiedYZDisjointBooleanLensFill(t *testing.T) {
+	slowtest.Skip(t)
 	checkDisjointBooleanLensFill(t, false, 1)
 }
-func TestCertifiedXZDisjointBooleanLensFill(t *testing.T) { checkDisjointBooleanLensFill(t, false, 2) }
+func TestCertifiedXZDisjointBooleanLensFill(t *testing.T) {
+	slowtest.Skip(t)
+	checkDisjointBooleanLensFill(t, false, 2)
+}
 func checkDisjointBooleanLensFill(t *testing.T, exact bool, projection int) {
 	rotated := projection != 0
 	ctx := context.Background()

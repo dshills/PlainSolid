@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -25,6 +26,7 @@ func polynomialTangencyCutVolumes(order int) [2]float64 {
 }
 
 func TestNativePolynomialTangencyCutComponents(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, axis := range []int{0, 1} {
 		base, a, b := nativePolynomialTangencyFixture(t, axis, 2, 1)
@@ -130,6 +132,7 @@ func checkNativePolynomialTangencyCut(t *testing.T, cut *PolynomialTangencyCut, 
 }
 
 func TestNativePolynomialTangencyCutRejectsChangedRecipe(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativePolynomialTangencyFixture(t, 0, 2, 1)
 	cut, e := CutSplineGraphPolynomialTangencyComponents(ctx, base, a, b, 0, 1e-9, PolynomialNodeCutOptions{})

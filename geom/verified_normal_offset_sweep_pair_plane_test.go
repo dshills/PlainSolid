@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -121,6 +122,7 @@ func TestVerifiedNormalOffsetSweepPairPreservesCartesianJoinJSON(t *testing.T) {
 }
 
 func TestVerifiedNormalOffsetSweepPairRefusesBadObliquePlanes(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b := obliqueSweepPairSources(t, false)
 	tangentA, tangentB := obliqueSweepPairSources(t, true)

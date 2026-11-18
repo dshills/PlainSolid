@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -53,6 +54,7 @@ func polynomialSimpleCubicCrossingsEnvelopeMeasures(profile int, op parametric.B
 }
 
 func TestNativePolynomialSimpleCubicCrossingsEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for profile := 0; profile < 2; profile++ {
 		for axis := 0; axis < 2; axis++ {
@@ -227,6 +229,7 @@ func checkNativePolynomialSimpleCubicCrossingsEnvelope(t *testing.T, r *Polynomi
 }
 
 func TestNativePolynomialSimpleCubicCrossingsEnvelopeRejections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativeSimpleCubicCrossingsFixture(t, 0, 0)
 	r, e := CombineSplineGraphPolynomialSimpleCubicCrossings(ctx, base, a, b, 0, parametric.Intersection, 1e-9, PolynomialSimpleCubicCrossingsEnvelopeOptions{})

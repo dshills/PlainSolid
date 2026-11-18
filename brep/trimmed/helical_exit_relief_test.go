@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 )
 
 func TestGrooveTubeWithBothEndReliefs(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	frame, _ := geom.NewFrame(geom.Vec3{X: 3, Y: -2, Z: 1}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	r := HelicalGrooveRecipe{

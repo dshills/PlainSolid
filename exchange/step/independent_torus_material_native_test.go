@@ -8,10 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestIndependentToroidalMaterialsNative(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	source, e := os.ReadFile("testdata/independent-model-torus.step")
 	if e != nil {

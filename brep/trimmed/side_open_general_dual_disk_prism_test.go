@@ -8,10 +8,12 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestGeneralSideOpenDiskNative(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	ds := [2]ExtrusionCircle{{Center: geom.Vec2{X: 20}, Radius: 5}, {Center: geom.Vec2{X: 24.5}, Radius: 8.5}}
 	for _, sign := range []float64{1, -1} {

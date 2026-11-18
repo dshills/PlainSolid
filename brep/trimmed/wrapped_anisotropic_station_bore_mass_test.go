@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -135,6 +136,7 @@ func independentAnisotropicBoreMoments(n int) [10]float64 {
 }
 
 func TestAnisotropicBoreMassAndInertia(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := anisotropicMeasuredBore(t)
 	o := WrappedAnisotropicBoreMassOptions{VolumeTolerance: big.NewRat(1, 100), InertiaTolerance: big.NewRat(1, 10), MaxOperations: 4000000}

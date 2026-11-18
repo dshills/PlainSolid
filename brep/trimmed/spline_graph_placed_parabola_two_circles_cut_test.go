@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
@@ -35,6 +36,7 @@ func placeParabolaTwoCirclesTestStock(t *testing.T, contacts [3]*geom.BSplineSur
 }
 
 func TestPlacedParabolaTwoCirclesOriginalCutDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	source := authoredPlacedParabolaTwoCirclesStock(t)
 	volumes := [2][]float64{

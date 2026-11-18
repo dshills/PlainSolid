@@ -7,6 +7,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -74,6 +75,7 @@ func checkPartialSkew(t *testing.T, axis geom.Vec3, a, b, d float64, display boo
 	}
 }
 func TestBoxPartialSkewBores(t *testing.T) {
+	slowtest.Skip(t)
 	for i, n := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		for _, d := range []float64{5, -5} {
 			t.Run(fmt.Sprintf("%d/%g", i, d), func(t *testing.T) { checkPartialSkew(t, n, 5, 4, d, i == 0 || i == 2 && d == 5) })

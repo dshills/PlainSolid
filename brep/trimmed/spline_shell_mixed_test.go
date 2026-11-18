@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -16,6 +17,7 @@ import (
 // an open arc on that very face and an arc on the right wall. Their model
 // sections never touch, and the exact common volume is 3/2 of a single lobe.
 func TestCombineSplineShellsMixedOpenAndClosed(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{.71875, 1, 1}, 0)
 	b, _ := twoPeakSplineRoof(t)
@@ -43,6 +45,7 @@ func TestCombineSplineShellsMixedOpenAndClosed(t *testing.T) {
 }
 
 func TestDiscoverMixedSplineShellSections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{.71875, 1, 1}, 0)
 	b, _ := twoPeakSplineRoof(t)

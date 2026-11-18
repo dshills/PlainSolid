@@ -5,10 +5,12 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestClosedMultiSpanCurvedLensHalves(t *testing.T) {
+	slowtest.Skip(t)
 	for _, crease := range []bool{false, true} {
 		source := algebraicCapSpansFixture(t, big.NewRat(9, 16), 1, true, crease)
 		o := MultiSpanClosedLensMeshOptions{Closed: ClosedAlgebraicLensMeshOptions{Boundary: AlgebraicLensBoundaryOptions{Display: geom.ComposedCurvePolylineOptions{Deflection: .001}}, Interior: CurvedQuadraticTrimMeshOptions{Deflection: .01}}}

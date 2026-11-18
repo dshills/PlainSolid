@@ -10,10 +10,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestReadOffsetSideOpenDualDiskProduct(t *testing.T) {
+	slowtest.Skip(t)
 	for _, through := range []bool{false, true} {
 		for _, swap := range []bool{false, true} {
 			for _, posed := range []bool{false, true} {

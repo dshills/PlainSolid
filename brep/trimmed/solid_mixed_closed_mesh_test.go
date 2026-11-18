@@ -4,10 +4,12 @@ import (
 	"context"
 	"math"
 	"plainsolid/collision"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestStoredMixedClosedDisplays(t *testing.T) {
+	slowtest.Skip(t)
 	for _, lens := range []bool{true, false} {
 		s := solidEllipticalLensFixture(t)
 		if !lens {

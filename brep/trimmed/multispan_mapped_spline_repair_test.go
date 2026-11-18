@@ -6,10 +6,12 @@ import (
 	"math/big"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestMultiSpanMappedRepair(t *testing.T) {
+	slowtest.Skip(t)
 	for _, rev := range []bool{false, true} {
 		for _, local := range []*big.Rat{big.NewRat(1, 8), big.NewRat(1, 4), big.NewRat(3, 8), big.NewRat(5, 8), big.NewRat(13, 16)} {
 			t.Run(local.String()+map[bool]string{false: "forward", true: "reverse"}[rev], func(t *testing.T) {

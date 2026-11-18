@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -27,6 +28,7 @@ const (
 )
 
 func TestMixedConicalAP242DAGAppearanceDocument(t *testing.T) {
+	slowtest.Skip(t)
 	raw, d := openMixedConicalDAGAppearanceDocument(t)
 	ctx, o := context.Background(), geom.SurfacePatchOptions{}
 	s, _ := d.Snapshot()
@@ -76,6 +78,7 @@ func TestMixedConicalAP242DAGAppearanceDocument(t *testing.T) {
 }
 
 func TestMixedConicalAP242DAGAppearanceDocumentWrite(t *testing.T) {
+	slowtest.Skip(t)
 	raw, d := openMixedConicalDAGAppearanceDocument(t)
 	ctx, l, o := context.Background(), mixedConicalAppearanceLimits(), geom.SurfacePatchOptions{}
 	base, _ := d.Snapshot()
@@ -145,6 +148,7 @@ func TestMixedConicalAP242DAGAppearanceDocumentWrite(t *testing.T) {
 }
 
 func TestMixedConicalAP242DAGAppearanceDocumentReject(t *testing.T) {
+	slowtest.Skip(t)
 	raw, d := openMixedConicalDAGAppearanceDocument(t)
 	ctx, l, o := context.Background(), mixedConicalAppearanceLimits(), geom.SurfacePatchOptions{}
 	for _, tc := range []struct {

@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -139,6 +140,7 @@ func hierarchyChain(m IndependentAnalyticHierarchyModel, n int) IndependentAnaly
 	return m
 }
 func TestIndependentAnalyticHierarchyBounds(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	m := hierarchyChain(independentAnalyticHierarchyModel(t), 5)
 	var out bytes.Buffer

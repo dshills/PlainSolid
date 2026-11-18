@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -65,6 +66,7 @@ func rectangularPolynomialEnvelopeMeasures(t *testing.T, axis, profile int, op p
 }
 
 func TestNativeRectangularPolynomialEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialCubicCrossingTangencyEnvelopeOptions{}
 	for profile := 0; profile < 2; profile++ {

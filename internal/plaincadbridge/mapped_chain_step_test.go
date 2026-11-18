@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 )
 
 func TestOrderedMappedSTEPRepairBridge(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := stepRepairFixture(t, "occt_mapped_chain_ordered_joined_independent_roofs")
 	bad := stepRepairFixture(t, "occt_mapped_chain_ordered_joined_moved_joint")

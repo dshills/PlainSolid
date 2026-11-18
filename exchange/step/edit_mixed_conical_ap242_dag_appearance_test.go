@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -11,6 +12,7 @@ import (
 )
 
 func TestEditMixedConicalAP242DAGAppearanceSharedPlacementDatum(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, options := context.Background(), geom.SurfacePatchOptions{}
 	l := MixedConicalAP242DAGLimits{}
 	raw := mixedDAGAppearanceFixture(t)
@@ -49,6 +51,7 @@ func TestEditMixedConicalAP242DAGAppearanceSharedPlacementDatum(t *testing.T) {
 }
 
 func TestEditMixedConicalAP242DAGAppearanceReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, options := context.Background(), geom.SurfacePatchOptions{}
 	l := MixedConicalAP242DAGLimits{}
 	raw := mixedDAGAppearanceFixture(t)

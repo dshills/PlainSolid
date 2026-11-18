@@ -7,11 +7,13 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestAlgebraicGraphOccurrenceRationalArea(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	source := graphMaterialBooleanFixture(t, false, false)
 	emptyPose := func() (p [3][4]*big.Rat) {

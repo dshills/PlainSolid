@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strconv"
 	"testing"
@@ -162,10 +163,12 @@ func checkThreeConvertedConvexArc(t *testing.T, raw []byte, tc threeConvertedFix
 }
 
 func TestRepairThreeConvertedMetreConvexArcSource(t *testing.T) {
+	slowtest.Skip(t)
 	checkThreeConvertedConvexArcSource(t, threeConvertedMetre)
 }
 
 func TestRepairThreeConvertedInchConvexArcSource(t *testing.T) {
+	slowtest.Skip(t)
 	checkThreeConvertedConvexArcSource(t, threeConvertedInch)
 }
 

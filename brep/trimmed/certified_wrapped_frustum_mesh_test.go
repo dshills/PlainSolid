@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -38,6 +39,7 @@ func certifiedWrappedFrustumFixture(t *testing.T, circular bool, upper float64) 
 	return out
 }
 func TestCertifiedClosedWrappedFrustum(t *testing.T) {
+	slowtest.Skip(t)
 	for _, tc := range []struct {
 		name     string
 		circular bool

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -15,6 +16,7 @@ import (
 )
 
 func TestNativeNestedMixedCavityDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	outer := testWarpedSplinePrism(t, false, false)

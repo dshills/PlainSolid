@@ -4,11 +4,13 @@ import (
 	"context"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestNativeTubeRegionComponentsSingleLens(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, hints := transverseSplineCaps(t)
 	options := AlgebraicShellSectionOptions{Seeds: []AlgebraicShellSectionSeed{{Faces: [2]int{0, 1}, Tubes: hints}}}

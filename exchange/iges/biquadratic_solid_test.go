@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
@@ -65,6 +66,7 @@ func TestBiquadraticSolid(t *testing.T) {
 }
 
 func TestBiquadraticSolidRejects(t *testing.T) {
+	slowtest.Skip(t)
 	raw, e := os.ReadFile("testdata/biquadratic-solid.igs")
 	if e != nil {
 		t.Fatal(e)

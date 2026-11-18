@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -27,6 +28,7 @@ func foreignBoreRimSTEP(t *testing.T, name string) []byte {
 }
 
 func TestReadWrappedCylinderBoreRimFilletOCCT(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, opt := context.Background(), geom.SurfacePatchOptions{}
 	raw := foreignBoreRimSTEP(t, "upper")
 	result, err := ReadWrappedCylinderBoreRimFillet(ctx, bytes.NewReader(raw), Limits{}, opt)
@@ -119,6 +121,7 @@ func TestReadWrappedCylinderBoreRimFilletOCCT(t *testing.T) {
 }
 
 func TestReadWrappedCylinderBoreRimFilletStrict(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, opt := context.Background(), geom.SurfacePatchOptions{}
 	raw := foreignBoreRimSTEP(t, "upper")
 	reject := func(t *testing.T, raw []byte, l Limits) {

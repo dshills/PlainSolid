@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -20,10 +21,12 @@ import (
 )
 
 func TestEccentricAnnularFrustumFourRimChamfers(t *testing.T) {
+	slowtest.Skip(t)
 	checkEccentricAnnularFrustumFourRimChamfers(t, geom.Vec2{X: 2.5}, nil)
 }
 
 func TestDiagonalEccentricAnnularFrustumFourRimChamfers(t *testing.T) {
+	slowtest.Skip(t)
 	checkEccentricAnnularFrustumFourRimChamfers(t, geom.Vec2{X: 1.5, Y: 2}, []string{"diagonal"})
 }
 

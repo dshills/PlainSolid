@@ -5,10 +5,12 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestAnisotropicBoreCapDistance(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := anisotropicMeasuredBore(t)
 	r := big.NewRat
@@ -56,6 +58,7 @@ func TestAnisotropicBoreCapDistance(t *testing.T) {
 }
 
 func TestAnisotropicBoreVoidDistance(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	build := func(scale [2]float64) Solid {

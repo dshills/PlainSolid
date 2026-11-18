@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"strings"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestRepairMixedConicalAP242DAG(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := mixedConicalAP242DAGFixture(t, "rounded")
 	limits := MixedConicalAP242DAGLimits{MaxOccurrenceDepth: 3, MaxLeafInstances: 7}
@@ -111,6 +113,7 @@ func TestRepairMixedConicalAP242DAGReject(t *testing.T) {
 }
 
 func TestRepairedMixedConicalAP242DAGReceipt(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := mixedConicalAP242DAGFixture(t, "rounded")
 	m, err := RepairMixedConicalAP242DAG(ctx, bytes.NewReader(raw), MixedConicalAP242DAGLimits{}, MixedConicalAP242DAGRepairOptions{3e-12})

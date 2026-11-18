@@ -8,6 +8,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
@@ -37,6 +38,7 @@ func solidEllipticalLensFixture(t *testing.T) Solid {
 	return s
 }
 func TestSolidCertifiedNativeEllipticalLensAdapter(t *testing.T) {
+	slowtest.Skip(t)
 	s := solidEllipticalLensFixture(t)
 	o := SolidExactQuadraticMeshOptions{Shell: ExactQuadraticShellMeshOptions{Join: ExactQuadraticFaceJoinOptions{Face: ExactQuadraticRegionMeshOptions{Face: MultiSpanCurvedTrimMeshOptions{Mesh: CurvedQuadraticTrimMeshOptions{Deflection: .02}}}}}}
 	got, e := s.TessellateExactQuadraticShellCertified(context.Background(), o)

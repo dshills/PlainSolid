@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -15,6 +16,7 @@ import (
 )
 
 func TestMixedConicalAP242DAGDocument(t *testing.T) {
+	slowtest.Skip(t)
 	raw, err := os.ReadFile("../exchange/step/testdata/occt-dag-mixed-conical-curved-ap242-exact.step")
 	if err != nil {
 		t.Fatal(err)
@@ -90,6 +92,7 @@ func TestMixedConicalAP242DAGDocument(t *testing.T) {
 }
 
 func TestMixedConicalAP242DAGDocumentWrite(t *testing.T) {
+	slowtest.Skip(t)
 	raw, err := os.ReadFile("../exchange/step/testdata/occt-dag-mixed-conical-curved-ap242-exact.step")
 	if err != nil {
 		t.Fatal(err)

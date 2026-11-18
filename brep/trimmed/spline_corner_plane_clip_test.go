@@ -7,10 +7,12 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestSplineCornerPlaneClip(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	fan := cornerLedgerFixture(t)
 	partial, e := DiagnoseSplineCornerSections(ctx, fan, SplineCornerSectionLedgerOptions{})

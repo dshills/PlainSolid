@@ -13,6 +13,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -26,6 +27,7 @@ func posedGroupedSource(t *testing.T, pose string) []byte {
 	return b
 }
 func TestRepairPosedGroupedPCurve(t *testing.T) {
+	slowtest.Skip(t)
 	for _, pose := range []string{"x", "minus-x", "translated"} {
 		t.Run(pose, func(t *testing.T) {
 			ctx := context.Background()

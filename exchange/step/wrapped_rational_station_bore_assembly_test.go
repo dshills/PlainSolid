@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
@@ -30,6 +31,7 @@ func weightedBoreAssemblyModel(m WrappedRationalStationBoreAssembly) WrappedRati
 	return q
 }
 func TestWrappedRationalStationBoreAssembly(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := weightedBoreAssemblyFixture(t)
 	m, e := ReadWrappedRationalStationBoreAssembly(ctx, bytes.NewReader(raw), Limits{}, WrappedSurfaceOptions{})

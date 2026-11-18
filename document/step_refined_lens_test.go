@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"plainsolid/exchange/step"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -67,6 +68,7 @@ func TestRefinedLensDocument(t *testing.T) {
 	}
 }
 func TestRefinedLensDocumentStale(t *testing.T) {
+	slowtest.Skip(t)
 	for _, kind := range []string{"binding", "model", "upper", "lower", "weight", "geometry", "ownership"} {
 		t.Run(kind, func(t *testing.T) {
 			s, _ := refinedLensDocument(t).Snapshot()

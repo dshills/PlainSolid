@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
@@ -95,7 +96,7 @@ func rationalAssemblyRoundtrip(t testing.TB) []byte {
 
 	return out.Bytes()
 }
-func TestRationalLensAssemblyDocument(t *testing.T) { rationalAssemblyRoundtrip(t) }
+func TestRationalLensAssemblyDocument(t *testing.T) { slowtest.Skip(t); rationalAssemblyRoundtrip(t) }
 func TestRationalLensAssemblyDocumentStale(t *testing.T) {
 	for _, kind := range []string{"source", "member", "nonrigid", "lineage"} {
 		t.Run(kind, func(t *testing.T) {

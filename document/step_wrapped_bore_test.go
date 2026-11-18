@@ -9,11 +9,13 @@ import (
 	"os/exec"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
 
 func TestWrappedBoreDocumentRecovery(t *testing.T) {
+	slowtest.Skip(t)
 	for _, name := range []string{"wrapped-frustum", "wrapped-tube", "wrapped-blind-bore", "wrapped-cavity", "wrapped-shoulder", "wrapped-toroidal-void"} {
 		t.Run(name, func(t *testing.T) {
 			raw, e := os.ReadFile("../exchange/step/testdata/" + name + ".step")

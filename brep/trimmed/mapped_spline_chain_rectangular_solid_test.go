@@ -5,6 +5,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/edgecheck"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestMappedSplineChainRectangularSolid(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	boundary, closing, planar, seams := mappedChainClosedFixture(t)
 	shell, err := CertifyMappedSplineChainShell(ctx, boundary, closing, [2]bool{false, true}, planar, seams, MappedChainShellProofOptions{})

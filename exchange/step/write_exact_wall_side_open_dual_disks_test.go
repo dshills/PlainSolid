@@ -13,6 +13,7 @@ import (
 	"plainsolid/brep/trimmed"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -33,6 +34,7 @@ func exactWallSideDiskDescriptor(t *testing.T, through, swap, posed bool) ExactW
 	return d
 }
 func TestWriteExactWallSideOpenDualDiskProduct(t *testing.T) {
+	slowtest.Skip(t)
 	for _, through := range []bool{false, true} {
 		for _, swap := range []bool{false, true} {
 			for _, posed := range []bool{false, true} {

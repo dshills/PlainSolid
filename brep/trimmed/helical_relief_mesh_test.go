@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"plainsolid/brep/parametric"
+	"plainsolid/internal/slowtest"
 
 	"plainsolid/collision"
 	"plainsolid/geom"
@@ -10,6 +11,7 @@ import (
 )
 
 func TestHelicalReliefNativeDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	f, _ := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	for _, tube := range []bool{true, false} {
 		r := HelicalGrooveRecipe{Frame: f, OuterRadius: 4, Height: 2, Lead: 1, Start: .25, End: .75, Hand: geom.RightHanded, Starts: 1}

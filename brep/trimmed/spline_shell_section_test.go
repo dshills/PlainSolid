@@ -3,12 +3,14 @@ package trimmed
 import (
 	"context"
 	"errors"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestSectionSplineShellsWireGraph(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, sections := multipleOpenSplineFixture(t)
 	for _, o := range []SplineShellCombineOptions{{}, {Sections: sections}} {

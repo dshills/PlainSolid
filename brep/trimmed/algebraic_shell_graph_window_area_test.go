@@ -6,10 +6,12 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestGraphWindowSurfaceAreaSigned(t *testing.T) {
+	slowtest.Skip(t)
 	s := graphMaterialBooleanFixture(t, false, true)
 	axes := [2]int{0, 2}
 	q, e := s.PrepareGraphMaterialQuery(context.Background(), AlgebraicGraphMaterialOptions{Projection: &axes})
@@ -82,6 +84,7 @@ func TestGraphWindowSurfaceAreaSigned(t *testing.T) {
 	t.Logf("horizontal%s; curved%s..%s; rim planar%s..%s", area, r.Owners[1].Area[0], r.Owners[1].Area[1], mixed.Owners[0].Area[0], mixed.Owners[0].Area[1])
 }
 func TestGraphWindowSurfaceAreaNestedHole(t *testing.T) {
+	slowtest.Skip(t)
 	s := graphMaterialBooleanFixture(t, true, false)
 	q, e := s.PrepareGraphMaterialQuery(context.Background(), AlgebraicGraphMaterialOptions{})
 	if e != nil {

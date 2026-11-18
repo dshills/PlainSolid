@@ -6,10 +6,12 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/collision"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCurvedAlgebraicPartitionFill(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	sub, line := affineAlgebraicPartitionFixture(t, nil)
 	o := CurvedAlgebraicPartitionMeshOptions{Mesh: CurvedQuadraticTrimMeshOptions{Deflection: .02}}

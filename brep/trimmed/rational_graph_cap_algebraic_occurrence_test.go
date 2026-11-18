@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestAlgebraicGraphStockRationalOccurrence(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := makeWarpedSquareRationalGraphTube(t, 1./8)
 	const z = .5 - 11./64

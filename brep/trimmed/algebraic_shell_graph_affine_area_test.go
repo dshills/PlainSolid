@@ -6,11 +6,13 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestGraphAffineWholeSurfaceArea(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := graphMaterialBooleanFixture(t, false, true)
 	axes := [2]int{0, 2}

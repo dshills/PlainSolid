@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -49,6 +50,7 @@ func checkRationalTiltGroupedScaledMeasures(t *testing.T, tc rationalTiltUnitFix
 }
 
 func TestRationalPosedGroupedConvexArcNonMillimetreUnits(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for i, tc := range rationalTiltUnitFixtures {
 		t.Run(tc.name, func(t *testing.T) {

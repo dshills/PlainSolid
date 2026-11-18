@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 )
 
 func TestCertifiedParabolaCircleCrossingsEnvelopeFacetAngle(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for axis := range 2 {
 		stock := parabolaCircleCrossingsStock(t, axis)

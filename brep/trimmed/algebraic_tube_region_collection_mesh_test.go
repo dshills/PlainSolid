@@ -6,10 +6,12 @@ import (
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCertifiedSelectedTubeRegionCollection(t *testing.T) {
+	slowtest.Skip(t)
 	r := disjointRegionMeshFixture(t)
 	ctx := context.Background()
 	o := AlgebraicTubeRegionCollectionMeshOptions{Component: AlgebraicTubeRegionMeshOptions{Footprint: AlgebraicTubeFootprintMeshOptions{Boundary: AlgebraicTubeRegionsBoundaryOptions{Loop: AlgebraicTubeLensBoundaryOptions{Run: AlgebraicTubeRunMeshOptions{Display: RationalTubePolylineOptions{Deflection: .025}}}}}, Surface: MultiSpanTubeLensMeshOptions{Closed: AlgebraicTubeLensMeshOptions{Interior: CurvedQuadraticTrimMeshOptions{Deflection: .01}, Collision: collision.Options{MaxPairs: 4000000}}}}}

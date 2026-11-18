@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/edgecheck"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestAnnularFrustumFourRimChamfers(t *testing.T) {
+	slowtest.Skip(t)
 	for _, descending := range []bool{false, true} {
 		name := "ascending"
 		if descending {

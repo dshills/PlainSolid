@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -71,6 +72,7 @@ func TestCoaxialNoncircularStationLoftBooleanCrossing(t *testing.T) {
 }
 
 func TestCoaxialNoncircularStationLoftThroughBore(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	stock, stockHistory, err := NewWrappedRationalStationLoft(ctx, []*geom.WrappedSurfacePatch{

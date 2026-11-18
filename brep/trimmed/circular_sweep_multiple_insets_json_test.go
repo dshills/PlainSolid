@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestExactCircularSweepMultipleInsetsJSONReprovesOriginalMembers(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	host, guests := multipleSweepInsetsFixture()
 	var raw, again bytes.Buffer

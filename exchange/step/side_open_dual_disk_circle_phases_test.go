@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -61,6 +62,7 @@ func sideDiskRephaseCircles(t *testing.T, raw []byte, quarter int, mutation stri
 	return out, n
 }
 func TestReadSideOpenDualDiskProductCircleRephase(t *testing.T) {
+	slowtest.Skip(t)
 	for _, through := range []bool{false, true} {
 		for quarter := 1; quarter <= 3; quarter++ {
 			d := sideDiskDescriptor(t, through)

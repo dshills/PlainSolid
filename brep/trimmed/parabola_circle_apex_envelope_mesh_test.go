@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 )
 
 func TestCertifiedParabolaCircleApexTangencyEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	pi := math.Pi / 134217728
 	volume := [2][2]float64{

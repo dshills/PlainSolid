@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -58,6 +59,7 @@ func independentBoreWallArea(a, b [3]float64, n, m int) float64 {
 	return total
 }
 func TestAnisotropicBoreBoundaryArea(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := anisotropicMeasuredBore(t)
 	o := WrappedAnisotropicStationAreaOptions{AreaTolerance: big.NewRat(2, 1)}

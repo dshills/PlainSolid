@@ -4,11 +4,13 @@ import (
 	"context"
 	"math"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestCertifiedWrappedBoreMaterialNormals(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, upper := range []float64{2, 1} {
 		outer := certifiedWrappedFrustumFixture(t, true, upper)

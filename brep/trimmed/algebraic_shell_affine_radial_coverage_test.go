@@ -7,11 +7,13 @@ import (
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
 
 func TestNativeLensAffineRadialCoverage(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	_, b, hints := transverseSplineCapsDomain(t, true)
 	var supports []*geom.BSplineSurface

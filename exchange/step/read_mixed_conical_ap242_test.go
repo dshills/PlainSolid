@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestReadMixedConicalAP242Assembly(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, options := context.Background(), geom.SurfacePatchOptions{}
 	raw := mixedConicalAP242Fixture(t, "exact")
 	a, err := ReadMixedConicalAP242Assembly(ctx, bytes.NewReader(raw), Limits{}, options)
@@ -124,6 +126,7 @@ func TestReadMixedConicalAP242Assembly(t *testing.T) {
 }
 
 func TestReadMixedConicalAP242AssemblyReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, o := context.Background(), geom.SurfacePatchOptions{}
 	exact := mixedConicalAP242Fixture(t, "exact")
 	rounded := mixedConicalAP242Fixture(t, "rounded")

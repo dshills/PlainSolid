@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -17,6 +18,7 @@ import (
 )
 
 func TestReadEccentricAnnularChamferSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	options := geom.SurfacePatchOptions{}
 	data := eccentricAnnularChamferSTEPFixture(t, "exact")
@@ -92,6 +94,7 @@ func TestReadEccentricAnnularChamferSTEP(t *testing.T) {
 }
 
 func TestReadEccentricAnnularChamferSTEPReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	exact := eccentricAnnularChamferSTEPFixture(t, "exact")
 	rounded := eccentricAnnularChamferSTEPFixture(t, "rounded")

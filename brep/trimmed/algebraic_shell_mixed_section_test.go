@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
@@ -41,6 +42,7 @@ func mixedWallFixture(t *testing.T) (Solid, Solid, []RationalIsoShellPairProposa
 	return a, b, []RationalIsoShellPairProposal{{Faces: [2]int{5, 3}, SourceOperand: 1, FixedAxis: 0, Fixed: 1, Cuts: cuts, Pieces: pieces}}, MixedAlgebraicShellSectionOptions{Section: o}
 }
 func TestMixedOriginalShellWires(t *testing.T) {
+	slowtest.Skip(t)
 	a, b, p, o := mixedWallFixture(t)
 	r, err := SectionSplineShellsMixedAlgebraic(context.Background(), a, b, p, o)
 	if err != nil {

@@ -6,11 +6,13 @@ import (
 	"math"
 	"plainsolid/brep"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
 
 func TestSplitCertifiedSplineTubeLoop(t *testing.T) {
+	slowtest.Skip(t)
 	k1, k2 := []float64{0, 0, 1, 1}, []float64{0, 0, 0, 1, 1, 1}
 	a, _ := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{{}, {Y: 1}, {X: 1}, {X: 1, Y: 1}}, k1, k1, nil)
 	q := [3]float64{.25, -.25, .25}

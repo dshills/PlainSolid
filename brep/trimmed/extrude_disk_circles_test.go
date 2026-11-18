@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -12,6 +13,7 @@ import (
 )
 
 func TestExtrudeDiskWithEccentricBlindAndThroughHoles(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	frame, err := geom.NewFrame(geom.Vec3{X: 2, Y: 5, Z: -3}, geom.Vec3{Z: 1}, geom.Vec3{X: -1})
 	if err != nil {

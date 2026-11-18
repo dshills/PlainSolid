@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 )
 
 func TestNativeNodalCubicCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	src := nodalCubicCommonFixture(t)
 	o := NodalCubicCutOptions{}

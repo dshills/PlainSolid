@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -101,6 +102,7 @@ func TestExactRadialTubeCoverage(t *testing.T) {
 }
 
 func TestExactRadialTubeCoverageAtomic(t *testing.T) {
+	slowtest.Skip(t)
 	p, r := coverageCircleSources(t)
 	tubes := coverageCircleTubes(t, p)
 	c, e := r.CertifyTubeCoverage(context.Background(), tubes, geom.RadialTubeCoverageOptions{})

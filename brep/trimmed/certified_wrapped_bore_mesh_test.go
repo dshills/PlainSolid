@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -34,6 +35,7 @@ func scaledWrappedCylinderFixture(t *testing.T, w *geom.WrappedSurfacePatch, sca
 	return out
 }
 func TestCertifiedWrappedBoreClosed(t *testing.T) {
+	slowtest.Skip(t)
 	for _, circular := range []bool{true, false} {
 		ctx := context.Background()
 		outer := certifiedWrappedFrustumFixture(t, circular, 2)
@@ -144,6 +146,7 @@ func TestCertifiedWrappedBoreRejectsMismatch(t *testing.T) {
 }
 
 func TestCertifiedWrappedBoreIndependentTapers(t *testing.T) {
+	slowtest.Skip(t)
 	for _, circular := range []bool{true, false} {
 		outer := certifiedWrappedFrustumFixture(t, circular, 1.5)
 		inner := scaledWrappedCylinderFixture(t, certifiedWrappedFrustumFixture(t, circular, .5), .5)

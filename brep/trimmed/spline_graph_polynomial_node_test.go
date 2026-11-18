@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -34,6 +35,7 @@ func nativePolynomialNodeVolume(op parametric.BooleanOp) float64 {
 }
 
 func TestNativePolynomialNodeGraphBoolean(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, axis := range []int{0, 1} {
 		base, a, b := nativePolynomialNodeFixture(t, axis, 2)

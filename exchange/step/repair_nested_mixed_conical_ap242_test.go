@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestRepairNestedMixedConicalAP242Assembly(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	original := nestedMixedConicalAP242Fixture(t, "rounded")
 	l := Limits{MaxFaces: 14, MaxVertices: 56, MaxEdgeUses: 132}
@@ -141,6 +143,7 @@ func TestRepairNestedMixedConicalAP242Assembly(t *testing.T) {
 }
 
 func TestRepairNestedMixedConicalAP242AssemblyReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := nestedMixedConicalAP242Fixture(t, "rounded")
 	budget := NestedMixedConicalAP242RepairOptions{3e-12}
@@ -183,6 +186,7 @@ func TestRepairNestedMixedConicalAP242AssemblyReject(t *testing.T) {
 }
 
 func TestRepairedNestedMixedConicalAP242AssemblyReceipt(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := nestedMixedConicalAP242Fixture(t, "rounded")
 	m, err := RepairNestedMixedConicalAP242Assembly(ctx, bytes.NewReader(raw), Limits{}, NestedMixedConicalAP242RepairOptions{3e-12})

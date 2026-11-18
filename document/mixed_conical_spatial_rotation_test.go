@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 )
 
 func TestMixedConicalAP242DAGDocumentSpatialRotation(t *testing.T) {
+	slowtest.Skip(t)
 	source, d := openMixedConicalDAGAppearanceDocument(t)
 	ctx, limits := context.Background(), mixedConicalAppearanceLimits()
 	base, _ := d.Snapshot()

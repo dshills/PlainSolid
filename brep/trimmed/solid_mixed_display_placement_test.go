@@ -7,11 +7,13 @@ import (
 	"math/big"
 	"plainsolid/brep/placement"
 	"plainsolid/collision"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestPreparedStoredMixedDisplayPlacement(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	displayOptions := placement.ClosedDisplayOptions{Validation: collision.LocationOptions{MaxCollisionPairs: collision.DefaultMaxPairs}}
 	r := big.NewRat

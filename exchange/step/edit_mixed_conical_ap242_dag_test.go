@@ -5,6 +5,7 @@ import (
 	"context"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestEditMixedConicalAP242DAG(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, options := context.Background(), geom.SurfacePatchOptions{}
 	raw := mixedConicalAP242DAGFixture(t, "exact")
 	l := MixedConicalAP242DAGLimits{MaxOccurrenceDepth: 3, MaxLeafInstances: 7}

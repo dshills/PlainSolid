@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/collision"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -23,6 +24,7 @@ func mappedChainClosing(t *testing.T) []PCurve {
 	return out
 }
 func TestMappedSplineChainFace(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, ca := mappedChainFixture(t, false)
 	b, cb := mappedChainFixture(t, true)

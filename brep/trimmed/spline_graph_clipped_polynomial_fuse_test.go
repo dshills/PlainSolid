@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 )
 
 func TestNativeClippedPolynomialFuse(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialCubicCrossingTangencyEnvelopeOptions{}
 	for layout := range 2 {
@@ -208,6 +210,7 @@ func TestNativeClippedPolynomialFuseDependentFootprint(t *testing.T) {
 }
 
 func TestNativeClippedPolynomialFuseRefusals(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialCubicCrossingTangencyEnvelopeOptions{}
 	src := clippedPolynomialStock(t, 0, 0, 0)

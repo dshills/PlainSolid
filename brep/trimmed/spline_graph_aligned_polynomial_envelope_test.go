@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -51,6 +52,7 @@ func independentAlignedEnvelopeRoof(t *testing.T, axis int, width, knot float64)
 }
 
 func TestNativeAlignedPolynomialEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for axis := 0; axis < 2; axis++ {
 		base, a, _ := nativeCubicCrossingTangencyFixture(t, axis, 0)

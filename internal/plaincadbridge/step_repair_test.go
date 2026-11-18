@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -30,6 +31,7 @@ func stepRepairFixture(t *testing.T, name string) string {
 }
 
 func TestSTEPRepairImportWorldMeshAndCanonicalExport(t *testing.T) {
+	slowtest.Skip(t)
 	const singleVolume, singleArea = 29.145041881053835, 66.186284791166074
 	const groupVolume, groupArea = 29.077978807115535, 65.622954970084379
 	const maxX = 54.0 / 16

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -12,6 +13,7 @@ import (
 )
 
 func TestObliquePolynomialSplinePlaneClip(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	// Z=3/16+X/32. Use original X,Y knot units on the cap so the
 	// exact section's controls remain representable.

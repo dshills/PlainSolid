@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/trimvalidate"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestAlgebraicGraphCapStockReload(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stock := makeWarpedSquareRationalGraphTube(t, 1./8.0)
 	section := [3]geom.Vec3{{Z: .5}, {X: 1, Z: .5}, {Y: 1, Z: .5}}

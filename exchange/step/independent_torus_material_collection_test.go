@@ -10,10 +10,12 @@ import (
 	"path/filepath"
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestIndependentToroidalMaterials(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/independent-model-torus.step")
 	if e != nil {

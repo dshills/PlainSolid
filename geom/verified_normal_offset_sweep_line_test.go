@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 )
@@ -65,6 +66,7 @@ func TestVerifiedNormalOffsetSweepIntersectsRationalAffineLine(t *testing.T) {
 }
 
 func TestVerifiedNormalOffsetSweepIntersectsOriginalCurvedRuling(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	sweep := sweepLineCurvedFixture(t, false)
 	q := big.NewRat

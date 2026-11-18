@@ -5,6 +5,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
@@ -83,6 +84,7 @@ func stationMassFixture(t *testing.T, asymmetric bool, shift float64) Solid {
 }
 
 func TestRationalStationCertifiedMass(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	for _, asym := range []bool{false, true} {

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"strings"
 	"testing"
@@ -183,6 +184,7 @@ func verifyMultipleKnotMaterial(t *testing.T, ctx context.Context, tc mappedChai
 }
 
 func TestOCCTMappedChainRectangularMultipleSupportKnots(t *testing.T) {
+	slowtest.Skip(t)
 	for _, tc := range mappedChainMultipleKnotFixtures {
 		t.Run(tc.name, func(t *testing.T) {
 			raw, err := os.ReadFile(tc.path)
@@ -195,6 +197,7 @@ func TestOCCTMappedChainRectangularMultipleSupportKnots(t *testing.T) {
 }
 
 func TestOCCTMappedChainRectangularMultipleSupportKnotsClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw, err := os.ReadFile(mappedChainMultipleKnotFixtures[1].path)
 	if err != nil {

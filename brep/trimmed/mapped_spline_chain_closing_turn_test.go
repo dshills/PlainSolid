@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -86,6 +87,7 @@ func TestMappedClosingTurnSubdividesOnlyProvenObstruction(t *testing.T) {
 }
 
 func TestMappedClosingTurnSharesProjectiveCoedgeCuts(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r, closing, planar, seams := mappedChainClosedFixtureWithKnot(t, true)
 	var seam [2]MappedChainClosedUse

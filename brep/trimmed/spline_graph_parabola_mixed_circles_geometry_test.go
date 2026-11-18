@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
@@ -98,6 +99,7 @@ func parabolaCircleProductStock(t *testing.T, axis int, circles []twoCircleStock
 }
 
 func TestParabolaMixedCirclesSource(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	twoContacts := twoCircleProbe(64, 49, 32, 128)
 	for layout, fixture := range []struct {

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestOCCTExactDirectedCircularLoopSourceReceipt(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	src, err := os.ReadFile("testdata/occt-directed-two-holes.step")
 	if err != nil {

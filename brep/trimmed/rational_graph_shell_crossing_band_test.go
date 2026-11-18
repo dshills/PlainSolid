@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestClipCrossingRationalGraphSplineShell(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	makeCut := func(h, slope float64, positive bool) RationalGraphHalfspace {
 		t.Helper()
@@ -212,6 +214,7 @@ func TestClipCrossingRationalGraphNonbinaryVertices(t *testing.T) {
 }
 
 func TestClipCrossingRationalGraphThroughHole(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stock := makeSquareRationalGraphTube(t)
 	makeCut := func(h, slope float64, positive bool) RationalGraphHalfspace {

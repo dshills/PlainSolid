@@ -9,11 +9,13 @@ import (
 	"os"
 	"os/exec"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 )
 
 func TestNativeObliqueTorusCavity(t *testing.T) {
+	slowtest.Skip(t)
 	r := big.NewRat
 	ctx := context.Background()
 	pose := [3][4]*big.Rat{{r(3, 5), r(0, 1), r(4, 5), r(1, 1)}, {r(0, 1), r(1, 1), r(0, 1), r(0, 1)}, {r(-4, 5), r(0, 1), r(3, 5), r(0, 1)}}

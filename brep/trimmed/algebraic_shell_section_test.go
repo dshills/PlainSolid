@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -129,6 +130,7 @@ func TestProjectedAlgebraicShellTerminal(t *testing.T) {
 }
 
 func TestAlgebraicShellSectionClosedWire(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, _ := transverseSplineCaps(t)
 	o := AlgebraicShellSectionOptions{}
@@ -151,6 +153,7 @@ func TestAlgebraicShellSectionClosedWire(t *testing.T) {
 }
 
 func TestAlgebraicShellSectionAcrossOriginalEdges(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 1}, .125)
 	b, _ := makeOpenSplineBox(t, [3]float64{.5, .5, -.5}, [3]float64{1.5, 1.5, .5}, .125)
@@ -330,6 +333,7 @@ func TestJoinAlgebraicShellSectionBranches(t *testing.T) {
 }
 
 func TestAlgebraicShellSectionIrrationalOriginalEdges(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, af := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1.25, 1}, 0)
 	b, bp := irrationalRoofSplineShell(t)

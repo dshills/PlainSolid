@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -27,6 +28,7 @@ func arrangementGap(t *testing.T, stations []*big.Rat, orders []int, cofactor ra
 }
 
 func TestSplineGraphPolynomialArrangement(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, tc := range []struct {
 		name        string

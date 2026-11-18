@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -148,6 +149,7 @@ func TestParabolaCircleGraphProof(t *testing.T) {
 }
 
 func TestNativeParabolaCircleGraphEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for axis := range 2 {
 		src := parabolaCircleGraphStock(t, axis, big.NewRat(3, 4), big.NewRat(1, 64), false)

@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -27,6 +28,7 @@ func multipleSweepInsetsFixture() (ExactCircularSweep, []ExactCircularSweep) {
 }
 
 func TestExactCircularSweepMultipleInsetsKeepOriginalFloors(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	host, guests := multipleSweepInsetsFixture()
 	a, err := JoinExactCircularSweepInsets(ctx, host, guests, ExactCircularLoopOptions{})

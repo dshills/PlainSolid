@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/edgecheck"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestSplitExactBezierTrimEdge(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stock := rationalBezierGraphStockFrom(t, func(k int, y float64) float64 {
 		// At X=1/2, 1+3X²=7/4. Choose a nonconstant quartic numerator

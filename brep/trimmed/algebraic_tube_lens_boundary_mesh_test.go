@@ -5,10 +5,12 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCertifiedAlgebraicTubeLensBoundary(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := algebraicRunMeshFixture(t)
 	lens, e := r.SealAlgebraicTubeLens(ctx, AlgebraicTubeLensOptions{})

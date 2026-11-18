@@ -8,10 +8,12 @@ import (
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestEllipticalAnnularPrism(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/occt-elliptical-annular-prism.step")
 	if e != nil {

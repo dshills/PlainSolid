@@ -10,6 +10,7 @@ import (
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -86,6 +87,7 @@ func mappedSharedSeamFixtureReversed(t *testing.T, reverseSource bool) (Solid, i
 }
 
 func TestStoredMixedMappedSplineSeam(t *testing.T) {
+	slowtest.Skip(t)
 	for _, reverse := range []bool{false, true} {
 		name := "forward"
 		if reverse {

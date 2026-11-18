@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -29,6 +30,7 @@ func rationalCutJoinFixture(t *testing.T) (QuadraticTrimFaceJoinInput, Quadratic
 	return a, b
 }
 func TestRationalCutQuadraticFaceJoin(t *testing.T) {
+	slowtest.Skip(t)
 	a, b := rationalCutJoinFixture(t)
 	o := RationalCutFaceJoinOptions{Face: RationalCutFaceMeshOptions{Face: MultiSpanCurvedTrimMeshOptions{Mesh: CurvedQuadraticTrimMeshOptions{Deflection: .2}}}}
 	got, e := StitchRationalCutFacesCertified(context.Background(), a, b, o)

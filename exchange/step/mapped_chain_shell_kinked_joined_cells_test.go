@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -88,11 +89,13 @@ func verifyJoinedOneSidedTangents(t *testing.T, ctx context.Context, face trimme
 }
 
 func TestOCCTMappedChainRectangularKinkedJoinedIndependentRoofs(t *testing.T) {
+	slowtest.Skip(t)
 	raw := readInferredSharedMappedChainFixture(t, kinkedJoinedRoofPath)
 	verifyThreeJoinedRoofSource(t, context.Background(), raw, threeJoinedKinked)
 }
 
 func TestOCCTMappedChainRectangularKinkedJoinedIndependentRoofsClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	verifyThreeJoinedRoofDisplay(t, readInferredSharedMappedChainFixture(t, kinkedJoinedRoofPath), 4, .24)
 }
 

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -66,6 +67,7 @@ func clippedCommonMeasures(axis, profile int) (area, volume float64) {
 }
 
 func TestNativeClippedPolynomialCommon(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := PolynomialCubicCrossingTangencyEnvelopeOptions{}
 	for layout := 0; layout < 2; layout++ {

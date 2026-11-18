@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -114,6 +115,7 @@ func TestCertifiedAxisLineSplineGraphBoolean(t *testing.T) {
 }
 
 func TestParallelLineSplineGraphBoolean(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	surface := func(axis int, coefficients []float64, lift float64) *geom.BSplineSurface {
 		t.Helper()

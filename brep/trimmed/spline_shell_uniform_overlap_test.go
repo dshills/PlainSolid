@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
@@ -70,6 +71,7 @@ func crossingFootprintRoofShellShape(t *testing.T, second, bubble bool) (Solid, 
 	return s, surfaces[1]
 }
 func TestAutomaticOverlappingRoofShellContinuation(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, ar := crossingFootprintRoofShell(t, false)
 	b, br := crossingFootprintRoofShell(t, true)
@@ -174,6 +176,7 @@ func TestAutomaticOverlappingRoofShellContinuation(t *testing.T) {
 }
 
 func TestAutomaticOverlappingBubbleRoofShell(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, _ := crossingFootprintRoofShellShape(t, false, true)
 	b, _ := crossingFootprintRoofShellShape(t, true, true)

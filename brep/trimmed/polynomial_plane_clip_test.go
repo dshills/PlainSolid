@@ -10,6 +10,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -76,6 +77,7 @@ func polynomialClipStock(t *testing.T) (Solid, []*geom.BSplineSurface) {
 }
 
 func TestPolynomialSplinePlaneClip(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stock, _ := polynomialClipStock(t)
 	tool, _ := makeOpenSplineBox(t, [3]float64{-1, -1, -2}, [3]float64{3, 3, 3. / 16}, 0)

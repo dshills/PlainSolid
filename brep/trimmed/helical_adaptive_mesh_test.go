@@ -5,10 +5,12 @@ import (
 	"math"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestAdaptiveHelicalM3(t *testing.T) {
+	slowtest.Skip(t)
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	pitch, major := .5, 1.5
 	inner := major - math.Sqrt(3)*17/48*pitch

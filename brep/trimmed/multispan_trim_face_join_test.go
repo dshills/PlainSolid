@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -37,6 +38,7 @@ func multiSpanJoinFixture(t *testing.T) (QuadraticTrimFaceJoinInput, QuadraticTr
 	return inputs[0], inputs[1]
 }
 func TestMultiSpanTrimFaceJoinExactRationalCuts(t *testing.T) {
+	slowtest.Skip(t)
 	a, b := multiSpanJoinFixture(t)
 	opts := MultiSpanTrimFaceJoinOptions{Face: MultiSpanCurvedTrimMeshOptions{Mesh: CurvedQuadraticTrimMeshOptions{Deflection: .15}}}
 	got, e := StitchMultiSpanTrimFacesCertified(context.Background(), a, b, opts)

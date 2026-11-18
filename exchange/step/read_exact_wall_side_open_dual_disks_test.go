@@ -12,10 +12,12 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestReadExactWallSideOpenDualDiskProduct(t *testing.T) {
+	slowtest.Skip(t)
 	for _, through := range []bool{false, true} {
 		for _, swap := range []bool{false, true} {
 			for _, posed := range []bool{false, true} {
@@ -235,6 +237,7 @@ func TestOCCTReadExactWallSideOpenDualDiskProduct(t *testing.T) {
 }
 
 func TestReadExactWallSideOpenDualDiskProductRightAndDomain(t *testing.T) {
+	slowtest.Skip(t)
 	for _, through := range []bool{false, true} {
 		for _, swapped := range []bool{false, true} {
 			d := exactWallSideDiskDescriptor(t, through, false, true)

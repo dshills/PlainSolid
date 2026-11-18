@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -62,6 +63,7 @@ func checkPolygonCapRationalUV(t *testing.T, s Solid) {
 	}
 }
 func TestConvexAffinePolygonCapRationalUV(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b := affinePolygonCapFixtureUnits(t, 0, false, false)
 	for order, pair := range [][2]Solid{{a, b}, {b, a}} {

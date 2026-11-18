@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"regexp"
 	"strings"
@@ -102,6 +103,7 @@ func TestDisjointBoresSTEP(t *testing.T) {
 	}
 }
 func TestDisjointBoresSTEPAtLimit(t *testing.T) {
+	slowtest.Skip(t)
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	p := DisjointBoresBody{Name: "32 cardinal bores", Frame: f, Dimensions: geom.Vec3{X: 20, Y: 160, Z: 20}}
 	for i := 0; i < 31; i++ {

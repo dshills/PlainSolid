@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -93,6 +94,7 @@ func TestReadConicalRimFilletBoreIGES(t *testing.T) {
 }
 
 func TestReadConicalRimFilletBoreIGESReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, o := context.Background(), geom.SurfacePatchOptions{}
 	exact := conicalRimFilletBoreIGESFixture(t, "exact")
 	raw := conicalRimFilletBoreIGESFixture(t, "rounded")

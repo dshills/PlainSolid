@@ -4,10 +4,12 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestAnisotropicBoreLineMaterialAndCaps(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := anisotropicMeasuredBore(t)
 	r := big.NewRat
@@ -121,6 +123,7 @@ func TestAnisotropicBoreLineMaterialAndCaps(t *testing.T) {
 }
 
 func TestAnisotropicBoreGeneratorAndCrease(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := anisotropicMeasuredBore(t)
 	r := big.NewRat
@@ -180,6 +183,7 @@ func TestAnisotropicBoreGeneratorAndCrease(t *testing.T) {
 }
 
 func TestAnisotropicBoreObliqueLine(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := anisotropicMeasuredBore(t)
 	r := big.NewRat

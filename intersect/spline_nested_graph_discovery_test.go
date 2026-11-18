@@ -4,16 +4,24 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 
 	. "plainsolid/intersect"
 	"testing"
 )
 
-func TestNestedQuarticAutomaticRadialCover(t *testing.T) { nestedRadialCover(t, [2]float64{.5, .5}) }
+func TestNestedQuarticAutomaticRadialCover(t *testing.T) {
+	slowtest.Skip(t)
+	nestedRadialCover(t, [2]float64{.5, .5})
+}
 func TestShiftedQuarticAutomaticRadialCover(t *testing.T) {
+	slowtest.Skip(t)
 	nestedRadialCover(t, [2]float64{7.0 / 16, 9.0 / 16})
 }
-func TestAnisotropicQuarticAutomaticCover(t *testing.T) { nestedRadialCover(t, [2]float64{.5, .5}, 4) }
+func TestAnisotropicQuarticAutomaticCover(t *testing.T) {
+	slowtest.Skip(t)
+	nestedRadialCover(t, [2]float64{.5, .5}, 4)
+}
 func nestedRadialCover(t *testing.T, center [2]float64, metricValues ...float64) {
 	metricValue := 1.
 	if len(metricValues) > 0 {

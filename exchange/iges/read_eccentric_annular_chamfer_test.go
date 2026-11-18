@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -18,6 +19,7 @@ import (
 )
 
 func TestReadEccentricAnnularChamferIGES(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, opts := context.Background(), geom.SurfacePatchOptions{}
 	raw := readEccentricAnnularChamferIGESFixture(t, "exact")
 	m, err := ReadEccentricAnnularChamfer(ctx, bytes.NewReader(raw), Limits{}, opts)
@@ -98,6 +100,7 @@ func TestReadEccentricAnnularChamferIGES(t *testing.T) {
 }
 
 func TestReadEccentricAnnularChamferIGESReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx, opts := context.Background(), geom.SurfacePatchOptions{}
 	exact := readEccentricAnnularChamferIGESFixture(t, "exact")
 	reject := func(t *testing.T, raw []byte, l Limits) {

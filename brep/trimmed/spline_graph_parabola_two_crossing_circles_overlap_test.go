@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 )
 
 func TestNativeParabolaTwoCrossingCirclesOverlappingProjections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	f := parabolaTwoCrossingCirclesOverlappingProjections()
 	// Independent Green integrals of the original polynomial over the

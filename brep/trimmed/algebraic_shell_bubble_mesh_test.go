@@ -5,11 +5,13 @@ import (
 	"errors"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
 
 func TestBubbleCertifiedSharedBoundary(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, _ := crossingFootprintRoofShellShape(t, false, true)
 	b, _ := crossingFootprintRoofShellShape(t, true, true)

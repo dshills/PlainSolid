@@ -5,11 +5,13 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
 
 func TestNativePhysicalRadialAnnulusMoments(t *testing.T) {
+	slowtest.Skip(t)
 	if testing.Short() {
 		t.Skip("complete non-unit annular material construction")
 	}

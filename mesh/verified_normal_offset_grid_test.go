@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -59,6 +60,7 @@ func TestCertifiedVerifiedNormalOffsetGrid(t *testing.T) {
 }
 
 func TestVerifiedNormalOffsetGridBivariateRationalRoof(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	p := gridTestBivariateRationalOffset(t)
 	m, err := TessellateVerifiedNormalOffsetGrid(ctx, p, NormalOffsetGridOptions{})

@@ -9,12 +9,14 @@ import (
 	"path/filepath"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 
 	"testing"
 )
 
 func TestFiniteDisjointBoresSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for _, normal := range []geom.Vec3{{Z: 1}, {X: -1}, {Y: 1}} {
 		for _, op := range []bool{false, true} {
 			for _, mixed := range []bool{false, true} {

@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -141,6 +142,7 @@ func multispanSharedSeamFixture(t *testing.T, count int, reverse bool) (Solid, i
 }
 
 func TestStoredMixedMultiSpanMappedSeam(t *testing.T) {
+	slowtest.Skip(t)
 	for _, v := range []struct {
 		name    string
 		count   int

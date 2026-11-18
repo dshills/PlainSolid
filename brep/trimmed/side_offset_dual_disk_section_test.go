@@ -6,10 +6,12 @@ import (
 	"math/big"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestOffsetSideOpenDualDiskSection(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, swap := range []bool{false, true} {
 		ds := [2]ExtrusionCircle{{Center: geom.Vec2{X: 12.5, Y: -7.5}, Radius: 65. / 8}, {Center: geom.Vec2{X: 22, Y: -7.5}, Radius: 87. / 8}}

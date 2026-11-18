@@ -8,6 +8,7 @@ import (
 	"os"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -15,6 +16,7 @@ func stationBoreFixture() WrappedStationBoreBody {
 	return WrappedStationBoreBody{Name: "station bore", LengthUnit: .001, CapNames: [2]string{"lower annulus", "upper annulus"}, Outer: WrappedStationLoftBody{Center: geom.Vec2{}, Stations: []trimmed.WrappedLoftStation{{Z: 0, Radius: 3}, {Z: 2, Radius: 4}, {Z: 5, Radius: 3}}}, Inner: WrappedStationLoftBody{Center: geom.Vec2{}, Stations: []trimmed.WrappedLoftStation{{Z: 0, Radius: 1}, {Z: 2, Radius: 1.5}, {Z: 5, Radius: 1}}}}
 }
 func TestWrappedStationBore(t *testing.T) {
+	slowtest.Skip(t)
 	var b bytes.Buffer
 	if e := WriteWrappedStationBore(&b, stationBoreFixture()); e != nil {
 		t.Fatal(e)
@@ -54,6 +56,7 @@ func TestWrappedStationBore(t *testing.T) {
 }
 
 func TestWrappedStationBoreSourceRejections(t *testing.T) {
+	slowtest.Skip(t)
 	var b bytes.Buffer
 	if e := WriteWrappedStationBore(&b, stationBoreFixture()); e != nil {
 		t.Fatal(e)
@@ -197,6 +200,7 @@ func TestWrappedStationBoreOCCT(t *testing.T) {
 }
 
 func TestIndependentWrappedStationBore(t *testing.T) {
+	slowtest.Skip(t)
 	raw, e := os.ReadFile("testdata/wrapped-station-bore.step")
 	if e != nil {
 		t.Fatal(e)
@@ -232,6 +236,7 @@ func TestIndependentWrappedStationBore(t *testing.T) {
 }
 
 func TestWrappedStationBoreIndependentPartitions(t *testing.T) {
+	slowtest.Skip(t)
 	m := stationBoreFixture()
 	m.Inner.Stations = []trimmed.WrappedLoftStation{{Z: 0, Radius: 1}, {Z: 1, Radius: 1.25}, {Z: 2, Radius: 1.5}, {Z: 5, Radius: 1}}
 	var b bytes.Buffer
@@ -259,6 +264,7 @@ func FuzzWrappedStationBore(f *testing.F) {
 }
 
 func TestWrappedStationBoreSingleWall(t *testing.T) {
+	slowtest.Skip(t)
 	for _, innerSingle := range []bool{true, false} {
 		m := stationBoreFixture()
 		if innerSingle {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestPlanarFeatureEdgeHistoryRegeneration(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	state := State{LengthUnit: .001, Features: map[string]Feature{
 		"stock":      {Kind: BoxFeature, Max: geom.Vec3{X: 4, Y: 4, Z: 4}},

@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -18,6 +19,7 @@ import (
 )
 
 func TestWriteClippedPolynomialCommon(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ClippedPolynomialCommonIGESOptions{PoleTolerance: 1e-14}
 	for _, layout := range []string{"transverse", "mixed"} {

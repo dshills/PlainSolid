@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -87,6 +88,7 @@ func multipleOpenSplineFixture(t *testing.T) (Solid, Solid, []SplineShellOpenSec
 }
 
 func TestCombineMultipleOpenSplineWires(t *testing.T) {
+	slowtest.Skip(t)
 	a, b, sections := multipleOpenSplineFixture(t)
 	for _, tc := range []struct {
 		name         string

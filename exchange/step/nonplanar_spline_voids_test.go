@@ -13,6 +13,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
@@ -26,6 +27,7 @@ func nonplanarVoidsFixture(t testing.TB) []byte {
 	return b
 }
 func TestNonplanarSplineVoidsOriginal(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := nonplanarVoidsFixture(t)
 	m, e := ReadNonplanarSplineVoidsSource(ctx, bytes.NewReader(raw), Limits{})
@@ -139,6 +141,7 @@ func TestNonplanarSplineVoidsOriginal(t *testing.T) {
 	}
 }
 func TestNonplanarSplineVoidsReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := nonplanarVoidsFixture(t)
 	m, e := ReadNonplanarSplineVoidsSource(ctx, bytes.NewReader(raw), Limits{})

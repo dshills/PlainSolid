@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -107,6 +108,7 @@ func factoredPolynomialVolume(order int, op parametric.BooleanOp) float64 {
 	return v
 }
 func TestNativeFactoredPolynomialBooleans(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, axis := range []int{0, 1} {
 		base, a, b := nativeFactoredPolynomialFixture(t, axis)

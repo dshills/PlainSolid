@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -136,6 +137,7 @@ func TestNURBSAssemblyNativeRoundtrip(t *testing.T) {
 	}
 }
 func TestNURBSAssemblyNativeTamper(t *testing.T) {
+	slowtest.Skip(t)
 	for _, mode := range nurbsNativeModes {
 		t.Run(mode, func(t *testing.T) {
 			_, raw := nurbsNativeTestBytes(t, mode)

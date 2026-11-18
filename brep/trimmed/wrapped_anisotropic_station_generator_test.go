@@ -5,12 +5,14 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
 )
 
 func TestAnisotropicGenerator(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	s := anisotropicMassFixture(t, false, geom.Vec3{})

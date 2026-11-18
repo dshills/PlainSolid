@@ -4,10 +4,12 @@ import (
 	"context"
 	"math"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCertifiedCurvedRationalAnnulusMesh(t *testing.T) {
+	slowtest.Skip(t)
 	circle := func(r float64, clockwise bool) []SplineUV {
 		x, y := .5, .5
 		controls := [][3]geom.Vec3{{{X: x + r, Y: y}, {X: x + r, Y: y + r}, {X: x, Y: y + r}}, {{X: x, Y: y + r}, {X: x - r, Y: y + r}, {X: x - r, Y: y}}, {{X: x - r, Y: y}, {X: x - r, Y: y - r}, {X: x, Y: y - r}}, {{X: x, Y: y - r}, {X: x + r, Y: y - r}, {X: x + r, Y: y}}}

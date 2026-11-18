@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
@@ -27,6 +28,7 @@ func rationalAnisotropicBoreNativeFixture(t testing.TB) []byte {
 	return b.Bytes()
 }
 func TestRationalAnisotropicBoreNative(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := rationalAnisotropicBoreNativeFixture(t)
 	m, e := ReadRationalWrappedAnisotropicStationBoreAssemblyJSON(ctx, bytes.NewReader(raw), IndependentMaterialJSONLimits{})

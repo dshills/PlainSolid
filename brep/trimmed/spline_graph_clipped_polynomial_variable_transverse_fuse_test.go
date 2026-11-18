@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -66,6 +67,7 @@ func variableClippedFuseVolume(axis, layout int, gap, roots []*big.Rat) *big.Rat
 }
 
 func TestNativeClippedPolynomialVariableTransverseFuse(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := PolynomialCubicCrossingTangencyEnvelopeOptions{}
 	for _, count := range []int{1, 5} {

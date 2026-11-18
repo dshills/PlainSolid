@@ -6,10 +6,12 @@ import (
 	"math"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestAttachSteppedGroovedShaftHead(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	frame, _ := geom.NewFrame(geom.Vec3{Z: 5}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	tip, _ := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})

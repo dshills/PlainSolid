@@ -4,10 +4,12 @@ import (
 	"context"
 	"math"
 	"plainsolid/brep/parametric"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestRetainedPlanarBoreFillRoofAndRedrill(t *testing.T) {
+	slowtest.Skip(t)
 	for _, kind := range []string{"fill", "roof", "plug"} {
 		t.Run(kind, func(t *testing.T) {
 			b := New()

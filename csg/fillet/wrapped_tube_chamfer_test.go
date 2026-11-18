@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 )
 
 func TestIndependentTubeInnerOuterChamfers(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	outer, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 5, 8, o)

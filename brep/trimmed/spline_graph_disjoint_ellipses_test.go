@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
@@ -67,6 +68,7 @@ func TestDisjointEllipseOriginalGraphBooleans(t *testing.T) {
 	checkDisjointEllipseGraphBooleans(t, false)
 }
 func TestAutomaticDisjointEllipseGraphBooleans(t *testing.T) {
+	slowtest.Skip(t)
 	checkDisjointEllipseGraphBooleans(t, true)
 }
 func checkDisjointEllipseGraphBooleans(t *testing.T, automatic bool) {

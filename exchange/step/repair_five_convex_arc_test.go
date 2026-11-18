@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"strings"
@@ -151,6 +152,7 @@ func checkFiveConvexArcPhaseOwners(t *testing.T, f *File, owners []ConvexArcPCur
 }
 
 func TestRepairFiveConvexArcSource(t *testing.T) {
+	slowtest.Skip(t)
 	raw, err := os.ReadFile(fiveConvexArcSource + ".step")
 	if err != nil {
 		t.Fatal(err)

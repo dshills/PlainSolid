@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
@@ -59,6 +60,7 @@ func disjointRegionMeshFixture(t *testing.T) AlgebraicTubeRegions {
 }
 
 func TestCertifiedDisjointTubeRegionNetwork(t *testing.T) {
+	slowtest.Skip(t)
 	r := disjointRegionMeshFixture(t)
 	o := AlgebraicTubeRegionsBoundaryOptions{Loop: AlgebraicTubeLensBoundaryOptions{Run: AlgebraicTubeRunMeshOptions{Display: RationalTubePolylineOptions{Deflection: .04}}}}
 	n, e := r.TessellateBoundaryCertified(context.Background(), o)

@@ -9,10 +9,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"plainsolid/brep/trimmed"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestIndependentExactMaterials(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/occt-independent-exact-materials.step")
 	if e != nil {

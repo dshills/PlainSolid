@@ -3,14 +3,17 @@ package plaincadbridge
 import (
 	"bytes"
 	"encoding/base64"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCylinderRimFilletSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	testCylinderRimSTEP(t, "filletCylinderRims", "radius")
 }
 
 func TestCylinderRimChamferSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	testCylinderRimSTEP(t, "chamferCylinderRims", "distance")
 }
 

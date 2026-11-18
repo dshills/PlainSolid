@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/collision"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestCertifiedParabolaLocalSeparationDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ParabolaCircleGraphOptions{}
 	for axis := range 2 {
@@ -68,6 +70,7 @@ func TestCertifiedParabolaLocalSeparationDisplay(t *testing.T) {
 }
 
 func TestCertifiedPlacedParabolaLocalSeparationTinyLens(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	local := parabolaTwoCirclesStock(t, 1, localOppositeCircleStock(), false)
 	world := authoredParabolaCircleSimilarityStock(t, local)

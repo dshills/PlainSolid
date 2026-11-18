@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestCertifiedParabolaTwoCirclesCutMeshes(t *testing.T) {
+	slowtest.Skip(t)
 	source := parabolaTwoCirclesStock(t, 0, twoCirclePrimaryStock(), false)
 	diskVolume := 5347170325.0 * math.Pi / 2251799813685248
 	expected := [2][]float64{
@@ -23,6 +25,7 @@ func TestCertifiedParabolaTwoCirclesCutMeshes(t *testing.T) {
 }
 
 func TestCertifiedLowerParabolaTwoCirclesCutMeshes(t *testing.T) {
+	slowtest.Skip(t)
 	source := parabolaTwoCirclesStock(t, 1, [2]twoCircleStockProbe{
 		twoCircleProbe(4, 2, 1, 16), twoCircleProbe(24, 4, 1, 32),
 	}, false)

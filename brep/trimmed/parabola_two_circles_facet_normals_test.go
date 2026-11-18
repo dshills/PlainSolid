@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -11,6 +12,7 @@ import (
 )
 
 func TestCertifiedParabolaTwoCirclesFacetAngle(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	source := parabolaTwoCirclesStock(t, 0, twoCirclePrimaryStock(), false)
 	for order := range 2 {
@@ -46,6 +48,7 @@ func TestCertifiedParabolaTwoCirclesFacetAngle(t *testing.T) {
 }
 
 func TestCertifiedPlacedParabolaTwoCirclesFacetAngle(t *testing.T) {
+	slowtest.Skip(t)
 	const axis = 1
 	source := placeParabolaTwoCirclesTestStock(t, parabolaTwoCirclesStock(t, axis, oppositeCircleStock(), false))
 	ctx := context.Background()

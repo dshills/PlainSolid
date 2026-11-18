@@ -6,10 +6,12 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestGraphNormalLineNestedExact(t *testing.T) {
+	slowtest.Skip(t)
 	if testing.Short() {
 		t.Skip("complete nested native source")
 	}
@@ -84,6 +86,7 @@ func TestGraphNormalLineNestedExact(t *testing.T) {
 	t.Log("query work", got.ExactOperations, "native preparation", native.PreparationOperations)
 }
 func TestGraphNormalLinePlacedDisjoint(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := graphMaterialBooleanFixture(t, false, true)
 	axes := [2]int{0, 2}

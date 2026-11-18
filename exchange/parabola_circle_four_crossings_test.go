@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strconv"
 	"testing"
 
@@ -22,6 +23,7 @@ import (
 )
 
 func TestParabolaCircleFourCrossingsExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	full := hasFourCrossingsPinnedReader()
 	for layout := range 2 {

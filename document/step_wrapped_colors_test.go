@@ -8,11 +8,13 @@ import (
 	"os/exec"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 )
 
 func TestColoredWrappedDocument(t *testing.T) {
+	slowtest.Skip(t)
 	b := filletMaterialFixture(t).Bodies[0]
 	model := step.ColoredWrappedMaterialAssemblyModel{LengthUnit: .001, Products: []step.ColoredWrappedMaterialAssemblyPart{{ID: "root", Name: "assembly"}, {ID: "part", Name: "colored fillet", Bodies: []step.ColoredWrappedMaterialBody{{Body: b, SurfaceColor: &step.RGB{R: .2, G: .4, B: .6}, FaceColors: map[string]step.RGB{"Bottom": {R: .8, G: .1, B: .3}, "Lower blend": {R: .1, G: .8, B: .3}}}}}}, Occurrences: []step.AssemblyInstance{{ID: "one", Name: "first", Parent: "root", Child: "part", Transform: geom.Identity()}, {ID: "two", Name: "second", Parent: "root", Child: "part", Transform: geom.Translation(geom.Vec3{X: 16})}}}
 	var raw bytes.Buffer

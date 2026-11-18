@@ -6,10 +6,12 @@ import (
 	"math/big"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestGeneralSideOpenDiskSectionBeyondCenters(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, reverseRadii := range []bool{false, true} {
 		for _, swap := range []bool{false, true} {

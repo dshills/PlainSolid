@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestConicalRimBoreSTEPRepairBridge(t *testing.T) {
+	slowtest.Skip(t)
 	source := stepRepairFixture(t, "occt-conical-double-rim-eccentric-bore-rounded")
 	b := New()
 	request := map[string]any{"op": "importStep", "source": source}

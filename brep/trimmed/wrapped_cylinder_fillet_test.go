@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/edgecheck"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestExactWrappedCylinderRimFillet(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	w, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 3, 5, o)
@@ -95,6 +97,7 @@ func TestExactWrappedCylinderRimFillet(t *testing.T) {
 }
 
 func TestWrappedCylinderRimFilletFiniteLine(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.ToroidLineOptions{ParameterTolerance: 1e-10}
 	w, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 3, 5, o.Surface)
@@ -239,6 +242,7 @@ func TestWrappedCylinderRimFilletDistance(t *testing.T) {
 }
 
 func TestWrappedCylinderRimFilletHorizontalSplit(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	w, e := geom.NewCanonicalWrappedCylinder(ctx, geom.Vec3{}, 3, 5, o)

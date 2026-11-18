@@ -162,11 +162,17 @@ Writers propagate output errors. Callers own their streams and must close files.
 See [verification record](docs/VERIFICATION.md) for local checks, coverage and
 explicit limits of the evidence.
 
+Tests come in two tiers. A plain `go test` runs the fast tier and skips every
+test that calls `slowtest.Skip`; use it while developing. Setting
+`PLAINSOLID_SLOW=1` adds the slow tier, which takes hours and is what CI and
+the qualification launcher run. See [the CI notes](tools/ci/README.md#test-tiers).
+
 ```sh
-go test ./...
-go test -race ./...
+go test ./...                    # fast tier, for every change
 go vet ./...
-bash tools/ci/trimmed-shard.sh 0 3 -timeout 45m # Repeat for indices 1 and 2
+PLAINSOLID_SLOW=1 go test ./...  # complete suite, before a release
+PLAINSOLID_SLOW=1 go test -race ./...
+PLAINSOLID_SLOW=1 bash tools/ci/trimmed-shard.sh 0 3 -timeout 45m # Repeat for indices 1 and 2
 go test ./exchange -fuzz=FuzzReadSTL -fuzztime=10s
 go test ./exchange -fuzz=FuzzReadOBJ -fuzztime=10s
 go test ./exchange -fuzz=FuzzReadJSON -fuzztime=10s

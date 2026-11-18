@@ -3,11 +3,13 @@ package trimmed
 import (
 	"context"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
 
 func TestSectionTwoCurvedBranchesProjectedCoverage(t *testing.T) {
+	slowtest.Skip(t)
 	if testing.Short() {
 		t.Skip("complete automatic two-branch original section")
 	}

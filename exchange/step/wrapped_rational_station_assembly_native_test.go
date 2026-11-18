@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -49,6 +50,7 @@ func TestWrappedRationalStationAssemblyNative(t *testing.T) {
 	}
 }
 func TestWrappedRationalStationAssemblyNativeTamper(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	m, b := weightedAssemblyNativeFixture(t)
 	mutations := []func(*weightedAssemblyNativeEnvelope){

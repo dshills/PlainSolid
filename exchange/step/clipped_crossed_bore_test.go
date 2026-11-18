@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -18,6 +19,7 @@ import (
 )
 
 func TestClippedCrossedBoreSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for _, depth := range []float64{4.8, 6, 7.2} {
 		t.Run(fmt.Sprint(depth), func(t *testing.T) { testClippedCrossedBoreSTEP(t, depth) })
 	}

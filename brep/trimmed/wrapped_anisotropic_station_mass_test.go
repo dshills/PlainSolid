@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -54,6 +55,7 @@ func anisotropicMassFixture(t *testing.T, asymmetric bool, translation geom.Vec3
 }
 
 func TestWrappedAnisotropicMass(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	for _, asymmetric := range []bool{false, true} {

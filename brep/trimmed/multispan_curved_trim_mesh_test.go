@@ -4,10 +4,12 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestCertifiedMultiSpanCurvedAnnulus(t *testing.T) {
+	slowtest.Skip(t)
 	circle := func(radius float64, reverse bool) []SplineUV {
 		x, y := .5, .5
 		r := radius

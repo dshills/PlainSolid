@@ -4,12 +4,14 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestBlindTripleCrossedBoreScopeAndSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for axis := 0; axis < 3; axis++ {
 		for _, side := range []float64{1, -1} {
 			t.Run(fmt.Sprintf("%d/%v", axis, side), func(t *testing.T) {
@@ -73,6 +75,7 @@ func TestBlindTripleCrossedBoreScopeAndSTEP(t *testing.T) {
 }
 
 func TestMultipleBlindTripleCrossedBoreScopeAndSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for _, depths := range [][3]float64{{28.5, 30, 0}, {0, 30, 32}, {28.5, 30, 32}} {
 		b := New()
 		stock := box(t, b, vector{}, vector{40, 40, 40})

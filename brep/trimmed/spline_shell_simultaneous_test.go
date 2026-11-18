@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -84,6 +85,7 @@ func splineSimultaneousWarp(t *testing.T, input Solid, h float64) Solid {
 }
 
 func TestCombineSectionedSplineShellsSimultaneousEdge(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, 0)
 	b, _ := makeOpenSplineBox(t, [3]float64{0, 0, 0}, [3]float64{1, 1, 1}, 0)
@@ -155,6 +157,7 @@ func TestCombineSectionedSplineShellsSimultaneousEdge(t *testing.T) {
 }
 
 func TestCombineCurvedSplineShellsSimultaneousEdge(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, _ := makeOpenSplineBox(t, [3]float64{}, [3]float64{1, 1, 1}, 0)
 	b := splineSimultaneousTransform(t, a, geom.Affine{{0, .25, .25, .875}, {.25, 0, .25, .875}, {.25, .25, 0, .5}})

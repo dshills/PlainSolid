@@ -4,12 +4,14 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/internal/testgraphfixture"
 	"plainsolid/intersect"
 	"testing"
 )
 
 func TestTripleRadialOriginalTubeDiscovery(t *testing.T) {
+	slowtest.Skip(t)
 	if testing.Short() {
 		t.Skip("complete three-contour original coverage and topology")
 	}
@@ -77,6 +79,7 @@ func TestRadialContourDiscoveryAtomicRejections(t *testing.T) {
 }
 
 func TestTripleRadialCoverageRejectsOmittedInnerBranch(t *testing.T) {
+	slowtest.Skip(t)
 	if testing.Short() {
 		t.Skip("fresh whole-domain omitted-contour coverage proof")
 	}

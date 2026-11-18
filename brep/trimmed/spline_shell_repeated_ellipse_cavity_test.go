@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 )
 
 func TestTangentEllipseCavityCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	outer, _ := makeOpenSplineBox(t, [3]float64{-.125, -.125, -2}, [3]float64{1.125, 1.125, 0}, 0)
 	inner := quarticRoofSolid(t, 1.0/16, 1.0/16)

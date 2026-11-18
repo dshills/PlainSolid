@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 
@@ -83,6 +84,7 @@ func repeatedPairSplineFixture(t *testing.T) (Solid, Solid) {
 }
 
 func TestCombineRepeatedFacePairOpenSplineArcs(t *testing.T) {
+	slowtest.Skip(t)
 	a, b := repeatedPairSplineFixture(t)
 	sections := repeatedPairSplineSections(t, a, b)
 	for _, tc := range []struct {

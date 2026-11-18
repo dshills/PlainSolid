@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -15,6 +16,7 @@ import (
 )
 
 func TestClipSeparatedRationalGraphSplineShell(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stock, _ := polynomialClipStock(t)
 	// Both cuts cross the curved lower stock face y = 4z−x³/2 in

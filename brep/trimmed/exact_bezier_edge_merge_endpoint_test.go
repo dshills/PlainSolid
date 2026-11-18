@@ -8,11 +8,13 @@ import (
 	"math/big"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestMergeWeightedEndpointSources(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	original, edge, authored := weightedEndpointFixture(t)
 	cut := big.NewRat(1, 3)

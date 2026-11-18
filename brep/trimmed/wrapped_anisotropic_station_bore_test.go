@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 )
@@ -21,6 +22,7 @@ func anisotropicBoreInner(t *testing.T, weight float64, end [2]float64) Solid {
 	return s
 }
 func TestAnisotropicStationBore(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	r := big.NewRat
 	outer := anisotropicMassFixture(t, false, geom.Vec3{})

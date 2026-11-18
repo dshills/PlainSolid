@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -45,6 +46,7 @@ func circularSweepCapOverlayExchangeFixture() [2]trimmed.ExactCircularSweep {
 }
 
 func TestExactCircularSweepCapOverlayAnalyticExchange(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	sweeps := circularSweepCapOverlayExchangeFixture()
 	frame, err := geom.NewFrame(geom.Vec3{X: 10, Y: -3, Z: 2}, geom.Vec3{Y: 1}, geom.Vec3{X: 1})

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/placement"
@@ -11,6 +12,7 @@ import (
 )
 
 func TestAlgebraicStockDirectionalBounds(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	stock := reparameterizedGraphSleeveForFlux(t)
 	planes := [2][3]geom.Vec3{

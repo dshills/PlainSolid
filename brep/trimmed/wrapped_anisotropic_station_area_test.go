@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -58,6 +59,7 @@ func independentAnisotropicWallArea(band, n, m int) float64 {
 	return total
 }
 func TestAnisotropicStationArea(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := anisotropicMassFixture(t, false, geom.Vec3{})
 	o := WrappedAnisotropicStationAreaOptions{AreaTolerance: big.NewRat(2, 1)}

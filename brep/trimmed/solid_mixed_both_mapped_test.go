@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -112,6 +113,7 @@ func independentlyMappedOwner(t *testing.T, source SplineUV) MultiSpanMappedSpli
 	return q
 }
 func TestStoredMixedBothMappedOwners(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s, edge, first, original := multispanSharedSeamFixture(t, 3, false)
 	faces := s.Faces()

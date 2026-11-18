@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -34,6 +35,7 @@ func twoPolynomialNodeCutVolumes(order int, wide bool) []float64 {
 }
 
 func TestNativeTwoPolynomialNodeCutComponents(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, wide := range []bool{false, true} {
 		for _, axis := range []int{0, 1} {
@@ -207,6 +209,7 @@ func checkTwoPolynomialNodeCutGraph(t *testing.T, cut *TwoPolynomialNodeCut, axi
 }
 
 func TestNativeTwoPolynomialNodeCutRecipeRejections(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	base, a, b := nativeWideTwoPolynomialNodeFixture(t, 0)
 	cut, e := CutSplineGraphTwoPolynomialNodeComponents(ctx, base, b, a, 0, 1e-9, PolynomialNodeCutOptions{})

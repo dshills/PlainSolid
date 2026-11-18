@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 	"time"
@@ -25,6 +26,7 @@ func anisotropicBoreSTEPFixture(t testing.TB) []byte {
 	return b
 }
 func TestWrappedAnisotropicStationBoreSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	raw := anisotropicBoreSTEPFixture(t)
 	m, e := ReadWrappedAnisotropicStationBore(bytes.NewReader(raw), Limits{}, WrappedSurfaceOptions{})
 	if e != nil {
@@ -83,6 +85,7 @@ func TestWrappedAnisotropicStationBoreSTEP(t *testing.T) {
 }
 
 func TestWrappedAnisotropicStationBoreSTEPReject(t *testing.T) {
+	slowtest.Skip(t)
 	raw := anisotropicBoreSTEPFixture(t)
 	for index, edit := range []func(*File){
 		func(f *File) { sideDiskEditRecord(f, "PCURVE", func(r *Record) { r.Args[1] = r.Args[2] }) },

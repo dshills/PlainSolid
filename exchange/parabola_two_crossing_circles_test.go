@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"strconv"
 	"testing"
 
@@ -23,10 +24,12 @@ import (
 )
 
 func TestParabolaTwoCrossingCirclesExchange(t *testing.T) {
+	slowtest.Skip(t)
 	checkTwoCrossingCircleProjectionExchange(t, false)
 }
 
 func TestParabolaTwoCrossingCirclesOverlappingExchange(t *testing.T) {
+	slowtest.Skip(t)
 	checkTwoCrossingCircleProjectionExchange(t, true)
 }
 

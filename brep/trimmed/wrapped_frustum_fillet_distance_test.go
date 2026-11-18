@@ -4,12 +4,14 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"sort"
 	"testing"
 )
 
 func TestFilletedFrustumAllSupportDistance(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	o := geom.SurfacePatchOptions{}
 	r := big.NewRat

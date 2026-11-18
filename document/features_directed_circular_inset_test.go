@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 )
 
 func TestDirectedCircularInsetPreservesOriginalMemberRoles(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	p := func(x, y float64) geom.Vec2 { return geom.Vec2{X: x, Y: y} }
 	host := &DirectedCircularExtrusionRecipe{

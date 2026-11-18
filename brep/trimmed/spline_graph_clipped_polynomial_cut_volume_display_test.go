@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestNativeClippedPolynomialThreeTransverseCutVolumeDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	options := parametric.TessellationOptions{Deflection: .05, Angle: .15, MaxSubdivisions: 32, MaxTriangles: 80_000}
 	const tolerance = .02

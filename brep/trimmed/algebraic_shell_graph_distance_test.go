@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/geom"
 )
 
 func TestGraphBooleanCertifiedBoundaryDistance(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := graphMaterialBooleanFixture(t, false, true)
 	axes := [2]int{0, 2}

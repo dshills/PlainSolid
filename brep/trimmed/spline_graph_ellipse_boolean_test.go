@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/edgecheck"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestEllipticalContactSplineGraphBoolean(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	graph := func(z, f float64) *geom.BSplineSurface {
 		t.Helper()
@@ -607,6 +609,7 @@ func TestRotatedEllipticalSplineGraphBoolean(t *testing.T) {
 }
 
 func TestRationalEndpointConicBooleans(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	k := []float64{0, 0, 0, 1, 1, 1}
 	graph := func(z, scale float64) *geom.BSplineSurface {

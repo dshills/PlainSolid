@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -144,6 +145,7 @@ func TestIndependentAnalyticDAGAssembly(t *testing.T) {
 }
 
 func TestIndependentAnalyticDAGReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/independent-analytic-dag-assembly.step")
 	if e != nil {

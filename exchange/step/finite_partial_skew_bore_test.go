@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestFinitePartialSkewBoreSTEP(t *testing.T) {
+	slowtest.Skip(t)
 	for i, q := range [][3]float64{{5, 4, 5}, {4, 5, -5}, {3, 3, 3}, {5, 2, 5}, {5, 4, 8}} {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: -32, Z: 48}, []geom.Vec3{{Z: 1}, {X: -1}, {Y: 1}, {Z: -1}, {Z: 1}}[i])

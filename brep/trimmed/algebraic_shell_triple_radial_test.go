@@ -8,6 +8,7 @@ import (
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/internal/testgraphfixture"
 	"plainsolid/intersect"
 	"testing"
@@ -62,6 +63,7 @@ func tripleRadialRoofSolid(t *testing.T) Solid {
 }
 
 func TestAlgebraicShellTripleRadialMaterialComponents(t *testing.T) {
+	slowtest.Skip(t)
 	if testing.Short() {
 		t.Skip("complete original sextic shell section and material")
 	}

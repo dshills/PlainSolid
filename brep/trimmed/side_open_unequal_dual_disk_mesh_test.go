@@ -6,10 +6,12 @@ import (
 	"math"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestUnequalSideOpenDualDiskCertifiedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	frame, _ := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	discs := [2]ExtrusionCircle{{Center: geom.Vec2{X: 2.5}, Radius: 13. / 8}, {Center: geom.Vec2{X: 34. / 8}, Radius: 15. / 8}}

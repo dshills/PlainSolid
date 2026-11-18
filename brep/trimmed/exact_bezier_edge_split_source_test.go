@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -67,6 +68,7 @@ func authoredCurvedSplitFixture(t *testing.T) (Solid, int, map[int]SplineUV) {
 }
 
 func TestSplitAuthoredCurvedSeam(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s, edge, authored := authoredCurvedSplitFixture(t)
 	cut := big.NewRat(1, 2)

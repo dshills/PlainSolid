@@ -3,6 +3,7 @@ package intersect
 import (
 	"context"
 	"errors"
+	"plainsolid/internal/slowtest"
 
 	"plainsolid/geom"
 	"testing"
@@ -11,6 +12,7 @@ import (
 // Two curved graph supports meet on two disjoint curved open branches.
 // Intermediate dependent UV coordinates are generally irrational.
 func TestUniformGraphMultipleContours(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	k := []float64{0, 0, 1, 1}
 	a, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{{}, {Y: 1}, {X: 1}, {X: 1, Y: 1, Z: 1.0 / 64}}, k, k, nil)

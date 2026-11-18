@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 )
 
 func TestNativeProjectedPolynomialCut(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	options := PolynomialNodeCutOptions{}
 	for profile := 0; profile < 2; profile++ {

@@ -1,3 +1,29 @@
+# Test tiers
+
+A plain `go test ./...` runs the fast tier: every test except those whose
+first statement is `slowtest.Skip(t)` (package `plainsolid/internal/slowtest`).
+`PLAINSOLID_SLOW=1` enables the rest. The GitHub workflow and
+`run-go-qualification.py` set it, so both still run the complete suite. The
+fast tier takes about five minutes on a 14-core machine; the complete suite is
+several hours of test time.
+
+Use the fast tier for each change and the complete suite before a release or
+when changing the code a slow test covers. To run one slow test:
+
+```sh
+PLAINSOLID_SLOW=1 go test ./brep/trimmed -run '^TestNestedQuarticTubeMaterial$'
+```
+
+A new test that takes about two seconds or more should call
+`slowtest.Skip(t)` first. To re-tier from measurements, feed `go test -json`
+output from a complete run to the marker; it only adds marks and is safe to
+rerun. Fuzz targets are never marked.
+
+```sh
+python3 tools/ci/mark-slow-tests.py "$stage"/packages.jsonl "$stage"/trimmed-*.jsonl
+python3 tools/ci/mark-slow-tests.py timings.jsonl --seconds 5
+```
+
 # Go qualification evidence
 
 `trimmed-shard.sh` selects disjoint top-level trimmed-solid tests. The

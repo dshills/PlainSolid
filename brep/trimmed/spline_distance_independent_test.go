@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 	"time"
 
@@ -110,6 +111,7 @@ func independentSplineDistanceLens(t *testing.T) Solid {
 }
 
 func TestSplineDistanceIndependentCurvedTrim(t *testing.T) {
+	slowtest.Skip(t)
 	s := independentSplineDistanceLens(t)
 	// Above and radially outside the circular cap: the nearest boundary is
 	// the actual circle, not its enclosing rectangle or its polygonal chords.
@@ -143,6 +145,7 @@ func TestSplineDistanceIndependentUnderflow(t *testing.T) {
 }
 
 func TestSplineDistanceIndependentCurvedInterior(t *testing.T) {
+	slowtest.Skip(t)
 	s := independentSplineDistanceLens(t)
 	// The lower paraboloid reaches its global minimum at this chart center.
 	// Every other boundary point has both greater height and radial separation.

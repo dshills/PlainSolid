@@ -6,6 +6,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -14,6 +15,7 @@ func crossedDisjointSites() []CardinalThroughBore {
 	return []CardinalThroughBore{{Axis: 2, Center: geom.Vec3{X: 8, Y: 8}, Radius: 2}, {Axis: 1, Center: geom.Vec3{X: 32, Z: 8}, Radius: 2}, {Axis: 0, Center: geom.Vec3{Y: 32, Z: 32}, Radius: 2}}
 }
 func TestBoxCrossedDisjointBores(t *testing.T) {
+	slowtest.Skip(t)
 	for _, n := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		f, _ := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
 		d, c := geom.Vec3{X: 40, Y: 40, Z: 40}, geom.Vec3{X: 20, Y: 20, Z: 20}

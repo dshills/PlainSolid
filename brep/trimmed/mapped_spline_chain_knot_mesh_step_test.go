@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"os"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/trimmed"
@@ -30,6 +31,7 @@ func orderedMappedDisplaySTEP(t *testing.T, ctx context.Context) step.MappedChai
 }
 
 func TestOrderedMappedSTEPKnotAlignedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	model := orderedMappedDisplaySTEP(t, ctx)
 	fill := trimmed.MixedExactMultiSpanMeshOptions{
@@ -186,6 +188,7 @@ func exactMeshDot(a, b [3]*big.Rat) *big.Rat {
 }
 
 func TestOrderedMappedSTEPProjectedQuality(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	model := orderedMappedDisplaySTEP(t, ctx)
 	fill := trimmed.MixedExactMultiSpanMeshOptions{
@@ -299,6 +302,7 @@ func verifyMappedProtectedCoedgeAngle(t *testing.T, ctx context.Context, p *geom
 }
 
 func TestOrderedMappedSTEPFiniteAngleDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	model := orderedMappedDisplaySTEP(t, ctx)
 	fill := trimmed.MixedExactMultiSpanMeshOptions{
@@ -344,6 +348,7 @@ func TestOrderedMappedSTEPFiniteAngleDisplay(t *testing.T) {
 }
 
 func TestOrderedMappedSTEPNormalTurnDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	model := orderedMappedDisplaySTEP(t, ctx)
 	fill := trimmed.MixedExactMultiSpanMeshOptions{

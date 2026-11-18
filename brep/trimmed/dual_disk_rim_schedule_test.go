@@ -6,12 +6,14 @@ import (
 	"math/big"
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"sort"
 	"testing"
 	"time"
 )
 
 func TestAuthoredRimScheduleQuarterArcs(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	f, _ := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	ds := [2]ExtrusionCircle{{Center: geom.Vec2{X: 7, Y: -3}, Radius: 5}, {Center: geom.Vec2{X: 30, Y: -20}, Radius: 29}}

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -12,6 +13,7 @@ import (
 )
 
 func TestExtrudeRoundedRectangleWithCircularFeatures(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	f, e := geom.NewFrame(geom.Vec3{X: 2, Y: -3, Z: 4}, geom.Vec3{Y: 1}, geom.Vec3{X: -1})
 	if e != nil {

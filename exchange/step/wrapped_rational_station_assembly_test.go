@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -45,6 +46,7 @@ func weightedAssemblyModel(m WrappedRationalStationAssembly) WrappedRationalStat
 	return out
 }
 func TestWrappedRationalStationAssemblyRoundTrip(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw := weightedAssemblyFixture(t)
 	m, e := ReadWrappedRationalStationAssembly(ctx, bytes.NewReader(raw), Limits{}, WrappedSurfaceOptions{})

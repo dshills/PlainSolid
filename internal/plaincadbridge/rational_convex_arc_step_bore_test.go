@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"strings"
 	"testing"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestRationalSTEPBoreBridge(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const fixture = "occt-both-default-tilted-oblique-prism-fillet-"
 	raw := stepRepairFixture(t, fixture+"through-bore")

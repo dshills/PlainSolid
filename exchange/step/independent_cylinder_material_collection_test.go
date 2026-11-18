@@ -10,10 +10,12 @@ import (
 	"path/filepath"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/trimmed"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestIndependentCylinderMaterials(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/independent-cylinder-materials.step")
 	if e != nil {

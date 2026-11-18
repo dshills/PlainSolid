@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 
@@ -17,6 +18,7 @@ const (
 )
 
 func TestNativeParabolaCircleLocalSeparationEnvelopes(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ParabolaCircleGraphOptions{}
 	circles := localOppositeCircleStock()
@@ -83,6 +85,7 @@ func TestNativeParabolaCircleLocalSeparationEnvelopes(t *testing.T) {
 }
 
 func TestNativeParabolaCircleLocalSeparationCuts(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	opts := ParabolaCircleGraphOptions{}
 	circles := localOppositeCircleStock()

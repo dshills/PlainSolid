@@ -5,6 +5,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"testing"
@@ -15,6 +16,7 @@ import (
 )
 
 func TestPreparedWrappedBlindDisplayBothEntries(t *testing.T) {
+	slowtest.Skip(t)
 	for _, upper := range []bool{false, true} {
 		t.Run(map[bool]string{false: "lower", true: "upper"}[upper], func(t *testing.T) {
 			ctx := context.Background()

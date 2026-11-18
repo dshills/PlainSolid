@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
@@ -35,6 +36,7 @@ func sphericalHierarchyModel(t testing.TB) IndependentSphericalHierarchyModel {
 	return IndependentSphericalHierarchyModel(m)
 }
 func TestIndependentSphericalHierarchy(t *testing.T) {
+	slowtest.Skip(t)
 	raw, e := os.ReadFile("testdata/independent-spherical-hierarchy.step")
 	if e != nil {
 		t.Fatal(e)
@@ -153,6 +155,7 @@ func TestIndependentSphericalHierarchy(t *testing.T) {
 	}
 }
 func TestIndependentSphericalHierarchyReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	raw, _ := os.ReadFile("testdata/independent-spherical-hierarchy.step")
 	m, e := ReadIndependentSphericalHierarchy(ctx, bytes.NewReader(raw), Limits{}, 1e-9)

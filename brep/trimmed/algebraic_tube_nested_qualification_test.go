@@ -5,6 +5,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/edgecheck"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestNestedQuarticTubeMaterial(t *testing.T) {
+	slowtest.Skip(t)
 	if testing.Short() {
 		t.Skip("independent coverage and exact clipping of nested quartic tubes")
 	}

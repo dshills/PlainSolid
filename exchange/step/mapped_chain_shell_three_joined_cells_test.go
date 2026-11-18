@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 	"time"
@@ -345,10 +346,12 @@ func verifyThreeJoinedRoofCreases(t *testing.T, ctx context.Context, m MappedCha
 }
 
 func TestOCCTMappedChainRectangularThreeJoinedIndependentRoofs(t *testing.T) {
+	slowtest.Skip(t)
 	verifyThreeJoinedRoofSource(t, context.Background(), readInferredSharedMappedChainFixture(t, threeJoinedRoofPath), threeJoinedShared)
 }
 
 func TestOCCTMappedChainRectangularThreeJoinedIndependentRoofsClosedDisplay(t *testing.T) {
+	slowtest.Skip(t)
 	verifyThreeJoinedRoofDisplay(t, readInferredSharedMappedChainFixture(t, threeJoinedRoofPath), 3, .14)
 }
 

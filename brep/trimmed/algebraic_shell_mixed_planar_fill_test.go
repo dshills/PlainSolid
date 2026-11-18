@@ -6,11 +6,13 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestMixedOriginalNonaffinePlanarFragmentFill(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b, p, o := mixedWallFixture(t)
 	section, e := SectionSplineShellsMixedAlgebraic(ctx, a, b, p, o)

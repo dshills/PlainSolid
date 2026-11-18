@@ -6,11 +6,13 @@ import (
 	"math"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
 
 func TestNonlinearTrapezoidWallSection(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, _ := crossingFootprintRoofShellShape(t, false, false)
 	b, _ := crossingFootprintRoofShellShape(t, true, false)

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"slices"
 	"testing"
 
@@ -31,6 +32,7 @@ func authoredParabolaCircleSimilarityStock(t *testing.T, source [3]*geom.BSpline
 }
 
 func TestCertifiedParabolaCircleSimilarity(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	local := parabolaTwoCirclesStock(t, 0, twoCirclePrimaryStock(), false)
 	world := authoredParabolaCircleSimilarityStock(t, local)

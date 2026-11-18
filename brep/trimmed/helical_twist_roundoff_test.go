@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -11,6 +12,7 @@ import (
 )
 
 func TestBoundedTwistActualAcme(t *testing.T) {
+	slowtest.Skip(t)
 	frame, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	pitch, major, clearance := 2.032, 9.525/2, .1016
 	minor := major - pitch/2

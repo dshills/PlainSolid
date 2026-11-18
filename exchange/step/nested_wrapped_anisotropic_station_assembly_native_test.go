@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -33,6 +34,7 @@ func nestedAnisotropicAssemblyNativeFixture(t testing.TB, bore bool) []byte {
 	return b.Bytes()
 }
 func TestNestedWrappedAnisotropicAssemblyNative(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, bore := range []bool{false, true} {
 		raw := nestedAnisotropicAssemblyNativeFixture(t, bore)
@@ -82,6 +84,7 @@ func TestNestedWrappedAnisotropicAssemblyNative(t *testing.T) {
 	}
 }
 func TestNestedWrappedAnisotropicAssemblyNativeReject(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, bore := range []bool{false, true} {
 		raw := nestedAnisotropicAssemblyNativeFixture(t, bore)

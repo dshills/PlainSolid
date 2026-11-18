@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -58,6 +59,7 @@ func placeAnnulusTestSolid(t *testing.T, s Solid, projection int, shift geom.Vec
 }
 
 func TestCertifiedExactPlacedXZBooleanAnnulusFill(t *testing.T) {
+	slowtest.Skip(t)
 	checkCertifiedBooleanAnnulusOwnerFill(t, 2, true)
 }
 

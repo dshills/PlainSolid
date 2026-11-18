@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"plainsolid/brep/edgecheck"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
@@ -47,6 +48,7 @@ func separatedChainJSONFixture(t *testing.T, negative, reverse bool) (*WrappedAl
 	return s, out.Bytes()
 }
 func TestWrappedAlgebraicSeparatedChainJSON(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	for _, tc := range []struct{ negative, reverse bool }{{false, false}, {true, false}, {true, true}} {
 		original, raw := separatedChainJSONFixture(t, tc.negative, tc.reverse)
@@ -89,6 +91,7 @@ func TestWrappedAlgebraicSeparatedChainJSON(t *testing.T) {
 	}
 }
 func TestWrappedAlgebraicSeparatedChainJSONRejects(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s, raw := separatedChainJSONFixture(t, false, false)
 	changes := map[string]func(*wrappedSeparatedChainRecipe){

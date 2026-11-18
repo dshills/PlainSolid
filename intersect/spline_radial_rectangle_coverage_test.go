@@ -4,11 +4,13 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"plainsolid/intersect"
 	"testing"
 )
 
 func TestRadialPhysicalRectangleCoverage(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	build := func(x0, x1, y0, y1 *big.Rat, curved bool) *geom.ExactBezierSurface {
 		square := func(lo, hi, c *big.Rat) [3]*big.Rat {

@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 
@@ -24,6 +25,7 @@ func completeCircularSweepPair() (ExactCircularSweep, ExactCircularSweep) {
 }
 
 func TestExactCircularSweepCompleteCapJoinPreservesOriginalSeam(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	a, b := completeCircularSweepPair()
 	for _, first := range []bool{true, false} {

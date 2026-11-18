@@ -4,11 +4,13 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/geom"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"testing"
 )
 
 func TestNativeRadialTubeRegionPlanarMoments(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	s := radialMaterialForBounds(t)
 	center := [2]*big.Rat{big.NewRat(1, 2), big.NewRat(1, 2)}

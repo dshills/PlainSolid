@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"strings"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestMappedSplineChainSupportKnotRebuild(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	const knot, slope = 29.0 / 256, .25
 	a, b := mappedChainCreasedSupport(t, false, knot, slope), mappedChainCreasedSupport(t, true, knot, slope)

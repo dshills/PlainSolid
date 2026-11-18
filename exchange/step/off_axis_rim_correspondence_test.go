@@ -3,10 +3,12 @@ package step
 import (
 	"bytes"
 	"os"
+	"plainsolid/internal/slowtest"
 	"testing"
 )
 
 func TestOffAxisRimCorrespondence(t *testing.T) {
+	slowtest.Skip(t)
 	raw, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)
