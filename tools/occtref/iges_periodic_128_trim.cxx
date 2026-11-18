@@ -463,6 +463,28 @@ static occ::handle<Geom_BSplineSurface> exactPolygonSupport()
     return native;
 }
 
+static bool writeExactConvexUSeam(const char* path, std::string_view mode)
+{
+    const auto native = exactPolygonSupport();
+    const auto support = exactCarrier(native,0.,5.,0.,4.);
+    const auto reference = BRepBuilderAPI_MakeFace(native,4.5,5.25,1.,3.,1e-9).Face();
+    if (reference.IsNull() || !report(reference)) return false;
+    const auto write = [&](const auto& corners) {
+        occ::handle<IGESGeom_TrimmedSurface> face = new IGESGeom_TrimmedSurface;
+        face->Init(support,1,exactContour(native,support,corners,192),nullptr);
+        IGESControl_Writer writer("MM",0);
+        return writer.AddEntity(face) && writer.Write(path);
+    };
+    const gp_XY a(4.5,1), b(5.25,1.75), c(5.25,3), d(4.5,2.25), top(5,2.75);
+    if (mode == "write-exact-convex-u-seam-missing-split") {
+        return write(std::array<gp_XY,5>{a,b,c,top,d});
+    }
+    gp_XY lower(5,1.5);
+    if (mode == "write-exact-convex-u-seam-moved-split") lower = gp_XY(4.9375,1.4375);
+    if (mode == "write-exact-convex-u-seam-kink") lower.SetY(1.5625);
+    return write(std::array<gp_XY,6>{a,lower,b,c,top,d});
+}
+
 static bool writeExactConvexPolygon(const char* path, std::string_view mode)
 {
     const auto native = exactPolygonSupport();
@@ -586,6 +608,10 @@ int main(int argc,char** argv)
         if (mode == "write-exact-convex-polygon-triangle" || mode == "write-exact-convex-polygon-triangle-pentagon" ||
             mode == "write-exact-convex-polygon-pentagon-triangle" || mode == "write-exact-convex-polygon-collinear") {
             return writeExactConvexPolygon(argv[2],mode) ? 0 : 8;
+        }
+        if (mode == "write-exact-convex-u-seam" || mode == "write-exact-convex-u-seam-missing-split" ||
+            mode == "write-exact-convex-u-seam-moved-split" || mode == "write-exact-convex-u-seam-kink") {
+            return writeExactConvexUSeam(argv[2],mode) ? 0 : 8;
         }
         if (mode == "write-exact-concave-polygon" || mode == "write-exact-concave-polygon-crossing" ||
             mode == "write-exact-concave-polygon-touching" || mode == "write-exact-concave-polygon-clockwise" ||

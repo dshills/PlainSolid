@@ -67,9 +67,7 @@ func provePeriodicSeamTrimmedFace(ctx context.Context, source periodicTrimSource
 	return m, nil
 }
 
-func provePeriodicSeamTrimmedOuter(ctx context.Context, source *periodicTrimSource) (PeriodicSeamTrimmedFace, error) {
-	var zero PeriodicSeamTrimmedFace
-	base := source.face
+func periodicTrimSeamCarrier(base PeriodicTrimmedFace) (PeriodicSeamTrimmedFace, error) {
 	m := PeriodicSeamTrimmedFace{
 		LengthUnit: base.LengthUnit, FaceID: base.FaceID, SupportID: base.SupportID, ContourID: base.ContourID,
 		UVCompositeID: base.UVCompositeID, ModelCompositeID: base.ModelCompositeID,
@@ -83,17 +81,25 @@ func provePeriodicSeamTrimmedOuter(ctx context.Context, source *periodicTrimSour
 			first = 0
 		}
 		if m.CarrierBounds[i].Lower.Cmp(b.Knots[first]) != 0 || m.CarrierBounds[i].Upper.Cmp(b.Knots[b.Count]) != 0 {
-			return zero, fmt.Errorf("iges: seam trim requires the full original carrier intervals: %w", geom.ErrUnrepresentable)
+			return PeriodicSeamTrimmedFace{}, fmt.Errorf("iges: seam trim requires the full original carrier intervals: %w", geom.ErrUnrepresentable)
 		}
 	}
+	return m, nil
+}
+
+func provePeriodicSeamTrimmedOuter(ctx context.Context, source *periodicTrimSource) (PeriodicSeamTrimmedFace, error) {
+	var zero PeriodicSeamTrimmedFace
+	m, err := periodicTrimSeamCarrier(source.face)
+	if err != nil {
+		return zero, err
+	}
 	var uv [6]periodicTrimUVEdge
-	var err error
 	m.Bounds, err = readPeriodicTrimUVEdges(source.graph, source.uv, uv[:])
 	if err != nil {
 		return zero, err
 	}
 	axis := 0
-	if u.Periodic && v.Periodic {
+	if source.support.PeriodicU && source.support.PeriodicV {
 		uCrosses := crossesOriginalUpperSeam(m.Bounds[0], m.CarrierBounds[0].Upper)
 		vCrosses := crossesOriginalUpperSeam(m.Bounds[1], m.CarrierBounds[1].Upper)
 		if uCrosses == vCrosses {
@@ -102,7 +108,7 @@ func provePeriodicSeamTrimmedOuter(ctx context.Context, source *periodicTrimSour
 		if vCrosses {
 			axis = 1
 		}
-	} else if v.Periodic {
+	} else if source.support.PeriodicV {
 		axis = 1
 	}
 	carrier := m.CarrierBounds[axis]
@@ -113,9 +119,7 @@ func provePeriodicSeamTrimmedOuter(ctx context.Context, source *periodicTrimSour
 	} else {
 		m.SeamV = seam
 	}
-	lift := m.Bounds[axis]
-	if lift.Lower.Cmp(carrier.Lower) <= 0 || !crossesOriginalUpperSeam(lift, seam) ||
-		new(big.Rat).Sub(lift.Upper, lift.Lower).Cmp(period) >= 0 {
+	if !crossesOneOriginalUpperSeam(m.Bounds[axis], carrier, period) {
 		return zero, fmt.Errorf("iges: expected one lift crossing the upper original %s seam: %w", [2]string{"U", "V"}[axis], geom.ErrUnrepresentable)
 	}
 	cells, err := m.proveSeamCells(ctx)
@@ -134,6 +138,11 @@ func provePeriodicSeamTrimmedOuter(ctx context.Context, source *periodicTrimSour
 
 func crossesOriginalUpperSeam(interval geom.ExactParameterInterval, seam *big.Rat) bool {
 	return interval.Lower.Cmp(seam) < 0 && interval.Upper.Cmp(seam) > 0
+}
+
+func crossesOneOriginalUpperSeam(lift, carrier geom.ExactParameterInterval, period *big.Rat) bool {
+	return lift.Lower.Cmp(carrier.Lower) > 0 && crossesOriginalUpperSeam(lift, carrier.Upper) &&
+		new(big.Rat).Sub(lift.Upper, lift.Lower).Cmp(period) < 0
 }
 
 func (m *PeriodicSeamTrimmedFace) proveSeamCells(ctx context.Context) ([]geom.ExactPeriodicSurfaceBezierCell, error) {

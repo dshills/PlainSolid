@@ -125,28 +125,8 @@ func periodicAffineCycle(uv []periodicTrimUVEdge, kind string) ([][2]*big.Rat, b
 func provePeriodicAffineEdges(ctx context.Context, graph periodicTrimGraph, uv []periodicTrimUVEdge,
 	model []int, patch *geom.SurfacePatch, bounds [2]geom.ExactParameterInterval, remaining int) ([]PeriodicTrimEdge, int, error) {
 	pairs := make([]PeriodicTrimEdge, len(uv))
-	var width [2]*big.Rat
-	for i, interval := range bounds {
-		width[i] = new(big.Rat).Sub(interval.Upper, interval.Lower)
-	}
-	options := geom.SurfacePatchOptions{}
 	for i, edge := range uv {
-		var controls [2][4]*big.Rat
-		for k, p := range [2][2]*big.Rat{edge.start, edge.end} {
-			for axis, q := range p {
-				controls[k][axis] = new(big.Rat).Quo(new(big.Rat).Sub(q, bounds[axis].Lower), width[axis])
-			}
-			controls[k][2], controls[k][3] = new(big.Rat), big.NewRat(1, 1)
-		}
-		line, err := geom.NewExactHomogeneousBezier(ctx, controls[:], options)
-		if err != nil {
-			return nil, 0, err
-		}
-		expected, err := patch.ComposeParameterCurve(ctx, line, options)
-		if err != nil {
-			return nil, 0, fmt.Errorf("iges: periodic affine composition for UV line #%d: %w", edge.id, err)
-		}
-		pair, used, err := provePeriodicTrimEdge(ctx, graph, edge.id, model[i], edge.start, edge.end, expected, remaining)
+		pair, used, err := provePeriodicAffineEdge(ctx, graph, edge, model[i], patch, bounds, remaining)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -154,6 +134,29 @@ func provePeriodicAffineEdges(ctx context.Context, graph periodicTrimGraph, uv [
 		pairs[i] = pair
 	}
 	return pairs, remaining, nil
+}
+
+func provePeriodicAffineEdge(ctx context.Context, graph periodicTrimGraph, edge periodicTrimUVEdge,
+	model int, patch *geom.SurfacePatch, bounds [2]geom.ExactParameterInterval, remaining int) (PeriodicTrimEdge, int, error) {
+	var controls [2][4]*big.Rat
+	for axis, interval := range bounds {
+		width := new(big.Rat).Sub(interval.Upper, interval.Lower)
+		controls[0][axis] = new(big.Rat).Quo(new(big.Rat).Sub(edge.start[axis], interval.Lower), width)
+		controls[1][axis] = new(big.Rat).Quo(new(big.Rat).Sub(edge.end[axis], interval.Lower), width)
+	}
+	for k := range controls {
+		controls[k][2], controls[k][3] = new(big.Rat), big.NewRat(1, 1)
+	}
+	options := geom.SurfacePatchOptions{}
+	line, err := geom.NewExactHomogeneousBezier(ctx, controls[:], options)
+	if err != nil {
+		return PeriodicTrimEdge{}, 0, err
+	}
+	expected, err := patch.ComposeParameterCurve(ctx, line, options)
+	if err != nil {
+		return PeriodicTrimEdge{}, 0, fmt.Errorf("iges: periodic affine composition for UV line #%d: %w", edge.id, err)
+	}
+	return provePeriodicTrimEdge(ctx, graph, edge.id, model, edge.start, edge.end, expected, remaining)
 }
 
 func periodicUVStrictlyConvex(points [][2]*big.Rat, winding int) bool {
