@@ -1,509 +1,57 @@
 # PlainCAD readiness
 
+The immediate target is the current PlainCAD application's actual kernel
+contract, not all OCCT APIs. This page defines that contract and the
+acceptance cases for each gate. Current results are in
+[the status page](STATUS.md) and [the verification record](VERIFICATION.md).
+The dated run log that this page replaced is in git:
+`git show c35d3358:docs/PLAINCAD_READINESS.md`.
+
 ## Scope and evidence rules
 
-The immediate target is the current PlainCAD application's actual kernel contract,
-not all OCCT APIs. The source audit used the sibling PlainCAD checkout at revision
-`fd9f7fadea2214b45946b9dcff748642acb5ae9d` on 2026-11-13. Record any uncommitted source
-changes and source hashes with each run; this revision alone does not pin a dirty
-working tree. The full PlainSolid specification remains required separately.
-
-Source-hashed PlainSolid-backed browser acceptance runs are recorded below. Existing
-OCCT test results, PlainSolid Go tests, a successful WASM build, and
-extracted/reimplemented fixtures are not substitutes for running these scenarios
-against the selected PlainSolid kernel.
-
-## Current PlainCAD revision
-
-The isolated PlainCAD branch `codex/plainsolid-backend` selects PlainSolid in
-the app and its workers. It builds a fingerprinted WASM file and checks its
-manifest against the source revision and matching Go runtime. The pinned
-app build at `efae4d2` passes 345 development cases, 66 production cases
-and 15 Chromium, Firefox and WebKit cases on kernel `fa857e59`. The
-browser suites have zero skips, retries or flaky results. Both TypeScript
-checks, the production bundle budget, 1,691 ordinary unit and component
-cases, and four actual-WASM contracts pass. PlainSolid is selected
-explicitly in the app build. Later increments have focused browser and
-exchange evidence.
-[Full provider qualification](evidence/plaincad-provider-kernel-fa857e59-2026-11-14.json).
-
-The [latest full refresh](evidence/plaincad-main-a3b7548d-2026-11-15.json)
-passed all eight gates without a rerun on kernel `a3b7548d` and the same
-pinned app. The browser counts were unchanged, the four Go WASM cases and
-all 1,691 ordinary cases passed, and the production WASM matched the
-build byte for byte. The [selected mapped STEP worker](evidence/plaincad-v13-normal-turn-chromium-2026-11-15.json)
-separately exercised a 0.35-radian request on the authored v13 fixture.
-
-The [earlier full production run](evidence/plaincad-production-cylinder-stock-2026-11-13.json)
-passes all 66 originals on integration commit `254c83b`. The original
-benchmark takes 31.382 seconds, and both TypeScript checks and the
-production bundle budget pass.
-
-The [full development run](evidence/plaincad-development-50432ed-2026-11-13.json)
-on PlainCAD `50432ed` passes all 344 originals on clean integration
-commit `92e22ab`, with zero skips, retries or flaky results. Both
-previous startup failures pass in the same full run.
-
-The [full production run](evidence/plaincad-production-50432ed-2026-11-13.json)
-on PlainCAD `50432ed` passes all 66 originals, both TypeScript checks, and
-the independent WASM probe. The [performance case](evidence/plaincad-production-50432ed-performance-2026-11-13.json)
-finishes in 42.966 seconds with 25 verified edits and 11 validated STL
-downloads. This run includes the staged project-open readiness fix.
-
-Focused original checks on PlainCAD `e65f07b` cover studio Render and
-cancellation, ORBIT display and PNG export, exact bounds on sketch copies,
-native STEP round-trip, and retained pocket and Hole lineage. Its full
-production build passes all 66 originals, including its 60.790-second
-performance case. The two consolidated development runs each pass 342 of
-344 originals. The latest run passes pan, markers, gesture and 40-body
-viewer cases together. Its two startup failures pass unchanged on the
-identical WASM in isolation. The complete reports preserve the original
-assertions and outcomes.
-The [full one-worker unit run](evidence/plaincad-unit-one-worker-full-2026-11-13.json)
-passes 1,647 of 1,689 originals on `50432ed`. All five new failures and
-the recurring cold Unified thread test pass unchanged on the same WASM.
-The remaining 36 repeat failures concern provider-specific bindings or
-fixtures that assume an uninitialized kernel.
-All seven portable failures pass a focused retest, including the exact
-side-tangent blind Hole. Its four-face contact is retained for modeling
-and display. STL fabrication and STEP reject this non-manifold boundary.
-On PlainCAD `50432ed` all 15 current cross-browser originals pass across
-Chromium, Firefox and WebKit. The focused original selection passes six of
-seven, with the same Parts Browser asynchronous-open race. The earlier
-`e65f07b` cross-browser controls reproduce its stale UI locators on pristine
-OCCT. The current committed app fixes those locators. See the
-[verification record](VERIFICATION.md) for reports and exact test scope.
-
-## Selected production acceptance — 2026-11-13
-
-The clean app archive `1c59128` with PlainSolid reconciliation snapshot
-`5a69c0b` passed [all 66 original production tests](evidence/plaincad-reconciled-production-2026-11-13.json)
-in one run on the original port, without skips or retries. The unchanged
-performance fixture completed in 50.4 seconds. The same snapshot separately
-passed the original [zoom and ORBIT display tests](evidence/plaincad-reconciled-orbit-2026-11-13.json),
-including the full-resolution PNG during motion. All 841 staged original
-source files were checked against their pinned app Git blobs. This qualifies
-the tested production snapshot; the full development suite and newer
-reconciliation revisions still need qualification.
-
-The [production report](evidence/plaincad-production-2026-11-13.json)
-records all seven selected original tests passing with the built Go WASM
-app under its production CSP. Coverage includes native modeling, circle
-STL, scope capture, STEP export and import, and shop drawing. The original
-bundle budget also passes.
-
-The first full [production run](evidence/plaincad-production-full-baseline-2026-11-13.json)
-passes 61 of 66 originals. The five remaining cases cover the configuration
-package, production performance deadline, cable-guide preview, Acme lead
-pair and UNC thread pair. The full development suite contains 340 originals
-and remains open.
-
-## Development and production retests — 2026-11-13
-
-The [development retest](evidence/plaincad-gap-repairs-2026-11-13.json)
-passes seven original cases in 55.891 seconds, plus both TypeScript checks
-and the separate WASM check. It covers the pocket after four bores, a
-circular island pocket, a circular face boss, compound profiles, fillet
-and chamfer on opposite caps, XY holes and pocket, and separated rotated
-collision. The [circle measurement retest](evidence/plaincad-circle-measurement-2026-11-13.json)
-passes the original cylinder measurement and the three original rim
-regressions in 53.554 seconds.
-
-The [production retest](evidence/plaincad-production-repairs-2026-11-13.json)
-passes the fabrication package, the Cable guide live preview and the
-left-hand Acme gallery. A [separate retest](evidence/plaincad-production-unc-2026-11-13.json)
-passes the quarter-inch UNC gallery in 14.9 seconds after repairing helical
-placement. Production performance exceeds its overall deadline after
-checking all 25 edits and 11 STL downloads in that earlier run.
-
-The [clean combined compact-mesh retest](evidence/plaincad-compact-performance-reconciliation-2026-11-13.json)
-passed the unchanged controlled performance case in 64.7 seconds against
-its 90-second limit. The full production result above supersedes this
-selected checkpoint for the newer tested pair of revisions.
-
-The separate [isolated integration performance retest](evidence/plaincad-production-performance-isolated-2026-11-13.json)
-passes the original case in 29.5 seconds with all 25 edits and 11 validated
-STL downloads. The external worktree's independently tested
-[current production run](evidence/plaincad-current-production-2026-11-13.json)
-also passed all 66 originals. Each report records its own app and kernel inputs.
-
-The [rotary fixture](evidence/plaincad-rotary-accepted-2026-11-13.json)
-passes cold load of all 40 bodies, cached rename, and a platter thickness
-edit. The [cache metrics](evidence/plaincad-rotary-cache-metrics-2026-11-13.json)
-record zero modeling operations and 39 edge-proof hits on rename.
-The [exact Join/Cut original](evidence/plaincad-rotary-first-2026-11-13.json)
-and [Hole Edit original](evidence/plaincad-hole-edit-chamfer-2026-11-13.json)
-also pass.
-
-## Mixed profiles, revolutions, drawings and STEP — 2026-11-13
-
-Focused original cases pass for linked arcs and circles, edited arc
-extrusions, circle and capsule offsets, torus and polygon revolve,
-coaxial full and quarter-sweep bores, socket-head blanks, guided
-tap-drill and shop drawings, and posed STEP import and export. The
-three-case [affected-case report](evidence/plaincad-curved-profile-drawing-step-2026-11-13.json)
-records the final repaired arc bounds, world drawing axis and STEP STL.
-The [first STEP run](evidence/plaincad-step-first-run-2026-11-13.json)
-records all three original export successes and the import regression
-repaired in the later run. The first [consolidated run](evidence/plaincad-consolidated-regressions-2026-11-13.json)
-passes 47 of 53 selected originals. Six guided multi-hole previews hit the
-mesh budget with the finer rim setting. A corrected multi-rim setting is
-being retested.
-
-The original modeled Thread and linked lead screw/nut both pass on one
-[source-hashed snapshot](evidence/plaincad-helical-accepted-2026-11-13.json).
-The Acme and UNC gallery cases pass their focused production retests.
-
-## Finite To Face extrusion checkpoint — 2026-11-13
-
-The existing polygon and circle To Face workflows pass with bounded target
-coverage and native owner edits. Both face-derived pocket cases and the
-component placement case pass. Both TypeScript checks and the separate
-WASM probe pass. The [five-case report](evidence/plaincad-to-face-2026-11-13.json)
-records zero skips or flaky results.
-
-The [pinned 31-case run](evidence/plaincad-to-face-consolidated-2026-11-13.json)
-passes 30 originals, including all five To Face checkpoint cases. Its one
-failure is the long chain with the rear edge selected. A radius edit aligns
-a pocket edge exactly with the fillet tangent, a topology the earlier
-strictly interior constructor rejects. A deterministic regression for this
-boundary is in progress.
-
-## Grouped edge treatment checkpoint — 2026-11-13
-
-The existing PlainCAD multi-edge edit case passes with two authored fillet
-references on XZ stock. It changes one reference to the opposite cap, retains
-the other reference and the downstream chamfer, and checks preview, invalid-size
-recovery, cancellation, undo/redo, save/reopen and STL. The adjacent original
-edge-draft case also passes three successive XZ treatments and verifies that
-an edge already consumed by a treatment reports as lost. The final run passes
-all 26 existing cases in 172.906 seconds, both TypeScript checks and a separate
-WASM probe, with zero skips or flaky results. The multi-edge edit takes 9.926
-seconds. The [source-hashed report](evidence/plaincad-grouped-edge-treatments-2026-11-13.json)
-records all 27 results. Its 694 PlainSolid source hashes match the tree and an
-independent WASM rebuild matches the tested artifact.
-
-The analytic constructor in `4f51147` allows independent rounds and bevels on
-up to four parallel, full-length original edges of qualified rectangular stock.
-The adapter resolves individual authored references, and the bridge validates
-the group against the same input before one publication. Repeated references
-to the same physical edge resolve once. Nonparallel groups, complete perimeter
-treatments, ambiguous or consumed references, and interacting treatments remain
-outside this domain. A separate WASM probe verifies a two-edge chamfer, reordered
-and repeated references, exact mass, closed display and STL, and atomic failure.
-
-## Earlier long native feature chain checkpoint — 2026-11-13
-
-PlainCAD's existing `long native feature chain preserves exact geometry through
-edits, blocked downstream recovery, save/open and STL` runs the original six
-features against PlainSolid WebAssembly. The test checks exact analytic volume
-and bounds, mesh volume, parameter edits, undo/redo, a failed pocket that blocks
-the boss, suppress/restore, stable feature IDs on save/reopen and STL volume.
-The adjacent original edge-treatment case checks invalid chamfer size and
-recovery. Both pass in the final run, along with the previous 22 existing cases,
-both TypeScript checks and a separate real-WASM probe. The 24-case acceptance
-stage takes 161.868 seconds with zero skips, failures or flakes. The long chain
-itself passes in 12.606 seconds. The [source-hashed report](evidence/plaincad-long-feature-chain-2026-11-13.json)
-records all 25 cases and the tested WASM. Its 691 source hashes match the final
-tree, and an independent WASM rebuild matches the tested artifact.
-
-The analytic construction comes from `main` and is retained on the integration
-branch in `4916667`. The bridge resolves complete straight edges from authored
-extrusion endpoints against the current retained geometry. The chain supports a
-single longitudinal cap fillet and one equal-setback chamfer on a supported
-remaining edge of rectangular stock. Through bores, through rectangular
-pockets, and upper rectangular bosses keep disjoint interior footprints and
-preserve the analytic fillet and chamfer. There is room for one of each feature.
-Signed cardinal placements require represented geometry to survive the map.
-Grouped edge operations, interacting tools on treated stock, and general
-curved Boolean composition remain open.
-
-## Earlier unequal-depth Hole checkpoint — 2026-11-13
-
-The analytic layered constructor is committed as `302184f`. It supports unequal
-blind depths and blind/through mixtures from a common original stock opening
-side, retaining cylindrical walls and crescent or annular planar floors.
-Through tools may be reversed exactly to that side. At most 32 cutters may be
-retained; their complete circular footprints must remain strictly inside
-qualified convex planar stock. Duplicate and contained cutters simplify according
-to both footprint and depth. Each axial footprint must avoid material islands.
-
-A handle-free `overlapVolume` query now validates successive Hole features against
-already-bored stock. It measures actual additional removed material through the
-retained cut construction; it does not manufacture an intersection solid.
-The ordinary `common` geometry operation keeps its narrower domain. Scoped
-publication, indexed errors, original-input ownership and standalone no-op
-rejection remain intact, including when the handle store is full.
-
-The final real-WASM supplement passes unequal-depth batches in both orders and actual
-PlainCAD successive Hole features, before and after project save/reopen. Exact
-volume/area, mesh/STL accuracy and normals, late rollback and cleanup are checked.
-All **22 existing acceptance cases pass unchanged**, with zero skipped, unexpected
-or flaky results; the acceptance stage took 135.638 seconds. Both original
-TypeScript checks pass. The supplement itself took 7.852 seconds (9.329 seconds
-including runner startup). The [source-hashed report](evidence/plaincad-unequal-depth-holes-2026-11-13.json)
-records all cases and the tested artifact. All 677 recorded PlainSolid source
-hashes match the final tree, and an independent WASM rebuild has the same hash.
-There is no existing overlap-specific acceptance fixture, so new checks remain
-explicitly supplemental. Guided-hole UI overlap restrictions are unchanged.
-
-The later [opposed-entry checkpoint](evidence/plaincad-opposed-holes-browser-2026-11-13.json)
-passes 12 original Hole cases. Its real-WASM supplement verifies two overlapping
-blind tools entering opposite caps, exact measures, save/reopen and validated
-STL. The lower-level tests also cover opposing floors at a common level.
-General internal cutters, material-island footprints, unresolved contacts and
-arbitrary curved targets remain outside this layered recipe. Generic native
-BRep serialization of anchored analytic trims remains unqualified.
-PlainCAD's recipe persistence is checked separately. Full application and OCCT
-replacement qualification remain open.
-
-## Side-opening overlap adapter checkpoint — 2026-11-13
-
-The review branch now recognizes two same-side circular cuts in one batch or
-as consecutive cuts on a cardinal rectangular solid. The cutters must have
-equal radii and the same clipped blind or through interval, and their exposed
-seam and native spline controls must be exactly representable. The Go bridge
-tests check tool order, reversed drill direction, material capture in either
-argument order, reflection, stock extrema, and model-only STEP writer output.
-An unsupported crossing returns no result handle. The native export path
-keeps the exact AP203 product root when partitioning mixed STEP output, so
-both bodies are read back independently before returning their original
-measures and bounds. The [two original STEP browser regressions](evidence/plaincad-rooted-step-210386c-2026-11-13.json)
-pass on clean combined `210386c` with both type checks and the separate
-Go WASM probe. The new overlap-specific viewer and exchange exercise is
-supplemental. [Both overlap browser cases](evidence/plaincad-side-dual-disk-645607c-2026-11-13.json)
-passed on clean `645607c` using PlainCAD `50432ed`. They independently check
-blind and through analytic measures, visible native display, save and reopen,
-oriented STL, STEP worker before/after proofs, and import of the downloaded
-STEP into a new native document. No original app fixture was changed. The
-same report retains the exploratory immediate-after-Apply readiness failure;
-the final probe waits for the imported feature and its corresponding body.
-Close-up display at the application's tighter tolerance is a separate gate.
-
-## Earlier overlapping Hole cutter checkpoint — 2026-11-13
-
-**22 existing PlainCAD acceptance scenarios pass unchanged**, with zero skipped,
-unexpected or flaky results. The regression stage took 133.393 seconds. Both
-original TypeScript checks pass. A separate real-WASM supplemental probe passes
-in 8.042 seconds. The [source-hashed report](evidence/plaincad-overlapping-holes-2026-11-13.json)
-records `/tmp/plainsolid-overlap-acceptance-03`, every case, all selected local Go
-runtime sources, the adapter/harness, and the tested WASM artifact.
-
-There is **no existing overlap-specific browser fixture**. The existing 22 cases
-are regressions; new overlap evidence is explicitly supplemental. It verifies
-analytic two-circle lens volume and area, reversed tool order, duplicates and
-contained cutters, mesh/STL volume and normals, late-failure rollback, input
-ownership, handle cleanup, and an actual overlapping-Hole PlainCAD document
-rebuilt after save/open. Guided-hole placement still intentionally rejects
-overlapping circles; that application behavior is unchanged.
-
-Scoped cutters are applied collectively, after every center is checked against
-the original scope. A duplicate/contained cutter may add no extra removal within
-a valid batch; standalone cuts still must remove meaningful material. Each target
-must lose volume, and no outputs escape if any target fails. Analytic circular
-arcs, cylinder walls and planar caps/floors are retained, not replaced by polygonal
-solid geometry. The constructor is committed as `845cf3d`.
-
-The qualified domain is convex planar stock, strictly interior parallel circular
-cutters, and common effective entry/stop planes, with at most 32 retained tools.
-Proper multi-circle overlaps, exact duplicates, containment and separated
-components are supported for through or common-depth blind cuts. Unequal-depth
-or opposed blind overlaps, tangent/ambiguous contacts, material-island footprints,
-side-crossing cuts and arbitrary curved targets remain unsupported. Once a recipe
-requires union construction, its whole recipe must share the effective depth;
-independent separated mixed-depth recipes retain their prior support. Scope
-intersection queries against already-bored targets still require separation from
-existing cutter bounds. Generic native BRep serialization of the new anchored
-trim type is not qualified; PlainCAD feature-recipe persistence is verified.
-
-Native tests, race, vet, WASM build and independent review pass. Unselected
-application tests and full production/release qualification remain open.
-
-## Earlier scoped Hole checkpoint — 2026-11-13
-
-**22 existing PlainCAD acceptance scenarios pass**, with zero skipped, unexpected
-or flaky results. The consolidated acceptance stage took 151.620 seconds. Both
-original TypeScript checks pass; a separate real-WASM backend probe passes in
-8.450 seconds. The [source-hashed report](evidence/plaincad-scoped-holes-2026-11-13.json)
-records `/tmp/plainsolid-hole-acceptance-11`, source identities, every selected
-case and provider-only literal adaptations. A labeled post-run supplement pins
-all selected kernel sources; rebuilding them exactly matches the accepted WASM
-hash. Geometry/workflow assertions and
-original test timeouts are unchanged. Interrupted and failed exploratory runs
-are not counted as successful qualification.
-
-| Existing selection | Passing cases |
-|---|---:|
-| Previous circle, extrusion, XYZ modeling, shell and stale-worker regressions | 11 |
-| Guided face Hole: blind and through-all in XY/XZ/YZ; edits, Undo, save/open, STL | 6 |
-| Explicit multi-body Hole: all centers/targets, rollback, raised-stock blind depth, persistence and STL | 3 |
-| Native Hole dialog: explicit selection, blind/through edits, parameters and empty-center recovery | 1 |
-| Automatic target capture across different centers and stale in-flight capture rejection | 1 |
-
-The scope adapter validates every center against the original selected bodies,
-requires every selected body to lose volume, and publishes owned outputs together.
-Failure preserves original shapes and disposes intermediate outputs. The probe
-checks exact center/target error indices and fills all 249 remaining handle slots
-after repeated late failures with seven inputs live, proving no handle leakage.
-
-Blind and through cylindrical cuts retain analytic walls and planar floors on
-qualified convex planar stock, with strictly interior radial footprints and
-perpendicular parallel caps. Either cap may be the opening. Repeated separated
-bores and proven individual target misses are supported. Overlapping tools,
-closed internal cavities, side-crossing/grazing cuts, unprovable finite reversal,
-and arbitrary curved targets remain unsupported. Blind depth and remaining wall
-must exceed the supported 1e-9 geometric threshold.
-
-Display and STL share the requested tolerance mapping and mesh. Compact sampling
-preserves circular edge detail without subdividing straight lengths or flat face
-interiors unnecessarily: a representative bored part uses 144 triangles instead
-of 2,048. Existing guided STL removal-volume accuracy and full modeling vertex
-checks pass. The numerical prerequisite fixes are commits `0037fb1` and `14e5760`.
-Native/race/vet/WASM checks and independent review pass. A supplementary full
-trimmed-kernel run timed out at 600 seconds; it is not a full-suite pass (see
-[verification](VERIFICATION.md)). Unselected tests and full production/release
-qualification remain open. No full OCCT or PlainCAD replacement claim is made.
-
-## Earlier circular extrusion and through-cut checkpoint — 2026-11-13
-
-**Eleven existing PlainCAD scenarios pass** in the consolidated run, with zero
-skipped, unexpected or flaky results. The acceptance stage took 78.999 seconds;
-a separate real-WASM backend probe took 4.327 seconds. Both original TypeScript
-checks passed. The [source-hashed report](evidence/plaincad-through-cuts-2026-11-13.json)
-records `/tmp/plainsolid-circle-acceptance-06`, every case, provider-only literal
-adaptations, source identities and WASM SHA-256.
-
-The selection includes the six foundation scenarios below, circle-dialog profile
-choice/negative-XZ preview, all three XYZ non-template modeling/edit/save/open/STL
-cases, and negative/symmetric through-all cutting with invalid-direction rejection.
-Existing geometry and workflow assertions are unchanged. The independent probe
-also checks analytic circle and bored-stock volume/area, without OCCT requests.
-
-Through-cuts retain analytic cylinder walls on convex planar stock with strictly
-interior radial footprints and provably perpendicular parallel caps. Finite tools
-must cover both caps; separated repeated bores are supported. Blind, partial,
-grazing, side-crossing and unsupported oblique-cap cuts are rejected. General
-curved Booleans, arbitrary curved placement and native scoped Hole remain open.
-This is a selected PC1 subset, not full application or OCCT replacement.
-
-## Exact circle extrusion milestone — 2026-11-13
-
-The existing `extrude-dialog.spec.ts` case `profile choice and negative XZ native
-preview cancel cleanly and apply only current settings` now passes with the
-PlainSolid backend. It verifies profile choice between two full circles, negative
-XZ extrusion, analytic volume to seven decimal places, bounds, invalid depth,
-preview/cancel, rapid edits, Apply and Undo/Redo. Both original TypeScript checks
-and the independent real-WASM probe passed. The probe checks analytic circle mass
-and conservative bounds separately from the display mesh.
-
-The [source-hashed circle report](evidence/plaincad-circle-extrusion-2026-11-13.json)
-comes from `/tmp/plainsolid-circle-acceptance-03`. This is one additional existing
-application scenario; it does not yet establish the cylindrical through-cut path.
-The bridge keeps an analytic cylinder B-rep, supports signed height, rigid
-placement and actual cap-plane queries, and rejects mixed-arc/holed-circle input.
-Native tests cover all three axes and both signs, independent surface integration,
-mesh convergence/closure, matching STL vertices, strict input rejection and limits.
-Focused race, vet and WASM build checks pass; no external dependency was added.
-
-```sh
-node tools/plaincad/run.mjs --source /absolute/path/to/PlainCAD --test e2e/extrude-dialog.spec.ts --grep 'profile choice and negative XZ native preview cancel cleanly and apply only current settings'
-```
-
-## Historical foundation browser runs — 2026-11-13
-
-Six existing PlainCAD acceptance cases pass against the real Go WASM backend:
-
-| Existing case | Result |
-|---|---|
-| XY negative/symmetric extrusion, parameter edits, save/open and STL winding | Passed |
-| XZ variant of that same scenario | Passed |
-| YZ variant of that same scenario | Passed |
-| Rectangular Shell: either cap, invalid walls, edits, Undo, command plan, save/open and STL | Passed |
-| Real-worker stale result cannot overwrite a newer edit | Passed |
-| Real-worker failure cannot overwrite a newer edit | Passed |
-| XY non-template modeling with circular-profile extrusion and through-cut | Failed at circular-profile extrusion preview |
-
-The [foundation report](evidence/plaincad-foundation-2026-11-13.json) preserves
-source identities/hashes, provider adaptations and all six passing cases from
-`/tmp/plainsolid-cad-acceptance-12`. The existing cases took 29.58 seconds;
-a separate backend probe took 3.06 seconds. Neither stage skipped any tests.
-The probe verifies actual Go WASM dispatch, `geometrySource: plainsolid`, no OCCT
-asset requests, Boolean no-op/empty/disconnected handling, symmetric overlap
-classification and negligible-shell-cavity rejection. It is not counted as an
-existing application acceptance case.
-
-Both TypeScript checks passed (`tsc -b --noEmit`, and separately in that copied
-app `tsc -p tsconfig.e2e.json`). The runner now executes both checks itself.
-Runtime: Go 1.27.4, Node 26.13.1, Playwright 1.63.0 with its Chromium on macOS arm64.
-WASM SHA-256 for the foundation run:
-`25dfddde41c2854e762230e53a9d7e76ee1d230564ca743cbff014b54447a93f`.
-The original PlainCAD checkout was not modified; its pre-existing dirty validation
-log is recorded in the report. Source hashes, not only Git HEAD, identify the run.
-
-The [next-gate report](evidence/plaincad-circular-profile-2026-11-13.json), from
-`/tmp/plainsolid-cad-acceptance-13`, records both TypeScript checks and the backend
-probe passing, but the existing XY modeling fixture failing at its second
-extrusion (`modeling.spec.ts:153`). It expects `Native preview ready` and receives
-`Preview failed` after adding a circle. At that snapshot the adapter rejected circular
-and arc profiles without substituting polygonal geometry. The circular extrusion
-and through-cut failure is now resolved in all three planes. General mixed line/arc profiles
-remain a separate requirement.
-
-That historical run had **six passing scenarios and one failing next gate**,
-not a full-application percentage. All unselected cases remain not run.
-Full production/CSP, bundle/performance and release checks remain open.
-No full OCCT or PlainCAD replacement claim is made.
-
-Reproduce the passing selection from the integration worktree:
-
-```sh
-node tools/plaincad/run.mjs --source /absolute/path/to/PlainCAD --test 'e2e/(extrusion-hole|shell|stale-results).spec.ts' --grep 'native negative/symmetric|native Shell|real-worker'
-```
-
-Reproduce the formerly failing requirement:
-
-```sh
-node tools/plaincad/run.mjs --source /absolute/path/to/PlainCAD --test e2e/modeling.spec.ts --grep 'XY: non-template modeling, edit, save/open, and real-kernel STL'
-```
-
-Readiness has two separate dimensions:
-
-- **Geometry support:** the PlainSolid APIs can represent and perform the required
-  operation on the actual input family, including operation composition.
-- **Application acceptance:** the existing browser scenario passes with a verified
-  PlainSolid provider, unchanged geometric assertions, and no OCCT fallback.
-
-For each run retain the PlainCAD revision and source hashes, PlainSolid source
-identity, selected provider, exact expanded test titles, command, browser/runtime,
-result counts, duration, and report/trace locations. Mark each case `passed`,
-`failed`, `blocked`, or `not run`. A blocked launch is not a geometry failure; a
-skipped or unsupported case is not a pass. Compute a percentage only against a
-fixed, enumerated selected manifest, and label it **selected acceptance coverage**,
-not full-spec completion or estimated remaining effort. Do not exclude failures
-from the denominator or count repeated successful runs as additional coverage.
-
-PlainCAD's current tests often expect `geometrySource === "opencascade"`.
-Provider-only string-literal adaptations to expect `plainsolid` are allowed in an
-isolated integration checkout and must be recorded with changed-file hashes and
-replacement counts. Preserve all volume, solid-count, validity, bounds, topology,
-STL, lifecycle, persistence and UI assertions. PlainSolid output must identify
-itself as `plainsolid`; claiming OCCT identity to satisfy an assertion is forbidden.
-
-## Kernel contract mapping
-
-| PlainCAD requirement and source | Current PlainSolid correspondence | Remaining integration or geometry gate |
-|---|---|---|
-| [Kernel adapter](../../PlainCAD/src/cad/kernel/KernelAdapter.ts), browser worker and runtime handles | Go WASM adapter with six existing application scenarios passing | Broader geometry, production worker/CSP and runtime performance qualification |
-| Exact line/arc/circle profiles with holes, signed extrusion: [OpenCascadeKernel](../../PlainCAD/src/cad/kernel/OpenCascadeKernel.ts), `createOcctFace` / `createOcctExtrusion` | Planar polygon extrusion and specialized curved extrusions | General supported sketch-face conversion retaining analytic arcs and holes, arbitrary sketch planes |
-| Cut/fuse/common/scoped atomic cuts: same file, `cutScope` / `joinAll` | Exact planar BSP, selected cylindrical bores and curved Boolean families | Compose on revolved/filleted/modified bodies; preserve atomic failure, connected joins and no-op rejection |
-| Cap/vertical-edge treatments: same file, `treatEdges` / `resolveNativeEdges` | Convex vertical-prism corner fillets, selected cylinder rims, planar chamfers | Cap perimeter blends and subsequent curved cuts; retained original-edge proof |
-| Rectangular shell: [nativeShell](../../PlainCAD/src/cad/kernel/nativeShell.ts) | Convex planar hollowing with the existing rectangular Shell scenario passing | Wider input families remain out of scope; this does not require general curved shelling |
-| Partial/full revolve around resolved axis: `createOcctRevolve` | Full meridian polygon revolution and selected analytic primitives | Partial-angle and circular-arc profile solids plus later cut/join |
-| Real modeled threads: [nativeThreads](../../PlainCAD/src/cad/kernel/nativeThreads.ts) | No qualified helical tool path found in audit | Helical p-curve/model curve, solid sweep, thread cuts and material classification |
-| Lead screws/nuts: [nativeLeadScrew](../../PlainCAD/src/cad/kernel/nativeLeadScrew.ts) | No qualified matching operation found in audit | Multi-start tools, end reliefs, engagement and nominal clearance checks |
-| Exact shape measurements and retained geometry: [occtGeometry](../../PlainCAD/src/cad/kernel/occtGeometry.ts), [nativeDrawing](../../PlainCAD/src/cad/kernel/nativeDrawing.ts) | Planar/selected curved mass, queries, ancestry and roles | Current finite face, pocket-floor, rim and retained-edge proofs across operation histories |
-| Deflection/angular mesh, bounds and STL | Existing mesh, tessellation, exchange packages | Adapt output buffers; cover all supported feature results; positive orientation and byte limits |
-| STEP import/export: [nativeStep](../../PlainCAD/src/cad/kernel/nativeStep.ts) | Selected planar/analytic/spline STEP families | Import accepted one-solid files and roundtrip actual app-generated curved bodies, not only primitive fixtures |
+The source audit used the sibling PlainCAD checkout at revision
+`fd9f7fadea2214b45946b9dcff748642acb5ae9d` on 2026-11-13. Qualification runs
+pin the app at `efae4d2` on its `codex/plainsolid-backend` branch. Record any
+uncommitted source changes and source hashes with each run; a revision alone
+does not pin a dirty working tree.
+
+Only a PlainSolid-backed browser run of the original application scenarios
+counts as acceptance. Existing OCCT test results, PlainSolid Go tests, a
+successful WASM build, and extracted or reimplemented fixtures are supporting
+evidence, not substitutes.
+
+For every gate, keep the geometry, lifecycle and persistence assertions.
+Provider-name assertions may expect `plainsolid`; never label its output
+`opencascade` to make a test pass. Report unsupported, failed, blocked and
+not-run cases separately. Use the first failing geometric assertion or
+explicit unsupported operation as the next implementation task; do not relax
+the test to match the implementation.
+
+Retain an OCCT baseline on the same selected source as a diagnostic control
+when possible, and report control passes separately from PlainSolid passes.
+Any temporary integration checkout, provider adaptation, test selection and
+build artifacts must be reproducible from a checked-in harness, with generated
+artifacts kept out of source control. The harness is described in
+[its README](../tools/plaincad/README.md).
+
+## Kernel contract
+
+These are the PlainCAD kernel requirements and where PlainCAD implements them
+against OCCT. PlainSolid serves them through `internal/plaincadbridge`.
+
+| PlainCAD requirement and source |
+|---|
+| [Kernel adapter](../../PlainCAD/src/cad/kernel/KernelAdapter.ts), browser worker and runtime handles |
+| Exact line/arc/circle profiles with holes, signed extrusion: [OpenCascadeKernel](../../PlainCAD/src/cad/kernel/OpenCascadeKernel.ts), `createOcctFace` / `createOcctExtrusion` |
+| Cut/fuse/common/scoped atomic cuts: same file, `cutScope` / `joinAll` |
+| Cap/vertical-edge treatments: same file, `treatEdges` / `resolveNativeEdges` |
+| Rectangular shell: [nativeShell](../../PlainCAD/src/cad/kernel/nativeShell.ts) |
+| Partial/full revolve around resolved axis: `createOcctRevolve` |
+| Real modeled threads: [nativeThreads](../../PlainCAD/src/cad/kernel/nativeThreads.ts) |
+| Lead screws/nuts: [nativeLeadScrew](../../PlainCAD/src/cad/kernel/nativeLeadScrew.ts) |
+| Exact shape measurements and retained geometry: [occtGeometry](../../PlainCAD/src/cad/kernel/occtGeometry.ts), [nativeDrawing](../../PlainCAD/src/cad/kernel/nativeDrawing.ts) |
+| Deflection/angular mesh, bounds and STL |
+| STEP import/export: [nativeStep](../../PlainCAD/src/cad/kernel/nativeStep.ts) |
 
 PlainCAD retains its TypeScript sketch solver, parametric document/history,
 commands, Three.js renderer and application worker protocol. Replacing those with
@@ -513,8 +61,8 @@ face roles and rectangular shell restrictions are narrower than full OCCT parity
 ## Ordered acceptance inventory
 
 The selectors below come from existing PlainCAD tests. Parameterized titles expand
-to separate cases; preserve every expansion selected for a gate. All cases below
-start as **not run with PlainSolid**; subsequent run records must state results.
+to separate cases; preserve every expansion selected for a gate. Current results
+are in [the status page](STATUS.md).
 
 | Gate | Existing source and exact test title | What it proves |
 |---|---|---|
@@ -544,19 +92,3 @@ remaining native application tests, including retained-edge picking, scoped cuts
 patterns, assembly common-volume collision, production workers/CSP, and the
 repository's required `check:item` / `release:check` gates. Run them on an explicitly
 selected PlainSolid build and record unsupported cases rather than removing them.
-
-## First run and resumption
-
-Scoped Hole now implements atomic output publication and indexed center/target
-errors, with analytic blind/through cuts in its qualified convex-stock domain.
-Retain the consolidated regression selection recorded above. Remaining work
-includes broader curved target bodies, more edge-treatment combinations and
-STEP coverage for additional retained boundaries. Use the
-first failing geometric assertion or explicit unsupported operation as the next
-implementation task; do not relax the test to match the implementation.
-
-Retain an OCCT baseline on the same selected source as a diagnostic control when
-possible. Report control passes separately from PlainSolid passes. Any temporary
-integration checkout, provider adaptation, test selection and build artifacts must
-be reproducible from a checked-in harness, with generated artifacts kept out of
-source control.

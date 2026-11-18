@@ -33,115 +33,8 @@ may proceed in parallel:
 | PC4: Helical parts | Helical swept solid cutters, internal/external threads, handedness, lead-in/runout, multi-start lead screws and matching nuts; point/common-volume proofs | Existing modeled Thread and lead-screw/nut cold-open fixtures |
 | PC5: Exchange and complete app qualification | STEP for actual app outputs and accepted imported solids; export/reimport volume, topology and bounds; worker cancellation, stale previews, production CSP and performance | Existing STEP import/export and failure tests, full native development and production suites |
 
-Current checkpoint (2026-11-13): the integration worktree has qualified
-selected signed extrusion, scoped holes, overlapping and unequal-depth cuts,
-finite To Face, grouped edge treatments, mixed circular profiles, revolve,
-component placement, drawing and STEP workflows in the original app. The
-first 53-case combined run passed 47. All six failures exposed the same
-multi-rim display budget regression. The correction passes the focused
-original XY cases and STEP import. The later consolidated report is recorded
-below.
-
-Both original helical workflows pass, including modeled external and internal
-threads and the editable four-start lead pair. The machined-reference workflow
-passes nested blind pockets and retained bore rims. The 40-body rotary fixture
-passes cold load, rename and platter edit. Circular stock retains unequal-depth
-opposed bore layers and round-trips qualified STEP boundaries. Rectangular stock
-retains a qualified blind or through side-opening notch and supports disjoint
-interior bores in the same batch. Both families have focused original regressions and
-independent OCCT exchange measurements.
-Blind and through quarter-circle corner cuts support the same contained
-bores and round-trip STEP.
-Intersecting circular groups of up to 16 distinct footprints preserve
-their axial layers through STEP. Each cutter opens on one side or across
-two adjacent sides of rectangular stock and may enter from either cap.
-Grouped and successive operations retain unequal blind floors, through cuts that leave one
-solid, and blind floors with inner wires. Exact contacts at stock vertices
-preserve the actual shared vertices and analytic trims. STEP preserves
-the same boundary when a cutter is fully concealed by the other cuts.
-Overlapping opposed floors can meet exactly with the shared footprint
-open through the common level. Equal-radius perpendicular through Holes
-intersecting inside rectangular stock retain elliptical trim edges
-through STEP. Disjoint interior through Holes on multiple cardinal axes
-now also round-trip STEP. The domain requires strict tool bounds separation
-and complete circular openings. Unequal-radius intersecting perpendicular
-through Holes retain two analytic radical trim rings for native modeling
-and STL. STEP retains the cylindrical and planar supports, approximates
-the nonrational model edge and both UV trims with cubic splines, and
-reads its own canonical files back to the native recipe. Radius and
-scale envelopes bound the approximation work. Two skew perpendicular
-through axes use the same topology and STEP exchange when the larger
-bore covers the smaller bore's full transverse width. Partial transverse
-overlap uses one loop with regular radical charts at both turning points.
-Compact cubic STEP trims keep the qualified files within the current app
-import budget. A blind Hole crossing an equal-radius perpendicular
-through Hole preserves its complete planar floor when it stops beyond
-the crossing. Two perpendicular blind Holes can also retain both complete
-floors beyond their intersection. Their exact conic STEP and fabrication
-meshes pass. A blind floor beyond the crossing axis and inside the
-perpendicular through Hole retains two circular segment faces through
-STEP and STL. Disjoint mixed-axis blind bores also retain their floor
-planes and entry caps in STEP when their projected through bounds are
-separated. A stop before the crossing axis retains split floor faces.
-At the axis, the through Hole consumes the full floor. Both now pass
-manufacturing exchange. Finite disjoint bores with crossing full-through
-projections pass with separated finite bounds or a strict finite radial
-clearance proof. The exact far-tangent floor has a closed analytic boundary.
-The near tangent limit rejects because the material pinches along a
-diameter. Unequal-radius crossed Holes support finite floors beyond the
-complete crossing. An equal-radius through pair also retains disjoint
-companion through bores on any cardinal axis. Three concurrent same-radius
-cardinal cutters retain exact elliptical trim arcs and watertight exchange.
-Finite STEP compaction preserves earlier files and fits more unequal
-crossings within the app import limit. Partial-skew crossings also
-retain finite stops beyond the complete intersection. In a concurrent
-same-radius triple crossing, one, two or three cutters can retain floors
-beyond the crossing. Unequal covered-width pairs also support disjoint
-companion through bores. Cardinal and concurrent 4:3, 3:4, 12:5 or 5:12 oblique pairs
-keep exact intersection ellipses. Two or three disjoint through bores
-can combine oblique and cardinal axes and exchange their complete rims.
-Common angular strips extend tessellation to steeper and three-component
-axes. A STEP-reimported three-floor crossing can deepen a bore without
-moving the other floors. A subsequent coaxial through cut produces the
-same STEP as a fresh cut with that passage already open.
-A single oblique through Hole with
-strictly interior apertures on adjacent or opposed faces passes native
-modeling, project reopen and STL. STEP preserves analytic elliptical edges
-and the cylindrical support in the canonical world-coordinate graph.
-Arc Extend quarter-sector and Circle Trim half-disk extrusions round-trip
-their exact cylindrical walls through STEP. The driven arc-and-chord
-workflow also exchanges the original solved angle. Equal-circle and
-unequal circle/arc lens extrusions retain both cylindrical walls through
-STEP and STL. The original construction-axis Revolve now exchanges
-toroidal rings and bounded elbows. The quarter-sweep annular cylinder
-from the existing Edit Revolve workflow now round-trips STEP and
-retains a recipe for subsequent coaxial cuts. The original arc-only lens
-exchanges both cylindrical supports with its four sketch fragments still
-editable. Simple cylindrical Revolve sectors now use the existing
-analytic STEP writer. Full concentric tubes from coaxial cuts use the
-existing periodic STEP graph and retain their edit recipe. Circular rim
-fillets and equal-setback chamfers on XY, XZ and YZ use exact rational
-STEP bands. The original metric and inch fastener blanks preserve their
-stepped shafts and hex sockets through STEP. Finite skew Hole floors can
-now stop beyond the actual transverse crossing even within the previous
-full-radius bound. Bounded tessellation handles the first tighter
-case within the existing worker deadline. The equal-radius cardinal and
-oblique crossing now exchanges on all three cardinal axes. The cardinal
-Hole may retain a blind floor beyond the complete oblique crossing and
-accept a later coaxial cut after STEP import. The oblique Hole can also
-retain a floor beyond its complete crossing, from either entry, including
-a pair with two blind floors. Tighter partial and covered-width perpendicular overlaps use local
-interpolation bounds and compact STEP trims.
-Continue with smaller supported clearances and floors that intersect
-the crossing.
-
-The full selected-provider gate on PlainCAD `efae4d2` and PlainSolid
-`fa857e59` passes 345 development, 66 production and 15 cross-browser
-cases. Both TypeScript checks, the bundle budget, 1,691 ordinary unit and
-component cases, and four actual-WASM contracts pass. Later geometry
-milestones use focused application runs and independent STEP checks.
-See [PlainCAD readiness](PLAINCAD_READINESS.md) for evidence and open
-geometry coverage.
+Current gate results are in [the status page](STATUS.md). The acceptance cases
+for each gate are in [PlainCAD readiness](PLAINCAD_READINESS.md).
 
 For every gate, run the original application scenarios with PlainSolid selected.
 Retain geometry, lifecycle and persistence assertions. Provider-name assertions
@@ -155,18 +48,9 @@ General curved intersection work remains necessary where these cases require
 it, particularly PC2 and PC4. Prioritize those concrete inputs over unrelated
 spline/exchange families. General OCAF-like documents, IGES breadth, unrestricted
 rendering and unrelated feature families follow these gates unless needed by a
-selected PlainCAD case. Keep the phase exits below as the remaining full-target
-backlog, and continue them after PlainCAD compatibility.
-
-The main branch now contains native Go evidence for the selected finite-stop,
-mixed-extrusion, long-cap feature chain, polygon and torus revolve, and
-blind-ended lead-part families. The separate integration branch owns browser
-evidence for the selected PC0/PC1 cases. Continue browser integration without
-changing geometry assertions and keep native kernel qualification separate.
-For PC4, prioritize modeling lead-ins that actually intersect a helical
-groove and qualify the finished pair for the app's authored dimensions. In
-parallel, continue the full-target curved intersection, trim arrangement, and
-Boolean work below; the named PlainCAD cases do not replace those phase exits.
+selected PlainCAD case. The phase exits below are the remaining full-target
+backlog. Work on them when the user asks for a specific part; see
+[the repository instructions](../AGENTS.md).
 
 ## Phase 1 — numeric and mesh foundation
 
@@ -224,31 +108,6 @@ Pin an OCCT revision and curate licensed, reproducible fixtures for each capabil
 
 ## Remaining full-target critical path
 
-The current exact curved Boolean checkpoint includes a mixed-path section,
-indexed material reconstruction, native reload and conservative volume.
-The shared boundary mesh now supports all eight original intersection
-fragments. Five are physically planar, with three on nonlinear parameter
-charts. The three curved roofs use strict signed material cells and
-explicit original trim collars. Final exact contact tests verify the
-assembled closed mesh. The original difference also has a complete
-certified mesh; it retains both components, checks complement signs,
-and reverses cutter faces after source validation. The matching union
-passes all 17 original fragments, including an enclosed roof hole. Its
-complement proof intersects each cell with the other chart before
-evaluating the height difference. General curved and singular family
-coverage remains a release requirement. Separate exact weighted
-stock proofs cover closed certified display, finite line events including
-isolated shared supports, nearest original owners, and mass properties
-through rational rigid placement.
-
-The qualified mixed wall branch no longer requires a caller to name the
-face pair, isoparameter, rational cuts, or tube boxes. Automatic discovery
-proves a single transverse iso, clips its full original domain to the
-opposing embedded chart, finds the restricted tubes, and re-proves their
-exact endpoints and complete shell wire joins. This is a bounded fallback
-for regular iso/trapezoid contacts. Multiple spans, coincident intervals,
-and unresolved original pairs still fail closed.
-
 The PlainCAD gates above determine immediate implementation order. The following
 work remains required for the phase exits above. Each result should
 record what was proved and what remained unresolved; a successful example
@@ -264,105 +123,11 @@ does not widen the declared input domain by itself.
 | Exchange and document parity | Extend the shared graph to general STEP and IGES supports with continuous model/UV curve agreement; carry placements, units, names, styles and stable feature references. | Independent inbound/outbound files with mixed analytic and NURBS faces, loops, cavities, repeated instances and regenerate-after-load fixtures. |
 | Qualification | Expand the pinned reference corpus, run long fuzz campaigns and platform CI, review the API and license, and publish the exact compatibility matrix. | All required specification rows pass on the supported platforms. List residual deviations and do not claim replacement with required gaps. |
 
-Independent work in analytic STEP/IGES, query bounds, modeling features,
-documentation and corpus construction can run alongside the curved-contact
-critical path. Merge small verified changes, keep their fixtures, and continue
-from the first unclosed requirement in the status record.
-
 For the curved Boolean path, qualify a closed, transverse contact strictly
 inside one face of each operand before generalizing to sections that cross
-edges. Both input shells need an embedding certificate, and all unselected
-face pairs need strict contact exclusion. Prove coverage and branch junctions
-separately, classify the connected fragments, then sew paired p-curves from
-both original supports. The current arrangement propagates multiple split
-events to both incident faces, reconciles common model edge parameters and
-combines closed and open sections on rectangular spline charts. Extend these
-proofs beyond the qualified simultaneous crossings to general edge events,
-periodic seams, arbitrary certified input trims, and singular contacts.
-For simultaneous edge events, retain the exact source parameters, prove
-which incident face pairs enter both charts, verify every paired boundary
-tube, and account separately for pairs whose only contact is the shared
-point. The determinant-one warped fixture now qualifies this sequence
-against pinned OCCT. The next release gate requires equivalent proof for
-general curved inputs without a shared affine or quadratic-warp chart,
-including tangential returns and algebraic boundary splits.
+edges. Prove coverage and branch junctions separately, classify the connected
+fragments, then sew paired p-curves from both original supports. A passing
+fixture for one input family does not close a phase exit.
 
-The current exact-trim path separates topology from the parameters needed to
-evaluate it. Version 4 stores bounded homogeneous rational coefficients at
-represented UV endpoints. Version 5 reconstructs exact rational UV and model
-endpoint identity from the homogeneous controls and the owning support,
-verifies the rounded display point, and revalidates loop and shared-edge
-identity. Rational seam splits and conic Boolean junctions qualify that path.
-Version 6 retains exact cubic and quartic rational Bézier trims on the
-original stock and cutter charts. This path covers one active plane with
-an exact graph proof per original knot cell; it also supports bounded ray
-and distance queries on the resulting trims. A tool-free shell section
-checks all source faces and joins exact directed branches by original edge
-identity, parameter and model point. An exact ring arrangement assigns holes
-and material islands; independently reconstructed caps seal both sides on
-original face supports in the representable single-plane domain. Curved graph-chain mesh lifts preserve
-source boundary indices and bound the two directed image distances on a
-single positive rational biquadratic patch. General intersection curves
-still require complete contact discovery, exact trim arrangements, and
-global material classification.
-Version 7 retains exact positive-weight Bézier support controls for source
-charts that are not representable as binary64 poles. The first native use
-sews nonbinary cylindrical side cuts after independent full-edge equality
-proofs. Expand surface adapters, closure, embedding and exchange one supported
-family at a time; distinguish this exact representation from a whole-shell
-geometric proof.
-Continuous edge agreement handles distinct algebraic knot events using ordered
-root identities and polynomial composition. A dedicated native algebraic
-subdivision format persists an irrational split as a bounded root recipe and
-an independent plane, graph support or affine-edge constraint. Reload
-reproves exact model identity, order and incidence, and
-both coedges retain their algebraic domains. It distinguishes two roots
-less than 2^-100 apart even if their display segments collapse. Verified
-tubes can be clipped against selected quadratic trim loops, and a proper
-open curved run can split an injective chart into two exact fragments
-with shared algebraic endpoints. Closed cuts prove their winding, and
-disjoint holes are assigned to the resulting fragment. A closed single
-regular loop now seals an exact two-face graph lens. Continue from that
-material proof to multi-loop containment and cross-shell sewing, including
-original edge-to-edge and tangential-return events.
-Disjoint interior loops on the same rectangular source face now produce
-separate native lens components, with conservative total measures. A bounded
-projected graph lens can produce a closed display whose model edge ancestry,
-continuous deflection, orientation and non-incidence checks are preserved.
-Separate affine XY lenses on one source pair now also produce a unified
-display with original topology IDs and an exact contact check across
-components. Two nested closed rims on one affine XY source pair form an
-annular Boolean common, including native reload and a certified display.
-The annular and separated displays qualify signed YZ and XZ projections.
-The algebraic arrangement now proves nesting of closed loops among proper
-open cuts of the same original face, including a half-lobe and full lobe in
-the same shell operation. Conversion to the ordinary native solid remains
-bounded by exact representability of the junctions. General certified display
-of mixed arrangements and distinct original source pairs remains required.
-Exterior definite, separable and coupled higher-order graph contacts can
-produce an empty common and unchanged cut after exhaustive pair separation.
-Several isolated interior knot contacts on one original chart pair now have
-the same proof. Extend this to multiple interacting face pairs, singular
-branch crossings, tangential returns and general coincident surface patches.
-The verified cylindrical quotient handles exact two-image intersections and
-annular union, including original charts on both seam occurrences. Native
-curved face trims also handle bounded rational quadratic pieces crossing a
-seam at a represented rational parameter. General periodic assemblies need
-interior curve events, mixed nested arrangements and certified continuation
-where the split parameter is not rational.
-The opt-in wrapped algebraic open faces now retain exact continuous owner
-cells across irrational interior seam events with represented outer vertices.
-Paired native faces can share such an edge, reload their original chart
-data, and prove global embedding on a bounded same-chart family. Three-face
-chains with explicit mates can also prove global separation across the chain.
-General periodic shell assembly still needs closed manifold incidence,
-nonrepresentable topology vertices and additional chart pairings.
-Independent edge-to-face isolation already provides regular terminal hints
-to the tube verifier. Integrate exact algebraic terminal identities and
-prove complete continuation before assembling the resulting material.
-
-In parallel, extend automatic curved contact discovery and trim arrangements
-beyond common-height graphs. Qualify each newly supported input family with
-independent geometric fixtures, then add matching exchange and stable feature
-references. Passing the newer graph, mesh or exchange fixtures does not close
-the general curved phase exits above.
+The state of this work when it was last active is in git:
+`git show c35d3358:docs/IMPLEMENTATION_PLAN.md`.

@@ -4,10 +4,8 @@ PlainSolid is a Go solid-modeling kernel. Its working goal is to be the kernel
 that PlainCAD runs on, as defined by the gates in
 [PlainCAD readiness](docs/PLAINCAD_READINESS.md). The full OCCT replacement in
 [the specification](docs/SPECIFICATION.md) is a long-term direction, not a
-task: work on a part of it only when the user asks for that part. Where
-[the implementation plan](docs/IMPLEMENTATION_PLAN.md) or
-[the status document](docs/STATUS.md) says to continue full-target work in
-parallel or without a prompt, this file wins.
+task: work on a part of it only when the user asks for that part. If another
+document in this repository conflicts with this file, this file wins.
 
 ## Scope
 
@@ -54,15 +52,20 @@ parallel or without a prompt, this file wins.
 
 ## Records
 
-- `docs/STATUS.md` and `docs/VERIFICATION.md` are archives of about 1 MB. Do
-  not read them in full and do not append to them. Search them with `rg` when
-  you need the history of one feature.
-- Do not add files under `docs/evidence`. The record of a change is its commit
-  message: what changed, what was run, and what was not.
+- [The status page](docs/STATUS.md) and
+  [the verification record](docs/VERIFICATION.md) say what is true now. Edit
+  them in place when a fact on them changes. Never append dated entries or
+  narrative, and keep each under about 150 lines. Their earlier narrative,
+  about 1 MB, is in git history; each page gives the command to read it.
+- The record of a change is its commit message: what changed, what was run,
+  and what was not. Add a file under `docs/evidence` only for a complete run
+  that the verification record then cites, and remove the file it replaces.
 - If a change alters what the kernel supports, update the capability summary
-  in [the README](README.md) in a line or two.
-- When resuming, read this file and `git log -15`. If work is interrupted,
-  leave a commit labeled work in progress whose message says what remains.
+  in [the README](README.md) and the matrix on the status page in a line or
+  two.
+- When resuming, read this file, the status page and `git log -15`. If work is
+  interrupted, leave a commit labeled work in progress whose message says what
+  remains.
 
 ## Git
 
