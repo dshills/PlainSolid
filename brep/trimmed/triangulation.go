@@ -158,41 +158,63 @@ func triangulateUVBounded(ctx context.Context, rings [][]geom.Vec3, maximum int)
 // and it is taken when both of them have area in space. Each exchange
 // leaves fewer triangles without area, so the passes end.
 //
+// With everySide the other two sides are tried as well, from the longer in
+// space to the shorter. That reaches the triangles of a face that winds
+// around its surface which have both chart copies of one seam vertex among
+// their corners: the side to exchange there joins the two copies and has no
+// length. Such a triangle is not an error, since refinement gives it area,
+// and its neighbors may sit better with it than without, so the caller
+// decides which result to use.
+//
 // A triangle that cannot be replaced this way is returned as it was and is
 // left to the mesh check. That is the case for a face without area, for two
-// corners at one point, and for a corner on a boundary edge that it does
-// not subdivide.
-func flipDegenerateTriangles(triangles [][3]geom.Vec2, model func(geom.Vec2) geom.Vec3) [][3]geom.Vec2 {
+// corners at one point that a boundary side joins, as at a pole, and for a
+// corner on a boundary edge that it does not subdivide.
+func flipDegenerateTriangles(triangles [][3]geom.Vec2, model func(geom.Vec2) geom.Vec3, everySide bool) [][3]geom.Vec2 {
+	degenerate := func(t [3]geom.Vec2) bool { return mesh.Degenerate(model(t[0]), model(t[1]), model(t[2])) }
 	sound := func(t [3]geom.Vec2) bool {
 		turn, err := geom.Orient2D(t[0], t[1], t[2])
-		return err == nil && turn == 1 && !mesh.Degenerate(model(t[0]), model(t[1]), model(t[2]))
+		return err == nil && turn == 1 && !degenerate(t)
 	}
 	for changed := true; changed; {
 		changed = false
-	next:
 		for i, t := range triangles {
-			if !mesh.Degenerate(model(t[0]), model(t[1]), model(t[2])) {
+			if !degenerate(t) {
 				continue
 			}
-			// The middle corner is opposite the longest side in space.
-			middle, longest := 0, -1.
+			// The sides, each named by the corner it leaves, from the
+			// longest in space. The middle corner of three on a line is
+			// opposite the first.
+			var length [3]float64
 			for j := range t {
-				if d := model(t[(j+1)%3]).Sub(model(t[(j+2)%3])).Length(); d > longest {
-					middle, longest = j, d
+				length[j] = model(t[j]).Sub(model(t[(j+1)%3])).Length()
+			}
+			order := [3]int{1, 2, 0}
+			for j := 1; j < 3; j++ {
+				for k := j; k > 0 && length[order[k]] > length[order[k-1]]; k-- {
+					order[k], order[k-1] = order[k-1], order[k]
 				}
 			}
-			x, b, a := t[middle], t[(middle+1)%3], t[(middle+2)%3]
-			for n, u := range triangles {
-				for j, p := range u {
-					if p != a || u[(j+1)%3] != b {
-						continue
+			tried := order[:1]
+			if everySide {
+				tried = order[:]
+			}
+		sides:
+			for _, j := range tried {
+				a, b, opposite := t[j], t[(j+1)%3], t[(j+2)%3]
+				for n, u := range triangles {
+					for k, p := range u {
+						if p != b || u[(k+1)%3] != a {
+							continue
+						}
+						first, second := [3]geom.Vec2{opposite, a, u[(k+2)%3]}, [3]geom.Vec2{opposite, u[(k+2)%3], b}
+						if sound(first) && sound(second) {
+							triangles[i], triangles[n] = first, second
+							changed = true
+							break sides
+						}
+						continue sides
 					}
-					first, second := [3]geom.Vec2{a, x, u[(j+2)%3]}, [3]geom.Vec2{x, b, u[(j+2)%3]}
-					if sound(first) && sound(second) {
-						triangles[i], triangles[n] = first, second
-						changed = true
-					}
-					continue next
 				}
 			}
 		}
@@ -215,8 +237,9 @@ func flipDegenerateTriangles(triangles [][3]geom.Vec2, model func(geom.Vec2) geo
 // for the other diagonal of its two triangles when both new triangles are
 // positively wound and have area in space and they have fewer such samples
 // between them, so the passes end. Where no exchange helps, the triangles
-// stay as they were and refinement decides.
-func seatCurvedTrims(triangles [][3]geom.Vec2, sides map[[2]geom.Vec2]trimSide, model func(geom.Vec2) geom.Vec3) ([][3]geom.Vec2, error) {
+// stay as they were and refinement decides. The number of samples still
+// outside their triangles is returned with the triangles.
+func seatCurvedTrims(triangles [][3]geom.Vec2, sides map[[2]geom.Vec2]trimSide, model func(geom.Vec2) geom.Vec3) ([][3]geom.Vec2, int, error) {
 	const depth = 10
 	samples := map[[2]geom.Vec2][]geom.Vec2{}
 	for key, side := range sides {
@@ -227,7 +250,7 @@ func seatCurvedTrims(triangles [][3]geom.Vec2, sides map[[2]geom.Vec2]trimSide, 
 			for _, t := range [2]float64{math.Ldexp(1, -k), 1 - math.Ldexp(1, -k)} {
 				p, err := side.use.uv(t)
 				if err != nil {
-					return nil, err
+					return nil, 0, err
 				}
 				samples[key] = append(samples[key], p)
 				if k == 1 {
@@ -237,7 +260,7 @@ func seatCurvedTrims(triangles [][3]geom.Vec2, sides map[[2]geom.Vec2]trimSide, 
 		}
 	}
 	if len(samples) == 0 {
-		return triangles, nil
+		return triangles, 0, nil
 	}
 	// outside counts the samples of the curved sides of t that are not
 	// strictly inside its other two sides.
@@ -291,5 +314,9 @@ func seatCurvedTrims(triangles [][3]geom.Vec2, sides map[[2]geom.Vec2]trimSide, 
 			}
 		}
 	}
-	return triangles, nil
+	left := 0
+	for _, t := range triangles {
+		left += outside(t)
+	}
+	return triangles, left, nil
 }

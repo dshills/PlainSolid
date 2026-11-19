@@ -74,9 +74,17 @@ func (s Solid) refineFrom(ctx context.Context, level, startLevel int, deflection
 		f.Surface = numericalWrappedSupport(f.Surface)
 		current := triangles
 		end := level
-		if s.splitSeeds[fi] {
+		some := false // a seed asks to be split on its own
+		for _, t := range triangles {
+			some = some || t.split
+		}
+		if s.splitSeeds[fi] || some {
 			current = make([]samples, 0, 3*len(triangles))
 			for _, t := range triangles {
+				if !s.splitSeeds[fi] && !t.split {
+					current = append(current, t)
+					continue
+				}
 				p := mix(mix(t.uv[0], t.uv[1], .5), t.uv[2], 1.0/3)
 				world, e := f.Surface.Eval(p.X, p.Y)
 				if e != nil || !world.IsFinite() {
@@ -97,7 +105,7 @@ func (s Solid) refineFrom(ctx context.Context, level, startLevel int, deflection
 			// Sampled polygons on adjacent faces can select the same
 			// diagonal between shared boundary vertices. Interior-only
 			// subdivision gives each face its own midpoint on that chord.
-			if startLevel > 0 && startLevel == end {
+			if s.splitSeeds[fi] && startLevel > 0 && startLevel == end {
 				end++
 			}
 		}
