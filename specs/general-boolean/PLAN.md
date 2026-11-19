@@ -1,7 +1,7 @@
 # Plan: general Boolean trial
 
 This plan implements [the specification](SPEC.md) as it stands at commit
-`5fb9dd0e` on branch `codex/general-boolean-spec`. It is a plan only. It
+`6c0a5f63` on branch `codex/general-boolean-spec`. It is a plan only. It
 contains no implementation, and nothing in it starts until the owner says so.
 Identifiers such as PC2, A3 or ST4 are requirement identifiers of the
 specification.
@@ -119,7 +119,9 @@ that package first exists.
   confirms in the commit message that no function tests the number of
   faces, edges or vertices of an operand, the primitive it came from, or
   its placement, other than through sections 7.3 to 7.5 and the work limits
-  of section 10, and that the constraints of AR8 hold. Two searches support
+  of section 10, and that the constraints of AR8 hold, including traversal
+  in index order with no randomness (no iteration over a map decides an
+  output). Two searches support
   the review and do not replace it. The first must print nothing; every
   line the second prints must be a section 10 limit check or a loop bound:
 
@@ -411,7 +413,8 @@ Steps:
 7. `TestMatrix` with the leaves of C1 and C27, planar variant, including
    the face source checks of section 11.
 8. `TestContract`, table-driven, one behavior per case: each invalid and
-   each non-finite option returns `ErrInvalid` (P4); a nil context and an
+   each non-finite option returns `ErrInvalid` (P4), `Angular` above 0.5
+   among them; a nil context and an
    operation value outside the enumeration return `ErrInvalid`; ε ≥ L / 100
    returns `ErrInvalid` (T1); a cancelled context returns the context error
    unwrapped, also when the operands are invalid or unsupported, so that
@@ -442,10 +445,14 @@ Steps:
 
 1. Nodes with radii, merging and the growth bound (T2 to T4, AR1); spans
    and node lists per edge (AR2); bundles (AR3); the per-face lists (AR5);
+   the span and bundle records allow a span whose two ends are one node,
+   although no planar operand has a closed edge and Part 2.1 is the first
+   to create one;
    touching-contact records (AR7); the work limits of section 10 with
    `ErrBudget` and the context checks.
 2. The curve table of 7.5 as data, with the rows line with line and line
-   with plane, and edge overlap for lines (CC4).
+   with plane, and edge overlap for lines (CC4): one candidate interval at
+   most, degenerate when its mid point is within ε of both ends.
 3. Passes X1 to X5 in order, and the tolerant point-in-loops test in the
    plane chart (X9).
 4. Unit tests on pairs of boxes: node, span and bundle counts for the
@@ -532,15 +539,36 @@ Steps:
    cylinder faces and of circle and ellipse edges, rigid placements (S2 to
    S4) and the polar plane chart with its collapsed edge.
 2. The closed forms of CC1: circle with circle, the homothetic reduction
-   (CC3), the parallel-cylinder reduction, point-to-parameter inversion for
-   a conic, segment-to-segment distance.
-3. The remaining rows of the curve table of 7.5, including the two
-   `ErrUnsupported` rows, and edge overlap for conics (CC4).
-4. Unit tests of every closed form against analytic cases, including
-   tangent and coincident ones. `TestMatrix` gains the cylinder variants of
-   C1, C2, C3 and C27 that need no surface pair.
+   (CC3), the projection of a conic along a cylinder axis and the proof
+   that a conic is clear of a cylinder face (CC5), point-to-parameter
+   inversion for a conic, segment-to-segment distance.
+3. The remaining rows of the curve table of 7.5: a conic with a plane; a
+   conic whose plane is parallel to a cylinder's axis; a conic that
+   projects to a circle along the axis; conics in different planes;
+   homothetic coplanar conics; and the two rows that return
+   `ErrUnsupported`. No row refers to a cylinder that the conic's own
+   faces lie on.
+4. Edge overlap on a periodic carrier (CC4): intervals taken in the
+   periodic parameter, so that one may run through the parameter origin or
+   through a closed edge's vertex; two intervals for arcs that overlap at
+   both ends; the whole overlap of two closed edges, tested at three points
+   a third of the period apart; degeneracy by the mid point.
+5. Closed spans and bundles of closed spans (AR2, AR3), and X3 on closed
+   edges: inside an overlap the two edges have the same nodes and their
+   spans correspond one to one; a whole overlap adds no node.
+6. Unit tests of every closed form against analytic cases, including
+   tangent and coincident ones. Overlap tests, each on two circle edges of
+   one carrier: two full circles with the same vertex (one bundle of two
+   closed spans); two full circles with different vertices (two bundles);
+   two arcs that overlap at both ends (two intervals); an overlap that runs
+   through the parameter origin; an overlap that covers all but a gap
+   shorter than ε between its ends (not degenerate); a degenerate overlap
+   (isolated point); and a pair that passes at some test points only
+   (`ErrTolerance`). `TestMatrix` gains the cylinder variants of C1, C2, C3
+   and C27 that need no surface pair; C2 in its cylinder variant exercises
+   the whole overlap on both cap circles.
 
-Acceptance: `go test ./brep/boolean -run 'TestClosedForms|TestCurveTable|TestIntake' -count=1`
+Acceptance: `go test ./brep/boolean -run 'TestClosedForms|TestCurveTable|TestOverlap|TestIntake' -count=1`
 passes, and G1's commands still pass except the last, which no longer
 applies. Checks: K1 to K7.
 
@@ -558,12 +586,16 @@ Steps:
 2. The proof of separation (SP2) and `ErrUnsupported` for every other
    non-parallel pair (SP3). The Tier 2 row is not added.
 3. X6 and X7 for these pairs: closed traces with their one node, traces
-   marked touching.
+   marked touching, and a closed carrier curve with exactly one node,
+   which is one interval that an existing closed span or bundle of closed
+   spans occupies instead of a new trace (the cap circle of C19 and C21).
 4. The point-in-loops test (X9) and splitting (F3, F4) in the cylinder
    chart, including ordering by curvature where tangents agree.
 5. Unit tests: traces and pieces for a plane cutting a cylinder
    perpendicular, oblique and parallel to its axis, for two overlapping
-   parallel cylinders, and for the tangent configurations of C11 to C14.
+   parallel cylinders, for the tangent configurations of C11 to C14, and
+   for a cylinder standing on a plane face, where the base circle must be
+   recorded for both faces and no trace created.
 
 Acceptance: `go test ./brep/boolean -run 'TestSurfaceTable|TestFacePass|TestSplit' -count=1`
 passes. Checks: K1 to K7. This is where SP5 is first tested: if a row of
@@ -587,7 +619,8 @@ Steps:
 4. `TestMatrix` complete: every leaf of C1 to C27 in both variants where
    section 11 gives one, with outcomes, analytic volumes, stated face
    counts and face source lists (the four fixed lists of C4, C6, C15 and
-   C21 included).
+   C21 included). C15, C16, C19 and C21 are the leaves that depend on
+   coincident closed edges; C18 is run with 4ε ≤ d ≤ 2r − 4ε.
 
 Checkpoint G2 (A5), by command. The first passes; the second and third
 print nothing:
@@ -856,8 +889,8 @@ not by this phase unless the owner directs it there.
 | T2 to T5, T7, AR1 to AR3, AR5, AR7, X1 to X5, X9 (plane), CC2, CC4 (lines), section 10 | 1.2 |
 | AR4, AR6, SP4 (planes), X6, X8, F1 to F6 (plane) | 1.3 |
 | K1 to K3, 7.8 (shared), N1 to N3, M1, M3 to M5, P5 sources, T8, PL1 to PL4, C1 to C10 and C24 to C27 (planar) | 1.4 |
-| S2 to S4 (cylinders), I4, CC1, CC3, CC4 (conics), 7.5 complete | 2.1 |
-| SP1 to SP4, 7.4 Tier 1 rows, X6 and X7 (curved), X9 and F3 (cylinder chart) | 2.2 |
+| S2 to S4 (cylinders), I4, CC1, CC3, CC4 (periodic carriers), CC5, closed spans of AR2, AR3 and X3, 7.5 complete | 2.1 |
+| SP1 to SP4, 7.4 Tier 1 rows, X6 and X7 (curved, including a closed carrier with one node), X9 and F3 (cylinder chart) | 2.2 |
 | M2, B2, B3 (curved), section 11 complete (A5) | 2.3 |
 | L2, CO1 to CO4, A2 to A4, A8 logging | 3.1 |
 | PC1 (without A6), PC2 to PC4, A7 | 3.2 |
@@ -890,9 +923,9 @@ not by this phase unless the owner directs it there.
 - Unchecked responses. A row whose trace contains requests outside the
   trial checks fewer responses than its source test asserts. Phase 0
   reports how many responses this affects, by reason.
-- Size of Part 1.3 and Part 2.2. These hold the two hardest pieces
-  (splitting, and splitting on a periodic chart) and are the parts most
-  likely to need a second session.
+- Size of Parts 1.3, 2.1 and 2.2. These hold the hardest pieces
+  (splitting, overlap on a periodic carrier, and splitting on a periodic
+  chart) and are the parts most likely to need a second session.
 
 ## Decisions for the owner before implementation starts
 
@@ -915,11 +948,7 @@ not by this phase unless the owner directs it there.
   `analytic.go`. Phase 0 probes whether `inspect`, `mesh` and `stl` work on
   such a body; this decision, and which bridge changes are permitted if
   they do not, is needed before Part 3.1 and can wait for that probe.
-- D5. The specification's last `speccritic` pass returned INVALID with one
-  critical finding (no tolerance test for coincident curve carriers). It
-  was fixed by adding CC4 and has not been re-checked, because the pass
-  limit was reached. The owner may want one more pass before Phase 1.
-- D6. Face source lists. They are a field of the result with no reader
+- D5. Face source lists. They are a field of the result with no reader
   outside tests during the trial. `AGENTS.md` asks every exported
   identifier to have an outside caller; the plan treats the field as
   covered by the owner's request for it.
