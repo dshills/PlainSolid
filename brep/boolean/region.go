@@ -25,20 +25,34 @@ const (
 // the point is farther than r from every leg, so the moved line starts
 // in the same region.
 func locate(ch chart, loops [][]leg, p geom.Vec3, r float64) where {
-	var paths []path
 	for _, loop := range loops {
 		for _, l := range loop {
 			if p.Distance(l.nearest(p)) <= r {
 				return onRim
 			}
-			paths = append(paths, ch.image(l))
 		}
 	}
+	return side(ch, loops, p, r)
+}
+
+// side is locate for a point that is known to be farther than r from
+// every leg: inside or outside, by the crossings alone.
+func side(ch chart, loops [][]leg, p geom.Vec3, r float64) where {
+	// The paths are made again for each line tried and are not kept:
+	// this is called for every probe of every piece, and a list of them
+	// for each call was most of what the whole operation allocated.
 	q := ch.locate(p)
 	count := 0
 	for _, shift := range [...]float64{0, r / 4, -r / 4, r / 2, -r / 2, r / 8, -r / 8} {
-		n, clean := crossings(paths, q.X+shift, q.Y, ch.period(), r/32)
-		if count = n; clean {
+		clean := true
+		count = 0
+		for _, loop := range loops {
+			for _, l := range loop {
+				n, ok := crossings(ch.image(l), q.X+shift, q.Y, ch.period(), r/32)
+				count, clean = count+n, clean && ok
+			}
+		}
+		if clean {
 			break
 		}
 	}
@@ -48,18 +62,20 @@ func locate(ch chart, loops [][]leg, p geom.Vec3, r float64) where {
 	return without
 }
 
-// crossings counts the points of the paths on the chart line of first
+// crossings counts the points of a path on the chart line of first
 // coordinate x, modulo the period, that lie beyond y in the second. It
-// also reports whether the line stays clear, by more than guard, of every
-// end of a path and of every place where a path turns back in the first
+// also reports whether the line stays clear, by more than guard, of both
+// ends of the path and of every place where it turns back in the first
 // coordinate; if not, the count is not to be trusted.
-func crossings(paths []path, x, y, period, guard float64) (int, bool) {
+func crossings(p path, x, y, period, guard float64) (int, bool) {
 	count, clean := 0, true
-	for _, p := range paths {
+	{
 		// Cut the path where its first coordinate turns back, so that
-		// each part is monotone in it.
+		// each part is monotone in it. A path covers a turn at most,
+		// so it turns back three times at most.
 		lo, hi := math.Min(p.t0, p.t1), math.Max(p.t0, p.t1)
-		cuts := []float64{lo}
+		var kept [8]float64
+		cuts := append(kept[:0], lo)
 		if p.lin.X == 0 && (p.cos.X != 0 || p.sin.X != 0) {
 			turn := math.Atan2(p.sin.X, p.cos.X)
 			for t := turn + math.Pi*math.Ceil((lo-turn)/math.Pi); t < hi; t += math.Pi {

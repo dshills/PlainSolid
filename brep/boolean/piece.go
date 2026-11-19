@@ -45,6 +45,8 @@ type piece struct {
 	// mate is the face of the other operand that a shared piece lies on
 	// (K1), and -1 for a piece that is not shared.
 	mate int
+	// inner holds the interior points that F6 found, for K1 and K2.
+	inner []geom.Vec3
 }
 
 // whole gives every input face as one piece, classified outside the other

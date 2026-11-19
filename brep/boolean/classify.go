@@ -9,7 +9,10 @@ func (a *arrangement) classify(pieces []piece) error {
 		if err := a.ctx.Err(); err != nil {
 			return err
 		}
-		probes := a.probes(*p)
+		probes := p.inner // from F6; a piece made elsewhere has none yet
+		if probes == nil {
+			probes = a.probes(*p)
+		}
 		// K1: a piece of a face in a same-surface pair is shared when
 		// its interior point lies inside the other face of the pair. An
 		// edge that the other face uses twice, a seam or the radial edge

@@ -143,11 +143,11 @@ func (a *arrangement) splitFace(op, f int) ([]piece, error) {
 	}
 	// F6: every piece has an interior point farther than ε from its
 	// boundary.
-	for _, p := range pieces {
+	for i, p := range pieces {
 		if err := a.ctx.Err(); err != nil {
 			return nil, err
 		}
-		if a.probes(p) == nil {
+		if pieces[i].inner = a.probes(p); pieces[i].inner == nil {
 			return nil, fail(ErrTolerance, "F6", "a piece has no interior point farther than the tolerance from its boundary")
 		}
 	}
@@ -341,20 +341,24 @@ func (a *arrangement) probes(p piece) []geom.Vec3 {
 							clear = math.Min(clear, at.Distance(l.nearest(at)))
 						}
 					}
-					// A sampled outline is not the boundary: the candidate
-					// counts only if it is in the piece itself.
-					if clear > a.t.eps && locate(ch, border, at, a.t.eps) == within {
+					if clear > a.t.eps {
 						found = append(found, candidate{at, clear})
 					}
 				}
 			}
 		}
 	}
+	// A sampled outline is not the boundary: a candidate counts only if
+	// it is in the piece itself. That is asked in the order of
+	// clearance and only until five are found, since it costs a count
+	// of crossings over the whole boundary.
 	sort.SliceStable(found, func(i, j int) bool { return found[i].clear > found[j].clear })
 	var out []geom.Vec3
-	for i, c := range found {
-		if i < 5 {
-			out = append(out, c.at)
+	for _, c := range found {
+		if side(ch, border, c.at, a.t.eps) == within {
+			if out = append(out, c.at); len(out) == 5 {
+				break
+			}
 		}
 	}
 	return out
