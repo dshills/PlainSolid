@@ -26,34 +26,34 @@ accounts for most of the optional skips below.
 
 | Run | Kernel commit | Platform | Result | Evidence |
 |---|---|---|---|---|
-| Go, ordinary, with `-tags research` | `ecaae04d`, 2026-11-18 | macOS ARM64, Go 1.23.12 | 6,285 passed, 624 optional skips, 0 failed of 6,909 inventoried; 55 packages passed, 9 have no tests | [JSON](evidence/main-ecaae04d-qualification-2026-11-18.json) |
-| PlainCAD, app `efae4d2` | `9f95a188`, 2026-11-16 | Chromium, Firefox and WebKit | All eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract, 1,691 unit | [JSON](evidence/plaincad-main-9f95a188-2026-11-16.json) |
+| Go, ordinary, with `-tags research` | `5c226e76`, 2026-11-19 | macOS ARM64, Go 1.23.12 | 6,285 passed, 624 optional skips, 0 failed of 6,909 inventoried; 55 packages passed, 9 have no tests | [JSON](evidence/main-5c226e76-qualification-2026-11-19.json) |
+| PlainCAD, app `efae4d2` | `5c226e76`, 2026-11-19 | Chromium, Firefox and WebKit; WASM built with Go 1.27.4 | All eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract, 1,691 unit; none skipped, failed or flaky | [JSON](evidence/plaincad-main-5c226e76-2026-11-19.json) |
 | Go, ordinary | `c7afb429`, 2026-11-16 | Linux ARM64, Go 1.26.0 | 6,018 passed, 599 optional skips, 0 failed of 6,617 inventoried | [JSON](evidence/native-linux-c7afb429-qualification-2026-11-16.json) |
 | Go, race detector | `ab33a412`, 2026-11-15 | macOS ARM64, Go 1.27.4 | 5,557 passed, 580 optional skips, 0 failed of 6,137 inventoried | [JSON](evidence/native-main-ab33a412-race-2026-11-15.json) |
 
-The `ecaae04d` run is the first complete run since the research quarantine
-and covers both halves: it sets `PLAINSOLID_SLOW=1` and `-tags research`. It
-took 39 minutes of wall time on four lanes, and 9,220 s of package test time.
-It used Go 1.23.12 on purpose, because Go 1.25 and later can abort the
-`brep/trimmed` test binary on this platform (see the known defects on
-[the status page](STATUS.md)); a complete run under the current Go release has
-not been made since `9f95a188`. Vet and the Linux and Windows amd64
-cross-builds last passed on the `9f95a188` archive and were not repeated. The eight PlainCAD gates are the WASM build, the app build, the
-TypeScript checks, the selected-kernel check, the development, production and
-cross-browser suites, and the ordinary unit suite.
+Both rows for `5c226e76` are the commit that adds the Go compiler mitigation
+(see the known defects on [the status page](STATUS.md)). The Go run sets
+`PLAINSOLID_SLOW=1` and `-tags research`, so it covers the slow tier and the
+research quarantine; it took about 40 minutes of wall time. It used Go
+1.23.12 on purpose, because Go 1.25 and later can abort the research tests of
+`brep/trimmed` on this platform; a complete Go run under the current Go
+release has not been made since `9f95a188`. The PlainCAD run builds the WASM
+kernel with Go 1.27.4, the release in use, and took 38 minutes. Vet and the
+Linux and Windows amd64 cross-builds last passed on the `9f95a188` archive and
+were not repeated. The eight PlainCAD gates are the WASM build, the app build,
+the TypeScript checks, the selected-kernel check, the development, production
+and cross-browser suites, and the ordinary unit suite.
 
-The PlainCAD, Linux and race rows predate the quarantine and the parallel
-tests in `exchange/step`. The default tier (`go test ./...`, Go 1.27.4) last
-passed at the quarantine commit `6e5d1bda`: 4,781 passed, 1,217 skipped, 0
-failed, in 78 s.
+The Linux and race rows predate the quarantine, the parallel tests in
+`exchange/step` and the mitigation. The default tier (`go test ./...`, Go
+1.27.4) passes at `5c226e76` on all 55 packages with tests.
 
 ## What these results do not establish
 
 - Passing tests do not establish OCCT parity. Coverage is supporting evidence,
   never proof of geometric correctness.
-- No complete run exists under the current Go release since `9f95a188`, for
-  native Windows, or for Go versions other than those listed. The PlainCAD
-  suites have not been rerun since `9f95a188`.
+- No complete Go run exists under the current Go release since `9f95a188`,
+  for native Windows, or for Go versions other than those listed.
 - Each qualified operation is qualified on a stated input domain. A passing
   example does not widen that domain.
 - OCCT comparisons cover selected modeling and exchange cases, and OCCT output

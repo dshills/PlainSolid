@@ -10,19 +10,20 @@ not append dated entries. The narrative that this page replaced is in git:
 
 ## Current state
 
-As of 2026-11-18, with kernel code at `c35d3358`.
+As of 2026-11-19, with kernel code at `5c226e76`.
 
 | Check | Last result | Kernel commit |
 |---|---|---|
-| PlainCAD application with PlainSolid selected (app `efae4d2`) | Passed all eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract and 1,691 unit cases | `9f95a188`, 2026-11-16 |
-| Complete Go suite with the research tag, macOS ARM64, Go 1.23.12 | 6,285 passed, 624 optional skips, 0 failed of 6,909 | `ecaae04d`, 2026-11-18 |
+| PlainCAD application with PlainSolid selected (app `efae4d2`) | Passed all eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract and 1,691 unit cases; none skipped or flaky | `5c226e76`, 2026-11-19 |
+| Complete Go suite with the research tag, macOS ARM64, Go 1.23.12 | 6,285 passed, 624 optional skips, 0 failed of 6,909 | `5c226e76`, 2026-11-19 |
 | Complete Go suite, Linux ARM64, Go 1.26.0 | 6,018 passed, 599 optional skips, 0 failed | `c7afb429`, 2026-11-16 |
 | Complete Go suite with the race detector, macOS ARM64 | 5,557 passed, 580 optional skips, 0 failed | `ab33a412`, 2026-11-15 |
-| Default Go tier (`go test ./...`), macOS ARM64 | 4,781 passed, 1,217 skipped, 0 failed, in 78 s | the research quarantine, 2026-11-18 |
+| Default Go tier (`go test ./...`), macOS ARM64, Go 1.27.4 | All 55 packages with tests pass | `5c226e76`, 2026-11-19 |
 
-The complete Go suite, slow tier and research code included, passes on
-`ecaae04d` under Go 1.23.12. The PlainCAD application suites, the Linux run
-and the race run have not been repeated since the commits shown.
+The complete Go suite, slow tier and research code included, and the PlainCAD
+application suites both pass on `5c226e76`, the commit that adds the Go
+compiler mitigation. The Linux run and the race run have not been repeated
+since the commits shown.
 
 The default build leaves out the research quarantine: 540 production files of
 `brep/trimmed` (94,416 lines) that no other package reaches, with their tests.
@@ -75,7 +76,7 @@ The gates PC0 to PC5 and their ordering are defined in
 existing PlainCAD end-to-end tests, listed in
 [PlainCAD readiness](PLAINCAD_READINESS.md). Those tests run inside the
 PlainCAD development, production and cross-browser suites, which last passed
-in full on kernel `9f95a188`. No PlainCAD case is known to fail.
+in full on kernel `5c226e76`. No PlainCAD case is known to fail.
 
 The PlainSolid-backed app lives on the `codex/plainsolid-backend` branch of
 the sibling PlainCAD checkout. The acceptance inventory is a critical-path
