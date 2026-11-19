@@ -2,10 +2,10 @@
 
 Status: owner decisions recorded on 2026-11-18 (section 18). Rulings made
 on 2026-11-18 and 2026-11-19 by the reviewing session, under the owner's
-delegation, are in section 19 and wait for the owner to confirm or reverse
-them. The trial reached a closing state on 2026-11-19 with no pass and no
-stop declared; section 20 lists what is open, and the plan states where
-the trial stands. This
+delegation, are in section 19. On 2026-11-19 the owner declared the trial
+a pass with two recorded exceptions (OD-9), which confirms six of the
+rulings; the others wait for the owner to confirm or reverse them. Section
+20 lists what is open, and the plan states where the trial stands. This
 document is a specification only and contains no implementation.
 
 ## 1. Purpose
@@ -1889,7 +1889,9 @@ The trial passes when all of these hold on one commit:
   branch has been merged. A row with a response that A4 marks as
   succeeding where the record declines passes A4, and the oracle run
   must agree on that case (A6). A row excluded under 15.2 is not a Tier 1
-  row.
+  row. The pass of 2026-11-19 was declared with two rows that do not meet
+  this criterion, by the owner's decision OD-9; the criterion itself is
+  unchanged.
 - PC2. One path. `brep/boolean` exports one operation entry point; the bridge
   file of L2 reads a stored shape only to obtain its `trimmed.Solid` and,
   the volume and area the bridge stores for it (L2); it may read the face
@@ -2001,8 +2003,8 @@ input that shows the failure.
 
 ## 18. Owner decisions
 
-The owner decided these on 2026-11-18. None is open. Each entry states the
-decision and where this document applies it.
+The owner decided OD-1 to OD-8 on 2026-11-18 and OD-9 on 2026-11-19. None
+is open. Each entry states the decision and where this document applies it.
 
 - OD-1. Tier 2 is in the trial. Equal-radius cylinders with meeting axes
   give two ellipses, which is inside the edge class, and cover about 17
@@ -2042,12 +2044,29 @@ decision and where this document applies it.
   hole, pocket and boss chain on the legacy path even after a pass. Lifting
   recipe-held stock to a `trimmed.Solid` is the first follow-up after a
   pass (15.5); it is not part of the trial.
+- OD-9. The trial is a pass, with two exceptions. PC1 asks that every
+  Tier 1 row in scope pass, and 87 of the 89 do. T1-092 and T1-029 do
+  not: the first exhausts the tessellation budget of `brep/trimmed` on a
+  `mesh` request with an angle bound, and the second agrees in every value
+  but takes longer than A7 allows because of the size of its display
+  meshes (E1). Both are limits of the mesher and not of the Boolean, and
+  the owner accepts them as recorded exceptions. This settles OP-8. No
+  stop condition applies. Tier 2 stays unsupported (RL-22) and does not
+  decide the pass (OD-1). The pass rests on RL-1, RL-9, RL-11, RL-12,
+  RL-19 and RL-26, which were put to the owner before the declaration and
+  are confirmed by it. RL-3, RL-4, RL-22, RL-24 and RL-25 were put to the
+  owner at the same time and were not reversed. The other rulings were
+  not put to the owner one by one and stand as section 19 says. A pass
+  changes no default: the default bridge stays on the legacy path (L3),
+  and the work on the mesher that the two rows need comes before any
+  family is moved to the general path.
 
 ## 19. Rulings made under delegation
 
 The reviewing session made these on 2026-11-18, while the owner was away,
 under the owner's delegation to it. Each stands until the owner confirms or
-reverses it. Each entry states the ruling and where it is applied.
+reverses it; OD-9 says which the owner has confirmed. Each entry states the
+ruling and where it is applied.
 
 - RL-1. A known defect of `brep/trimmed`, the rejection of some planar
   results with three collinear corners, does not end the trial. RL-9 now
@@ -2071,6 +2090,9 @@ reverses it. Each entry states the ruling and where it is applied.
   text inside `importStep` requests. This is accepted on the trial branch.
   It is a condition of any later merge of the trial to `main` that the
   distinct STEP sources are stored compressed or are otherwise reduced.
+  The condition is met on the trial branch at `5f5b03ec`: each distinct
+  text is stored once, gzip-compressed, and the traces with their STEP
+  files are 1.9 MB.
 - RL-6. One branch. The planar phase ran beside the freeze on
   `codex/general-boolean-kernel`. That branch, with `codex/general-boolean`
   merged into it, is the one branch of the trial (the plan's rule R1).
@@ -2211,8 +2233,8 @@ Rulings of 2026-11-19, as the trial came to its closing state:
 
 ## 20. Open items
 
-These are known and not settled. No ruling covers them, and this document
-does not decide them.
+These are known and not settled, apart from OP-8. No ruling covers them,
+and this document does not decide them.
 
 - OP-1. X4 still judges a vertex in a face by directions that leave the
   vertex. That is the weakness the audit found and RL-23 fixed for an
@@ -2239,10 +2261,9 @@ does not decide them.
   a volume. Eight Tier 2 rows.
 - OP-7. Section 7.5 has no entry for the conic and cylinder of one Tier 2
   row, T2-015. This one is an addition to the table.
-- OP-8. T1-092 and T1-029 do not pass, for the reasons E1 gives. Whether
-  to wait for more work on `brep/trimmed`, to change what the bridge
-  asks of its mesher, or to accept the two rows as they stand is the
-  owner's decision.
+- OP-8. Settled by OD-9: T1-092 and T1-029 are accepted as they stand,
+  as exceptions to PC1. The work on the mesher that they need is not
+  part of the trial.
 - OP-9. The rounding allowance of T9 follows the size of the bounding
   box, while rounding grows with the distance of the model from the
   origin. A small model far from the origin is not covered.
