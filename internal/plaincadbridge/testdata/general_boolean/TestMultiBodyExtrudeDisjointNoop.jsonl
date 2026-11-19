@@ -1,0 +1,4 @@
+{"new":true}
+{"req":{"max":[120,10,10],"min":[100,0,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":2000,"surfaceArea":1000,"solidCount":1,"bounds":{"min":[100,0,0],"max":[120,10,10]}}}
+{"req":{"height":40,"normal":[0,0,1],"op":"circle","origin":[5,5,0],"radius":2},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":502.6548245743669,"surfaceArea":527.7875658030853,"solidCount":1,"bounds":{"min":[2.99999999995995,2.99999999995995,-4.0284217094304044e-11],"max":[7.000000000040051,7.000000000040051,40.00000000004029]}}}
+{"req":{"op":"cut","a":"ps:1","b":"ps:2"},"ok":false,"code":"UNSUPPORTED"}

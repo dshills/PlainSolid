@@ -1,0 +1,9 @@
+{"new":true}
+{"req":{"max":[20,20,8],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":3200,"surfaceArea":1440,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,20,8]}}}
+{"req":{"height":5,"normal":[0,0,-1],"op":"circle","origin":[0,0,5],"radius":3},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":141.3716694115407,"surfaceArea":150.79644737231007,"solidCount":1,"bounds":{"min":[-3.0000000000050218,-3.0000000000050218,-5.0355271367880055e-12],"max":[3.0000000000050218,3.0000000000050218,5.000000000005036]}}}
+{"req":{"height":5,"normal":[0,0,1],"op":"circle","origin":[0,0,0],"radius":3},"ok":true,"handle":"ps:3","result":{"valid":true,"volume":141.3716694115407,"surfaceArea":150.79644737231007,"solidCount":1,"bounds":{"min":[-3.0000000000050218,-3.0000000000050218,-5.0355271367880055e-12],"max":[3.0000000000050218,3.0000000000050218,5.000000000005036]}}}
+{"req":{"a":"ps:1","b":"ps:3","op":"cut"},"ok":true,"handle":"ps:4","result":{"valid":true,"volume":3164.6570826471147,"surfaceArea":1433.5619449019234,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,20,8]}}}
+{"req":{"a":"ps:1","b":"ps:2","op":"overlapVolume"},"ok":true,"result":{"value":35.34291735288517},"analytic":{"value":[35.34291735288517]}}
+{"req":{"a":"ps:2","b":"ps:1","op":"overlapVolume"},"ok":true,"result":{"value":35.34291735288517},"analytic":{"value":[35.34291735288517]}}
+{"req":{"a":"ps:1","b":"ps:2","op":"cut"},"ok":true,"handle":"ps:5","result":{"valid":true,"volume":3164.6570826471147,"surfaceArea":1433.5619449019234,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,20,8]}}}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:2"]},"ok":true,"handle":"ps:6","result":{"valid":true,"volume":3164.6570826471147,"surfaceArea":1433.5619449019234,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,20,8]}}}

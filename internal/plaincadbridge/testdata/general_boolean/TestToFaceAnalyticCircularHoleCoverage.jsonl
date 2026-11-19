@@ -1,0 +1,4 @@
+{"new":true}
+{"req":{"op":"mixedExtrude","profile":{"circles":[{"center":[0,0],"radius":3}],"height":2,"kind":"polygon","normal":[0,0,1],"origin":[0,0,12],"outer":[[-10,-10],[10,-10],[10,10],[-10,10]],"xDirection":[1,0,0]}},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":743.4513322353837,"surfaceArea":941.1504440784612,"solidCount":1,"bounds":{"min":[-10,-10,12],"max":[10,10,14]}}}
+{"req":{"b":"ps:1","direction":[0,0,1],"normal":[0,0,-1],"op":"prismToFace","origin":[0,0,12],"outer":[[-2,-2,0],[2,-2,0],[2,2,0],[-2,2,0]]},"ok":false,"code":"INVALID"}
+{"req":{"b":"ps:1","direction":[0,0,1],"normal":[0,0,-1],"op":"prismToFace","origin":[0,0,12],"outer":[[5,-2,0],[9,-2,0],[9,2,0],[5,2,0]]},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":192,"surfaceArea":224,"solidCount":1,"bounds":{"min":[5,-2,0],"max":[9,2,12]}},"analytic":{"volume":[192.0]}}
