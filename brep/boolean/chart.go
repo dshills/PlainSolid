@@ -134,6 +134,34 @@ func chain(c chart, loop []leg) []path {
 	return out
 }
 
+// place lays out the loops of a face: each loop is chained, and on a
+// chart that repeats every loop after the first is moved by whole
+// periods into the turn of the first, the outer one.
+func place(c chart, loops [][]leg) [][]path {
+	out := make([][]path, len(loops))
+	lo, hi := 0., 0.
+	for i, loop := range loops {
+		out[i] = chain(c, loop)
+		if c.period() == 0 {
+			continue
+		}
+		if i == 0 {
+			lo, hi = out[0][0].at(out[0][0].t0).X, out[0][0].at(out[0][0].t0).X
+			for _, p := range out[0] {
+				for _, q := range p.points() {
+					lo, hi = math.Min(lo, q.X), math.Max(hi, q.X)
+				}
+			}
+			continue
+		}
+		shift := c.period() * math.Round(((lo+hi)/2-out[i][0].at(out[i][0].t0).X)/c.period())
+		for k := range out[i] {
+			out[i][k] = out[i][k].moved(shift)
+		}
+	}
+	return out
+}
+
 // ring is a loop as a chart polygon, with curved legs sampled.
 func ring(c chart, loop []leg) []geom.Vec2 {
 	var out []geom.Vec2

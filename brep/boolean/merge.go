@@ -1,5 +1,11 @@
 package boolean
 
+import (
+	"math"
+
+	"plainsolid/geom"
+)
+
 // coalesce merges the kept pieces into the faces of the result (section
 // 7.10) and returns the edges and sheets that assembly builds from.
 // Merging is part of the contract (M5), not an option.
@@ -26,123 +32,240 @@ func (a *arrangement) coalesce(pieces []piece, keep []kept) ([]element, []sheet,
 	for i := range group {
 		group[i], members[i] = i, []int{i}
 	}
-	// start is the point a use leaves when its piece is seen from
-	// outside, where every kept piece keeps its region on the left.
-	start := func(k kept, h hop) int {
-		if h.reversed != a.against(pieces, k) {
-			return a.elems[h.elem].b
-		}
-		return a.elems[h.elem].a
-	}
-	leaving := filled(a.points, 0)
-	// pinched reports whether the face made of groups x and y, without
-	// the elements between them, would visit a point twice (M3).
-	pinched := func(x, y int) bool {
-		twice := false
-		for _, add := range [2]int{1, -1} {
-			for _, g := range [2]int{x, y} {
-				for _, i := range members[g] {
-					for _, loop := range pieces[keep[i].piece].loops {
-						for _, h := range loop {
-							u := users[h.elem]
-							if removed[h.elem] || removable[h.elem] && group[u[0]] != group[u[1]] && (group[u[0]] == x || group[u[0]] == y) && (group[u[1]] == x || group[u[1]] == y) {
-								continue
-							}
-							p := start(keep[i], h)
-							if leaving[p] += add; leaving[p] > 1 {
-								twice = true
-							}
-						}
-					}
-				}
-			}
-		}
-		return twice
-	}
 	for e, u := range users {
-		if !removable[e] || removed[e] {
+		if !removable[e] || removed[e] || group[u[0]] == group[u[1]] {
 			continue
 		}
 		x, y := group[u[0]], group[u[1]]
-		if x != y && pinched(x, y) {
-			continue // M3: this merge is not performed
-		}
 		if y < x {
 			x, y = y, x
 		}
+		// Merging two groups removes every removable element between
+		// and inside them; the face they would make is then laid out,
+		// which keeps the elements it needs as a cut (M2). A face that
+		// would visit a point twice is not made (M3).
+		saved := append([]bool(nil), removed...)
 		for f, v := range users {
 			if removable[f] && (group[v[0]] == x || group[v[0]] == y) && (group[v[1]] == x || group[v[1]] == y) {
 				removed[f] = true
 			}
 		}
-		if x != y {
-			for _, i := range members[y] {
-				group[i] = x
-			}
-			members[x], members[y] = append(members[x], members[y]...), nil
+		joined := append(append([]int(nil), members[x]...), members[y]...)
+		if _, simple, err := a.layout(pieces, keep, joined, users, removed); err != nil || !simple {
+			copy(removed, saved)
+			continue
 		}
+		for _, i := range members[y] {
+			group[i] = x
+		}
+		members[x], members[y] = joined, nil
 	}
 	// One sheet for every group, in the order of its first piece, with
 	// the carrier of that piece (M1) and the sources of all (P5).
 	var sheets []sheet
-	leave := filled(a.points, -1)
-	for g, list := range members {
+	for _, list := range members {
 		if list == nil {
 			continue
 		}
-		lead := pieces[keep[g].piece]
-		sh := sheet{s: a.ops[lead.op].faces[lead.face].s, reversed: a.against(pieces, keep[g])}
+		sh, simple, err := a.layout(pieces, keep, list, users, removed)
+		if err != nil {
+			return nil, nil, err
+		}
+		if !simple {
+			// One piece whose own boundary passes twice through a point.
+			// trimmed.NewSolid wants distinct chart vertices in a face,
+			// and the specification has no rule yet that divides the face.
+			return nil, nil, fail(ErrValidation, "merging", "a face of the result touches itself at a point, which a trimmed face cannot hold")
+		}
 		var from []piece
-		var steps []hop // seen from outside: reversed means from b to a
 		for _, i := range list {
 			from = append(from, pieces[keep[i].piece])
+		}
+		sh.sources = sourcesOf(from)
+		sheets = append(sheets, sh)
+	}
+	edges := a.chain(users, removed, sheets)
+	return edges, sheets, nil
+}
+
+// layout traces the boundary of the face that a list of kept pieces
+// makes once the removed elements are gone, in the chart of the first
+// piece's carrier, and reports whether the face is simple: no point is
+// visited twice at one place of the chart. An element both of whose uses
+// are in the face is walked both ways, as a seam is.
+//
+// A face that winds fully around a cylinder has loops that do not close
+// in the chart. Removed elements of the face are then put back, along a
+// shortest chain from one such loop to another, until every loop closes:
+// the chain is the cut along which the face unrolls. So a seam is removed
+// only from a face that no longer winds around its axis (M2).
+func (a *arrangement) layout(pieces []piece, keep []kept, list []int, users [][]int, removed []bool) (sheet, bool, error) {
+	lead := list[0]
+	for _, i := range list {
+		lead = min(lead, i)
+	}
+	first := pieces[keep[lead].piece]
+	sh := sheet{s: a.ops[first.op].faces[first.face].s, reversed: a.against(pieces, keep[lead])}
+	ch := sh.s.chart()
+	member := table[bool](keep)
+	for _, i := range list {
+		member[i] = true
+	}
+	for round := 0; ; round++ {
+		// Into the chart of the sheet: a piece that faces the other way
+		// against its own carrier is walked the other way round.
+		var halves []half
+		for _, i := range list {
+			turned := a.against(pieces, keep[i]) != sh.reversed
 			for _, loop := range pieces[keep[i].piece].loops {
 				for _, h := range loop {
 					if !removed[h.elem] {
-						leave[start(keep[i], h)] = len(steps)
-						steps = append(steps, hop{h.elem, h.reversed != a.against(pieces, keep[i])})
+						halves = append(halves, a.halfOf(ch, hop{h.elem, h.reversed != turned}))
 					}
 				}
 			}
 		}
-		sh.sources = sourcesOf(from)
-		done := table[bool](steps)
-		var holes [][]hop
-		for i := range steps {
-			var loop []hop
-			for k := i; !done[k]; {
-				done[k] = true
-				// Into the chart of the sheet: a sheet that faces
-				// against its carrier is walked the other way round.
-				h, end := steps[k], a.elems[steps[k].elem].b
-				if h.reversed {
-					end = a.elems[h.elem].a
-				}
-				if sh.reversed {
-					loop = append([]hop{{h.elem, !h.reversed}}, loop...)
-				} else {
-					loop = append(loop, h)
-				}
-				k = leave[end]
+		next, taken := filled(halves, -1), filled(halves, false)
+		for i := range halves {
+			k, err := a.turn(halves, i)
+			if err != nil {
+				return sheet{}, false, err
 			}
-			switch area := chartArea(sh.s.chart(), legsOf(a.elems, [][]hop{loop})); {
-			case loop == nil:
+			if taken[k] {
+				return sheet{}, false, fail(ErrInconsistent, "merging", "two walks leave point %d along one element", halves[i].to)
+			}
+			next[i], taken[k] = k, true
+		}
+		var loops, open [][]hop
+		done := filled(halves, false)
+		for i := range halves {
+			var loop []hop
+			for k := i; !done[k]; k = next[k] {
+				done[k] = true
+				loop = append(loop, halves[k].hop)
+			}
+			if loop == nil {
+				continue
+			}
+			loops = append(loops, loop)
+			paths := chain(ch, legsOf(a.elems, [][]hop{loop})[0])
+			if gap := paths[len(paths)-1].at(paths[len(paths)-1].t1).X - paths[0].at(paths[0].t0).X; ch.period() > 0 && math.Abs(gap) > ch.period()/2 {
+				open = append(open, loop)
+			}
+		}
+		if open != nil {
+			// Cut from the first loop that does not close to any other
+			// loop, closed ones included: a cut may pass by a hole.
+			others := [][]hop{open[0]}
+			for _, loop := range loops {
+				if &loop[0] != &open[0][0] {
+					others = append(others, loop)
+				}
+			}
+			if round > len(a.elems) || !a.cut(others, users, member, removed) {
+				return sheet{}, false, fail(ErrValidation, "merging", "a face that winds around its axis has no cut")
+			}
+			continue
+		}
+		// The loop of positive area is the outer one.
+		var holes [][]hop
+		for _, loop := range loops {
+			switch area := chartArea(ch, legsOf(a.elems, [][]hop{loop})); {
 			case area > 0 && sh.loops == nil:
 				sh.loops = [][]hop{loop}
 			case area > 0:
-				return nil, nil, fail(ErrValidation, "merging", "a merged face has two outer loops")
+				return sheet{}, false, fail(ErrValidation, "merging", "a merged face has two outer loops")
 			default:
 				holes = append(holes, loop)
 			}
 		}
 		if sh.loops == nil {
-			return nil, nil, fail(ErrValidation, "merging", "a merged face has no outer loop")
+			return sheet{}, false, fail(ErrValidation, "merging", "a merged face has no outer loop")
 		}
 		sh.loops = append(sh.loops, holes...)
-		sheets = append(sheets, sh)
+		// Simple: every visit of a point is at its own place.
+		type visit struct {
+			point int
+			at    geom.Vec2
+		}
+		var visits []visit
+		for i, paths := range place(ch, legsOf(a.elems, sh.loops)) {
+			for k, p := range paths {
+				from := a.elems[sh.loops[i][k].elem].a
+				if sh.loops[i][k].reversed {
+					from = a.elems[sh.loops[i][k].elem].b
+				}
+				for _, v := range visits {
+					if v.point == from && math.Hypot(v.at.X-p.at(p.t0).X, v.at.Y-p.at(p.t0).Y) <= a.points[from].radius {
+						return sh, false, nil
+					}
+				}
+				visits = append(visits, visit{from, p.at(p.t0)})
+			}
+		}
+		return sh, true, nil
 	}
-	edges := a.chain(users, removed, sheets)
-	return edges, sheets, nil
+}
+
+// cut puts back removed elements of a face along a shortest chain from
+// the first of the given loops to any other of them. It reports whether
+// there was such a chain.
+func (a *arrangement) cut(open [][]hop, users [][]int, member, removed []bool) bool {
+	const none, source, target = 0, 1, 2
+	mark := filled(a.points, none)
+	for i, loop := range open {
+		for _, h := range loop {
+			for _, p := range [2]int{a.elems[h.elem].a, a.elems[h.elem].b} {
+				if i == 0 {
+					mark[p] = source
+				} else if mark[p] == none {
+					mark[p] = target
+				}
+			}
+		}
+	}
+	// Breadth first over the removed elements of the face, in index
+	// order, from the points of the first loop.
+	via := filled(a.points, -1)
+	var queue []int
+	for p, m := range mark {
+		if m == source {
+			queue = append(queue, p)
+		}
+	}
+	for len(queue) > 0 {
+		p := queue[0]
+		queue = queue[1:]
+		for e, el := range a.elems {
+			u := users[e]
+			if !removed[e] || len(u) != 2 || !member[u[0]] || !member[u[1]] || el.a != p && el.b != p {
+				continue
+			}
+			q := el.a
+			if q == p {
+				q = el.b
+			}
+			if mark[q] == source || via[q] >= 0 {
+				continue
+			}
+			via[q] = e
+			if mark[q] == target {
+				// Walk the chain back and restore it.
+				for mark[q] != source {
+					e := via[q]
+					removed[e] = false
+					if a.elems[e].a == q {
+						q = a.elems[e].b
+					} else {
+						q = a.elems[e].a
+					}
+				}
+				return true
+			}
+			queue = append(queue, q)
+		}
+	}
+	return false
 }
 
 // oneFace reports whether two kept pieces lie on one surface and face
@@ -236,7 +359,17 @@ func (a *arrangement) chain(users [][]int, removed []bool, sheets []sheet) []ele
 		}
 		edgeOf[e] = next
 		next++
-		edges = append(edges, element{el.c, el.c.param(a.points[ends[0]].pos), el.c.param(a.points[ends[1]].pos), ends[0], ends[1]})
+		// The interval of the edge on the carrier of e. On a closed
+		// carrier it runs forward from its start, a whole period when
+		// the chain is closed.
+		t0, t1 := el.c.param(a.points[ends[0]].pos), el.c.param(a.points[ends[1]].pos)
+		if period := el.c.period(); period > 0 {
+			t0 += period * math.Floor((el.t0-t0)/period+1e-9)
+			if t1 += period * math.Ceil((el.t1-t1)/period-1e-9); ends[0] == ends[1] {
+				t1 = t0 + period
+			}
+		}
+		edges = append(edges, element{el.c, t0, t1, ends[0], ends[1]})
 	}
 	for i := range sheets {
 		for j, loop := range sheets[i].loops {

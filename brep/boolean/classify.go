@@ -11,27 +11,42 @@ func (a *arrangement) classify(pieces []piece) error {
 		}
 		probes := a.probes(*p)
 		// K1: a piece of a face in a same-surface pair is shared when
-		// its interior point lies inside the other face of the pair.
-		for _, pair := range a.pairs {
-			if pair.faces[p.op] != p.face || p.mate >= 0 {
-				continue
-			}
-			switch a.inFace(1-p.op, pair.faces[1-p.op], probes[0], a.t.eps) {
-			case onRim:
-				return fail(ErrInconsistent, "K1", "an interior point of a piece of face %d of %s is on the boundary of face %d of %s", p.face, operandName(p.op), pair.faces[1-p.op], operandName(1-p.op))
-			case within:
-				p.mate, p.class = pair.faces[1-p.op], sharedSame
-				if pair.opposite {
-					p.class = sharedOpposite
+		// its interior point lies inside the other face of the pair. An
+		// edge that the other face uses twice, a seam or the radial edge
+		// of a polar chart, runs through its region and is not its
+		// boundary, so a point that falls on one is passed over for the
+		// next; only when every point is on a boundary is the
+		// arrangement inconsistent.
+		settled := false
+		for _, q := range probes {
+			rim := false
+			for _, pair := range a.pairs {
+				if pair.faces[p.op] != p.face || p.mate >= 0 {
+					continue
+				}
+				switch a.inFace(1-p.op, pair.faces[1-p.op], q, a.t.eps) {
+				case onRim:
+					rim = true
+				case within:
+					p.mate, p.class = pair.faces[1-p.op], sharedSame
+					if pair.opposite {
+						p.class = sharedOpposite
+					}
 				}
 			}
+			if settled = p.mate >= 0 || !rim; settled {
+				break
+			}
+		}
+		if !settled {
+			return fail(ErrInconsistent, "K1", "every interior point of a piece of face %d of %s is on the boundary of a face of %s on the same surface", p.face, operandName(p.op), operandName(1-p.op))
 		}
 		if p.mate >= 0 {
 			continue
 		}
 		// K2: any other piece is inside or outside the other operand,
 		// at an interior point at least ε from its boundary.
-		settled := false
+		settled = false
 		for _, q := range probes {
 			at, err := a.ops[1-p.op].solid.Classify(q, a.t.eps)
 			if err != nil {

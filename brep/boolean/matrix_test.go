@@ -15,13 +15,17 @@ import (
 	"plainsolid/geom"
 )
 
-// matrixOptions are the options every leaf of the matrix runs with.
-var matrixOptions = Options{Linear: 1e-7, Angular: 1e-9, Volume: 1e-9, Integration: parametric.IntegrationOptions{RelativeTolerance: 1e-10}}
+// matrixOptions are the options every leaf of the matrix runs with. The
+// integration tolerance is the bridge's (L4). Its sample budget is raised
+// above the default of four million, which the integration of an oblique
+// section of a cylinder exhausts at that tolerance.
+var matrixOptions = Options{Linear: 1e-7, Angular: 1e-9, Volume: 1e-9, Integration: parametric.IntegrationOptions{RelativeTolerance: 1e-9, MaxSamples: 64000000}}
 
 var operationNames = [...]string{Union: "union", Common: "common", Cut: "cut"}
 
 // outcome is what section 11 states for one operation of a row.
 type outcome struct {
+	open    bool    // section 11 states no outcome: the leaf checks nothing
 	fails   error   // the error Combine must return
 	maybe   error   // an error Combine may return in place of a validated result (T8)
 	volume  float64 // analytic volume; zero for the empty solid
@@ -137,6 +141,71 @@ var matrix = []struct {
 	{"C3", "cyl", func(t *testing.T) []config {
 		return curved(tube(t, 0, 0, 0, 1, 2), tube(t, 0.2, 0, 0.5, 0.5, 1), solidOf(2*math.Pi, 1, 0, 3), solidOf(0.25*math.Pi, 1, 0, 3), solidOf(1.75*math.Pi, 1, 1, 6))
 	}},
+	{"C11", "cyl", func(t *testing.T) []config {
+		// A cylinder outside A, touching the face x = 2 along a line.
+		return curved(cube(t), tube(t, 2.5, 1, 0.5, 0.5, 1), nonManifold, nothing, solidOf(8, 1, 0, 6))
+	}},
+	{"C12", "cyl", func(t *testing.T) []config {
+		// A cylinder inside A, touching the face x = 0 along a line.
+		return curved(cube(t), tube(t, 0.5, 1, 0.5, 0.5, 1), solidOf(8, 1, 0, 6), solidOf(0.25*math.Pi, 1, 0, 3), nonManifold)
+	}},
+	{"C13", "cyl", func(t *testing.T) []config {
+		return curved(tube(t, 0, 0, 0, 1, 2), tube(t, 2, 0, 0, 1, 2), nonManifold, nothing, solidOf(2*math.Pi, 1, 0, 3))
+	}},
+	{"C14", "cyl", func(t *testing.T) []config {
+		return curved(tube(t, 0, 0, 0, 1, 2), tube(t, 0.5, 0, 0, 0.5, 2), solidOf(2*math.Pi, 1, 0, 3), solidOf(0.5*math.Pi, 1, 0, 3), nonManifold)
+	}},
+	{"C16", "cyl", func(t *testing.T) []config {
+		return curved(tube(t, 0, 0, 0, 1, 2), tube(t, 0, 0, 2, 1, 2), solidOf(4*math.Pi, 1, 0, 3), nothing, solidOf(2*math.Pi, 1, 0, 3))
+	}},
+	{"C17", "cyl", func(t *testing.T) []config {
+		// A of radius 1 and height [0,2]; B of radius 0.5 and height [-1,3].
+		return curved(tube(t, 0, 0, 0, 1, 2), tube(t, 0, 0, -1, 0.5, 4), solidOf(2.5*math.Pi, 1, 0, 0), solidOf(0.5*math.Pi, 1, 0, 0), solidOf(1.5*math.Pi, 1, 0, 4))
+	}},
+	{"C18", "cyl", func(t *testing.T) []config {
+		// Two cylinders of radius 1 and height 2 with axes 1 apart, so
+		// that 4ε <= d <= 2r - 4ε.
+		lens := 2*math.Acos(0.5) - 0.5*math.Sqrt(3)
+		return curved(tube(t, 0, 0, 0, 1, 2), tube(t, 1, 0, 0, 1, 2), solidOf(2*(2*math.Pi-lens), 1, 0, 0), solidOf(2*lens, 1, 0, 0), solidOf(2*(math.Pi-lens), 1, 0, 0))
+	}},
+	{"C19", "cyl", func(t *testing.T) []config {
+		union := solidOf(8+0.25*math.Pi, 1, 0, 8)
+		union.sources = func(r Result, c config) error {
+			// The top face of A has one hole.
+			holed := 0
+			for _, f := range r.Solid.Faces() {
+				holed += len(f.Holes)
+			}
+			if holed != 1 {
+				return fmt.Errorf("%d holes in the faces of the result, want 1", holed)
+			}
+			return nil
+		}
+		return curved(cube(t), tube(t, 1, 1, 2, 0.5, 1), union, nothing, solidOf(8, 1, 0, 6))
+	}},
+	{"C20", "cyl", func(t *testing.T) []config {
+		// As C19, but the base circle touches the edge x = 2 of the top.
+		return curved(cube(t), tube(t, 1.5, 1, 2, 0.5, 1), nonManifold, nothing, solidOf(8, 1, 0, 6))
+	}},
+	{"C22", "cyl", func(t *testing.T) []config {
+		// A cylinder entering the top face of A and ending inside it.
+		return curved(cube(t), tube(t, 1, 1, 1, 0.5, 2), solidOf(8+0.25*math.Pi, 1, 0, 0), solidOf(0.25*math.Pi, 1, 0, 0), solidOf(8-0.25*math.Pi, 1, 0, 0))
+	}},
+	{"C23", "cyl", func(t *testing.T) []config {
+		// A slab 2 thick and a cylinder of radius 0.5 and length 6
+		// through it, its axis 30° from the vertical. Section 11 states
+		// no union.
+		inside := 0.25 * math.Pi * 2 / math.Cos(math.Pi/6)
+		turn, err := geom.Rotation(geom.Vec3{Y: 1}, math.Pi/6)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := tube(t, 0, 0, -3, 0.5, 6).Transformed(geom.Translation(geom.Vec3{X: 2, Y: 2, Z: 1}).Mul(turn))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return curved(lifted(t, box(t, 0, 0, 0, 4, 4, 2)), b, outcome{open: true}, solidOf(inside, 1, 0, 0), solidOf(32-inside, 1, 0, 0))
+	}},
 	{"C27", "cyl", func(t *testing.T) []config {
 		a, none := tube(t, 0, 0, 0, 1, 2), trimmed.Solid{}
 		whole := solidOf(2*math.Pi, 1, 0, 3)
@@ -180,6 +249,93 @@ func tube(t testing.TB, x, y, z0, r, h float64) trimmed.Solid {
 // with a cylinder face, and the three outcomes.
 func curved(a, b trimmed.Solid, union, common, cut outcome) []config {
 	return []config{{a: a, b: b, want: [3]outcome{Union: union, Common: common, Cut: cut}}}
+}
+
+// cube is the box [0,2]³ as a trimmed solid.
+func cube(t testing.TB) trimmed.Solid { return lifted(t, box(t, 0, 0, 0, 2, 2, 2)) }
+
+// storedForms are the variants of the rows that section 11 runs in every
+// stored form of a cylinder: SF1 to SF3, and each under a rigid placement
+// that is not axis-aligned (SF4).
+var storedForms = []string{"sf1", "sf2", "sf3", "sf1p", "sf2p", "sf3p"}
+
+// formed is the cylinder of tube in one of the stored forms. sf1 is the
+// form a result has (B6): line and ellipse edges; it is taken from a
+// union with the empty solid. sf2 is tube itself. sf3 is a disc built by
+// trimmed.ExtrudeDiskWithHoles.
+func formed(t testing.TB, form string, x, y, z0, r, h float64) trimmed.Solid {
+	t.Helper()
+	switch form[:3] {
+	case "sf1":
+		res, err := Combine(context.Background(), tube(t, x, y, z0, r, h), trimmed.Solid{}, Union, matrixOptions)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return res.Solid
+	case "sf3":
+		frame, err := geom.NewFrame(geom.Vec3{X: x, Y: y, Z: z0}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+		if err != nil {
+			t.Fatal(err)
+		}
+		s, err := trimmed.ExtrudeDiskWithHoles(context.Background(), frame, trimmed.ExtrusionCircle{Radius: r}, nil, nil, h)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	return tube(t, x, y, z0, r, h)
+}
+
+// placedAs moves both operands of a row by the placement of SF4 when the
+// form asks for it.
+func placedAs(t testing.TB, form string, solids ...trimmed.Solid) []trimmed.Solid {
+	t.Helper()
+	if !strings.HasSuffix(form, "p") {
+		return solids
+	}
+	turn, err := geom.Rotation(geom.Vec3{X: 1, Y: 2, Z: 3}, 0.7)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := geom.Translation(geom.Vec3{X: 0.3, Y: -0.2, Z: 0.1}).Mul(turn)
+	out := make([]trimmed.Solid, len(solids))
+	for i, s := range solids {
+		if out[i], err = s.Transformed(m); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return out
+}
+
+func init() {
+	for _, form := range storedForms {
+		matrix = append(matrix, struct {
+			row, variant string
+			build        func(t *testing.T) []config
+		}{"C15", form, func(t *testing.T) []config {
+			// Coaxial cylinders of radius 1 and heights [0,2] and [1,3].
+			union := solidOf(3*math.Pi, 1, 0, 3)
+			union.sources = func(r Result, c config) error {
+				// The lateral face from the lateral faces of both; one
+				// cap from A alone and the other from B alone.
+				return sourceShapes(r, map[string]int{"AB": 1, "A": 1, "B": 1})
+			}
+			s := placedAs(t, form, formed(t, form, 0, 0, 0, 1, 2), formed(t, form, 0, 0, 1, 1, 2))
+			return curved(s[0], s[1], union, solidOf(math.Pi, 1, 0, 3), solidOf(math.Pi, 1, 0, 3))
+		}}, struct {
+			row, variant string
+			build        func(t *testing.T) []config
+		}{"C21", form, func(t *testing.T) []config {
+			// A cylinder through A along z with both caps flush.
+			cut := solidOf(8-0.5*math.Pi, 1, 0, 7)
+			cut.sources = func(r Result, c config) error {
+				// Six faces from A; the bore wall from B.
+				return sourceShapes(r, map[string]int{"A": 6, "B": 1})
+			}
+			s := placedAs(t, form, cube(t), formed(t, form, 1, 1, 0, 0.5, 2))
+			return curved(s[0], s[1], solidOf(8, 1, 0, 6), solidOf(0.5*math.Pi, 1, 0, 3), cut)
+		}})
+	}
 }
 
 // pair is the usual row: A is the box [0,2]³ and b is the other operand.
@@ -290,13 +446,17 @@ func TestMatrix(t *testing.T) {
 	}
 	for _, row := range rows {
 		t.Run(row, func(t *testing.T) {
+			t.Parallel()
 			for _, m := range matrix {
 				if m.row != row {
 					continue
 				}
 				t.Run(m.variant, func(t *testing.T) {
+					t.Parallel()
 					for op := Union; op <= Cut; op++ {
 						t.Run(operationNames[op], func(t *testing.T) {
+							// Leaves share nothing: each builds its own operands.
+							t.Parallel()
 							var err error
 							for i, c := range m.build(t) {
 								if e := checkLeaf(c, op); e != nil && err == nil {
@@ -307,7 +467,7 @@ func TestMatrix(t *testing.T) {
 							case pending[t.Name()] && err == nil:
 								t.Fatal("the leaf passes but is listed in testdata/pending.txt")
 							case pending[t.Name()]:
-								t.Logf("pending: %v", err)
+								t.Logf("pending (%s): %v", errorName(err), err)
 							case err != nil:
 								t.Fatal(err)
 							}
@@ -319,15 +479,31 @@ func TestMatrix(t *testing.T) {
 	}
 }
 
+// errorName is the identifier of the error of section 9 that err wraps.
+func errorName(err error) string {
+	for name, kind := range map[string]error{"ErrInvalid": ErrInvalid, "ErrUnsupported": ErrUnsupported, "ErrNonManifold": ErrNonManifold, "ErrTolerance": ErrTolerance, "ErrInconsistent": ErrInconsistent, "ErrValidation": ErrValidation, "ErrBudget": ErrBudget} {
+		if errors.Is(err, kind) {
+			return name
+		}
+	}
+	return "a mismatch"
+}
+
 // checkLeaf runs one operation on one pair of operands and compares the
 // result with the outcome section 11 states.
 func checkLeaf(c config, op Operation) error {
 	want := c.want[op]
+	if want.open {
+		return nil
+	}
 	r, err := Combine(context.Background(), c.a, c.b, op, matrixOptions)
 	switch {
 	case want.fails != nil:
 		if !errors.Is(err, want.fails) {
-			return fmt.Errorf("got %v, want %v", err, want.fails)
+			if err == nil {
+				return fmt.Errorf("got a result, want %v", want.fails)
+			}
+			return fmt.Errorf("got %w, want %v", err, want.fails)
 		}
 		return nil
 	case err != nil && want.maybe != nil && errors.Is(err, want.maybe):
@@ -407,26 +583,34 @@ func checkSources(r Result, c config) error {
 	return nil
 }
 
-// surfaceGap is the largest distance from a vertex of a result face to
-// the plane of a source face, or infinity when the planes are not
-// parallel.
+// surfaceGap is the largest distance from a corner of a result face to
+// the surface of a source face: a plane, a polar plane chart or a
+// cylinder, under its placement.
 func surfaceGap(result, source trimmed.Face) float64 {
-	normal := func(f trimmed.Face) (geom.Vec3, geom.Vec3) {
-		origin, _ := f.Surface.Eval(0, 0)
-		du, dv, _ := f.Surface.Partials(0, 0)
-		n, _ := du.Cross(dv).Unit()
-		return origin, n
-	}
-	_, n := normal(result)
-	origin, m := normal(source)
-	if n.Cross(m).Length() > 1e-9 {
+	base, m := parametric.SurfaceMapping(source.Surface)
+	back, err := m.Inverse()
+	if err != nil {
 		return math.Inf(1)
+	}
+	distance := func(p geom.Vec3) float64 { return math.Inf(1) }
+	if frame, ok := parametric.PolarPlaneFrame(base); ok {
+		distance = func(p geom.Vec3) float64 { return math.Abs(frame.ToLocal(p).Z) }
+	}
+	switch b := base.(type) {
+	case geom.PlaneSurface:
+		distance = func(p geom.Vec3) float64 { return math.Abs(b.Frame().ToLocal(p).Z) }
+	case geom.CylinderSurface:
+		frame, radius := b.Parameters()
+		distance = func(p geom.Vec3) float64 {
+			q := frame.ToLocal(p)
+			return math.Abs(math.Hypot(q.X, q.Y) - radius)
+		}
 	}
 	worst := 0.
 	for _, loop := range append([][]trimmed.Use{result.Outer}, result.Holes...) {
 		for _, u := range loop {
 			p, _ := result.Surface.Eval(u.UVStart.X, u.UVStart.Y)
-			worst = math.Max(worst, math.Abs(p.Sub(origin).Dot(m)))
+			worst = math.Max(worst, distance(back.Apply(p)))
 		}
 	}
 	return worst

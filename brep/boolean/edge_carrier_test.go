@@ -191,9 +191,10 @@ func polyhedron(t testing.TB, vertices []geom.Vec3, polygons [][]int) brep.Solid
 }
 
 // stored builds the cylinder of radius 0.5 and height 2 on the axis
-// through (1,1,0) along z in one of the stored forms of section 11: sf2
-// is a parametric cylinder lifted with trimmed.FromParametric, sf3 a disc
-// built by trimmed.ExtrudeDiskWithHoles. With placed set the solid is
+// through (1,1,0) along z in one of the stored forms of section 11: sf1
+// has line and ellipse edges, as a result has; sf2 is a parametric
+// cylinder lifted with trimmed.FromParametric; sf3 a disc built by
+// trimmed.ExtrudeDiskWithHoles. With placed set the solid is
 // moved by a rigid placement that is not axis-aligned (SF4).
 func stored(t testing.TB, form string, placed bool) (trimmed.Solid, geom.Affine) {
 	t.Helper()
@@ -203,6 +204,8 @@ func stored(t testing.TB, form string, placed bool) (trimmed.Solid, geom.Affine)
 	}
 	var s trimmed.Solid
 	switch form {
+	case "sf1":
+		s = formed(t, "sf1", 1, 1, 0, 0.5, 2)
 	case "sf2":
 		c, err := parametric.Cylinder(frame, 0.5, 2)
 		if err != nil {
@@ -237,7 +240,7 @@ func stored(t testing.TB, form string, placed bool) (trimmed.Solid, geom.Affine)
 // to a circle of the cylinder's radius about it, over the right interval.
 func TestEdgeCarrierStoredForms(t *testing.T) {
 	tol := tolerances{eps: 1e-7, angular: 1e-9, margin: 4e-7, size: 6}
-	for _, form := range []string{"sf2", "sf3"} {
+	for _, form := range []string{"sf1", "sf2", "sf3"} {
 		for _, placed := range []bool{false, true} {
 			s, m := stored(t, form, placed)
 			o, err := intake(0, s, tol)

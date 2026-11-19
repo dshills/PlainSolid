@@ -5,6 +5,7 @@ import (
 	"math"
 	"testing"
 
+	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
 )
 
@@ -140,4 +141,107 @@ func TestMergeResult(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestMergeSeam covers M2 and the conditioning of B2 on results with a
+// cylinder face.
+func TestMergeSeam(t *testing.T) {
+	// seams lists, for each face of a solid, the edges it uses twice.
+	seams := func(s trimmed.Solid) (total int) {
+		for _, f := range s.Faces() {
+			seen := map[int]bool{}
+			for _, loop := range append([][]trimmed.Use{f.Outer}, f.Holes...) {
+				for _, u := range loop {
+					if seen[u.Edge] {
+						total++
+					}
+					seen[u.Edge] = true
+				}
+			}
+		}
+		return total
+	}
+	run := func(a, b trimmed.Solid, op Operation) Result {
+		t.Helper()
+		r, err := Combine(context.Background(), a, b, op, matrixOptions)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	t.Run("a whole cylinder keeps one seam and has quarter arcs", func(t *testing.T) {
+		for _, form := range []string{"sf2", "sf3"} {
+			r := run(formed(t, form, 0, 0, 0, 1, 2), trimmed.Solid{}, Union)
+			top := r.Solid.Topology()
+			// Two rims of four arcs each, and the seam between them.
+			if top.Faces != 3 || top.Edges != 9 || top.Vertices != 8 || seams(r.Solid) != 1 {
+				t.Fatalf("%s: %d faces, %d edges, %d vertices, %d seams", form, top.Faces, top.Edges, top.Vertices, seams(r.Solid))
+			}
+			for i, e := range r.Solid.Edges() {
+				if _, ok := e.Curve.(geom.Ellipse); ok && e.Range.Max-e.Range.Min > math.Pi/2+1e-9 {
+					t.Fatalf("%s: edge %d spans %g of a turn", form, i, (e.Range.Max-e.Range.Min)/(2*math.Pi))
+				}
+			}
+		}
+	})
+	t.Run("seams at different angles are joined by a cut", func(t *testing.T) {
+		// Coaxial cylinders of heights [0,2] and [1,3], the second
+		// turned about the axis: its seam is elsewhere. The union is one
+		// cylinder of three faces, whose cut steps from one seam to the
+		// other.
+		turn, err := geom.Rotation(geom.Vec3{Z: 1}, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := tube(t, 0, 0, 1, 1, 2).Transformed(turn)
+		if err != nil {
+			t.Fatal(err)
+		}
+		r := run(tube(t, 0, 0, 0, 1, 2), b, Union)
+		if top := r.Solid.Topology(); top.Faces != 3 || math.Abs(r.Volume-3*math.Pi) > 1e-6 || seams(r.Solid) == 0 {
+			t.Fatalf("%d faces, volume %g, %d seams", top.Faces, r.Volume, seams(r.Solid))
+		}
+	})
+	t.Run("a face that no longer winds has no seam", func(t *testing.T) {
+		// Half of a cylinder: the box takes away the side x < 0, and the
+		// seam of the cylinder runs down the middle of what is left.
+		r := run(tube(t, 0, 0, 0, 1, 2), lifted(t, box(t, -2, -2, -1, 0, 2, 3)), Cut)
+		if top := r.Solid.Topology(); top.Faces != 4 || math.Abs(r.Volume-math.Pi) > 1e-6 || seams(r.Solid) != 0 {
+			t.Fatalf("%d faces, volume %g, %d seams", top.Faces, r.Volume, seams(r.Solid))
+		}
+	})
+	t.Run("a bore wall in four stored faces is one face", func(t *testing.T) {
+		r := run(cube(t), formed(t, "sf3", 1, 1, 0, 0.5, 2), Cut)
+		if top := r.Solid.Topology(); top.Faces != 7 || seams(r.Solid) != 1 {
+			t.Fatalf("%d faces, %d seams", top.Faces, seams(r.Solid))
+		}
+	})
+	t.Run("a wall with a window is cut past the window", func(t *testing.T) {
+		// A box through one side of a cylinder: the wall keeps winding
+		// around the axis, and the seam is interrupted by the box. The
+		// cut runs from the bottom rim to the window and from the window
+		// to the top rim.
+		r := run(lifted(t, box(t, 0.5, 0, 1, 1.5, 4, 1.5)), tube(t, 0.5, 1, 0.5, 0.5, 1.5), Union)
+		want := 2 + 0.375*math.Pi - 0.0625*math.Pi
+		if top := r.Solid.Topology(); top.Faces != 10 || math.Abs(r.Volume-want) > 1e-6 || seams(r.Solid) != 2 {
+			t.Fatalf("%d faces, volume %g (want %g), %d seams", top.Faces, r.Volume, want, seams(r.Solid))
+		}
+	})
+	t.Run("a polar cap under a face", func(t *testing.T) {
+		// The cylinder stands under the box. The interior point of the
+		// part of the box face over the cap falls on the radial edge of
+		// the polar cap, which is not a boundary of the cap (K1).
+		r := run(lifted(t, box(t, 0, 0, 2, 3, 4, 2.5)), tube(t, 0.5, 0.5, 0, 0.5, 2), Union)
+		if math.Abs(r.Volume-6-0.5*math.Pi) > 1e-6 || r.Solids != 1 {
+			t.Fatalf("volume %g, %d solids", r.Volume, r.Solids)
+		}
+	})
+	t.Run("a result is an operand", func(t *testing.T) {
+		// Bore a box, then fill the bore again with the same cylinder.
+		bored := run(cube(t), tube(t, 1, 1, 0, 0.5, 2), Cut)
+		r := run(bored.Solid, tube(t, 1, 1, 0, 0.5, 2), Union)
+		if top := r.Solid.Topology(); top.Faces != 6 || math.Abs(r.Volume-8) > 1e-6 {
+			t.Fatalf("%d faces, volume %g", top.Faces, r.Volume)
+		}
+	})
 }

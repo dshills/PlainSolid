@@ -78,17 +78,7 @@ func (a *arrangement) splitFace(op, f int) ([]piece, error) {
 	}
 	// F3: trace the graph into loops that keep their region on the left.
 	var halves []half
-	add := func(h hop) {
-		e := a.elems[h.elem]
-		l := leg{e.c, e.t0, e.t1}
-		x := half{hop: h, from: e.a, to: e.b}
-		if h.reversed {
-			l, x.from, x.to = l.back(), e.b, e.a
-		}
-		x.out, x.bend = heading(ch, l)
-		x.back, x.backBend = heading(ch, l.back())
-		halves = append(halves, x)
-	}
+	add := func(h hop) { halves = append(halves, a.halfOf(ch, h)) }
 	for _, loop := range a.rims[op][f] {
 		for _, h := range loop {
 			add(h)
@@ -162,6 +152,20 @@ func (a *arrangement) splitFace(op, f int) ([]piece, error) {
 		}
 	}
 	return pieces, nil
+}
+
+// halfOf is a hop as a half in a chart: its end points and the directions
+// in which it leaves them.
+func (a *arrangement) halfOf(ch chart, h hop) half {
+	e := a.elems[h.elem]
+	l := leg{e.c, e.t0, e.t1}
+	x := half{hop: h, from: e.a, to: e.b}
+	if h.reversed {
+		l, x.from, x.to = l.back(), e.b, e.a
+	}
+	x.out, x.bend = heading(ch, l)
+	x.back, x.backBend = heading(ch, l.back())
+	return x
 }
 
 // mayDangle reports whether F2 may discard an element: it is a touching

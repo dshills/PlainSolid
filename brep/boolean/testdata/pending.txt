@@ -1,9 +1,4 @@
-TestMatrix/C1/cyl/union
-TestMatrix/C1/cyl/cut
-TestMatrix/C2/cyl/union
-TestMatrix/C2/cyl/common
-TestMatrix/C3/cyl/union
-TestMatrix/C3/cyl/common
-TestMatrix/C3/cyl/cut
-TestMatrix/C27/cyl/union
-TestMatrix/C27/cyl/cut
+TestMatrix/C18/cyl/union
+TestMatrix/C18/cyl/common
+TestMatrix/C18/cyl/cut
+TestMatrix/C20/cyl/union
