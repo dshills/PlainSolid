@@ -11,9 +11,8 @@ import (
 	"plainsolid/geom"
 )
 
-// arranged takes two planar solids through intake and the passes below
-// face with face, and seals the arrangement.
-func arranged(t *testing.T, ctx context.Context, x, y brep.Solid, change func(*Options)) (*arrangement, error) {
+// taken takes two planar solids through intake.
+func taken(t *testing.T, x, y brep.Solid, change func(*Options)) ([2]*operand, tolerances, Options) {
 	t.Helper()
 	o, err := matrixOptions.normalized()
 	if err != nil {
@@ -33,6 +32,14 @@ func arranged(t *testing.T, ctx context.Context, x, y brep.Solid, change func(*O
 			t.Fatal(err)
 		}
 	}
+	return ops, tol, o
+}
+
+// arranged takes two planar solids through intake and the passes below
+// face with face, and seals the arrangement.
+func arranged(t *testing.T, ctx context.Context, x, y brep.Solid, change func(*Options)) (*arrangement, error) {
+	t.Helper()
+	ops, tol, o := taken(t, x, y, change)
 	a, err := newArrangement(ctx, ops, tol, o)
 	if err != nil {
 		return nil, err

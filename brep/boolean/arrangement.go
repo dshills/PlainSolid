@@ -36,6 +36,7 @@ type arrangement struct {
 	inner    [2][][]int // AR5: elements inside each face
 	along    [2][][]int // AR5: spans of the other operand along each face's boundary
 	free     [2][][]int // AR5: points inside each face with no span in it
+	pairs    []samePair // AR6
 	contacts []contact  // AR7
 }
 
@@ -72,6 +73,12 @@ type trace struct {
 	faces    [2]int
 	touching bool
 	elem     int // its element, set by seal
+}
+
+// samePair is a face of A and a face of B on one surface (AR6).
+type samePair struct {
+	faces    [2]int
+	opposite bool // the outward normals are opposite
 }
 
 // contact is a touching contact of the sealed arrangement (AR7): a point
