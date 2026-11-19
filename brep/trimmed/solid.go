@@ -22,7 +22,10 @@ type PCurve interface {
 
 // Use assigns a shared edge a p-curve between UVStart and UVEnd. With nil
 // Curve, it is straight. Reversed swaps the model-edge direction, not the
-// parameter direction of Curve.
+// parameter direction of Curve. Curve evaluates to UVStart at 0 and to UVEnd
+// at 1, to the last bit. An EllipseUV alone may end within the solid's
+// tolerance of them instead, which lets arcs of different curves meet at a
+// vertex: NewSolid then keeps the arc with its two ends at UVStart and UVEnd.
 type Use struct {
 	Edge           int
 	Reversed       bool
@@ -208,6 +211,7 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 			}
 		}
 		s.faces[fi] = cloneFace(f)
+		f = s.faces[fi] // the copy, whose arcs are pinned below
 		sides := map[[2]geom.Vec2]trimSide{}
 		indices := map[geom.Vec2]int{}
 		rings := [][]geom.Vec3{}
@@ -224,6 +228,13 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 				if u.Edge < 0 || u.Edge >= len(edges) || !uvFinite(u.UVStart) || !uvFinite(u.UVEnd) || u.UVStart == u.UVEnd ||
 					u.UVEnd != loop[(j+1)%len(loop)].UVStart {
 					return Solid{}, fmt.Errorf("trimmed: invalid p-curve in face %d", fi)
+				}
+				if arc, ok := u.Curve.(EllipseUV); ok {
+					pinned, err := pinArcEnds(f.Surface, arc, u.UVStart, u.UVEnd, tolerance)
+					if err != nil {
+						return Solid{}, err
+					}
+					u.Curve, loop[j].Curve = pinned, pinned
 				}
 				e := edges[u.Edge]
 				start[j], end[j] = e.Start, e.End
@@ -413,6 +424,38 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 		}
 	}
 	return s, nil
+}
+
+// pinArcEnds gives the p-curve a solid stores for an arc declared between
+// start and end. An arc that evaluates to them is stored as it is. Two arcs
+// of different curves that meet at a vertex do not, because each rounds the
+// shared point in its own way, and every later step (the chart polygon, ray
+// crossing counts, strips for integration) needs both uses to name one
+// point. Such an arc is stored with its ends replaced by start and end and
+// its interior unchanged. The ends may move by no more than the tolerance,
+// measured in the chart with the lengths of the surface derivatives, so a
+// point one period away or on another part of the curve is refused.
+func pinArcEnds(surface geom.Surface, arc EllipseUV, start, end geom.Vec2, tolerance float64) (PCurve, error) {
+	var ends [2]geom.Vec2
+	for i := range ends {
+		var err error
+		if ends[i], err = arc.EvalUV(float64(i)); err != nil {
+			return nil, err
+		}
+	}
+	if ends[0] == start && ends[1] == end {
+		return arc, nil
+	}
+	for i, declared := range [2]geom.Vec2{start, end} {
+		du, dv, err := surface.Partials(declared.X, declared.Y)
+		if err != nil {
+			return nil, err
+		}
+		if !(math.Abs(ends[i].X-declared.X)*du.Length()+math.Abs(ends[i].Y-declared.Y)*dv.Length() <= tolerance) {
+			return nil, fmt.Errorf("trimmed: p-curve endpoints differ from declared UV endpoints")
+		}
+	}
+	return unionArcUV{EllipseUV: arc, Start: start, End: end}, nil
 }
 
 func finite(v float64) bool     { return !math.IsNaN(v) && !math.IsInf(v, 0) }
