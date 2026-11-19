@@ -101,6 +101,9 @@ func cloneFace(f Face) Face {
 // UV space, and checks sampled edge agreement and manifold incidence.
 // It does not certify continuous boundary agreement or detect embedding
 // self-intersections. Face limits follow brep.MaxHoledFaceVertices.
+// A corner of a loop may lie on the line through its neighbors, as a vertex
+// that subdivides a straight edge does, whether or not its rounded UV
+// coordinates are collinear with theirs. A face without area is rejected.
 func NewSolid(vertices []geom.Vec3, edges []parametric.Edge, faces []Face, tolerance float64) (Solid, error) {
 	return NewSolidContext(context.Background(), vertices, edges, faces, tolerance)
 }
@@ -318,6 +321,7 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 			s.sampledAnnularCaps = true
 			s.minimumLevel = max(s.minimumLevel, level)
 		}
+		triangles = flipDegenerateTriangles(triangles, func(p geom.Vec2) geom.Vec3 { return vertices[indices[p]] })
 		var faceSeeds []seed
 		for _, tri := range triangles {
 			r := seed{uv: tri, side: [3]trimSide{internalSide(), internalSide(), internalSide()}}
