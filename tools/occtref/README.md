@@ -399,3 +399,22 @@ sh tools/occtref/build_orthogonal_volume_offset.sh \
 PLAINSOLID_OCCT_ORTHOGONAL_VOLUME_OFFSET=/tmp/orthogonal-volume-offset \
   go test ./csg/offset -run TestOrthogonalVolumeOffsetPinnedOCCT
 ```
+
+`general_boolean.cxx` is the oracle of the general Boolean trial
+(`specs/general-boolean`, A6). It reads a file of cases, each a list of
+boxes, prisms and cylinders with placements and a list of union, common and
+cut steps, builds every case, and prints validity, volume, area, centroid,
+solid count and face count for every step. It has no code for any one case.
+Link OCCT's Boolean, modeling and shape-healing toolkits:
+
+```sh
+c++ -std=c++17 -O2 -I"$OCCT_INCLUDE" -L"$OCCT_LIB" "-Wl,-rpath,$OCCT_LIB" \
+  tools/occtref/general_boolean.cxx -o /tmp/general-boolean \
+  -lTKShHealing -lTKBO -lTKPrim -lTKTopAlgo -lTKBRep -lTKGeomBase -lTKG3d -lTKG2d -lTKMath -lTKernel
+PLAINSOLID_OCCT_GENERAL_BOOLEAN=/tmp/general-boolean \
+  go test -v ./internal/occtcheck -run '^TestGeneralBooleanOracle$'
+```
+
+`TestGeneralBooleanOracle` builds the same cases from
+`internal/occtcheck/testdata/general_boolean_cases.json` with
+`boolean.Combine` and compares every step.
