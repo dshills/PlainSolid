@@ -186,3 +186,98 @@ func TestTrimmedTorusAndConeQueries(t *testing.T) {
 		}
 	}
 }
+
+// alongRay is the first fixed direction of Classify.
+var alongRay = geom.Vec3{X: 1, Y: 3, Z: 7}
+
+// slopeThreePrism is the prism about z of the triangle (0,0), (4,0), (1,3).
+// Its side face through (0,0) and (1,3) contains (1,3,0) and (0,0,1), and so
+// alongRay.
+func slopeThreePrism(t *testing.T) Solid {
+	t.Helper()
+	p, e := brep.Prism([]geom.Vec3{{}, {X: 4}, {X: 1, Y: 3}}, geom.Vec3{Z: 5})
+	if e != nil {
+		t.Fatal(e)
+	}
+	s, e := FromPlanar(p, 1e-7)
+	if e != nil {
+		t.Fatal(e)
+	}
+	return s
+}
+
+// TestClassifyRayAlongSurface covers a solid with an unbounded surface that
+// runs along a fixed classification ray: a plane that contains the ray, a
+// cylinder whose axis has its direction, and a cone with a ruling in that
+// direction. Rounding leaves such a ray a contact about 1e17 away, which
+// cannot be evaluated to tolerance and used to fail the classification.
+func TestClassifyRayAlongSurface(t *testing.T) {
+	const tol = 1e-7
+	lift := func(p parametric.Solid, e error) Solid {
+		t.Helper()
+		if e != nil {
+			t.Fatal(e)
+		}
+		s, e := FromParametric(p)
+		if e != nil {
+			t.Fatal(e)
+		}
+		return s
+	}
+	origin := geom.Vec3{X: .3, Y: -1.7, Z: 2.9}
+	axial, e := geom.FrameFromNormal(origin, alongRay)
+	if e != nil {
+		t.Fatal(e)
+	}
+	upright, e := geom.FrameFromNormal(origin, geom.Vec3{Z: 1})
+	if e != nil {
+		t.Fatal(e)
+	}
+	prism := slopeThreePrism(t)
+	cylinder := lift(parametric.Cylinder(axial, 2, 5))
+	// The rulings of a cone about z with this slope include (1,3,7).
+	cone := lift(parametric.Cone(upright, math.Atan(math.Sqrt(10)/7), 7))
+	in := func(f geom.Frame, x, y, z float64) geom.Vec3 { return f.ToWorld(geom.Vec3{X: x, Y: y, Z: z}) }
+	for _, tc := range []struct {
+		name string
+		s    Solid
+		p    geom.Vec3
+		want parametric.Location
+	}{
+		{"prism, inside", prism, geom.Vec3{X: 1.5, Y: 1, Z: 2}, parametric.Inside},
+		{"prism, outside off the face", prism, geom.Vec3{X: -1, Y: 1, Z: 2}, parametric.Outside},
+		{"prism, outside in the plane of the face", prism, geom.Vec3{X: 2, Y: 6, Z: 2}, parametric.Outside},
+		{"prism, on the face", prism, geom.Vec3{X: .5, Y: 1.5, Z: 2}, parametric.Boundary},
+		{"cylinder, inside", cylinder, in(axial, .5, 0, 2), parametric.Inside},
+		{"cylinder, outside beyond a cap", cylinder, in(axial, 0, .7, 9), parametric.Outside},
+		{"cylinder, outside on the wall produced", cylinder, in(axial, 2, 0, 9), parametric.Outside},
+		{"cylinder, outside beside the wall", cylinder, in(axial, 3, 0, 2), parametric.Outside},
+		{"cylinder, on the wall", cylinder, in(axial, 2, 0, 2), parametric.Boundary},
+		{"cone, inside", cone, in(upright, 0, 0, 3), parametric.Inside},
+		{"cone, outside beside it", cone, in(upright, 5, 0, 3), parametric.Outside},
+		{"cone, outside below the apex", cone, in(upright, 1, -2, -6), parametric.Outside},
+		{"cone, on the ruling", cone, in(upright, 3./7, 9./7, 3), parametric.Boundary},
+	} {
+		got, e := tc.s.Classify(tc.p, tol)
+		if e != nil || got != tc.want {
+			t.Errorf("%s, %v: got %v (%v), want %v", tc.name, tc.p, got, e, tc.want)
+		}
+	}
+}
+
+// TestRayParallelToPlane: a ray parallel to a face plane within rounding
+// has no contact with it when it is off the plane and is not an isolated
+// hit when it lies in it.
+func TestRayParallelToPlane(t *testing.T) {
+	const tol = 1e-7
+	s := slopeThreePrism(t)
+	// Off the plane y = 3x, the ray leaves through the face x + y = 4.
+	hits, e := s.Ray(geom.Vec3{X: 1.5, Y: 1, Z: 2}, alongRay, math.Inf(1), tol)
+	want := geom.Vec3{X: 1.875, Y: 2.125, Z: 4.625}
+	if e != nil || len(hits) != 1 || hits[0].Point.Distance(want) > tol {
+		t.Fatalf("off the plane: %v (%v), want one hit at %v", hits, e, want)
+	}
+	if hits, e := s.Ray(geom.Vec3{X: 2, Y: 6, Z: 2}, alongRay, math.Inf(1), tol); e != errRayCoincident {
+		t.Fatalf("in the plane: %v (%v), want %v", hits, e, errRayCoincident)
+	}
+}

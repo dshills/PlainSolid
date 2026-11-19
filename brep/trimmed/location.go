@@ -1,6 +1,7 @@
 package trimmed
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"sort"
@@ -115,7 +116,7 @@ func (s Solid) Classify(point geom.Vec3, tol float64) (parametric.Location, erro
 			if h.tangent {
 				continue
 			}
-			if math.Abs(h.dot) < 64*0x1p-52 {
+			if math.Abs(h.dot) < rayParallel {
 				usable = false
 				break
 			}
@@ -140,6 +141,16 @@ func (s Solid) Classify(point geom.Vec3, tol float64) (parametric.Location, erro
 }
 
 var errRayCoincident = fmt.Errorf("trimmed: ray coincides with a supporting plane or generator")
+
+// rayParallel is the sine of the angle below which a ray counts as parallel
+// to a plane, a cylinder axis or a cone ruling: 64 units of rounding of a
+// unit vector. A direction and a normal that are perpendicular in exact
+// arithmetic leave a product of about 1e-17 in float64, not zero, and the
+// contact that product implies is about 1e17 away, where no point can be
+// evaluated to tolerance. Inside the bound the sign of the product carries no
+// information, so a transverse contact farther along such a ray than its
+// distance from the surface divided by rayParallel is not reported.
+const rayParallel = 64 * 0x1p-52
 
 type rayContact struct {
 	point                           geom.Vec3
@@ -173,6 +184,12 @@ func (s Solid) rayContacts(l geom.Line, maxDistance, tol float64) ([]rayContact,
 		var higher map[float64]bool
 		switch a := base.(type) {
 		case geom.CylinderSurface:
+			if parallel, onWall := cylinderRayParallel(a, local, localTol); parallel {
+				if onWall {
+					return nil, errRayCoincident
+				}
+				break
+			}
 			h, e := geom.IntersectLineCylinder(local, a, geom.LineSurfaceOptions{
 				UseParameterRange: true, MinParameter: -tol * speed, MaxParameter: maxDistance * speed, DistanceTolerance: localTol,
 			})
@@ -187,6 +204,11 @@ func (s Solid) rayContacts(l geom.Line, maxDistance, tol float64) ([]rayContact,
 			h, e := geom.IntersectLineCone(local, a, geom.LineSurfaceOptions{
 				UseParameterRange: true, MinParameter: -tol * speed, MaxParameter: maxDistance * speed, DistanceTolerance: localTol,
 			})
+			if errors.Is(e, geom.ErrConvergence) && coneRayParallel(a, local) {
+				// One root of a ray along a ruling is at an unbounded
+				// distance and has no point within tolerance.
+				return nil, errRayCoincident
+			}
 			if e != nil {
 				return nil, e
 			}
@@ -280,7 +302,9 @@ func planeRayCandidates(fr geom.Frame, line geom.Line, lo, hi, tolerance float64
 	if !finite(d) || !finite(v) {
 		return nil, geom.ErrInvalid
 	}
-	if v == 0 {
+	// Both vectors are unit, so v is the sine of the angle between the ray
+	// and the plane.
+	if math.Abs(v) < rayParallel {
 		if math.Abs(d) <= tolerance {
 			return nil, errRayCoincident
 		}
@@ -295,6 +319,28 @@ func planeRayCandidates(fr geom.Frame, line geom.Line, lo, hi, tolerance float64
 		return nil, e
 	}
 	return []geom.LineSurfaceHit{{Point: p, Parameter: t}}, nil
+}
+
+// cylinderRayParallel reports whether a ray is parallel to the axis of a
+// cylinder within rayParallel, and whether it then runs within tolerance of
+// the wall. A parallel ray off the wall has no contact with it.
+func cylinderRayParallel(c geom.CylinderSurface, line geom.Line, tolerance float64) (parallel, onWall bool) {
+	fr, r := c.Parameters()
+	d := line.Direction()
+	if math.Hypot(d.Dot(fr.XAxis()), d.Dot(fr.YAxis())) >= rayParallel {
+		return false, false
+	}
+	q := fr.ToLocal(line.Origin())
+	return true, math.Abs(math.Hypot(q.X, q.Y)-r) <= tolerance
+}
+
+// coneRayParallel reports whether a ray is parallel to a ruling of a cone,
+// on either nappe, within rayParallel.
+func coneRayParallel(c geom.ConeSurface, line geom.Line) bool {
+	fr, slope := c.Parameters()
+	d := line.Direction()
+	radial, axial := math.Hypot(d.Dot(fr.XAxis()), d.Dot(fr.YAxis())), math.Abs(d.Dot(fr.ZAxis()))
+	return math.Abs(radial-slope*axial) < rayParallel*math.Hypot(1, slope)
 }
 
 func scaledTolerance(tol float64, inverse geom.Affine) float64 {
