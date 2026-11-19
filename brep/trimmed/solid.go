@@ -333,6 +333,9 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 			s.minimumLevel = max(s.minimumLevel, level)
 		}
 		triangles = flipDegenerateTriangles(triangles, func(p geom.Vec2) geom.Vec3 { return vertices[indices[p]] })
+		if triangles, err = seatCurvedTrims(triangles, sides, func(p geom.Vec2) geom.Vec3 { return vertices[indices[p]] }); err != nil {
+			return Solid{}, err
+		}
 		var faceSeeds []seed
 		for _, tri := range triangles {
 			r := seed{uv: tri, side: [3]trimSide{internalSide(), internalSide(), internalSide()}}

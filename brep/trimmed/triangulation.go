@@ -199,3 +199,97 @@ func flipDegenerateTriangles(triangles [][3]geom.Vec2, model func(geom.Vec2) geo
 	}
 	return triangles
 }
+
+// seatCurvedTrims exchanges interior sides of a chart triangulation so that,
+// where it can, each curved trim stays inside the triangle on its chord.
+//
+// Refinement puts the midpoint of a boundary side on its curve and the
+// midpoint of an interior side on its chord. Next to a corner the triangle
+// that is cut off keeps the direction of the interior side that leaves the
+// corner, so it folds as soon as the curve is on the far side of that side:
+// a trim that leaves its corner outside the triangle folds at some level
+// whatever happens elsewhere. The curve is therefore sampled at the
+// parameters refinement uses next to each end, 2^-k and 1-2^-k, and a sample
+// that is not strictly inside the other two sides of its triangle counts
+// against that triangle. An interior side of such a triangle is exchanged
+// for the other diagonal of its two triangles when both new triangles are
+// positively wound and have area in space and they have fewer such samples
+// between them, so the passes end. Where no exchange helps, the triangles
+// stay as they were and refinement decides.
+func seatCurvedTrims(triangles [][3]geom.Vec2, sides map[[2]geom.Vec2]trimSide, model func(geom.Vec2) geom.Vec3) ([][3]geom.Vec2, error) {
+	const depth = 10
+	samples := map[[2]geom.Vec2][]geom.Vec2{}
+	for key, side := range sides {
+		if side.use.Curve == nil {
+			continue
+		}
+		for k := 1; k <= depth; k++ {
+			for _, t := range [2]float64{math.Ldexp(1, -k), 1 - math.Ldexp(1, -k)} {
+				p, err := side.use.uv(t)
+				if err != nil {
+					return nil, err
+				}
+				samples[key] = append(samples[key], p)
+				if k == 1 {
+					break // the middle once
+				}
+			}
+		}
+	}
+	if len(samples) == 0 {
+		return triangles, nil
+	}
+	// outside counts the samples of the curved sides of t that are not
+	// strictly inside its other two sides.
+	outside := func(t [3]geom.Vec2) (count int) {
+		for j := range t {
+			for _, p := range samples[[2]geom.Vec2{t[j], t[(j+1)%3]}] {
+				for _, k := range [2]int{(j + 1) % 3, (j + 2) % 3} {
+					if turn, err := geom.Orient2D(t[k], t[(k+1)%3], p); err != nil || turn != 1 {
+						count++
+						break
+					}
+				}
+			}
+		}
+		return count
+	}
+	sound := func(t [3]geom.Vec2) bool {
+		turn, err := geom.Orient2D(t[0], t[1], t[2])
+		return err == nil && turn == 1 && !mesh.Degenerate(model(t[0]), model(t[1]), model(t[2]))
+	}
+	for changed := true; changed; {
+		changed = false
+		for i, t := range triangles {
+			count := outside(t)
+			if count == 0 {
+				continue
+			}
+		sides:
+			for j := range t {
+				a, b, opposite := t[j], t[(j+1)%3], t[(j+2)%3]
+				if _, trim := sides[[2]geom.Vec2{a, b}]; trim {
+					continue
+				}
+				for n, u := range triangles {
+					for k, p := range u {
+						if p != b || u[(k+1)%3] != a {
+							continue
+						}
+						first, second := [3]geom.Vec2{opposite, a, u[(k+2)%3]}, [3]geom.Vec2{opposite, u[(k+2)%3], b}
+						if !sound(first) || !sound(second) {
+							continue sides
+						}
+						if outside(first)+outside(second) < count+outside(u) {
+							triangles[i], triangles[n] = first, second
+							changed = true
+							break sides
+						}
+						continue sides
+					}
+				}
+			}
+		}
+	}
+	return triangles, nil
+}
