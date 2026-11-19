@@ -9,6 +9,7 @@ import (
 
 	"plainsolid/brep"
 	"plainsolid/geom"
+	"plainsolid/mesh"
 )
 
 // triangulateUV removes exactly collinear subdivisions for the polygon
@@ -140,4 +141,61 @@ func triangulateUVBounded(ctx context.Context, rings [][]geom.Vec3, maximum int)
 		}
 	}
 	return out, nil
+}
+
+// flipDegenerateTriangles removes, where it can, the triangles of a chart
+// triangulation that mesh.Mesh.Validate would reject because their corners
+// span no area in space. model gives the point in space of a chart vertex.
+// The result covers the same chart region with the same vertices.
+//
+// A vertex where a third edge meets a straight edge is a corner of the faces
+// along that edge, and lies on one line with its neighbors. Chart coordinates
+// are rounded, so the corner can be convex in the chart, and the chart
+// triangulation can then cut off the triangle of the three corners. The side
+// of that triangle opposite its middle corner is interior to the face. If the
+// triangle and its neighbor across that side form a convex quadrilateral in
+// the chart, the other diagonal covers the same region with two triangles,
+// and it is taken when both of them have area in space. Each exchange
+// leaves fewer triangles without area, so the passes end.
+//
+// A triangle that cannot be replaced this way is returned as it was and is
+// left to the mesh check. That is the case for a face without area, for two
+// corners at one point, and for a corner on a boundary edge that it does
+// not subdivide.
+func flipDegenerateTriangles(triangles [][3]geom.Vec2, model func(geom.Vec2) geom.Vec3) [][3]geom.Vec2 {
+	sound := func(t [3]geom.Vec2) bool {
+		turn, err := geom.Orient2D(t[0], t[1], t[2])
+		return err == nil && turn == 1 && !mesh.Degenerate(model(t[0]), model(t[1]), model(t[2]))
+	}
+	for changed := true; changed; {
+		changed = false
+	next:
+		for i, t := range triangles {
+			if !mesh.Degenerate(model(t[0]), model(t[1]), model(t[2])) {
+				continue
+			}
+			// The middle corner is opposite the longest side in space.
+			middle, longest := 0, -1.
+			for j := range t {
+				if d := model(t[(j+1)%3]).Sub(model(t[(j+2)%3])).Length(); d > longest {
+					middle, longest = j, d
+				}
+			}
+			x, b, a := t[middle], t[(middle+1)%3], t[(middle+2)%3]
+			for n, u := range triangles {
+				for j, p := range u {
+					if p != a || u[(j+1)%3] != b {
+						continue
+					}
+					first, second := [3]geom.Vec2{a, x, u[(j+2)%3]}, [3]geom.Vec2{x, b, u[(j+2)%3]}
+					if sound(first) && sound(second) {
+						triangles[i], triangles[n] = first, second
+						changed = true
+					}
+					continue next
+				}
+			}
+		}
+	}
+	return triangles
 }

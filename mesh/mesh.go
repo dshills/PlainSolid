@@ -32,12 +32,19 @@ func (m Mesh) Validate() error {
 		if t[0] == t[1] || t[1] == t[2] || t[2] == t[0] {
 			return fmt.Errorf("mesh: triangle %d repeats a vertex", i)
 		}
-		n := m.Vertices[t[1]].Sub(m.Vertices[t[0]]).Cross(m.Vertices[t[2]].Sub(m.Vertices[t[0]]))
-		if !n.IsFinite() || !finite(n.Length()) || n.Length() == 0 {
+		if Degenerate(m.Vertices[t[0]], m.Vertices[t[1]], m.Vertices[t[2]]) {
 			return fmt.Errorf("mesh: triangle %d is degenerate or overflows", i)
 		}
 	}
 	return nil
+}
+
+// Degenerate reports whether Validate rejects a triangle with these corners:
+// its computed normal has no length or is not finite. A caller that chooses
+// among triangulations uses it to judge a triangle as Validate will.
+func Degenerate(a, b, c geom.Vec3) bool {
+	n := b.Sub(a).Cross(c.Sub(a))
+	return !n.IsFinite() || !finite(n.Length()) || n.Length() == 0
 }
 
 type edge struct{ a, b int }
