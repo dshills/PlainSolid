@@ -179,6 +179,9 @@ func TestGeneralBooleanOracle(t *testing.T) {
 				compared++
 				p := r.Properties
 				centre := geom.Vec3{X: w.Centroid[0], Y: w.Centroid[1], Z: w.Centroid[2]}
+				// One line per step, both sides, so that a run leaves
+				// its own record.
+				t.Logf("oracle step %d (%s): solids %d/%d volume %.15g/%.15g area %.15g/%.15g centroid distance %.3g faces %d/%d", k, step.Op, r.Solids, w.Solids, p.Volume, w.Volume, p.Area, w.Area, p.Centroid.Distance(centre), r.Solid.Topology().Faces, w.Faces)
 				if r.Solids != w.Solids || math.Abs(p.Volume-w.Volume) > 3e-7*w.Volume || math.Abs(p.Area-w.Area) > 3e-7*w.Area || r.Solids > 0 && p.Centroid.Distance(centre) > 3e-7 {
 					t.Errorf("step %d (%s): %d solids, volume %.15g, area %.15g, centroid %v; OCCT %d, %.15g, %.15g, %v", k, step.Op, r.Solids, p.Volume, p.Area, p.Centroid, w.Solids, w.Volume, w.Area, w.Centroid)
 				}

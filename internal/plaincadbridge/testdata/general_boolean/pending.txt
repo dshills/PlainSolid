@@ -1,5 +1,5 @@
 T1-009 TestBlindFloorNearExitReferenceIsAmbiguous excluded: a sub-tolerance feature, a floor 5e-8 thick under a working tolerance of 1e-7 (C24 governs)
-T1-029 TestObliqueThroughBoreScopeAndSTL foundation: other (trimmed tessellation budget on a result); time over two seconds
+T1-029 TestObliqueThroughBoreScopeAndSTL time over two seconds: every comparison passes; its two display meshes at the angle bound of 0.1 are very large
 T1-041 TestSideNotchMixedBoreBatchIsAtomic excluded: its stock comes from an import whose faces carry a placement that is not rigid, outside the class (S4)
 T1-091 TestToFaceAnalyticCircleHoleExactGap excluded: a sub-tolerance distinction (RL-12): the record fails a tool tangent to a hole and passes the same tool 1e-15 away; both get the outcome of the tangent tool
 T1-092 TestObliqueToFaceUsesCircularExtent foundation: other (trimmed tessellation budget on a result); time over two seconds
