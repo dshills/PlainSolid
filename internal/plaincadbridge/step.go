@@ -772,6 +772,7 @@ func (b *Bridge) exportSTEPInUnits(handles []string, units stepFileUnit) (stepEx
 		out.Units, out.ProofUnits = units, stepMillimetre
 	}
 	sources := make([][]byte, len(handles))
+	written := make([]bool, len(handles)) // by step.WriteTrimmedBoundary
 	seen := map[string]bool{}
 	for i, h := range handles {
 		if seen[h] {
@@ -797,7 +798,11 @@ func (b *Bridge) exportSTEPInUnits(handles []string, units stepFileUnit) (stepEx
 			}
 			return s.exportProvedSTEPRevolution(context.Background())
 		}
-		sources[i], e = writeSTEPBody(s)
+		if b.general && s.analytic != nil && generalBody(s.analytic) {
+			sources[i], written[i], e = writeGeneralSTEPBody(s)
+		} else {
+			sources[i], e = writeSTEPBody(s)
+		}
 		if e != nil {
 			return fail(e)
 		}
@@ -818,6 +823,9 @@ func (b *Bridge) exportSTEPInUnits(handles []string, units stepFileUnit) (stepEx
 	verify := New()
 	for i, p := range parts {
 		s, e := verify.importSTEPInUnits(string(p), units)
+		if e != nil && written[i] {
+			return fail(generalSTEPReadback(e))
+		}
 		if e != nil {
 			return fail(e)
 		}

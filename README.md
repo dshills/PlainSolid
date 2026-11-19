@@ -24,7 +24,7 @@ the [MIT License](LICENSE).
 | `solid`, `csg`, `csg/poly`, `csg/offset`, `csg/fillet`, `csg/draft`, `csg/feature`, `section` | Box-cell, convex and nonconvex planar Booleans, sections, split, ancestry, planar offsets, draft and chamfer, blind pockets, protrusions and convex prism fillets |
 | `csg/loft` | Exact corresponding planar rings, multi-station lofts, reentrant convex bands, separated miter cells, and original edge ancestry |
 | `heal`, `heal/unify`, `collision`, `query` | Planar sewing and face unification, exact triangle contact, planar boundary distance and point location, mesh BVH |
-| `exchange`, `exchange/step`, `exchange/iges` | OBJ/STL/PLY, embedded triangle glTF/GLB, native topology, planar/analytic STEP bodies, rigid STEP assemblies, STEP/IGES spline geometry and IGES planar trims |
+| `exchange`, `exchange/step`, `exchange/iges` | OBJ/STL/PLY, embedded triangle glTF/GLB, native topology, planar/analytic STEP bodies, a STEP writer (no reader yet) for boundaries of planes and cylinders, rigid STEP assemblies, STEP/IGES spline geometry and IGES planar trims |
 | `exchange/revolution` | Standalone versioned revolution persistence and strict IGES/STEP conversion |
 | `document`, `scene` | Mixed asset assemblies, typed labels, feature regeneration, transactions, cameras, picking and projected hidden lines |
 
