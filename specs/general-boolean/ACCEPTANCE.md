@@ -401,3 +401,247 @@ its family, up to the first request that the primitives cannot express.
 | legacy-refused/T1-046/line-3 | 1 | 968.584073464 | 968.584073464 | 585.132741229 | 585.132741229 | 1.9e-16 | 3.7e-15 |  | pass |
 | legacy-refused/T1-074/line-6 | 3 | 9.93331732418 | 9.93331732418 | 41.7892519893 | 41.7892519893 | 3.3e-14 | 3.2e-13 |  | pass |
 | legacy-refused/T1-081/line-4 | 2 | 768.584073464 | 768.584073464 | 576.548667765 | 576.548667765 | 4.3e-16 | 2.2e-15 |  | pass |
+
+## Second record
+
+Taken on commit `8a76218e`, on 2026-11-19, after the record above. It
+does not replace it: the A8 columns of the table of rows, the A8 summary
+and the section "Oracle run" stay as they were taken on `1ae12376`.
+Between the two commits the touching-contact rule of X5 changed
+(`512c011d`) and `brep/trimmed` changed by three merges of the
+foundation branch, the last at `b0c23193`.
+
+### A8, second record
+
+From one run of `TestGeneralBooleanAcceptance` with `PLAINSOLID_SLOW=1`.
+Every row produced at least one value.
+
+- Tier 1: 87 of 92 rows pass. T1-029 agrees in every checked response and
+  is pending on its time alone. T1-092 is pending on a limit of
+  `brep/trimmed` (RL-9): its mesh request exceeds the tessellation
+  budget. T1-009, T1-041 and T1-091 are excluded.
+- Over the 87 rows that pass, the largest volume error is 3.3e-9 and the
+  largest area error 4.4e-9, both in T1-005. No passing row is above
+  1e-8 in either.
+- Since the first record: T1-016 passes; T1-029 agrees in every response.
+- Tier 2 is not supported: 1 of 17 rows passes (T2-012).
+
+| Row | Function | Volume error | Area error | Outcome |
+|---|---|---|---|---|
+| row T1-001 | `TestThroughCircleCutAllAxesAndSigns` | 1.2e-16 | 0 | pass |
+| row T1-002 | `TestFiniteCylinderCoverageAndPartialCommon` | 1.1e-16 | 1.4e-16 | pass |
+| row T1-003 | `TestBoreClonePlacementAndRepeatedCuts` | 3e-16 | 0 | pass |
+| row T1-004 | `TestSingleBoreMeshKeepsVolumeWithScaleAwareSampling` | 0 | 1.8e-16 | pass |
+| row T1-005 | `TestGuidedRadiusThree` | 3.3e-09 | 4.4e-09 | pass |
+| row T1-006 | `TestBlindAllAxesAndSigns` | 1.2e-16 | 0 | pass |
+| row T1-007 | `TestBlindScopedRaisedStockAndMixedRecipe` | 4.1e-15 | 6.2e-16 | pass |
+| row T1-008 | `TestRadiallyDisjointCommonAndUnsupportedCavity` | 0 | 0 | pass |
+| row T1-009 | `TestBlindFloorNearExitReferenceIsAmbiguous` | 1.1e-10 | 0.015 | excluded |
+| row T1-010 | `TestMultipleBlindPocketsRetainSharedCaps` | 1.2e-16 | 0 | pass |
+| row T1-011 | `TestGuidedOppositeEndBlindToolAllAxes` | 1.8e-16 | 0 | pass |
+| row T1-012 | `TestExitOpenBlindRejectsUnpreservedEndpoints` | 0 | 0 | pass |
+| row T1-013 | `TestScopedHoleDefaultMeshVolume` | 1.3e-16 | 2e-16 | pass |
+| row T1-014 | `TestGuidedDefaultMeshRemovedVolumeAndNormalTurn` | 3.7e-16 | 2.6e-16 | pass |
+| row T1-015 | `TestExactBlindBoreTopologyDiagnostic` | 0 | 0 | pass |
+| row T1-016 | `TestUnequalDepthBoreAxesSignsAndCaps` | 1.3e-16 | 1.6e-16 | pass |
+| row T1-017 | `TestSequentialHoleOppositeBlindEntryAndOverlapQuery` | 7.7e-16 | 1.6e-16 | pass |
+| row T1-018 | `TestOverlapVolumeAtFullHandleCapacity` | 3e-15 | 0 | pass |
+| row T1-019 | `TestOverlapVolumePreservesOrdinaryQueriesAndCommonGeometry` | 6.7e-15 | 0 | pass |
+| row T1-020 | `TestOverlappingHoleUnionAxesSignsAndDepths` | 1.4e-16 | 0 | pass |
+| row T1-021 | `TestHoleUnionDuplicatesContainmentAndTripleOverlap` | 3.6e-16 | 0 | pass |
+| row T1-022 | `TestHoleUnionUnsupportedBatchDoesNotPublish` | 0 | 0 | pass |
+| row T1-023 | `TestContainedUnionAnchorChangeDoesNotPublishTinyReduction` | 0 | 0 | pass |
+| row T1-024 | `TestThroughUnionOpposedAxesAndInputOrders` | 3.6e-16 | 0 | pass |
+| row T1-025 | `TestOpposedBlindBoreMerge` | 2.3e-16 | 0 | pass |
+| row T1-026 | `TestOpposedBlindBoreStrictOverlapAndUnrelated` | 2.4e-16 | 1.7e-16 | pass |
+| row T1-027 | `TestOpposedBlindBoresIntersectAtDifferentDepths` | 2.7e-16 | 1.7e-16 | pass |
+| row T1-028 | `TestOpposedBlindBoresMeetingAtOneLevel` | 1.3e-16 | 3.2e-16 | pass |
+| row T1-029 | `TestObliqueThroughBoreScopeAndSTL` | 9.1e-16 | 1.8e-16 | passes every comparison; pending on its time (A7) |
+| row T1-030 | `TestObliqueThroughBoreRejectsIncompleteOpeningsAtomically` | 0 | 0 | pass |
+| row T1-031 | `TestDisjointBoresSTEP` | 2.2e-16 | 0 | pass |
+| row T1-032 | `TestDisjointBlindBoresSTEP` | 2.1e-16 | 3.1e-16 | pass |
+| row T1-033 | `TestFiniteDisjointBoresSTEP` | 2.1e-16 | 5.3e-16 | pass |
+| row T1-034 | `TestRadialDisjointBoresSTEP` | 2.2e-16 | 1.5e-16 | pass |
+| row T1-035 | `TestDisjointObliqueBoreScopeAndSTEP` | 6.8e-16 | 1.8e-16 | pass |
+| row T1-036 | `TestPlacedSideCrossingCircularCut` | 0 | 1.1e-16 | pass |
+| row T1-037 | `TestPlacedSideCrossingBlindCylinderCut` | 4.9e-14 | 1.9e-16 | pass |
+| row T1-038 | `TestPlainCADSideNotchSTEPRoundTrip` | 1.5e-16 | 1.6e-16 | pass |
+| row T1-039 | `TestCornerBlindCutQualifiesEitherToolEndpoint` | 2e-16 | 0 | pass |
+| row T1-040 | `TestNotchedStockSTEPUnitsRetainRecipe` | 3e-16 | 1.9e-16 | pass |
+| row T1-041 | `TestSideNotchMixedBoreBatchIsAtomic` | 1.6e-16 | 1.6e-16 | excluded (4 checked responses without a value) |
+| row T1-042 | `TestSideNotchRetainsConnectedCoaxialCuts` | 4.2e-15 | 1.3e-16 | pass |
+| row T1-043 | `TestNotchedStockMergesInteriorBoresInAnyOrder` | 3.8e-16 | 0 | pass |
+| row T1-044 | `TestMultiBodyFiniteCornerRevolveCuts` | 1.2e-16 | 0 | pass |
+| row T1-045 | `TestMultiBodyExtrudeDisjointNoop` | 0 | 0 | pass |
+| row T1-046 | `TestCornerThroughRejectsFiniteShortTool` | 0 | 0 | pass |
+| row T1-047 | `TestCornerThroughReversedFiniteAxis` | 0 | 0 | pass |
+| row T1-048 | `TestSideOpeningPairScopedAndSuccessive` | 6.9e-15 | 1.6e-16 | pass |
+| row T1-049 | `TestSideOpeningPairOpposedScopes` | 4.2e-15 | 1.6e-16 | pass |
+| row T1-050 | `TestSideOpeningPairDifferentStockSides` | 4.1e-15 | 1.6e-16 | pass |
+| row T1-051 | `TestSideOpeningCutsRetainHistoryAndAcceptFurtherHoles` | 5.6e-16 | 1.3e-16 | pass |
+| row T1-052 | `TestSideOpeningCutsContinueStrictDualDisk` | 3.1e-16 | 2.5e-16 | pass |
+| row T1-053 | `TestIntersectingCornerOpeningHoles` | 3.2e-15 | 1.6e-16 | pass |
+| row T1-054 | `TestConcealedHoleSTEPAndFurtherCut` | 3.1e-15 | 1.6e-16 | pass |
+| row T1-055 | `TestPlainCADSideOpenDualDiskCuts` | 5.1e-16 | 1.9e-16 | pass |
+| row T1-056 | `TestPlainCADUnequalSideOpenDualDiskCuts` | 8.1e-16 | 1.2e-16 | pass |
+| row T1-057 | `TestPlainCADOffCenterSideOpenDualDisk` | 6.1e-16 | 1.1e-16 | pass |
+| row T1-058 | `TestPlainCADSideOpeningFallbackAtNonbinaryCrossing` | 1.8e-16 | 0 | pass |
+| row T1-059 | `TestPlainCADExactWallSideOpenDualDisk` | 1.7e-16 | 2.9e-16 | pass |
+| row T1-060 | `TestPlainCADOffsetSideOpenDualDisk` | 7.3e-15 | 3.4e-16 | pass |
+| row T1-061 | `TestPlainCADUnequalCenterSideOpenDualDisk` | 7.4e-15 | 7.7e-15 | pass |
+| row T1-062 | `TestCircularStockFiniteEccentricHoleAndSTEP` | 3.8e-16 | 0 | pass |
+| row T1-063 | `TestCircularStockGroupedAndSuccessiveDisjointBores` | 3.8e-16 | 2e-16 | pass |
+| row T1-064 | `TestCircularStockAuthoredEccentricInnerWireAndSignedCut` | 4.4e-16 | 4.6e-16 | pass |
+| row T1-065 | `TestCircularStockDisjointOpposedBoresAndSTEP` | 2.3e-16 | 1.8e-16 | pass |
+| row T1-066 | `TestCircularStockOverlappingOpposedAndSequentialBores` | 2.9e-16 | 3.5e-16 | pass |
+| row T1-067 | `TestCircularStockCoaxialOpposedSTEPAndThroughCut` | 1.4e-16 | 1.9e-16 | pass |
+| row T1-068 | `TestFullTubeSTEPAndCoaxialCut` | 3.4e-16 | 0 | pass |
+| row T1-069 | `TestCylinderSectorSTEPBridge` | 1.7e-16 | 0 | pass |
+| row T1-070 | `TestQuarterAnnularSTEPAndFurtherCut` | 1.1e-16 | 0 | pass |
+| row T1-071 | `TestCoaxialDispatchPlacementAndMeshBudget` | 1.8e-16 | 1.5e-16 | pass |
+| row T1-072 | `TestScopedJoinPublishesOnlyConnectedAddedMaterial` | 0 | 0 | pass |
+| row T1-073 | `TestScopedJoinWithContainingRevolvedTool` | 1.8e-16 | 3.3e-16 | pass |
+| row T1-074 | `TestContainingCylinderOverlapCapture` | 2.3e-16 | 0 | pass |
+| row T1-075 | `TestRevolveJoinCaptureContainedPlanarVolume` | 2.3e-16 | 0 | pass |
+| row T1-076 | `TestNativeBoxPocketBoreAndNestedCut` | 0 | 2e-16 | pass |
+| row T1-077 | `TestScopedRotatedPocketCopiesOnPocketedStock` | 7.3e-16 | 0 | pass |
+| row T1-078 | `TestPatternOverlapUsesFiniteCylinderLens` | 1.6e-16 | 0 | pass |
+| row T1-079 | `TestPlanarPocketAfterFourDisjointBores` | 4.7e-16 | 6.5e-16 | pass |
+| row T1-080 | `TestCutManyPlanarAtomicAndRedundantTools` | 0 | 0 | pass |
+| row T1-081 | `TestCutManyValidationDoesNotPublish` | 0 | 0 | pass |
+| row T1-082 | `TestExtrudeDialogJoinThenCutExactVolume` | 4.3e-16 | 0 | pass |
+| row T1-083 | `TestPocketFloorCircleCutsAndCounterbore` | 1.5e-16 | 0 | pass |
+| row T1-084 | `TestRetainedPlanarBoreFillRoofAndRedrill` | 0 | 0 | pass |
+| row T1-085 | `TestRetainedPlanarBoreProofRejectsUnsafeDomains` | 0 | 0 | pass |
+| row T1-086 | `TestIslandPocketFiniteSignedCaps` | 1.7e-16 | 0 | pass |
+| row T1-087 | `TestToFaceFiniteCoverageAndHoles` | 1.1e-15 | 0 | pass |
+| row T1-088 | `TestToFaceCircleSignedAxesRetainsAnalyticSolid` | 3.4e-16 | 1.9e-16 | pass |
+| row T1-089 | `TestToFacePolygonObliqueAndBoundary` | 1.8e-16 | 6.4e-16 | pass |
+| row T1-090 | `TestToFaceAnalyticCircularHoleCoverage` | 0 | 0 | pass |
+| row T1-091 | `TestToFaceAnalyticCircleHoleExactGap` | 0 | 0 | excluded (1 checked responses without a value) |
+| row T1-092 | `TestObliqueToFaceUsesCircularExtent` | 1.4e-15 | 7.6e-16 | pending, RL-9: the mesh request exceeds the tessellation budget |
+| row T2-001 | `TestCrossedBoreScopeAndSTEP` | 1.1e-16 | 1.6e-16 | Tier 2, not supported (8 checked responses without a value) |
+| row T2-002 | `TestBlindCrossedBoreScopeAndSTEP` | 1.1e-16 | 1.6e-16 | Tier 2, not supported (6 checked responses without a value) |
+| row T2-003 | `TestDoubleBlindCrossedBoreScopeAndSTEP` | 0 | 1.6e-16 | Tier 2, not supported (16 checked responses without a value) |
+| row T2-004 | `TestContainedCrossedBores` | 0 | 0 | Tier 2, not supported (6 checked responses without a value) |
+| row T2-005 | `TestClippedCrossedBoreScopeAndSTEP` | 0 | 1.3e-16 | Tier 2, not supported (24 checked responses without a value) |
+| row T2-006 | `TestTripleCrossedBoreScopeAndSTEP` | 0 | 0 | Tier 2, not supported (7 checked responses without a value) |
+| row T2-007 | `TestBlindTripleCrossedBoreScopeAndSTEP` | 0 | 0 | Tier 2, not supported (24 checked responses without a value) |
+| row T2-008 | `TestMultipleBlindTripleCrossedBoreScopeAndSTEP` | 1.2e-16 | 1.8e-16 | Tier 2, not supported (23 checked responses without a value) |
+| row T2-009 | `TestCrossedCompanionBoreScopeAndSTEP` | 1.2e-16 | 1.8e-16 | Tier 2, not supported (5 checked responses without a value) |
+| row T2-010 | `TestCrossedObliqueBoreScope` | 1.5e-16 | 0 | Tier 2, not supported (5 checked responses without a value) |
+| row T2-011 | `TestCrossedObliqueReciprocalScope` | 1.5e-16 | 1.2e-16 | Tier 2, not supported (12 checked responses without a value) |
+| row T2-012 | `TestCrossedObliquePairWithSeparatedOppositeZOpenings` | 1.5e-16 | 1.3e-16 | pass |
+| row T2-013 | `TestCrossedObliqueBoreCoordinatePlacements` | 0 | 0 | Tier 2, not supported (64 checked responses without a value) |
+| row T2-014 | `TestBlindCrossedObliqueBoreSTEPAndFurtherCut` | 1.5e-16 | 1.2e-16 | Tier 2, not supported (18 checked responses without a value) |
+| row T2-015 | `TestConcealedCrossedObliqueBoreSTEPCanonical` | 0 | 0 | Tier 2, not supported (18 checked responses without a value) |
+| row T2-016 | `TestObliqueFloorCrossedBoreReimport` | 0 | 0 | Tier 2, not supported (10 checked responses without a value) |
+| row T2-017 | `TestDoubleBlindCrossedObliqueBore` | 1.5e-16 | 1.2e-16 | Tier 2, not supported (14 checked responses without a value) |
+
+### Oracle run, second
+
+One run of `TestGeneralBooleanOracle` on `8a76218e`, authorized by the
+reviewing session under the owner's delegation because the code had
+changed since the first run. The helper was built from
+`tools/occtref/general_boolean.cxx` against the pinned OCCT and
+executed once, by the test. The cases and the bounds are those of the
+first run.
+
+88 cases, 257 steps: all agree. 63 steps have an empty result on both
+sides. Largest differences over the other 194: 1.7e-09 relative in volume
+and 2.7e-08 in the centroid (the first step of the Blind bore case), 7.1e-15
+relative in area. All 47 section 11 cases that state a face count agree
+with it. Against the first run: the same cases agree, and the largest
+differences are the same in volume and centroid; the largest in area was
+5.4e-15.
+
+| Case | Steps | Kernel volume | OCCT volume | Kernel area | OCCT area | Largest relative difference | Largest centroid difference | Faces | Result |
+|---|---|---|---|---|---|---|---|---|---|
+| section11/C1-planar/union | 1 | 9 | 9 | 30 | 30 | 0 | 0 | 12 / 12 | pass |
+| section11/C1-planar/cut | 1 | 8 | 8 | 24 | 24 | 0 | 0 | 6 / 6 | pass |
+| section11/C2-planar/union | 1 | 8 | 8 | 24 | 24 | 0 | 0 | 6 / 6 | pass |
+| section11/C2-planar/common | 1 | 8 | 8 | 24 | 24 | 0 | 0 | 6 / 6 | pass |
+| section11/C3-planar/union | 1 | 8 | 8 | 24 | 24 | 0 | 0 | 6 / 6 | pass |
+| section11/C3-planar/common | 1 | 1 | 1 | 6 | 6 | 0 | 0 | 6 / 6 | pass |
+| section11/C3-planar/cut | 1 | 7 | 7 | 30 | 30 | 0 | 2.2e-16 | 12 / 12 | pass |
+| section11/C4-planar/union | 1 | 12 | 12 | 32 | 32 | 0 | 2.2e-16 | 6 / 6 | pass |
+| section11/C4-planar/cut | 1 | 8 | 8 | 24 | 24 | 0 | 0 | 6 / 6 | pass |
+| section11/C5-planar/union | 1 | 12 | 12 | 36 | 36 | 0 | 6.4e-16 |  | pass |
+| section11/C5-planar/cut | 1 | 8 | 8 | 24 | 24 | 0 | 2.2e-16 | 6 / 6 | pass |
+| section11/C6-planar/union | 1 | 8 | 8 | 24 | 24 | 0 | 0 | 6 / 6 | pass |
+| section11/C6-planar/common | 1 | 1 | 1 | 6 | 6 | 0 | 0 | 6 / 6 | pass |
+| section11/C6-planar/cut | 1 | 7 | 7 | 24 | 24 | 0 | 3.1e-16 | 9 / 9 | pass |
+| section11/C7-planar/cut | 1 | 8 | 8 | 24 | 24 | 0 | 0 | 6 / 6 | pass |
+| section11/C8-planar/cut | 1 | 8 | 8 | 24 | 24 | 0 | 0 | 6 / 6 | pass |
+| section11/C9-planar/cut | 1 | 8 | 8 | 24 | 24 | 0 | 2.2e-16 | 6 / 6 | pass |
+| section11/C10-planar/cut | 1 | 8 | 8 | 24 | 24 | 0 | 2.2e-16 | 6 / 6 | pass |
+| section11/C28-planar/union | 1 | 410.125 | 410.125 | 351.25 | 351.25 | 0 | 2.2e-15 | 14 / 12 | pass |
+| section11/C28-planar/common | 1 | 43.875 | 43.875 | 78.75 | 78.75 | 0 | 6.1e-15 | 8 / 8 | pass |
+| section11/C1-cyl/union | 1 | 7.06858347058 | 7.06858347058 | 23.5619449019 | 23.5619449019 | 0 | 1.3e-16 | 6 / 6 | pass |
+| section11/C1-cyl/cut | 1 | 6.28318530718 | 6.28318530718 | 18.8495559215 | 18.8495559215 | 0 | 2.2e-16 | 3 / 3 | pass |
+| section11/C2-cyl/union | 1 | 6.28318530718 | 6.28318530718 | 18.8495559215 | 18.8495559215 | 0 | 2.2e-16 | 3 / 3 | pass |
+| section11/C2-cyl/common | 1 | 6.28318530718 | 6.28318530718 | 18.8495559215 | 18.8495559215 | 0 | 2.2e-16 | 3 / 3 | pass |
+| section11/C3-cyl/union | 1 | 6.28318530718 | 6.28318530718 | 18.8495559215 | 18.8495559215 | 0 | 2.2e-16 | 3 / 3 | pass |
+| section11/C3-cyl/common | 1 | 0.785398163397 | 0.785398163397 | 4.71238898038 | 4.71238898038 | 0 | 2e-16 | 3 / 3 | pass |
+| section11/C3-cyl/cut | 1 | 5.49778714378 | 5.49778714378 | 23.5619449019 | 23.5619449019 | 0 | 6.5e-16 | 6 / 6 | pass |
+| section11/C11-cyl/cut | 1 | 8 | 8 | 24 | 24 | 0 | 2.2e-16 | 6 / 6 | pass |
+| section11/C12-cyl/union | 1 | 8 | 8 | 24 | 24 | 0 | 1.6e-16 | 6 / 6 | pass |
+| section11/C12-cyl/common | 1 | 0.785398163397 | 0.785398163397 | 4.71238898038 | 4.71238898038 | 0 | 2.3e-16 | 3 / 3 | pass |
+| section11/C13-cyl/cut | 1 | 6.28318530718 | 6.28318530718 | 18.8495559215 | 18.8495559215 | 0 | 2.2e-16 | 3 / 3 | pass |
+| section11/C14-cyl/union | 1 | 6.28318530718 | 6.28318530718 | 18.8495559215 | 18.8495559215 | 0 | 2.4e-16 | 3 / 3 | pass |
+| section11/C14-cyl/common | 1 | 1.57079632679 | 1.57079632679 | 7.85398163397 | 7.85398163397 | 0 | 2.5e-16 | 3 / 3 | pass |
+| section11/C15-cyl/union | 1 | 9.42477796077 | 9.42477796077 | 25.1327412287 | 25.1327412287 | 0 | 2.6e-16 | 3 / 3 | pass |
+| section11/C15-cyl/common | 1 | 3.14159265359 | 3.14159265359 | 12.5663706144 | 12.5663706144 | 0 | 3.3e-16 | 3 / 3 | pass |
+| section11/C15-cyl/cut | 1 | 3.14159265359 | 3.14159265359 | 12.5663706144 | 12.5663706144 | 0 | 2.2e-16 | 3 / 3 | pass |
+| section11/C16-cyl/union | 1 | 12.5663706144 | 12.5663706144 | 31.4159265359 | 31.4159265359 | 0 | 3.1e-16 | 3 / 3 | pass |
+| section11/C16-cyl/cut | 1 | 6.28318530718 | 6.28318530718 | 18.8495559215 | 18.8495559215 | 0 | 2.2e-16 | 3 / 3 | pass |
+| section11/C17-cyl/union | 1 | 7.85398163397 | 7.85398163397 | 25.1327412287 | 25.1327412287 | 0 | 3.4e-16 |  | pass |
+| section11/C17-cyl/common | 1 | 1.57079632679 | 1.57079632679 | 7.85398163397 | 7.85398163397 | 0 | 2.3e-16 |  | pass |
+| section11/C17-cyl/cut | 1 | 4.71238898038 | 4.71238898038 | 23.5619449019 | 23.5619449019 | 0 | 3e-16 | 4 / 4 | pass |
+| section11/C18-cyl/union | 1 | 10.1096312171 | 10.1096312171 | 26.8647920363 | 26.8647920363 | 3.8e-15 | 8.9e-16 |  | pass |
+| section11/C18-cyl/common | 1 | 2.45673939722 | 2.45673939722 | 10.8343198068 | 10.8343198068 | 0 | 2.5e-16 |  | pass |
+| section11/C18-cyl/cut | 1 | 3.82644590996 | 3.82644590996 | 16.3928165243 | 16.3928165243 | 6.1e-15 | 1.4e-15 |  | pass |
+| section11/C19-cyl/union | 1 | 8.7853981634 | 8.7853981634 | 27.1415926536 | 27.1415926536 | 0 | 3.8e-16 | 8 / 8 | pass |
+| section11/C19-cyl/cut | 1 | 8 | 8 | 24 | 24 | 0 | 1.6e-16 | 6 / 6 | pass |
+| section11/C20-cyl/union | 1 | 8.7853981634 | 8.7853981634 | 27.1415926536 | 27.1415926536 | 0 | 4.4e-16 | 9 / 8 | pass |
+| section11/C20-cyl/cut | 1 | 8 | 8 | 24 | 24 | 0 | 2.2e-16 | 6 / 6 | pass |
+| section11/C20-cyl-quarter/union | 1 | 8.7853981634 | 8.7853981634 | 27.1415926536 | 27.1415926536 | 0 | 2.2e-16 | 9 / 8 | pass |
+| section11/C20-cyl-quarter/cut | 1 | 8 | 8 | 24 | 24 | 0 | 2.5e-16 | 6 / 6 | pass |
+| section11/C21-cyl/union | 1 | 8 | 8 | 24 | 24 | 0 | 3.1e-16 | 6 / 6 | pass |
+| section11/C21-cyl/common | 1 | 1.57079632679 | 1.57079632679 | 7.85398163397 | 7.85398163397 | 0 | 3.3e-16 | 3 / 3 | pass |
+| section11/C21-cyl/cut | 1 | 6.42920367321 | 6.42920367321 | 28.7123889804 | 28.7123889804 | 0 | 3.1e-16 | 7 / 7 | pass |
+| section11/C22-cyl/union | 1 | 8.7853981634 | 8.7853981634 | 27.1415926536 | 27.1415926536 | 0 | 3.8e-16 |  | pass |
+| section11/C22-cyl/common | 1 | 0.785398163397 | 0.785398163397 | 4.71238898038 | 4.71238898038 | 0 | 5.4e-16 |  | pass |
+| section11/C22-cyl/cut | 1 | 7.2146018366 | 7.2146018366 | 27.1415926536 | 27.1415926536 | 0 | 4.1e-16 |  | pass |
+| section11/C23-cyl/common | 1 | 1.81379936423 | 1.81379936423 | 9.06899682117 | 9.06899682117 | 1.2e-15 | 1.3e-09 |  | pass |
+| section11/C23-cyl/cut | 1 | 30.1862006358 | 30.1862006358 | 69.4413980927 | 69.4413980927 | 1.4e-15 | 8.5e-11 |  | pass |
+| family/Through-bore/T1-001 | 2 | 25.1327412287 | 25.1327412287 | 56.5486677646 | 56.5486677646 | 0 | 5.3e-16 |  | pass |
+| family/Blind-bore/T1-005 | 1 | 565.486679531 | 565.486680474 | 433.53978808 | 433.53978808 | 1.7e-09 | 2.7e-08 |  | pass |
+| family/Bore-layers/T1-016 | 2 | 901.643100854 | 901.643100854 | 687.964594301 | 687.964594301 | 1.4e-15 | 3.3e-16 |  | pass |
+| family/Bore-union/T1-020 | 2 | 939.342212697 | 939.342212697 | 650.265482457 | 650.265482457 | 1.4e-15 | 2.1e-16 |  | pass |
+| family/Opposed-blind/T1-025 | 2 | 968.584073464 | 968.584073464 | 656.548667765 | 656.548667765 | 1.4e-15 | 4.5e-16 |  | pass |
+| family/Oblique-through/T1-029 | 4 | 117.566025875 | 117.566025875 | 161.097098864 | 161.097098864 | 0 | 2.5e-09 |  | pass |
+| family/Disjoint-bores/T1-031 | 6 | 7865.59741089 | 7865.59741089 | 3225.72560583 | 3225.72560583 | 0 | 6.4e-15 |  | pass |
+| family/Side-and-corner-cylinder/T1-036 | 2 | 4598.58518558 | 4598.58518558 | 2024.29435994 | 2024.29435994 | 0 | 1.8e-15 |  | pass |
+| family/Side-opening-pair/T1-048 | 10 | 0 | 0 | 0 | 0 | 0 | 1.6e-14 |  | pass |
+| family/Side-dual-disk/T1-055 | 18 | 309.481923083 | 309.481923083 | 321.214461534 | 321.214461534 | 3.3e-15 | 7.8e-15 |  | pass |
+| family/Circular-stock/T1-062 | 4 | 603.185789489 | 603.185789489 | 452.389342117 | 452.389342117 | 0 | 5.1e-16 |  | pass |
+| family/Coaxial-cut/T1-068 | 2 | 502.654824574 | 502.654824574 | 603.185789489 | 603.185789489 | 0 | 1.3e-15 |  | pass |
+| family/Coaxial-join/T1-071 | 1 | 150.796447372 | 150.796447372 | 169.646003294 | 169.646003294 | 0 | 2.4e-16 |  | pass |
+| family/Join-all/T1-072 | 5 | 5000 | 5000 | 2200 | 2200 | 0 | 1.5e-14 |  | pass |
+| family/Containment-overlap/T1-074 | 2 | 1000 | 1000 | 600 | 600 | 0 | 8.9e-15 |  | pass |
+| family/Pocket-and-planar/T1-076 | 3 | 47163.6725877 | 47163.6725877 | 9278.19467106 | 9278.19467106 | 1.2e-15 | 1.5e-14 |  | pass |
+| family/Pocket-with-cylinder/T1-083 | 3 | 47073.7124191 | 47073.7124191 | 9384.00439557 | 9384.00439557 | 1.2e-15 | 1.2e-14 |  | pass |
+| legacy-refused/T1-002/line-7 | 1 | 486.867258771 | 486.867258771 | 427.98229715 | 427.98229715 | 0 | 5.4e-17 |  | pass |
+| legacy-refused/T1-002/line-9 | 1 | 486.867258771 | 486.867258771 | 427.98229715 | 427.98229715 | 0 | 5.6e-17 |  | pass |
+| legacy-refused/T1-008/line-9 | 5 | 1937.16814693 | 1937.16814693 | 1087.9645943 | 1087.9645943 | 0 | 1.8e-15 |  | pass |
+| legacy-refused/T1-012/line-3 | 1 | 1267.43362939 | 1267.43362939 | 793.132741229 | 793.132741229 | 0 | 1.8e-15 |  | pass |
+| legacy-refused/T1-041/line-36 | 27 | 2950.59498628 | 2950.59498628 | 1564.49785482 | 1564.49785482 | 6.6e-15 | 6.4e-15 |  | pass |
+| legacy-refused/T1-041/line-73 | 27 | 3031.04884973 | 3031.04884973 | 1511.55483876 | 1511.55483876 | 6.6e-15 | 5.6e-15 |  | pass |
+| legacy-refused/T1-041/line-110 | 27 | 2910.54673378 | 2910.54673378 | 1536.06349265 | 1536.06349265 | 6.6e-15 | 5.6e-15 |  | pass |
+| legacy-refused/T1-041/line-147 | 27 | 3016.91168279 | 3016.91168279 | 1494.84244977 | 1494.84244977 | 6.6e-15 | 5.6e-15 |  | pass |
+| legacy-refused/T1-042/line-9 | 4 | 4619.78286374 | 4619.78286374 | 1812.26250651 | 1812.26250651 | 6.2e-15 | 1.1e-14 |  | pass |
+| legacy-refused/T1-042/line-28 | 4 | 4736.38274876 | 4736.38274876 | 1748.41150082 | 1748.41150082 | 2.1e-15 | 1.8e-15 |  | pass |
+| legacy-refused/T1-046/line-3 | 1 | 968.584073464 | 968.584073464 | 585.132741229 | 585.132741229 | 0 | 3.7e-15 |  | pass |
+| legacy-refused/T1-074/line-6 | 3 | 9.93331732418 | 9.93331732418 | 41.7892519893 | 41.7892519893 | 3.3e-14 | 3.2e-13 |  | pass |
+| legacy-refused/T1-081/line-4 | 2 | 768.584073464 | 768.584073464 | 576.548667765 | 576.548667765 | 0 | 2.2e-15 |  | pass |
