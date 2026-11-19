@@ -10,21 +10,23 @@ not append dated entries. The narrative that this page replaced is in git:
 
 ## Current state
 
-As of 2026-11-19, with kernel code at `b841cc75`.
+As of 2026-11-19, with kernel code at `16596a78`.
 
 | Check | Last result | Kernel commit |
 |---|---|---|
 | PlainCAD application with PlainSolid selected (app `efae4d2`) | Passed all eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract and 1,691 unit cases; none skipped or flaky | `b841cc75`, 2026-11-19 |
-| Complete Go suite with the research tag, macOS ARM64, Go 1.23.12 | 6,348 passed, 625 optional skips, 0 failed of 6,973 | `4204c5c0`, 2026-11-19 |
+| Complete Go suite with the research tag, macOS ARM64, Go 1.23.12 | 6,359 passed, 625 optional skips, 0 failed of 6,984 | `93099dfe`, 2026-11-19 |
 | Complete Go suite, Linux ARM64, Go 1.26.0 | 6,018 passed, 599 optional skips, 0 failed | `c7afb429`, 2026-11-16 |
 | Complete Go suite with the race detector, macOS ARM64 | 5,557 passed, 580 optional skips, 0 failed | `ab33a412`, 2026-11-15 |
-| Default Go tier (`go test ./...`), macOS ARM64, Go 1.27.4 | All 57 packages with tests pass | `b841cc75`, 2026-11-19 |
+| Default Go tier (`go test ./...`), macOS ARM64, Go 1.27.4 | All 57 packages with tests pass | `16596a78`, 2026-11-19 |
 
-The PlainCAD application suites pass on `b841cc75`, which has the Go compiler
-mitigation, the general Boolean, the band mesher, the STEP writer and reader
-for boundaries of planes and cylinders, and the bridge's fallback to the
-general Boolean. The complete Go suite, slow tier and research code included,
-last passed at `4204c5c0`, before the last two of those. The Linux run and
+The PlainCAD application suites and the complete Go suite, slow tier and
+research code included, pass with the Go compiler mitigation, the general
+Boolean, the band mesher, the STEP writer and reader for boundaries of planes
+and cylinders, and the bridge's fallback to the general Boolean in place;
+`93099dfe` differs from `b841cc75` only in documents. Neither has been
+repeated on `16596a78`, which lets the default bridge import a STEP file it
+exported for a result of the general Boolean. The Linux run and
 the race run have not been repeated since the commits shown.
 
 The default build leaves out the research quarantine: 540 production files of

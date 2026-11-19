@@ -26,20 +26,21 @@ accounts for most of the optional skips below.
 
 | Run | Kernel commit | Platform | Result | Evidence |
 |---|---|---|---|---|
-| Go, ordinary, with `-tags research` | `4204c5c0`, 2026-11-19 | macOS ARM64, Go 1.23.12 | 6,348 passed, 625 optional skips, 0 failed of 6,973 inventoried; 56 packages passed, 9 have no tests | [JSON](evidence/main-4204c5c0-qualification-2026-11-19.json) |
+| Go, ordinary, with `-tags research` | `93099dfe`, 2026-11-19 | macOS ARM64, Go 1.23.12 | 6,359 passed, 625 optional skips, 0 failed of 6,984 inventoried; 57 packages passed, 9 have no tests | [JSON](evidence/main-93099dfe-qualification-2026-11-19.json) |
 | PlainCAD, app `efae4d2` | `b841cc75`, 2026-11-19 | Chromium, Firefox and WebKit; WASM built with Go 1.27.4 | All eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract, 1,691 unit; none skipped, failed or flaky | [JSON](evidence/plaincad-main-b841cc75-2026-11-19.json) |
 | Go, ordinary | `c7afb429`, 2026-11-16 | Linux ARM64, Go 1.26.0 | 6,018 passed, 599 optional skips, 0 failed of 6,617 inventoried | [JSON](evidence/native-linux-c7afb429-qualification-2026-11-16.json) |
 | Go, race detector | `ab33a412`, 2026-11-15 | macOS ARM64, Go 1.27.4 | 5,557 passed, 580 optional skips, 0 failed of 6,137 inventoried | [JSON](evidence/native-main-ab33a412-race-2026-11-15.json) |
 
 The first Go row and the PlainCAD row cover the Go compiler mitigation (see
 the known defects on [the status page](STATUS.md)), the general Boolean of
-`brep/boolean` and the band mesher of `brep/trimmed`. The PlainCAD row,
-`b841cc75`, also covers three later commits that the Go row does not: the
-STEP writer and the STEP reader for boundaries of planes and cylinders, and
-the bridge's fallback to the general Boolean where a legacy path declines a
-request. The Go run sets
+`brep/boolean`, the band mesher of `brep/trimmed`, the STEP writer and the
+STEP reader for boundaries of planes and cylinders, and the bridge's fallback
+to the general Boolean where a legacy path declines a request. `93099dfe`
+differs from `b841cc75`, the PlainCAD row, only in documents. Neither row
+covers `16596a78`, which lets the default bridge import a STEP file it
+exported for a result of the general Boolean. The Go run sets
 `PLAINSOLID_SLOW=1` and `-tags research`, so it covers the slow tier and the
-research quarantine; it took 52 minutes of wall time on four lanes. It used Go
+research quarantine; it took 50 minutes of wall time on four lanes. It used Go
 1.23.12 on purpose, because Go 1.25 and later can abort the research tests of
 `brep/trimmed` on this platform; a complete Go run under the current Go
 release has not been made since `9f95a188`. The PlainCAD run builds the WASM
@@ -51,16 +52,14 @@ and cross-browser suites, and the ordinary unit suite.
 
 The Linux and race rows predate the quarantine, the parallel tests in
 `exchange/step` and the mitigation. The default tier (`go test ./...`, Go
-1.27.4) passes at `b841cc75` on all 57 packages with tests.
+1.27.4) passes at `16596a78` on all 57 packages with tests.
 
 ## What these results do not establish
 
 - Passing tests do not establish OCCT parity. Coverage is supporting evidence,
   never proof of geometric correctness.
 - No complete Go run exists under the current Go release since `9f95a188`,
-  for native Windows, or for Go versions other than those listed. None
-  exists on `main` since the STEP writer and reader and the bridge's
-  fallback were merged.
+  for native Windows, or for Go versions other than those listed.
 - Each qualified operation is qualified on a stated input domain. A passing
   example does not widen that domain.
 - OCCT comparisons cover selected modeling and exchange cases, and OCCT output
