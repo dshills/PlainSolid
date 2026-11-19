@@ -288,9 +288,16 @@ func (a *arrangement) spanInFace(op, e int, from, to stop, f int) error {
 	record := a.lie(lying{op: op, edge: e, ends: [2]int{from.node, to.node}, face: f})
 	// A touching contact: both faces of the edge leave the span to one
 	// side of the carrier.
+	// A seam edge is used twice by one face, which leaves it to both
+	// sides: each use is asked for its own direction.
 	common := 0
-	for _, own := range a.owners[op][e] {
-		side := a.t.side(face.s, middle, a.inward(op, own, e, middle))
+	owners := a.owners[op][e]
+	for k, own := range owners {
+		use := 0
+		if k == 1 && owners[0] == own {
+			use = 1
+		}
+		side := a.t.side(face.s, middle, a.inward(op, own, e, use, middle))
 		if side == 0 || common != 0 && side != common {
 			return nil
 		}
@@ -303,13 +310,17 @@ func (a *arrangement) spanInFace(op, e int, from, to stop, f int) error {
 }
 
 // inward is the direction in which face f of an operand leaves its
-// boundary edge e at point p: across the edge, into the face.
-func (a *arrangement) inward(op, f, e int, p geom.Vec3) geom.Vec3 {
+// boundary edge e at point p: across the edge, into the face. Where the
+// face uses the edge more than once, use counts the uses to pass over.
+func (a *arrangement) inward(op, f, e, use int, p geom.Vec3) geom.Vec3 {
 	face := a.ops[op].faces[f]
 	ch := face.s.chart()
 	for i, loop := range face.loops {
 		for k, u := range loop {
 			if u.edge != e {
+				continue
+			}
+			if use--; use >= 0 {
 				continue
 			}
 			l := a.borders[op][f][i][k]

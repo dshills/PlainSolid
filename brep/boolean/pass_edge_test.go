@@ -153,3 +153,34 @@ func TestPassEdgeOverlap(t *testing.T) {
 		}
 	})
 }
+
+// TestSeamInFace covers X5 for a seam: an edge that one face uses twice
+// and that lies in a face of the other operand. The wall leaves the seam
+// to both sides of that face, so the operands cross there and do not
+// touch. The cylinder of tube has its seam at the angle 0, which is in
+// the plane y = 0 of the box.
+func TestSeamInFace(t *testing.T) {
+	stock := lifted(t, box(t, 0, 0, 0, 20, 20, 8))
+	for _, c := range []struct {
+		name   string
+		x      float64
+		inside float64 // the part of the disc inside the box
+	}{
+		{"axis on an edge of the box", 0, 0.25},
+		{"axis in a face of the box", 10, 0.5},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			tool := tube(t, c.x, 0, 0, 3, 5)
+			disc := math.Pi * 9 * 5
+			for op, want := range map[Operation]float64{Union: 3200 + (1-c.inside)*disc, Common: c.inside * disc, Cut: 3200 - c.inside*disc} {
+				r, err := Combine(context.Background(), stock, tool, op, matrixOptions)
+				if err != nil {
+					t.Fatalf("%s: %v", operationNames[op], err)
+				}
+				if r.Solids != 1 || math.Abs(r.Volume-want) > 1e-6 {
+					t.Fatalf("%s: %d solids of volume %.9g, want one of %.9g", operationNames[op], r.Solids, r.Volume, want)
+				}
+			}
+		})
+	}
+}
