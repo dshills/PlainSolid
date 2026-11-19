@@ -1,9 +1,8 @@
 # Plan: edge treatment of a general Boolean result
 
-This plan implements [the specification](SPEC.md) in this directory. It is
-written to the recommendations of the specification's section 14. Nothing
-in it is started. A reference such as "K3" or "Q6" names an entry of the
-specification.
+This plan implements [the specification](SPEC.md) in this directory, as
+the owner decided it on 2026-11-19 (section 14 of the specification). A
+reference such as "K3" or "Q6" names an entry of the specification.
 
 ## State
 
@@ -14,38 +13,31 @@ the specification.
 
 ## Before Phase 1
 
-The owner decides OD-E1 to OD-E8. The plan changes with a decision as
-follows; a decision not listed here changes nothing below.
+The owner decided OD-E1 to OD-E8 as recommended, so no phase below
+changes. With the decision the owner asked for every phase to be
+implemented on the branch `claude/cranky-vaughan-ac5664`, one phase at a
+time, each committed, without a stop between phases; and for the traces
+under `internal/plaincadbridge/testdata/general_boolean` to be replayed
+on a default bridge before the first phase and after the last, to show
+that no response for other stock changed (OD-E2). R-1, R-2, R-4 and
+Phase 6 below are written to that.
 
-| Decision, if not as recommended | What changes |
-|---|---|
-| OD-E1: no new package | Every file planned for `brep/blend` goes to `internal/plaincadbridge` with unexported names. The phases are the same; in R-2 and ST-2 the path `brep/blend` is dropped and the new bridge files are counted; R-6 does not apply |
-| OD-E2, alternative A or B | This plan does not cover it. Stop; the specification needs a new section on which legacy rejections must be kept, and this plan a phase for the legacy tests that would change |
-| OD-E3: allow edges that share a vertex | Phase 2 drops X6 and its test and adds a row with two chamfers that meet at a corner |
-| OD-E4: accept an end at a wall or an oblique end | This plan does not cover it. Stop; K2 and T3 of the specification must be rewritten for the wider end rule and this plan revised before Phase 1 |
-| OD-E5: accept crossing and touching | This plan does not cover it. Stop; K3 and K4 both reject a crossing, so section 7.5 of the specification must be rewritten and this plan revised before Phase 1 |
-| OD-E6: `capFillet` with four edges must succeed | This plan does not cover it. Stop; it needs the Boolean to take two equal cylinders with crossing axes, which is outside this work (G4), so that work is specified and planned first |
-| OD-E7: `direction` required for a concave edge | Phase 2 adds that check to N2 with the message of X5, and a rejection row for a concave edge without `direction` |
-| OD-E8: other bounds | The bounds in the tests of Phases 2 to 5 |
-
-The session that starts Phase 1 first records the owner's answers in
-section 14 of the specification, edits the requirements they change,
-runs `speccritic check` on it, and commits that as its own change.
-
-It also confirms that `speccritic`, `golangci-lint`, `prism` and
-`realitycheck` each start (`<tool> --help` exits with status 0). If one
-does not, the session reports which and waits for the owner's word on
-going on without it; it does not skip a check silently.
+`speccritic`, `golangci-lint`, `prism` and `realitycheck` each start
+(`<tool> --help` exits with status 0; confirmed on 2026-11-19). If one of
+them fails later, the session stops under ST-4; it does not skip a check
+silently.
 
 ## Rules for every phase
 
-- R-1. Work is on a branch named `codex/general-edge-treatment` in its
-  own worktree. It is not merged to `main` and not pushed by the
+- R-1. Work is on the branch `claude/cranky-vaughan-ac5664` in its own
+  worktree. `AGENTS.md` asks for a `codex/` branch per chat; this branch
+  was made for this session by the application that runs it, and the
+  owner asked for the work to be done on it. It is not merged to `main` and not pushed by the
   implementing session; the owner merges.
 - R-2. Each phase ends with these checks, all passing, before its commit:
   1. `gofmt -l brep/blend internal/plaincadbridge` prints nothing;
-  2. `go build ./...`;
-  3. `go vet ./...`;
+  2. `go build ./...` and `go build -tags research ./...`;
+  3. `go vet ./...` and `go vet -tags research ./...`;
   4. `go test ./brep/blend ./internal/plaincadbridge` (the bridge's
      default tier took 31 s on 2026-11-19);
   5. `golangci-lint run ./...` reports nothing in a file the phase added
@@ -56,12 +48,14 @@ going on without it; it does not skip a check silently.
   message says what changed, what was run with its result, and what was
   not run.
 - R-4. After a phase's commit the session runs `prism review` on the
-  phase's diff and `realitycheck check` against the specification and
-  this plan, fixes what they find that is a defect of the phase, and
+  phase's diff, fixes what it finds that is a defect of the phase, and
   lists the findings it leaves with a reason. A fix is followed by the
-  checks of R-2 again and by its own commit. `clarion pack` is not run:
-  this repository has no `docs/clarion-meta.json`. Then the session stops
-  and reports; it starts the next phase only when asked (`AGENTS.md`).
+  checks of R-2 again and by its own commit. `realitycheck check` against
+  the specification and this plan is run once, after Phase 5, and handled
+  the same way. `clarion pack` is not run: this repository has no
+  `docs/clarion-meta.json`. The session then goes on to the next phase,
+  as the owner asked (Before Phase 1); it stops between phases only for
+  ST-1 to ST-5.
 - R-5. Every new test finishes in under two seconds. No test is added to
   `brep/trimmed`, and no file of `brep/trimmed` or `brep/boolean` is
   edited (G4).
@@ -70,11 +64,10 @@ going on without it; it does not skip a check silently.
 - R-7. Not run in any phase: the complete Go suite (tests of the slow
   tier, `PLAINSOLID_SLOW=1`, and tests under the research tag), race
   runs, `tools/ci/run-go-qualification.py`, cross-platform builds, the
-  PlainCAD gates. They are run when the owner asks. Two things
-  `AGENTS.md` requires before a merge are not part of that and are run
-  once, in Phase 6: `go test ./...` without `PLAINSOLID_SLOW`, which is
-  the default tier, and a build and a vet under the research tag, which
-  run no test.
+  PlainCAD gates. They are run when the owner asks. Not part of that:
+  the build and the vet under the research tag of R-2, which run no
+  test, and `go test ./...` without `PLAINSOLID_SLOW`, the default tier
+  that `AGENTS.md` requires before a merge, which Phase 6 runs once.
 - R-8. A phase that changes what a request returns on a general result
   (Phases 1 to 4) reads the capability summary of `README.md` and the
   matrix of `docs/STATUS.md` and edits, in the same commit, in place and
@@ -100,6 +93,12 @@ going on without it; it does not skip a check silently.
 - ST-4. A phase's own check cannot be met after two attempts at the same
   defect. The session commits what passes, labelled work in progress with
   what remains, and reports.
+- ST-5. A phase shows that a decision of section 14 cannot be kept as
+  decided, that the plan needs a phase it does not have, or that a file
+  outside `brep/blend`, the new bridge files, the three dispatch points
+  of D3, the two records of R-8 and the two documents of this directory
+  has to change. The session stops and
+  reports.
 
 ## Size estimate
 
@@ -144,6 +143,8 @@ Tests, in `brep/blend`, each on a solid built in the test from
   edge at (10,0,10). The Boolean divides the top face in two there
   (Boolean M6), so the edge (0,0,10)–(20,0,10) is two edges with two
   different top faces in one plane (tried on 2026-11-19);
+- the point tolerance: a reference whose ends are each 5e-8 from the
+  ends of a box edge resolves; one whose end is 2e-7 away is "lost";
 - "lost": a reference to half an edge; a reference between two vertices
   that no straight chain joins; an edge interrupted by a slot;
 - "on a curved face": a straight edge between a plane and a cylinder,
@@ -315,10 +316,17 @@ Work:
   specification that the consequence of OD-8 for treatments after a
   Boolean is lifted; that document is the owner's record.
 
+- The trace replay (OD-E2). Before Phase 1 the session replays every
+  trace under `internal/plaincadbridge/testdata/general_boolean` on a
+  default bridge, with a probe that is not committed, and keeps the
+  response text of every request. After Phase 5 it replays them again
+  and compares.
+
 Done when: R-2 passes; `go test ./...` passes (the default tier, R-7);
-`go build -tags research ./... && go vet -tags research ./...` pass;
-`README.md` and `docs/STATUS.md` name the treatment, and the status page
-is still under 150 lines. Then the session stops and reports. The merge
+every response of the trace replay is byte for byte what it was before
+Phase 1, and the report gives the count; `README.md` and
+`docs/STATUS.md` name the treatment, and the status page is still under
+150 lines. Then the session stops and reports. The merge
 is the owner's.
 
 What this plan does not establish, to be said in that report: no PlainCAD

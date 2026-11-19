@@ -1,10 +1,10 @@
 # Edge treatment of a general Boolean result
 
-Status: proposal for the owner, written on 2026-11-19 against `main` at
-`4e960375`. Nothing in it is implemented. Section 14 lists the decisions
-the owner has to make before implementation starts; until they are made,
-each carries the recommendation this document is written to. Section 15
-records the experiment the design rests on.
+Status: written on 2026-11-19 against `main` at `4e960375`. The owner
+decided OD-E1 to OD-E8 on 2026-11-19, each as this document recommended
+(section 14), and asked for the implementation, which follows
+[the plan](PLAN.md). Section 15 records the experiment the design rests
+on.
 
 ## 1. Purpose
 
@@ -45,7 +45,7 @@ the reference kernel that PlainCAD used before PlainSolid. STEP (ISO
 10303) and IGES are CAD exchange formats. PC2 is the second PlainCAD gate
 of `docs/PLAINCAD_READINESS.md`. OD-8 and the other identifiers that
 begin with OD, RL, CO or P and are prefixed "Boolean" are entries of the
-Boolean specification; OD-E1 to OD-E8 are the open decisions of section
+Boolean specification; OD-E1 to OD-E8 are the owner decisions of section
 14 of this document.
 
 ## 2. Governing decisions
@@ -233,7 +233,7 @@ excluded them):
 ### 7.1 Resolving a reference
 
 - R1. A reference resolves to an edge chain of the operand solid: edges
-  `e_1 … e_k`, k ≥ 1, such that the first begins within ε_p of one end of
+  `e_1 … e_k`, k ≥ 1, no edge twice, such that the first begins within ε_p of one end of
   the reference, the last ends within ε_p of the other, each begins where
   the one before ends, and every vertex of the chain lies within ε_p of
   the straight segment between the two ends of the reference.
@@ -246,7 +246,8 @@ excluded them):
 - R5. The two planes must be the same for every edge of the chain: equal
   normals within τ and equal offsets within ε_p.
 - R6. Exactly one chain must satisfy R1 to R5 for the reference. None, or
-  more than one, fails the reference.
+  more than one, fails the reference. Two chains are one when they have
+  the same set of edges, whatever the order or direction.
 - R7. The planes must not be parallel: `|n1 × n2| > τ`. This excludes a
   seam between coplanar faces and a knife edge.
 - R8. Classification of a reference that does not resolve, in this
@@ -626,50 +627,47 @@ these does not conform.
   unsupported.
 - Making the general Boolean the default for any family.
 
-## 14. Open decisions
+## 14. Owner decisions
 
-Each is the owner's. The text above is written to the recommendation.
+The owner decided OD-E1 to OD-E8 on 2026-11-19, each as this document
+recommended. None is open. The decision reached the implementing session
+through the session that reviews this work, which quoted the owner's
+answer to "Approve the eight recommended decisions so the OD-8 session
+can start implementing?" as "Approve all eight". Each entry states the
+decision, where this document applies it, and what was not taken.
 
-- OD-E1. Where the code lives. Recommended: a new package `brep/blend`
-  with a thin bridge adapter (section 12). Alternative: everything in
-  `internal/plaincadbridge`, which exports nothing but puts kernel
-  geometry in the bridge.
-- OD-E2. Which stock takes the new path. Recommended: a general result
-  only (S4, D3), so that no response for other stock changes.
-  Alternative A: also ask the mechanism wherever a legacy treatment
-  declines as unsupported, as `orGeneral` does for Booleans; this would
-  make requests succeed that the legacy tests require to be rejected,
-  such as a chamfer across two adjacent cap edges, unless section 9
-  rejects them first. Alternative B: treat plain planar stock with the
-  mechanism as well, so that every treated body is a general result and
-  OD-8 is settled without lifting recipes; this changes the PC2 path and
-  needs the PlainCAD gates.
-- OD-E3. Edges of one `fillet` or `chamfer` request that share a vertex.
-  Recommended: reject (X6), as every legacy path does. The mechanism
+- OD-E1. The code lives in a new package, `brep/blend`, with a thin
+  bridge adapter (section 12). Not taken: everything in
+  `internal/plaincadbridge`.
+- OD-E2. Only a general result takes the new path (S4, D3), so no
+  response for other stock changes. Not taken: asking the mechanism
+  wherever a legacy treatment declines as unsupported, which would make
+  requests succeed that the legacy tests require to be rejected; and
+  treating plain planar stock with the mechanism, which would change the
+  PC2 path.
+- OD-E3. Edges of one `fillet` or `chamfer` request that share a vertex
+  are rejected (X6), as every legacy path rejects them. The mechanism
   itself chamfers them when asked, and does so for `capChamfer`.
-- OD-E4. Ends. Recommended: accept only an edge whose tool ends on faces
-  of the body (K2), which is every edge that ends on perpendicular faces.
+- OD-E4. Ends. Only an edge whose tool ends on faces of the body is
+  accepted (K2), which is every edge that ends on perpendicular faces.
   Not accepted: an edge that runs into a wall, where the treatment would
   stop at a new face in the wall's plane, and an edge with an oblique end
   face, where the tool would have to be extended and trimmed. Both fit
-  the same mechanism as data and are left for a later request; no
-  acceptance case needs them.
-- OD-E5. What a treatment is allowed to cross or touch. Recommended:
-  nothing (K3, K4), which is the legacy clearance rule. The experiment
-  shows that the Boolean cuts a chamfer correctly where its wedge crosses
-  a bore, and where it touches a hole at one point. K3 rejects both
-  because the legacy paths do and the bridge's tests expect it. The
-  alternative is to drop K3 and accept whatever the Boolean validates;
-  then a treatment that runs into a hole succeeds where it fails today.
-- OD-E6. `capFillet` with four edges on a general result. Recommended:
-  unsupported (X12) until the Boolean takes equal cylinders with crossing
-  axes (Boolean OD-1, RL-22). The legacy path also refuses it on bored
-  stock.
-- OD-E7. `direction` for a concave edge. The legacy path refuses a
-  concave axial edge without `direction`. Recommended: decide concavity
-  from the solid and do not require the field (N3).
-- OD-E8. The acceptance bound. Recommended: 1e-8 relative against closed
-  forms (11.1), which is what the bridge's treatment tests use, and 1e-7
+  the same mechanism as data and are left for a later request.
+- OD-E5. A treatment crosses and touches nothing (K3, K4), which is the
+  legacy clearance rule. The experiment shows that the Boolean cuts a
+  chamfer correctly where its wedge crosses a bore, and where it touches
+  a hole at one point; K3 rejects both because the legacy paths do and
+  the bridge's tests expect it. Not taken: dropping K3 and accepting
+  whatever the Boolean validates.
+- OD-E6. `capFillet` with four edges on a general result is unsupported
+  (X12) until the Boolean takes equal cylinders with crossing axes
+  (Boolean OD-1, RL-22). The legacy path also refuses it on bored stock.
+- OD-E7. Concavity is decided from the solid, and `direction` is not
+  required for a concave edge (N3). The legacy path refuses a concave
+  axial edge without it.
+- OD-E8. The acceptance bounds are 1e-8 relative against closed forms
+  (11.1), which is what the bridge's treatment tests use, and 1e-7
   against the legacy path (11.2), which is Boolean OD-7.
 
 ## 15. Record of the experiment
