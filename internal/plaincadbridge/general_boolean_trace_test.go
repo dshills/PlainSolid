@@ -292,6 +292,9 @@ func TestGeneralBooleanTraces(t *testing.T) {
 			if generalBooleanSlowLegacy[name] {
 				slowtest.Skip(t)
 			}
+			// Every row opens its own bridges and shares nothing, so the
+			// rows run side by side.
+			t.Parallel()
 			replay := generalBooleanReplay{open: New}
 			for _, step := range loadGeneralBooleanTrace(t, name) {
 				reply, issued := replay.issue(t, step)
