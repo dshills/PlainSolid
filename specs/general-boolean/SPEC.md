@@ -874,8 +874,8 @@ Not acceptance cases, with the reason:
 - A6. Oracle. One helper builds a case from data (boxes, prisms and cylinders
   with placements, combined by union, common and cut) with the pinned OCCT
   and reports validity, volume, area, centroid and solid count. Cases are
-  rows of a data file; there is no per-case C++. It is run once, at the end
-  of the trial, on every section 11 row that returns a solid, except the
+  rows of a data file; there is no per-case C++. It is run once, as the last step
+  of the trial, after Tier 2 has been kept or reverted (15.5), on every section 11 row that returns a solid, except the
   tolerance rows C24 to C26, and on one row per Tier 1 family, with the comparison bound of
   `internal/occtcheck/oracle_test.go:68` (3e-7 relative for area and volume,
   3e-7 absolute for centroid). Face counts are compared for the section 11
@@ -949,10 +949,13 @@ The trial passes when all of these hold on one commit:
   file of L2 at most 400.
 
 PC1 to PC4 decide the pass. Tier 2 does not (OD-1): it is attempted only
-after PC1 to PC4 hold, by changes to the tables
+after PC1 to PC4 hold in every respect except the oracle run, which comes
+last (A6) so that the one approved run tests the final code. Tier 2 is
+made by changes to the tables
 of 7.4 and 7.5 and their tests only (SP5). Tier 2 is *supported* when its
-rows then pass A3 and A4 with PC2 to PC4 still holding; otherwise it is
-reported as unsupported, the change is not kept, and the pass stands.
+rows then pass A3 and A4 while every Tier 1 row, section 11 and PC2 to PC4
+still hold; otherwise it is reported as unsupported, the change is not
+kept, and the trial goes on to the oracle run without it.
 
 On a pass, the report to the owner lists the bridge paths and kernel
 constructors that no acceptance row needs any longer. From the survey these
