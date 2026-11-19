@@ -163,6 +163,9 @@ type Bridge struct {
 	mu     sync.Mutex
 	next   uint64
 	shapes map[string]stored
+	// general selects the general Boolean of brep/boolean for this
+	// bridge. Only a test constructor sets it.
+	general bool
 }
 
 func New() *Bridge { return &Bridge{shapes: make(map[string]stored)} }
@@ -383,6 +386,9 @@ func (b *Bridge) execute(q request) (any, error) {
 		c, err := b.get(q.B)
 		if err != nil {
 			return nil, err
+		}
+		if b.general {
+			return b.generalBoolean(ctx, a, c, q.Op)
 		}
 		if a.tangent != nil || c.tangent != nil {
 			return nil, unsupportedEdge("Boolean operations on side-tangent blind bores are outside the supported domain")
