@@ -176,3 +176,48 @@ func TestGeneralCutManyInAnyOrder(t *testing.T) {
 		}
 	}
 }
+
+// TestGeneralCrossedResultUse takes a part with crossing bores through
+// what a part needs afterwards: a mesh that is a valid solid and keeps the
+// volume, and a STEP file that reads back to the same part.
+func TestGeneralCrossedResultUse(t *testing.T) {
+	type q = map[string]any
+	type tool struct {
+		origin, axis vector
+		height       float64
+	}
+	for _, c := range []struct {
+		name     string
+		min, max vector
+		radius   float64
+		tools    []tool
+		volume   float64
+	}{
+		{"right angle", vector{}, vector{20, 24, 18}, 3, []tool{{vector{0, 9, 7}, vector{1, 0, 0}, 20}, {vector{8, 9, 18}, vector{0, 0, -1}, 18}}, 8640 - 38*9*math.Pi + 144},
+		{"slant", vector{}, vector{20, 16, 40}, 2, []tool{{vector{10, 8, -2}, vector{0, 0, 1}, 44}, {vector{-4, 8, 9.5}, vector{4, 0, 3}, 35}}, 12800 - 260*math.Pi + 160./3},
+		{"three at one point", vector{2, 4, -2}, vector{34, 40, 38}, 3, []tool{{vector{2, 19, 16}, vector{1, 0, 0}, 32}, {vector{17, 19, 38}, vector{0, 0, -1}, 40}, {vector{17, 4, 16}, vector{0, 1, 0}, 36}}, 32*36*40 - 108*9*math.Pi + 216*math.Sqrt2},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			b := newGeneral()
+			part := box(t, b, c.min, c.max)
+			for _, tl := range c.tools {
+				bit := circle(t, b, tl.origin, tl.axis, c.radius, tl.height)
+				part = shape(t, b, q{"op": "cut", "a": part.Handle, "b": bit.Handle})
+			}
+			near(t, part.GeometryAssertions.Volume, c.volume)
+			m, err := b.shapes[part.Handle].tessellate(request{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := m.ValidateSolid(); err != nil {
+				t.Fatal(err)
+			}
+			if off := math.Abs(float32MeshVolume(m) - c.volume); off >= c.volume*meshVolumeBudget {
+				t.Fatalf("the mesh is off the volume by %.3g, over the budget of %.3g", off, c.volume*meshVolumeBudget)
+			}
+			file := generalSTEPExported(t, b, part.Handle)
+			sameShape(t, shape(t, b, q{"op": "importStep", "source": file}), part)
+			sameShape(t, shape(t, New(), q{"op": "importStep", "source": file}), part)
+		})
+	}
+}

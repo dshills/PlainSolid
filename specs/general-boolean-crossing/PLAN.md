@@ -133,8 +133,35 @@ form: each fillet removes (1 − π/4)r²l and both remove (5/3 − π/2)r³ at
 the corner. `brep/blend` itself is unchanged, and the bridge still
 refuses a fillet round a cap of a general result.
 
-Still open: the turned case of Phase 1 is skipped; Phases 4 and 6 are
-not started.
+Phase 4 is committed as work in progress and stopped on A-C9.
+
+- D1 and D2 are a test: crossed bores at a right angle, at a slant, and
+  three at one point mesh to valid solids within the volume budget, and
+  their STEP files read back on either bridge. D3 is the trace replay of
+  R-5.
+- The oracle (A-C5): eight cases added, with the helper built against
+  the pinned reference. Seven agree at every step, face counts included.
+  The eighth, a blind bore whose floor lies inside the crossing, as the
+  case file states it, returns `ErrInconsistent` from F3 at its second
+  step; the bridge's own construction of the same request is answered,
+  and the mirror image of the case agrees with the oracle. That is a
+  limit to record: such a floor can fail, with an explicit error,
+  depending on where the seam of a tool lies.
+- A-C9 does not hold. With the first bore cut by the general Boolean,
+  one of the eight tests passes as written. The other seven are cut
+  correctly and fail on what they assert of the legacy representation:
+  results of two orders compared with `==` (four tests), the bore recipe
+  read from the result (two), and a STEP file byte for byte the same
+  after an import (one). `specs/general-boolean/ACCEPTANCE.md` has the
+  list.
+
+What A-C9 means for the owner's plan: the general Boolean now cuts what
+those tests cut, and the tests would have to be rewritten against
+behaviour before a bore family is moved, as the probe already found for
+the tests of plain bores.
+
+Still open: the turned case of Phase 1 is skipped, A-C9 does not hold,
+and Phase 6 is not started.
 
 ## Rules for every phase
 

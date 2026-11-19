@@ -648,3 +648,59 @@ differences are the same in volume and centroid; the largest in area was
 | legacy-refused/T1-046/line-3 | 1 | 968.584073464 | 968.584073464 | 585.132741229 | 585.132741229 | 0 | 3.7e-15 |  | pass |
 | legacy-refused/T1-074/line-6 | 3 | 9.93331732418 | 9.93331732418 | 41.7892519893 | 41.7892519893 | 3.3e-14 | 3.2e-13 |  | pass |
 | legacy-refused/T1-081/line-4 | 2 | 768.584073464 | 768.584073464 | 576.548667765 | 576.548667765 | 0 | 2.2e-15 |  | pass |
+
+## Third record: crossing cylinders
+
+Made on 2026-11-19 on the branch `codex/general-boolean-crossing`, after
+[the crossing specification](../general-boolean-crossing/SPEC.md) was
+implemented as far as its plan records. The tables above are the records
+of the trial and are not changed; this section supersedes what they say
+of Tier 2.
+
+Tier 2, replayed on a general bridge with `PLAINSOLID_SLOW=1`:
+
+| Row | Outcome |
+|---|---|
+| T2-001 to T2-006, T2-008 to T2-012, T2-014 to T2-017 | pass: 15 rows |
+| T2-007, T2-013 | every value agrees; listed for time (3.5 s and 5.9 s beside other rows, 2.1 s and 4.4 s alone) |
+
+No Tier 2 row fails. Every Tier 1 row is as in the second record.
+
+Requests that the record refuses and the general Boolean answers, all in
+T2-014 and all classified as declined inputs (A4): lines 12 and 39, a
+cutter that deepens a blind bore from inside the stock, and lines 26 and
+53, a blind bore whose floor lies inside the crossing. They are in
+`legacy_refusals.txt`.
+
+Oracle. `internal/occtcheck/testdata/general_boolean_cases.json` gained
+eight cases: one for each Tier 2 family (T2-001, T2-006, T2-010), the
+four requests above, and a cutter that a later bore covers. With the
+helper built from `tools/occtref/general_boolean.cxx` against the pinned
+reference, `TestGeneralBooleanOracle` compares 276 steps over 96 cases
+and all agree. Seven of the eight new cases agree at every step in
+validity, solid count, volume, area, centroid and face count; the
+largest volume difference among them is 1.4e-7 in 43,332, and the
+largest centroid distance 1.3e-10. The eighth, line 26 of T2-014 as the
+case file states it, has no result at its second step: `Combine` returns
+`ErrInconsistent`, "F3: two walks leave point 23 along one element". The
+same request is answered on the bridge, whose cylinders have their seams
+elsewhere. A blind bore whose floor lies inside the crossing can
+therefore fail with an explicit error depending on where a seam lies;
+its mirror image, line 53, agrees with the oracle.
+
+The bridge tests with their first bore cut by the general Boolean
+(A-C9 of the crossing specification), on a scratch change that was not
+kept. Of the eight tests behind T2-001, 002, 003, 006, 009, 010, 011
+and 017, one passes as written (`TestCrossedCompanionBoreScopeAndSTEP`).
+None of the other seven is refused a cut, and every volume and area they
+print agrees to the last digit or two. They fail on what they assert of
+the legacy representation: four compare the results of two orders of
+cutting with `==` and differ in the last bits
+(`TestCrossedBoreScopeAndSTEP`, `TestCrossedObliqueReciprocalScope`,
+`TestDoubleBlindCrossedBoreScopeAndSTEP`,
+`TestTripleCrossedBoreScopeAndSTEP`); two read the bore recipe of the
+result (`TestBlindCrossedBoreScopeAndSTEP`,
+`TestCrossedObliqueBoreScope`); one requires a STEP file to be byte for
+byte the same after an import and a second export
+(`TestDoubleBlindCrossedObliqueBore`).
+

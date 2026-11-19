@@ -5312,6 +5312,566 @@
      "b": 2
     }
    ]
+  },
+  {
+   "name": "family/Crossed-bores/T2-001",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      24,
+      18
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      9,
+      7
+     ],
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "radius": 3,
+     "height": 20
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      8,
+      9,
+      18
+     ],
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "radius": 3,
+     "height": 18
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 3,
+     "b": 2
+    }
+   ]
+  },
+  {
+   "name": "family/Triple-and-companion/T2-006",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      2,
+      4,
+      -2
+     ],
+     "max": [
+      34,
+      40,
+      38
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      2,
+      19,
+      16
+     ],
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "radius": 3,
+     "height": 32
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      17,
+      19,
+      38
+     ],
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "radius": 3,
+     "height": 40
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      17,
+      4,
+      16
+     ],
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "radius": 3,
+     "height": 36
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 4,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 5,
+     "b": 3
+    }
+   ]
+  },
+  {
+   "name": "family/Crossed-oblique/T2-010",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      16,
+      40
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      8,
+      -2
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 44
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      -4,
+      8,
+      9.5
+     ],
+     "axis": [
+      4,
+      0,
+      3
+     ],
+     "radius": 2,
+     "height": 35
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 3,
+     "b": 2
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T2-014/line-12",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      16,
+      40
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      -4,
+      8,
+      9.5
+     ],
+     "axis": [
+      4,
+      0,
+      3
+     ],
+     "radius": 2,
+     "height": 35
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      8,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 28
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      8,
+      26
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 5
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 4,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 5,
+     "b": 3
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T2-014/line-26",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      16,
+      40
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      -4,
+      8,
+      9.5
+     ],
+     "axis": [
+      4,
+      0,
+      3
+     ],
+     "radius": 2,
+     "height": 35
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      8,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 21
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 3,
+     "b": 2
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T2-014/line-39",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      16,
+      40
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      -4,
+      8,
+      9.5
+     ],
+     "axis": [
+      4,
+      0,
+      3
+     ],
+     "radius": 2,
+     "height": 35
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      8,
+      40
+     ],
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "radius": 2,
+     "height": 28
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      8,
+      14
+     ],
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "radius": 2,
+     "height": 5
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 4,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 5,
+     "b": 3
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T2-014/line-53",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      16,
+      40
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      -4,
+      8,
+      9.5
+     ],
+     "axis": [
+      4,
+      0,
+      3
+     ],
+     "radius": 2,
+     "height": 35
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      8,
+      40
+     ],
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "radius": 2,
+     "height": 21
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 3,
+     "b": 2
+    }
+   ]
+  },
+  {
+   "name": "crossing/concealed-cutter",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      20,
+      20
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      -1,
+      10,
+      10
+     ],
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "radius": 2,
+     "height": 22
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      10,
+      -1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 22
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      10,
+      -1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 22
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 4,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 5,
+     "b": 3
+    }
+   ]
   }
  ]
 }
