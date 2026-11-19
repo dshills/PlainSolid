@@ -1,7 +1,7 @@
 # Plan: general Boolean trial
 
 This plan implements [the specification](SPEC.md) as it stands at commit
-`0f4acf80`. It is a plan only. It
+`3f6db131`. It is a plan only. It
 contains no implementation, and nothing in it starts until the owner says so.
 Identifiers such as PC2, A3 or ST4 are requirement identifiers of the
 specification.
@@ -18,7 +18,10 @@ specification.
   existing bridge test function.
 - **Leaf**: one subtest of the section 11 matrix, named
   `TestMatrix/<row>/<variant>/<operation>`, for example
-  `TestMatrix/C4/planar/union`. The variant is `planar` or `cyl`.
+  `TestMatrix/C4/planar/union`. The variant is `planar` or `cyl`. For C15
+  and C21 the cylinder variant is run once for each stored form of section
+  11 of the specification: `sf1`, `sf2`, `sf3`, and the same three under a
+  placement, `sf1p`, `sf2p`, `sf3p` (SF1 to SF4).
 - **General bridge**: a `Bridge` with the general path selected (L3).
   **Default bridge**: `plaincadbridge.New()`, unchanged by the trial.
 - **Default tier**: `go test ./...` with no build tag and without
@@ -90,18 +93,22 @@ specification. They apply to every part and are not repeated in the parts.
 ## Standing checks
 
 Each part ends by running the checks below that its "Checks" line names.
-They run after the part's work is committed (R2), so `BASE...HEAD` and the
-working tree both show the whole part. Wherever a command below or in a
+They run after the part's work is committed (R2), so `"$BASE"...HEAD` and the
+working tree both show the whole part. The commands read the base commit
+of R1 from the shell variable `BASE`, which the session sets first. Wherever a command below or in a
 gate pipes `go test` into `rg` or `jq`, the same `go test` command is first
 run alone and must exit with status 0; the pipe only counts or filters its
 output. Lines of a check that name `brep/boolean` apply from Part 1.1, when
 that package first exists.
 
-- K1. Build, vet, lint and tests of what changed:
+- K1. Build, vet, lint and tests of what changed. The lint line fails only
+  on findings introduced since `BASE`: `internal/plaincadbridge` had 14
+  findings at `BASE`, and those are not the trial's to fix. A finding in
+  code the trial adds or changes fails the check.
 
   ```sh
   go build ./... && go vet ./...
-  golangci-lint run ./brep/boolean/... ./internal/plaincadbridge/...
+  golangci-lint run --new-from-rev "$BASE" ./brep/boolean/... ./internal/plaincadbridge/...
   go test ./brep/boolean -count=1
   go test ./internal/plaincadbridge -count=1   # when the part changed it
   ```
@@ -116,7 +123,7 @@ that package first exists.
   The commit message states both numbers and the part's budget from the
   table in "Size budget".
 - K3. One path (PC2, AR8). The session reads the complete diff
-  `git diff BASE...HEAD -- brep/boolean internal/plaincadbridge` and
+  `git diff "$BASE"...HEAD -- brep/boolean internal/plaincadbridge` and
   confirms in the commit message that no function tests the number of
   faces, edges or vertices of an operand, the primitive it came from, or
   its placement, other than through sections 7.3 to 7.5 and the work limits
@@ -129,6 +136,14 @@ that package first exists.
   ```sh
   rg -n -i '^func .*(bore|pocket|notch|slot|boss|crossed|counterbore|box|cube)' brep/boolean -g '!*_test.go'
   rg -n 'len\(' brep/boolean -g '!*_test.go' | rg -i 'face|edge|vert|shell'
+  ```
+
+  A third search covers S3: the Go type of an edge's stored curve is never
+  inspected. Every line it prints must act on a surface value (S2) and none
+  on an edge curve:
+
+  ```sh
+  rg -n '\.\(type\)|\.\(\*?geom\.|CurveMapping' brep/boolean -g '!*_test.go'
   ```
 
 - K4. Two seconds (A7). Only leaves and rows are timed, not the groups
@@ -149,7 +164,7 @@ that package first exists.
   error values:
 
   ```sh
-  git diff --name-only BASE...HEAD -- brep/trimmed geom go.mod go.sum
+  git diff --name-only "$BASE"...HEAD -- brep/trimmed geom go.mod go.sum
   rg -l '^//go:build research' brep/boolean internal/plaincadbridge/general_boolean*.go
   git status --porcelain
   go doc -short plainsolid/brep/boolean
@@ -223,12 +238,14 @@ the change is reverted.
 
 Cumulative non-test lines in `brep/boolean` expected at the end of each
 part. These are warnings, not caps. A part that ends more than 15 percent
-above its line says so in its report, with the reason. The cap is 15,000
+above its line says so in its report, with the reason. The figures rose
+by 300 lines for the required work when edge carriers came to be derived
+by evaluation (I5), and Part 2.1 took over some of Part 2.2. The cap is 15,000
 (PC4) and only the cap trips ST4.
 
 | Part | 1.1 | 1.2 | 1.3 | 1.4 | 2.1 | 2.2 | 2.3 | 3.2 | 4 |
 |---|---|---|---|---|---|---|---|---|---|
-| Lines | 1,400 | 2,900 | 4,500 | 6,000 | 7,800 | 9,600 | 10,800 | 11,300 | 11,900 |
+| Lines | 1,600 | 3,100 | 4,700 | 6,200 | 8,500 | 9,900 | 11,100 | 11,600 | 12,200 |
 
 ## Phase 0: freeze the acceptance rows
 
@@ -272,7 +289,11 @@ Steps:
      for every other request, nothing. STEP and proof payloads are dropped.
    - `analytic` is present when a `near(got, want)` pair of the source test
      has a `got` that is bit-for-bit the volume, area or overlap value of
-     this response; it holds the `want` values. Other pairs are dropped.
+     this response; it holds the `want` values. Other pairs are dropped. A
+     `got` that equals a value of more than one response or property of
+     its bridge is ambiguous: it is not attached by the rule, and the row
+     lists it for a reading of the source test, which decides where it
+     belongs.
 
    The reduction is done with a throwaway script kept outside the
    repository; the committed test of step 6 defines the format by reading
@@ -351,14 +372,20 @@ Steps:
    the survey counts of 15.1. The header names the mesh checks the source
    tests apply to `mesh` responses (file and helper), which the replay of
    Part 3.1 reuses (A3), and the row that issues `pocketFloor` (CO4); if no
-   kept row issues it, Phase 0 stops and asks the owner.
+   kept row issues it, Phase 0 stops and asks the owner. The third table also
+   gives, for each of the requests `box`, `prism`, `circle` and
+   `mixedExtrude`, the number of checked Boolean responses that have an
+   operand made by it; each must be at least one (specification section
+   11, stored forms). It gives as well the number of Boolean responses left
+   unchecked because an operand has faces stored as spline patches (S2,
+   the arc-loop branch of `mixedExtrude`).
 
 Gate G0, by command:
 
 ```sh
 go test ./internal/plaincadbridge -run '^TestGeneralBoolean(Traces|Foundation)$' -count=1
 test "$(ls internal/plaincadbridge/testdata/general_boolean/*.jsonl | wc -l)" -eq "$(rg -c '^\| T[12]-' specs/general-boolean/ACCEPTANCE.md)"
-git diff --name-only BASE...HEAD   # only the files listed above
+git diff --name-only "$BASE"...HEAD   # only the files listed above
 ```
 
 The publication probe is run separately and is not part of G0:
@@ -382,7 +409,7 @@ Operands that do not interact: every face becomes one piece.
 
 Files created in `brep/boolean`: `doc.go`, `options.go`, `errors.go`,
 `result.go`, `combine.go`, `tolerance.go`, `carrier.go`, `chart.go`,
-`intake.go`, `piece.go`, `selection.go`, `assembly.go`, `validation.go`,
+`intake.go`, `edge_carrier.go`, `surface_table.go`, `piece.go`, `selection.go`, `assembly.go`, `validation.go`,
 tests beside them, `matrix_test.go`, `testdata/pending.txt`. Files created
 in `internal/plaincadbridge`: `general_boolean.go`,
 `general_boolean_test.go`. File changed: `internal/plaincadbridge/bridge.go`
@@ -402,11 +429,19 @@ Steps:
    (P7).
 3. Intake for planar operands (I1, I3, S1 to S6): the carrier and chart
    interfaces with the plane as the only carrier; `ErrUnsupported` naming
-   the first face or edge outside the class, which at this point includes
-   every cylinder face.
+   the first face outside the class, which at this point includes every
+   cylinder face. Edge carriers are derived by I5 and never from the Go
+   type of the stored curve: the 17 samples; the check of each sample
+   against both face carriers; the candidate line from the row of 7.4 for
+   two planes that are not parallel, which starts the surface-pair table
+   as data in `surface_table.go`; the line through the samples for an edge
+   between two faces on one plane; the choice among candidates; the
+   interval and direction; and the errors I5 names. A planar operand whose
+   edge is not a line is `ErrUnsupported` until Part 2.1.
 4. Pieces without splitting, the selection table (7.8), shell grouping and
    ordering (B1), output through `trimmed.NewSolidContext` (B3 for lines,
-   B4), the empty result (B5), τ (T6).
+   B4), the empty result (B5), output edge curves as `geom.Line` values (B6),
+   τ (T6).
 5. Validation V1 to V6 and V8 with the error mapping for mass properties;
    the report fields.
 6. The adapter, minimal: the test-only constructor in
@@ -414,7 +449,12 @@ Steps:
    `trimmed.FromPlanar`, the call to `Combine` with the tolerances of L4,
    publication, and the mapping of the section 9 errors to bridge failures.
 7. `TestMatrix` with the leaves of C1 and C27, planar variant, including
-   the face source checks of section 11.
+   the face source checks of section 11. `TestEdgeCarrier`: a box whose
+   edges are stored as evaluators of a type the package cannot name gives
+   the same carriers as the same box with `geom.Line` edges; an edge
+   between two faces on one plane; and the first failure test of section
+   11, an edge that leaves one of its faces by 10ε at its middle
+   (`ErrInvalid` naming the edge).
 8. `TestContract`, table-driven, one behavior per case: each invalid and
    each non-finite option returns `ErrInvalid` (P4), `Angular` above 0.5
    among them; a nil context and an
@@ -431,7 +471,7 @@ Acceptance, by command:
 
 ```sh
 go test ./brep/boolean -run 'TestMatrix/^(C1|C27)$/^planar$' -count=1 -v | rg -c '^\s+--- PASS: TestMatrix/C(1|27)/planar/'   # prints 6
-go test ./brep/boolean -run '^TestContract$' -count=1
+go test ./brep/boolean -run '^(TestContract|TestEdgeCarrier)$' -count=1
 go test ./internal/plaincadbridge -run '^TestGeneralBoolean' -count=1
 ```
 
@@ -472,14 +512,13 @@ passes, and the two commands of Part 1.1 still pass. Checks: K1 to K7.
 
 ### Part 1.3: face with face, and splitting
 
-Files created in `brep/boolean`: `surface_table.go`, `pass_face.go`,
-`trace.go`, `split.go`, and tests.
+Files created in `brep/boolean`: `pass_face.go`, `trace.go`, `split.go`,
+and tests. File changed: `surface_table.go`.
 
 Steps:
 
-1. The surface-pair table of 7.4 as data, with the three plane with plane
-   rows and the node-by-node same-surface test for parallel planes (SP4,
-   AR6).
+1. The surface-pair table of 7.4, begun in Part 1.1, with the two rows
+   for parallel planes and the node-by-node same-surface test (SP4, AR6).
 2. Pass X6 for planes, with traces cut at existing nodes and reuse of an
    existing span or bundle (AR4); X8.
 3. Splitting in the plane chart: F1 to F6, with the degree rule of F2 and
@@ -534,32 +573,45 @@ Three parts. Starts only after G1.
 
 Files created in `brep/boolean`: `cylinder.go`, `conic.go`,
 `closed_forms.go`, and tests. Files changed: `carrier.go`, `chart.go`,
-`intake.go`, `curve_table.go`, `matrix_test.go`.
+`intake.go`, `edge_carrier.go`, `surface_table.go`, `curve_table.go`,
+`matrix_test.go`.
 
 Steps:
 
 1. The cylinder carrier and its chart with one seam (I4); intake of
-   cylinder faces and of circle and ellipse edges, rigid placements (S2 to
-   S4) and the polar plane chart with its collapsed edge.
-2. The closed forms of CC1: circle with circle, the homothetic reduction
+   cylinder faces by their surface values (S2), rigid placements (S4), and
+   the polar plane chart with its collapsed pole edge and its radial edge
+   used twice, which is treated as a seam (I4).
+2. The rows of 7.4 for a plane with a cylinder (SP1) and for parallel and
+   coaxial cylinders, as far as they give carrier curves. Part 2.2 adds
+   what X6 needs on top of them.
+3. Edge carriers on curved faces (I5): candidates from those rows for an
+   edge between a plane and a cylinder or between two cylinders; for a
+   seam or an edge between two faces on one cylinder, the line through the
+   samples or the curve of the plane through three samples with the
+   cylinder; for a curved edge between two faces on one plane, the circle
+   through three samples or the conic through five; the interval on a
+   periodic carrier, and a closed edge with the whole period as its
+   interval; output edge curves as `geom.Ellipse` values (B6).
+4. The closed forms of CC1: circle with circle, the homothetic reduction
    (CC3), the projection of a conic along a cylinder axis and the proof
    that a conic is clear of a cylinder face (CC5), point-to-parameter
    inversion for a conic, segment-to-segment distance.
-3. The remaining rows of the curve table of 7.5: a conic with a plane; a
+5. The remaining rows of the curve table of 7.5: a conic with a plane; a
    conic whose plane is parallel to a cylinder's axis; a conic that
    projects to a circle along the axis; conics in different planes;
    homothetic coplanar conics; and the two rows that return
    `ErrUnsupported`. No row refers to a cylinder that the conic's own
    faces lie on.
-4. Edge overlap on a periodic carrier (CC4): intervals taken in the
+6. Edge overlap on a periodic carrier (CC4): intervals taken in the
    periodic parameter, so that one may run through the parameter origin or
    through a closed edge's vertex; two intervals for arcs that overlap at
    both ends; the whole overlap of two closed edges, tested at three points
    a third of the period apart; degeneracy by the mid point.
-5. Closed spans and bundles of closed spans (AR2, AR3), and X3 on closed
+7. Closed spans and bundles of closed spans (AR2, AR3), and X3 on closed
    edges: inside an overlap the two edges have the same nodes and their
    spans correspond one to one; a whole overlap adds no node.
-6. Unit tests of every closed form against analytic cases, including
+8. Unit tests of every closed form against analytic cases, including
    tangent and coincident ones. Overlap tests, each on two circle edges of
    one carrier: two full circles with the same vertex (one bundle of two
    closed spans); two full circles with different vertices (two bundles);
@@ -569,9 +621,13 @@ Steps:
    (isolated point); and a pair that passes at some test points only
    (`ErrTolerance`). `TestMatrix` gains the cylinder variants of C1, C2, C3
    and C27 that need no surface pair; C2 in its cylinder variant exercises
-   the whole overlap on both cap circles.
+   the whole overlap on both cap circles. `TestEdgeCarrier` gains the
+   stored forms SF2 and SF3 and their placed versions (SF4), each of which
+   must give the carriers and intervals of SF1 within ε, and the second
+   failure test of section 11, a cylinder wall split along a helical edge
+   (`ErrUnsupported` naming the edge).
 
-Acceptance: `go test ./brep/boolean -run 'TestClosedForms|TestCurveTable|TestOverlap|TestIntake' -count=1`
+Acceptance: `go test ./brep/boolean -run 'TestClosedForms|TestCurveTable|TestOverlap|TestIntake|TestEdgeCarrier' -count=1`
 passes, and G1's commands still pass except the last, which no longer
 applies. Checks: K1 to K7.
 
@@ -583,9 +639,9 @@ expected.
 
 Steps:
 
-1. The plane with cylinder rows of 7.4 through
-   `geom.IntersectPlaneCylinder` (SP1) and the coaxial and parallel
-   cylinder rows, with candidate pairs and the node-by-node test (SP4).
+1. On the plane with cylinder rows and the coaxial and parallel cylinder
+   rows that Part 2.1 gave carrier curves: crossing and touching marks,
+   candidate pairs and the node-by-node same-surface test (SP4).
 2. The proof of separation (SP2) and `ErrUnsupported` for every other
    non-parallel pair (SP3). The Tier 2 row is not added.
 3. X6 and X7 for these pairs: closed traces with their one node, traces
@@ -622,7 +678,10 @@ Steps:
 4. `TestMatrix` complete: every leaf of C1 to C27 in both variants where
    section 11 gives one, with outcomes, analytic volumes, stated face
    counts and face source lists (the four fixed lists of C4, C6, C15 and
-   C21 included). C15, C16, C19 and C21 are the leaves that depend on
+   C21 included). C15 and C21 run in the six stored-form variants `sf1` to
+   `sf3p`, with the same outcome, volume, face count and face source lists
+   in all six; in the SF2 forms the radial edge of each polar cap is gone
+   from the result (I4). C15, C16, C19 and C21 are the leaves that depend on
    coincident closed edges; C18 is run with 4ε ≤ d ≤ 2r − 4ε.
 
 Checkpoint G2 (A5), by command. The first passes; the second and third
@@ -684,8 +743,10 @@ Steps:
    response passing the mesh checks that `ACCEPTANCE.md` names from the
    source tests (Phase 0, step 8). Responses that Phase 0 recorded as
    unchecked are issued and not compared.
-5. A8: the test logs, for each row, `A8 <row id> vol=<largest volume error> area=<largest area error>`
-   using the formula of A8.
+5. A8: the test logs, for each row, `A8 <row id> vol=<largest volume error> area=<largest area error> none=<count>`
+   using the formula of A8, where the largest is taken over the row's
+   checked responses that produced a value and `none` is the number that
+   produced none.
 6. `pocketFloor` (CO4): the replay compares the `pocketFloor` response of
    the general bridge with the recorded legacy response of the row that
    `ACCEPTANCE.md` names for it. They must be equal.
@@ -719,7 +780,7 @@ Steps:
 4. Run PC3 in full:
 
    ```sh
-   go build ./... && go vet ./... && golangci-lint run ./... && go test ./...
+   go build ./... && go vet ./... && golangci-lint run --new-from-rev "$BASE" ./... && go test ./...
    go build -tags research ./... && go vet -tags research ./...
    go run ./tools/refgraph -tags research -pkg brep/trimmed -exclude examples -check research
    ```
@@ -822,7 +883,8 @@ Steps:
    ```
 
    Each row of `ACCEPTANCE.md` gets its largest volume error, largest area
-   error and outcome; a row that produced no result is marked as such.
+   error, the number of its checked responses that produced no value, and
+   its outcome; a row that produced no result at all is marked as such.
    Below the table: the largest volume error, the largest area error, and
    the number of rows above 1e-8 in either (OD-7). `ACCEPTANCE.md` is where
    this record lives.
@@ -888,13 +950,13 @@ not by this phase unless the owner directs it there.
 
 | Specification | Part |
 |---|---|
-| P1 to P7, T1, T6, S1 to S6 (planar), I1 to I3, 7.8 (unshared), B1, B3 to B5, V1 to V8, section 9, L1, L3, L4 | 1.1 |
+| P1 to P7, T1, T6, S1 to S6 (planar), I1 to I3, I5 (lines), 7.8 (unshared), B1, B3 to B6, V1 to V8, section 9, L1, L3, L4 | 1.1 |
 | T2 to T5, T7, AR1 to AR3, AR5, AR7, X1 to X5, X9 (plane), CC2, CC4 (lines), section 10 | 1.2 |
 | AR4, AR6, SP4 (planes), X6, X8, F1 to F6 (plane) | 1.3 |
 | K1 to K3, 7.8 (shared), N1 to N3, M1, M3 to M5, P5 sources, T8, PL1 to PL4, C1 to C10 and C24 to C27 (planar) | 1.4 |
-| S2 to S4 (cylinders), I4, CC1, CC3, CC4 (periodic carriers), CC5, closed spans of AR2, AR3 and X3, 7.5 complete | 2.1 |
+| S2 to S4 (cylinders), I4, I5 (curved edges), SF1 to SF4 (carriers), the carrier curves of the 7.4 rows, CC1, CC3, CC4 (periodic carriers), CC5, closed spans of AR2, AR3 and X3, 7.5 complete | 2.1 |
 | SP1 to SP4, 7.4 Tier 1 rows, X6 and X7 (curved, including a closed carrier with one node), X9 and F3 (cylinder chart) | 2.2 |
-| M2, B2, B3 (curved), section 11 complete (A5) | 2.3 |
+| M2, B2, B3 (curved), SF1 to SF4 (matrix), section 11 complete (A5) | 2.3 |
 | L2, CO1 to CO4, A2 to A4, A8 logging | 3.1 |
 | PC1 (without A6), PC2 to PC4, A7 | 3.2 |
 | SP5, the Tier 2 row of 7.4, Tier 2 rows | 4 |
@@ -953,6 +1015,23 @@ for a probe.
   changing `analytic.go`. Phase 0 probes whether `inspect`, `mesh` and `stl`
   work on such a body and reports; the owner then decides this, and which
   bridge changes are permitted if they do not, before Part 3.1.
+
+  Phase 0 has run the probe. Its results are recorded here as input for
+  that decision, which is still the owner's:
+  - A body with a void, and a body of two solids, each stored by calling
+    `publish` directly, work with `inspect`, `mesh`, `stl` and `clone`.
+    Volume and area match the legacy values to about 3e-16.
+  - `transform` fails on such a body with "expected one connected analytic
+    shell", because `bridge.go` republishes the transformed body through
+    `putAnalyticBody`. One Tier 1 row transforms a result with a sealed
+    void, so that row cannot pass with the adapter file alone.
+  - Seven frozen `common` responses are empty solids. `putAnalyticBody`
+    rejects an empty solid, and the legacy path publishes one with `put`.
+    How the adapter publishes an empty result is therefore part of this
+    decision.
+  - `trimmed.Solid.Bounds` pads the box by the solid's tolerance. A result
+    carries τ ≥ 1e-7 (L4), so its published bounds miss the 1e-7 check of
+    A3 unless the adapter removes the pad or A3's bound allows for it.
 - D5. Face source lists. They are a field of the result with no reader
   outside tests during the trial. `AGENTS.md` asks every exported identifier
   to have an outside caller; the owner asked for this field, and that
