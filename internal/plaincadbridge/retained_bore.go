@@ -122,6 +122,8 @@ func (b *Bridge) treatCapPerimeter(s stored, q request) (Shape, error) {
 		size = stock.Max.Sub(stock.Min)
 	} else if s.analytic != nil && s.analytic.filletedCap != nil && q.Op == "capChamfer" {
 		return b.chamferOppositeCap(s, q, normal)
+	} else if s.analytic != nil && b.generalResult(s.analytic) {
+		return b.generalCapPerimeter(s, q, normal, d)
 	} else {
 		return reject()
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	"plainsolid/brep/blend"
 	"plainsolid/geom"
@@ -136,4 +137,58 @@ func (b *Bridge) generalTreat(s stored, op string, edges []blend.Edge, kind blen
 		return Shape{}, &failureError{refusal.code, op + " failed: " + refusal.message}
 	}
 	return Shape{}, fmt.Errorf("%s failed: %w", op, err)
+}
+
+// generalCapPerimeter is capChamfer and capFillet with four edges on a
+// general result (C1 to C5). The request has passed the argument checks
+// of treatCapPerimeter, and normal is a unit vector.
+func (b *Bridge) generalCapPerimeter(s stored, q request, normal geom.Vec3, size float64) (Shape, error) {
+	if q.Op == "capFillet" {
+		// Fillets around a cap meet at its corners, where two cylinders
+		// of one radius cross; the general Boolean takes no such pair.
+		return Shape{}, unsupportedEdge("capFillet failed: fillets that meet at a corner are unsupported on this stock")
+	}
+	reject := unsupportedEdge("original cap perimeter was lost or is ambiguous")
+	solid, err := generalOperand(s)
+	if err != nil {
+		return Shape{}, err
+	}
+	var edges []blend.Edge
+	var ends []geom.Vec3
+	for _, ref := range q.Edges {
+		if ref.Start == nil || ref.End == nil {
+			return Shape{}, reject
+		}
+		e, err := blend.Locate(solid, ref.Start.vec(), ref.End.vec(), generalEdgeTolerance)
+		if err != nil || !e.Convex() {
+			return Shape{}, reject
+		}
+		// One face of the edge is the cap: it has the normal of the
+		// request, and it is one plane for all four edges.
+		start, end := e.Ends()
+		n := e.Normals()
+		onCap := (aligned(normal, n[0]) && normal.Dot(n[0]) > 0) || (aligned(normal, n[1]) && normal.Dot(n[1]) > 0)
+		if !onCap || (len(ends) > 0 && math.Abs(start.Sub(ends[0]).Dot(normal)) > generalEdgeTolerance.Point) {
+			return Shape{}, reject
+		}
+		for _, other := range edges {
+			if e.Same(other) {
+				return Shape{}, reject
+			}
+		}
+		edges, ends = append(edges, e), append(ends, start, end)
+	}
+	// The four edges close one loop: each end is the end of one other.
+	for i, p := range ends {
+		meets := 0
+		for j, other := range ends {
+			if i/2 != j/2 && nearPoint(p, other) {
+				meets++
+			}
+		}
+		if meets != 1 {
+			return Shape{}, reject
+		}
+	}
+	return b.generalTreat(s, q.Op, edges, blend.Chamfer, size)
 }

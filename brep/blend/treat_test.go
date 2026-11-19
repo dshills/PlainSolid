@@ -216,3 +216,33 @@ func TestTreatGuards(t *testing.T) {
 		}
 	})
 }
+
+// TestChamferConcave chamfers the concave axial edge of the L prism of
+// Q9, alone and with a convex edge in one request: a concave edge gains
+// what a convex edge loses.
+func TestChamferConcave(t *testing.T) {
+	s := lPrism(t)
+	concave := located(t, s, vec(10, 10, 0), vec(10, 10, 10))
+	convex := located(t, s, vec(20, 10, 0), vec(20, 10, 10))
+	t.Run("the concave edge alone", func(t *testing.T) {
+		r := requireForm(t, s, Chamfer, 1, concave)
+		near(t, r.Properties.Volume, 3005)
+	})
+	t.Run("half of the concave edge", func(t *testing.T) {
+		// The tool ends in mid air, where no end face takes its cap
+		// (K2 in a union).
+		half := concave
+		half.end = vec(10, 10, 5)
+		if _, err := Treat(context.Background(), Body{Solid: s, Solids: 1}, []Edge{half}, Chamfer, 1, treatOptions); !errors.Is(err, ErrEnds) {
+			t.Fatal(err)
+		}
+	})
+	t.Run("a concave and a convex edge", func(t *testing.T) {
+		// The values the legacy path's test states for this request.
+		for _, edges := range [][]Edge{{convex, concave}, {concave, convex}} {
+			r := requireForm(t, s, Chamfer, 1, edges...)
+			near(t, r.Properties.Volume, 3000)
+			near(t, r.Properties.Area, 1400-20*(2-math.Sqrt2))
+		}
+	})
+}

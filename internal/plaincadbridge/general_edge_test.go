@@ -347,3 +347,88 @@ func TestGeneralChamferRefused(t *testing.T) {
 		refused(t, b, request, "UNSUPPORTED", "chamfer"+badNormal)
 	})
 }
+
+// TestGeneralCapChamfer chamfers the four edges of a cap of a general
+// result (C1 to C5): the box of Q6 with a through hole.
+func TestGeneralCapChamfer(t *testing.T) {
+	b := New()
+	s := general(t, b, "cut", box(t, b, vector{}, vector{20, 20, 10}), circle(t, b, vector{10, 10, 0}, vector{0, 0, 1}, 2, 10))
+	corners := []vector{{0, 0, 10}, {20, 0, 10}, {20, 20, 10}, {0, 20, 10}}
+	perimeter := func(op string, normal vector, corners []vector) q {
+		var edges []any
+		for i, c := range corners {
+			edges = append(edges, edgeRef(c, corners[(i+1)%len(corners)]))
+		}
+		out := q{"op": op, "handle": s.Handle, "normal": normal, "edges": edges, "distance": 1}
+		if op == "capFillet" {
+			delete(out, "distance")
+			out["radius"] = 1
+		}
+		return out
+	}
+	t.Run("Q6", func(t *testing.T) {
+		out := shape(t, b, perimeter("capChamfer", vector{0, 0, 1}, corners))
+		requireGeneral(t, b, out, 4000-40*math.Pi-(40-4.0/3), 1444+76*math.Sqrt2+32*math.Pi)
+		if available(t, b, out.Handle, corners[0], corners[1]) {
+			t.Fatal("a chamfered edge is available")
+		}
+	})
+	const lost = "original cap perimeter was lost or is ambiguous"
+	t.Run("X12, a fillet around the cap", func(t *testing.T) {
+		refused(t, b, perimeter("capFillet", vector{0, 0, 1}, corners), "UNSUPPORTED", "capFillet failed: fillets that meet at a corner are unsupported on this stock")
+	})
+	t.Run("X13, a reference that is lost", func(t *testing.T) {
+		refused(t, b, perimeter("capChamfer", vector{0, 0, 1}, []vector{{0, 0, 10}, {20, 0, 10}, {20, 20, 10}, {0, 19, 10}}), "UNSUPPORTED", lost)
+	})
+	t.Run("X13, four edges that do not close", func(t *testing.T) {
+		request := perimeter("capChamfer", vector{0, 0, 1}, corners)
+		request["edges"] = []any{edgeRef(corners[0], corners[1]), edgeRef(corners[1], corners[2]), edgeRef(corners[2], corners[3]),
+			edgeRef(vector{0, 0, 0}, vector{0, 0, 10})}
+		refused(t, b, request, "UNSUPPORTED", lost)
+	})
+	t.Run("X13, the normal of the other cap", func(t *testing.T) {
+		refused(t, b, perimeter("capChamfer", vector{0, 0, -1}, corners), "UNSUPPORTED", lost)
+	})
+	t.Run("X13, one edge twice", func(t *testing.T) {
+		request := perimeter("capChamfer", vector{0, 0, 1}, corners)
+		request["edges"] = []any{edgeRef(corners[0], corners[1]), edgeRef(corners[1], corners[0]), edgeRef(corners[1], corners[2]), edgeRef(corners[2], corners[3])}
+		refused(t, b, request, "UNSUPPORTED", lost)
+	})
+}
+
+// TestGeneralChamferConcave chamfers a concave edge of a general result,
+// and shows that a request of two calls is atomic (D6): when the union
+// of the second call is refused, the cut of the first is not published.
+func TestGeneralChamferConcave(t *testing.T) {
+	b := New()
+	// An L: the concave axial edge is at (10,10).
+	l := general(t, b, "cut", box(t, b, vector{}, vector{20, 20, 10}), box(t, b, vector{10, 10, 0}, vector{20, 20, 10}))
+	near(t, l.GeometryAssertions.Volume, 3000)
+	near(t, l.GeometryAssertions.SurfaceArea, 1400)
+	axial := func(s Shape, x, y float64) q {
+		request := treat("chamfer", s.Handle, vector{x, y, 0}, vector{x, y, 10}, vector{0, 0, 1}, 1)
+		request["direction"] = vector{0, 0, 1}
+		return request
+	}
+	out := shape(t, b, axial(l, 10, 10))
+	requireGeneral(t, b, out, 3005, 1400-20+10*math.Sqrt2+1)
+	// Without a direction the edge is concave all the same (N3).
+	out = shape(t, b, treat("chamfer", l.Handle, vector{10, 10, 0}, vector{10, 10, 10}, vector{1, 0, 0}, 1))
+	requireGeneral(t, b, out, 3005, 1400-20+10*math.Sqrt2+1)
+
+	// A block that stands on one face of the concave edge, inside the
+	// reach of the chamfer, and leaves the edge in place.
+	blocked := general(t, b, "fuse", l, box(t, b, vector{10.2, 10, 0}, vector{10.6, 10.6, 10}))
+	convex := shape(t, b, axial(blocked, 20, 0))
+	near(t, convex.GeometryAssertions.Volume, blocked.GeometryAssertions.Volume-5)
+	alone := ask(t, b, axial(blocked, 10, 10))
+	if alone.OK || alone.Error == nil || alone.Error.Code != "UNSUPPORTED" {
+		t.Fatalf("the blocked concave edge: ok %v, error %+v", alone.OK, alone.Error)
+	}
+	both := axial(blocked, 20, 0)
+	delete(both, "edgeStart")
+	delete(both, "edgeEnd")
+	both["edges"] = []any{edgeRef(vector{20, 0, 0}, vector{20, 0, 10}), edgeRef(vector{10, 10, 0}, vector{10, 10, 10})}
+	refused(t, b, both, "UNSUPPORTED", alone.Error.Message)
+	t.Logf("the blocked concave edge is refused with: %s", alone.Error.Message)
+}

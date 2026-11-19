@@ -232,6 +232,10 @@ func (e Edge) Ends() (start, end geom.Vec3) { return e.start, e.end }
 // Normals returns the outward normals of the two faces of the edge.
 func (e Edge) Normals() [2]geom.Vec3 { return e.normal }
 
+// Convex reports whether the material lies between the two faces of the
+// edge. Otherwise the edge is concave: empty space lies between them.
+func (e Edge) Convex() bool { return e.convex }
+
 // Same reports whether two references resolved to one chain.
 func (e Edge) Same(other Edge) bool {
 	if len(e.chain) != len(other.chain) {

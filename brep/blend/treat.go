@@ -3,7 +3,6 @@ package blend
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math"
 
 	"plainsolid/brep"
@@ -67,37 +66,56 @@ type tool struct {
 
 // Treat applies one treatment of the given size to edges of body that
 // Locate resolved in body.Solid, and returns the result of the last
-// boolean.Combine call. It makes at most 2n + 1 such calls for n edges.
+// boolean.Combine call. A convex edge loses its tool and a concave edge
+// gains it. It makes at most 2n + 1 such calls for n edges.
 // Nothing is returned unless every check on the result passes (K1 to
 // K7).
 func Treat(ctx context.Context, body Body, edges []Edge, kind Kind, size float64, o Options) (boolean.Result, error) {
 	if len(edges) == 0 || !(size > o.Tolerance.Point) || math.IsInf(size, 0) {
 		return boolean.Result{}, ErrSize
 	}
+	// The tools of the convex edges are cut from the body, and then the
+	// tools of the concave edges are united with what is left (B3).
 	tools := make([]tool, len(edges))
-	call := make([]int, len(edges))
+	var calls [2][]int
 	for i, e := range edges {
-		if !e.convex {
-			return boolean.Result{}, fmt.Errorf("%w: a concave edge", boolean.ErrUnsupported)
-		}
 		t, err := e.tool(i, kind, size, o)
 		if err != nil {
 			return boolean.Result{}, err
 		}
-		tools[i], call[i] = t, i
+		tools[i] = t
+		if e.convex {
+			calls[0] = append(calls[0], i)
+		} else {
+			calls[1] = append(calls[1], i)
+		}
 	}
-	united, err := unite(ctx, tools, o)
-	if err != nil {
-		return boolean.Result{}, err
-	}
-	options := o.Boolean
-	options.KnownA = body.Known
-	r, err := boolean.Combine(ctx, body.Solid, united.solid, boolean.Cut, options)
-	if err != nil {
-		return boolean.Result{}, err
-	}
-	if err := check(r, body.Solids, united, edges, call, false, o); err != nil {
-		return boolean.Result{}, err
+	var r boolean.Result
+	for k, call := range calls {
+		if len(call) == 0 {
+			continue
+		}
+		set := make([]tool, len(call))
+		for j, i := range call {
+			set[j] = tools[i]
+		}
+		united, err := unite(ctx, set, o)
+		if err != nil {
+			return boolean.Result{}, err
+		}
+		op, options := boolean.Cut, o.Boolean
+		if k == 1 {
+			op = boolean.Union
+		}
+		options.KnownA = body.Known
+		if r, err = boolean.Combine(ctx, body.Solid, united.solid, op, options); err != nil {
+			return boolean.Result{}, err
+		}
+		if err := check(r, body.Solids, united, edges, call, k == 1, o); err != nil {
+			return boolean.Result{}, err
+		}
+		measures := r.Properties
+		body = Body{Solid: r.Solid, Known: &measures, Solids: r.Solids}
 	}
 	if err := gone(r.Solid, edges, o.Tolerance); err != nil {
 		return boolean.Result{}, err
@@ -195,21 +213,30 @@ func check(r boolean.Result, solids int, t tool, edges []Edge, call []int, union
 	if r.Solids == 0 || !(r.Volume > 0) {
 		return ErrFit
 	}
-	// K2: no support face of the tool is a source of a face.
+	// K2: a support face of the tool leaves no trace. In a cut it is a
+	// source of no face. In a union an end cap may lie beside an end
+	// face of the body, in its plane, and is then merged into it: a face
+	// with a support among its sources must have a face of the body
+	// among them too.
 	working := make([]bool, len(r.Sources))
 	served := map[int]bool{}
 	for i, sources := range r.Sources {
+		fromBody, support := false, false
 		for _, source := range sources {
-			if source[0] != 1 {
-				continue
+			switch {
+			case source[0] != 1:
+				fromBody = true
+			case !t.working[source[1]]:
+				support = true
+			default:
+				working[i] = true
+				for _, e := range t.owners[source[1]] {
+					served[e] = true
+				}
 			}
-			if !t.working[source[1]] {
-				return ErrEnds
-			}
-			working[i] = true
-			for _, e := range t.owners[source[1]] {
-				served[e] = true
-			}
+		}
+		if support && (!union || !fromBody) {
+			return ErrEnds
 		}
 	}
 	// K3: a face that shares a vertex with a new face is a new face or

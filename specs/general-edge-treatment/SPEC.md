@@ -341,13 +341,20 @@ first that fails decides the error (section 9).
 
 - K1. The result is not empty: `R'` has at least one solid and
   `V(R') > 0`.
-- K2. Supports leave no trace. No face of `R'` has a support face of `T`
-  among its sources. A flank that lies wholly on the face it belongs to
-  is a shared piece, which the cut drops (same normals) and the union
-  drops (opposite normals); so is an end cap that lies wholly on a face
-  of the body. A flank that passes under a neighbouring feature, and an
-  end cap that lies in the material or in empty space, are kept and are
-  found by this check.
+- K2. Supports leave no trace. In the cut, no face of `R'` has a support
+  face of `T` among its sources. A flank that lies wholly on the face it
+  belongs to is a shared piece with the same normal, which the cut
+  drops; so is an end cap that lies wholly on a face of the body. A
+  flank that passes under a neighbouring feature, and an end cap that
+  lies in the material, are kept and are found by this check. In the
+  union, a flank that lies wholly on its face is a shared piece with the
+  opposite normal and is dropped, and so is an end cap against a wall.
+  An end cap at an open end of a concave edge lies beside the end face
+  of the body, in its plane, and the Boolean merges the two into one
+  face, which is the end face grown by the section of the tool (11.1).
+  So in the union a face of `R'` that has a support face of `T` among
+  its sources must also have a face of `A'` among them. A cap or a flank
+  that stands free has no such source and is found by this check.
 - K3. Clearance. Every face of `R'` that shares a vertex with a working
   result face must itself be a working result face, or a planar face
   that lies in a treatment plane of the call: for the plane of `F1` or
