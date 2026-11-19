@@ -21,9 +21,14 @@ type Tolerance struct {
 
 // The three ways a reference fails to resolve (R8).
 var (
-	errLost     = errors.New("blend: no complete edge between two planar faces joins the reference")
-	errCurved   = errors.New("blend: the edge has a face that is not a plane")
-	errParallel = errors.New("blend: the two faces of the edge are parallel")
+	// ErrLost: no chain of straight edges between two planes joins the
+	// two ends, or more than one does.
+	ErrLost = errors.New("blend: no complete edge between two planar faces joins the reference")
+	// ErrCurved: a chain joins the ends, and one of its faces is not a
+	// plane.
+	ErrCurved = errors.New("blend: the edge has a face that is not a plane")
+	// ErrParallel: a chain joins the ends, between two parallel planes.
+	ErrParallel = errors.New("blend: the two faces of the edge are parallel")
 )
 
 // Edge is a resolved reference: a chain of straight edges of a solid, end
@@ -58,12 +63,12 @@ type plane struct {
 // chain it returns runs from the end of the reference nearest start.
 func Locate(s trimmed.Solid, start, end geom.Vec3, t Tolerance) (Edge, error) {
 	if !(t.Point > 0) || !(t.Angular > 0) || !start.IsFinite() || !end.IsFinite() {
-		return Edge{}, errLost
+		return Edge{}, ErrLost
 	}
 	span := end.Sub(start)
 	length := span.Length()
 	if !(length > t.Point) {
-		return Edge{}, errLost
+		return Edge{}, ErrLost
 	}
 	axis := span.Scale(1 / length)
 	vertices, edges := s.Vertices(), s.Edges()
@@ -100,7 +105,7 @@ func Locate(s trimmed.Solid, start, end geom.Vec3, t Tolerance) (Edge, error) {
 		}
 	}
 	if len(pieces) == 0 {
-		return Edge{}, errLost
+		return Edge{}, ErrLost
 	}
 	slices.SortFunc(pieces, func(p, q piece) int {
 		switch {
@@ -116,12 +121,12 @@ func Locate(s trimmed.Solid, start, end geom.Vec3, t Tolerance) (Edge, error) {
 	// gap, leave no chain or more than one (R6).
 	last := pieces[len(pieces)-1]
 	if vertices[pieces[0].from].Sub(start).Length() > t.Point || vertices[last.to].Sub(end).Length() > t.Point {
-		return Edge{}, errLost
+		return Edge{}, ErrLost
 	}
 	out := Edge{start: vertices[pieces[0].from], end: vertices[last.to], vertices: []int{pieces[0].from}}
 	for i, p := range pieces {
 		if i > 0 && p.from != pieces[i-1].to {
-			return Edge{}, errLost
+			return Edge{}, ErrLost
 		}
 		out.chain = append(out.chain, p.edge)
 		out.vertices = append(out.vertices, p.to)
@@ -143,7 +148,7 @@ func Locate(s trimmed.Solid, start, end geom.Vec3, t Tolerance) (Edge, error) {
 	}
 	for _, e := range out.chain {
 		if len(uses[e]) != 2 || uses[e][0].face == uses[e][1].face {
-			return Edge{}, errLost // a seam, or an edge that is not manifold (R3)
+			return Edge{}, ErrLost // a seam, or an edge that is not manifold (R3)
 		}
 	}
 	var first [2]plane
@@ -152,11 +157,11 @@ func Locate(s trimmed.Solid, start, end geom.Vec3, t Tolerance) (Edge, error) {
 		for k, sd := range uses[e] {
 			face := faces[sd.face]
 			if base, _ := parametric.SurfaceMapping(face.Surface); !isPlane(base) {
-				return Edge{}, errCurved
+				return Edge{}, ErrCurved
 			}
 			p, err := sd.plane(face, axis)
 			if err != nil {
-				return Edge{}, errLost
+				return Edge{}, ErrLost
 			}
 			here[k] = p
 		}
@@ -168,11 +173,11 @@ func Locate(s trimmed.Solid, start, end geom.Vec3, t Tolerance) (Edge, error) {
 		direct := samePlane(here[0], first[0], t) && samePlane(here[1], first[1], t)
 		crossed := samePlane(here[0], first[1], t) && samePlane(here[1], first[0], t)
 		if !direct && !crossed {
-			return Edge{}, errLost
+			return Edge{}, ErrLost
 		}
 	}
 	if first[0].normal.Cross(first[1].normal).Length() <= t.Angular {
-		return Edge{}, errParallel
+		return Edge{}, ErrParallel
 	}
 	for k, p := range first {
 		out.normal[k], out.into[k] = p.normal, p.into
@@ -219,4 +224,33 @@ func (sd side) plane(face trimmed.Face, axis geom.Vec3) (plane, error) {
 func samePlane(a, b plane, t Tolerance) bool {
 	return a.normal.Dot(b.normal) > 0 && a.normal.Cross(b.normal).Length() <= t.Angular &&
 		math.Abs(b.point.Sub(a.point).Dot(a.normal)) <= t.Point
+}
+
+// Ends returns the two ends of the chain.
+func (e Edge) Ends() (start, end geom.Vec3) { return e.start, e.end }
+
+// Normals returns the outward normals of the two faces of the edge.
+func (e Edge) Normals() [2]geom.Vec3 { return e.normal }
+
+// Same reports whether two references resolved to one chain.
+func (e Edge) Same(other Edge) bool {
+	if len(e.chain) != len(other.chain) {
+		return false
+	}
+	for _, x := range e.chain {
+		if !slices.Contains(other.chain, x) {
+			return false
+		}
+	}
+	return true
+}
+
+// Meets reports whether two chains have a vertex of the solid in common.
+func (e Edge) Meets(other Edge) bool {
+	for _, v := range e.vertices {
+		if slices.Contains(other.vertices, v) {
+			return true
+		}
+	}
+	return false
 }

@@ -374,6 +374,9 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 			retainedPocket = true
 		}
 	}
+	if _, served := generalEdgeKinds[q.Op]; served && s.analytic != nil && b.generalResult(s.analytic) {
+		return b.generalTreatEdge(s, q, refs, normal, size)
+	}
 	if s.treated == nil && !s.planar() && s.bore == nil {
 		return Shape{}, unsupportedEdge(q.Op + " failed: stock type is unsupported")
 	}

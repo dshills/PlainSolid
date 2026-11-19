@@ -1,0 +1,221 @@
+package blend
+
+import (
+	"context"
+	"errors"
+	"math"
+	"testing"
+
+	"plainsolid/brep"
+	"plainsolid/brep/boolean"
+	"plainsolid/brep/trimmed"
+	"plainsolid/geom"
+)
+
+var treatOptions = Options{Boolean: testOptions, Tolerance: testTolerance}
+
+func near(t *testing.T, got, want float64) {
+	t.Helper()
+	if math.Abs(got-want) > 1e-8*math.Max(1, math.Abs(want)) {
+		t.Fatalf("got %.15g, want %.15g", got, want)
+	}
+}
+
+func located(t *testing.T, s trimmed.Solid, start, end geom.Vec3) Edge {
+	t.Helper()
+	e, err := Locate(s, start, end, testTolerance)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return e
+}
+
+// measured is a solid with its volume and area, which the Boolean gives
+// for the union of the solid with nothing.
+func measured(t *testing.T, s trimmed.Solid) (Body, float64, float64) {
+	t.Helper()
+	r := combined(t, s, trimmed.Solid{}, boolean.Union)
+	return Body{Solid: s, Solids: r.Solids}, r.Properties.Volume, r.Properties.Area
+}
+
+// form gives the closed form of section 11.1 for one edge: the area of
+// the section of its tool, the width of the new face, and the setback
+// along each old face.
+func form(e Edge, kind Kind, size float64) (section, width, setback float64) {
+	return size * size * math.Sin(e.angle) / 2, 2 * size * math.Sin(e.angle/2), size
+}
+
+// requireForm treats edges that do not meet and requires the volume and
+// the area of section 11.1.
+func requireForm(t *testing.T, s trimmed.Solid, kind Kind, size float64, edges ...Edge) boolean.Result {
+	t.Helper()
+	body, volume, area := measured(t, s)
+	r, err := Treat(context.Background(), body, edges, kind, size, treatOptions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range edges {
+		section, width, setback := form(e, kind, size)
+		length := e.end.Sub(e.start).Length()
+		sign := 1.0
+		if !e.convex {
+			sign = -1
+		}
+		volume -= sign * length * section
+		area += length*(width-2*setback) - sign*2*section
+	}
+	near(t, r.Properties.Volume, volume)
+	near(t, r.Properties.Area, area)
+	if r.Solids != 1 {
+		t.Fatalf("%d solids", r.Solids)
+	}
+	return r
+}
+
+// splitBox is the box (0,0,0)–(20,10,10) with the edge (0,0,0)–(20,0,0)
+// stored as two edges that meet at (8,0,0).
+func splitBox(t *testing.T) trimmed.Solid {
+	t.Helper()
+	whole, err := brep.Box(vec(0, 0, 0), vec(20, 10, 10))
+	if err != nil {
+		t.Fatal(err)
+	}
+	vertices, edges, faces := whole.Vertices(), whole.Edges(), whole.Faces()
+	target := -1
+	for i, e := range edges {
+		a, b := vertices[e.Start], vertices[e.End]
+		if a.Y == 0 && a.Z == 0 && b.Y == 0 && b.Z == 0 {
+			target = i
+		}
+	}
+	if target < 0 {
+		t.Fatal("the box has no such edge")
+	}
+	middle, second := len(vertices), len(edges)
+	vertices = append(vertices, vec(8, 0, 0))
+	if vertices[edges[target].Start].X != 0 {
+		vertices[middle] = vec(12, 0, 0)
+	}
+	edges = append(edges, brep.Edge{Start: middle, End: edges[target].End})
+	edges[target].End = middle
+	for f, face := range faces {
+		var loop []brep.EdgeUse
+		for _, u := range face.Boundary {
+			switch {
+			case u.Edge != target:
+				loop = append(loop, u)
+			case u.Reversed:
+				loop = append(loop, brep.EdgeUse{Edge: second, Reversed: true}, u)
+			default:
+				loop = append(loop, u, brep.EdgeUse{Edge: second})
+			}
+		}
+		faces[f].Boundary = loop
+	}
+	s, err := brep.NewSolid(vertices, edges, faces)
+	return lifted(t, s, err)
+}
+
+// TestChamferClosedForms chamfers edges below the bridge and compares
+// with the closed forms.
+func TestChamferClosedForms(t *testing.T) {
+	t.Run("Q7, an edge of 120 degrees", func(t *testing.T) {
+		s := hexPrism(t)
+		requireForm(t, s, Chamfer, 1, located(t, s, vec(5, 0, 0), vec(5, 0, 8)))
+	})
+	// The values the legacy path's test states for Q8: the two corner
+	// cuts remove triangles of area 15/512 and 25/512.
+	q8 := func(t *testing.T, s trimmed.Solid, acute, right [2]geom.Vec3) {
+		t.Helper()
+		r := requireForm(t, s, Chamfer, 5.0/16, located(t, s, acute[0], acute[1]), located(t, s, right[0], right[1]))
+		area := 6 - 40.0/512
+		perimeter := 12 - 20.0/16 + (math.Sqrt(10)+5*math.Sqrt2)/16
+		near(t, r.Properties.Volume, 5*area)
+		near(t, r.Properties.Area, 2*area+5*perimeter)
+	}
+	t.Run("Q8, two edges of a triangular prism", func(t *testing.T) {
+		t.Skip("stopped under ST-1 of specs/general-edge-treatment/PLAN.md: the chamfer plane of the edge at (4,0) " +
+			"contains the direction (1,3,7), the first ray of trimmed.Solid.Classify, and boolean.Combine fails " +
+			"its membership check V6 on the tool with \"trimmed: ray surface residual exceeds tolerance\"")
+		s := trianglePrism(t)
+		q8(t, s, [2]geom.Vec3{vec(4, 0, 0), vec(4, 0, 5)}, [2]geom.Vec3{vec(0, 0, 0), vec(0, 0, 5)})
+	})
+	t.Run("Q8 in the pose of the legacy test along x", func(t *testing.T) {
+		// The profile point (x, y) at height z is (z + 2, x − 3, y + 4).
+		tri, err := brep.Prism([]geom.Vec3{vec(2, -3, 4), vec(2, 1, 4), vec(2, -3, 7)}, vec(5, 0, 0))
+		s := lifted(t, tri, err)
+		q8(t, s, [2]geom.Vec3{vec(2, 1, 4), vec(7, 1, 4)}, [2]geom.Vec3{vec(2, -3, 4), vec(7, -3, 4)})
+	})
+	t.Run("a chain of two edges", func(t *testing.T) {
+		s := splitBox(t)
+		e := located(t, s, vec(0, 0, 0), vec(20, 0, 0))
+		if len(e.chain) != 2 {
+			t.Fatalf("a chain of %d edges", len(e.chain))
+		}
+		r := requireForm(t, s, Chamfer, 0.5, e)
+		near(t, r.Properties.Volume, 1997.5)
+	})
+	t.Run("a result of the Boolean", func(t *testing.T) {
+		s := slottedBox(t)
+		requireForm(t, s, Chamfer, 0.5, located(t, s, vec(0, 0, 0), vec(20, 0, 0)))
+	})
+}
+
+// TestTreatGuards exercises the checks that the requests of the bridge
+// do not reach alone: K1, K5, K6 and K7, and the order of K2 and K3.
+func TestTreatGuards(t *testing.T) {
+	ctx := context.Background()
+	s := slottedBox(t)
+	e := located(t, s, vec(0, 0, 0), vec(20, 0, 0))
+	wedge, err := e.tool(0, Chamfer, 0.5, treatOptions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	good := combined(t, s, wedge.solid, boolean.Cut)
+	edges := []Edge{e}
+	if err := check(good, 1, wedge, edges, []int{0}, false, treatOptions); err != nil {
+		t.Fatalf("a sound chamfer fails a check: %v", err)
+	}
+	t.Run("K1, nothing is left", func(t *testing.T) {
+		empty := good
+		empty.Solids = 0
+		if err := check(empty, 1, wedge, edges, []int{0}, false, treatOptions); !errors.Is(err, ErrFit) {
+			t.Fatal(err)
+		}
+	})
+	t.Run("K5, the solids are not as many", func(t *testing.T) {
+		if err := check(good, 2, wedge, edges, []int{0}, false, treatOptions); !errors.Is(err, ErrDivides) {
+			t.Fatal(err)
+		}
+	})
+	t.Run("K6, an edge left no face", func(t *testing.T) {
+		if err := check(good, 1, wedge, []Edge{e, e}, []int{0, 1}, false, treatOptions); !errors.Is(err, ErrDivides) {
+			t.Fatal(err)
+		}
+	})
+	t.Run("K7, an edge is still there", func(t *testing.T) {
+		if err := gone(good.Solid, edges, testTolerance); err != nil {
+			t.Fatalf("the treated edge still resolves: %v", err)
+		}
+		other := located(t, s, vec(0, 10, 0), vec(20, 10, 0))
+		if err := gone(good.Solid, []Edge{other}, testTolerance); !errors.Is(err, ErrDivides) {
+			t.Fatal(err)
+		}
+	})
+	t.Run("K2 before K3", func(t *testing.T) {
+		// Half of an edge, beside a hole that the chamfer touches: the
+		// tool ends in the material, and a foreign face touches the
+		// new face. The first is the answer.
+		holed := combined(t, boxSolid(t, vec(0, 0, 0), vec(20, 10, 10)), cylinderSolid(t, vec(5, 2, 0), vec(0, 0, 1), 1, 3), boolean.Cut).Solid
+		half := located(t, holed, vec(0, 0, 0), vec(20, 0, 0))
+		half.end = vec(10, 0, 0)
+		if _, err := Treat(ctx, Body{Solid: holed, Solids: 1}, []Edge{half}, Chamfer, 1, treatOptions); !errors.Is(err, ErrEnds) {
+			t.Fatal(err)
+		}
+	})
+	t.Run("a size below the point tolerance", func(t *testing.T) {
+		if _, err := Treat(ctx, Body{Solid: s, Solids: 1}, edges, Chamfer, 5e-8, treatOptions); !errors.Is(err, ErrSize) {
+			t.Fatal(err)
+		}
+	})
+}

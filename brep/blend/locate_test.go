@@ -139,16 +139,16 @@ func TestLocateRefuses(t *testing.T) {
 		start, end geom.Vec3
 		want       error
 	}{
-		{"half an edge", box, vec(0, 0, 0), vec(10, 0, 0), errLost},
-		{"no edge between the ends", box, vec(0, 0, 0), vec(20, 10, 0), errLost},
-		{"an end beyond the point tolerance", box, vec(2e-7, 0, 0), vec(20, 0, 0), errLost},
-		{"the two ends are one point", box, vec(0, 0, 0), vec(0, 0, 0), errLost},
-		{"an edge interrupted by a slot", slottedBox(t), vec(0, 0, 10), vec(20, 0, 10), errLost},
-		{"an edge consumed by a cut", slottedBox(t), vec(12, 0, 10), vec(16, 0, 10), errLost},
-		{"the seam of a cylinder", touched, seam[0], seam[1], errLost},
-		{"a plane against a cylinder", bored, vec(3, 0, 0), vec(3, 0, 10), errCurved},
-		{"a smooth edge of a fillet tool", tool, vec(0, 2, 0), vec(20, 2, 0), errCurved},
-		{"between coplanar faces", touched, divider[0], divider[1], errParallel},
+		{"half an edge", box, vec(0, 0, 0), vec(10, 0, 0), ErrLost},
+		{"no edge between the ends", box, vec(0, 0, 0), vec(20, 10, 0), ErrLost},
+		{"an end beyond the point tolerance", box, vec(2e-7, 0, 0), vec(20, 0, 0), ErrLost},
+		{"the two ends are one point", box, vec(0, 0, 0), vec(0, 0, 0), ErrLost},
+		{"an edge interrupted by a slot", slottedBox(t), vec(0, 0, 10), vec(20, 0, 10), ErrLost},
+		{"an edge consumed by a cut", slottedBox(t), vec(12, 0, 10), vec(16, 0, 10), ErrLost},
+		{"the seam of a cylinder", touched, seam[0], seam[1], ErrLost},
+		{"a plane against a cylinder", bored, vec(3, 0, 0), vec(3, 0, 10), ErrCurved},
+		{"a smooth edge of a fillet tool", tool, vec(0, 2, 0), vec(20, 2, 0), ErrCurved},
+		{"between coplanar faces", touched, divider[0], divider[1], ErrParallel},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if _, err := Locate(c.solid, c.start, c.end, testTolerance); !errors.Is(err, c.want) {

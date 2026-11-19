@@ -350,7 +350,10 @@ first that fails decides the error (section 9).
   found by this check.
 - K3. Clearance. Every face of `R'` that shares a vertex with a working
   result face must itself be a working result face, or a planar face
-  that lies in a treatment plane of the call (the plane test of R5).
+  that lies in a treatment plane of the call: for the plane of `F1` or
+  of `F2`, the plane test of R5 with the normal of that face; for a
+  plane through an end, a parallel normal of either sign and the offset
+  of R5.
   A hole, a pocket wall, the far side of a thin wall or any other
   feature that meets or touches the new face is found by this check,
   whatever the volume involved. Two points of `R'` are one vertex when
