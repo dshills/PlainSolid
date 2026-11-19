@@ -394,7 +394,16 @@ the owner decides OD-C3 against it. Phase 6 is last.
   (the third record of `specs/general-boolean/ACCEPTANCE.md`). The
   refusals come from M6, V1 and F3 of the base specification, which U2
   leaves as they stand, so what to do about them is the owner's: change
-  those rules, or record the band as outside what is supported.
+  those rules, or record the band as outside what is supported. One of
+  them was looked into, the floor at 20.5 that fails V1. Such a floor
+  leaves thin faces of the bore wall between its rim and the smaller
+  ellipse. With the arcs as first cut one of them is a loop of two uses,
+  which `trimmed.NewSolid` does not take; with the arcs halved, as the
+  assembly then tries six times, its check of each face by a mesh folds
+  or meets a triangle of no area on the thin face, or runs out of its
+  budget. So this one is a limit of that check on thin faces, in
+  `brep/trimmed`, and no small change in `brep/boolean` was found for
+  it, unlike the turned case.
 - A-C9: the bridge tests of crossing bores assert the legacy
   representation and would have to be rewritten before a bore family is
   moved to the general Boolean.
