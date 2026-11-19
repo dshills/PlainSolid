@@ -110,13 +110,6 @@ func TestCrossingBores(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			m := geom.Identity()
 			if c.turned {
-				// Stopped under ST-C6 of specs/general-boolean-crossing. The
-				// second cut returns ErrValidation, "V1: trimmed: curved
-				// trim refinement folds or degenerates in UV": NewSolid
-				// refuses the wall of the upright bore between the bottom
-				// rim and the crossing. The same prism in the pose of the
-				// coordinate axes passes, and so does a box in this pose.
-				t.Skip("ST-C6: the result fails V1 in this pose; see specs/general-boolean-crossing/PLAN.md")
 				m = crossingTurn(t)
 			}
 			cosine := math.Sqrt(1 - c.sine*c.sine)
@@ -251,5 +244,58 @@ func TestClosedEdgeInAnyPose(t *testing.T) {
 	}
 	if !crossingWithin(got.Volume, 6*math.Pi) {
 		t.Fatalf("volume %.12g, want %.12g", got.Volume, 6*math.Pi)
+	}
+}
+
+// TestCrossingFloorInTheCrossing cuts a through bore at a slant and a
+// blind bore along z whose floor lies inside the part the two bores
+// share, which here reaches from height 16 to height 24, in both orders.
+// The result does not depend on the order. The stock and the slanted bore
+// are their own image under the half turn about the line through the
+// meeting point of the axes along y, which takes a blind bore from below
+// with its floor at height h to one from above with its floor at 40 − h,
+// so the two have one volume.
+//
+// The floors of this test lie outside the band from 19 to 21, or at its
+// middle. In that band lies the smaller of the two ellipses along which
+// the bores cross, and a floor strictly inside it meets that ellipse as
+// well as the larger one. Such a floor is a known limit: it is cut in some
+// orders and placements and refused in others, as unsupported by M6 ("a
+// face … touches itself"), as failing V1 ("invalid face … loop … size"),
+// or, with the floor at 21 where it touches the top of the ellipse, as
+// inconsistent by F3. Every volume that is returned in the band agrees
+// with the other order and with the image; none is wrong.
+func TestCrossingFloorInTheCrossing(t *testing.T) {
+	m := geom.Identity()
+	stock := crossingStock(t, m, []geom.Vec2{{X: 0, Y: 0}, {X: 20, Y: 0}, {X: 20, Y: 16}, {X: 0, Y: 16}}, 0, 40)
+	slanted := crossingRod(t, m, geom.Vec3{X: 10, Y: 8, Z: 20}, geom.Vec3{X: 4, Z: 3}, 2, 35)
+	cut := func(first, second trimmed.Solid) float64 {
+		t.Helper()
+		a, err := Combine(context.Background(), stock, first, Cut, crossingOptions)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := Combine(context.Background(), a.Solid, second, Cut, crossingOptions)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return b.Volume
+	}
+	for _, floor := range []float64{17, 18, 20, 22, 23} {
+		below := crossingRod(t, m, geom.Vec3{X: 10, Y: 8, Z: floor / 2}, geom.Vec3{Z: 1}, 2, floor)
+		above := crossingRod(t, m, geom.Vec3{X: 10, Y: 8, Z: 40 - floor/2}, geom.Vec3{Z: -1}, 2, floor)
+		want := cut(below, slanted)
+		for _, c := range []struct {
+			name string
+			got  float64
+		}{
+			{"slanted bore first", cut(slanted, below)},
+			{"the image from above, blind bore first", cut(above, slanted)},
+			{"the image from above, slanted bore first", cut(slanted, above)},
+		} {
+			if !crossingWithin(c.got, want) {
+				t.Errorf("floor at %g: %s: volume %.12g, want %.12g", floor, c.name, c.got, want)
+			}
+		}
 	}
 }
