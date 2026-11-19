@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"plainsolid/brep"
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
@@ -204,5 +205,51 @@ func TestKnownMeasures(t *testing.T) {
 	o.KnownA = &parametric.Properties{Volume: math.Inf(1)}
 	if _, err := Combine(context.Background(), stock, tool, Cut, o); !errors.Is(err, ErrInvalid) {
 		t.Fatalf("a known volume that is not finite gives %v", err)
+	}
+}
+
+// TestOperandAlongClassificationRay: V6 classifies its sample points with
+// rays in fixed directions, the first of them (1,3,7). An operand with a
+// plane that contains that direction, or a cylinder about it, is validated
+// like any other.
+func TestOperandAlongClassificationRay(t *testing.T) {
+	prism := func(apex geom.Vec3) trimmed.Solid {
+		t.Helper()
+		p, err := brep.Prism([]geom.Vec3{{}, {X: 4}, apex}, geom.Vec3{Z: 5})
+		if err != nil {
+			t.Fatal(err)
+		}
+		s, err := trimmed.FromPlanar(p, 1e-7)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	frame, err := geom.FrameFromNormal(geom.Vec3{X: .3, Y: -1.7, Z: 2.9}, geom.Vec3{X: 1, Y: 3, Z: 7})
+	if err != nil {
+		t.Fatal(err)
+	}
+	round, err := parametric.Cylinder(frame, 2, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cylinder, err := trimmed.FromParametric(round)
+	if err != nil {
+		t.Fatal(err)
+	}
+	options := Options{Linear: 1e-7, Angular: 1e-9, Volume: 1e-7}
+	for _, tc := range []struct {
+		name   string
+		solid  trimmed.Solid
+		volume float64
+	}{
+		{"prism with a side face through (1,3)", prism(geom.Vec3{X: 1, Y: 3}), 30},
+		{"prism with a side face through (2,6)", prism(geom.Vec3{X: 2, Y: 6}), 60},
+		{"cylinder about (1,3,7)", cylinder, 20 * math.Pi},
+	} {
+		r, err := Combine(context.Background(), tc.solid, trimmed.Solid{}, Union, options)
+		if err != nil || math.Abs(r.Volume-tc.volume) > 1e-7 {
+			t.Errorf("%s: %v, volume %g, want %g", tc.name, err, r.Volume, tc.volume)
+		}
 	}
 }
