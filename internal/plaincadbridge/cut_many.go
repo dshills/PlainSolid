@@ -21,6 +21,9 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 	if err != nil {
 		return Shape{}, err
 	}
+	if b.general {
+		return b.generalCutMany(context.Background(), a, tools)
+	}
 	if a.tangent != nil {
 		return Shape{}, unsupportedEdge("Boolean operations on side-tangent blind bores are outside the supported domain")
 	}

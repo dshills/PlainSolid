@@ -1,0 +1,9 @@
+{"new":true}
+{"req":{"max":[10,10,10],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":1000,"surfaceArea":600,"solidCount":1,"bounds":{"min":[0,0,0],"max":[10,10,10]}}}
+{"req":{"max":[2,10,10],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":200,"surfaceArea":280,"solidCount":1,"bounds":{"min":[0,0,0],"max":[2,10,10]}}}
+{"req":{"height":10,"normal":[0,0,1],"op":"circle","origin":[5,5,0],"radius":1},"ok":true,"handle":"ps:3","result":{"valid":true,"volume":31.41592653589793,"surfaceArea":69.11503837897544,"solidCount":1,"bounds":{"min":[3.999999999989957,3.999999999989957,-1.0071054273576011e-11],"max":[6.0000000000100435,6.0000000000100435,10.000000000010072]}}}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:2","ps:3"]},"ok":false,"code":"UNSUPPORTED"}
+{"req":{"a":"ps:1","op":"cutMany","tools":["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]},"ok":false,"code":"LIMIT"}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:2","missing"]},"ok":false,"code":"HANDLE"}
+{"req":{"max":[21,1,1],"min":[20,0,0],"op":"box"},"ok":true,"handle":"ps:4","result":{"valid":true,"volume":1,"surfaceArea":6,"solidCount":1,"bounds":{"min":[20,0,0],"max":[21,1,1]}}}
+{"req":{"op":"cutMany","a":"ps:1","tools":["ps:4"]},"ok":false,"code":"INVALID"}

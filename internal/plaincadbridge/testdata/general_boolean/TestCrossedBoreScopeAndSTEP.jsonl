@@ -1,0 +1,22 @@
+{"new":true}
+{"req":{"max":[20,24,18],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":8640,"surfaceArea":2544,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,24,18]}}}
+{"req":{"height":20,"normal":[1,0,0],"op":"circle","origin":[0,9,7],"radius":3},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":565.4866776461628,"surfaceArea":433.53978619539146,"solidCount":1,"bounds":{"min":[-2.0142108547152022e-11,5.999999999979914,3.9999999999799285],"max":[20.000000000020144,12.000000000020087,10.000000000020073]}}}
+{"req":{"height":18,"normal":[0,0,-1],"op":"circle","origin":[8,9,18],"radius":3},"ok":true,"handle":"ps:3","result":{"valid":true,"volume":508.93800988154646,"surfaceArea":395.84067435231395,"solidCount":1,"bounds":{"min":[4.999999999981921,5.999999999981914,-1.812789769243682e-11],"max":[11.00000000001808,12.000000000018087,18.000000000018133]}}}
+{"req":{"a":"ps:1","b":"ps:2","op":"cut"},"ok":true,"handle":"ps:4","result":{"valid":true,"volume":8074.513322353837,"surfaceArea":2864.442450666159,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,24,18]}}}
+{"req":{"a":"ps:4","b":"ps:3","op":"overlapVolume"},"ok":true,"result":{"value":364.93800988154635},"analytic":{"value":[364.9380098815465]}}
+{"req":{"a":"ps:4","b":"ps:3","op":"cut"},"ok":true,"handle":"ps:5","result":{"valid":true,"volume":7709.5753124722905,"surfaceArea":3003.18578948924,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,24,18]}}}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:2","ps:3"]},"ok":true,"direct":true,"handle":"ps:6","result":{"valid":true,"volume":7709.5753124722905,"surfaceArea":3003.18578948924,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,24,18]}},"analytic":{"volume":[7709.5753124722905],"surfaceArea":[3003.1857894892405]}}
+{"req":{"handles":["ps:6"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"handles":["ps:5"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"op":"importStep"},"source":"922a4c809791f359","ok":true,"direct":true,"handle":"ps:7","result":{"valid":true,"volume":7709.5753124722905,"surfaceArea":3003.18578948924,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,24,18]}},"unchecked":"STEP request (15.2 last item)"}
+{"req":{"a":"ps:7","b":"ps:3","op":"overlapVolume"},"ok":true,"result":{"value":0},"analytic":{"value":[0.0]}}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:3","ps:2"]},"ok":true,"direct":true,"handle":"ps:8","result":{"valid":true,"volume":7709.5753124722905,"surfaceArea":3003.18578948924,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,24,18]}},"analytic":{"volume":[7709.5753124722905],"surfaceArea":[3003.1857894892405]}}
+{"req":{"handles":["ps:8"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"handles":["ps:5"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"op":"importStep"},"source":"922a4c809791f359","ok":true,"direct":true,"handle":"ps:9","result":{"valid":true,"volume":7709.5753124722905,"surfaceArea":3003.18578948924,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,24,18]}},"unchecked":"STEP request (15.2 last item)"}
+{"req":{"a":"ps:9","b":"ps:3","op":"overlapVolume"},"ok":true,"result":{"value":0},"analytic":{"value":[0.0]}}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:3","ps:2","ps:3"]},"ok":true,"direct":true,"handle":"ps:10","result":{"valid":true,"volume":7709.5753124722905,"surfaceArea":3003.18578948924,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,24,18]}},"analytic":{"volume":[7709.5753124722905],"surfaceArea":[3003.1857894892405]}}
+{"req":{"handles":["ps:10"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"handles":["ps:5"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"op":"importStep"},"source":"922a4c809791f359","ok":true,"direct":true,"handle":"ps:11","result":{"valid":true,"volume":7709.5753124722905,"surfaceArea":3003.18578948924,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,24,18]}},"unchecked":"STEP request (15.2 last item)"}
+{"req":{"a":"ps:11","b":"ps:3","op":"overlapVolume"},"ok":true,"result":{"value":0},"analytic":{"value":[0.0]}}

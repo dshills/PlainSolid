@@ -1,0 +1,36 @@
+{"new":true}
+{"req":{"max":[20,16,40],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":12800,"surfaceArea":3520,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}}}
+{"req":{"height":28,"normal":[0,0,1],"op":"circle","origin":[10,8,0],"radius":2},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":351.85837720205683,"surfaceArea":376.99111843077515,"solidCount":1,"bounds":{"min":[7.999999999971914,5.999999999971928,-2.819895196601283e-11],"max":[12.000000000028088,10.000000000028074,28.0000000000282]}}}
+{"req":{"height":26.25,"normal":[4,0,3],"op":"circle","origin":[-6,8,8],"radius":2},"ok":true,"handle":"ps:3","result":{"valid":true,"volume":329.8672286269283,"surfaceArea":354.9999698556466,"solidCount":1,"bounds":{"min":[-7.200000000026366,5.999999999973678,6.399999999973569],"max":[16.20000000002637,10.000000000026322,25.350000000026437]}}}
+{"req":{"a":"ps:1","b":"ps:2","op":"cut"},"ok":true,"handle":"ps:4","result":{"valid":true,"volume":12448.141622797943,"surfaceArea":3871.8583772020565,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}}}
+{"req":{"a":"ps:4","b":"ps:3","op":"overlapVolume"},"ok":true,"result":{"value":182.28611568589986},"analytic":{"value":[182.28611568590117]}}
+{"req":{"a":"ps:4","op":"cutMany","tools":["ps:3"]},"ok":true,"direct":true,"handle":"ps:5","result":{"valid":true,"volume":12265.855507112043,"surfaceArea":4024.3362335677016,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}},"analytic":{"volume":[12265.855507112043],"surfaceArea":[4024.3362335677016]}}
+{"req":{"handles":["ps:5"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"op":"importStep"},"source":"52bc1088b171b045","ok":true,"direct":true,"handle":"ps:6","result":{"valid":true,"volume":12265.855507112043,"surfaceArea":4024.3362335677016,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}},"unchecked":"STEP request (15.2 last item)","analytic":{"volume":[12265.855507112043],"surfaceArea":[4024.3362335677016]}}
+{"req":{"handles":["ps:6"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"a":"ps:6","b":"ps:3","op":"overlapVolume"},"ok":true,"result":{"value":0},"analytic":{"value":[0.0]}}
+{"req":{"a":"ps:6","b":"ps:2","op":"overlapVolume"},"ok":true,"result":{"value":0},"analytic":{"value":[0.0]}}
+{"req":{"height":32,"normal":[0,0,1],"op":"circle","origin":[10,8,0],"radius":2},"ok":true,"handle":"ps:7","result":{"valid":true,"volume":402.1238596594935,"surfaceArea":427.2566008882119,"solidCount":1,"bounds":{"min":[7.999999999967914,5.999999999967928,-3.222737367544324e-11],"max":[12.000000000032086,10.000000000032072,32.00000000003224]}}}
+{"req":{"a":"ps:6","b":"ps:7","op":"overlapVolume"},"ok":true,"result":{"value":50.26548245743834},"analytic":{"value":[50.26548245743669]}}
+{"req":{"a":"ps:6","op":"cutMany","tools":["ps:7"]},"ok":true,"direct":true,"handle":"ps:8","result":{"valid":true,"volume":12215.590024654604,"surfaceArea":4074.601716025138,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}}}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:7","ps:3"]},"ok":true,"direct":true,"handle":"ps:9","result":{"valid":true,"volume":12215.590024654604,"surfaceArea":4074.601716025138,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}}}
+{"req":{"handles":["ps:8"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"handles":["ps:9"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"new":true}
+{"req":{"max":[20,16,40],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":12800,"surfaceArea":3520,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}}}
+{"req":{"height":28,"normal":[0,0,-1],"op":"circle","origin":[10,8,40],"radius":2},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":351.85837720205683,"surfaceArea":376.99111843077515,"solidCount":1,"bounds":{"min":[7.999999999971914,5.999999999971928,11.999999999971713],"max":[12.000000000028088,10.000000000028074,40.000000000028294]}}}
+{"req":{"height":26.25,"normal":[4,0,3],"op":"circle","origin":[-6,8,8],"radius":2},"ok":true,"handle":"ps:3","result":{"valid":true,"volume":329.8672286269283,"surfaceArea":354.9999698556466,"solidCount":1,"bounds":{"min":[-7.200000000026366,5.999999999973678,6.399999999973569],"max":[16.20000000002637,10.000000000026322,25.350000000026437]}}}
+{"req":{"a":"ps:1","b":"ps:2","op":"cut"},"ok":true,"handle":"ps:4","result":{"valid":true,"volume":12448.141622797943,"surfaceArea":3871.8583772020565,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}}}
+{"req":{"a":"ps:4","b":"ps:3","op":"overlapVolume"},"ok":true,"result":{"value":182.28611568589986},"analytic":{"value":[182.28611568590117]}}
+{"req":{"a":"ps:4","op":"cutMany","tools":["ps:3"]},"ok":true,"direct":true,"handle":"ps:5","result":{"valid":true,"volume":12265.855507112043,"surfaceArea":4024.3362335677016,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}},"analytic":{"volume":[12265.855507112043],"surfaceArea":[4024.3362335677016]}}
+{"req":{"handles":["ps:5"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"op":"importStep"},"source":"a953099ca94e11ed","ok":true,"direct":true,"handle":"ps:6","result":{"valid":true,"volume":12265.855507112043,"surfaceArea":4024.3362335677016,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}},"unchecked":"STEP request (15.2 last item)","analytic":{"volume":[12265.855507112043],"surfaceArea":[4024.3362335677016]}}
+{"req":{"handles":["ps:6"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"a":"ps:6","b":"ps:3","op":"overlapVolume"},"ok":true,"result":{"value":0},"analytic":{"value":[0.0]}}
+{"req":{"a":"ps:6","b":"ps:2","op":"overlapVolume"},"ok":true,"result":{"value":0},"analytic":{"value":[0.0]}}
+{"req":{"height":32,"normal":[0,0,-1],"op":"circle","origin":[10,8,40],"radius":2},"ok":true,"handle":"ps:7","result":{"valid":true,"volume":402.1238596594935,"surfaceArea":427.2566008882119,"solidCount":1,"bounds":{"min":[7.999999999967914,5.999999999967928,7.999999999967715],"max":[12.000000000032086,10.000000000032072,40.000000000032294]}}}
+{"req":{"a":"ps:6","b":"ps:7","op":"overlapVolume"},"ok":true,"result":{"value":50.26548245743834},"analytic":{"value":[50.26548245743669]}}
+{"req":{"a":"ps:6","op":"cutMany","tools":["ps:7"]},"ok":true,"direct":true,"handle":"ps:8","result":{"valid":true,"volume":12215.590024654604,"surfaceArea":4074.601716025138,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}}}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:7","ps:3"]},"ok":true,"direct":true,"handle":"ps:9","result":{"valid":true,"volume":12215.590024654604,"surfaceArea":4074.601716025138,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}}}
+{"req":{"handles":["ps:8"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"handles":["ps:9"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}

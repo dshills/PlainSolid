@@ -1,0 +1,435 @@
+package boolean
+
+import (
+	"context"
+	"errors"
+	"math"
+	"strings"
+	"testing"
+
+	"plainsolid/brep"
+	"plainsolid/brep/parametric"
+	"plainsolid/brep/trimmed"
+	"plainsolid/geom"
+)
+
+// whole runs the intersection stage on two planar solids.
+func whole(t *testing.T, x, y brep.Solid, change func(*Options)) (*arrangement, error) {
+	t.Helper()
+	ops, tol, o := taken(t, x, y, change)
+	return arrange(context.Background(), ops, tol, o)
+}
+
+// TestFacePass covers X6 and X8 on pairs of planar solids.
+func TestFacePass(t *testing.T) {
+	cube := box(t, 0, 0, 0, 2, 2, 2)
+	t.Run("traces where faces cross", func(t *testing.T) {
+		// Two boxes that overlap in a corner: each of the three faces of
+		// A at the corner is crossed by two faces of B.
+		a, err := whole(t, cube, box(t, 1, 1, 1, 3, 3, 3), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(a.traces) != 6 || len(a.pairs) != 0 || len(a.contacts) != 0 {
+			t.Fatalf("%d traces, %d same-surface pairs, %d contacts", len(a.traces), len(a.pairs), len(a.contacts))
+		}
+		for _, tr := range a.traces {
+			e := a.elems[tr.elem]
+			if tr.touching || tr.t1-tr.t0 != 1 || a.points[e.a].pos.Distance(a.points[e.b].pos) != 1 {
+				t.Fatalf("trace %+v", tr)
+			}
+			for i, f := range tr.faces {
+				found := false
+				for _, x := range a.inner[i][f] {
+					found = found || x == tr.elem
+				}
+				if !found {
+					t.Fatalf("trace %+v is not recorded in face %d of operand %d", tr, f, i)
+				}
+			}
+		}
+	})
+	t.Run("same-surface pairs", func(t *testing.T) {
+		a, err := whole(t, cube, box(t, 0, 0, 2, 2, 2, 3), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		opposite, same := 0, 0
+		for _, p := range a.pairs {
+			if p.opposite {
+				opposite++
+			} else {
+				same++
+			}
+		}
+		if opposite != 1 || same != 4 || len(a.traces) != 0 {
+			t.Fatalf("%d opposite pairs, %d same pairs, %d traces; want 1, 4, 0", opposite, same, len(a.traces))
+		}
+	})
+	t.Run("a span that already runs along the curve is reused", func(t *testing.T) {
+		// C6: the faces of B inside A meet the faces of A along edges of
+		// B that already lie in those faces. No trace is made.
+		a, err := whole(t, cube, box(t, 0, 0, 0, 1, 1, 1), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(a.traces) != 0 || len(a.pairs) != 3 {
+			t.Fatalf("%d traces and %d same-surface pairs, want 0 and 3", len(a.traces), len(a.pairs))
+		}
+	})
+	t.Run("divergent faces", func(t *testing.T) {
+		// Two faces parallel within Angular, coincident along one edge
+		// and 10ε apart along the opposite one (T8, SP4).
+		turn, err := geom.Rotation(geom.Vec3{Y: 1}, -5e-7)
+		if err != nil {
+			t.Fatal(err)
+		}
+		tilted, err := box(t, 0, 0, 0, 2, 2, 1).Transformed(geom.Translation(geom.Vec3{Z: 2}).Mul(turn))
+		if err != nil {
+			t.Fatal(err)
+		}
+		ops, tol, o := taken(t, cube, tilted, func(o *Options) { o.Angular = 1e-3 })
+		a, err := newArrangement(context.Background(), ops, tol, o)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := a.faceWithFace(); !errors.Is(err, ErrTolerance) || !strings.Contains(err.Error(), "SP4") {
+			t.Fatalf("got %v, want ErrTolerance from SP4", err)
+		}
+	})
+	t.Run("X8", func(t *testing.T) {
+		// Two traces in one face that cross where there is no node.
+		ops, tol, o := taken(t, cube, box(t, 5, 0, 0, 6, 1, 1), nil)
+		a, err := newArrangement(context.Background(), ops, tol, o)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var ends [4]int
+		for i, p := range []geom.Vec3{{X: 0.5, Y: 1, Z: 2}, {X: 1.5, Y: 1, Z: 2}, {X: 1, Y: 0.5, Z: 2}, {X: 1, Y: 1.5, Z: 2}} {
+			if ends[i], err = a.add(p); err != nil {
+				t.Fatal(err)
+			}
+		}
+		a.traces = []trace{
+			{c: line{geom.Vec3{X: 0.5, Y: 1, Z: 2}, geom.Vec3{X: 1}}, t1: 1, ends: [2]int{ends[0], ends[1]}, faces: [2]int{1, 0}},
+			{c: line{geom.Vec3{X: 1, Y: 0.5, Z: 2}, geom.Vec3{Y: 1}}, t1: 1, ends: [2]int{ends[2], ends[3]}, faces: [2]int{1, 3}},
+		}
+		if err := a.tracesCross(); !errors.Is(err, ErrInconsistent) {
+			t.Fatalf("got %v, want ErrInconsistent", err)
+		}
+		a.traces[1].faces[0] = 2 // not in one face any more
+		if err := a.tracesCross(); err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
+// laid runs the intersection stage on two solids as they are stored.
+func laid(t *testing.T, x, y trimmed.Solid) (*arrangement, error) {
+	t.Helper()
+	o, err := matrixOptions.normalized()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tol, err := working(o, x, y, [2]bool{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ops [2]*operand
+	for i, s := range [2]trimmed.Solid{x, y} {
+		if ops[i], err = intake(i, s, tol); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return arrange(context.Background(), ops, tol, o)
+}
+
+// leaning is a cylinder of radius 0.5 and length 6 whose axis passes
+// through (2,2,1), turned from the vertical by the given angle about y.
+func leaning(t *testing.T, angle float64) trimmed.Solid {
+	t.Helper()
+	turn, err := geom.Rotation(geom.Vec3{Y: 1}, angle)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := tube(t, 0, 0, -3, 0.5, 6).Transformed(geom.Translation(geom.Vec3{X: 2, Y: 2, Z: 1}).Mul(turn))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+// TestFacePassCurved covers X6 where a cylinder is involved: the traces,
+// same-surface pairs and touching contacts of plane with cylinder and of
+// parallel cylinders, and the pieces they cut.
+func TestFacePassCurved(t *testing.T) {
+	cube := lifted(t, box(t, 0, 0, 0, 2, 2, 2))
+	slab := lifted(t, box(t, 0, 0, 0, 4, 4, 2))
+	for _, c := range []struct {
+		name                    string
+		a, b                    trimmed.Solid
+		lines, conics           int // traces by carrier
+		touching                int // traces that are touching contacts
+		pairs, contacts, pieces int
+		closed                  int // closed traces
+	}{
+		{"plane across the axis", cube, tube(t, 1, 1, 1, 0.5, 2), 0, 1, 0, 0, 0, 11, 1},
+		{"oblique plane", slab, leaning(t, math.Pi/6), 0, 2, 0, 0, 0, 13, 2},
+		// Two generators in the side face of A, and a chord of each cap.
+		{"plane along the axis", cube, tube(t, 2.2, 1, 0.5, 0.5, 1), 4, 0, 0, 0, 0, 14, 0},
+		{"overlapping parallel cylinders", tube(t, 0, 0, 0, 1, 2), tube(t, 1, 0, 0, 1, 2), 2, 0, 0, 2, 0, 20, 0},
+		{"C11 cylinder touching a face from outside", cube, tube(t, 2.5, 1, 0.5, 0.5, 1), 1, 0, 1, 0, 3, 10, 0},
+		{"C12 cylinder touching a face from inside", cube, tube(t, 0.5, 1, 0.5, 0.5, 1), 1, 0, 1, 0, 3, 10, 0},
+		{"C13 cylinders touching from outside", tube(t, 0, 0, 0, 1, 2), tube(t, 2, 1, 0, 1.2360679774997898, 2), 1, 0, 1, 2, 1, 8, 0},
+		{"C14 cylinders touching from inside", tube(t, 0, 0, 0, 1, 2), tube(t, 0, 0.5, 0, 0.5, 2), 1, 0, 1, 2, 1, 12, 0},
+		{"C19 cylinder standing on a face", cube, tube(t, 1, 1, 2, 0.5, 1), 0, 0, 0, 1, 0, 10, 0},
+		{"C17 coaxial cylinders", tube(t, 0, 0, 0, 1, 2), tube(t, 0, 0, -1, 0.5, 4), 0, 2, 0, 0, 0, 10, 2},
+		// The base circle touches an edge of the top face: at the point
+		// of contact two elements leave along one tangent, and the walk
+		// orders them by curvature (F3).
+		{"C20 base circle touching an edge", cube, tube(t, 1.5, 1, 2, 0.5, 1), 0, 0, 0, 1, 0, 10, 0},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			a, err := laid(t, c.a, c.b)
+			if err != nil {
+				t.Fatal(err)
+			}
+			pieces, err := a.split()
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got [4]int
+			for _, tr := range a.traces {
+				e := a.elems[tr.elem]
+				if e.c.family() == lineFamily {
+					got[0]++
+				} else {
+					got[1]++
+				}
+				if tr.touching {
+					got[2]++
+				}
+				if e.a == e.b {
+					got[3]++
+				}
+			}
+			if want := [4]int{c.lines, c.conics, c.touching, c.closed}; got != want || len(a.pairs) != c.pairs || len(a.contacts) != c.contacts || len(pieces) != c.pieces {
+				t.Fatalf("traces (lines, conics, touching, closed) %v, %d pairs, %d contacts, %d pieces; want %v, %d, %d, %d", got, len(a.pairs), len(a.contacts), len(pieces), want, c.pairs, c.contacts, c.pieces)
+			}
+			// The pieces of a face cover it: their chart areas add up to
+			// the chart area of the face.
+			for i := range a.ops {
+				sums := filled(a.ops[i].faces, 0.)
+				for _, p := range pieces {
+					if p.op == i {
+						sums[p.face] += chartArea(a.ops[i].faces[p.face].s.chart(), legsOf(a.elems, p.loops))
+					}
+				}
+				for f, face := range a.ops[i].faces {
+					if whole := chartArea(face.s.chart(), a.borders[i][f]); math.Abs(sums[f]-whole) > 1e-9 || !(whole > 0) {
+						t.Fatalf("operand %d face %d: its pieces have area %.12g, the face %.12g", i, f, sums[f], whole)
+					}
+				}
+			}
+		})
+	}
+	t.Run("the base circle of a standing cylinder is recorded for both faces", func(t *testing.T) {
+		a, err := laid(t, cube, tube(t, 1, 1, 2, 0.5, 1))
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Besides the circle, the face holds the radial edge of the
+		// polar cap of the cylinder.
+		found := 0
+		for f, list := range a.inner[0] {
+			for _, e := range list {
+				el := a.elems[e]
+				k, ok := el.c.(conic)
+				if !ok {
+					continue
+				}
+				if el.a != el.b || math.Abs(k.a-0.5) > 1e-9 || a.ops[0].faces[f].s.offset(k.center) != 0 {
+					t.Fatalf("face %d of A holds element %+v", f, el)
+				}
+				found++
+			}
+		}
+		if found != 1 || len(a.traces) != 0 {
+			t.Fatalf("%d circles recorded in faces of A and %d traces, want 1 and 0", found, len(a.traces))
+		}
+	})
+	t.Run("cylinders with axes that are not parallel", func(t *testing.T) {
+		upright := tube(t, 0, 0, 0, 0.5, 2)
+		turn, err := geom.Rotation(geom.Vec3{Y: 1}, math.Pi/2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		lying := func(y float64) trimmed.Solid {
+			s, err := tube(t, 0, 0, -1, 0.5, 2).Transformed(geom.Translation(geom.Vec3{Y: y, Z: 1}).Mul(turn))
+			if err != nil {
+				t.Fatal(err)
+			}
+			return s
+		}
+		// Far enough apart for the proof of SP2: no contact.
+		a, err := laid(t, upright, lying(1.2))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(a.traces) != 0 || len(a.pairs) != 0 {
+			t.Fatalf("%d traces and %d pairs", len(a.traces), len(a.pairs))
+		}
+		// Crossing: unsupported, naming both faces (SP3).
+		if _, err := laid(t, upright, lying(0.3)); !errors.Is(err, ErrUnsupported) || !strings.Contains(err.Error(), "of A") || !strings.Contains(err.Error(), "of B") {
+			t.Fatalf("got %v, want ErrUnsupported naming a face of each operand", err)
+		}
+	})
+}
+
+// TestGapOfExactlyTheTolerance covers the rounding allowance of V1, V3
+// and V4: the cap of the tool lies exactly ε below a face of the stock,
+// which T8 calls a coincidence, so the rim of the tool bounds a face on
+// the plane of the stock at a distance of exactly τ. The comparison with
+// τ must not fail by the rounding of that distance. The operands are
+// those of acceptance row T1-005.
+func TestGapOfExactlyTheTolerance(t *testing.T) {
+	stock := lifted(t, box(t, -40, -25, 0, 40, 25, 20))
+	tool := tube(t, -10, -8, -1e-7, 3, 20.0000001)
+	o := matrixOptions
+	o.Linear = 1e-7
+	r, err := Combine(context.Background(), stock, tool, Common, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := math.Pi * 9 * 20; r.Solids != 1 || math.Abs(r.Volume-want) > 1e-5 || !(r.EdgeResidual <= r.Tolerance*(1+1e-6)) {
+		t.Fatalf("%d solids of volume %.12g with edge residual %g, want one of %.12g within %g", r.Solids, r.Volume, r.EdgeResidual, want, r.Tolerance)
+	}
+}
+
+// TestSeparationBySubdivision covers the third proof of SP2. Two bores
+// with perpendicular axes come close: their boxes overlap and their axis
+// segments are nearer than the two radii, but the walls do not meet, and
+// subdivision of the two walls proves it. The walls are those of
+// acceptance row T1-034: a bore of radius 2 along x from x = 13 to 22
+// about (y, z) = (7, 15), and one along y from y = -4 to 6 about
+// (x, z) = (12, 18.5). They pass within 0.04 of each other. When the
+// second is moved to cross the first, nothing is proved.
+func TestSeparationBySubdivision(t *testing.T) {
+	wall := func(origin, axis geom.Vec3, radius, length float64) patch {
+		t.Helper()
+		frame, err := geom.FrameFromNormal(origin, axis)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return patch{cylinder{frame, radius}, 0, 2 * math.Pi, 0, length}
+	}
+	a := &arrangement{ctx: context.Background(), t: tolerances{eps: 1e-7, margin: 4e-7, size: 40}}
+	first := wall(geom.Vec3{X: 22, Y: 7, Z: 15}, geom.Vec3{X: -1}, 2, 9)
+	firstBox := bounds{geom.Vec3{X: 13, Y: 5, Z: 13}, geom.Vec3{X: 22, Y: 9, Z: 17}}
+	for _, c := range []struct {
+		name  string
+		x, z  float64
+		apart bool
+	}{
+		{"the walls pass each other", 12, 18.5, true},
+		{"the walls cross", 15, 16, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			second := wall(geom.Vec3{X: c.x, Y: -4, Z: c.z}, geom.Vec3{Y: 1}, 2, 10)
+			secondBox := bounds{geom.Vec3{X: c.x - 2, Y: -4, Z: c.z - 2}, geom.Vec3{X: c.x + 2, Y: 6, Z: c.z + 2}}
+			tests := separationTests
+			if got := a.separate(first, second, firstBox, secondBox, 2*separationDepth, &tests); got != c.apart {
+				t.Fatalf("separate reports %v after %d tests, want %v", got, separationTests-tests, c.apart)
+			}
+		})
+	}
+	// Through Combine, with the operands of the row: the pair of walls
+	// is no longer unsupported. The cut is then assembled; at present
+	// trimmed's mesh check refuses that result, which is a limit of
+	// brep/trimmed and not of the proof.
+	bore := func(origin, axis geom.Vec3) trimmed.Solid {
+		t.Helper()
+		frame, err := geom.FrameFromNormal(origin, axis)
+		if err != nil {
+			t.Fatal(err)
+		}
+		c, err := parametric.Cylinder(frame, 2, 10)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s, err := trimmed.FromParametric(c)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	stock := lifted(t, box(t, 2, -3, 5, 22, 21, 23))
+	one, err := Combine(context.Background(), stock, bore(geom.Vec3{X: 23, Y: 7, Z: 15}, geom.Vec3{X: -1}), Cut, matrixOptions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	two, err := Combine(context.Background(), one.Solid, bore(geom.Vec3{X: 12, Y: -4, Z: 18.5}, geom.Vec3{Y: 1}), Cut, matrixOptions)
+	if errors.Is(err, ErrUnsupported) {
+		t.Fatalf("the walls are still an unsupported pair: %v", err)
+	}
+	if want := 20*24*18 - 72*math.Pi; err == nil && (two.Solids != 1 || math.Abs(two.Volume-want) > 1e-5) {
+		t.Fatalf("%d solids of volume %.10g, want one of %.10g", two.Solids, two.Volume, want)
+	}
+}
+
+// TestMeetings covers X7 at the level of the pass, with curves made for
+// the test, since no surface pair of the table yields two curves that
+// meet. The top face of a box and the bottom face of the box on it lie in
+// the plane z = 2. Two lines in that plane that cross inside both faces
+// give one node, held by both faces; lines that cross outside one of the
+// faces, and lines that do not meet, give none.
+func TestMeetings(t *testing.T) {
+	ops, tol, o := taken(t, box(t, 0, 0, 0, 4, 4, 2), box(t, 1, 1, 2, 3, 3, 5), nil)
+	a, err := newArrangement(context.Background(), ops, tol, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The two faces that contain the point (2, 2, 2).
+	centre := geom.Vec3{X: 2, Y: 2, Z: 2}
+	faces := [2]int{-1, -1}
+	for op := range ops {
+		for f := range ops[op].faces {
+			if a.inFace(op, f, centre, tol.eps) == within && math.Abs(ops[op].faces[f].s.offset(centre)) < tol.eps {
+				faces[op] = f
+			}
+		}
+	}
+	if faces[0] < 0 || faces[1] < 0 {
+		t.Fatalf("faces at %v: %v", centre, faces)
+	}
+	through := func(p geom.Vec3, x, y float64) curve {
+		dir, _ := geom.Vec3{X: x, Y: y}.Unit()
+		return line{p, dir}
+	}
+	for _, c := range []struct {
+		name   string
+		curves []curve
+		nodes  int
+	}{
+		{"two lines that cross inside both faces", []curve{through(centre, 1, 0), through(centre, 1, 2)}, 1},
+		{"two lines that cross outside the smaller face", []curve{through(geom.Vec3{X: 0.5, Y: 0.5, Z: 2}, 1, 0), through(geom.Vec3{X: 0.5, Y: 0.5, Z: 2}, 0, 1)}, 0},
+		{"two lines that do not meet", []curve{through(centre, 1, 0), through(geom.Vec3{X: 2, Y: 2.5, Z: 2}, 1, 0)}, 0},
+		{"one curve", []curve{through(centre, 1, 0)}, 0},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			before := [3]int{len(a.nodes), len(a.loose[0][faces[0]]), len(a.loose[1][faces[1]])}
+			if err := a.meetings(c.curves, faces[0], faces[1]); err != nil {
+				t.Fatal(err)
+			}
+			after := [3]int{len(a.nodes), len(a.loose[0][faces[0]]), len(a.loose[1][faces[1]])}
+			for i := range after {
+				if after[i]-before[i] != c.nodes {
+					t.Fatalf("nodes and the two faces' lists grew by %v, want %d each", [3]int{after[0] - before[0], after[1] - before[1], after[2] - before[2]}, c.nodes)
+				}
+			}
+			if c.nodes == 1 && a.nodes[after[0]-1].pos.Distance(centre) > tol.eps {
+				t.Fatalf("the node is at %v, want %v", a.nodes[after[0]-1].pos, centre)
+			}
+		})
+	}
+}

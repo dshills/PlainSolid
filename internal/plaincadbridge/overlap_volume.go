@@ -23,6 +23,9 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	if b.general {
+		return generalOverlapVolume(context.Background(), a, c)
+	}
 	result := func(volume float64) (any, error) { return map[string]float64{"volume": volume}, nil }
 	if a.tangent != nil || c.tangent != nil {
 		return nil, unsupportedEdge("overlap volume on a side-tangent blind bore is outside the supported domain")

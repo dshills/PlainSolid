@@ -1,0 +1,10 @@
+{"new":true}
+{"req":{"max":[20,10,10],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":2000,"surfaceArea":1000,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,10,10]}}}
+{"req":{"height":3,"normal":[0,0,-1],"op":"circle","origin":[1,1,10],"radius":1},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":9.42477796076938,"surfaceArea":25.132741228718345,"solidCount":1,"bounds":{"min":[-3.0142108547152025e-12,-3.0142108547152025e-12,6.999999999996928],"max":[2.0000000000030145,2.0000000000030145,10.000000000003073]}}}
+{"req":{"op":"cut","a":"ps:1","b":"ps:2"},"ok":false,"code":"UNSUPPORTED"}
+{"new":true}
+{"req":{"max":[20,10,10],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":2000,"surfaceArea":1000,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,10,10]}}}
+{"req":{"height":3,"normal":[0,0,-1],"op":"circle","origin":[0.9999999999999999,0.9999999999999999,10],"radius":1},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":9.42477796076938,"surfaceArea":25.132741228718345,"solidCount":1,"bounds":{"min":[-3.014321877017665e-12,-3.014321877017665e-12,6.999999999996928],"max":[2.0000000000030145,2.0000000000030145,10.000000000003073]}}}
+{"new":true}
+{"req":{"max":[20,10,10],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":2000,"surfaceArea":1000,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,10,10]}}}
+{"req":{"height":3,"normal":[0,0,-1],"op":"circle","origin":[1.0000000000000002,1.0000000000000002,10],"radius":1},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":9.42477796076938,"surfaceArea":25.132741228718345,"solidCount":1,"bounds":{"min":[-3.0139888101102775e-12,-3.0139888101102775e-12,6.999999999996928],"max":[2.0000000000030145,2.0000000000030145,10.000000000003073]}}}

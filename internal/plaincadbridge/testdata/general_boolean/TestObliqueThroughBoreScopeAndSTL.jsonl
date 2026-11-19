@@ -1,0 +1,24 @@
+{"new":true}
+{"req":{"max":[4,5,6],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":120,"surfaceArea":148,"solidCount":1,"bounds":{"min":[0,0,0],"max":[4,5,6]}}}
+{"req":{"height":11,"normal":[1,0,3],"op":"circle","origin":[0,2,-3],"radius":0.35},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":4.233296100712246,"surfaceArea":24.959953632770905,"solidCount":1,"bounds":{"min":[-0.3320391543287069,1.649999999988983,-3.1106797181169474],"max":[3.810544580513924,2.350000000011017,7.546195996672599]}}}
+{"req":{"a":"ps:1","b":"ps:2","op":"overlapVolume"},"ok":true,"result":{"value":2.4339741251200446},"analytic":{"value":[2.4339741251200446]}}
+{"req":{"a":"ps:2","b":"ps:1","op":"overlapVolume"},"ok":true,"result":{"value":2.4339741251200446},"analytic":{"value":[2.4339741251200446]}}
+{"req":{"a":"ps:1","b":"ps:2","op":"cut"},"ok":true,"handle":"ps:3","result":{"valid":true,"volume":117.56602587487995,"surfaceArea":161.0970988637412,"solidCount":1,"bounds":{"min":[0,0,0],"max":[4,5,6]}}}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:2"]},"ok":true,"direct":true,"handle":"ps:4","result":{"valid":true,"volume":117.56602587487995,"surfaceArea":161.0970988637412,"solidCount":1,"bounds":{"min":[0,0,0],"max":[4,5,6]}},"analytic":{"volume":[117.56602587487995],"surfaceArea":[161.09709886374122]}}
+{"req":{"analyticNormals":true,"angularDeflection":0.2,"handle":"ps:4","linearDeflection":0.5,"op":"mesh"},"ok":true,"result":{"mesh":true}}
+{"req":{"handles":["ps:4"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"op":"importStep"},"source":"ba45475c080c90e9","ok":true,"direct":true,"handle":"ps:5","result":{"valid":true,"volume":117.56602587487995,"surfaceArea":161.0970988637412,"solidCount":1,"bounds":{"min":[0,0,0],"max":[4,5,6]}},"unchecked":"STEP request (15.2 last item)","analytic":{"volume":[117.56602587487995],"surfaceArea":[161.09709886374122]}}
+{"req":{"handles":["ps:5"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"angularDeflection":0.2,"handle":"ps:4","linearDeflection":0.02,"op":"stl"},"ok":true,"result":{"stl":true}}
+{"new":true}
+{"req":{"max":[4,5,6],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":120,"surfaceArea":148,"solidCount":1,"bounds":{"min":[0,0,0],"max":[4,5,6]}}}
+{"req":{"height":10,"normal":[2,0,1],"op":"circle","origin":[-1,2,-1],"radius":0.35},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":3.8484510006474966,"surfaceArea":22.76083877525805,"solidCount":1,"bounds":{"min":[-1.156524758435043,1.649999999989983,-1.3130495168599976],"max":[8.100796668434203,2.3500000000100174,3.7851854718595774]}}}
+{"req":{"a":"ps:1","b":"ps:2","op":"overlapVolume"},"ok":true,"result":{"value":1.2908097068287334},"analytic":{"value":[1.2908097068287334]}}
+{"req":{"a":"ps:2","b":"ps:1","op":"overlapVolume"},"ok":true,"result":{"value":1.2908097068287334},"analytic":{"value":[1.2908097068287334]}}
+{"req":{"a":"ps:1","b":"ps:2","op":"cut"},"ok":true,"handle":"ps:3","result":{"valid":true,"volume":118.70919029317126,"surfaceArea":154.08524576076402,"solidCount":1,"bounds":{"min":[0,0,0],"max":[4,5,6]}}}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:2"]},"ok":true,"direct":true,"handle":"ps:4","result":{"valid":true,"volume":118.70919029317126,"surfaceArea":154.08524576076402,"solidCount":1,"bounds":{"min":[0,0,0],"max":[4,5,6]}},"analytic":{"volume":[118.70919029317126],"surfaceArea":[154.085245760764]}}
+{"req":{"analyticNormals":true,"angularDeflection":0.2,"handle":"ps:4","linearDeflection":0.5,"op":"mesh"},"ok":true,"result":{"mesh":true}}
+{"req":{"handles":["ps:4"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"op":"importStep"},"source":"73e6d073b8dea846","ok":true,"direct":true,"handle":"ps:5","result":{"valid":true,"volume":118.70919029317126,"surfaceArea":154.08524576076402,"solidCount":1,"bounds":{"min":[0,0,0],"max":[4,5,6]}},"unchecked":"STEP request (15.2 last item)","analytic":{"volume":[118.70919029317126],"surfaceArea":[154.085245760764]}}
+{"req":{"handles":["ps:5"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"angularDeflection":0.2,"handle":"ps:4","linearDeflection":0.02,"op":"stl"},"ok":true,"result":{"stl":true}}

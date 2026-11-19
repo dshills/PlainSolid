@@ -1,0 +1,5317 @@
+{
+ "cases": [
+  {
+   "name": "section11/C1-planar/union",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      5,
+      0,
+      0
+     ],
+     "max": [
+      6,
+      1,
+      1
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 12
+  },
+  {
+   "name": "section11/C1-planar/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      5,
+      0,
+      0
+     ],
+     "max": [
+      6,
+      1,
+      1
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C2-planar/union",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C2-planar/common",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C3-planar/union",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      0.5,
+      0.5,
+      0.5
+     ],
+     "max": [
+      1.5,
+      1.5,
+      1.5
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C3-planar/common",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      0.5,
+      0.5,
+      0.5
+     ],
+     "max": [
+      1.5,
+      1.5,
+      1.5
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C3-planar/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      0.5,
+      0.5,
+      0.5
+     ],
+     "max": [
+      1.5,
+      1.5,
+      1.5
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 12
+  },
+  {
+   "name": "section11/C4-planar/union",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      2
+     ],
+     "max": [
+      2,
+      2,
+      3
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C4-planar/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      2
+     ],
+     "max": [
+      2,
+      2,
+      3
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C5-planar/union",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      1,
+      0,
+      2
+     ],
+     "max": [
+      3,
+      2,
+      3
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "section11/C5-planar/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      1,
+      0,
+      2
+     ],
+     "max": [
+      3,
+      2,
+      3
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C6-planar/union",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      1,
+      1,
+      1
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C6-planar/common",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      1,
+      1,
+      1
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C6-planar/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      1,
+      1,
+      1
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 9
+  },
+  {
+   "name": "section11/C7-planar/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      2,
+      0,
+      2
+     ],
+     "max": [
+      3,
+      2,
+      3
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C8-planar/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      2,
+      2,
+      2
+     ],
+     "max": [
+      3,
+      3,
+      3
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C9-planar/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0.5,
+      0
+     ],
+     "max": [
+      1,
+      1.5,
+      1
+     ],
+     "placement": [
+      [
+       0.7071067811865476,
+       0,
+       -0.7071067811865475,
+       1
+      ],
+      [
+       0,
+       1,
+       0,
+       0
+      ],
+      [
+       0.7071067811865475,
+       0,
+       0.7071067811865476,
+       2
+      ]
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C10-planar/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      0.75,
+      0.75,
+      0.75
+     ],
+     "placement": [
+      [
+       0.6666666666666666,
+       -0.6666666666666666,
+       0.3333333333333333,
+       1
+      ],
+      [
+       0.6666666666666666,
+       0.3333333333333333,
+       -0.6666666666666666,
+       1
+      ],
+      [
+       0.3333333333333333,
+       0.6666666666666666,
+       0.6666666666666666,
+       2
+      ]
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C28-planar/union",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      2
+     ],
+     "max": [
+      5,
+      8,
+      12
+     ]
+    },
+    {
+     "kind": "prism",
+     "outer": [
+      [
+       3,
+       6,
+       2
+      ],
+      [
+       5,
+       8,
+       3
+      ],
+      [
+       3,
+       9,
+       5
+      ],
+      [
+       1,
+       7,
+       4
+      ]
+     ],
+     "offset": [
+      2,
+      -4,
+      4
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 14,
+   "dividers": 2
+  },
+  {
+   "name": "section11/C28-planar/common",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      2
+     ],
+     "max": [
+      5,
+      8,
+      12
+     ]
+    },
+    {
+     "kind": "prism",
+     "outer": [
+      [
+       3,
+       6,
+       2
+      ],
+      [
+       5,
+       8,
+       3
+      ],
+      [
+       3,
+       9,
+       5
+      ],
+      [
+       1,
+       7,
+       4
+      ]
+     ],
+     "offset": [
+      2,
+      -4,
+      4
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 8
+  },
+  {
+   "name": "section11/C1-cyl/union",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      5,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 1
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C1-cyl/cut",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      5,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 1
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 3
+  },
+  {
+   "name": "section11/C2-cyl/union",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 3
+  },
+  {
+   "name": "section11/C2-cyl/common",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 3
+  },
+  {
+   "name": "section11/C3-cyl/union",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0.2,
+      0,
+      0.5
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 1
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 3
+  },
+  {
+   "name": "section11/C3-cyl/common",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0.2,
+      0,
+      0.5
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 1
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 3
+  },
+  {
+   "name": "section11/C3-cyl/cut",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0.2,
+      0,
+      0.5
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 1
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C11-cyl/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      2.5,
+      1,
+      0.5
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 1
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C12-cyl/union",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0.5,
+      1,
+      0.5
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 1
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C12-cyl/common",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0.5,
+      1,
+      0.5
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 1
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 3
+  },
+  {
+   "name": "section11/C13-cyl/cut",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      2,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 3
+  },
+  {
+   "name": "section11/C14-cyl/union",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0.5,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 3
+  },
+  {
+   "name": "section11/C14-cyl/common",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0.5,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 3
+  },
+  {
+   "name": "section11/C15-cyl/union",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 3
+  },
+  {
+   "name": "section11/C15-cyl/common",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 3
+  },
+  {
+   "name": "section11/C15-cyl/cut",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 3
+  },
+  {
+   "name": "section11/C16-cyl/union",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      2
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 3
+  },
+  {
+   "name": "section11/C16-cyl/cut",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      2
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 3
+  },
+  {
+   "name": "section11/C17-cyl/union",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      -1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 4
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "section11/C17-cyl/common",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      -1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 4
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "section11/C17-cyl/cut",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      -1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 4
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 4
+  },
+  {
+   "name": "section11/C18-cyl/union",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "section11/C18-cyl/common",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "section11/C18-cyl/cut",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "section11/C19-cyl/union",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1,
+      1,
+      2
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 1
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 8
+  },
+  {
+   "name": "section11/C19-cyl/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1,
+      1,
+      2
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 1
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C20-cyl/union",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1.5,
+      1,
+      2
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 1
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 9,
+   "dividers": 1
+  },
+  {
+   "name": "section11/C20-cyl/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1.5,
+      1,
+      2
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 1
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C20-cyl-quarter/union",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1,
+      0.5,
+      2
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 1
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 9,
+   "dividers": 1
+  },
+  {
+   "name": "section11/C20-cyl-quarter/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1,
+      0.5,
+      2
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 1
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C21-cyl/union",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1,
+      1,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 6
+  },
+  {
+   "name": "section11/C21-cyl/common",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1,
+      1,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 3
+  },
+  {
+   "name": "section11/C21-cyl/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1,
+      1,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ],
+   "faces": 7
+  },
+  {
+   "name": "section11/C22-cyl/union",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1,
+      1,
+      1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "section11/C22-cyl/common",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1,
+      1,
+      1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "section11/C22-cyl/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      2,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1,
+      1,
+      1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 0.5,
+     "height": 2
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "section11/C23-cyl/common",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      4,
+      4,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0.5000000000000002,
+      2,
+      -1.598076211353316
+     ],
+     "axis": [
+      0.49999999999999994,
+      0,
+      0.8660254037844387
+     ],
+     "radius": 0.5,
+     "height": 6
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "section11/C23-cyl/cut",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      4,
+      4,
+      2
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0.5000000000000002,
+      2,
+      -1.598076211353316
+     ],
+     "axis": [
+      0.49999999999999994,
+      0,
+      0.8660254037844387
+     ],
+     "radius": 0.5,
+     "height": 6
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "family/Through-bore/T1-001",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      -4,
+      -4,
+      -4
+     ],
+     "max": [
+      4,
+      4,
+      4
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      4,
+      0,
+      0
+     ],
+     "axis": [
+      -1,
+      0,
+      0
+     ],
+     "radius": 1,
+     "height": 8
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "family/Blind-bore/T1-005",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      -40,
+      -25,
+      0
+     ],
+     "max": [
+      40,
+      25,
+      20
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      -10,
+      -8,
+      -1e-07
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 3,
+     "height": 20.0000001
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "family/Bore-layers/T1-016",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      -5,
+      -5,
+      -5
+     ],
+     "max": [
+      5,
+      5,
+      5
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      5,
+      -1,
+      0
+     ],
+     "axis": [
+      -1,
+      0,
+      0
+     ],
+     "radius": 2,
+     "height": 3
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      5,
+      1,
+      0
+     ],
+     "axis": [
+      -1,
+      0,
+      0
+     ],
+     "radius": 2,
+     "height": 6
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 3,
+     "b": 2
+    }
+   ]
+  },
+  {
+   "name": "family/Bore-union/T1-020",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      -5,
+      -5,
+      -5
+     ],
+     "max": [
+      5,
+      5,
+      5
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      5,
+      -1,
+      0
+     ],
+     "axis": [
+      -1,
+      0,
+      0
+     ],
+     "radius": 2,
+     "height": 3
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      5,
+      1,
+      0
+     ],
+     "axis": [
+      -1,
+      0,
+      0
+     ],
+     "radius": 2,
+     "height": 3
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 3,
+     "b": 2
+    }
+   ]
+  },
+  {
+   "name": "family/Opposed-blind/T1-025",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      -5,
+      -5,
+      -5
+     ],
+     "max": [
+      5,
+      5,
+      5
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      5,
+      0,
+      0
+     ],
+     "axis": [
+      -1,
+      0,
+      0
+     ],
+     "radius": 1,
+     "height": 6
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      -5,
+      0,
+      0
+     ],
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "radius": 1,
+     "height": 5
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 3,
+     "b": 2
+    }
+   ]
+  },
+  {
+   "name": "family/Oblique-through/T1-029",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      4,
+      5,
+      6
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      2,
+      -3
+     ],
+     "axis": [
+      1,
+      0,
+      3
+     ],
+     "radius": 0.35,
+     "height": 11
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 1,
+     "b": 0
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "family/Disjoint-bores/T1-031",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      2,
+      -3,
+      5
+     ],
+     "max": [
+      22,
+      21,
+      23
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      23,
+      2,
+      10
+     ],
+     "axis": [
+      -1,
+      0,
+      0
+     ],
+     "radius": 2,
+     "height": 22
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      6,
+      -4,
+      19
+     ],
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "radius": 1.5,
+     "height": 26
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      18,
+      15,
+      24
+     ],
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "radius": 2.5,
+     "height": 20
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      230,
+      20,
+      100
+     ],
+     "axis": [
+      -1,
+      0,
+      0
+     ],
+     "radius": 20,
+     "height": 220
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 5,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 6,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 8,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 9,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "family/Side-and-corner-cylinder/T1-036",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      30,
+      20,
+      8
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      28,
+      7,
+      -1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 3,
+     "height": 10
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "family/Side-opening-pair/T1-048",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      5,
+      8,
+      10
+     ],
+     "max": [
+      25,
+      28,
+      18
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      13,
+      8,
+      10
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 3,
+     "height": 6
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      17,
+      8,
+      10
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 3,
+     "height": 6
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 3,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 5,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 6,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 8,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 9,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 3,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "family/Side-dual-disk/T1-055",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      4,
+      0
+     ],
+     "max": [
+      10,
+      10,
+      6
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      3.5,
+      4,
+      6
+     ],
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "radius": 2.5,
+     "height": 3
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      6.5,
+      4,
+      3
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2.5,
+     "height": 3
+    },
+    {
+     "kind": "box",
+     "min": [
+      20,
+      1,
+      2
+     ],
+     "max": [
+      22,
+      4,
+      6
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 4,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 2,
+     "b": 4
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 7,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 8,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 8,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 11,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 12,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 12,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 4,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 15,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 15,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 4,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 18,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 18,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 4,
+     "b": 2
+    }
+   ]
+  },
+  {
+   "name": "family/Circular-stock/T1-062",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 5,
+     "height": 8
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      2,
+      0,
+      -1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 10
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 1,
+     "b": 0
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "family/Coaxial-cut/T1-068",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "radius": 5,
+     "height": 10
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      11,
+      0
+     ],
+     "axis": [
+      0,
+      -1,
+      0
+     ],
+     "radius": 2,
+     "height": 11
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      11,
+      0
+     ],
+     "axis": [
+      0,
+      -1,
+      0
+     ],
+     "radius": 3,
+     "height": 11
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      11,
+      0
+     ],
+     "axis": [
+      0,
+      -1,
+      0
+     ],
+     "radius": 3,
+     "height": 11
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 2
+    }
+   ]
+  },
+  {
+   "name": "family/Coaxial-join/T1-071",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 5
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      3
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 3,
+     "height": 4
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      13,
+      8,
+      9
+     ],
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "radius": 1,
+     "height": 4
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "family/Join-all/T1-072",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      10,
+      10,
+      10
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      40,
+      0,
+      0
+     ],
+     "max": [
+      50,
+      10,
+      10
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      20,
+      0,
+      0
+     ],
+     "max": [
+      30,
+      10,
+      10
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      100,
+      0,
+      0
+     ],
+     "max": [
+      110,
+      10,
+      10
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      5,
+      0,
+      0
+     ],
+     "max": [
+      45,
+      10,
+      10
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      5,
+      0,
+      0
+     ],
+     "max": [
+      10,
+      10,
+      10
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "union",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "union",
+     "a": 6,
+     "b": 4
+    },
+    {
+     "op": "union",
+     "a": 1,
+     "b": 0
+    },
+    {
+     "op": "union",
+     "a": 8,
+     "b": 2
+    },
+    {
+     "op": "union",
+     "a": 9,
+     "b": 4
+    }
+   ]
+  },
+  {
+   "name": "family/Containment-overlap/T1-074",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "radius": 25,
+     "height": 10
+    },
+    {
+     "kind": "box",
+     "min": [
+      10,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      10,
+      10
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      24,
+      0,
+      0
+     ],
+     "max": [
+      26,
+      10,
+      1
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 1,
+     "b": 0
+    }
+   ]
+  },
+  {
+   "name": "family/Pocket-and-planar/T1-076",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      60,
+      40,
+      20
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      12,
+      12,
+      14
+     ],
+     "max": [
+      24,
+      20,
+      20
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      45,
+      25,
+      -1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 21
+    },
+    {
+     "kind": "box",
+     "min": [
+      17,
+      15,
+      13
+     ],
+     "max": [
+      20,
+      18,
+      14
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 4,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 5,
+     "b": 3
+    }
+   ]
+  },
+  {
+   "name": "family/Pocket-with-cylinder/T1-083",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      60,
+      40,
+      20
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      12,
+      12,
+      14
+     ],
+     "max": [
+      24,
+      20,
+      20
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      45,
+      25,
+      20
+     ],
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "radius": 2,
+     "height": 20
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      18,
+      16,
+      -1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1.5,
+     "height": 22
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 4,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 5,
+     "b": 3
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T1-002/line-7",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      -4,
+      -4,
+      0
+     ],
+     "max": [
+      4,
+      4,
+      8
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      9
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 8
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      -9
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 8
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      5e-324
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 8
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 3
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T1-002/line-9",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      -4,
+      -4,
+      0
+     ],
+     "max": [
+      4,
+      4,
+      8
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      9
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 8
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      -9
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 8
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      5e-324
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 8
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 7.999999999999999
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 4
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T1-008/line-9",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      10,
+      10
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      35,
+      5,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 25
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      105,
+      5,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 25
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      5,
+      5,
+      2
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 5
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 1,
+     "b": 0
+    },
+    {
+     "op": "common",
+     "a": 0,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 2,
+     "b": 0
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 3
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T1-012/line-3",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      -4,
+      -4,
+      0
+     ],
+     "max": [
+      4,
+      4,
+      20
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      16
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 3.9999999999999964
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T1-041/line-36",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      20,
+      8
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      1,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 3,
+     "height": 6
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      5,
+      10,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 3
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      15,
+      10,
+      -1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 10
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      14,
+      8
+     ],
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "radius": 1,
+     "height": 5
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      25,
+      12,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 3
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      4,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 4
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 8,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 9,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 10,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 3
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 16,
+     "b": 4
+    },
+    {
+     "op": "cut",
+     "a": 17,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 18,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 3
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 7,
+     "b": 4
+    },
+    {
+     "op": "cut",
+     "a": 24,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 25,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 3
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 31,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 32,
+     "b": 6
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T1-041/line-73",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      20,
+      8
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 3,
+     "height": 6
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      5,
+      10,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 3
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      15,
+      10,
+      -1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 10
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      14,
+      8
+     ],
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "radius": 1,
+     "height": 5
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      25,
+      12,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 3
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1,
+      3,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 4
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 8,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 9,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 10,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 3
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 16,
+     "b": 4
+    },
+    {
+     "op": "cut",
+     "a": 17,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 18,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 3
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 7,
+     "b": 4
+    },
+    {
+     "op": "cut",
+     "a": 24,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 25,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 3
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 31,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 32,
+     "b": 6
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T1-041/line-110",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      20,
+      8
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      1,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 3,
+     "height": 10
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      5,
+      10,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 3
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      15,
+      10,
+      -1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 10
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      14,
+      8
+     ],
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "radius": 1,
+     "height": 5
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      25,
+      12,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 3
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      4,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 4
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 8,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 9,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 10,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 3
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 16,
+     "b": 4
+    },
+    {
+     "op": "cut",
+     "a": 17,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 18,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 3
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 7,
+     "b": 4
+    },
+    {
+     "op": "cut",
+     "a": 24,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 25,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 3
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 31,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 32,
+     "b": 6
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T1-041/line-147",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      20,
+      8
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 3,
+     "height": 10
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      5,
+      10,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 3
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      15,
+      10,
+      -1
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 10
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      14,
+      8
+     ],
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "radius": 1,
+     "height": 5
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      25,
+      12,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 3
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      1,
+      3,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 2,
+     "height": 4
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 8,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 9,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 10,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 3
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 11,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 16,
+     "b": 4
+    },
+    {
+     "op": "cut",
+     "a": 17,
+     "b": 2
+    },
+    {
+     "op": "cut",
+     "a": 18,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 3
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 19,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 7,
+     "b": 4
+    },
+    {
+     "op": "cut",
+     "a": 24,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 25,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 2
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 3
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 26,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 31,
+     "b": 3
+    },
+    {
+     "op": "cut",
+     "a": 32,
+     "b": 6
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T1-042/line-9",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      20,
+      12
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      1,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 3,
+     "height": 5
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      1,
+      4
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 3,
+     "height": 5
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      1,
+      12
+     ],
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "radius": 3,
+     "height": 4
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      10,
+      1,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 3,
+     "height": 12
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 5,
+     "b": 4
+    },
+    {
+     "op": "cut",
+     "a": 5,
+     "b": 3
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T1-042/line-28",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      20,
+      12
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 3,
+     "height": 5
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      4
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 3,
+     "height": 5
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      12
+     ],
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "radius": 3,
+     "height": 4
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 3,
+     "height": 12
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 4
+    },
+    {
+     "op": "common",
+     "a": 5,
+     "b": 4
+    },
+    {
+     "op": "cut",
+     "a": 5,
+     "b": 3
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T1-046/line-3",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      20,
+      0
+     ],
+     "max": [
+      10,
+      30,
+      10
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "radius": 2,
+     "height": 29.999999999999996
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T1-074/line-6",
+   "shapes": [
+    {
+     "kind": "cylinder",
+     "origin": [
+      0,
+      0,
+      0
+     ],
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "radius": 25,
+     "height": 10
+    },
+    {
+     "kind": "box",
+     "min": [
+      10,
+      0,
+      0
+     ],
+     "max": [
+      20,
+      10,
+      10
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      24,
+      0,
+      0
+     ],
+     "max": [
+      26,
+      10,
+      1
+     ]
+    }
+   ],
+   "steps": [
+    {
+     "op": "common",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "common",
+     "a": 1,
+     "b": 0
+    },
+    {
+     "op": "common",
+     "a": 0,
+     "b": 2
+    }
+   ]
+  },
+  {
+   "name": "legacy-refused/T1-081/line-4",
+   "shapes": [
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      10,
+      10,
+      10
+     ]
+    },
+    {
+     "kind": "box",
+     "min": [
+      0,
+      0,
+      0
+     ],
+     "max": [
+      2,
+      10,
+      10
+     ]
+    },
+    {
+     "kind": "cylinder",
+     "origin": [
+      5,
+      5,
+      0
+     ],
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "radius": 1,
+     "height": 10
+    }
+   ],
+   "steps": [
+    {
+     "op": "cut",
+     "a": 0,
+     "b": 1
+    },
+    {
+     "op": "cut",
+     "a": 3,
+     "b": 2
+    }
+   ]
+  }
+ ]
+}

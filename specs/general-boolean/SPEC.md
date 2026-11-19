@@ -1,8 +1,10 @@
 # General Boolean trial: planes and cylinders
 
-Status: owner decisions recorded on 2026-11-18 (section 18); awaiting owner
-review of this revision. This document is a specification only. It contains
-no implementation and authorizes none until a plan is written and approved.
+Status: owner decisions recorded on 2026-11-18 (section 18). Rulings made
+on 2026-11-18 and 2026-11-19 by the reviewing session, under the owner's
+delegation, are in section 19 and wait for the owner to confirm or reverse
+them. This
+document is a specification only and contains no implementation.
 
 ## 1. Purpose
 
@@ -23,7 +25,7 @@ defined before any code is written.
 
 Conventions. Requirements carry identifiers made of a letter prefix and a
 number (for example S1, X6, PC2, OD-1); the prefix only groups them by
-section. Rows of the section 11 matrix are C1 to C27. "Must" states a
+section. Rows of the section 11 matrix are C1 to C28. "Must" states a
 requirement. OCCT is Open CASCADE Technology, the reference kernel pinned in
 `tools/occtref/README.md`. STEP (ISO 10303) and IGES are CAD exchange
 formats.
@@ -55,7 +57,10 @@ formats.
   Mäntylä, "An Introduction to Solid Modeling", 1988; Hoffmann, "Geometric
   and Solid Modeling", 1989). Implementation sessions work from this document
   and that literature and do not open the OCCT source (OD-6).
-- G4. The trial does not edit `brep/trimmed`. It uses only identifiers
+- G4. The trial's own commits do not edit `brep/trimmed`. A limit of that
+  package that a valid result exposes is fixed there on a separate
+  foundation branch, which is merged into the trial branch (E1, RL-9). The
+  trial uses only identifiers
   declared in files of `brep/trimmed` that are in the default build: a file
   is in the default build when it does not start with `//go:build research`.
   The trial does not extend a research file and does not remove the tag from
@@ -185,11 +190,17 @@ Each of these is outside the trial, and input that needs one returns
   - `Samples`: number of membership samples (V6); zero selects 64.
   - Work limits (section 10); zero selects the stated default.
   - Integration options for mass properties, of type
-    `parametric.IntegrationOptions`.
+    `parametric.IntegrationOptions`. They are used only where a solid is
+    outside what the closed form of V5 covers (RL-17).
+  - Known mass properties, optional, one set for A and one for B: the
+    volume and the surface area of that operand, when the caller already
+    has them (V5, RL-10). None is given by default. They are fields of
+    the options type and need no further exported identifier (P2).
 - P4. `Linear` and `Relative` must not both be zero, `Angular` must be > 0 and at most 0.5, so that no pair of directions is
   both parallel and perpendicular under T5, and
   `Volume` must be > 0. There is no hidden default tolerance. `Samples` and
-  every work limit must be ≥ 0, and a nonzero `MaxGrowth` must be ≥ 1. Every
+  every work limit must be ≥ 0, and a nonzero `MaxGrowth` must be ≥ 1. A
+  known volume or area must be ≥ 0. Every
   option must be finite. A violation returns `ErrInvalid` before any
   geometry is examined.
 - P5. The result carries: the output solid; for each shell its face indices,
@@ -201,11 +212,15 @@ Each of these is outside the trial, and input that needs one returns
   before B, then by index. It is built from the pieces the face is made of:
   a piece contributes its own input face (F5); a kept shared piece (K1)
   contributes both faces of its same-surface pair; and a face made by M1
-  has the union of the lists of the faces merged into it. A piece of B kept
-  with reversed orientation by a cut still names its face of B. Every face
+  has the union of the lists of the faces merged into it. Each of the two
+  faces made by M6 has the list of the face that was divided. A piece of B
+  kept with reversed orientation by a cut still names its face of B. Every face
   of a non-empty result has at least one source. The report contains ε, the
   largest node radius, counts of nodes, spans, bundles, traces and pieces,
-  the volumes of A, B and the result, the largest edge and vertex residuals
+  the volume and the surface area of A, of B and of the result (RL-10; for
+  an operand with known mass properties, the values the caller gave), the
+  centroid of the result (RL-17; an empty result has none, and the report
+  gives the origin), the largest edge and vertex residuals
   found by validation, and the list of touching contacts found.
 - P6. On error the result is the zero value. A partial result is never
   returned.
@@ -234,14 +249,26 @@ Each of these is outside the trial, and input that needs one returns
   the same over an interval when they satisfy CC4.
 - T4. A node radius must not exceed `MaxGrowth` × ε (default 4). A merge that
   would exceed it returns `ErrTolerance`, not `ErrBudget`. This stops chains of near
-  coincidences from collapsing real geometry.
+  coincidences from collapsing real geometry. The *filter margin* is
+  μ = `MaxGrowth` × ε, the largest radius a node can have. Two points can
+  be coincident (T3) only when they are at most 2μ apart. So every
+  bounding box that is used to discard a pair without testing it is taken
+  from the entities as they stand when the pass runs, with nodes at their
+  merged positions, and is inflated by μ; and every proof that two things
+  do not meet requires a gap greater than 2μ. Filtering can then never
+  discard a pair that the coincidence rule would accept.
 - T5. Angular decisions use `Angular`: directions are parallel when the
   absolute value of the sine of their angle is at most `Angular`, and
   perpendicular when the absolute value of the cosine is.
 - T6. Tolerances live on nodes inside the arrangement only. The output solid
-  records one value, τ = the largest node radius used by the result, as its
-  `trimmed.Solid` tolerance. For an empty result τ = ε. Per-vertex and
-  per-edge tolerances in the stored solid are not part of the trial.
+  has one tolerance. τ is the largest node radius used by the result, and
+  nothing else: it does not include the rounding allowance σ of T9. The
+  value the solid records as its `trimmed.Solid` tolerance is τ + σ, since
+  that is the tolerance it is built with (B4). The report gives τ itself,
+  as the largest node radius (P5). An empty result is the zero `trimmed.Solid`,
+  which can record no tolerance; τ is then ε, and the ε of the report (P5)
+  is where a caller reads it. Per-vertex and per-edge tolerances in the
+  stored solid are not part of the trial.
 - T7. There is no separate widening ("fuzzy") option. A caller widens
   coincidence by passing a larger `Linear`.
 - T8. Where `ErrTolerance` is allowed. Four separations are measured on the
@@ -259,7 +286,7 @@ Each of these is outside the trial, and input that needs one returns
   A value of (a), (b) or (c) is a *coincidence* when it is at most ε and
   *clear* when it is at least 4ε. A value of (d) is clear when it is at
   least 4ε. A configuration is *tolerance-scale* when at least one of
-  these four conditions holds:
+  these five conditions holds:
   1. A pair of carriers is *divergent*: SP4 or CC4 finds it coincident at
      some of the places it tests and not at others. This condition does
      not depend on the values of (a) to (d). It holds also when every one
@@ -268,18 +295,24 @@ Each of these is outside the trial, and input that needs one returns
      parallel only by the angular tolerance, and is neither one surface or
      curve nor two that are clear of each other.
   2. An edge has two candidate carriers that both qualify (I5).
-  3. A value of (a), (b) or (c) lies strictly between ε and 4ε.
+  3. A value of (a), (b) or (c) lies strictly between ε and 4ε, or within
+     the rounding allowance σ of ε or of 4ε (T9).
   4. A value of (d) is below 4ε.
+  5. An edge that is not closed has both of its end vertices in one node
+     (X10): the edge is shorter than the tolerance.
 
-  A configuration is *ordinary* only when none of the four holds. On an
+  A configuration is *ordinary* only when none of the five holds. On an
   ordinary configuration `Combine` must not return `ErrTolerance`. On a
   tolerance-scale configuration it returns either `ErrTolerance` or a
   result that passes all of section 8, and never an unvalidated result.
-  Which of the two is not specified, except under conditions 1 and 2,
-  where the outcome is fixed: `ErrTolerance` (SP4, CC4, I5). So wherever
-  SP4, CC4 or I5 requires `ErrTolerance`, the configuration is
-  tolerance-scale by condition 1 or 2, and those rules and this one cannot
-  disagree.
+  Which of the two is not specified, except under conditions 1, 2 and 5,
+  where the outcome is fixed: `ErrTolerance` (SP4, CC4, I5, X10). So
+  wherever SP4, CC4, I5 or the short-edge rule of X10 requires
+  `ErrTolerance`, the configuration is tolerance-scale by condition 1, 2
+  or 5, and those rules and this one cannot disagree. The other places
+  that return `ErrTolerance` (T4, X4, X5, the other two cases of X10, and
+  F6) are bound by this rule: they must not do so on an ordinary
+  configuration.
 
   The guarantee for ordinary configurations holds when `MaxGrowth` is at
   least 4, which includes the default. In an ordinary configuration the
@@ -294,21 +327,47 @@ Each of these is outside the trial, and input that needs one returns
   the other plane, so the pair is coincident everywhere, and in C25 none
   is, so no pair is divergent.
 
+- T9. Rounding allowance (RL-13). A result built from coincidences can
+  have a residual that equals its tolerance exactly, for example an edge
+  of one operand that lies exactly ε from a face of the other, and a
+  comparison with the tolerance must not then fail by rounding. One
+  allowance is defined for this, σ = 2⁻⁴⁹ × L, with L of T1: eight units
+  in the last place of the model size, 1.8e-13 for a model of size 100.
+  It follows the size of the model and not the tolerance, because the
+  rounding error of a distance grows with the coordinates it is computed
+  from. It is below ε / 1000 whenever ε is above 2e-12 × L. It is used in
+  two places and no other:
+  - Section 8 compares residuals with τ + σ, and the output solid is built
+    with the tolerance τ + σ and records it (T6, B4), so that the checks
+    `trimmed.NewSolidContext` makes itself carry the same allowance.
+  - Condition 3 of T8 counts a value within σ of ε or of 4ε as lying in
+    the band.
+
+  The coincidence tests of T3, SP4 and CC4 are made on distances as they
+  are computed, without σ. A distance that rounding can put on either
+  side of ε is at the edge of the band, and T8 then allows either outcome,
+  so those tests and T8 do not disagree. Because a result records τ + σ,
+  each operation of a chain can raise the working tolerance of the next
+  by σ.
+
 ## 7. Functional behavior: the pipeline
 
 There is one pipeline. Every input in the class of section 4.1 passes through
 the same stages in the same order. No stage inspects how many faces an
 operand has, which primitive it came from, or how it is placed, other than
-through the general tests below.
+through the general tests below, the work limits of section 10 and the
+test for the empty solid (S6, I2).
 
 ### 7.1 Intake
 
 - I1. Validate options (P4), the context and both operands (S1 to S6).
 - I2. Short cuts that are part of the contract, decided before any pairwise
-  work: if either operand is empty, or the bounding boxes inflated by ε do
-  not overlap, the result follows table 7.8 with every piece of A classified
-  outside B and every piece of B outside A. The same stages 7.9 to 7.11 still
-  produce and validate the result.
+  work: if either operand is empty, or the bounding boxes of the two
+  operands, each inflated by μ (T4), do not overlap, the result follows
+  table 7.8 with every piece of A classified outside B and every piece of
+  B outside A. The same stages 7.9 to 7.11 still produce and validate the
+  result. An operand is empty when it has no face; this is the one test
+  of a face count outside section 10 (PC2).
 - I3. Reduce every face to its carrier (plane: point and unit normal;
   cylinder: axis point, unit axis direction, radius), its orientation
   relative to the carrier normal, and its loops as chains of edge uses in a
@@ -324,8 +383,10 @@ through the general tests below.
   on, and the stored curve is only checked against it. For each edge that
   is not collapsed:
   1. Samples. The stored curve is evaluated at 17 evenly spaced parameters
-     of its range, both ends included. An evaluation error or a non-finite
-     point returns `ErrInvalid` naming the edge.
+     of its range, both ends included. Step 6 adds samples on a circle or
+     ellipse where the stored parameterization is uneven; every sample,
+     first or added, is subject to steps 2 and 5. An evaluation error or a
+     non-finite point returns `ErrInvalid` naming the edge.
   2. Faces. Let S₁ and S₂ be the carriers of the faces of the edge's two
      uses; for a seam they are one carrier. Every sample must be within ε
      of S₁ and of S₂. Otherwise the operand is not a valid boundary at this
@@ -356,19 +417,49 @@ through the general tests below.
      agree with a line, circle or ellipse on its faces, and the call
      returns `ErrUnsupported` naming the edge and its largest deviation.
      If two candidates qualify, it returns `ErrTolerance`.
-  6. Interval and direction. Each sample is given its parameter on the
-     carrier (CC1). The carrier is oriented so that the parameter increases
-     from the first sample to the last, and the edge's interval runs from
-     the parameter of the first to that of the last. Successive samples
-     must advance in that direction and by less than half a period on a
-     circle or ellipse; otherwise the call returns `ErrUnsupported` naming
-     the edge. A closed edge, whose first and last samples coincide while
-     the samples go once round, has the whole period as its interval.
+  6. Interval and direction. S3 accepts any parameterization of the stored
+     curve, so this step does not assume it is even. Each sample is given
+     its parameter on the carrier (CC1). The advance from one sample to the
+     next is the difference of those parameters, measured the shorter way
+     round on a circle or ellipse.
+     - On a line. The carrier is oriented from the first sample to the
+       last, and every advance must be positive. One that is not returns
+       `ErrUnsupported` naming the edge, at once: a sample between two
+       samples of a line cannot make a backward step forward, so no
+       sample is added.
+     - On a circle or ellipse, direction. A step that covers more than
+       half a period is measured the wrong way round, and only such a
+       step is. An edge covers at most one period, so at most one of the
+       sixteen first steps can be of that kind. The direction of the edge
+       is therefore the direction that more of the sixteen first advances
+       have, an advance of zero counting for neither. If the two
+       directions have equal numbers, the call returns `ErrUnsupported`
+       naming the edge.
+     - On a circle or ellipse, refinement. A step is refined when its
+       advance is more than one eighth of a period or is against the
+       direction of the edge: the stored curve is evaluated at the middle
+       of that step of its own parameter and the new sample is inserted.
+       This repeats on the steps so made. A step measured the wrong way
+       round is always refined, because its advance is either against the
+       direction or more than an eighth of a period.
+     - Bound. No step of the first sixteen is halved more than six times,
+       so at most 1,025 samples are taken. If an advance is still too
+       large or still against the direction after six halvings, the call
+       returns `ErrUnsupported` naming the edge. A parameterization on a
+       circle or ellipse is therefore accepted when it never reverses, it
+       advances in at least three of the sixteen first steps, and no
+       1/1024 of its range covers more than one eighth of the period.
+
+     The carrier is oriented so that its parameter increases in the
+     direction of the edge, and the edge's interval runs from the parameter
+     of the first sample to that of the last, the advances being summed. A
+     closed edge, whose first and last samples coincide while the advances
+     sum to one period, has the whole period as its interval.
 
   After I5 the stored curve is not used again. Agreement is checked at the
-  17 samples only. A stored curve that leaves its carrier between samples
-  is not detected, and V7 applies to it as it does to an operand that is
-  not embedded.
+  samples taken and nowhere else. A stored curve that leaves its carrier
+  between samples is not detected, and V7 applies to it as it does to an
+  operand that is not embedded.
 
 ### 7.2 Arrangement
 
@@ -398,8 +489,10 @@ building stage. It holds:
 The stage runs six passes in this fixed order. Lower-dimensional coincidences
 are settled first, so that a later pass attaches what it finds to nodes that
 already exist instead of creating near duplicates. Each pass tests only pairs
-whose bounding boxes, inflated by ε, overlap, and considers only pairs with
-one member from A and one from B.
+whose bounding boxes, each inflated by the filter margin μ (T4), overlap,
+and considers only pairs with one member from A and one from B. The box of
+a vertex, span or face is taken when the pass runs, from the current node
+positions.
 
 - X1. Vertex with vertex. Coincident vertices merge into one node.
 - X2. Vertex with edge. A node on an edge of the other operand, and not
@@ -420,22 +513,45 @@ one member from A and one from B.
   that face's boundary, is recorded in the face's interior-node list. It is
   also recorded as a touching contact (AR7) when every face of its own
   operand at that vertex lies strictly on one side of the face's carrier
-  near the vertex.
+  near the vertex. A node that X9 puts on the boundary of the trimmed
+  region, although X1 and X2 recorded it on no edge of that boundary,
+  returns `ErrTolerance` (T8): the two tolerant tests disagree.
 - X5. Edge with face. Each span, as split so far, is tested against each
   face of the other operand using section 7.5. An isolated point inside the
   trimmed region becomes a node on the span and in the face, recorded as
   crossing or touching. A span that lies on the carrier and inside the
   trimmed region over its whole length is added to the face's interior-span
-  list, and is also recorded as a touching contact (AR7) when both faces
-  next to it in its own operand lie strictly on one side of the face's
-  carrier near the span. A span that lies along the face boundary is already in a bundle.
+  list, and is also recorded as a touching contact (AR7) when the boundary
+  of its own operand leaves the span to one and the same side of the
+  face's carrier on both sides of the span. This is asked of each of the
+  two uses of the span's edge separately: each use gives the direction in
+  which its face leaves the edge. Where the two uses are by one face, as
+  at a seam (I4), they leave in different directions and both are asked;
+  a seam that lies in a face of the other operand while its wall passes
+  through that face is not a touching contact, and one whose wall is
+  tangent to the face is. A span that lies along the face boundary is already
+  in a bundle, and X5 does not test it against that face again. A span
+  that crosses the carrier, with or without an end on it, is the case of
+  the isolated point. Two outcomes return `ErrTolerance` (T8), because
+  X1 to X3 should have settled them. The first is an isolated point that
+  X9 puts on the boundary of the trimmed region where the span has no
+  node. The second concerns only a span that is in no bundle with an edge
+  of the face and whose carrier section 7.5 reports as lying on the
+  face's carrier: its two ends and its mid point should then all be
+  within tolerance of that carrier, and its mid point inside or outside
+  the trimmed region. If some of the three points are on the carrier and
+  some are not, or the mid point is on the boundary of the trimmed
+  region, the span neither lies in the face nor is clear of it.
 - X6. Face with face. Each pair is resolved by section 7.4 into one of: no
   contact; a same-surface pair (AR6), which creates no trace; or one or more
   carrier curves, each marked crossing or touching. Each carrier curve is cut
   at the nodes already on it, and each interval between consecutive nodes
   that lies inside both trimmed regions becomes a trace, unless a span or
   bundle already occupies that interval, in which case that span or bundle is
-  recorded for both faces instead. On a closed carrier curve with exactly
+  recorded for both faces instead. An interval that lies along the boundary
+  of one of the two faces, where that face has no span between the two
+  nodes, contradicts the earlier passes and returns `ErrInconsistent`. On a
+  closed carrier curve with exactly
   one node, the one interval is the whole curve, from that node round to
   itself; a closed span or a bundle of closed spans occupies it when it
   lies on that curve. A closed carrier curve with no node on it
@@ -452,6 +568,20 @@ one member from A and one from B.
 - X9. Membership of a point in a trimmed region is decided in the face's
   chart by a tolerant point-in-loops test: a point within its radius of a
   loop is on the boundary, otherwise inside or outside by crossing count.
+- X10. Making spans. Spans and bundles (AR2, AR3) and the lists of AR5 are
+  made after X6, from the node lists as they then stand, since a node can
+  merge with another after a pass has recorded something about it. Three
+  contradictions can show at that point, and each returns `ErrTolerance`
+  (T8):
+  - an edge that is not closed has both of its end vertices in one node,
+    so the edge is shorter than the tolerance (condition 5 of T8);
+  - within an overlap, the spans of the two edges do not correspond one to
+    one, which X3 requires;
+  - a part of an edge that X5 or X6 recorded as lying in a face no longer
+    runs from one node of that edge to another.
+
+  A part of an edge between two nodes that have merged into one, on an
+  edge with other nodes, has no length and makes no span.
 
 ### 7.4 Surface pairs
 
@@ -483,9 +613,26 @@ Let d be the distance between two cylinder axes, r₁ ≥ r₂ their radii, and 
   existing helper and are written in the new package.
 - SP2. Two non-parallel cylinder faces are proved separate when the distance
   between their axis segments (each axis restricted to the face's extent
-  along it, extended by ε) exceeds r₁ + r₂ + ε, or when their bounding boxes
-  inflated by ε do not overlap. No other proof is attempted in the trial, so
-  some non-parallel faces that do not in fact meet return `ErrUnsupported`.
+  along it, extended by μ) exceeds r₁ + r₂ + 2μ, or when their bounding
+  boxes, each inflated by μ, do not overlap (T4). A sharper proof may be
+  added to these two (RL-14), on two conditions: it is a proof, so that
+  it never calls two faces separate that come within 2μ of each other,
+  and it is general, with nothing in it that depends on which faces or
+  operands it is given (PC2). One such proof is by subdivision. The
+  chart domain of each face is divided into cells; the box of a cell is
+  computed from the true extent of the surface over the cell and not
+  from samples, so it contains that part of the face; a pair of cells,
+  one from each face, is separate when their boxes, each inflated by μ,
+  do not overlap; a pair that is not separate has its cells halved, to a
+  fixed depth and within a fixed number of box comparisons, the same for
+  every pair of faces: twelve halvings in each chart direction and
+  20,000 comparisons. The faces are proved separate when every pair of
+  cells has been separated. When the depth or the count is used up,
+  nothing is proved and the pair of faces returns `ErrUnsupported`. A
+  cell may cover more of the surface than the face does, which leaves
+  some separate faces unproved and proves none wrongly. A proof does not decide that two faces meet:
+  faces that are not proved separate, and that are outside the rows of
+  the table, return `ErrUnsupported`.
 - SP3. "Out" for the trial, always `ErrUnsupported` unless SP2 applies:
   non-parallel cylinders of unequal radius; non-parallel cylinders of equal
   radius whose axes do not meet; and, until Tier 2 is supported (15.5),
@@ -496,16 +643,24 @@ Let d be the distance between two cylinder axes, r₁ ≥ r₂ their radii, and 
   when d + (r₁ − r₂) < 4ε, which bounds the largest distance between the two
   surfaces by the tolerance scale of T8. A node of one face passes when its
   distance to the other face's carrier is at most its radius. All nodes of
-  both faces pass: same-surface pair. Some pass and some do not:
-  `ErrTolerance`, because the pair is neither coincident nor separated at
-  this tolerance. None passes: the remaining rows decide. Parallel cylinders
+  both faces pass: same-surface pair. Some pass and some do not: the pair
+  is divergent and the call returns `ErrTolerance`, whatever the distances
+  of the nodes that fail. T8 names a divergent pair as tolerance-scale for
+  this reason, so this rule governs also when those distances are 4ε or
+  more: two faces that are parallel only within `Angular` and run from
+  coincident at one end to well apart at the other are neither one surface
+  nor two separate ones at this tolerance. None passes: the remaining rows
+  decide. Parallel cylinders
   that are not a candidate pair are never tested node by node and go
   straight to the remaining rows; nodes of one face that lie on the other
   carrier are then ordinary intersection points, as in C18.
 - SP5. Adding a surface pair after the trial must be an addition to this
   table and to the curve table of section 7.5. If it needs a change to
   sections 7.2, 7.3 or 7.6 to 7.11, that is evidence against the design and
-  is reported (section 16).
+  is reported (section 16). A sharper separation proof under SP2 is an
+  addition of the same kind: it changes which pairs outside the table are
+  found to have no contact, adds no carrier curve, and touches none of
+  those sections.
 
 ### 7.5 Curve with curve, curve with surface
 
@@ -570,7 +725,8 @@ Let d be the distance between two cylinder axes, r₁ ≥ r₂ their radii, and 
   one third of the period apart, starting at the first edge's vertex. Each
   point is taken on the first carrier and tested against the second: all
   three within ε gives an overlap; none within ε gives no overlap; any
-  other outcome returns `ErrTolerance`.
+  other outcome is a divergent pair (T8) and returns `ErrTolerance`,
+  whatever the distances at the points that fail.
 - CC5. A circle or ellipse with a cylinder. Nothing here refers to a
   cylinder that the conic's own faces lie on. Write the conic as centre c
   and two axis vectors u and v (major radius times major direction, minor
@@ -580,7 +736,7 @@ Let d be the distance between two cylinder axes, r₁ ≥ r₂ their radii, and 
   and the absolute value of the cosine of the angle between them is at
   most `Angular`; its projected radius is the mean of the two lengths. The
   conic is proved clear of a cylinder face when the distance from c to the
-  face's axis segment (the segment of SP2) exceeds a + r + ε, where a is
+  face's axis segment (the segment of SP2) exceeds a + r + 2μ, where a is
   the conic's major radius and r the cylinder's radius.
 
 ### 7.6 Splitting faces
@@ -604,10 +760,16 @@ For each input face, in its chart:
   node. Elements whose tangents agree within `Angular` are ordered by signed
   curvature in the chart, the one curving most to the left first. Elements
   that agree in tangent and curvature are the same carrier and must already
-  be one bundle; otherwise the call returns `ErrInconsistent`.
+  be one bundle; otherwise the call returns `ErrInconsistent`. Because the
+  walk turns to the nearest element, a loop passes through a node once for
+  each part of its region that meets the node. Where a piece touches itself
+  at a node, one loop therefore passes through that node twice or more. It
+  is still one loop and the piece is one piece; M6 makes such a piece
+  representable if it is kept.
 - F4. A loop with positive area in the chart bounds a piece. A loop with
   negative area is a hole and is assigned to the smallest positive loop that
-  contains it.
+  contains it. A hole that no positive loop contains returns
+  `ErrInconsistent`.
 - F5. Each piece keeps its face's carrier and orientation and records its
   input face and operand. This record is the origin of the face source list
   of P5.
@@ -619,9 +781,15 @@ For each input face, in its chart:
 - K1. A piece of a face that is in one or more same-surface pairs is tested,
   at one interior point, against the trimmed region of the other face of
   each of those pairs, in index order. Inside one of them: the piece is
-  *shared*, with that pair's same or opposite flag. A boundary answer from
-  any of them returns `ErrInconsistent`. Outside all of them: the piece is
-  not shared and is classified by K2.
+  *shared*, with that pair's same or opposite flag. Outside all of them: the
+  piece is not shared and is classified by K2. A point that is inside none
+  of them and on the boundary of one decides nothing, and the next
+  interior point of the piece is taken, from the same points K2 uses. A
+  valid input needs this: an edge that the other face uses twice, a seam
+  or the radial edge of a polar plane chart (I4), runs through that
+  face's region, and X9 reports a point on it as boundary. If every
+  interior point tried is on a boundary, the call returns
+  `ErrInconsistent`.
 - K2. Every piece that K1 does not mark shared is classified *inside* or *outside* the other operand
   at one interior point at least ε from the piece boundary, using
   `trimmed.Solid.Classify` (`brep/trimmed/location.go:63`) on the other
@@ -650,9 +818,17 @@ After selection, before merging:
 
 - N1. Every span, bundle or trace used by a kept piece must have exactly two
   uses by kept pieces, in opposite directions.
-- N2. At every node that lies on at least one kept piece, the kept pieces
-  around it, linked through the kept spans at that node, must form exactly
-  one cycle. A node on no kept piece is not tested and is not in the result.
+- N2. At every node that is an end of at least one span, bundle or trace
+  used by a kept piece, the corners of
+  kept pieces at that node, linked through the kept spans, bundles and
+  traces that end there, must form exactly one cycle. A corner is one
+  passage of a loop through the node, between the element it arrives by
+  and the element it leaves by. A piece that touches itself at the node
+  (F3) has two or more corners there, and each is a member of the cycle on
+  its own. Any other node is not tested and is not in the result: a node
+  on no kept piece, and a node that lies in the interior of a kept piece
+  with no kept element ending at it, such as the touching vertex that X4
+  records inside a face. The cut of C10 returns A for that reason.
 - N3. For every touching-contact record (AR7), kept pieces of A and kept
   pieces of B must not both contain the contact locus.
 
@@ -671,13 +847,89 @@ cut returns A with its vertex at the contact.
   (P5).
 - M2. A seam is removed by M1 only from a cylinder face that no longer winds
   fully around its axis; that face's chart is then moved so it is continuous.
-- M3. A merge that would make a loop visit a node twice is not performed.
+- M3. A merge is not performed when the merged face would have a repeated
+  corner (M6): the merge would create one, or one of the two faces has one
+  already and the merge does not remove it. The edge between the two faces
+  stays. A merge that removes a repeated corner is performed.
 - M4. After M1, a node with exactly two incident edges on the same carrier
   is removed and the edges become one.
 - M5. Merging is part of the contract, not an option: a result has no two
-  adjacent faces on the same surface except across a required seam (M2) or
-  across an edge that M3 keeps, and no vertex that M4 would remove except
-  those added by B2.
+  adjacent faces on the same surface except across a required seam (M2),
+  across an edge that M3 keeps, or across a divider (M6), and no vertex
+  that M4 would remove except those added by B2.
+- M6. A face that touches itself. A *corner* of a face is the start of one
+  use in one of its loops, taken as a point of the face's chart. A face has
+  a *repeated corner* when two of its corners are the same chart point.
+  `trimmed.NewSolid` requires distinct chart vertices within a face (B2),
+  and no vertex can be added or moved to separate two corners at one
+  point, so such a face is divided. A repeated corner comes from F3: a
+  piece whose loop passes twice through a node, which M1 has not merged
+  into a face without it. The two ends of a seam are different chart
+  points and are not a repeated corner. After M4, every curved edge of
+  the result is cut into arcs of at most a quarter turn, the first step
+  of B2. The vertices this adds are corners like any other, so a circle
+  that touches an edge has corners beside the point of contact wherever
+  its own vertex lies. Then, for each face that has a repeated corner, in
+  index order:
+  1. Numbering. The corners of a loop are numbered from 0 in loop order,
+     starting at the loop's first use. The loops of a face are taken outer
+     loop first, then its holes in order.
+  2. Candidates. A candidate is a pair of corners x < y of one loop, at
+     two different chart points, that meets all of these:
+     - (a) Carrier. The straight chord between them in the chart is a
+       line, circle or ellipse in space (S3). In a plane chart every chord
+       is a line. In a cylinder chart only a chord along a ruling or
+       around a circle is, so one chart coordinate of the two corners
+       must agree within ε, and the chord must not cross the seam.
+     - (b) Inside. No corner of the face other than x and y is on the
+       chord (T3). The chord meets no use of any loop of the face except
+       at its two ends, tested with the rows of 7.5. Its mid point is
+       inside the face (X9).
+     - (c) Not along the boundary. At neither end is the chord parallel
+       (T5) to one of the two uses of the loop that meet at that corner.
+       A chord that continued a boundary edge would give one of the new
+       faces three corners on one line.
+     - (d) Separating. Some chart point holds a corner numbered strictly
+       between x and y and also a corner numbered below x or above y.
+  3. Choice. The candidate with the shortest chord in space is taken. Of
+     chords equal in length, the one in the earlier loop, then with the
+     lower x, then with the lower y.
+  4. Division. The chord becomes a new edge of the result, a *divider*,
+     on the chord's carrier, from the node of x to the node of y. No node
+     is added and none is moved. The loop is replaced by the two loops the
+     divider makes of it: one from x round to y and back along the
+     divider, the other from y round to x and back along the divider. A
+     loop of positive area in the chart is the outer loop of a face, and
+     the remaining loops are assigned as in F4. The result is two faces
+     in place of one. Both keep the carrier, the orientation and the
+     source list of the face that was divided (P5).
+  5. Repetition. Steps 2 to 4 are repeated on the faces so made until no
+     face has a repeated corner. By (d) each division separates at least
+     two corners that were at one point, so a loop that passes k times
+     through a point needs at most k − 1 divisions for it, and the
+     process ends.
+  6. Failure. A face with a repeated corner and no candidate returns
+     `ErrUnsupported`, naming the sources of the face and the point. A
+     planar face with straight edges always has a chord that meets (a),
+     (b) and (d) exactly, so it can lack a candidate only through (c) or
+     the tolerances of (b). A face with curved edges, or on a cylinder,
+     can lack one outright, when no chord between two of its corners
+     stays inside it. Adding a vertex beyond those of the quarter-turn
+     cut, to make a candidate, is not part of the trial. If two
+     different loops of one face hold corners at one chart point, the call
+     returns `ErrInconsistent`: F3 puts every passage of a piece through
+     one point into one loop, and M3 keeps merging from changing that.
+
+  A divider is an ordinary edge of the result. It has exactly two uses,
+  by the two faces it separates, in opposite directions, and it joins
+  those two faces in the cycle at each of its end nodes, so N1 and N2 hold
+  after a division as they did before it. M1 and M4 are not applied again
+  after M6. In a later call the two faces are two faces of an operand on
+  one surface, and the divider is an edge whose carrier I5 takes from its
+  samples.
+- M7. After M6 every face has exactly one outer loop: one loop of
+  positive area in its chart, every other loop negative. A face with none
+  or with two returns `ErrValidation`.
 
 ### 7.11 Assembly
 
@@ -693,29 +945,38 @@ the arrangement. No geometric welding takes place at this stage.
 - B2. Output conditioning. `trimmed.NewSolid` requires at least three uses
   per loop, distinct chart vertices within a face, and loops whose chord
   polygons are simple (`brep/trimmed/solid.go:211-306`). Assembly must add
-  vertices on curved edges until this holds: it first cuts every curved edge
-  into arcs of at most a quarter turn, then halves the arcs of any loop that
-  still fails, at most six times. If a loop still fails after six halvings
-  the call returns `ErrValidation`. Conditioning never moves
-  geometry. Conditioning vertices are excluded from every topology count
-  this document compares.
+  vertices on curved edges until this holds. Every curved edge is first cut
+  into arcs of at most a quarter turn, and where its carrier parameter
+  passes a whole turn; this cut is made before M6, so that M6 can use its
+  vertices. Then, while `trimmed.NewSolid` does not accept the solid,
+  every arc of the solid is halved, at most six times. All arcs are
+  halved and not only those of the loop that failed, because the error
+  from `NewSolid` does not reliably name the loop. If the solid is still
+  refused after six halvings the call returns `ErrValidation` with the
+  first refusal, the one the quarter-turn arcs met. Conditioning never
+  moves geometry. Conditioning vertices are excluded from every topology count
+  this document compares. Conditioning cannot separate two corners of a
+  face at one chart point; M6 has removed every such pair before assembly.
 - B3. P-curves are straight for a line on a plane and for a line or circle
   on a cylinder, and `trimmed.EllipseUV` (`brep/trimmed/pcurve.go:14`) for a
   circle or ellipse on a plane and for an ellipse on a cylinder.
 - B4. The output solid is built with `trimmed.NewSolidContext`
-  (`brep/trimmed/solid.go:110`) and tolerance τ (T6). An error from it is
+  (`brep/trimmed/solid.go:110`) and the tolerance T6 states, τ + σ. An error from it is
   returned as `ErrValidation` wrapping that error, except a context error,
   which is returned unwrapped as section 9 requires.
 - B5. A selection that keeps no piece returns the empty solid and no error.
 - B6. Every edge of the output solid stores its carrier as a `geom.Line` or
   `geom.Ellipse` value over the edge's interval. A result is a valid
-  operand of a later call whatever its curve values are, since I5 does not
-  read them.
+  operand of a later call whatever the Go types of its curve values are,
+  since I5 only evaluates them.
 
 ## 8. Validation before return
 
 Every non-empty result must pass all of the following. A failure returns
-`ErrValidation` naming the check and the entity.
+`ErrValidation` naming the check and the entity. Where a residual is
+compared with the tolerance, in V3, V4 and the checks of V1, the tolerance
+is τ + σ, with the rounding allowance σ of T9, so that geometry that sits
+exactly at τ does not fail by rounding.
 
 - V1. Structure: `trimmed.NewSolidContext` accepts the result (closed loops,
   chart winding, every edge used exactly twice in opposite directions,
@@ -724,26 +985,77 @@ Every non-empty result must pass all of the following. A failure returns
   shell encloses positive volume and each void negative volume.
 - V3. Edge residual: at 17 evenly spaced parameters on every edge, including
   both ends, the distance from the edge point to the carrier of each of its
-  two faces is ≤ τ, and the distance to the face point given by its p-curve
-  is ≤ τ.
+  two faces is ≤ τ + σ, and the distance to the face point given by its
+  p-curve is ≤ τ + σ.
 - V4. Vertex residual: the distance from every vertex to the corresponding
-  end point of each incident edge is ≤ τ.
-- V5. Volume identities. Let V(·) be volume from
-  `trimmed.Solid.MassProperties` (`brep/trimmed/properties.go:33`) for A, B
-  and the result, and let the volumes of A ∩ B, A − B, B − A and A ∪ B be
+  end point of each incident edge is ≤ τ + σ.
+- V5. Volume identities. Let V(·) and area(·) be the volume and the
+  surface area of A, of B and of the result. The paragraphs after the
+  list say where they come from: the closed form of this package
+  (RL-17), the caller (RL-10), or `trimmed.Solid.MassProperties`
+  (`brep/trimmed/properties.go:33`) where the closed form does not
+  apply. Let the volumes of A ∩ B, A − B, B − A and A ∪ B be
   computed from the classified pieces of this one arrangement. Then, with
   bound β = `Volume` × max(V(A), V(B)) + ε × (area(A) + area(B)):
   - |V(A − B) + V(A ∩ B) − V(A)| ≤ β
   - |V(B − A) + V(A ∩ B) − V(B)| ≤ β
   - |V(A ∪ B) − V(A) − V(B) + V(A ∩ B)| ≤ β
   - |V(result) − the piece-based volume of the requested operation| ≤ β
-  - 0 ≤ V(A ∩ B) ≤ min(V(A), V(B)) + β and V(A ∪ B) ≥ max(V(A), V(B)) − β
+  - −β ≤ V(A ∩ B) ≤ min(V(A), V(B)) + β and V(A ∪ B) ≥ max(V(A), V(B)) − β
 
-  If `MassProperties` returns an error for A, B or the result, V5 cannot be
+  The lower bound of V(A ∩ B) carries the slack β like the others: the
+  volume comes from pieces, and when the common is empty or thin its
+  computed value can fall below zero by rounding.
+
+  Closed form (RL-17). For the surface class of the trial the volume, the
+  surface area and the centroid of a solid are finite sums of closed-form
+  terms, and `brep/boolean` computes them with one general routine: face
+  by face, as boundary integrals in the chart of the face. The routine
+  covers a face in a plane whose loops are made of lines and of arcs of
+  circles and ellipses, and a face on a cylinder whose loops in the chart
+  are made of rulings, arcs of section circles and arcs of section
+  ellipses. That is every face of the class (S2, S3), and the routine has
+  no case for a kind of solid. `Combine` uses it for the result, always,
+  and for each operand whose mass properties the caller did not supply.
+  For the result it reads the face and loop data that assembly hands to
+  `trimmed.NewSolidContext`, after M6 and B2, which is the solid that is
+  returned; it does not read the pieces or the merged faces of the
+  pipeline. The fourth identity below therefore still compares what is
+  returned with what the kept pieces account for. For an operand it
+  reads the faces as intake reduced them (I3). If a face of a solid is
+  outside what the routine covers, the mass properties of that whole
+  solid are taken from `MassProperties`, with the integration options of
+  the call.
+
+  `MassProperties` remains the independent measurement, but it is no
+  longer made on every call. It is made by tests. Every leaf of section
+  11 that returns a solid compares the closed-form volume, area and
+  centroid of its result with those `MassProperties` gives at the
+  integration options of L4, and the acceptance replay does the same for
+  every result in the slow tier. They must agree within
+  1e-8 × max(1, |value|) for the volume and the area, and within
+  1e-8 × L for the centroid. A difference beyond that fails the leaf or
+  the row.
+
+  If `MassProperties` is used for A, B or the result and returns an error, V5 cannot be
   evaluated and `Combine` returns an error: `ErrBudget` wrapping the cause
   when the cause is `parametric.ErrBudget` (the integration budget of P3 was
   exhausted), the context error unwrapped when the context was cancelled,
   and `ErrValidation` wrapping the cause otherwise.
+
+  Known mass properties (RL-10). When the caller supplies the volume and
+  the area of an operand (P3), V5 uses them as V and area of that operand
+  and does not integrate it. They are trusted as given: `Combine` checks
+  nothing about them beyond P4. They are meant to be values the caller holds
+  for the same solid, from the report of an earlier call or from the
+  definition of the shape, and the caller answers for that. The mass properties of the result are never taken from the caller:
+  they are computed by this call, as the paragraphs on the closed form
+  state.
+  Neither the integration tolerance nor the bound β is loosened. A supplied
+  volume that is wrong by more than β makes one of the identities fail,
+  and the call then returns `ErrValidation` as for any other failure of
+  V5. A supplied area that is wrong is not detected: the area enters
+  only the bound β and the report.
 - V6. Membership sampling. The sample points are terms 1 to `Samples` of the
   Halton sequence in bases 2, 3 and 5, whose three coordinates in [0, 1) map
   linearly onto the x, y and z extents of the bounding box of both operands
@@ -753,19 +1065,34 @@ Every non-empty result must pass all of the following. A failure returns
   points that any of the three reports as boundary, the result's answer must
   equal the operation applied to the answers for A and B.
 
-  V6 is not an independent check of classification. It does not read the
-  piece classes of section 7.7, so it detects errors in splitting,
-  selection, merging and assembly. But K2 classifies pieces with
-  `trimmed.Solid.Classify` and V6 classifies its sample points with the same
-  function, so a wrong answer from `Classify` on an operand can make both
-  wrong in the same way, and V6 then passes. The checks that do not depend
-  on `Classify` are V5, which takes V(A), V(B) and V(result) from
-  `MassProperties`, and the oracle run of A6, which uses neither function.
-  V5 is limited too: its first three conditions sum every piece of one
-  operand and so hold for any assignment of classes, and its fourth tests
-  assembly. Only the bounds in its last line can expose a wrong class. The
-  trial therefore relies on the oracle run (A6) and on the analytic and
-  legacy values of section 11 and A3 to expose a wrong `Classify` answer.
+  Which checks are independent (RL-17). V6 is not an independent check
+  of classification. It does not read the piece classes of section 7.7,
+  so it detects errors in splitting, selection, merging and assembly. But
+  K2 classifies pieces with `trimmed.Solid.Classify` and V6 classifies its
+  sample points with the same function, so a wrong answer from `Classify`
+  on an operand can make both wrong in the same way, and V6 then passes.
+
+  V5 is not an independent measurement either. The volumes of A, B and
+  the result are computed by this package, in closed form, from the same
+  carriers and charts the pipeline works with, and the volumes of the
+  pieces come from the same arrangement. V5 is a check of selection,
+  merging and assembly against the classified pieces. Its first three
+  conditions say that splitting neither lost nor added volume, and they
+  hold for any assignment of classes. Its fourth says that the solid
+  returned encloses what the kept pieces account for. Only the bounds in
+  its last line can expose a wrong class. An error that the pipeline and
+  the closed form share, such as a wrong carrier taken at intake, passes
+  V5. Where the caller supplies the mass properties of an operand, the
+  first two conditions do compare the pieces with a value from outside
+  the call.
+
+  The checks that are independent of this package are made outside
+  `Combine`: the comparison of the closed form with `MassProperties` in
+  the leaves of section 11 and in the slow-tier replay (V5); the analytic
+  values of section 11; the legacy values of A3; and the oracle run of
+  A6, which alone uses neither `Classify` nor `MassProperties`. The trial
+  relies on these to expose a wrong carrier, a wrong class or a wrong
+  `Classify` answer.
 - V7. If an operand violates the embedding precondition (S5), `Combine` still
   never returns a result that fails V1 to V6, but it is not guaranteed to
   detect the violation.
@@ -781,17 +1108,19 @@ the operand and the input face or edge indices involved.
 | Error | When |
 |---|---|
 | `ErrInvalid` | Nil context, an operation value other than `Union`, `Common` or `Cut`, invalid options, non-finite input, ε ≥ L / 100, an edge that cannot be evaluated or does not lie on its faces (I5). |
-| `ErrUnsupported` | Operand outside section 4.1, including an edge with no carrier (I5); a surface or curve pair marked unsupported in 7.4 or 7.5. |
+| `ErrUnsupported` | Operand outside section 4.1, including an edge with no carrier or a stored curve that runs back along its carrier (I5); a surface or curve pair marked unsupported in 7.4 or 7.5; a face that touches itself and has no divider (M6). |
 | `ErrNonManifold` | N1, N2 or N3 fails. |
-| `ErrTolerance` | T4, I5, SP4, CC4 or F6. |
-| `ErrInconsistent` | X8, F2, F3, K1, K2 or K3: the arrangement contradicts itself. |
-| `ErrValidation` | Any check of section 8, B4, or a mass-property failure other than budget or cancellation (V5). |
+| `ErrTolerance` | T4; an edge with two qualifying carriers (I5); a divergent pair (SP4, CC4); X4; X5; X10; F6. T8 says where each is allowed. |
+| `ErrInconsistent` | X6, X8, F2, F3, F4, K1, K2, K3, or two loops of one face at one chart point (M6): the arrangement contradicts itself. |
+| `ErrValidation` | Any check of section 8, M7, B2, B4, or a mass-property failure other than budget or cancellation (V5). |
 | `ErrBudget` | A work limit of section 10 is exceeded, or mass-property integration exhausts its budget (V5). |
 | Context error | The context is cancelled; returned unwrapped. It takes precedence over every other error, at every stage. |
 
 `ErrInconsistent` and `ErrValidation` mean the trial's own logic failed on an
 input in scope. Every occurrence on an acceptance or matrix case counts
-against the pass condition.
+against the pass condition. An `ErrValidation` that comes only from a
+limit of `brep/trimmed` is reported under E1 and RL-9: it is not a pass,
+and it does not count toward a stop until the owner rules.
 
 ## 10. Work limits
 
@@ -808,7 +1137,9 @@ that is both too large and outside the class of section 4.1 returns
 `ErrBudget`. `MaxGrowth` (default 4,
 T4) is a tolerance bound, not a work limit, and its violation returns
 `ErrTolerance`. Checking these limits is the one place where the number of
-faces, nodes or pieces of an operand is read (PC2). The context is checked at least once
+faces, nodes or pieces of an operand is read (PC2), apart from the test
+that an operand has no face at all, which is how the empty solid of S6 is
+told (I2). The context is checked at least once
 per pair test and once per piece. Loops in the output are also subject to
 `brep.MaxHoledFaceVertices` (256, `brep/holes.go:15`), enforced by
 `trimmed.NewSolid`.
@@ -842,7 +1173,7 @@ volume is given.
 | C17 | Coaxial cylinders: A of radius R and height interval [0,2], B of radius r < R and height interval [−1,3] | A with B's two ends standing out; V = 2πR² + 2πr² | V = 2πr² | Tube, V = 2π(R² − r²), 4 faces |
 | C18 | Parallel cylinders of radius r, axis distance d with 4ε ≤ d ≤ 2r − 4ε, same height h | V = h(2πr² − lens) | V = h·lens, lens = 2r²·acos(d/2r) − (d/2)·√(4r² − d²) | V = h(πr² − lens) |
 | C19 | A box; B a cylinder standing on A's top face, base circle strictly inside the face | One solid, V(A) + V(B); the top face has one hole | Empty | A |
-| C20 | As C19, but the base circle touches one edge of the top face from inside at a point | `ErrNonManifold` | Empty | A |
+| C20 | As C19, but the base circle touches one edge of the top face from inside at a point | One solid, V(A) + V(B); the top face of A touches itself at the point of contact and is divided in two (M6) | Empty | A |
 | C21 | A box; B a cylinder through A along z with both caps flush with A's faces | A | B | Box with a through bore, V(A) − πr²h, 7 faces |
 | C22 | A box; B a cylinder entering A's top face and ending inside A | V(A) + part of B outside | Part of B inside | Blind hole; V(A) − πr²·depth |
 | C23 | A box; B a cylinder whose axis is oblique to the faces it passes through | — | Part of B inside A | Through bore with elliptic openings; V(A) − V(common) |
@@ -850,17 +1181,53 @@ volume is given.
 | C25 | C4 with B moved into A by 100ε | One solid, V = 12 − 400ε within β | V = 400ε within β | V = 8 − 400ε within β |
 | C26 | C4 with B moved into A by 2ε | `ErrTolerance` or a validated result (T8) | same | same |
 | C27 | Either operand empty | The other operand | Empty | A if B is empty, else empty |
+| C28 | A = [0,5]×[0,8]×[2,12]; B the box with corners (3,6,2), (5,8,3), (3,9,5), (1,7,4), (5,2,6), (7,4,7), (5,5,9), (3,3,8). The corner (5,8,3) of B lies on an edge of A, B passes through the faces x = 5 and y = 8 of A, and the corner (3,6,2) of B touches the face z = 2 of A from inside | One solid, V = 410.125, 14 faces: two faces of A touch themselves at (5,8,3) and each is divided in two (M6) | One solid, V = 43.875, 8 faces | `ErrNonManifold` |
 
-In C7 to C14 and C20 the result where an error is listed is a point set whose
+In C7 to C14 the result where an error is listed is a point set whose
 boundary is not a manifold. The trial reports it; it does not represent it
-(OD-3).
+(OD-3). The same holds for the cut of C28, whose cavity touches the face
+z = 2 at one point.
+
+The union of C20 is a manifold, and an earlier revision of this table was
+wrong to list `ErrNonManifold` for it. Around the point of contact the
+kept corners form one cycle: the side face of A, the top face of A on one
+side of the point, the wall of B, the top face on the other side. Every
+edge there has two uses (N1), and no touching contact is recorded (N3):
+the circle and the edge are two edges that meet, which carry no label
+(CC2), the base of B lies in the top face and not strictly on one side of
+it (X5), and the side face of A and the wall of B share only that point,
+so their line of tangency makes no trace (X6). The top face of the result
+passes twice through the point and M6 divides it, between a corner of the
+face and a vertex of the quarter-turn cut of the circle. This holds
+wherever the vertex of the base circle lies, the point of contact
+included. No other row changes with M6: in C7 to C14 an error comes from
+N1, N2 or N3 before merging, and in the union of C14 and the cut of C20
+the face that touches itself is merged into one without the contact (M1,
+M3).
+
+C28 is the smallest input that the stress test of the planar phase found
+for a face that touches itself. In its union, the piece of the face x = 5
+of A outside B is a rectangle less the triangle (5,8,3), (5,2,6), (5,5,9),
+which meets the rectangle's edge at (5,8,3); the piece of the face y = 8
+is a rectangle less the triangle (5,8,3), (2,8,4.5), (3.5,8,6). The
+loop of each passes twice through (5,8,3). M6 must give the divider from
+(5,2,6) to (5,0,2) on x = 5 and the divider from (2,8,4.5) to (0,8,2) on
+y = 8. On x = 5 the chord from (5,5,9) to (5,8,12) is shorter, and
+condition (c) excludes it because it continues a side of the triangle.
+Each of the four faces so made has one source, the face of A it was
+divided from. V(B) = 54 and V(A ∩ B) = 54 − 9 − 1.125.
 
 C1 to C3 and C27 are run with box operands and again with cylinder operands.
 
 Stored forms (S3, I5). The carrier of an edge must not depend on how its
 curve is stored, so C15 and C21 are each run with the cylinder operand in
 every one of these forms, and the outcome, volume, face count and face
-source lists must be the same for all of them:
+source lists must be the same for all of them. Source lists are compared
+by operand: for each face of the result, which of A and B its sources
+come from. They are not compared by the number of sources, because one
+wall of a cylinder is one stored face in some forms and several in
+others, four in SF3, and a merged wall names every stored face it came
+from (P5):
 
 - SF1. Edges stored as `geom.Line` and `geom.Ellipse` values, the form B6
   gives a result.
@@ -876,21 +1243,32 @@ source lists must be the same for all of them:
 
 Two further tests fix the failures of I5: a solid with one edge replaced by
 a curve that lies on both of its faces within ε at its ends and leaves one
-of them by 10ε at its middle returns `ErrInvalid` naming the edge; and a
-cylinder whose wall is split in two faces along a helical edge returns
-`ErrUnsupported` naming that edge. In `internal/plaincadbridge`, the
+of them by 10ε at nine sixteenths of its range returns `ErrInvalid` naming
+the edge; and a cylinder whose wall is split in two faces along a helical
+edge returns `ErrUnsupported` naming that edge. The deviation of the first
+test cannot be at the middle of the range: `trimmed.NewSolid` samples
+every edge at the eighths of its range and would refuse to build the
+operand, while I5 samples at the sixteenths. A deviation at the exact
+middle is tested on the edge alone, below `Combine`. For the same reason
+the two tests of the sampling bound of I5 step 6, an uneven
+parameterization of a full circle and a curve that runs forward and then
+back, are made on the edge alone: `trimmed.NewSolid` would reject either
+curve in a solid. In `internal/plaincadbridge`, the
 acceptance rows already use operands made by the `box`, `prism`, `circle`
 and `mixedExtrude` requests; the frozen list must contain at least one
 checked Boolean response with an operand from each of those four requests,
 and the plan's freeze reports the count for each (A1).
-The all-planar rows, used by the gate of PL1, are C1 to C10 and C24 to C27
+The all-planar rows, used by the gate of PL1, are C1 to C10 and C24 to C28
 with box operands.
 
 Face sources (P5) are checked on every row that returns a non-empty solid:
 each face has at least one source; the list has no duplicates and is in the
 order P5 states; each index names a face of its operand; and the carrier of
 each source face is the same surface as the carrier of the result face
-within τ. Four rows also fix the lists:
+within τ. Five rows also fix the lists. Where a list below names the
+lateral face of a cylinder, it means every stored face of that operand's
+wall, one or several by the stored form; what is fixed is which operands
+the sources come from and that each is a face of the wall:
 
 - C4, union: the bottom face has one source, a face of A; the top face has
   one source, a face of B; each of the four side faces has two sources, one
@@ -903,6 +1281,9 @@ within τ. Four rows also fix the lists:
   B.
 - C21, cut: six faces each have one source, a face of A; the bore wall has
   one source, the lateral face of B.
+- C28, union: the two faces on the plane x = 5 each have one source, the
+  face x = 5 of A, and the two on the plane y = 8 each have the face y = 8
+  of A (M6).
 
 ## 12. Compositions used by the bridge
 
@@ -913,10 +1294,49 @@ within τ. Four rows also fix the lists:
   that the bridge rejects today (for example an empty list of bodies or
   tools) is rejected the same way before `Combine` is called, and a list of
   one body is returned as that body.
+
+  Two rules of the bridge's own operations hold on the general path as on
+  the legacy paths (RL-15), and a request that breaks one fails. A `cut`,
+  and a `cutMany` as a whole, must remove material and must leave some:
+  it fails when the result is empty, or when its volume is not below the
+  volume of the body by the bridge's own measure (`removesMaterial`). A
+  `joinAll` must give one solid and must add volume. Forty-one recorded
+  failures of the frozen rows are these rules. They are stated on the
+  volumes and the solid count of results and do not depend on the family
+  of the operands (PC2).
+
+  Mass properties in a fold (RL-10). Each step passes, as the known mass
+  properties of its first operand, the volume and the area that the
+  result of the step before reported, so that an intermediate solid is
+  integrated once and not again as an operand.
 - CO2. `overlapVolume(a, b)` is V(a ∩ b), and 0 when the common is empty.
 - CO3. `prismToFace` and `circleToFace` build a tool that ends on a target
   face. Their result is reproduced as the common of the sweep, extended past
   the target plane, with a block one face of which lies on the target plane.
+  Three rules of the operation hold on the general path as on the legacy
+  path, and a request that breaks one fails:
+  - the target body still has a face on the target plane with the stated
+    normal;
+  - the whole profile lies before that plane along the sweep;
+  - the target covers the end of the tool (RL-16): every point of the
+    tool's end cap, which is the face of the tool on the target plane,
+    lies on a face of the target body on that plane that faces the tool.
+
+  The third rule is part of the operation and not of one path. The
+  plane is only a locator and never stands in for the face, as the
+  bridge's own code says of it, and the legacy path fails with
+  "termination face does not cover the projected profile". Without the
+  rule the general path returns a tool that ends in mid air where the
+  record fails, which four frozen rows showed. Coverage is decided with
+  `Combine` and its face source lists (P5), and not by a rule about the
+  profile or the target (PC2). With T the tool, the end cap is covered
+  exactly when no face of the union of T with the target body, and no
+  face of their common, has the end cap of T among its sources. A part of
+  the cap that lies on a face of the target facing the tool is a shared
+  piece with opposite normals, which both operations drop (7.8); a part
+  that hangs free is kept by the union; a part inside the target's
+  material, or on a face of it that faces away, is kept by the common or
+  the union. An error from either call fails the request.
 - CO4. `pocketFloor` is a query on a result, not a Boolean. It must give the
   same answer on a general-path result as on the legacy result, which
   depends on M5 producing one face per floor.
@@ -937,9 +1357,81 @@ What the trial uses, unchanged, and what it does not.
 
 - E1. The trial needs from `brep/trimmed` that `NewSolidContext` accept every
   result that meets B2 and B3, and that `Classify` answer inside, outside or
-  boundary for every operand in the class at tolerance ε. If either fails on
-  a valid input, the trial does not edit `brep/trimmed`: it records the case
-  and stops under section 16.
+  boundary for every operand in the class at tolerance ε. The trial's own
+  commits do not edit `brep/trimmed` (G4, L5). What happens when the
+  package fails on a valid input depends on the failure:
+
+  - A limit of `brep/trimmed` that a valid result or operand exposes: the
+    package cannot represent, or wrongly rejects, a result that meets B2
+    and B3, or returns an error where it should answer for an operand in
+    the class.
+    This does not end the trial (RL-9, section 19). The limit is fixed in
+    `brep/trimmed` itself, on a separate foundation branch,
+    `codex/trimmed-collinear-corners`, which is merged into the trial
+    branch. Until the fix is merged, `Combine` returns `ErrValidation` for
+    such input (B2, B4) and does not work around the limit. A leaf or row
+    that fails for such a limit alone is reported under that reason, with
+    its input. It is not a pass, and it does not count toward ST3 or ST5
+    until the owner rules.
+  - Any other failure, such as a wrong answer from `Classify` on a valid
+    operand: the case is recorded and the trial stops under section 16
+    (ST5).
+
+  Three limits were known after Phase 2, and the first run of the
+  acceptance rows added three:
+
+  - Collinear corners. `NewSolidContext` rejects a valid planar result
+    with "mesh: triangle N is degenerate or overflows" when a face in a
+    plane that is not axis-aligned has three consecutive corners on one
+    straight line: the three points are exactly collinear in space and
+    their rounded chart coordinates are not. The stress test of the
+    planar phase met this in 12 of 4,500 operations. The smallest input
+    is A = [3,11]×[4,8]×[4,12] and B the box with corners (2,0,−1),
+    (6,4,1), (2,6,5), (−2,2,3), (3,−2,1), (7,2,3), (3,4,7), (−1,0,5),
+    union, where a face of B has the corners (2,6,5), (3,5.5,4), (6,4,1)
+    in a row. No matrix leaf has met it.
+  - Arcs of two curves at one vertex. `NewSolid` requires the end of one
+    use and the start of the next to be the same bits, each being what its
+    p-curve evaluates to, and `Classify` accepts only `trimmed.EllipseUV`
+    as an arc p-curve from outside the package. Two different `EllipseUV`
+    arcs give a common point values that differ in the last bits. So a
+    face in which arcs of two different circles or ellipses meet at a
+    vertex cannot be built. This blocks all three leaves of C18, whose
+    caps are bounded by arcs of two circles, and every other result with
+    a lens-shaped face; the Tier 1 families Bore union and Side dual disk
+    are overlapping parallel bores and probably depend on it. In the
+    cylinder stress test of Phase 2 it was 162 of 600 operations on two
+    upright cylinders. `Combine` reports the case itself, before it calls
+    `NewSolid`.
+  - A display mesh that does not close. `NewSolidContext` rejects the
+    union of C23 with "mesh: edge is not closed and consistently
+    oriented", in every conditioning round. The input is A =
+    [0,4]×[0,4]×[0,2] and B a cylinder of radius 0.5 and length 6 whose
+    axis passes through (2,2,1) at 30° from the vertical. The cut and the
+    common of the same operands pass. Row T1-029 meets it too.
+  - `Classify` on an unexported arc p-curve. A body that the bridge's
+    STEP import stores as a bore union has p-curves of the unexported
+    type `trimmed.unionArcUV`, and `Classify` returns "unsupported ray
+    p-curve" for it, so K2 cannot classify against that operand. Rows
+    T1-041, T1-051, T1-053, T1-054, T1-066 and T1-067.
+  - A display triangle on a seam. The display triangulation of a face
+    that winds once around a cylinder, whose seam is both vertical sides
+    of its chart rectangle, can make a triangle with two corners on the
+    seam and a normal of exactly zero, and `NewSolidContext` then
+    returns "mesh: triangle N is degenerate or overflows" in every
+    conditioning round. Rows T1-083, T1-034 and T1-041. The smallest
+    input is the box [0,60]×[0,40]×[0,20] less the box
+    [12,24]×[12,20]×[14,20], less a cylinder of radius 2 from (45,25,20)
+    down 20, less a cylinder of radius 3 from (45,25,20) down 1.
+  - `Tessellate` and a positive angle bound. On a wall with a seam
+    `Solid.Tessellate` never meets a positive angle bound, and the
+    bridge's `mesh` request returns "tessellation budget exceeded" with
+    its default options. Rows T1-029 and T1-092.
+
+  Four of these are written up as defect reports for the work on the
+  foundation branch (RL-9): the triangle on a seam, `Classify` and
+  `unionArcUV`, `Tessellate` with a positive angle bound, and the mesh
+  edge that is not closed.
 
 ## 14. Code location and architecture
 
@@ -951,27 +1443,101 @@ What the trial uses, unchanged, and what it does not.
   where the shape already holds one or lifts to one (planar solids through
   `trimmed.FromPlanar`, cylinders and patch solids through
   `trimmed.FromParametric`, bored and analytic bodies through the solid they
-  hold), calls `Combine`, and publishes the result through the existing
-  analytic-body path. A stored shape with no such solid returns the bridge's
-  `UNSUPPORTED` failure. The adapter reads the shell grouping of the result
-  for `solidCount`. It does not read the face source list during the trial;
-  that list is a field of the result type, in the contract at the owner's
-  request, and is read by the tests of section 11.
+  hold), calls `Combine`, and publishes the result as an analytic body
+  holding the result solid (RL-2), with the volume and the area that the
+  result report gives (RL-10); the adapter does not integrate the result
+  again. A result that is not empty is stored by calling the bridge's
+  `publish` directly from the adapter file, and not through
+  `putAnalyticBody`: that function accepts one shell only, so it cannot
+  take a result with a void or with several solids, and it pads the
+  bounds. An empty result is published through `put`, as the legacy paths
+  publish one. A stored shape with no such solid returns the bridge's
+  `UNSUPPORTED` failure. The adapter reads the shell grouping of the
+  result for `solidCount`.
+
+  Bounds (RL-15). The bounds the adapter publishes are the box of the
+  result's edges, each curved edge taken with its true extent, found from
+  its turning points and not from samples. They are not those of
+  `trimmed.Solid.Bounds`, as an earlier revision had it: that function
+  boxes the whole parameter rectangle of every face and was up to 30
+  units too wide on results of the trial, besides padding by the
+  tolerance. The box of the edges contains the solid for the surface
+  class of S2. A bounded face in a plane lies in the convex hull of its
+  boundary. Every point of a face on a cylinder lies on a ruling, and
+  the part of that ruling inside the face ends on the boundary of the
+  face at both ends, so the point lies between two boundary points. No
+  coordinate of a face therefore exceeds those of its edges. A test
+  must show this on results of section 11, by comparing the published
+  box with points sampled on every face.
+
+  Known mass properties (RL-10). The adapter passes, as the known mass
+  properties of an operand (P3), the volume and the area the bridge
+  stores for that shape. For a body the adapter published they are the
+  values of the result report. For a legacy shape they are the bridge's
+  own closed forms for that shape, and not a measurement of the solid it
+  lifts to. V5 then compares the pieces of the lifted solid with a value
+  that did not come from it, and fails where the two disagree by more
+  than β; before, it could not notice such a disagreement. Within a fold
+  of CO1 each step's reported values go to the next step.
+
+  Source lists (RL-18). The adapter may read the face source lists of a
+  result, and does so in one place, the coverage rule of CO3. The list is a field of the result type, in the
+  contract at the owner's request, and is otherwise read by the tests of
+  section 11.
 - L3. The general path is selected per `Bridge` value by an unexported field
   set through a constructor used only by tests. The default bridge behavior
   does not change during the trial, and there is no environment variable or
-  package-level switch.
-- L4. Bridge tolerances for the trial: `Linear` 1e-7, `Relative` 0,
-  `Angular` 1e-9, `Volume` 1e-7, integration relative tolerance 1e-9.
-- L5. No file in `brep/trimmed` or `geom` is changed. No dependency is
-  added.
+  package-level switch. The selector needs two kinds of edit outside the
+  adapter file, and both are allowed: the declaration of that field on
+  `Bridge` in `bridge.go`, and one branch in each bridge operation the
+  trial serves (`cut`, `fuse`, `common`, `cutMany`, `joinAll`,
+  `overlapVolume`, `prismToFace`, `circleToFace`) that calls the adapter
+  when the field is set, placed after the operation's existing argument
+  validation (CO1). A bridge whose field is not set never reaches those
+  branches. One further change outside the adapter file is allowed
+  (RL-2, RL-15): in the `transform` request of `bridge.go`, one branch
+  behind the same field sends every analytic body that the adapter
+  published, of one shell or of several, back to the adapter to be
+  republished. Several shells need it because `putAnalyticBody` fails
+  with "expected one connected analytic shell". One shell needs it too,
+  because `putAnalyticBody` pads the bounds by the tolerance times the
+  norm of the matrix, 1.7e-7 for a permutation of the axes, and A3
+  compares at 1e-7. A default bridge never takes that branch, so its
+  `transform` is unchanged; the existing tests of the default bridge and
+  the trace replay on it verify that.
+- L4. Bridge options for the trial: `Linear` 1e-7, `Relative` 0,
+  `Angular` 1e-9, `Volume` 1e-7, and integration options
+  (`parametric.IntegrationOptions`) with relative tolerance 1e-9 and a
+  sample budget, `MaxSamples`, of 64,000,000. Since RL-17 `Combine`
+  integrates numerically only a solid that the closed form of V5 does not
+  cover, so these options no longer set the time of a call. They are the
+  options of that fallback and of the comparisons that V5 requires of
+  the tests. The sample budget is stated because the default is not
+  enough: at relative tolerance 1e-9 with the default budget of
+  4,000,000 samples, `MassProperties` runs out of samples on three
+  results with curved caps (the tube of C17, the common of C23, and a
+  leaning cylinder that enters a top face), and with 64,000,000 all three
+  converge and match their analytic volumes to 1e-9. When the acceptance
+  rows first ran on the general bridge, integration was 84 percent of the
+  time in bridge requests. Known mass properties (RL-10) removed the
+  repeated integrations, and nine Tier 1 rows still failed A7 for the one
+  integration of each result, at 5 to 25 seconds a row; that is what
+  RL-17 removes.
+- L5. No file in `geom` is changed, and no commit of the trial changes a
+  file in `brep/trimmed`. Changes to `brep/trimmed` that fix a limit E1
+  names are made on the foundation branch and reach the trial branch only
+  by a merge of that branch (RL-9). No dependency is added.
 - AR8. Architecture, a constraint on the code and not functional behavior:
   the arrangement of section 7.2 is the only data passed from the
   intersection stage to the building stage; every later stage reads its
-  lists and none recomputes an intersection; there is one arrangement per
-  call; the passes run in the order of section 7.3; and every traversal is
-  in index order with no randomness, which is how the guarantee of P7 is
-  met. None of this is
+  lists and none recomputes an intersection of A with B; there is one
+  arrangement per call; the passes run in the order of section 7.3; and
+  every traversal is in index order with no randomness, which is how the
+  guarantee of P7 is met. Classification and validation make the point
+  and residual tests that sections 7.7 and 8 state. Beyond those, the one
+  place after the passes where curves are intersected is the test of a
+  candidate chord against the loops of its own face (M6), which involves
+  one face of the result and no pair of operands. None of this is
   observable from outside `Combine`. It is what makes the pipeline one
   path, and it is checked by review of the diff under PC2.
 - L6. The oracle helper of A6 is `tools/occtref/general_boolean.cxx` with one
@@ -1049,11 +1615,30 @@ Not acceptance cases, with the reason:
   until the freeze.
 - Faces stored as spline patches (S2): a body made by the arc-loop branch
   of `mixedExtrude` (`trimmed.ExtrudeExactCircularLoop`). The freeze (A1)
-  reports how many Boolean responses this leaves unchecked.
+  counted the Boolean responses this leaves unchecked: none. The exclusion
+  stays (RL-3).
+- Faces stored as other evaluators (S2), found by the freeze: a body that
+  the bridge's STEP import stores with faces of the unexported
+  `brep/parametric` types `revolvedSide`, `ruledArcs` or
+  `reparameterizedCylinder`. These are planes and cylinders in shape and
+  not in the surface values S2 accepts. Two Boolean responses cut such a
+  body, one each in `TestFullTubeSTEPAndCoaxialCut` and
+  `TestQuarterAnnularSTEPAndFurtherCut`, and are unchecked (RL-4). The
+  other Boolean responses of those two rows are checked.
 - Outside the surface class: cones, tori, threads, lead screws, rim
   treatments and STEP repair families.
 - Within an acceptance test, assertions about STEP, IGES, native proof JSON,
   face roles and edge treatments are not reproduced (section 4.4).
+- A recorded value that depends on a feature smaller than the bridge
+  tolerance (RL-12). Row T1-009, `TestBlindFloorNearExitReferenceIsAmbiguous`,
+  cuts a box of height 8 with a cylinder of height 7.99999995 and records
+  a blind hole whose floor is 5e-8 thick. The bridge tolerance is 1e-7
+  (L4). Under the tolerance policy (G1) the cap of the tool and the face
+  of the stock are then coincident, row C24 governs, and the general
+  path returns the through hole. The record and C24 cannot both hold, so
+  the row is excluded. Any other row whose recorded result depends on a
+  separation between the operands that is below ε is excluded for the
+  same reason, stated in its row.
 
 ### 15.3 How a case is checked
 
@@ -1069,31 +1654,76 @@ Not acceptance cases, with the reason:
   - `valid` is true and `solidCount` equals the legacy value;
   - volume and surface area equal the analytic value in the source test
     where it has one, and the legacy value in every case, within
-    1e-7 × max(1, |expected|);
+    1e-7 × max(1, |expected|). The values compared are those the result
+    report gives, which are the closed forms of V5 (RL-17);
   - bounds equal the legacy bounds within 1e-7 in each coordinate;
   - the mesh of the result is watertight under the bridge's existing mesh
     checks.
-- A4. Where the source test expects a failure, the general path must return a
-  failure too.
+- A4. Recorded failures (RL-11). Where the source test expects a failure,
+  what the general path must do depends on what the failure is.
+  - A contract failure must still fail. It follows from the bridge
+    operation itself, whichever path serves it: the bridge rejects the
+    request before any Boolean is attempted (argument validation, handles,
+    limits; CO1); a rule that section 12 states for the operation is
+    broken (a cut that removes nothing or leaves nothing, a `joinAll`
+    that does not give one solid or adds no volume, the three rules of
+    CO3); or this document defines the result as an error, such as a
+    boundary that is not a manifold (OD-3).
+  - A declined input need not fail. It is a failure by which the legacy
+    path that served the request says that the input is outside what that
+    path represents or measures, where none of the above applies.
+    Recorded examples are "finite cylinder is not a measurable entry-open
+    blind pocket or through bore", "coaxial notch cuts require connected
+    axial spans" and "overlap volume requires a strictly contained radial
+    footprint". Reproducing such a refusal would need a rule that depends
+    on the family (ST2). If the general path fails too, with any error,
+    the response passes. If it returns a result, that result has passed
+    section 8 inside `Combine`; the response then passes, the row is
+    marked in `ACCEPTANCE.md` as succeeding where the record declines,
+    and, there being no recorded value to compare with, the case joins
+    the oracle run (A6).
+
+  `ACCEPTANCE.md` lists every recorded failure of a Boolean request that
+  the general path does not reproduce, with its message and which of the
+  two kinds it is, so that the owner can check the classification. A
+  failure whose kind these rules do not settle is treated as a contract
+  failure until the owner rules. The declined inputs are data, in
+  `internal/plaincadbridge/testdata/general_boolean/legacy_refusals.txt`,
+  by row and line of the trace with the legacy message. The replay reads
+  that file and has no other knowledge of them.
 - A5. The section 11 matrix passes in `brep/boolean`.
 - A6. Oracle. One helper builds a case from data (boxes, prisms and cylinders
   with placements, combined by union, common and cut) with the pinned OCCT
   and reports validity, volume, area, centroid and solid count. Cases are
   rows of a data file; there is no per-case C++. It is run once, as the last step
   of the trial, after Tier 2 has been kept or reverted (15.5), on every section 11 row that returns a solid, except the
-  tolerance rows C24 to C26, and on one row per Tier 1 family, with the comparison bound of
+  tolerance rows C24 to C26, on one row per Tier 1 family, and on every case that A4 marks as succeeding where the record declines, with the comparison bound of
   `internal/occtcheck/oracle_test.go:68` (3e-7 relative for area and volume,
   3e-7 absolute for centroid). Face counts are compared for the section 11
   rows that state one. C24 to C26 depend on ε, which the oracle does not
-  share, and are checked against their analytic values only. The owner
-  approved this one run (OD-5).
+  share, and are checked against their analytic values only. A case
+  marked by A4 that cannot be built from the helper's primitives, for
+  example one with a STEP-imported operand, is reported as succeeding
+  without an independent check. The owner approved this one run (OD-5).
 - A7. Every acceptance row and matrix row runs in under two seconds under
   `go test` on the 14-core development machine that `tools/ci/README.md`
   refers to, with the default settings of `go test` (no race detector, no
   change to `-p` or `-parallel`). The time of a row is the elapsed time
   that `go test -json` reports for its subtest, which includes building its
-  operands. A row that needs longer is a failure
-  of the row, not a candidate for the slow tier.
+  operands, when the row is run alone, by name. A row that needs longer
+  fails A7. It is not made to pass by moving it to the slow tier.
+
+  A7 times a row. The rule of `AGENTS.md` (G2) times a test function, and
+  a function that holds many rows meets it by running them as parallel
+  subtests (RL-7); that uses the default `-parallel` and changes no
+  setting. Rows that run side by side take longer and vary from run to
+  run, so the replay test treats time in its own way (RL-15). A row
+  listed in the pending list as taking more than two seconds runs in
+  that test only with `PLAINSOLID_SLOW=1`, where its time is logged, so
+  that the default tier stays fast. A row not listed fails that test
+  for its time only beyond four seconds. Neither changes what the pass
+  needs: every Tier 1 row under two seconds when run alone, and none
+  left on the list of slow rows.
 - A8. Achieved accuracy (OD-7). For every acceptance row, the test of A2
   reports the error the general path achieves in volume and in surface area:
   |value − expected| / max(1, |expected|), where expected is the analytic
@@ -1108,7 +1738,10 @@ Not acceptance cases, with the reason:
   produce a result being marked as such, and the report to the owner gives
   the largest volume error, the largest area error, and the number of rows
   above 1e-8 in either. The acceptance bound stays 1e-7 (A3); A8 records and
-  does not gate.
+  does not gate. The values are the closed forms of V5 (RL-17). In the
+  slow tier the test also logs for each row the largest difference
+  between the closed form and `MassProperties`, in volume and in area,
+  and the report to the owner gives the largest of each over the rows.
 
 ### 15.4 Order of work
 
@@ -1120,8 +1753,10 @@ These are requirements on the plan.
   classification, selection, the manifold test, merging, assembly and all
   of section 8, for union, common and cut.
 - PL2. That phase has its own gate. Every all-planar row of section 11 (C1
-  to C10 and C24 to C27 with box operands) gives its stated outcome,
-  including the face source checks. For each of those rows whose stated
+  to C10 and C24 to C28 with box operands) gives its stated outcome,
+  including the face source checks. C28 was added after the gate had
+  passed on the other rows (RL-8); the plan says when it is due, and no
+  cylinder work depends on it. For each of those rows whose stated
   outcome is a solid or the empty solid, except C26, the volume of the
   result also equals the volume of the result of `csg/poly.Combine`
   (`csg/poly/history.go:79`) on the same operands and operation within the
@@ -1140,14 +1775,27 @@ These are requirements on the plan.
 
 The trial passes when all of these hold on one commit:
 
-- PC1. Every Tier 1 row passes A3 and A4, section 11 passes (A5), the
+- PC1. Every Tier 1 row passes A3, A4 and A7, section 11 passes (A5), the
   oracle run passes (A6), and the record of A8 is complete for every Tier 1
-  row. `ErrInconsistent` or `ErrValidation` on any of them is a failure.
+  row. `ErrInconsistent` or `ErrValidation` on any of them is a failure,
+  and so is a leaf or row held back by a limit of `brep/trimmed` (E1,
+  RL-9): PC1 holds only when it passes, after the fix on the foundation
+  branch has been merged. A row with a response that A4 marks as
+  succeeding where the record declines passes A4, and the oracle run
+  must agree on that case (A6). A row excluded under 15.2 is not a Tier 1
+  row.
 - PC2. One path. `brep/boolean` exports one operation entry point; the bridge
-  file of L2 reads a stored shape only to obtain its `trimmed.Solid`; and no
+  file of L2 reads a stored shape only to obtain its `trimmed.Solid` and,
+  the volume and area the bridge stores for it (L2); it may read the face
+  source lists of a result to apply the coverage rule of CO3, which is a
+  reading of what `Combine` returned and not a test of what kind of
+  feature an operand is (RL-18); and no
   function in either tests the number of faces, edges or vertices of an
   operand, the primitive it was built from, or its placement, except through
-  sections 7.3 to 7.5 and the work limits of section 10. The architectural
+  the recognition of surface values and rigid placements at intake (S2,
+  S4, section 7.1), sections 7.3 to 7.5, the work limits of section 10,
+  and the one test that an operand has no face, which tells the empty
+  solid (S6, I2). The architectural
   constraints of AR8 hold. This is checked by review of the complete diff.
 - PC3. `go build ./...`, `go vet ./...` and `go test ./...` pass, and
   `golangci-lint run --new-from-rev=<base> ./...` reports nothing, where
@@ -1211,8 +1859,11 @@ the first of:
   phase, any Tier 1 row or section 11 row still fails; or the planar gate
   of PL2 still fails after the corrective phase has been spent on it (PL4).
 - ST4. Size. PC4 is exceeded before PC1 holds.
-- ST5. Foundation. E1 fails on a valid input, or a Tier 1 row cannot pass
-  without changing `brep/trimmed`, `geom` or adding a dependency.
+- ST5. Foundation. `Classify` or another function of `brep/trimmed` gives
+  a wrong answer on a valid input, or a Tier 1 row cannot pass without
+  changing `geom` or adding a dependency. A limit of `brep/trimmed` that
+  a valid result exposes is not counted here: E1 and RL-9 send it to the
+  foundation branch, and it counts only if the owner rules that it does.
 - ST6. Design. A Tier 1 row needs a change to sections 7.2, 7.3 or 7.6 to
   7.11 that this document does not allow, as opposed to an addition to the
   tables of 7.4 and 7.5.
@@ -1276,3 +1927,122 @@ decision and where this document applies it.
   hole, pocket and boss chain on the legacy path even after a pass. Lifting
   recipe-held stock to a `trimmed.Solid` is the first follow-up after a
   pass (15.5); it is not part of the trial.
+
+## 19. Rulings made under delegation
+
+The reviewing session made these on 2026-11-18, while the owner was away,
+under the owner's delegation to it. Each stands until the owner confirms or
+reverses it. Each entry states the ruling and where it is applied.
+
+- RL-1. A known defect of `brep/trimmed`, the rejection of some planar
+  results with three collinear corners, does not end the trial. RL-9 now
+  states this for every such limit and replaces the wording of RL-1; the
+  collinear-corner case is the first of the limits E1 lists.
+- RL-2. Publication (the plan's decision D4). The adapter stores a result
+  with a void or with several solids by calling `publish` directly, and an
+  empty result through `put`. It removes the tolerance pad of
+  `trimmed.Solid.Bounds` before publishing bounds. One minimal change to
+  the `transform` path of `bridge.go` is allowed, so that it republishes
+  an analytic body of more than one shell, with the behavior for one
+  shell unchanged (L2, L3).
+- RL-3. Faces stored as spline patches stay excluded. The freeze counted no
+  Boolean response lost to them (S2, 15.2).
+- RL-4. Two Boolean responses on STEP-imported bodies stay unchecked. The
+  bodies have faces stored as evaluators that S2 does not accept (15.2).
+- RL-5. Size of the frozen traces. They are 7.9 MB, 91 percent of it STEP
+  text inside `importStep` requests. This is accepted on the trial branch.
+  It is a condition of any later merge of the trial to `main` that the
+  distinct STEP sources are stored compressed or are otherwise reduced.
+- RL-6. One branch. The planar phase ran beside the freeze on
+  `codex/general-boolean-kernel`. That branch, with `codex/general-boolean`
+  merged into it, is the one branch of the trial (the plan's rule R1).
+- RL-7. Time of the replay test. The test that replays the frozen rows on
+  the default bridge runs its rows as parallel subtests so that the test
+  function meets the two-second rule of `AGENTS.md`. A7 times rows; the
+  repository rule times the function (A7).
+- RL-8. A face that touches itself. The stress test of the planar phase
+  found that splitting can make a piece whose loop passes twice through
+  one node, in 148 of 4,500 operations on a rotated box, and that
+  `trimmed.NewSolid` rejects such a face. Sections 7.6 to 7.11 had no rule
+  for it. M6 was added, with the changes to F3, N2, M3 and M5 that go with
+  it, the check M7, and row C28. This is a change to sections 7.6 to 7.11
+  made by a ruling, so ST6 does not apply to it. It is recorded here as a
+  change to the design that a test outside the acceptance rows forced.
+  The union of C20 was corrected with it: N1 to N3 pass there, so the row
+  states a solid with a divided top face, and M6 takes its corners after
+  the quarter-turn cut of B2 so that the outcome does not depend on where
+  the vertex of the base circle lies.
+- RL-9. Limits of `brep/trimmed`. A limit of `brep/trimmed` that a valid
+  result exposes is fixed in `brep/trimmed`, on a separate foundation
+  branch, `codex/trimmed-collinear-corners`, which is merged into the
+  trial branch. The trial's own commits still do not edit `brep/trimmed`.
+  A leaf or row that fails only for such a limit is reported under that
+  reason and does not count toward ST3 or ST5 until the owner rules. It
+  is not a pass either: PC1 holds only when the leaf or row passes. Three
+  limits were known when this was ruled: collinear corners (RL-1), arcs of
+  two curves at one vertex of a face, which blocks C18, and the display
+  mesh of the union of C23. E1 lists those found since (G4, E1, L5, ST5,
+  PC1, section 9).
+
+Rulings of 2026-11-19, after the acceptance rows first ran on the general
+path (36 of 92 Tier 1 rows passing, no wrong volume):
+
+- RL-10. Mass properties in the contract. Integration was 84 percent of
+  the time in bridge requests: 64 percent inside `Combine` for V5 and 20
+  percent in the adapter, which integrated each result again for its
+  area. The result report now carries surface area with volume, and a
+  caller may pass known mass properties for an operand, which V5 uses
+  without integrating that operand and trusts as given. The adapter and
+  the folds pass them along. The integration tolerance and the bound of
+  V5 are not loosened (P3, P4, P5, V5, CO1, L2). The report carries the
+  area of the operands as well as of the result, so that a request that
+  calls `Combine` several times on one solid integrates it once.
+- RL-11. Recorded failures. A recorded failure that is a contract failure
+  must still fail on the general path. One that is only the legacy path
+  declining an input need not: if the general result passes section 8,
+  the row passes, is marked in `ACCEPTANCE.md`, and joins the cases of
+  the oracle run (A4, A6, PC1).
+- RL-12. A recorded row that depends on a feature below the bridge
+  tolerance is excluded. T1-009 records a floor of 5e-8 under a tolerance
+  of 1e-7; that is a coincidence, and C24 governs (15.2).
+- RL-13. Rounding at the tolerance. A residual compared with τ must not
+  fail by rounding when the geometry sits exactly at τ. One allowance,
+  stated once, is used (T9, T6, T8, section 8, B4). It also applies to
+  the tolerance handed to `trimmed.NewSolid`, so the stored solid's
+  tolerance is τ plus the allowance while the report gives τ. Row T1-005, with a
+  gap of exactly ε, showed the need.
+- RL-14. A sharper separation proof may be added to SP2, provided it is a
+  proof and general. Row T1-034, two bores at right angles whose finite
+  walls do not meet, needs one (SP2, SP5).
+- RL-15. Adapter behavior, confirmed: the published bounds are the box of
+  the result's edges with each arc's true extent; on a general bridge
+  every body the adapter published is republished by the adapter under
+  `transform`; `cut` and `cutMany` fail when nothing is removed or
+  nothing is left, and `joinAll` requires one solid and added volume;
+  in the replay test a row known to exceed two seconds runs only with
+  `PLAINSOLID_SLOW=1`, and a row not listed fails on time only beyond
+  four seconds (L2, L3, CO1, A7).
+- RL-16. To-face coverage. The reviewing session left it to the session
+  that keeps this document to decide whether CO3 needs a coverage rule,
+  four rows succeeding where the record fails. It does: the rule is part
+  of the operation, and without it the general path returns a different
+  shape where the bridge reports a failure. CO3 states the rule and a
+  general way to decide it. Those four recorded failures are contract
+  failures under A4.
+- RL-17. Closed-form mass properties. After RL-10, nine Tier 1 rows still
+  failed only on the two-second bound, and what remained of their time
+  was one numerical integration of each result at 1e-9 for V5. For the
+  trial's class the integrals have closed forms. `brep/boolean` computes
+  the volume, the area and the centroid of a result, and of an operand
+  whose values the caller did not supply, in closed form, with one
+  general routine over planar faces bounded by lines and conic arcs and
+  cylinder faces whose chart boundary is lines, circles and ellipse
+  sections. V5 and the report use it. `trimmed.Solid.MassProperties`
+  stays as the independent check, made by the leaves of section 11 and
+  by the slow-tier replay and not on every call. A solid with a face
+  outside what the closed form covers is integrated numerically. V5 is
+  then a check of selection, merging and assembly against the classified
+  pieces, not an independent measurement (P3, P5, V5, section 8, L4, A3,
+  A8).
+- RL-18. The adapter may read the face source lists of a result in order
+  to apply the coverage rule of CO3 (L2, PC2).

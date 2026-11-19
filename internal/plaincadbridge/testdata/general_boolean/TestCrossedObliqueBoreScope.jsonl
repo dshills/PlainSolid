@@ -1,0 +1,12 @@
+{"new":true}
+{"req":{"max":[20,16,40],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":12800,"surfaceArea":3520,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}}}
+{"req":{"height":44,"normal":[0,0,1],"op":"circle","origin":[10,8,-2],"radius":2},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":552.9203070318035,"surfaceArea":578.0530482605219,"solidCount":1,"bounds":{"min":[7.9999999999559135,5.999999999955928,-2.000000000044299],"max":[12.000000000044087,10.000000000044073,42.0000000000443]}}}
+{"req":{"height":35,"normal":[4,0,3],"op":"circle","origin":[-4,8,9.5],"radius":2},"ok":true,"handle":"ps:3","result":{"valid":true,"volume":439.822971502571,"surfaceArea":464.9557127312894,"solidCount":1,"bounds":{"min":[-5.20000000003518,5.9999999999649285,7.899999999964772],"max":[25.200000000035185,10.000000000035072,32.10000000003524]}}}
+{"req":{"a":"ps:1","b":"ps:2","op":"cut"},"ok":true,"handle":"ps:4","result":{"valid":true,"volume":12297.345175425633,"surfaceArea":3997.5220833456488,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}}}
+{"req":{"a":"ps:4","b":"ps:3","op":"overlapVolume"},"ok":true,"result":{"value":260.82593202564567},"analytic":{"value":[260.825932025646]}}
+{"req":{"a":"ps:4","b":"ps:3","op":"cut"},"ok":true,"handle":"ps:5","result":{"valid":true,"volume":12036.519243399987,"surfaceArea":4200.26542216873,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}},"analytic":{"volume":[12036.519243399987],"surfaceArea":[4200.26542216873]}}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:3","ps:2"]},"ok":true,"direct":true,"handle":"ps:6","result":{"valid":true,"volume":12036.519243399987,"surfaceArea":4200.26542216873,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}}}
+{"req":{"a":"ps:6","b":"ps:3","op":"overlapVolume"},"ok":true,"result":{"value":0},"analytic":{"value":[0.0]}}
+{"req":{"handles":["ps:6"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
+{"req":{"op":"importStep"},"source":"abf110186ba78193","ok":true,"direct":true,"handle":"ps:7","result":{"valid":true,"volume":12036.519243399987,"surfaceArea":4200.26542216873,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}},"unchecked":"STEP request (15.2 last item)","analytic":{"volume":[12036.519243399987],"surfaceArea":[4200.26542216873]}}
+{"req":{"a":"ps:7","b":"ps:3","op":"overlapVolume"},"ok":true,"result":{"value":0},"analytic":{"value":[0.0]}}

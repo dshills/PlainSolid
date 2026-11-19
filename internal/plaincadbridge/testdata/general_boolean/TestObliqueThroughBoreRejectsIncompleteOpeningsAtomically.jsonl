@@ -1,0 +1,11 @@
+{"new":true}
+{"req":{"max":[4,5,6],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":120,"surfaceArea":148,"solidCount":1,"bounds":{"min":[0,0,0],"max":[4,5,6]}}}
+{"req":{"height":11,"normal":[1,0,3],"op":"circle","origin":[1,2,0],"radius":0.35},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":4.233296100712246,"surfaceArea":24.959953632770905,"solidCount":1,"bounds":{"min":[0.6679608456712859,1.649999999988983,-0.1106797181169682],"max":[4.810544580513931,2.350000000011017,10.546195996672623]}}}
+{"req":{"a":"ps:1","b":"ps:2","op":"overlapVolume"},"ok":false,"direct":true,"code":"UNSUPPORTED"}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:2"]},"ok":false,"direct":true,"code":"UNSUPPORTED"}
+{"req":{"height":9.486832980505138,"normal":[1,0,3],"op":"circle","origin":[0,2,-3],"radius":0.35},"ok":true,"handle":"ps:3","result":{"valid":true,"volume":3.650961187680067,"surfaceArea":21.63232555830131,"solidCount":1,"bounds":{"min":[-0.33203915432719033,1.6499999999904962,-3.1106797181154238],"max":[3.3320391543271906,2.350000000009504,6.110679718115424]}}}
+{"req":{"a":"ps:1","b":"ps:3","op":"overlapVolume"},"ok":false,"direct":true,"code":"UNSUPPORTED"}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:3"]},"ok":false,"direct":true,"code":"UNSUPPORTED"}
+{"req":{"height":11,"normal":[1,0,3],"op":"circle","origin":[0,0.35,-3],"radius":0.35},"ok":true,"handle":"ps:4","result":{"valid":true,"volume":4.233296100712246,"surfaceArea":24.959953632770905,"solidCount":1,"bounds":{"min":[-0.3320391543287069,-1.1004973799150322e-11,-3.1106797181169474],"max":[3.810544580513924,0.700000000011005,7.546195996672599]}}}
+{"req":{"a":"ps:1","b":"ps:4","op":"overlapVolume"},"ok":false,"direct":true,"code":"UNSUPPORTED"}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:4"]},"ok":false,"direct":true,"code":"UNSUPPORTED"}

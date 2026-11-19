@@ -21,7 +21,7 @@ type RayHit struct {
 // Ray intersects trimmed plane, polar plane, cylinder, cone, sphere and torus
 // faces, including affine placements, without tessellation. Supported
 // p-curves are straight, anchored circular arcs, or angular EllipseUV arcs
-// whose vertical component has no linear term. An overlapping face or
+// whose vertical component has no linear term, with or without pinned ends. An overlapping face or
 // cylinder generator returns an error because it is not an isolated hit.
 // tol is a positive world-space residual and contact-merging tolerance.
 func (s Solid) Ray(origin, direction geom.Vec3, maxDistance, tol float64) ([]RayHit, error) {
@@ -330,6 +330,10 @@ func rayEllipseTrim(p PCurve) (EllipseUV, bool) {
 	case EllipseUV:
 		return q, true
 	case anchoredCircularUV:
+		return q.EllipseUV, true
+	case unionArcUV:
+		// The crossing rule reads the pinned ends through EvalUV and the
+		// unchanged arc between them.
 		return q.EllipseUV, true
 	}
 	return EllipseUV{}, false

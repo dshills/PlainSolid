@@ -19,6 +19,9 @@ func (b *Bridge) joinAll(ids []string, toolID string) (Shape, error) {
 		return Shape{}, err
 	}
 	ctx := context.Background()
+	if b.general {
+		return b.generalJoinAll(ctx, ids, tool)
+	}
 	inputs := make([]stored, len(ids))
 	for i, id := range ids {
 		inputs[i], err = b.get(id)

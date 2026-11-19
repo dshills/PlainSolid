@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"slices"
 
 	"plainsolid/brep"
 	"plainsolid/brep/edgecheck"
@@ -22,7 +23,10 @@ type PCurve interface {
 
 // Use assigns a shared edge a p-curve between UVStart and UVEnd. With nil
 // Curve, it is straight. Reversed swaps the model-edge direction, not the
-// parameter direction of Curve.
+// parameter direction of Curve. Curve evaluates to UVStart at 0 and to UVEnd
+// at 1, to the last bit. An EllipseUV alone may end within the solid's
+// tolerance of them instead, which lets arcs of different curves meet at a
+// vertex: NewSolid then keeps the arc with its two ends at UVStart and UVEnd.
 type Use struct {
 	Edge           int
 	Reversed       bool
@@ -59,6 +63,9 @@ type seed struct {
 	ids [3]int
 	// side >=0 refers to a shared topology edge. -1 means an interior diagonal.
 	side [3]trimSide
+	// split asks for a vertex at the centroid before refinement; see
+	// smoothTrimCorner.
+	split bool
 }
 type trimSide struct {
 	edge int
@@ -73,6 +80,8 @@ type samples struct {
 	edge [3]trimSide
 	// Corresponding edge parameters on each oriented triangle side.
 	start, end [3]float64
+	// A seed that is split at its centroid before refinement.
+	split bool
 	// Set only by analytic adaptive refinement after the complete surface
 	// and phase checks. New or changed facets must prove themselves again.
 	adaptiveValidated bool
@@ -101,6 +110,9 @@ func cloneFace(f Face) Face {
 // UV space, and checks sampled edge agreement and manifold incidence.
 // It does not certify continuous boundary agreement or detect embedding
 // self-intersections. Face limits follow brep.MaxHoledFaceVertices.
+// A corner of a loop may lie on the line through its neighbors, as a vertex
+// that subdivides a straight edge does, whether or not its rounded UV
+// coordinates are collinear with theirs. A face without area is rejected.
 func NewSolid(vertices []geom.Vec3, edges []parametric.Edge, faces []Face, tolerance float64) (Solid, error) {
 	return NewSolidContext(context.Background(), vertices, edges, faces, tolerance)
 }
@@ -205,6 +217,7 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 			}
 		}
 		s.faces[fi] = cloneFace(f)
+		f = s.faces[fi] // the copy, whose arcs are pinned below
 		sides := map[[2]geom.Vec2]trimSide{}
 		indices := map[geom.Vec2]int{}
 		rings := [][]geom.Vec3{}
@@ -221,6 +234,13 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 				if u.Edge < 0 || u.Edge >= len(edges) || !uvFinite(u.UVStart) || !uvFinite(u.UVEnd) || u.UVStart == u.UVEnd ||
 					u.UVEnd != loop[(j+1)%len(loop)].UVStart {
 					return Solid{}, fmt.Errorf("trimmed: invalid p-curve in face %d", fi)
+				}
+				if arc, ok := u.Curve.(EllipseUV); ok {
+					pinned, err := pinArcEnds(f.Surface, arc, u.UVStart, u.UVEnd, tolerance)
+					if err != nil {
+						return Solid{}, err
+					}
+					u.Curve, loop[j].Curve = pinned, pinned
 				}
 				e := edges[u.Edge]
 				start[j], end[j] = e.Start, e.End
@@ -318,6 +338,26 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 			s.sampledAnnularCaps = true
 			s.minimumLevel = max(s.minimumLevel, level)
 		}
+		// Triangles without area in space are exchanged first, then curved
+		// trims are seated. If some trim still leaves its triangle, the
+		// triangles that join two chart copies of a seam vertex may be in
+		// its way; the result without them is taken when it seats every
+		// trim. One that seats only more of them is not known to be better.
+		model := func(p geom.Vec2) geom.Vec3 { return vertices[indices[p]] }
+		seated, left, err := seatCurvedTrims(flipDegenerateTriangles(slices.Clone(triangles), model, false), sides, model)
+		if err != nil {
+			return Solid{}, err
+		}
+		if left > 0 {
+			other, fewer, err := seatCurvedTrims(flipDegenerateTriangles(slices.Clone(triangles), model, true), sides, model)
+			if err != nil {
+				return Solid{}, err
+			}
+			if fewer == 0 {
+				seated = other
+			}
+		}
+		triangles = seated
 		var faceSeeds []seed
 		for _, tri := range triangles {
 			r := seed{uv: tri, side: [3]trimSide{internalSide(), internalSide(), internalSide()}}
@@ -325,6 +365,11 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 				r.ids[j] = indices[p]
 				if edge, ok := sides[[2]geom.Vec2{p, r.uv[(j+1)%3]}]; ok {
 					r.side[j] = edge
+				}
+			}
+			if _, planar := base.(geom.PlaneSurface); !planar {
+				if r.split, err = smoothTrimCorner(r); err != nil {
+					return Solid{}, err
 				}
 			}
 			faceSeeds = append(faceSeeds, r)
@@ -348,6 +393,18 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 			for j, side := range tri.side {
 				a, b := tri.ids[j], tri.ids[(j+1)%3]
 				if a == b {
+					// An interior side between the two chart copies of
+					// one vertex, on a face that winds around its
+					// surface, is a closed curve in space unless it
+					// stays at the vertex, as it does along a pole. Like
+					// a closed edge it needs two levels: after one, both
+					// of its halves join the same two mesh vertices.
+					if side.edge < 0 && s.minimumLevel < 2 {
+						p := mix(tri.uv[j], tri.uv[(j+1)%3], .5)
+						if q, err := numericalWrappedSupport(s.faces[i].Surface).Eval(p.X, p.Y); err == nil && !closePoint(q, vertices[a], tolerance) {
+							s.minimumLevel = 2
+						}
+					}
 					continue
 				}
 				k := seedSide{min(a, b), max(a, b)}
@@ -411,6 +468,80 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 	return s, nil
 }
 
+// pinArcEnds gives the p-curve a solid stores for an arc declared between
+// start and end. An arc that evaluates to them is stored as it is. Two arcs
+// of different curves that meet at a vertex do not, because each rounds the
+// shared point in its own way, and every later step (the chart polygon, ray
+// crossing counts, strips for integration) needs both uses to name one
+// point. Such an arc is stored with its ends replaced by start and end and
+// its interior unchanged. The ends may move by no more than the tolerance,
+// measured in the chart with the lengths of the surface derivatives, so a
+// point one period away or on another part of the curve is refused.
+func pinArcEnds(surface geom.Surface, arc EllipseUV, start, end geom.Vec2, tolerance float64) (PCurve, error) {
+	var ends [2]geom.Vec2
+	for i := range ends {
+		var err error
+		if ends[i], err = arc.EvalUV(float64(i)); err != nil {
+			return nil, err
+		}
+	}
+	if ends[0] == start && ends[1] == end {
+		return arc, nil
+	}
+	for i, declared := range [2]geom.Vec2{start, end} {
+		du, dv, err := surface.Partials(declared.X, declared.Y)
+		if err != nil {
+			return nil, err
+		}
+		if !(math.Abs(ends[i].X-declared.X)*du.Length()+math.Abs(ends[i].Y-declared.Y)*dv.Length() <= tolerance) {
+			return nil, fmt.Errorf("trimmed: p-curve endpoints differ from declared UV endpoints")
+		}
+	}
+	return unionArcUV{EllipseUV: arc, Start: start, End: end}, nil
+}
+
+// smoothTrimCorner reports whether two trim sides of a seed, at least one
+// of them curved, meet at their common corner without turning, as two arcs
+// of one rim do. Refinement cuts off a triangle at that corner whose three
+// corners are all on the rim. However small it gets, its plane is the one
+// the rim curves in and not the tangent plane of the surface, so on a curved
+// surface it meets no bound on the angle between the two. A seed split at
+// its centroid has one trim side to a triangle, and the corner gets an
+// interior side. Exchanging a side of the seed cannot be relied on for this:
+// along three or more such corners in a row, every exchange moves the
+// triangle to the next corner.
+//
+// The directions in which the sides leave the corner are taken from the
+// points refinement would reach at its tenth level, and count as opposite
+// when they differ by less than a chord that short differs from its tangent.
+func smoothTrimCorner(r seed) (bool, error) {
+	const near = 1.0 / 1024
+	for j, corner := range r.uv {
+		in, out := r.side[(j+2)%3], r.side[j]
+		if in.edge < 0 || out.edge < 0 || in.use.Curve == nil && out.use.Curve == nil {
+			continue
+		}
+		before, after := r.uv[(j+2)%3], r.uv[(j+1)%3]
+		var err error
+		if in.use.Curve != nil {
+			if before, err = in.use.uv(1 - near); err != nil {
+				return false, err
+			}
+		}
+		if out.use.Curve != nil {
+			if after, err = out.use.uv(near); err != nil {
+				return false, err
+			}
+		}
+		back, on := sub2(before, corner), sub2(after, corner)
+		cross, dot := back.X*on.Y-back.Y*on.X, back.X*on.X+back.Y*on.Y
+		if dot < 0 && math.Abs(cross) <= 1e-2*math.Abs(dot) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func finite(v float64) bool     { return !math.IsNaN(v) && !math.IsInf(v, 0) }
 func uvFinite(v geom.Vec2) bool { return finite(v.X) && finite(v.Y) }
 func closePoint(a, b geom.Vec3, t float64) bool {
@@ -465,7 +596,7 @@ func (s Solid) seedTriangles() [][]samples {
 	out := make([][]samples, len(s.faces))
 	for fi, face := range s.seeds {
 		for _, r := range face {
-			x := samples{uv: r.uv, ids: r.ids, edge: r.side}
+			x := samples{uv: r.uv, ids: r.ids, edge: r.side, split: r.split}
 			for i, e := range x.edge {
 				if e.edge < 0 {
 					continue
@@ -520,6 +651,12 @@ func (s Solid) tessellateWithTrimMemo(ctx context.Context, o parametric.Tessella
 		size := len(triangles)
 		if s.splitSeeds[i] {
 			size *= 3
+		} else {
+			for _, tri := range triangles {
+				if tri.split {
+					size += 2
+				}
+			}
 		}
 		n += size
 		if !o.AnalyticBound {
