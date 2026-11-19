@@ -318,10 +318,14 @@ func TestGeneralBooleanAcceptance(t *testing.T) {
 					// side of it from run to run. A row listed for its
 					// time alone is therefore logged either way, and a
 					// row that is not listed fails for its time only
-					// beyond twice the bound.
+					// beyond twice the bound. Time fails a row only in
+					// the slow tier, where the replay is run by itself:
+					// in the default tier it runs beside every other
+					// package of the repository, and a row that takes
+					// 1.6 s alone has taken 5.5 s there.
 					reason, listed := pending[row.id]
 					slow := elapsed > 2*time.Second
-					if a.first == "" && slow && (listed || elapsed > 4*time.Second) {
+					if a.first == "" && slow && slowtest.Enabled() && (listed || elapsed > 4*time.Second) {
 						a.failed, a.first, a.kinds = 1, fmt.Sprintf("A7: the row took %.2fs", elapsed.Seconds()), []string{"A7: over two seconds"}
 					}
 					switch {

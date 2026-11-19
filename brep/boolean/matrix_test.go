@@ -213,7 +213,9 @@ var matrix = []struct {
 		if err != nil {
 			t.Fatal(err)
 		}
-		return curved(lifted(t, box(t, 0, 0, 0, 4, 4, 2)), b, outcome{open: true}, solidOf(inside, 1, 0, 0), solidOf(32-inside, 1, 0, 0))
+		// Section 11 states no outcome for the union. It is a solid, and
+		// its volume is V(A) + V(B) less that of the common.
+		return curved(lifted(t, box(t, 0, 0, 0, 4, 4, 2)), b, solidOf(32+1.5*math.Pi-inside, 1, 0, 0), solidOf(inside, 1, 0, 0), solidOf(32-inside, 1, 0, 0))
 	}},
 	{"C28", "planar", func(t *testing.T) []config {
 		// The smallest input the planar stress test found for a face that

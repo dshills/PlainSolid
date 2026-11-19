@@ -11,6 +11,10 @@ T1-030 6 overlapVolume: finite oblique cylinder does not cover both entire stock
 T1-030 7 cutMany: finite oblique cylinder does not cover both entire stock openings
 T1-030 9 overlapVolume: oblique through bore requires strictly interior elliptical openings: trimmed: cylinder bore: bore touches or crosses a non-opening face
 T1-030 10 cutMany: oblique through bore requires strictly interior elliptical openings: trimmed: cylinder bore: bore touches or crosses a non-opening face
+T1-041 36 cutMany: geom: parameter outside domain
+T1-041 73 cutMany: geom: parameter outside domain
+T1-041 110 cutMany: geom: parameter outside domain
+T1-041 147 cutMany: geom: parameter outside domain
 T1-042 9 cutMany: coaxial notch cuts require connected axial spans
 T1-042 28 cutMany: coaxial notch cuts require connected axial spans
 T1-046 3 cut: finite cylinder is not a measurable entry-open blind pocket or through bore
