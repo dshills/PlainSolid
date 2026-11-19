@@ -1,7 +1,7 @@
 # Plan: general Boolean trial
 
 This plan implements [the specification](SPEC.md) as it stands at commit
-`3f6db131`. It is a plan only. It
+`c96f79a5`. It is a plan only. It
 contains no implementation, and nothing in it starts until the owner says so.
 Identifiers such as PC2, A3 or ST4 are requirement identifiers of the
 specification.
@@ -436,8 +436,10 @@ Steps:
    two planes that are not parallel, which starts the surface-pair table
    as data in `surface_table.go`; the line through the samples for an edge
    between two faces on one plane; the choice among candidates; the
-   interval and direction; and the errors I5 names. A planar operand whose
-   edge is not a line is `ErrUnsupported` until Part 2.1.
+   interval and direction, where on a line only the direction rule of I5
+   step 6 applies and a step that goes backwards is refined up to six
+   times; and the errors I5 names. A planar operand whose edge is not a
+   line is `ErrUnsupported` until Part 2.1.
 4. Pieces without splitting, the selection table (7.8), shell grouping and
    ordering (B1), output through `trimmed.NewSolidContext` (B3 for lines,
    B4), the empty result (B5), output edge curves as `geom.Line` values (B6),
@@ -457,7 +459,8 @@ Steps:
    (`ErrInvalid` naming the edge).
 8. `TestContract`, table-driven, one behavior per case: each invalid and
    each non-finite option returns `ErrInvalid` (P4), `Angular` above 0.5
-   among them; a nil context and an
+   among them; a placement with a non-uniform scaling returns
+   `ErrUnsupported` (S4); a nil context and an
    operation value outside the enumeration return `ErrInvalid`; ε ≥ L / 100
    returns `ErrInvalid` (T1); a cancelled context returns the context error
    unwrapped, also when the operands are invalid or unsupported, so that
@@ -497,10 +500,13 @@ Steps:
    with plane, and edge overlap for lines (CC4): one candidate interval at
    most, degenerate when its mid point is within ε of both ends.
 3. Passes X1 to X5 in order, and the tolerant point-in-loops test in the
-   plane chart (X9).
+   plane chart (X9). Pairs are filtered by boxes taken from the current
+   node positions and inflated by the filter margin μ = `MaxGrowth` × ε
+   (T4), in the short cut of I2 as well.
 4. Unit tests on pairs of boxes: node, span and bundle counts for the
    configurations of C4 to C8, a growth-bound case returning
-   `ErrTolerance`, a case for each work limit of section 10 returning
+   `ErrTolerance`, a filtering case in which two vertices 1.5ε apart, each
+   already in a node of radius 2ε, must still be found coincident, a case for each work limit of section 10 returning
    `ErrBudget`, and a context cancelled during the passes returning the
    context error in preference to a budget error that the same input would
    raise. `TestContract` gains the determinism and operand-immutability
@@ -525,7 +531,10 @@ Steps:
    the turning rule of F3 written against the chart interface.
 4. Unit tests: piece counts and areas for the faces of C4, C5, C6 and for
    two boxes that overlap in a corner; an inconsistent arrangement returning
-   `ErrInconsistent`; a sliver returning `ErrTolerance`.
+   `ErrInconsistent`; a sliver returning `ErrTolerance`; and a divergent
+   pair (T8, SP4), two faces parallel within `Angular` that are coincident
+   at one end and more than 4ε apart at the other, returning
+   `ErrTolerance`. The same test for two edges (CC4) goes with Part 1.2.
 
 Acceptance: `go test ./brep/boolean -run 'TestSurfaceTable|TestFacePass|TestSplit' -count=1`
 passes, and the earlier commands still pass. Checks: K1 to K7.
@@ -591,8 +600,10 @@ Steps:
    samples or the curve of the plane through three samples with the
    cylinder; for a curved edge between two faces on one plane, the circle
    through three samples or the conic through five; the interval on a
-   periodic carrier, and a closed edge with the whole period as its
-   interval; output edge curves as `geom.Ellipse` values (B6).
+   periodic carrier, with the refinement of I5 step 6 (added samples where
+   an advance exceeds one eighth of a period or goes against the edge, at
+   most six halvings of a step), and a closed edge with the whole period
+   as its interval; output edge curves as `geom.Ellipse` values (B6).
 4. The closed forms of CC1: circle with circle, the homothetic reduction
    (CC3), the projection of a conic along a cylinder axis and the proof
    that a conic is clear of a cylinder face (CC5), point-to-parameter
@@ -625,7 +636,11 @@ Steps:
    stored forms SF2 and SF3 and their placed versions (SF4), each of which
    must give the carriers and intervals of SF1 within ε, and the second
    failure test of section 11, a cylinder wall split along a helical edge
-   (`ErrUnsupported` naming the edge).
+   (`ErrUnsupported` naming the edge). Two tests fix the sampling bound: a
+   full circle whose stored parameterization puts three quarters of the
+   turn in the first sixteenth of its range is accepted with the same
+   carrier and interval as an even one, and a curve that runs forward and
+   then back along its carrier returns `ErrUnsupported`.
 
 Acceptance: `go test ./brep/boolean -run 'TestClosedForms|TestCurveTable|TestOverlap|TestIntake|TestEdgeCarrier' -count=1`
 passes, and G1's commands still pass except the last, which no longer
