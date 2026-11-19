@@ -93,16 +93,28 @@ formats.
 - S2. Every face carrier is a plane or a circular cylinder. Accepted surface
   values are `geom.PlaneSurface`, the polar plane chart recognized by
   `parametric.PolarPlaneFrame`, `geom.CylinderSurface`, and any of these
-  under a rigid placement reported by `parametric.SurfaceMapping`.
-- S3. Every edge carrier is a line, circle or ellipse. Accepted curve values
-  are `geom.Line` and `geom.Ellipse` (a circle is an ellipse with equal
-  radii), and either under a rigid placement reported by
-  `parametric.CurveMapping`. Collapsed edges (nil curve) are accepted only as
-  the pole of a polar plane chart and carry no geometry into the arrangement.
+  under a rigid placement reported by `parametric.SurfaceMapping`. Unlike
+  an edge (S3), a face is recognized by its surface value, through these
+  exported types and accessors, because nothing next to a face determines
+  its carrier. A face stored as any other evaluator is outside the class
+  and returns `ErrUnsupported` (S5), also when it is geometrically a plane
+  or a cylinder: the arc-loop extrusion behind one branch of the bridge's
+  `mixedExtrude` request stores its caps as B-spline patches and its walls
+  as rational Bézier patches, and is rejected for that reason (15.2).
+- S3. Every edge lies on a line, a circle or an ellipse (a circle is an
+  ellipse with equal radii). The stored curve of an edge is used only by
+  evaluating it over the edge's range, through `geom.Curve`. Its Go type is
+  never inspected, so every evaluator is accepted, including the ones other
+  packages do not export: an edge of a `parametric.Cylinder` is a side of a
+  surface patch, and an edge of an extruded profile is a p-curve mapped
+  through a surface. The carrier of an edge is derived by I5. Collapsed
+  edges (nil curve, equal end vertices) are accepted only as the pole of a
+  polar plane chart and carry no geometry into the arrangement.
 - S4. A placement is rigid when its linear part M satisfies
   ‖MᵀM − I‖∞ ≤ the angular tolerance and det M > 0.
 - S5. An operand outside S1 to S4 is rejected with `ErrUnsupported` naming
-  the first offending face or edge index. Embedding (S1, no self-intersection)
+  the first offending face or edge index, except where I5 names another
+  error for an edge. Embedding (S1, no self-intersection)
   is a precondition that intake does not test; see V7 for what is guaranteed
   when it is violated.
 - S6. A zero-value `trimmed.Solid` is the empty solid and is a valid operand.
@@ -228,12 +240,30 @@ Each of these is outside the trial, and input that needs one returns
   per-edge tolerances in the stored solid are not part of the trial.
 - T7. There is no separate widening ("fuzzy") option. A caller widens
   coincidence by passing a larger `Linear`.
-- T8. A configuration with a feature whose size lies strictly between ε and
-  4ε (for example one operand penetrating the other by 2ε) is
-  tolerance-scale. For such input `Combine` returns either `ErrTolerance` or
-  a result that passes all of section 8; which of the two is not specified.
-  Features smaller than or equal to ε are coincidences. Features of 4ε and
-  larger are ordinary geometry and must be handled.
+- T8. Where `ErrTolerance` is allowed. Four separations are measured on the
+  two operands together. The points concerned are the vertices of both
+  operands and the isolated points that sections 7.4 and 7.5 give for
+  pairs of their carriers.
+  - (a) The distance between two such points.
+  - (b) The distance from such a point to an edge or a face of the other
+    operand, taken to the trimmed edge or the trimmed face.
+  - (c) For a pair of carriers that SP4 or CC4 tests for coincidence, the
+    distance between them at each point where they test it.
+  - (d) For each piece, the largest distance from one of its points to its
+    boundary.
+
+  A value of (a), (b) or (c) is a coincidence when it is at most ε, and
+  ordinary when it is at least 4ε. A value of (d) is ordinary when it is at
+  least 4ε. A configuration is ordinary when every value is a coincidence
+  or ordinary, and tolerance-scale when at least one value lies strictly
+  between ε and 4ε or a value of (d) is below 4ε. On an ordinary
+  configuration `Combine` must not return `ErrTolerance`. On a
+  tolerance-scale configuration it returns either `ErrTolerance` or a
+  result that passes all of section 8; which of the two is not specified.
+  One value in the band is enough: the outcome is not required to be
+  `ErrTolerance`, and it is never an unvalidated result. C26 is such a
+  configuration (a value of (b) is 2ε); C24 is a coincidence and C25 is
+  ordinary.
 
 ## 7. Functional behavior: the pipeline
 
@@ -253,11 +283,63 @@ through the general tests below.
 - I3. Reduce every face to its carrier (plane: point and unit normal;
   cylinder: axis point, unit axis direction, radius), its orientation
   relative to the carrier normal, and its loops as chains of edge uses in a
-  chart. Reduce every edge to its carrier and parameter interval.
+  chart. Reduce every edge to its carrier and parameter interval (I5).
 - I4. A cylinder face is cut along one seam line parallel to its axis so that
   it has a single chart. A seam is an ordinary edge of the arrangement with
   two uses by the same face. The seam of an input cylinder face that already
-  has one is kept where it is.
+  has one is kept where it is. A planar face given in a polar chart has a
+  radial edge that the face uses twice, from its pole to its rim; it is
+  treated as a seam too. M1 removes it, since both uses are by pieces on
+  one plane, and the pole node, then on no edge, is not in the result.
+- I5. Edge carriers. The carrier of an edge follows from the faces it lies
+  on, and the stored curve is only checked against it. For each edge that
+  is not collapsed:
+  1. Samples. The stored curve is evaluated at 17 evenly spaced parameters
+     of its range, both ends included. An evaluation error or a non-finite
+     point returns `ErrInvalid` naming the edge.
+  2. Faces. Let S₁ and S₂ be the carriers of the faces of the edge's two
+     uses; for a seam they are one carrier. Every sample must be within ε
+     of S₁ and of S₂. Otherwise the operand is not a valid boundary at this
+     tolerance and the call returns `ErrInvalid` naming the edge.
+  3. Candidates when S₁ and S₂ are different surfaces. S₁ and S₂ are the
+     same surface when they are the carrier of one face (a seam), parallel
+     planes, or a candidate pair of parallel cylinders (SP4); given step 2,
+     such a pair agrees within tolerance wherever the edge runs. Any other
+     pair is two different surfaces. For those, the candidates are
+     the carrier curves that the table of section 7.4 gives for the pair
+     (S₁, S₂), taken as unbounded carriers: a line, a circle, an ellipse,
+     or two lines. This is the same table that X6 uses, so a pair that the
+     table does not support makes the edge unsupported, and a row added to
+     the table later admits operands with such edges without a change here.
+  4. Candidates when S₁ and S₂ are the same surface (two faces on one
+     carrier, or a seam). The faces do not determine a curve, so the
+     samples do. If every sample is within ε of the line through the two
+     samples that are farthest apart, that line is the one candidate.
+     Otherwise take three samples: the first, the one farthest from it, and
+     the one farthest from the line through those two. On a cylinder, the
+     candidates are the carrier curves that the table of 7.4 gives for the
+     plane through the three samples with the cylinder. On a plane, the
+     candidate is the circle through the three samples if every sample is
+     within ε of it, and otherwise the conic through the samples of index
+     0, 3, 6, 9 and 12, which must be an ellipse.
+  5. Choice. The carrier of the edge is the candidate that every sample is
+     within ε of. If no candidate qualifies, the stored curve does not
+     agree with a line, circle or ellipse on its faces, and the call
+     returns `ErrUnsupported` naming the edge and its largest deviation.
+     If two candidates qualify, it returns `ErrTolerance`.
+  6. Interval and direction. Each sample is given its parameter on the
+     carrier (CC1). The carrier is oriented so that the parameter increases
+     from the first sample to the last, and the edge's interval runs from
+     the parameter of the first to that of the last. Successive samples
+     must advance in that direction and by less than half a period on a
+     circle or ellipse; otherwise the call returns `ErrUnsupported` naming
+     the edge. A closed edge, whose first and last samples coincide while
+     the samples go once round, has the whole period as its interval.
+
+  After I5 the stored curve is not used again. Agreement is checked at the
+  17 samples only. A stored curve that leaves its carrier between samples
+  is not detected, and V7 applies to it as it does to an operand that is
+  not embedded.
 
 ### 7.2 Arrangement
 
@@ -596,6 +678,10 @@ the arrangement. No geometric welding takes place at this stage.
   returned as `ErrValidation` wrapping that error, except a context error,
   which is returned unwrapped as section 9 requires.
 - B5. A selection that keeps no piece returns the empty solid and no error.
+- B6. Every edge of the output solid stores its carrier as a `geom.Line` or
+  `geom.Ellipse` value over the edge's interval. A result is a valid
+  operand of a later call whatever its curve values are, since I5 does not
+  read them.
 
 ## 8. Validation before return
 
@@ -665,10 +751,10 @@ the operand and the input face or edge indices involved.
 
 | Error | When |
 |---|---|
-| `ErrInvalid` | Nil context, an operation value other than `Union`, `Common` or `Cut`, invalid options, non-finite input, ε ≥ L / 100. |
-| `ErrUnsupported` | Operand outside section 4.1; a surface or curve pair marked unsupported in 7.4 or 7.5. |
+| `ErrInvalid` | Nil context, an operation value other than `Union`, `Common` or `Cut`, invalid options, non-finite input, ε ≥ L / 100, an edge that cannot be evaluated or does not lie on its faces (I5). |
+| `ErrUnsupported` | Operand outside section 4.1, including an edge with no carrier (I5); a surface or curve pair marked unsupported in 7.4 or 7.5. |
 | `ErrNonManifold` | N1, N2 or N3 fails. |
-| `ErrTolerance` | T4, SP4, CC4 or F6. |
+| `ErrTolerance` | T4, I5, SP4, CC4 or F6. |
 | `ErrInconsistent` | X8, F2, F3, K1, K2 or K3: the arrangement contradicts itself. |
 | `ErrValidation` | Any check of section 8, B4, or a mass-property failure other than budget or cancellation (V5). |
 | `ErrBudget` | A work limit of section 10 is exceeded, or mass-property integration exhausts its budget (V5). |
@@ -687,7 +773,10 @@ against the pass condition.
 | `MaxNodes` | 16,384 | Nodes. |
 | `MaxPieces` | 4,096 | Pieces. |
 
-Exceeding one of these limits returns `ErrBudget`. `MaxGrowth` (default 4,
+Exceeding one of these limits returns `ErrBudget`. `MaxFaces` is checked
+first, before any face or edge of an operand is examined, so an operand
+that is both too large and outside the class of section 4.1 returns
+`ErrBudget`. `MaxGrowth` (default 4,
 T4) is a tolerance bound, not a work limit, and its violation returns
 `ErrTolerance`. Checking these limits is the one place where the number of
 faces, nodes or pieces of an operand is read (PC2). The context is checked at least once
@@ -738,6 +827,33 @@ boundary is not a manifold. The trial reports it; it does not represent it
 (OD-3).
 
 C1 to C3 and C27 are run with box operands and again with cylinder operands.
+
+Stored forms (S3, I5). The carrier of an edge must not depend on how its
+curve is stored, so C15 and C21 are each run with the cylinder operand in
+every one of these forms, and the outcome, volume, face count and face
+source lists must be the same for all of them:
+
+- SF1. Edges stored as `geom.Line` and `geom.Ellipse` values, the form B6
+  gives a result.
+- SF2. `parametric.Cylinder` lifted with `trimmed.FromParametric`: the
+  edges are sides of surface patches, and each cap is a polar plane chart
+  with a collapsed edge at its pole and a radial edge used twice.
+- SF3. A disc built by `trimmed.ExtrudeDiskWithHoles`, one of the
+  constructors behind the bridge's `mixedExtrude` request: its faces are
+  `geom` plane and cylinder values, and its edges are stored as evaluators
+  over a surface and not as `geom` curve values.
+- SF4. Each of SF1 to SF3 under a rigid placement that is not
+  axis-aligned.
+
+Two further tests fix the failures of I5: a solid with one edge replaced by
+a curve that lies on both of its faces within ε at its ends and leaves one
+of them by 10ε at its middle returns `ErrInvalid` naming the edge; and a
+cylinder whose wall is split in two faces along a helical edge returns
+`ErrUnsupported` naming that edge. In `internal/plaincadbridge`, the
+acceptance rows already use operands made by the `box`, `prism`, `circle`
+and `mixedExtrude` requests; the frozen list must contain at least one
+checked Boolean response with an operand from each of those four requests,
+and the plan's freeze reports the count for each (A1).
 The all-planar rows, used by the gate of PL1, are C1 to C10 and C24 to C27
 with box operands.
 
@@ -784,7 +900,7 @@ What the trial uses, unchanged, and what it does not.
 |---|---|---|
 | `geom` | `Vec3`, `Vec2`, `Box`, `Bounds` (`vector.go:47,75`); `Frame`, `Line`, `Ellipse`, `NewCircle`, `PlaneSurface`, `CylinderSurface` (`analytic.go:18-182`); accessors (`parameters.go:6-8`); `Line.Closest` (`intersection.go:34`); `PlaneSurface.Project`, `CylinderSurface.Project` (`projection.go:58,68`); `IntersectionTolerance`, `IntersectLinePlane`, `IntersectPlanes` (`intersection.go:19,50,80`); `IntersectPlaneCylinder` (`sections.go:52`); `IntersectLineCylinder` (`line_surfaces.go:120`); `IntersectLineEllipse` (`planar_intersections.go:36`); `Orient2D` (`vector.go:91`) | The perpendicular, skew and bisector cylinder helpers (`perpendicular_cylinders.go`, `skew_orthogonal_cylinders.go`, `nonparallel_cylinder_query.go`) are exact, budget-only and outside the Tier 1 class; `IntersectEqualRadiusCylinderBisectors` (`equal_radius_cylinder_bisectors.go:41`) is a candidate for Tier 2 only. Nothing is added to `geom`: it has about 1,300 files and every package imports it. |
 | `brep` | `Solid` as a bridge operand, through `trimmed.FromPlanar`; `MaxHoledFaceVertices` (`holes.go:15`) | `SplitPlanarEdges` (`split_planar_edges.go:76`) is exact, planar and never snaps. |
-| `brep/parametric` | `Edge`, `Interval` (`solid.go:21,36`); `Location` (`ball_query.go:10`); `IntegrationOptions`, `Properties` (`properties.go:13`); `ErrBudget` (`solid.go:17`); `SurfaceMapping`, `CurveMapping` (`transform.go:86,95`); `PolarPlaneFrame`, `Cylinder` (`primitives.go:82,134`) | `Face` is a rectangular patch with no trims. The `cylinder_pair_*`, `oblique_*` and `sphere_*` constructors are the enumeration this trial is an alternative to. |
+| `brep/parametric` | `Edge`, `Interval` (`solid.go:21,36`); `Location` (`ball_query.go:10`); `IntegrationOptions`, `Properties` (`properties.go:13`); `ErrBudget` (`solid.go:17`); `SurfaceMapping` (`transform.go:86`); `PolarPlaneFrame`, `Cylinder` (`primitives.go:82,134`) | `Face` is a rectangular patch with no trims. `CurveMapping` is not needed: edge curves are only evaluated (S3, I5). The `cylinder_pair_*`, `oblique_*` and `sphere_*` constructors are the enumeration this trial is an alternative to. |
 | `brep/trimmed` | `Solid`, `Face`, `Use`, `PCurve`, `NewSolidContext` (`solid.go:19-110`); `EllipseUV` (`pcurve.go:14`); `FromPlanar`, `FromParametric` (`transform.go:17,137`); `Solid.Classify`, `Solid.Ray` (`location.go:27,63`); `Solid.MassProperties` (`properties.go:33`); `Solid.Bounds` (`bounds.go:15`); `Solid.Tolerance`, `Solid.Topology` (`topology.go:93`); `Solid.Tessellate` (`solid.go:489`) in tests | `Sew` (`sew.go:42`) joins only exactly equal endpoints with a proved common evaluator and never welds within tolerance; the arrangement already shares edges. `ValidateTrimLoops` and the other functions of `validation.go` wrap the exact certifier and leave ellipse p-curves unresolved. `ValidateEdgeAgreement` (`edge_validation.go:35`) handles rational Bézier edges only. Every named-arrangement constructor. |
 | `brep/trimvalidate` | Nothing | Exact, chart-only, no tolerance parameter; it does not check model-space closure, edge-on-surface or vertex-on-edge residuals, which is what section 8 needs. |
 | `intersect` | Nothing | Spline and marching oriented. `Trace` (`trace.go:113`) returns `ErrSingular` on tangency and does not detect coincidence. It is the likely home of a later surface pair that has no closed form. |
@@ -865,7 +981,6 @@ Tier 1, required:
 | Containment overlap | `cylinder_containment_overlap_test.go`, `overlap_capture_test.go` | 2 | Box inside a large cylinder | `containedPlanarCylinderVolume` |
 | Pocket and planar | `box_pocket_test.go`, `cut_many_test.go`, `planar_boolean_chain_test.go` | 9 | Box pocket with bore, nested pocket, box less inner box, the one `pocketFloor` test | `rectangularPocket`, `poly.Combine` |
 | Pocket with cylinder | `pocket_cylinder_cut_test.go`, `retained_planar_bores_test.go`, `island_pocket_test.go` | 5 | Hole in a pocket floor, counterbore, refill | `cutPocketCylinder`, `retainedPlanarBoolean` |
-| Rounded profiles | `rounded_stack_test.go`, `rotary_platter_test.go`, `annular_pedestal_test.go` | 3 | Rounded-rectangle and annulus extrusions with axial bores | `cutRoundedStack`, `cutThroughProfiles` |
 | To face | `to_face_test.go`, `to_face_analytic_test.go`, `to_face_oblique_test.go` | 7 | Extrude a polygon or circle up to a planar face (CO3) | `brep.PrismToFace`, `trimmed.CylinderToFace` |
 
 Tier 2, in the trial by OD-1, attempted last and not required for a pass
@@ -894,6 +1009,18 @@ Not acceptance cases, with the reason:
   hole, pocket and boss chain, in which a hole, pocket or boss is applied to
   stock that already has a fillet or chamfer, stays on the legacy path even
   after a pass.
+- Edge-treated stock before the first Boolean, found when the rows were
+  frozen (A1): the Rounded profiles family, `rounded_stack_test.go`,
+  `rotary_platter_test.go` and `annular_pedestal_test.go` (rounded-rectangle
+  and annulus extrusions with axial bores; legacy paths `cutRoundedStack`
+  and `cutThroughProfiles`). All three of its test functions fillet or
+  chamfer the stock before their first Boolean request, so every Boolean in
+  them has an operand that OD-8 excludes. The family has no Tier 1 row and
+  is not required for a pass. It was listed as a Tier 1 family in 15.1
+  until the freeze.
+- Faces stored as spline patches (S2): a body made by the arc-loop branch
+  of `mixedExtrude` (`trimmed.ExtrudeExactCircularLoop`). The freeze (A1)
+  reports how many Boolean responses this leaves unchecked.
 - Outside the surface class: cones, tori, threads, lead screws, rim
   treatments and STEP repair families.
 - Within an acceptance test, assertions about STEP, IGES, native proof JSON,
@@ -942,7 +1069,11 @@ Not acceptance cases, with the reason:
   reports the error the general path achieves in volume and in surface area:
   |value − expected| / max(1, |expected|), where expected is the analytic
   value in the source test where it has one and the legacy value otherwise.
-  The test writes both numbers to its log for each row. At the end of the
+  A row can produce several shapes and volumes: its two numbers are the
+  largest error in volume and the largest error in area over the row's
+  checked responses that produced a value, and the row also records how
+  many of its checked responses produced none.
+  The test writes these to its log for each row. At the end of the
   trial, on a pass or a stop, the numbers from one run are written into two
   columns of `specs/general-boolean/ACCEPTANCE.md`, a row that did not
   produce a result being marked as such, and the report to the owner gives
@@ -989,8 +1120,11 @@ The trial passes when all of these hold on one commit:
   operand, the primitive it was built from, or its placement, except through
   sections 7.3 to 7.5 and the work limits of section 10. The architectural
   constraints of AR8 hold. This is checked by review of the complete diff.
-- PC3. `go build ./...`, `go vet ./...`, `golangci-lint run ./...` and
-  `go test ./...` pass. `go test ./...` without `PLAINSOLID_SLOW` runs the
+- PC3. `go build ./...`, `go vet ./...` and `go test ./...` pass, and
+  `golangci-lint run --new-from-rev=<base> ./...` reports nothing, where
+  `<base>` is the commit of `main` the trial branch was created from. The
+  bridge had lint findings before the trial; only findings the trial
+  introduces count. `go test ./...` without `PLAINSOLID_SLOW` runs the
   default test tier of `tools/ci/README.md`, which `AGENTS.md` requires
   before a merge; it is not the complete suite that section 4.4 excludes.
   The research configuration still compiles and the tag still marks the
@@ -1019,11 +1153,12 @@ are expected to be, for Tier 1: `newBore` with `trimmed.BoreCylinders` and
 `trimmed.Box*Cylinder*` constructors, `cutSideOpeningFamilies` and the five
 `trimmed.Cut*SideOpenDualDisks`, `cutSideNotchBores`, `cutCircularStockBores`,
 `coaxialThrough`, `fuseCoaxial`, `cutPocketCylinder`, `rectangularPocket`,
-`rectangularIslandPocket`, `cutRoundedStack`, `cutRoundedBores`,
-`cutThroughProfiles`, `retainedPlanarBoolean`,
+`rectangularIslandPocket`, `retainedPlanarBoolean`,
 `containedPlanarCylinderVolume` and `parallelCylinderOverlap`; for Tier 2:
 `newCrossedBore`, `newBlindCrossedBore`, `newTripleCrossedBore`,
-`newCrossedCompanionBore` and `newObliqueCrossedBore`. Deleting them is not
+`newCrossedCompanionBore` and `newObliqueCrossedBore`. `cutRoundedStack`,
+`cutRoundedBores` and `cutThroughProfiles` are expected to stay, because
+the Rounded profiles family is excluded (15.2). Deleting any of them is not
 part of the trial.
 
 The same report states what a pass does not cover: operations on
@@ -1036,8 +1171,11 @@ The trial ends as a failure, and work stops with a report to the owner, at
 the first of:
 
 - ST1. Wrong result. `Combine` returns a result that passes section 8 and
-  differs from the analytic or oracle value beyond A3 or A6, and no general
-  strengthening of section 8 catches it.
+  differs from the analytic or oracle value beyond A3 or A6, and the
+  session that finds it cannot state a general check which, added to
+  section 8, rejects that result. A check it can state is reported to the
+  owner with the case, and the owner decides whether it is added in the
+  corrective phase; until then the row counts as failing.
 - ST2. Special-casing. The only known way to make a Tier 1 row pass is code
   that violates PC2.
 - ST3. Not converging. After the last planned phase and one corrective
