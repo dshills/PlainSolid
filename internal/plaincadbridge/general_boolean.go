@@ -59,27 +59,43 @@ func generalCut(before float64, r boolean.Result) error {
 
 // generalCombine converts two stored shapes and combines them.
 func generalCombine(ctx context.Context, a, c stored, op boolean.Operation) (boolean.Result, error) {
+	r, err := generalCombineRaw(ctx, a, c, op)
+	if err != nil {
+		return boolean.Result{}, generalFailure(err)
+	}
+	return r, nil
+}
+
+// generalCombineRaw is generalCombine with the error as boolean.Combine
+// returned it, for a caller that decides on its kind.
+func generalCombineRaw(ctx context.Context, a, c stored, op boolean.Operation) (boolean.Result, error) {
 	x, err := generalOperand(a)
 	if err != nil {
 		return boolean.Result{}, err
 	}
-	return generalStep(ctx, x, generalKnown(a), c, op)
+	return generalStepRaw(ctx, x, generalKnown(a), c, op)
 }
 
 // generalStep is one step of a fold: a solid, with its measures where
 // they are known, combined with a stored shape.
 func generalStep(ctx context.Context, x trimmed.Solid, known *parametric.Properties, c stored, op boolean.Operation) (boolean.Result, error) {
+	r, err := generalStepRaw(ctx, x, known, c, op)
+	if err != nil {
+		return boolean.Result{}, generalFailure(err)
+	}
+	return r, nil
+}
+
+// generalStepRaw is generalStep with the error as boolean.Combine
+// returned it.
+func generalStepRaw(ctx context.Context, x trimmed.Solid, known *parametric.Properties, c stored, op boolean.Operation) (boolean.Result, error) {
 	y, err := generalOperand(c)
 	if err != nil {
 		return boolean.Result{}, err
 	}
 	o := generalOptions
 	o.KnownA, o.KnownB = known, generalKnown(c)
-	r, err := boolean.Combine(ctx, x, y, op, o)
-	if err != nil {
-		return boolean.Result{}, generalFailure(err)
-	}
-	return r, nil
+	return boolean.Combine(ctx, x, y, op, o)
 }
 
 // generalKnown is the volume and area the bridge stores for a published
@@ -325,11 +341,37 @@ func (b *Bridge) generalJoinAll(ctx context.Context, targets []string, tool stor
 
 // generalOverlapVolume is the volume of the common (CO2).
 func generalOverlapVolume(ctx context.Context, a, c stored) (any, error) {
-	r, err := generalCombine(ctx, a, c, boolean.Common)
+	volume, err := overlapOf(
+		func() (boolean.Result, error) { return generalCombineRaw(ctx, a, c, boolean.Common) },
+		func() (boolean.Result, error) { return generalCombineRaw(ctx, a, c, boolean.Cut) },
+	)
 	if err != nil {
-		return nil, err
+		return nil, generalFailure(err)
 	}
-	return map[string]float64{"volume": r.Volume}, nil
+	return map[string]float64{"volume": volume}, nil
+}
+
+// overlapOf is V(a ∩ b) from the common of a and b. Where the common is
+// refused as not a manifold, as one pinched into parts that meet only at
+// points is, it is V(a) − V(a − b) from their cut, which is the same
+// quantity for any two solids (CO2). Where the cut fails as well, the
+// error is that of the common, unless the cut was stopped by its context.
+func overlapOf(common, cut func() (boolean.Result, error)) (float64, error) {
+	r, err := common()
+	if err == nil {
+		return r.Volume, nil
+	}
+	if !errors.Is(err, boolean.ErrNonManifold) {
+		return 0, err
+	}
+	d, e := cut()
+	switch {
+	case e == nil:
+		return d.VolumeA - d.Volume, nil
+	case errors.Is(e, context.Canceled), errors.Is(e, context.DeadlineExceeded):
+		return 0, e
+	}
+	return 0, err
 }
 
 // generalToFace is prismToFace and circleToFace as CO3 states them: the

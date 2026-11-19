@@ -52,6 +52,12 @@ What else Phase 1 found and did:
 - Size: `brep/boolean` has 6,049 lines outside test files, 37 more than
   before, of the 350 of B1.
 
+The owner had the plan go on with that case skipped. Phase 2 is done:
+`overlapVolume` answers with the volume a cut removes where the common
+is not a manifold. T2-001, 002, 003, 010, 011 and 017 pass and left
+`pending.txt`; so did T2-005 and T2-014, whose values all agree and
+which take over two seconds only beside other rows. OP-6 is closed.
+
 ## Rules for every phase
 
 - R-1. One phase is one commit on a `codex/` branch in its own worktree.

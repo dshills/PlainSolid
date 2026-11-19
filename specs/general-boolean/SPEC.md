@@ -1338,8 +1338,11 @@ the sources come from and that each is a face of the wall:
   integrated once and not again as an operand.
 - CO2. `overlapVolume(a, b)` is V(a ∩ b), and 0 when the common is empty.
   When the common is pinched into parts that meet only at points, N2
-  refuses it and the request fails, although the volume is defined.
-  Whether the request is to give that volume is open (section 20).
+  refuses it. The request then answers V(a) − V(a − b) from the cut,
+  which is the same quantity; where the cut fails as well it fails with
+  the error of the common
+  ([the crossing specification](../general-boolean-crossing/SPEC.md),
+  P1 to P4).
 - CO3. `prismToFace` and `circleToFace` build a tool that ends on a target
   face. Their result is reproduced as the common of the sweep, extended past
   the target plane, with a block one face of which lies on the target plane.
@@ -2259,7 +2262,8 @@ and this document does not decide them.
 - OP-6. The overlap volume of a pinched common (CO2). The common of a
   stock with one bore and the tool of a crossing bore is two wedges that
   meet only at two points. N2 refuses it, correctly, and the record gives
-  a volume. Eight Tier 2 rows.
+  a volume. Eight Tier 2 rows. Closed on 2026-11-19: CO2 now answers
+  with the volume the cut removes.
 - OP-7. Section 7.5 has no entry for the conic and cylinder of one Tier 2
   row, T2-015. This one is an addition to the table.
 - OP-8. Settled by OD-9: T1-092 and T1-029 are accepted as they stand,
