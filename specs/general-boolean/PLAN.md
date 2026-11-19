@@ -1,19 +1,20 @@
 # Plan: general Boolean trial
 
 This plan implements [the specification](SPEC.md) as it stands at commit
-`7d0b9199`. It is a plan only and contains no implementation.
+`076d0633`. It is a plan only and contains no implementation.
 Identifiers such as PC2, A3 or ST4 are requirement identifiers of the
-specification; RL-1 to RL-16 are the rulings of its section 19.
+specification; RL-1 to RL-18 are the rulings of its section 19.
 
-State after Part 3.1. Phase 0 is complete: gate G0 passed on `b37228e6`.
+State during Part 3.2. Phase 0 is complete: gate G0 passed on `b37228e6`.
 Parts 1.1 to 1.5 are complete: gate G1 passed on `dde63dee`, and with row
 C28 on `245791e8`. Phase 2 is complete to its checkpoint G2 on `4fb6a3d4`.
-Part 3.1 is complete on `e2de6c99`: the acceptance rows ran on the
-general bridge for the first time, and 36 of the 92 Tier 1 rows pass,
-with no wrong volume. All of it is on the trial's branch (R1). Part 3.2
-is the next part. It starts with the rulings RL-10 to RL-16, which that
-first run produced. The sections on finished parts describe what was
-done, so that a later session can rely on them.
+Part 3.1 is complete on `e2de6c99`. Part 3.2 is under way: on `c5ac49a7`,
+with the rulings RL-10 to RL-15 applied, 47 of the 92 Tier 1 rows pass,
+and no volume is wrong. All of it is on the trial's branch (R1). What
+remains of Part 3.2 is the coverage rule of CO3 (RL-16, RL-18), the
+closed-form mass properties (RL-17), and the rows that wait on the
+foundation branch (RL-9). The sections on finished parts describe what
+was done, so that a later session can rely on them.
 
 ## Terms
 
@@ -327,23 +328,20 @@ reason. The cap is 15,000 (PC4) and only the cap trips ST4.
 | Part | 1.1 | 1.2 | 1.3 | 1.4 | 2.1 | 2.2 | 2.3 | 1.5 | 3.1 | 3.2 | 4 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | First estimate | 1,600 | 3,100 | 4,700 | 6,200 | 8,500 | 9,900 | 11,100 | none | 11,100 | 11,600 | 12,200 |
-| Measured | 1,479 | 2,550 | 3,113 | 3,605 | 4,811 | 4,825 | 5,160 | 5,456 | 5,467 | | |
-| Expected now | | | | | | | | | | 5,800 | 6,100 |
+| Measured | 1,479 | 2,550 | 3,113 | 3,605 | 4,811 | 4,825 | 5,160 | 5,456 | 5,467 | 5,613 so far | |
+| Expected now | | | | | | | | | | 6,050 | 6,350 |
 
-The kernel stands at 5,467 lines, under half of the first estimate for
-this point. Part 3.2 is expected to add about 350: the sharper proof of
-SP2 (150), known mass properties and the rounding allowance (60), the
-quarter-turn cut ahead of M6 (40), and fixes that the pending rows show
-(100). Phase 4 is kept at 300. The required work is then expected near
-5,800 lines, under 40 percent of the cap. The cap is the owner's (D6)
-and is not changed here.
+The kernel stands at 5,613 lines on `c5ac49a7`, with the rulings RL-10
+to RL-15 in. What Part 3.2 still adds is the closed form of the mass
+properties (RL-17), estimated at 350 lines for the two kinds of face and
+the centroid, and fixes that the pending rows show (100). Phase 4 is kept
+at 300. The required work is then expected near 6,050 lines, about 40
+percent of the cap. The cap is the owner's (D6) and is not changed here.
 
-The adapter file is the tighter bound: 359 lines of its 400 after Part
-3.1. Part 3.2 takes out the adapter's own integration of each result
-and adds the coverage rule of CO3 and the passing of known mass
-properties. If that does not fit in 400 lines the trip table applies
-(ST4); the cap is the owner's and code is not moved to another file to
-get under it.
+The adapter file is the tighter bound: 378 lines of its 400 on
+`c5ac49a7`. The coverage rule of CO3 is still to be added to it. If that
+does not fit in 400 lines the trip table applies (ST4); the cap is the
+owner's and code is not moved to another file to get under it.
 
 ## Phase 0: freeze the acceptance rows
 
@@ -1199,19 +1197,48 @@ Checks: K1 to K7.
 
 Files changed in `brep/boolean`: `options.go`, `result.go`,
 `validation.go`, `combine.go` and `assembly.go` for the known mass
-properties and the rounding allowance; `assembly.go` and `divide.go` for
+properties and the rounding allowance; a new file for the closed form of
+the mass properties, with `validation.go` and `result.go`; `assembly.go` and `divide.go` for
 the quarter-turn cut; `surface_table.go`, or a new file beside it, for
 the sharper proof of SP2; and whatever general mechanism a failing row
 shows to be wrong, with a unit test for each defect. Files changed in
 `internal/plaincadbridge`: `general_boolean.go`, its tests, the pending
-list, the new `testdata/general_boolean/declined.txt`, and the trace of
-T1-009, which is removed. `specs/general-boolean/ACCEPTANCE.md` changes
+list and the new `testdata/general_boolean/legacy_refusals.txt`. `specs/general-boolean/ACCEPTANCE.md` changes
 for steps 6 and 8.
 
 Steps:
 
 Before it starts, the branch that holds the amended specification and
 plan is merged into the trial branch (R1).
+
+Done so far, on `c5ac49a7`: steps 1 to 6 and step 8 (`bd51862f`,
+`9b55a129`, `bdd9e401`, `0cc6aa90`, `15fc884e`, `49cfe914`). Tier 1 went
+from 36 to 47 rows: three by known mass properties, one by the rounding
+allowance, seven by A4. The 45 rows that do not pass: 26 on arcs of two
+curves at one vertex and 5 on other limits of `brep/trimmed` (RL-9), 9
+on time alone, 4 on to-face coverage, and T1-009, which is excluded.
+Still to do: steps 7 and 9, then steps 10 to 12. What was done
+differently from the steps as first written is now in the steps and in
+the specification:
+
+- Step 2. The adapter passes the volume and area the bridge stores for
+  every shape, a legacy shape included, where the first wording passed
+  them only for bodies the adapter had published. For a legacy shape the
+  stored values are closed forms, so V5 now compares the lifted solid
+  with a value from outside it.
+- Step 3. The allowance is eight units in the last place of the model
+  size, σ = 2⁻⁴⁹ × L. It is also added to the tolerance handed to
+  `trimmed.NewSolid`, so the stored solid records τ + σ and the report
+  gives τ.
+- Step 5. The subdivision halves a patch at most twelve times each way
+  and compares at most 20,000 pairs of boxes. T1-034 is past SP2 and now
+  stops at a limit of `brep/trimmed`.
+- Step 6. The data file is `legacy_refusals.txt`. It lists 25 of the 89
+  recorded failures of the rows that are not slow on the default bridge.
+  The recorded failures of the 13 rows that are slow there were not read
+  and count as contract failures until those rows are run.
+- Step 8. T1-009 stays in the bridge pending list, with the reason that
+  it is excluded, and its trace stays.
 
 1. Bring the code in line with the specification where Part 1.5 and Part
    3.1 were built from an earlier revision: the quarter-turn cut of B2 is
@@ -1244,7 +1271,7 @@ plan is merged into the trial branch (R1).
    meet are not, and return `ErrUnsupported`; two that come within 2μ
    are not proved separate.
 6. Recorded failures (RL-11, A4). A data file beside the bridge pending
-   list, `testdata/general_boolean/declined.txt`, names each recorded
+   list, `testdata/general_boolean/legacy_refusals.txt`, names each recorded
    failure that is a declined input: the row, the number of the request
    in its trace, and the recorded message. The replay requires a failure
    for every other recorded failure and accepts either outcome for a
@@ -1254,7 +1281,7 @@ plan is merged into the trial branch (R1).
    marks the rows that succeed where the record declines. Only failures
    that A4's rules settle are listed as declined; the others stay
    pending (trip table).
-7. To-face coverage (RL-16, CO3): after the tool is built, the adapter
+7. To-face coverage (RL-16, RL-18, CO3): after the tool is built, the adapter
    takes the union and the common of the tool with the target body and
    fails the request when a face of either has the tool's end cap among
    its sources. The mass properties of the tool and of the target are
@@ -1263,18 +1290,52 @@ plan is merged into the trial branch (R1).
    face fails; one whose cap lies partly inside the target's material
    fails. The four rows that succeeded where the record fails for
    coverage then fail as recorded.
-8. T1-009 is excluded (RL-12, 15.2): its row moves to the table of
-   dropped functions in `ACCEPTANCE.md` with that reason, and its trace
-   is removed, so that Tier 1 has 91 rows.
-9. Take the remaining pending rows family by family. For each failure find the
+8. T1-009 is excluded (RL-12, 15.2). It stays in the bridge pending
+   list with the reason `excluded 15.2`, which G3 allows, and
+   `ACCEPTANCE.md` marks the row as excluded with that reason when the
+   record is written (Part 5.2). It is not counted among the Tier 1 rows
+   for the pass, which leaves 91.
+9. Closed-form mass properties (RL-17, V5). One routine in `brep/boolean`
+   gives the volume, the surface area and the centroid of a solid as
+   boundary integrals in the chart of each face: a planar face whose
+   loops are lines and arcs of circles and ellipses, and a cylinder face
+   whose chart loops are rulings and arcs of section circles and section
+   ellipses. It reads the terms of the carriers and the paths of the
+   charts, as the area and volume share of a piece already do, and has
+   no case for a kind of solid. `Combine` uses it for the result, from
+   the face and loop data that assembly hands to
+   `trimmed.NewSolidContext`, and for an operand the caller gave no
+   values for, from the faces as intake reduced them. A solid with a
+   face the routine does not cover is integrated with `MassProperties`
+   as before. The report gains the centroid of the result. Tests:
+   - `TestClosedFormMeasures`, against analytic values to 1e-12 relative:
+     a box, a tilted box, a cylinder, a leaning cylinder, a tube, a box
+     with a through bore and with an oblique bore, a body with a void,
+     and two solids.
+   - Every leaf of `TestMatrix` that returns a solid compares the
+     closed-form volume, area and centroid of its result with
+     `MassProperties` at the options of L4, within the bounds V5 states.
+   - `TestGeneralBooleanAcceptance` makes the same comparison for every
+     result in the slow tier, and logs for each row the largest
+     difference in volume and in area (A8).
+   - `TestContract`: the result of `Combine` no longer depends on the
+     integration options when every face is covered.
+
+   Then the time of every row is measured again, alone and by name, and
+   the list of slow rows is rewritten. The nine rows that fail on time
+   alone are expected to leave it.
+10. Take the remaining pending rows family by family. For each failure find the
    smallest input that shows it, add it as a unit test or a matrix-style
    test in `brep/boolean`, and fix the stage of section 7 that is wrong.
    Before each fix, apply K3 to the intended change. A fix that would
    depend on the family is not written (ST2). A row held by a limit of
    `brep/trimmed` is not worked on here: it stays pending under `RL-9`
-   until the foundation branch is merged (R4).
-10. Close any section 11 leaf carried over from Phase 2.
-11. Run PC3 in full:
+   until the foundation branch is merged (R4). Four of those limits are
+   written up as defect reports for that work: a display triangle on a
+   seam, `Classify` on `unionArcUV`, `Tessellate` with a positive angle
+   bound, and the mesh edge that is not closed.
+11. Close any section 11 leaf carried over from Phase 2.
+12. Run PC3 in full:
 
    ```sh
    go build ./... && go vet ./... && golangci-lint run --new-from-rev "$BASE" ./... && go test ./...
@@ -1283,8 +1344,9 @@ plan is merged into the trial branch (R1).
    ```
 
 Gate G3, by command. The first two pass, the third prints nothing but
-entries marked `RL-9` (K7), and step 11 passes. No Tier 1 row is on the
-list of slow rows: each has been timed alone under two seconds (A7).
+entries marked `RL-9` (K7) and the entry of T1-009, marked
+`excluded 15.2`, and step 12 passes. No Tier 1 row is on the list of slow
+rows: each has been timed alone under two seconds (A7).
 
 ```sh
 go test ./brep/boolean -count=1
@@ -1292,7 +1354,7 @@ go test ./internal/plaincadbridge -run '^TestGeneralBoolean' -count=1
 rg -n '^(T1-|TestMatrix)' brep/boolean/testdata/pending.txt internal/plaincadbridge/testdata/general_boolean/pending.txt
 ```
 
-Checks: K1 to K7, and step 11. The bridge pending list may still hold Tier 2
+Checks: K1 to K7, and step 12. The bridge pending list may still hold Tier 2
 rows; nothing else. If G3 fails when the Phase 3 budget is used, the
 corrective phase follows if it has not been spent; otherwise ST3.
 
@@ -1374,7 +1436,7 @@ and names the final code commit in its message.
 
 Steps:
 
-1. On the final code commit, run PC3 in full, as in step 11 of Part 3.2,
+1. On the final code commit, run PC3 in full, as in step 12 of Part 3.2,
    the commands of G3, and K1 to K7. Nothing in this list is run again
    after step 3.
 2. Take the A8 numbers from one run on that commit:
@@ -1466,11 +1528,11 @@ not by this phase unless the owner directs it there.
 | SP1 to SP4, 7.4 Tier 1 rows, X6 and X7 (curved, including a closed carrier with one node), X9 and F3 (cylinder chart) | 2.2 |
 | M2, B2, B3 (curved), SF1 to SF4 (matrix), section 11 complete (A5) | 2.3 |
 | L2, CO1 to CO4, A2 to A4, A8 logging | 3.1 |
-| PC1 (without A6), PC2 to PC4, A7; known mass properties (P3, P5, V5), T9, the sharper proof of SP2, the coverage rule of CO3, the two kinds of A4, the exclusion of T1-009 | 3.2 |
+| PC1 (without A6), PC2 to PC4, A7; known mass properties (P3, P5, V5), T9, the sharper proof of SP2, the coverage rule of CO3, the two kinds of A4, the exclusion of T1-009, the closed form of V5 (RL-17) | 3.2 |
 | SP5, the Tier 2 row of 7.4, Tier 2 rows | 4 |
 | L6, A6, A8 record, PC1 complete, RC1, RC2 | 5.1, 5.2 |
 | A1, E1 probe | 0 |
-| G1 to G4, AR8, ST1 to ST6, OD-1 to OD-8, RL-1 to RL-16 | Rules, standing checks and the trip table, in every part |
+| G1 to G4, AR8, ST1 to ST6, OD-1 to OD-8, RL-1 to RL-18 | Rules, standing checks and the trip table, in every part |
 
 ## Risks the plan carries
 
@@ -1504,10 +1566,14 @@ not by this phase unless the owner directs it there.
   the existing analytic-body code, which was written for one shell and for
   specific recipes. A row that fails for that reason may need a bridge
   change outside the listed files, which is a stop-and-ask.
-- The adapter cap. The adapter is 359 lines of its 400 after Part 3.1,
-  and Part 3.2 adds the coverage rule and the passing of known mass
-  properties while taking out its own integration. Exceeding the cap is
-  ST4.
+- The adapter cap. The adapter is 378 lines of its 400 on `c5ac49a7`,
+  and the coverage rule is still to be added. Exceeding the cap is ST4.
+- V5 after RL-17. The volumes V5 compares all come from this package, so
+  V5 no longer measures a result independently on every call. A wrong
+  carrier at intake, or an error shared by the pipeline and the closed
+  form, passes it. The independent comparison with `MassProperties` is
+  made by the matrix leaves and by the slow-tier replay only, so a result
+  that no test covers is checked by V5 and V6 alone.
 - To-face coverage costs two more calls of `Combine` for each to-face
   request. With the mass properties passed along they integrate only
   their own results, but the six rows of that family are the ones to
@@ -1529,7 +1595,7 @@ The owner decided D1, D2, D3, D5 and D6 on 2026-11-18. D4 was decided on
 the same day by the reviewing session under the owner's delegation, as were
 the other rulings of section 19 of the specification; each of those stands
 until the owner confirms or reverses it. Where this plan applies them:
-RL-1 and RL-9 in R4, K5, K7 and the trip table; RL-10 to RL-16 in Part
+RL-1 and RL-9 in R4, K5, K7 and the trip table; RL-10 to RL-18 in Part
 3.2, and RL-15 also in R6, K4 and the notes on Part 3.1; RL-2 in D4 and Part 3.1; RL-3 and RL-4 in
 Phase 0, step 5; RL-5 after gate G0 and in the close of Part 5.2; RL-6 in
 R1; RL-7 in R6 and Phase 0, step 6; RL-8 in Part 1.5.
