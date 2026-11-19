@@ -88,17 +88,28 @@ func TestGeneralStepExport(t *testing.T) {
 			}
 			file := generalSTEPExported(t, b, cut.Handle)
 			sameShape(t, shape(t, newGeneral(), q{"op": "importStep", "source": file}), cut)
-			again := ask(t, New(), q{"op": "importStep", "source": file})
-			if c.planar {
-				if !again.OK {
-					t.Fatalf("%+v", again.Error)
-				}
-				sameShape(t, again.Result, cut)
-			} else if again.OK || again.Error.Code != "UNSUPPORTED" {
-				t.Fatalf("a default bridge answers ok=%v, %+v; it has no reader for a general boundary", again.OK, again.Error)
-			}
+			// The file states no p-curve, so a default bridge reads it too.
+			sameShape(t, shape(t, New(), q{"op": "importStep", "source": file}), cut)
 		})
 	}
+}
+
+// TestGeneralStepReaderLeavesPCurves takes a source with p-curves that the
+// reader of general boundaries can read. A general bridge reads it. The
+// default bridge leaves it to the repair that checks its p-curves, and the
+// two give the same solid.
+func TestGeneralStepReaderLeavesPCurves(t *testing.T) {
+	type q = map[string]any
+	source := stepRepairFixture(t, "occt-default-oblique-prism-fillet")
+	read := shape(t, newGeneral(), q{"op": "importStep", "source": source})
+	if again := ask(t, New(), q{"op": "importStep", "source": source}); again.OK || again.Error.Code != "UNSUPPORTED" {
+		t.Fatalf("a default bridge answers ok=%v, %+v to a source with p-curves and no repair", again.OK, again.Error)
+	}
+	repaired := shape(t, New(), q{"op": "importStep", "source": source, "stepRepair": q{"maxDistance": 1e-12}})
+	if repaired.RepairEvidence == nil {
+		t.Fatal("the default bridge did not repair the source")
+	}
+	sameShape(t, read, repaired)
 }
 
 // TestGeneralStepImported holds a body that a general bridge imported from

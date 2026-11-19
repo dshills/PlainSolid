@@ -90,8 +90,7 @@ func TestGeneralFallback(t *testing.T) {
 		}
 
 		// STEP export writes the boundary and reads it back to the same
-		// measures. The default bridge has no reader for that file at
-		// importStep, so the part does not come back through it.
+		// measures, and importStep reads the file on either bridge.
 		exported, err := b.exportSTEP([]string{part.Handle})
 		if err != nil {
 			t.Fatal(err)
@@ -102,10 +101,14 @@ func TestGeneralFallback(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if again := ask(t, b, q{"op": "importStep", "source": string(file)}); again.OK || again.Error.Code != "UNSUPPORTED" {
-			t.Fatalf("importStep of the exported part on a default bridge: ok=%v, %+v", again.OK, again.Error)
-		}
+		back := shape(t, b, q{"op": "importStep", "source": string(file)})
+		sameShape(t, back, part)
 		sameShape(t, shape(t, newGeneral(), q{"op": "importStep", "source": string(file)}), part)
+		// The part that came back is a result like the one that left: it
+		// exports again.
+		if _, err := b.exportSTEP([]string{back.Handle}); err != nil {
+			t.Fatal(err)
+		}
 
 		// A further bore through the part, clear of what is there.
 		second := circle(t, b, vector{10, 2, 0}, vector{0, 0, 1}, 1, 10)

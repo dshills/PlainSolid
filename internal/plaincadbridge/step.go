@@ -438,8 +438,17 @@ func (b *Bridge) importSTEPInUnits(source string, units stepFileUnit) (Shape, er
 		}
 		return b.putSTEPAnalytic(m.Bodies[0].Solid, m.LengthUnit)
 	}
-	if b.general {
-		return b.importGeneralSTEP(source)
+	// The last reader takes a boundary of planes and cylinders from its
+	// entities and ignores p-curves. A general bridge tries it for every
+	// source. The default bridge tries it only for a source that states no
+	// p-curve, as a file that exportStep wrote for a result of the general
+	// Boolean does: a source with p-curves is left to the readers and the
+	// repairs that check them. Where it does not take the source, the
+	// default bridge refuses as it did before the reader existed.
+	if b.general || !strings.Contains(source, "PCURVE") {
+		if s, err := b.importGeneralSTEP(source); err == nil || b.general {
+			return s, err
+		}
 	}
 	return Shape{}, &failureError{"UNSUPPORTED", "STEP source is not a supported complete planar or analytic solid"}
 }
@@ -824,11 +833,8 @@ func (b *Bridge) exportSTEPInUnits(handles []string, units stepFileUnit) (stepEx
 	}
 	// Readback uses a private registry so no caller handles are published or lost.
 	verify := New()
+	verify.general = b.general
 	for i, p := range parts {
-		// A part that step.WriteTrimmedBoundary wrote is read back by the
-		// reader that goes with it, on the default bridge too. importStep
-		// on the default bridge does not use that reader.
-		verify.general = b.general || written[i]
 		s, e := verify.importSTEPInUnits(string(p), units)
 		if e != nil && written[i] {
 			return fail(generalSTEPReadback(e))

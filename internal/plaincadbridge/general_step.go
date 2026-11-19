@@ -42,10 +42,9 @@ func generalSTEPReadback(err error) error {
 	return &failureError{"UNSUPPORTED", "STEP export wrote the boundary, and it does not read back to verify it: " + err.Error()}
 }
 
-// importGeneralSTEP is the last reader of importStep on a bridge whose
-// general field is set, and of the read-back of a file that
-// writeGeneralSTEPBody wrote. importStep on the default bridge does not
-// reach it. A source that no other reader takes is read
+// importGeneralSTEP is the last reader of importStep; importSTEPInUnits
+// says for which sources each bridge reaches it. A source that no other
+// reader takes is read
 // as a boundary of planes and cylinders by step.ReadTrimmedBoundary. The
 // solid it builds is then united with the empty solid by the general
 // Boolean, which holds it to the class and the validation of any operand,
