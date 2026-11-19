@@ -111,7 +111,11 @@ formats.
   edges (nil curve, equal end vertices) are accepted only as the pole of a
   polar plane chart and carry no geometry into the arrangement.
 - S4. A placement is rigid when its linear part M satisfies
-  ‖MᵀM − I‖∞ ≤ the angular tolerance and det M > 0.
+  ‖MᵀM − I‖∞ × L ≤ ε and det M > 0, with L and ε of T1. Within this bound
+  the placed surface differs from a true plane or circular cylinder by no
+  more than about ε over the operands, and the carrier is built from M
+  with its columns made orthonormal. A placement outside the bound, such
+  as a non-uniform scaling, makes the face `ErrUnsupported` (S5).
 - S5. An operand outside S1 to S4 is rejected with `ErrUnsupported` naming
   the first offending face or edge index, except where I5 names another
   error for an edge. Embedding (S1, no self-intersection)
@@ -252,18 +256,43 @@ Each of these is outside the trial, and input that needs one returns
   - (d) For each piece, the largest distance from one of its points to its
     boundary.
 
-  A value of (a), (b) or (c) is a coincidence when it is at most ε, and
-  ordinary when it is at least 4ε. A value of (d) is ordinary when it is at
-  least 4ε. A configuration is ordinary when every value is a coincidence
-  or ordinary, and tolerance-scale when at least one value lies strictly
-  between ε and 4ε or a value of (d) is below 4ε. On an ordinary
-  configuration `Combine` must not return `ErrTolerance`. On a
+  A value of (a), (b) or (c) is a *coincidence* when it is at most ε and
+  *clear* when it is at least 4ε. A value of (d) is clear when it is at
+  least 4ε. A configuration is *tolerance-scale* when at least one of
+  these four conditions holds:
+  1. A pair of carriers is *divergent*: SP4 or CC4 finds it coincident at
+     some of the places it tests and not at others. This condition does
+     not depend on the values of (a) to (d). It holds also when every one
+     of those values is a coincidence or clear, for example when the
+     places that are not coincident are 4ε or more apart. Such a pair is
+     parallel only by the angular tolerance, and is neither one surface or
+     curve nor two that are clear of each other.
+  2. An edge has two candidate carriers that both qualify (I5).
+  3. A value of (a), (b) or (c) lies strictly between ε and 4ε.
+  4. A value of (d) is below 4ε.
+
+  A configuration is *ordinary* only when none of the four holds. On an
+  ordinary configuration `Combine` must not return `ErrTolerance`. On a
   tolerance-scale configuration it returns either `ErrTolerance` or a
-  result that passes all of section 8; which of the two is not specified.
-  One value in the band is enough: the outcome is not required to be
-  `ErrTolerance`, and it is never an unvalidated result. C26 is such a
-  configuration (a value of (b) is 2ε); C24 is a coincidence and C25 is
-  ordinary.
+  result that passes all of section 8, and never an unvalidated result.
+  Which of the two is not specified, except under conditions 1 and 2,
+  where the outcome is fixed: `ErrTolerance` (SP4, CC4, I5). So wherever
+  SP4, CC4 or I5 requires `ErrTolerance`, the configuration is
+  tolerance-scale by condition 1 or 2, and those rules and this one cannot
+  disagree.
+
+  The guarantee for ordinary configurations holds when `MaxGrowth` is at
+  least 4, which includes the default. In an ordinary configuration the
+  points that merge into one node are within ε of each other, so the node
+  radius stays below 2ε and T4 is not reached. A caller who sets
+  `MaxGrowth` below 4 asks for stricter rejection, and T4 may then return
+  `ErrTolerance` on any configuration in which points merge. The rows of
+  section 11 are run with the default.
+
+  C26 is tolerance-scale by condition 3 (a value of (b) is 2ε). C24 and
+  C25 are ordinary: in C24 every node of each face is within its radius of
+  the other plane, so the pair is coincident everywhere, and in C25 none
+  is, so no pair is divergent.
 
 ## 7. Functional behavior: the pipeline
 
