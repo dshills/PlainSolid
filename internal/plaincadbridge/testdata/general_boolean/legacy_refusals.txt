@@ -1,0 +1,25 @@
+T1-002 7 cut: finite cylinder reversal cannot preserve represented endpoints
+T1-002 9 cut: finite cylinder is not a measurable entry-open blind pocket or through bore
+T1-002 21 cut: cylindrical cut is outside the strictly contained convex-stock domain
+T1-008 9 cut: finite cylinder is not a measurable entry-open blind pocket or through bore
+T1-012 3 cut: finite cylinder is not a measurable entry-open blind pocket or through bore
+T1-012 5 cut: finite cylinder reversal cannot preserve represented endpoints
+T1-019 12 common: cylinder overlap with an existing bore is unresolved
+T1-030 3 overlapVolume: finite oblique cylinder does not cover both entire stock openings
+T1-030 4 cutMany: finite oblique cylinder does not cover both entire stock openings
+T1-030 6 overlapVolume: finite oblique cylinder does not cover both entire stock openings
+T1-030 7 cutMany: finite oblique cylinder does not cover both entire stock openings
+T1-030 9 overlapVolume: oblique through bore requires strictly interior elliptical openings: trimmed: cylinder bore: bore touches or crosses a non-opening face
+T1-030 10 cutMany: oblique through bore requires strictly interior elliptical openings: trimmed: cylinder bore: bore touches or crosses a non-opening face
+T1-042 9 cutMany: coaxial notch cuts require connected axial spans
+T1-042 28 cutMany: coaxial notch cuts require connected axial spans
+T1-046 3 cut: finite cylinder is not a measurable entry-open blind pocket or through bore
+T1-051 19 cutMany: geom: parameter outside domain
+T1-063 21 cutMany: circular stock requires the bore strictly inside its outside wall
+T1-064 6 cutMany: circular stock requires the bore strictly inside its outside wall
+T1-074 6 overlapVolume: overlap volume requires a strictly contained radial footprint: trimmed: cylinder bore: bore touches or crosses a non-opening face
+T1-081 4 cutMany: cutMany requires planar tools on planar stock or cylindrical tools on qualified stock
+T2-015 25 cutMany: finite cylinder does not cover both opening planes; blind or partial cuts are unsupported
+T2-015 26 cutMany: finite cylinder does not cover both opening planes; blind or partial cuts are unsupported
+T2-015 52 cutMany: trimmed: tools 0 and 1 do not have separated bounds
+T2-015 53 cutMany: finite oblique cylinder does not cover both entire stock openings

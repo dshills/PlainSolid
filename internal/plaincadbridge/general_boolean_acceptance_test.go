@@ -58,6 +58,34 @@ func generalBooleanPending(t *testing.T) map[string]string {
 	return pending
 }
 
+// generalBooleanRefusals reads legacy_refusals.txt: the recorded failures
+// that are the legacy path declining an input it could not handle, by
+// row and by the line of the trace, with the legacy message. A recorded
+// failure that is not listed is a failure of the request's contract and
+// must fail on the general bridge too. One that is listed need not: a
+// general result that passes validation is accepted, and logged for the
+// oracle run, which is all that checks its values.
+func generalBooleanRefusals(t *testing.T) map[string]map[int]bool {
+	t.Helper()
+	data, err := os.ReadFile(generalBooleanTraceDir + "/legacy_refusals.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	refusals := map[string]map[int]bool{}
+	for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		var id string
+		var step int
+		if _, err := fmt.Sscanf(line, "%s %d", &id, &step); err != nil {
+			t.Fatalf("legacy_refusals.txt: %q: %v", line, err)
+		}
+		if refusals[id] == nil {
+			refusals[id] = map[int]bool{}
+		}
+		refusals[id][step] = true
+	}
+	return refusals
+}
+
 // generalBooleanAcceptance holds what one row achieved (A8).
 type generalBooleanAcceptance struct {
 	volume, area float64 // largest errors over the checked responses with a value
@@ -65,6 +93,7 @@ type generalBooleanAcceptance struct {
 	first        string  // the first requirement that did not hold
 	failed       int
 	kinds        []string              // the distinct failures, without their numbers
+	refused      []string              // general results where the legacy path refused
 	volumes      map[string]Assertions // by replayed handle
 }
 
@@ -108,7 +137,15 @@ func (a *generalBooleanAcceptance) within(step generalBooleanStep, what string, 
 
 // check compares one checked response with its record as A3 and A4
 // require.
-func (a *generalBooleanAcceptance) check(step generalBooleanStep, reply generalBooleanReply) {
+func (a *generalBooleanAcceptance) check(step generalBooleanStep, reply generalBooleanReply, declined bool) {
+	if declined && !step.OK && reply.OK {
+		var got Shape
+		if reply.Handle != "" && (json.Unmarshal(reply.Result, &got) != nil || !got.GeometryAssertions.Valid) {
+			a.fail(step, "a result where legacy refused is not valid")
+		}
+		a.refused = append(a.refused, string(reply.Result))
+		return
+	}
 	want := step.Result
 	valued := step.OK && want != nil && (want.Volume != nil || want.Value != nil)
 	if reply.OK != step.OK {
@@ -234,7 +271,7 @@ func generalBooleanDisplay(result json.RawMessage, stl bool, shapes map[string]A
 // achieves (A8) and its elapsed time (A7). A row in the bridge pending
 // list is expected to fail (K7).
 func TestGeneralBooleanAcceptance(t *testing.T) {
-	rows, pending := generalBooleanRows(t), generalBooleanPending(t)
+	rows, pending, refusals := generalBooleanRows(t), generalBooleanPending(t), generalBooleanRefusals(t)
 	for _, tier := range []string{"T1", "T2"} {
 		t.Run(tier, func(t *testing.T) {
 			for _, row := range rows {
@@ -251,7 +288,7 @@ func TestGeneralBooleanAcceptance(t *testing.T) {
 					start := time.Now()
 					a := generalBooleanAcceptance{volumes: map[string]Assertions{}}
 					replay := generalBooleanReplay{open: newGeneral}
-					for _, step := range loadGeneralBooleanTrace(t, row.function) {
+					for line, step := range loadGeneralBooleanTrace(t, row.function) {
 						reply, issued := replay.issue(t, step)
 						if step.New || !issued {
 							continue
@@ -263,7 +300,10 @@ func TestGeneralBooleanAcceptance(t *testing.T) {
 							}
 							continue
 						}
-						a.check(step, reply)
+						a.check(step, reply, refusals[row.id][line])
+					}
+					for _, result := range a.refused {
+						t.Logf("general result where legacy refused: %s %.200s", row.id, result)
 					}
 					elapsed := time.Since(start)
 					if a.values != 0 {
