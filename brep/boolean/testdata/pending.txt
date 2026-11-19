@@ -1,4 +1,3 @@
 TestMatrix/C18/cyl/union
 TestMatrix/C18/cyl/common
 TestMatrix/C18/cyl/cut
-TestMatrix/C20/cyl/union

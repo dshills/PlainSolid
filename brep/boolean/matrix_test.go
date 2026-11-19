@@ -185,7 +185,12 @@ var matrix = []struct {
 	}},
 	{"C20", "cyl", func(t *testing.T) []config {
 		// As C19, but the base circle touches the edge x = 2 of the top.
-		return curved(cube(t), tube(t, 1.5, 1, 2, 0.5, 1), nonManifold, nothing, solidOf(8, 1, 0, 6))
+		// The faces around the point of contact form one cycle, so the
+		// union is a solid whose top face touches itself there. The hole
+		// in it is a circle with no corner but that point, so M6 finds
+		// no chord and returns ErrUnsupported. The row of section 11
+		// still says ErrNonManifold; M6 and N2 as amended govern.
+		return curved(cube(t), tube(t, 1.5, 1, 2, 0.5, 1), outcome{fails: ErrUnsupported}, nothing, solidOf(8, 1, 0, 6))
 	}},
 	{"C22", "cyl", func(t *testing.T) []config {
 		// A cylinder entering the top face of A and ending inside it.
@@ -205,6 +210,53 @@ var matrix = []struct {
 			t.Fatal(err)
 		}
 		return curved(lifted(t, box(t, 0, 0, 0, 4, 4, 2)), b, outcome{open: true}, solidOf(inside, 1, 0, 0), solidOf(32-inside, 1, 0, 0))
+	}},
+	{"C28", "planar", func(t *testing.T) []config {
+		// The smallest input the planar stress test found for a face that
+		// touches itself: a corner of B lies on an edge of A, and B
+		// passes through the faces x = 5 and y = 8 of A.
+		a := box(t, 0, 0, 2, 5, 8, 12)
+		b := polyhedron(t, []geom.Vec3{{X: 3, Y: 6, Z: 2}, {X: 5, Y: 8, Z: 3}, {X: 3, Y: 9, Z: 5}, {X: 1, Y: 7, Z: 4}, {X: 5, Y: 2, Z: 6}, {X: 7, Y: 4, Z: 7}, {X: 5, Y: 5, Z: 9}, {X: 3, Y: 3, Z: 8}},
+			[][]int{{0, 3, 2, 1}, {4, 5, 6, 7}, {0, 1, 5, 4}, {1, 2, 6, 5}, {2, 3, 7, 6}, {3, 0, 4, 7}})
+		union := solidOf(410.125, 1, 0, 14)
+		union.sources = func(r Result, c config) error {
+			// Two faces of A touch themselves at (5,8,3) and are divided
+			// (M6): each of the four parts has the face it was divided
+			// from as its one source, and the dividers run from (5,2,6)
+			// to (5,0,2) and from (2,8,4.5) to (0,8,2).
+			for _, want := range [2][2]geom.Vec3{{{X: 5, Y: 2, Z: 6}, {X: 5, Z: 2}}, {{X: 2, Y: 8, Z: 4.5}, {Y: 8, Z: 2}}} {
+				found := false
+				vertices := r.Solid.Vertices()
+				for _, e := range r.Solid.Edges() {
+					p, q := vertices[e.Start], vertices[e.End]
+					found = found || p.Distance(want[0]) < 1e-9 && q.Distance(want[1]) < 1e-9 || p.Distance(want[1]) < 1e-9 && q.Distance(want[0]) < 1e-9
+				}
+				if !found {
+					return fmt.Errorf("no divider from %v to %v", want[0], want[1])
+				}
+			}
+			for _, on := range [2]geom.Vec3{{X: 5}, {Y: 8}} {
+				var parts [][2]int
+				for i, f := range r.Solid.Faces() {
+					level := true
+					for _, u := range f.Outer {
+						p, _ := f.Surface.Eval(u.UVStart.X, u.UVStart.Y)
+						level = level && math.Abs(p.Sub(on).Dot(on)) < 1e-9*on.Length()
+					}
+					if level {
+						if len(r.Sources[i]) != 1 || r.Sources[i][0][0] != 0 {
+							return fmt.Errorf("a face on the plane through %v has sources %v", on, r.Sources[i])
+						}
+						parts = append(parts, r.Sources[i][0])
+					}
+				}
+				if len(parts) != 2 || parts[0] != parts[1] {
+					return fmt.Errorf("the faces on the plane through %v come from %v, want two from one face of A", on, parts)
+				}
+			}
+			return nil
+		}
+		return []config{planarConfig(t, a, b, [3]outcome{Union: union, Common: solidOf(43.875, 1, 0, 8), Cut: nonManifold})}
 	}},
 	{"C27", "cyl", func(t *testing.T) []config {
 		a, none := tube(t, 0, 0, 0, 1, 2), trimmed.Solid{}

@@ -114,6 +114,33 @@ func TestMerge(t *testing.T) {
 	}
 }
 
+// TestMergeRemovesRepeatedCorner covers the other half of M3: a piece
+// whose loop passes twice through a point is merged with the neighbour
+// that fills the corner between its two parts, and the face that results
+// passes through the point once and needs no divider.
+func TestMergeRemovesRepeatedCorner(t *testing.T) {
+	a, pieces, keep := tiles(t, 2, [][2]int{{0, 0}, {1, 1}, {1, 0}})
+	low, high := pieces[0].loops[0], pieces[1].loops[0]
+	// The squares (0,0) and (1,1) as one piece: its loop leaves the
+	// first square at the point (1,1), goes round the second and
+	// comes back.
+	pinched := append(append(append([]hop(nil), low[:2]...), high...), low[2:]...)
+	pieces = []piece{{loops: [][]hop{pinched}, mate: -1}, pieces[2]}
+	if _, repeated, err := a.cornersOf(a.elems, sheet{s: a.ops[0].faces[0].s, loops: pieces[0].loops}); err != nil || !repeated {
+		t.Fatalf("the piece does not touch itself: %v", err)
+	}
+	edges, sheets, err := a.coalesce(pieces, keep[:2])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sheets) != 1 || len(sheets[0].loops) != 1 || len(sheets[0].loops[0]) != 6 || len(edges) != 6 {
+		t.Fatalf("%d sheets and %d edges, want one face with six edges", len(sheets), len(edges))
+	}
+	if area := chartArea(sheets[0].s.chart(), legsOf(edges, sheets[0].loops)); math.Abs(area-3) > 1e-12 {
+		t.Fatalf("area %g, want 3", area)
+	}
+}
+
 // TestMergeResult covers M5 through Combine: no two adjacent faces of a
 // result lie on one surface, and no vertex is left on a straight edge.
 func TestMergeResult(t *testing.T) {

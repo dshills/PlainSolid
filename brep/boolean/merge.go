@@ -67,15 +67,11 @@ func (a *arrangement) coalesce(pieces []piece, keep []kept) ([]element, []sheet,
 		if list == nil {
 			continue
 		}
-		sh, simple, err := a.layout(pieces, keep, list, users, removed)
+		// A group that is one piece with a repeated corner keeps its
+		// loop as the walk traced it; M6 divides it.
+		sh, _, err := a.layout(pieces, keep, list, users, removed)
 		if err != nil {
 			return nil, nil, err
-		}
-		if !simple {
-			// One piece whose own boundary passes twice through a point.
-			// trimmed.NewSolid wants distinct chart vertices in a face,
-			// and the specification has no rule yet that divides the face.
-			return nil, nil, fail(ErrValidation, "merging", "a face of the result touches itself at a point, which a trimmed face cannot hold")
 		}
 		var from []piece
 		for _, i := range list {
@@ -84,8 +80,7 @@ func (a *arrangement) coalesce(pieces []piece, keep []kept) ([]element, []sheet,
 		sh.sources = sourcesOf(from)
 		sheets = append(sheets, sh)
 	}
-	edges := a.chain(users, removed, sheets)
-	return edges, sheets, nil
+	return a.divide(a.chain(users, removed, sheets), sheets)
 }
 
 // layout traces the boundary of the face that a list of kept pieces

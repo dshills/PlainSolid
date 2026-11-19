@@ -55,6 +55,25 @@ func (c cylinderChart) lift(q geom.Vec2) geom.Vec3 {
 	return c.frame.ToWorld(geom.Vec3{X: c.radius * k, Y: c.radius * s, Z: q.Y})
 }
 
+// chord is a ruling when the two points have one place around the axis,
+// and an arc of a section circle when they have one height and are less
+// than a turn apart. No other chord of the chart is a line, circle or
+// ellipse in space.
+func (c cylinderChart) chord(p, q geom.Vec2, eps float64) (leg, bool) {
+	switch {
+	case math.Abs(q.X-p.X) <= eps && math.Abs(q.Y-p.Y) > eps:
+		dir := c.frame.ZAxis().Scale(sign(q.Y - p.Y))
+		return leg{line{c.lift(p), dir}, 0, math.Abs(q.Y - p.Y)}, true
+	case math.Abs(q.Y-p.Y) <= eps && math.Abs(q.X-p.X) > eps && math.Abs(q.X-p.X) < c.period():
+		k := conic{c.frame.Origin().Add(c.frame.ZAxis().Scale(p.Y)), c.frame.XAxis(), c.frame.YAxis(), c.radius, c.radius}
+		if q.X < p.X {
+			return leg{k.flipped(), -p.X / c.radius, -q.X / c.radius}, true
+		}
+		return leg{k, p.X / c.radius, q.X / c.radius}, true
+	}
+	return leg{}, false
+}
+
 // image lays a generator, a section circle or a section ellipse of the
 // cylinder into the chart. Along the axis the terms of the carrier carry
 // over. Around it, a conic that lies on the cylinder turns at the rate of

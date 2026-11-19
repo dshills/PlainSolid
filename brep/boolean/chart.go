@@ -22,6 +22,10 @@ type chart interface {
 	// period is the length after which the first chart coordinate
 	// repeats, and zero when it does not.
 	period() float64
+	// chord gives the straight chart segment from p to q as a leg of a
+	// carrier in the edge class, when it is one (M6): any chord of a
+	// plane, and on a cylinder a chord along a ruling or around a circle.
+	chord(p, q geom.Vec2, eps float64) (leg, bool)
 	// flux integrates x·n / 3 over the region the loops bound, where n is
 	// the carrier normal: the region's share of an enclosed volume.
 	flux(loops [][]leg) float64
@@ -193,6 +197,11 @@ func (c planeChart) flat(v geom.Vec3) geom.Vec2 {
 func (c planeChart) locate(p geom.Vec3) geom.Vec2 { return c.flat(p.Sub(c.frame.Origin())) }
 func (c planeChart) lift(q geom.Vec2) geom.Vec3   { return c.frame.ToWorld(geom.Vec3{X: q.X, Y: q.Y}) }
 func (c planeChart) period() float64              { return 0 }
+func (c planeChart) chord(p, q geom.Vec2, _ float64) (leg, bool) {
+	from, to := c.lift(p), c.lift(q)
+	dir, err := to.Sub(from).Unit()
+	return leg{line{from, dir}, 0, to.Distance(from)}, err == nil
+}
 func (c planeChart) image(l leg) path {
 	base, lin, cos, sin := l.c.terms()
 	return path{c.locate(base), c.flat(lin), c.flat(cos), c.flat(sin), l.t0, l.t1}
