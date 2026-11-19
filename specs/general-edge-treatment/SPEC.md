@@ -2,9 +2,12 @@
 
 Status: written on 2026-11-19 against `main` at `4e960375`. The owner
 decided OD-E1 to OD-E8 on 2026-11-19, each as this document recommended
-(section 14), and asked for the implementation, which follows
-[the plan](PLAN.md). Section 15 records the experiment the design rests
-on.
+(section 14). It is implemented on the branch
+`claude/cranky-vaughan-ac5664`, in `brep/blend` and
+`internal/plaincadbridge/general_edge.go`, as [the plan](PLAN.md)
+records; the branch is not merged. One requirement changed during the
+implementation: K2, for a union. Section 15 records the experiment the
+design rests on.
 
 ## 1. Purpose
 

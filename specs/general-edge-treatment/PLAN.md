@@ -6,10 +6,47 @@ reference such as "K3" or "Q6" names an entry of the specification.
 
 ## State
 
-On 2026-11-19, with `main` at `4e960375`: no code of this plan exists.
-The package `brep/blend` does not exist. The design was tried with a
-scratch test that is not in the tree; its results are in section 15 of
-the specification.
+On 2026-11-19: Phases 1 to 6 are done on the branch
+`claude/cranky-vaughan-ac5664`, which is not merged and not pushed.
+
+| Phase | Commit |
+|---|---|
+| 1: resolving a reference, `edgeAvailable` | `a99e9667` |
+| 2: chamfer of convex edges | `e2dc336b`, and `cf4dbd96` for row Q8 |
+| 3: concave edges and the cap perimeter | `91cef0e0` |
+| 4: fillet | `bd4b9f44` |
+| 5: usability and agreement with the legacy path | `3782cff6` |
+| 6: records and the checks before a merge | the commit that holds this table |
+
+What did not go as planned:
+
+- Phase 2 stopped under ST-1. Row Q8 in its stated pose failed inside
+  `boolean.Combine`: `trimmed.Solid.Classify` failed for a face that
+  contains the direction of its first ray, (1,3,7). The defect was fixed
+  in its own session (`81160f7a`, branch `claude/eloquent-wilson-16905e`),
+  and the owner had that branch merged into this one (`cf856b41`), so
+  this branch carries one change to `brep/trimmed` that is not part of
+  this plan.
+- Phase 3 corrected K2 of the specification for a union: the end cap of
+  a concave edge's tool is merged into the end face of the body, so a
+  support face may be a source of a face that also has a source in the
+  body.
+- R-4: `prism review` was run on the commits of Phases 1 to 4 and found
+  nothing of high severity; `realitycheck check` after Phase 5 reported
+  no finding, and marked most entries unclear because it reads an
+  inventory of names and no function bodies.
+
+What the risks came to. K-A: K3 held on every row, a face divided by
+the Boolean included. K-B: not met. K-C: a chain of two edges is treated
+with success on a box built with a split edge. K-D: eight fillets in one
+request took 0.16 s. K-F: chamfer and fillet at 5 and at 175 degrees
+meet their closed forms.
+
+Size: 887 lines of Go outside test files, of the 1,200 of L3.
+
+The trace replay (OD-E2): 3,118 responses over 113 traces on a default
+bridge, each byte for byte the same before Phase 1, after the merge of
+the `Classify` fix, and after Phase 5.
 
 ## Before Phase 1
 
