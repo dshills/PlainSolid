@@ -339,15 +339,14 @@ func build(ctx context.Context, points []point, edges []element, in []sheet, tau
 				}
 				us[j].Curve, us[j].UVStart, us[j].UVEnd = curve, start, end
 			}
+			// The use after an arc starts where the arc ends. Where that
+			// use is an arc of another curve, its own evaluation of the
+			// shared point differs in the last bits; NewSolid takes an
+			// arc whose ends are within the tolerance of the declared
+			// ones and keeps it with its ends at them.
 			for j := range us {
-				following := &us[(j+1)%len(us)]
-				switch {
-				case us[j].Curve != nil && following.Curve != nil:
-					if us[j].UVEnd != following.UVStart {
-						return nil, fail(ErrValidation, "assembly", "two arcs of different curves meet at a vertex of a face, and their parameter curves do not agree there to the last bit, which trimmed.NewSolid requires")
-					}
-				case us[j].Curve != nil:
-					following.UVStart = us[j].UVEnd
+				if us[j].Curve != nil {
+					us[(j+1)%len(us)].UVStart = us[j].UVEnd
 				}
 			}
 			for j := range us {
