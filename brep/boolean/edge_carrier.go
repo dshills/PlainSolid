@@ -11,8 +11,8 @@ import (
 // edgeSamples is the number of evenly spaced samples of I5, ends included.
 const edgeSamples = 17
 
-// edgeRefinements bounds how often one step between two samples is halved
-// when it does not advance along the carrier (I5 step 6).
+// edgeRefinements bounds how often one step between two samples of a
+// circle or ellipse is halved (I5 step 6).
 const edgeRefinements = 6
 
 // failAt adds the place of an error raised below intake.
@@ -63,85 +63,97 @@ func edgeCarrier(e parametric.Edge, s1, s2 surface, t tolerances) (edge, error) 
 	case found > 1:
 		return edge{}, fail(ErrTolerance, "edge carrier", "two carriers fit the stored curve")
 	}
-	// Interval and direction (step 6). A step between two samples is
-	// halved, up to six times, until it is short enough to be read
-	// without doubt: on a closed carrier at most an eighth of a period.
-	// The carrier is then turned along the edge, and every step must
-	// advance; one that does not is halved again before the edge is
-	// refused.
-	type sample struct {
-		s float64
-		p geom.Vec3
-	}
+	// Interval and direction (step 6). The advance from one sample to the
+	// next is the difference of their carrier parameters, the shorter way
+	// round on a closed carrier.
 	period := chosen.period()
-	step := func(a, b sample) float64 {
-		d := chosen.param(b.p) - chosen.param(a.p)
+	advance := func(p, q geom.Vec3) float64 {
+		d := chosen.param(q) - chosen.param(p)
 		if period > 0 {
 			d -= period * math.Round(d/period)
 		}
 		return d
 	}
-	var cut func(a, b sample, depth int, bad func(float64) bool) ([]sample, bool)
-	cut = func(a, b sample, depth int, bad func(float64) bool) ([]sample, bool) {
-		if !bad(step(a, b)) {
-			return []sample{b}, true
+	out := edge{start: e.Start, end: e.End, box: around(points...)}
+	if period == 0 {
+		// On a line: oriented from the first sample to the last, and
+		// every advance positive. No added sample can mend a step back.
+		if chosen.param(points[edgeSamples-1]) < chosen.param(points[0]) {
+			chosen = chosen.flipped()
 		}
-		p, err := e.Curve.Eval((a.s + b.s) / 2)
-		if depth == 0 || err != nil || !p.IsFinite() {
-			return nil, false
-		}
-		mid := sample{(a.s + b.s) / 2, p}
-		first, ok := cut(a, mid, depth-1, bad)
-		if !ok {
-			return nil, false
-		}
-		second, ok := cut(mid, b, depth-1, bad)
-		return append(first, second...), ok
-	}
-	refine := func(list []sample, bad func(float64) bool) ([]sample, int) {
-		out := list[:1:1]
-		for k := 1; k < len(list); k++ {
-			more, ok := cut(list[k-1], list[k], edgeRefinements, bad)
-			if !ok {
-				return nil, k - 1
+		for k := 0; k+1 < edgeSamples; k++ {
+			if !(advance(points[k], points[k+1]) > 0) {
+				return edge{}, fail(ErrUnsupported, "edge carrier", "the stored curve runs back along its carrier after sample %d", k)
 			}
-			out = append(out, more...)
 		}
-		return out, -1
+		out.c, out.t0, out.t1 = chosen, chosen.param(points[0]), chosen.param(points[edgeSamples-1])
+		return out, nil
 	}
-	list := make([]sample, edgeSamples)
-	for k, p := range points {
-		list[k] = sample{at(k, edgeSamples-1), p}
+	// On a circle or ellipse the direction is the one most of the sixteen
+	// first advances have: only a step of more than half a period is
+	// measured the wrong way, and there is at most one.
+	with, against := 0, 0
+	for k := 0; k+1 < edgeSamples; k++ {
+		switch d := advance(points[k], points[k+1]); {
+		case d > 0:
+			with++
+		case d < 0:
+			against++
+		}
 	}
-	list, failed := refine(list, func(d float64) bool { return period > 0 && math.Abs(d) > period/8 })
+	if with == against {
+		return edge{}, fail(ErrUnsupported, "edge carrier", "the stored curve has no direction along its carrier")
+	}
+	if against > with {
+		chosen = chosen.flipped()
+	}
+	// A step is halved, at most six times, while it advances more than an
+	// eighth of a period or against the edge. Every added sample must lie
+	// on the faces and on the carrier like the first ones.
 	total := 0.
-	for k := 1; failed < 0 && k < len(list); k++ {
-		total += step(list[k-1], list[k])
-	}
-	if failed < 0 && total < 0 {
-		chosen, total = chosen.flipped(), -total
-	}
-	if failed < 0 {
-		_, failed = refine(list, func(d float64) bool { return d <= 0 || period > 0 && d > period/8 })
-	}
-	if failed >= 0 {
-		return edge{}, fail(ErrUnsupported, "edge carrier", "the stored curve does not advance along its carrier after sample %d", failed)
-	}
-	out := edge{start: e.Start, end: e.End, c: chosen, t0: chosen.param(points[0]), box: around(points...)}
-	out.t1 = out.t0 + total
-	if period > 0 {
-		// A closed edge has the whole period as its interval. The bounds
-		// of an arc reach past its samples by its sagitta.
-		closed := total > period/2 && points[0].Distance(points[edgeSamples-1]) <= 2*t.eps
-		if (e.Start == e.End) != closed || total > period*(1+1e-9) {
-			return edge{}, fail(ErrUnsupported, "edge carrier", "the stored curve runs %g of a turn between its ends", total/period)
+	var walk func(u0, u1 float64, p, q geom.Vec3, depth int) error
+	walk = func(u0, u1 float64, p, q geom.Vec3, depth int) error {
+		d := advance(p, q)
+		if d >= 0 && d <= period/8 {
+			total += d
+			return nil
 		}
-		if closed {
-			out.t1 = out.t0 + period
+		if depth == 0 {
+			return fail(ErrUnsupported, "edge carrier", "the stored curve does not advance along its carrier")
 		}
-		_, _, along, across := chosen.terms()
-		out.box = out.box.grown(math.Max(along.Length(), across.Length()) * (1 - math.Cos(total/(2*float64(edgeSamples-1)))))
+		mid := (u0 + u1) / 2
+		m, err := e.Curve.Eval(mid)
+		if err != nil || !m.IsFinite() {
+			return fail(ErrInvalid, "edge carrier", "an added sample cannot be evaluated")
+		}
+		if gap := math.Max(math.Abs(s1.offset(m)), math.Abs(s2.offset(m))); !(gap <= t.eps) {
+			return fail(ErrInvalid, "edge carrier", "an added sample is %g from a face of the edge", gap)
+		}
+		if gap := off(chosen, m); !(gap <= t.eps) {
+			return fail(ErrUnsupported, "edge carrier", "an added sample is %g from the carrier", gap)
+		}
+		if err := walk(u0, mid, p, m, depth-1); err != nil {
+			return err
+		}
+		return walk(mid, u1, m, q, depth-1)
 	}
+	for k := 0; k+1 < edgeSamples; k++ {
+		if err := walk(at(k, edgeSamples-1), at(k+1, edgeSamples-1), points[k], points[k+1], edgeRefinements); err != nil {
+			return edge{}, err
+		}
+	}
+	// A closed edge has the whole period as its interval. The bounds of
+	// an arc reach past its samples by its sagitta.
+	closed := total > period/2 && points[0].Distance(points[edgeSamples-1]) <= 2*t.eps
+	if (e.Start == e.End) != closed || total > period*(1+1e-9) {
+		return edge{}, fail(ErrUnsupported, "edge carrier", "the stored curve runs %g of a turn between its ends", total/period)
+	}
+	out.c, out.t0 = chosen, chosen.param(points[0])
+	if out.t1 = out.t0 + total; closed {
+		out.t1 = out.t0 + period
+	}
+	_, _, along, across := chosen.terms()
+	out.box = out.box.grown(math.Max(along.Length(), across.Length()) * (1 - math.Cos(total/(2*float64(edgeSamples-1)))))
 	return out, nil
 }
 

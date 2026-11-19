@@ -191,6 +191,17 @@ func (a *arrangement) edgeWithFace() error {
 				if err != nil {
 					return failAt(err, "edge %d of %s with face %d of %s", e, operandName(op), f, operandName(1-op))
 				}
+				if m.open {
+					// No closed form (7.5, last row): the conic must be
+					// proved clear of the face (CC5).
+					k := ed.c.(conic)
+					major, _, _ := k.axes()
+					p0, p1 := a.extent(1-op, f)
+					if segmentDistance(k.center, k.center, p0, p1) > major+face.s.(cylinder).radius+2*a.t.margin {
+						continue
+					}
+					return fail(ErrUnsupported, "X5", "edge %d of %s is a conic that the table cannot meet with the cylinder of face %d of %s", e, operandName(op), f, operandName(1-op))
+				}
 				for k := 0; k+1 < len(a.stops[op][e]); k++ {
 					from, to := a.stops[op][e][k], a.stops[op][e][k+1]
 					if a.lapped(op, e, from, to, f) {

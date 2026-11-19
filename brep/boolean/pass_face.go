@@ -65,7 +65,7 @@ func (a *arrangement) faceWithFace() error {
 }
 
 // extent is the part of a cylinder's axis that a face reaches, as two
-// points, grown by ε at each end.
+// points, grown by the filter margin at each end.
 func (a *arrangement) extent(op, f int) (geom.Vec3, geom.Vec3) {
 	face := a.ops[op].faces[f]
 	axis := face.s.(cylinder).axis()
@@ -78,20 +78,21 @@ func (a *arrangement) extent(op, f int) (geom.Vec3, geom.Vec3) {
 			}
 		}
 	}
-	return axis.at(lo - a.t.eps), axis.at(hi + a.t.eps)
+	return axis.at(lo - a.t.margin), axis.at(hi + a.t.margin)
 }
 
 // apart is the proof of separation of SP2 for two cylinder faces whose
-// axes are not parallel: their bounds grown by ε do not overlap, or their
-// axis segments are farther apart than the two radii and ε.
+// axes are not parallel: their bounds grown by the filter margin do not
+// overlap, or their axis segments are farther apart than the two radii
+// and twice the margin (T4).
 func (a *arrangement) apart(fa, fb int) bool {
 	x, y := a.ops[0].faces[fa], a.ops[1].faces[fb]
-	if x.box.clear(y.box, a.t.eps) {
+	if x.box.clear(y.box, a.t.margin) {
 		return true
 	}
 	p0, p1 := a.extent(0, fa)
 	q0, q1 := a.extent(1, fb)
-	return segmentDistance(p0, p1, q0, q1) > x.s.(cylinder).radius+y.s.(cylinder).radius+a.t.eps
+	return segmentDistance(p0, p1, q0, q1) > x.s.(cylinder).radius+y.s.(cylinder).radius+2*a.t.margin
 }
 
 // rimNodes lists the nodes on the boundary of a face, each once.
