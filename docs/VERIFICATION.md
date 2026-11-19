@@ -27,18 +27,20 @@ accounts for most of the optional skips below.
 | Run | Kernel commit | Platform | Result | Evidence |
 |---|---|---|---|---|
 | Go, ordinary, with `-tags research` | `5c226e76`, 2026-11-19 | macOS ARM64, Go 1.23.12 | 6,285 passed, 624 optional skips, 0 failed of 6,909 inventoried; 55 packages passed, 9 have no tests | [JSON](evidence/main-5c226e76-qualification-2026-11-19.json) |
-| PlainCAD, app `efae4d2` | `5c226e76`, 2026-11-19 | Chromium, Firefox and WebKit; WASM built with Go 1.27.4 | All eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract, 1,691 unit; none skipped, failed or flaky | [JSON](evidence/plaincad-main-5c226e76-2026-11-19.json) |
+| PlainCAD, app `efae4d2` | `948b2cec`, 2026-11-19 | Chromium, Firefox and WebKit; WASM built with Go 1.27.4 | All eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract, 1,691 unit; none skipped, failed or flaky | [JSON](evidence/plaincad-main-948b2cec-2026-11-19.json) |
 | Go, ordinary | `c7afb429`, 2026-11-16 | Linux ARM64, Go 1.26.0 | 6,018 passed, 599 optional skips, 0 failed of 6,617 inventoried | [JSON](evidence/native-linux-c7afb429-qualification-2026-11-16.json) |
 | Go, race detector | `ab33a412`, 2026-11-15 | macOS ARM64, Go 1.27.4 | 5,557 passed, 580 optional skips, 0 failed of 6,137 inventoried | [JSON](evidence/native-main-ab33a412-race-2026-11-15.json) |
 
-Both rows for `5c226e76` are the commit that adds the Go compiler mitigation
-(see the known defects on [the status page](STATUS.md)). The Go run sets
+The first Go row is `5c226e76`, the commit that adds the Go compiler
+mitigation (see the known defects on [the status page](STATUS.md)). The
+PlainCAD row is `948b2cec`, which also has the general Boolean of
+`brep/boolean` and the band mesher of `brep/trimmed`. The Go run sets
 `PLAINSOLID_SLOW=1` and `-tags research`, so it covers the slow tier and the
 research quarantine; it took about 40 minutes of wall time. It used Go
 1.23.12 on purpose, because Go 1.25 and later can abort the research tests of
 `brep/trimmed` on this platform; a complete Go run under the current Go
 release has not been made since `9f95a188`. The PlainCAD run builds the WASM
-kernel with Go 1.27.4, the release in use, and took 38 minutes. Vet and the
+kernel with Go 1.27.4, the release in use. Vet and the
 Linux and Windows amd64 cross-builds last passed on the `9f95a188` archive and
 were not repeated. The eight PlainCAD gates are the WASM build, the app build,
 the TypeScript checks, the selected-kernel check, the development, production
@@ -46,14 +48,17 @@ and cross-browser suites, and the ordinary unit suite.
 
 The Linux and race rows predate the quarantine, the parallel tests in
 `exchange/step` and the mitigation. The default tier (`go test ./...`, Go
-1.27.4) passes at `5c226e76` on all 55 packages with tests.
+1.27.4) passes at `948b2cec` on all 56 packages with tests.
 
 ## What these results do not establish
 
 - Passing tests do not establish OCCT parity. Coverage is supporting evidence,
   never proof of geometric correctness.
 - No complete Go run exists under the current Go release since `9f95a188`,
-  for native Windows, or for Go versions other than those listed.
+  for native Windows, or for Go versions other than those listed. No
+  complete Go run exists on `main` since the general Boolean and the band
+  mesher were merged; the last one on the Boolean's branch, at `9f3d41c9`
+  under Go 1.23.12, passed 6,344 of 6,969 with no failure.
 - Each qualified operation is qualified on a stated input domain. A passing
   example does not widen that domain.
 - OCCT comparisons cover selected modeling and exchange cases, and OCCT output
