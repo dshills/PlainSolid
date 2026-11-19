@@ -1,8 +1,8 @@
 # General Boolean trial: planes and cylinders
 
-Status: draft for owner review, 2026-11-18. This document is a specification
-only. It contains no implementation and authorizes none until a plan is
-written and approved.
+Status: owner decisions recorded on 2026-11-18 (section 18); awaiting owner
+review of this revision. This document is a specification only. It contains
+no implementation and authorizes none until a plan is written and approved.
 
 ## 1. Purpose
 
@@ -32,8 +32,7 @@ formats.
 
 - G1. The tolerance policy adopted by the owner on 2026-11-18 governs this
   work. Its text is the "Tolerance policy" section of `docs/SPECIFICATION.md`
-  at commit `d3b8a6e5` on branch `codex/trimmed-split-plan`
-  (`git show d3b8a6e5:docs/SPECIFICATION.md`). In short: explicit tolerances
+  on `main`. In short: explicit tolerances
   passed as options, coincidence within tolerance, results accepted on
   validation and not on proof, an explicit error when no result validates,
   and a result that records the tolerance it was built with.
@@ -54,12 +53,16 @@ formats.
   Voelcker, "Boolean Operations in Solid Modeling: Boundary Evaluation and
   Merging Algorithms", 1985; Tilove, "Set Membership Classification", 1980;
   Mäntylä, "An Introduction to Solid Modeling", 1988; Hoffmann, "Geometric
-  and Solid Modeling", 1989). Implementation works from this document and
-  that literature. See open decision OD-6.
-- G4. `brep/trimmed` and `specs/brep-trimmed-split` belong to another work
-  stream. The trial does not edit either. It uses only identifiers in files
-  that `specs/brep-trimmed-split/core-files.txt` (branch
-  `codex/trimmed-split-plan`) keeps in the default build.
+  and Solid Modeling", 1989). Implementation sessions work from this document
+  and that literature and do not open the OCCT source (OD-6).
+- G4. The trial does not edit `brep/trimmed`. It uses only identifiers
+  declared in files of `brep/trimmed` that are in the default build: a file
+  is in the default build when it does not start with `//go:build research`.
+  The trial does not extend a research file and does not remove the tag from
+  one (`AGENTS.md`). A use of a research identifier does not compile in the
+  default build, so PC3 enforces this, and the standing check
+  `go run ./tools/refgraph -tags research -pkg brep/trimmed -exclude examples -check research`
+  must still pass (PC3).
 
 ## 3. Terms
 
@@ -129,7 +132,13 @@ Each of these is outside the trial, and input that needs one returns
 - Fillets, chamfers, offsets, shelling, drafts and any other modification
   operation. A solid that already contains a cylindrical face made by an
   earlier fillet is an ordinary operand.
-- History, ancestry and persistent naming of faces, edges or vertices.
+- Modeling history, persistent naming of faces, edges or vertices, and
+  ancestry of edges and vertices. The only ancestry in the contract is the
+  face source list of P5. It names faces of the two operands of one call by
+  index, says nothing about how a face was changed, and is not carried from
+  one call to the next.
+- Operands held by the bridge only as a recipe with no `trimmed.Solid`,
+  which is how edge-treated stock is held (OD-8).
 - STEP, IGES and native persistence of results beyond what `trimmed.Solid`
   already provides.
 - Non-manifold results, open shells, sheets and wires as operands or results.
@@ -168,7 +177,16 @@ Each of these is outside the trial, and input that needs one returns
   geometry is examined.
 - P5. The result carries: the output solid; for each shell its face indices,
   whether it is an outer shell or a void, and the index of the solid it
-  belongs to; the number of solids; and a report. The report contains ε, the
+  belongs to; the number of solids; for each face of the output solid its
+  source list; and a report. The source list of a face is the set of input
+  faces it came from, each given as an operand (A or B) and the index of the
+  face in that operand's face list. It has no duplicates and is ordered A
+  before B, then by index. It is built from the pieces the face is made of:
+  a piece contributes its own input face (F5); a kept shared piece (K1)
+  contributes both faces of its same-surface pair; and a face made by M1
+  has the union of the lists of the faces merged into it. A piece of B kept
+  with reversed orientation by a cut still names its face of B. Every face
+  of a non-empty result has at least one source. The report contains ε, the
   largest node radius, counts of nodes, spans, bundles, traces and pieces,
   the volumes of A, B and the result, the largest edge and vertex residuals
   found by validation, and the list of touching contacts found.
@@ -194,13 +212,15 @@ Each of these is outside the trial, and input that needs one returns
   position.
 - T3. Two points are coincident when their distance is at most the sum of
   their radii (ε for a point that is not yet a node). A point is on a curve
-  or surface when its distance to it is at most its radius. Two carriers are
-  the same when they satisfy the tests of sections 7.4 and 7.5.
+  or surface when its distance to it is at most its radius. Two surface
+  carriers are the same when they satisfy SP4, and two curve carriers are
+  the same over an interval when they satisfy CC4.
 - T4. A node radius must not exceed `MaxGrowth` × ε (default 4). A merge that
   would exceed it returns `ErrTolerance`, not `ErrBudget`. This stops chains of near
   coincidences from collapsing real geometry.
-- T5. Angular decisions use `Angular`: directions are parallel when the sine
-  of their angle is at most `Angular`, perpendicular when the cosine is.
+- T5. Angular decisions use `Angular`: directions are parallel when the
+  absolute value of the sine of their angle is at most `Angular`, and
+  perpendicular when the absolute value of the cosine is.
 - T6. Tolerances live on nodes inside the arrangement only. The output solid
   records one value, τ = the largest node radius used by the result, as its
   `trimmed.Solid` tolerance. For an empty result τ = ε. Per-vertex and
@@ -258,12 +278,6 @@ building stage. It holds:
 - AR7. Touching-contact records: the locus (a node, or a span or trace) and
   the faces of A and of B that meet there.
 
-- AR8. Architectural constraints, not functional behavior: every later
-  stage reads these lists and none recomputes an intersection; there is one
-  arrangement per call; and the passes run in the order of section 7.3.
-  These are not observable from outside `Combine`. They are what makes the
-  pipeline one path, and they are checked by review of the diff under PC2.
-
 ### 7.3 Intersection stage
 
 The stage runs six passes in this fixed order. Lower-dimensional coincidences
@@ -277,8 +291,8 @@ one member from A and one from B.
   coincident with an end of that edge, is added to the edge's node list.
 - X3. Edge with edge. Using section 7.5, each pair yields isolated points,
   an overlap interval, or nothing. An isolated point becomes a node on both
-  edges (merging with an existing node where coincident) and is recorded as
-  crossing or touching. The ends of an overlap interval become nodes on both
+  edges (merging with an existing node where coincident). It carries no
+  crossing or touching label (CC2). The ends of an overlap interval become nodes on both
   edges and the spans between them form a bundle.
 - X4. Vertex with face. A node on a face's carrier and strictly inside its
   trimmed region, with no coincidence already recorded by X1 or X2 against
@@ -330,13 +344,13 @@ Let d be the distance between two cylinder axes, r₁ ≥ r₂ their radii, and 
 | Plane, cylinder | Plane parallel to axis, axis distance < r − ε | Two lines, crossing. |
 | Plane, cylinder | Plane parallel to axis, axis distance within ε of r | One line, touching. |
 | Plane, cylinder | Plane parallel to axis, axis distance > r + ε | No contact. |
-| Cylinder, cylinder | Axes parallel and every node of either face within its radius of the other cylinder's surface (this needs d ≤ ε and radii that differ by ≤ ε, up to node radii) | Same-surface pair. |
-| Cylinder, cylinder | Coaxial (axes parallel, d ≤ ε), no node of either face within its radius of the other surface | No contact. |
+| Cylinder, cylinder | Axes parallel, d + (r₁ − r₂) < 4ε (a candidate pair, SP4), and every node of either face within its radius of the other cylinder's surface | Same-surface pair. |
+| Cylinder, cylinder | Coaxial (axes parallel, d ≤ ε) and SP4 has not made the pair a same-surface pair or returned `ErrTolerance` | No contact. |
 | Cylinder, cylinder | Parallel, r₁ − r₂ + ε < d < r₁ + r₂ − ε | Two lines, crossing. |
 | Cylinder, cylinder | Parallel, d within ε of r₁ + r₂ | One line, touching (external tangency). |
 | Cylinder, cylinder | Parallel, d > ε and d within ε of r₁ − r₂ | One line, touching (internal tangency). |
 | Cylinder, cylinder | Parallel, d > r₁ + r₂ + ε, or d < r₁ − r₂ − ε | No contact. |
-| Cylinder, cylinder | Not parallel, radii differ by ≤ ε, axes meet (d ≤ ε) | Two ellipses, crossing, meeting each other at two nodes (X7). Tier 2 only; see OD-1. |
+| Cylinder, cylinder | Not parallel, radii differ by ≤ ε, axes meet (d ≤ ε) | Two ellipses, crossing, meeting each other at two nodes (X7). Tier 2 only (OD-1); until Tier 2 is supported (15.5) this row returns `ErrUnsupported` as SP3 states. |
 | Cylinder, cylinder | Not parallel, any other, proved separate by SP2 | No contact. |
 | Cylinder, cylinder | Not parallel, any other, not proved separate | `ErrUnsupported` naming both faces. |
 
@@ -350,14 +364,20 @@ Let d be the distance between two cylinder axes, r₁ ≥ r₂ their radii, and 
   some non-parallel faces that do not in fact meet return `ErrUnsupported`.
 - SP3. "Out" for the trial, always `ErrUnsupported` unless SP2 applies:
   non-parallel cylinders of unequal radius; non-parallel cylinders of equal
-  radius whose axes do not meet; and, unless Tier 2 is implemented,
+  radius whose axes do not meet; and, until Tier 2 is supported (15.5),
   non-parallel cylinders of equal radius whose axes meet.
-- SP4. For parallel planes and for parallel cylinders the same-surface test
-  is made node by node, before any other row of the table: a node of one
-  face passes when its distance to the other face's carrier is at most its
-  radius. All nodes of both faces pass: same-surface pair. Some pass and
-  some do not: `ErrTolerance`, because the pair is neither coincident nor
-  separated at this tolerance. None passes: the remaining rows decide.
+- SP4. The same-surface test is made node by node, before any other row of
+  the table, for every pair of parallel planes and for every *candidate*
+  pair of parallel cylinders. A pair of parallel cylinders is a candidate
+  when d + (r₁ − r₂) < 4ε, which bounds the largest distance between the two
+  surfaces by the tolerance scale of T8. A node of one face passes when its
+  distance to the other face's carrier is at most its radius. All nodes of
+  both faces pass: same-surface pair. Some pass and some do not:
+  `ErrTolerance`, because the pair is neither coincident nor separated at
+  this tolerance. None passes: the remaining rows decide. Parallel cylinders
+  that are not a candidate pair are never tested node by node and go
+  straight to the remaining rows; nodes of one face that lie on the other
+  carrier are then ordinary intersection points, as in C18.
 - SP5. Adding a surface pair after the trial must be an addition to this
   table and to the curve table of section 7.5. If it needs a change to
   sections 7.2, 7.3 or 7.6 to 7.11, that is evidence against the design and
@@ -367,34 +387,58 @@ Let d be the distance between two cylinder axes, r₁ ≥ r₂ their radii, and 
 
 | Pair | Method | Results |
 |---|---|---|
-| Line, line | Closest points | Point (crossing or touching), overlap interval, none. |
+| Line, line | Closest points | Point, overlap interval (CC4), none. |
 | Line, plane | `geom.IntersectLinePlane` (`geom/intersection.go:50`) | Point, line in plane, none. |
 | Line, cylinder | `geom.IntersectLineCylinder` (`geom/line_surfaces.go:120`) | 0 to 2 points with tangency flag, line on surface, none. |
 | Line, circle or ellipse | Line with the conic's plane, then `geom.IntersectLineEllipse` (`geom/planar_intersections.go:36`) when coplanar | 0 to 2 points with tangency flag, none. |
 | Circle or ellipse, plane | Plane with the conic's plane (`geom.IntersectPlanes`), then line with conic | 0 to 2 points with tangency flag, conic in plane, none. |
 | Circle or ellipse, cylinder with axis parallel to the axis of the conic's own cylinder | Project along the axis; both become circles; circle with circle | 0 to 2 points with tangency flag, conic on surface, none. |
 | Two conics in different planes | Line of the two planes, then each conic with that line | Points common to both. |
-| Two coplanar conics, homothetic (equal axis ratio and parallel axes, within tolerance; all circles qualify) | Affine map taking both to circles; circle with circle | 0 to 2 points with tangency flag, overlap interval when the same conic, none. |
+| Two coplanar conics, homothetic (CC3) | Affine map taking both to circles; circle with circle | 0 to 2 points with tangency flag, overlap interval when the same conic, none. |
 | Two coplanar conics, not homothetic | — | `ErrUnsupported`. |
 | Circle or ellipse, cylinder not covered above | — | `ErrUnsupported` unless the owning faces are proved separate by SP2. |
 
 - CC1. Circle with circle, the homothetic reduction, the parallel-cylinder
   reduction, point-to-parameter inversion for a conic, and segment-to-segment
   distance have no existing helper and are written in the new package.
-- CC2. A result point is crossing when the curve passes from one side of the
-  other carrier to the other at that point, and touching when it does not.
-  A tangency flag from a `geom` helper marks touching.
+- CC2. Crossing and touching are defined for a curve met with a surface
+  carrier (X5) and for the carrier curves of a surface pair (X6, section
+  7.4). A point where a curve meets a surface is crossing when the curve
+  passes from one side of the surface to the other at that point, and
+  touching when it does not; a tangency flag from a `geom` helper marks
+  touching. A point where two edges meet (X3) has no such label, because a
+  curve in space has no sides. A non-manifold contact at such a node is
+  found by N1 and N2.
+- CC3. Two coplanar conics with major and minor radii a₁ ≥ b₁ and a₂ ≥ b₂
+  are homothetic when |a₁·b₂ − a₂·b₁| ≤ ε × max(a₁, a₂) and either both are
+  circles (aᵢ − bᵢ ≤ ε for both) or the sine of the angle between their
+  major axes is at most `Angular`. Two circles always qualify.
+- CC4. Overlap of two edges. Two lines are candidates when they are
+  parallel (T5). Two conics are candidates when their planes are parallel
+  (T5), they are homothetic (CC3), and their centres, major radii and minor
+  radii each differ by at most ε. A line and a conic, and two conics in
+  planes that are not parallel, never overlap. For a candidate pair the
+  candidate interval is the part of the first edge's parameter interval
+  onto which the second edge projects. If that interval is empty, or the
+  distance between its two end points is at most ε, there is no overlap and
+  the pair is resolved for isolated points only. Otherwise the two end
+  points and the mid point of the candidate interval, taken on the first
+  carrier, are each tested against the second carrier: all three within ε
+  gives an overlap interval; none within ε gives no overlap; any other
+  outcome returns `ErrTolerance`.
 
 ### 7.6 Splitting faces
 
 For each input face, in its chart:
 
 - F1. Collect its boundary spans, its interior spans and its traces (AR5).
-- F2. Remove dangling chains: repeatedly discard a span or trace that has an
-  end node with no other span or trace of this face. A discarded element
-  stays in AR7 if it is a touching contact, and otherwise must be an edge of
-  the other operand lying in the face; anything else returns
-  `ErrInconsistent`.
+- F2. Remove dangling chains. The degree of a node in a face is the number
+  of ends of that face's spans and traces at the node; a closed trace or
+  closed span contributes two ends to its one node. Repeatedly discard a
+  span or trace that has an end at a node of degree one. A closed trace is
+  therefore never discarded. A discarded element stays in AR7 if it is a
+  touching contact, and otherwise must be an edge of the other operand lying
+  in the face; anything else returns `ErrInconsistent`.
 - F3. Trace the remaining graph into closed loops. Every interior span and
   trace is traversed once in each direction and every boundary span once, in
   its face's loop direction. Arriving at a node along an element, the walk
@@ -409,7 +453,8 @@ For each input face, in its chart:
   negative area is a hole and is assigned to the smallest positive loop that
   contains it.
 - F5. Each piece keeps its face's carrier and orientation and records its
-  input face and operand.
+  input face and operand. This record is the origin of the face source list
+  of P5.
 - F6. A piece with no interior point farther than ε from its boundary
   returns `ErrTolerance` (T8).
 
@@ -464,7 +509,8 @@ contact that passes N3 leaves no edge or vertex in the result.
   consistent orientation, is removed and the pieces become one face. This
   applies to pieces of one input face and to pieces of different faces or
   operands. The merged face takes the carrier of its lowest-indexed
-  contributor, A before B.
+  contributor, A before B, and the union of its contributors' source lists
+  (P5).
 - M2. A seam is removed by M1 only from a cylinder face that no longer winds
   fully around its axis; that face's chart is then moved so it is continuous.
 - M3. A merge that would make a loop visit a node twice is not performed.
@@ -482,7 +528,8 @@ the arrangement. No geometric welding takes place at this stage.
 
 - B1. Faces are grouped into shells through shared edges. A shell with
   positive enclosed volume is an outer shell; one with negative volume is a
-  void and belongs to the outer shell that contains it. Each outer shell with
+  void and belongs to the outer shell of smallest enclosed volume that
+  contains it. Each outer shell with
   its voids is one solid. Solids are ordered by the lexicographically
   smallest corner of their bounding boxes.
 - B2. Output conditioning. `trimmed.NewSolid` requires at least three uses
@@ -529,6 +576,12 @@ Every non-empty result must pass all of the following. A failure returns
   - |V(A ∪ B) − V(A) − V(B) + V(A ∩ B)| ≤ β
   - |V(result) − the piece-based volume of the requested operation| ≤ β
   - 0 ≤ V(A ∩ B) ≤ min(V(A), V(B)) + β and V(A ∪ B) ≥ max(V(A), V(B)) − β
+
+  If `MassProperties` returns an error for A, B or the result, V5 cannot be
+  evaluated and `Combine` returns an error: `ErrBudget` wrapping the cause
+  when the cause is `parametric.ErrBudget` (the integration budget of P3 was
+  exhausted), the context error unwrapped when the context was cancelled,
+  and `ErrValidation` wrapping the cause otherwise.
 - V6. Membership sampling. The sample points are terms 1 to `Samples` of the
   Halton sequence in bases 2, 3 and 5, whose three coordinates in [0, 1) map
   linearly onto the x, y and z extents of the bounding box of both operands
@@ -536,8 +589,21 @@ Every non-empty result must pass all of the following. A failure returns
   A and against B with `trimmed.Solid.Classify` at tolerance ε, and against
   the result at tolerance τ. Skipping
   points that any of the three reports as boundary, the result's answer must
-  equal the operation applied to the answers for A and B. This check does not
-  use the piece classification of section 7.7.
+  equal the operation applied to the answers for A and B.
+
+  V6 is not an independent check of classification. It does not read the
+  piece classes of section 7.7, so it detects errors in splitting,
+  selection, merging and assembly. But K2 classifies pieces with
+  `trimmed.Solid.Classify` and V6 classifies its sample points with the same
+  function, so a wrong answer from `Classify` on an operand can make both
+  wrong in the same way, and V6 then passes. The checks that do not depend
+  on `Classify` are V5, which takes V(A), V(B) and V(result) from
+  `MassProperties`, and the oracle run of A6, which uses neither function.
+  V5 is limited too: its first three conditions sum every piece of one
+  operand and so hold for any assignment of classes, and its fourth tests
+  assembly. Only the bounds in its last line can expose a wrong class. The
+  trial therefore relies on the oracle run (A6) and on the analytic and
+  legacy values of section 11 and A3 to expose a wrong `Classify` answer.
 - V7. If an operand violates the embedding precondition (S5), `Combine` still
   never returns a result that fails V1 to V6, but it is not guaranteed to
   detect the violation.
@@ -555,10 +621,10 @@ the operand and the input face or edge indices involved.
 | `ErrInvalid` | Nil context, an operation value other than `Union`, `Common` or `Cut`, invalid options, non-finite input, ε ≥ L / 100. |
 | `ErrUnsupported` | Operand outside section 4.1; a surface or curve pair marked unsupported in 7.4 or 7.5. |
 | `ErrNonManifold` | N1, N2 or N3 fails. |
-| `ErrTolerance` | T4, SP4 or F6. |
+| `ErrTolerance` | T4, SP4, CC4 or F6. |
 | `ErrInconsistent` | X8, F2, F3, K1, K2 or K3: the arrangement contradicts itself. |
-| `ErrValidation` | Any check of section 8, or B4. |
-| `ErrBudget` | A work limit of section 10 is exceeded. |
+| `ErrValidation` | Any check of section 8, B4, or a mass-property failure other than budget or cancellation (V5). |
+| `ErrBudget` | A work limit of section 10 is exceeded, or mass-property integration exhausts its budget (V5). |
 | Context error | The context is cancelled; returned unwrapped. It takes precedence over every other error, at every stage. |
 
 `ErrInconsistent` and `ErrValidation` mean the trial's own logic failed on an
@@ -621,8 +687,30 @@ volume is given.
 | C27 | Either operand empty | The other operand | Empty | A if B is empty, else empty |
 
 In C7 to C14 and C20 the result where an error is listed is a point set whose
-boundary is not a manifold. The trial reports it; it does not represent it.
-See OD-3.
+boundary is not a manifold. The trial reports it; it does not represent it
+(OD-3).
+
+C1 to C3 and C27 are run with box operands and again with cylinder operands.
+The all-planar rows, used by the gate of PL1, are C1 to C10 and C24 to C27
+with box operands.
+
+Face sources (P5) are checked on every row that returns a non-empty solid:
+each face has at least one source; the list has no duplicates and is in the
+order P5 states; each index names a face of its operand; and the carrier of
+each source face is the same surface as the carrier of the result face
+within τ. Four rows also fix the lists:
+
+- C4, union: the bottom face has one source, a face of A; the top face has
+  one source, a face of B; each of the four side faces has two sources, one
+  face of A and one face of B (merged by M1).
+- C6, common: the three faces on the planes shared with A each have two
+  sources, the face of A and the face of B of the same-surface pair; the
+  other three each have one source, a face of B.
+- C15, union: the lateral face has two sources, the lateral faces of A and
+  of B; one cap has a face of A as its only source and the other a face of
+  B.
+- C21, cut: six faces each have one source, a face of A; the bore wall has
+  one source, the lateral face of B.
 
 ## 12. Compositions used by the bridge
 
@@ -661,7 +749,7 @@ What the trial uses, unchanged, and what it does not.
   a valid input, the trial does not edit `brep/trimmed`: it records the case
   and stops under section 16.
 
-## 14. Code location
+## 14. Code location and architecture
 
 - L1. All new kernel code is in `brep/boolean`. It imports `geom`, `brep`,
   `brep/parametric` and `brep/trimmed` and nothing else from this module. The
@@ -673,15 +761,25 @@ What the trial uses, unchanged, and what it does not.
   `trimmed.FromParametric`, bored and analytic bodies through the solid they
   hold), calls `Combine`, and publishes the result through the existing
   analytic-body path. A stored shape with no such solid returns the bridge's
-  `UNSUPPORTED` failure.
+  `UNSUPPORTED` failure. The adapter reads the shell grouping of the result
+  for `solidCount`. It does not read the face source list during the trial;
+  that list is a field of the result type, in the contract at the owner's
+  request, and is read by the tests of section 11.
 - L3. The general path is selected per `Bridge` value by an unexported field
   set through a constructor used only by tests. The default bridge behavior
   does not change during the trial, and there is no environment variable or
   package-level switch.
 - L4. Bridge tolerances for the trial: `Linear` 1e-7, `Relative` 0,
   `Angular` 1e-9, `Volume` 1e-7, integration relative tolerance 1e-9.
-- L5. No file in `brep/trimmed`, `geom` or `specs/brep-trimmed-split` is
-  changed. No dependency is added.
+- L5. No file in `brep/trimmed` or `geom` is changed. No dependency is
+  added.
+- AR8. Architecture, a constraint on the code and not functional behavior:
+  the arrangement of section 7.2 is the only data passed from the
+  intersection stage to the building stage; every later stage reads its
+  lists and none recomputes an intersection; there is one arrangement per
+  call; and the passes run in the order of section 7.3. None of this is
+  observable from outside `Combine`. It is what makes the pipeline one
+  path, and it is checked by review of the diff under PC2.
 - L6. The oracle helper of A6 is `tools/occtref/general_boolean.cxx` with one
   Go test in `internal/occtcheck`, enabled by an environment variable naming
   the built helper, following `tools/occtref/README.md`.
@@ -721,7 +819,8 @@ Tier 1, required:
 | Rounded profiles | `rounded_stack_test.go`, `rotary_platter_test.go`, `annular_pedestal_test.go` | 3 | Rounded-rectangle and annulus extrusions with axial bores | `cutRoundedStack`, `cutThroughProfiles` |
 | To face | `to_face_test.go`, `to_face_analytic_test.go`, `to_face_oblique_test.go` | 7 | Extrude a polygon or circle up to a planar face (CO3) | `brep.PrismToFace`, `trimmed.CylinderToFace` |
 
-Tier 2, required only if OD-1 keeps it in the trial:
+Tier 2, in the trial by OD-1, attempted last and not required for a pass
+(15.5):
 
 | Family | Test files | Tests | Arrangement | Legacy path |
 |---|---|---|---|---|
@@ -741,7 +840,11 @@ Not acceptance cases, with the reason:
   `ErrNonManifold` for these, which section 11 tests directly.
 - Operand held only as a recipe with no `trimmed.Solid` (edge-treated stock):
   `edge_chain_oracle_test.go`, `retained_bore_edges_test.go`,
-  `bored_cap_edge_chamfer_test.go`, `pocket_chamfer_fallback_test.go`.
+  `bored_cap_edge_chamfer_test.go`, `pocket_chamfer_fallback_test.go`. This
+  exclusion has a plain consequence (OD-8): PlainCAD's fillet, chamfer,
+  hole, pocket and boss chain, in which a hole, pocket or boss is applied to
+  stock that already has a fillet or chamfer, stays on the legacy path even
+  after a pass.
 - Outside the surface class: cones, tori, threads, lead screws, rim
   treatments and STEP repair families.
 - Within an acceptance test, assertions about STEP, IGES, native proof JSON,
@@ -772,22 +875,61 @@ Not acceptance cases, with the reason:
   with placements, combined by union, common and cut) with the pinned OCCT
   and reports validity, volume, area, centroid and solid count. Cases are
   rows of a data file; there is no per-case C++. It is run once, at the end
-  of the trial, on every section 11 row that returns a solid and on one row
-  per Tier 1 family, with the comparison bound of
+  of the trial, on every section 11 row that returns a solid, except the
+  tolerance rows C24 to C26, and on one row per Tier 1 family, with the comparison bound of
   `internal/occtcheck/oracle_test.go:68` (3e-7 relative for area and volume,
   3e-7 absolute for centroid). Face counts are compared for the section 11
-  rows that state one. See OD-5.
+  rows that state one. C24 to C26 depend on ε, which the oracle does not
+  share, and are checked against their analytic values only. The owner
+  approved this one run (OD-5).
 - A7. Every acceptance row and matrix row runs in under two seconds under
   `go test` on the development machine. A row that needs longer is a failure
   of the row, not a candidate for the slow tier.
+- A8. Achieved accuracy (OD-7). For every acceptance row, the test of A2
+  reports the error the general path achieves in volume and in surface area:
+  |value − expected| / max(1, |expected|), where expected is the analytic
+  value in the source test where it has one and the legacy value otherwise.
+  The test writes both numbers to its log for each row. At the end of the
+  trial, on a pass or a stop, the numbers from one run are written into two
+  columns of `specs/general-boolean/ACCEPTANCE.md`, a row that did not
+  produce a result being marked as such, and the report to the owner gives
+  the largest volume error, the largest area error, and the number of rows
+  above 1e-8 in either. The acceptance bound stays 1e-7 (A3); A8 records and
+  does not gate.
 
-### 15.4 Pass condition
+### 15.4 Order of work
+
+These are requirements on the plan.
+
+- PL1. Planes first. After the freeze of A1, the first implementation phase
+  of the plan covers operands whose faces are all planar, through the whole
+  pipeline: intake, the arrangement, the six passes of 7.3, splitting,
+  classification, selection, the manifold test, merging, assembly and all
+  of section 8, for union, common and cut.
+- PL2. That phase has its own gate. Every all-planar row of section 11 (C1
+  to C10 and C24 to C27 with box operands) gives its stated outcome,
+  including the face source checks. For each of those rows whose stated
+  outcome is a solid or the empty solid, except C26, the volume of the
+  result also equals the volume of the result of `csg/poly.Combine`
+  (`csg/poly/history.go:79`) on the same operands and operation within the
+  bound β of V5. No comparison with `poly.Combine` is made for a row whose
+  stated outcome is `ErrNonManifold`, or for C26.
+- PL3. No cylinder code is written before the gate of PL2 passes: no
+  cylinder chart, no circle or ellipse edge, and no cylinder row of 7.4 or
+  7.5. The planar phase must still be built on the carrier tables, charts
+  and arrangement of section 7, so that cylinders arrive as a chart and as
+  table rows and not as a second path (PC2, SP5).
+- PL4. If the gate of PL2 fails at the end of the planar phase, no later
+  phase starts. The one corrective phase of ST3 may be spent there; if it
+  is, none remains for later phases.
+
+### 15.5 Pass condition
 
 The trial passes when all of these hold on one commit:
 
-- PC1. Every Tier 1 row passes A3 and A4, section 11 passes (A5), and the
-  oracle run passes (A6). `ErrInconsistent` or `ErrValidation` on any of them
-  is a failure.
+- PC1. Every Tier 1 row passes A3 and A4, section 11 passes (A5), the
+  oracle run passes (A6), and the record of A8 is complete for every Tier 1
+  row. `ErrInconsistent` or `ErrValidation` on any of them is a failure.
 - PC2. One path. `brep/boolean` exports one operation entry point; the bridge
   file of L2 reads a stored shape only to obtain its `trimmed.Solid`; and no
   function in either tests the number of faces, edges or vertices of an
@@ -798,10 +940,16 @@ The trial passes when all of these hold on one commit:
   `go test ./...` pass. `go test ./...` without `PLAINSOLID_SLOW` runs the
   default test tier of `tools/ci/README.md`, which `AGENTS.md` requires
   before a merge; it is not the complete suite that section 4.4 excludes.
+  The research configuration still compiles and the tag still marks the
+  right files (G4): `go build -tags research ./...`,
+  `go vet -tags research ./...` and
+  `go run ./tools/refgraph -tags research -pkg brep/trimmed -exclude examples -check research`
+  pass.
 - PC4. Non-test Go in `brep/boolean` is at most 12,000 lines, and the bridge
   file of L2 at most 400.
-PC1 to PC4 decide the pass. Tier 2 does not: if OD-1 keeps Tier 2 in the
-trial, it is attempted only after PC1 to PC4 hold, by changes to the tables
+
+PC1 to PC4 decide the pass. Tier 2 does not (OD-1): it is attempted only
+after PC1 to PC4 hold, by changes to the tables
 of 7.4 and 7.5 and their tests only (SP5). Tier 2 is *supported* when its
 rows then pass A3 and A4 with PC2 to PC4 still holding; otherwise it is
 reported as unsupported, the change is not kept, and the pass stands.
@@ -822,6 +970,10 @@ are expected to be, for Tier 1: `newBore` with `trimmed.BoreCylinders` and
 `newCrossedCompanionBore` and `newObliqueCrossedBore`. Deleting them is not
 part of the trial.
 
+The same report states what a pass does not cover: operations on
+edge-treated stock stay on the legacy path (15.2, OD-8), and lifting
+recipe-held stock to a `trimmed.Solid` is the first follow-up after a pass.
+
 ## 16. Stop condition
 
 The trial ends as a failure, and work stops with a report to the owner, at
@@ -833,7 +985,8 @@ the first of:
 - ST2. Special-casing. The only known way to make a Tier 1 row pass is code
   that violates PC2.
 - ST3. Not converging. After the last planned phase and one corrective
-  phase, any Tier 1 row or section 11 row still fails.
+  phase, any Tier 1 row or section 11 row still fails; or the planar gate
+  of PL2 still fails after the corrective phase has been spent on it (PL4).
 - ST4. Size. PC4 is exceeded before PC1 holds.
 - ST5. Foundation. E1 fails on a valid input, or a Tier 1 row cannot pass
   without changing `brep/trimmed`, `geom` or adding a dependency.
@@ -857,36 +1010,43 @@ input that shows the failure.
 - RC2. An oracle run (A6) adds one file under `docs/evidence` only if the
   verification record then cites it.
 
-## 18. Open decisions for the owner
+## 18. Owner decisions
 
-A plan must not be written until these are answered. Each states the
-default this document assumes.
+The owner decided these on 2026-11-18. None is open. Each entry states the
+decision and where this document applies it.
 
-- OD-1. Tier 2. Equal-radius cylinders with meeting axes give two ellipses,
-  which is inside the edge class, and cover about 17 bridge tests and the
-  crossed-bore constructors. They also meet at two points where the surfaces
-  are tangent. Assumed: in the trial as Tier 2, added last, as a test of SP5,
-  and not required for a pass. Alternative: out, returning `ErrUnsupported`.
-- OD-2. Unequal and skew crossed bores have quartic intersection curves and
-  are out (SP3). Their constructors and five test files stay whatever the
-  trial's outcome. Assumed: accepted.
-- OD-3. Touching results. A result whose boundary is not a manifold returns
-  `ErrNonManifold`, as `csg/poly` and the bridge's tangent-bore recipe do
-  today. This includes the union of two solids that touch only along an edge
-  or at a vertex. Alternative for that one case: return the two solids
-  unjoined. Assumed: error.
-- OD-4. Bounds of the trial: 12,000 non-test lines (PC4), one corrective
-  phase (ST3) and two seconds per case (A7). Assumed: as written.
-- OD-5. The oracle run (A6) needs the pinned OCCT build, which `AGENTS.md`
-  reserves for an owner request. Assumed: approving this specification is
-  that request, for one run at the end of the trial.
-- OD-6. Reading OCCT during implementation. The headers of the pinned source
-  carry a notice that using it as a reference to produce derivative code
-  requires compliance with its license. This document was written from its
-  structure only (G3). Assumed: implementation sessions work from this
-  document and the cited literature and do not open the OCCT source.
-- OD-7. Accuracy. The general path integrates volume and area numerically,
-  so A3 uses 1e-7 where the existing bridge tests use 1e-8 against
-  closed-form values. Assumed: 1e-7 is acceptable for the trial.
-- OD-8. Edge-treated stock is held as a recipe and is excluded (15.2).
-  Assumed: accepted; lifting it to a `trimmed.Solid` is separate work.
+- OD-1. Tier 2 is in the trial. Equal-radius cylinders with meeting axes
+  give two ellipses, which is inside the edge class, and cover about 17
+  bridge tests and the crossed-bore constructors. The two ellipses meet at
+  two points where the surfaces are tangent. Decided: Tier 2 is attempted
+  last, as a test of SP5, and is not required for a pass (7.4, 15.1, 15.5).
+- OD-2. Unequal and skew crossed bores are out. Their intersection curves
+  are quartic (SP3). Their constructors and five test files stay whatever
+  the trial's outcome (15.2).
+- OD-3. A touching result is an error. A result whose boundary is not a
+  manifold returns `ErrNonManifold` (7.9, section 11). This includes the
+  union of two solids that touch only along an edge or at a vertex; the
+  alternative of returning the two solids unjoined was not taken.
+- OD-4. The bounds of the trial stand as written: 12,000 non-test lines
+  (PC4), one corrective phase (ST3) and two seconds per case (A7).
+- OD-5. One oracle run with the pinned OCCT build, at the end of the trial,
+  is approved (A6). `AGENTS.md` reserves such runs for an owner request, and
+  this decision is that request.
+- OD-6. Implementation sessions work from this document and the literature
+  cited in G3 and do not open the OCCT source. The headers of the pinned
+  source carry a notice that using it as a reference to produce derivative
+  code requires compliance with its license, and this document was written
+  from its structure only (G3). The oracle helper of L6 is written against
+  the public interface of the built library, as the existing helpers in
+  `tools/occtref` are.
+- OD-7. 1e-7 is the acceptance bound (A3), with a condition. The general
+  path integrates volume and area numerically, where the existing bridge
+  tests compare closed-form values at 1e-8. The trial must record, for each
+  acceptance row, the volume and area error it achieves against the analytic
+  or legacy value, so that the owner can see whether 1e-8 would hold (A8,
+  PC1).
+- OD-8. Edge-treated stock is excluded (4.4, 15.2). The bridge holds it as
+  a recipe with no `trimmed.Solid`. This leaves PlainCAD's fillet, chamfer,
+  hole, pocket and boss chain on the legacy path even after a pass. Lifting
+  recipe-held stock to a `trimmed.Solid` is the first follow-up after a
+  pass (15.5); it is not part of the trial.
