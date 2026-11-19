@@ -190,7 +190,8 @@ Each of these is outside the trial, and input that needs one returns
   - `Samples`: number of membership samples (V6); zero selects 64.
   - Work limits (section 10); zero selects the stated default.
   - Integration options for mass properties, of type
-    `parametric.IntegrationOptions`.
+    `parametric.IntegrationOptions`. They are used only where a solid is
+    outside what the closed form of V5 covers (RL-17).
   - Known mass properties, optional, one set for A and one for B: the
     volume and the surface area of that operand, when the caller already
     has them (V5, RL-10). None is given by default. They are fields of
@@ -218,7 +219,8 @@ Each of these is outside the trial, and input that needs one returns
   largest node radius, counts of nodes, spans, bundles, traces and pieces,
   the volume and the surface area of A, of B and of the result (RL-10; for
   an operand with known mass properties, the values the caller gave), the
-  largest edge and vertex residuals
+  centroid of the result (RL-17; an empty result has none, and the report
+  gives the origin), the largest edge and vertex residuals
   found by validation, and the list of touching contacts found.
 - P6. On error the result is the zero value. A partial result is never
   returned.
@@ -261,7 +263,9 @@ Each of these is outside the trial, and input that needs one returns
 - T6. Tolerances live on nodes inside the arrangement only. The output solid
   has one tolerance. τ is the largest node radius used by the result, and
   nothing else: it does not include the rounding allowance σ of T9. The
-  value the solid records as its `trimmed.Solid` tolerance is τ + σ. An empty result is the zero `trimmed.Solid`,
+  value the solid records as its `trimmed.Solid` tolerance is τ + σ, since
+  that is the tolerance it is built with (B4). The report gives τ itself,
+  as the largest node radius (P5). An empty result is the zero `trimmed.Solid`,
   which can record no tolerance; τ is then ε, and the ε of the report (P5)
   is where a caller reads it. Per-vertex and per-edge tolerances in the
   stored solid are not part of the trial.
@@ -327,11 +331,12 @@ Each of these is outside the trial, and input that needs one returns
   have a residual that equals its tolerance exactly, for example an edge
   of one operand that lies exactly ε from a face of the other, and a
   comparison with the tolerance must not then fail by rounding. One
-  allowance is defined for this, σ = min(2⁻⁴⁰ × L, ε / 1000), with L of
-  T1. It follows the size of the model and not the tolerance, because the
+  allowance is defined for this, σ = 2⁻⁴⁹ × L, with L of T1: eight units
+  in the last place of the model size, 1.8e-13 for a model of size 100.
+  It follows the size of the model and not the tolerance, because the
   rounding error of a distance grows with the coordinates it is computed
-  from; the second term keeps it small beside ε. It is used in two places
-  and no other:
+  from. It is below ε / 1000 whenever ε is above 2e-12 × L. It is used in
+  two places and no other:
   - Section 8 compares residuals with τ + σ, and the output solid is built
     with the tolerance τ + σ and records it (T6, B4), so that the checks
     `trimmed.NewSolidContext` makes itself carry the same allowance.
@@ -342,8 +347,8 @@ Each of these is outside the trial, and input that needs one returns
   are computed, without σ. A distance that rounding can put on either
   side of ε is at the edge of the band, and T8 then allows either outcome,
   so those tests and T8 do not disagree. Because a result records τ + σ,
-  a chain of n operations can raise the working tolerance by about
-  n × ε / 1000 at most.
+  each operation of a chain can raise the working tolerance of the next
+  by σ.
 
 ## 7. Functional behavior: the pipeline
 
@@ -619,10 +624,13 @@ Let d be the distance between two cylinder axes, r₁ ≥ r₂ their radii, and 
   from samples, so it contains that part of the face; a pair of cells,
   one from each face, is separate when their boxes, each inflated by μ,
   do not overlap; a pair that is not separate has its cells halved, to a
-  fixed depth of six halvings in each chart direction. The faces are
-  proved separate when every pair of cells has been separated. When the
-  depth is used up on some pair, nothing is proved and the pair of faces
-  returns `ErrUnsupported`. A proof does not decide that two faces meet:
+  fixed depth and within a fixed number of box comparisons, the same for
+  every pair of faces: twelve halvings in each chart direction and
+  20,000 comparisons. The faces are proved separate when every pair of
+  cells has been separated. When the depth or the count is used up,
+  nothing is proved and the pair of faces returns `ErrUnsupported`. A
+  cell may cover more of the surface than the face does, which leaves
+  some separate faces unproved and proves none wrongly. A proof does not decide that two faces meet:
   faces that are not proved separate, and that are outside the rows of
   the table, return `ErrUnsupported`.
 - SP3. "Out" for the trial, always `ErrUnsupported` unless SP2 applies:
@@ -981,9 +989,12 @@ exactly at τ does not fail by rounding.
   p-curve is ≤ τ + σ.
 - V4. Vertex residual: the distance from every vertex to the corresponding
   end point of each incident edge is ≤ τ + σ.
-- V5. Volume identities. Let V(·) be volume from
-  `trimmed.Solid.MassProperties` (`brep/trimmed/properties.go:33`) for A, B
-  and the result, and let the volumes of A ∩ B, A − B, B − A and A ∪ B be
+- V5. Volume identities. Let V(·) and area(·) be the volume and the
+  surface area of A, of B and of the result. The paragraphs after the
+  list say where they come from: the closed form of this package
+  (RL-17), the caller (RL-10), or `trimmed.Solid.MassProperties`
+  (`brep/trimmed/properties.go:33`) where the closed form does not
+  apply. Let the volumes of A ∩ B, A − B, B − A and A ∪ B be
   computed from the classified pieces of this one arrangement. Then, with
   bound β = `Volume` × max(V(A), V(B)) + ε × (area(A) + area(B)):
   - |V(A − B) + V(A ∩ B) − V(A)| ≤ β
@@ -996,7 +1007,37 @@ exactly at τ does not fail by rounding.
   volume comes from pieces, and when the common is empty or thin its
   computed value can fall below zero by rounding.
 
-  If `MassProperties` returns an error for A, B or the result, V5 cannot be
+  Closed form (RL-17). For the surface class of the trial the volume, the
+  surface area and the centroid of a solid are finite sums of closed-form
+  terms, and `brep/boolean` computes them with one general routine: face
+  by face, as boundary integrals in the chart of the face. The routine
+  covers a face in a plane whose loops are made of lines and of arcs of
+  circles and ellipses, and a face on a cylinder whose loops in the chart
+  are made of rulings, arcs of section circles and arcs of section
+  ellipses. That is every face of the class (S2, S3), and the routine has
+  no case for a kind of solid. `Combine` uses it for the result, always,
+  and for each operand whose mass properties the caller did not supply.
+  For the result it reads the face and loop data that assembly hands to
+  `trimmed.NewSolidContext`, after M6 and B2, which is the solid that is
+  returned; it does not read the pieces or the merged faces of the
+  pipeline. The fourth identity below therefore still compares what is
+  returned with what the kept pieces account for. For an operand it
+  reads the faces as intake reduced them (I3). If a face of a solid is
+  outside what the routine covers, the mass properties of that whole
+  solid are taken from `MassProperties`, with the integration options of
+  the call.
+
+  `MassProperties` remains the independent measurement, but it is no
+  longer made on every call. It is made by tests. Every leaf of section
+  11 that returns a solid compares the closed-form volume, area and
+  centroid of its result with those `MassProperties` gives at the
+  integration options of L4, and the acceptance replay does the same for
+  every result in the slow tier. They must agree within
+  1e-8 × max(1, |value|) for the volume and the area, and within
+  1e-8 × L for the centroid. A difference beyond that fails the leaf or
+  the row.
+
+  If `MassProperties` is used for A, B or the result and returns an error, V5 cannot be
   evaluated and `Combine` returns an error: `ErrBudget` wrapping the cause
   when the cause is `parametric.ErrBudget` (the integration budget of P3 was
   exhausted), the context error unwrapped when the context was cancelled,
@@ -1005,10 +1046,12 @@ exactly at τ does not fail by rounding.
   Known mass properties (RL-10). When the caller supplies the volume and
   the area of an operand (P3), V5 uses them as V and area of that operand
   and does not integrate it. They are trusted as given: `Combine` checks
-  nothing about them beyond P4. They are meant to be values that an
-  earlier call reported for the same solid, and the caller answers for
-  that. The result is always integrated, with the integration options of
-  the call. Neither that tolerance nor the bound β is loosened. A supplied
+  nothing about them beyond P4. They are meant to be values the caller holds
+  for the same solid, from the report of an earlier call or from the
+  definition of the shape, and the caller answers for that. The mass properties of the result are never taken from the caller:
+  they are computed by this call, as the paragraphs on the closed form
+  state.
+  Neither the integration tolerance nor the bound β is loosened. A supplied
   volume that is wrong by more than β makes one of the identities fail,
   and the call then returns `ErrValidation` as for any other failure of
   V5. A supplied area that is wrong is not detected: the area enters
@@ -1022,19 +1065,34 @@ exactly at τ does not fail by rounding.
   points that any of the three reports as boundary, the result's answer must
   equal the operation applied to the answers for A and B.
 
-  V6 is not an independent check of classification. It does not read the
-  piece classes of section 7.7, so it detects errors in splitting,
-  selection, merging and assembly. But K2 classifies pieces with
-  `trimmed.Solid.Classify` and V6 classifies its sample points with the same
-  function, so a wrong answer from `Classify` on an operand can make both
-  wrong in the same way, and V6 then passes. The checks that do not depend
-  on `Classify` are V5, which takes V(A), V(B) and V(result) from
-  `MassProperties`, and the oracle run of A6, which uses neither function.
-  V5 is limited too: its first three conditions sum every piece of one
-  operand and so hold for any assignment of classes, and its fourth tests
-  assembly. Only the bounds in its last line can expose a wrong class. The
-  trial therefore relies on the oracle run (A6) and on the analytic and
-  legacy values of section 11 and A3 to expose a wrong `Classify` answer.
+  Which checks are independent (RL-17). V6 is not an independent check
+  of classification. It does not read the piece classes of section 7.7,
+  so it detects errors in splitting, selection, merging and assembly. But
+  K2 classifies pieces with `trimmed.Solid.Classify` and V6 classifies its
+  sample points with the same function, so a wrong answer from `Classify`
+  on an operand can make both wrong in the same way, and V6 then passes.
+
+  V5 is not an independent measurement either. The volumes of A, B and
+  the result are computed by this package, in closed form, from the same
+  carriers and charts the pipeline works with, and the volumes of the
+  pieces come from the same arrangement. V5 is a check of selection,
+  merging and assembly against the classified pieces. Its first three
+  conditions say that splitting neither lost nor added volume, and they
+  hold for any assignment of classes. Its fourth says that the solid
+  returned encloses what the kept pieces account for. Only the bounds in
+  its last line can expose a wrong class. An error that the pipeline and
+  the closed form share, such as a wrong carrier taken at intake, passes
+  V5. Where the caller supplies the mass properties of an operand, the
+  first two conditions do compare the pieces with a value from outside
+  the call.
+
+  The checks that are independent of this package are made outside
+  `Combine`: the comparison of the closed form with `MassProperties` in
+  the leaves of section 11 and in the slow-tier replay (V5); the analytic
+  values of section 11; the legacy values of A3; and the oracle run of
+  A6, which alone uses neither `Classify` nor `MassProperties`. The trial
+  relies on these to expose a wrong carrier, a wrong class or a wrong
+  `Classify` answer.
 - V7. If an operand violates the embedding precondition (S5), `Combine` still
   never returns a result that fails V1 to V6, but it is not guaranteed to
   detect the violation.
@@ -1356,16 +1414,24 @@ What the trial uses, unchanged, and what it does not.
     type `trimmed.unionArcUV`, and `Classify` returns "unsupported ray
     p-curve" for it, so K2 cannot classify against that operand. Rows
     T1-041, T1-051, T1-053, T1-054, T1-066 and T1-067.
-  - The mesh check on a face with a rectangular and a round hole.
-    `NewSolidContext` returns "mesh: triangle N is degenerate or
-    overflows" in every conditioning round, on faces that are all
-    axis-aligned, so this is not the collinear-corner case. The input is
-    the box [0,60]×[0,40]×[0,20] less the box [12,24]×[12,20]×[14,20],
-    less a cylinder of radius 2 from (45,25,20) down 20, less a cylinder
-    of radius 3 from (45,25,20) down 1. Rows T1-083 and T1-041.
-  - The tessellation budget of the bridge's `mesh` request. On a result
-    with an oblique elliptical rim the request returns "tessellation
-    budget exceeded" with its default options. Rows T1-029 and T1-092.
+  - A display triangle on a seam. The display triangulation of a face
+    that winds once around a cylinder, whose seam is both vertical sides
+    of its chart rectangle, can make a triangle with two corners on the
+    seam and a normal of exactly zero, and `NewSolidContext` then
+    returns "mesh: triangle N is degenerate or overflows" in every
+    conditioning round. Rows T1-083, T1-034 and T1-041. The smallest
+    input is the box [0,60]×[0,40]×[0,20] less the box
+    [12,24]×[12,20]×[14,20], less a cylinder of radius 2 from (45,25,20)
+    down 20, less a cylinder of radius 3 from (45,25,20) down 1.
+  - `Tessellate` and a positive angle bound. On a wall with a seam
+    `Solid.Tessellate` never meets a positive angle bound, and the
+    bridge's `mesh` request returns "tessellation budget exceeded" with
+    its default options. Rows T1-029 and T1-092.
+
+  Four of these are written up as defect reports for the work on the
+  foundation branch (RL-9): the triangle on a seam, `Classify` and
+  `unionArcUV`, `Tessellate` with a positive angle bound, and the mesh
+  edge that is not closed.
 
 ## 14. Code location and architecture
 
@@ -1404,16 +1470,18 @@ What the trial uses, unchanged, and what it does not.
   must show this on results of section 11, by comparing the published
   box with points sampled on every face.
 
-  Known mass properties (RL-10). When an operand is a body the adapter
-  published, the adapter passes the volume and the area stored with it as
-  that operand's known mass properties (P3). Within one request that
-  calls `Combine` more than once, a fold of CO1 or the checks of CO3, it
-  passes for a solid the values that an earlier call of the same request
-  reported for it. For any other stored shape it passes none, and
-  `Combine` integrates the operand.
+  Known mass properties (RL-10). The adapter passes, as the known mass
+  properties of an operand (P3), the volume and the area the bridge
+  stores for that shape. For a body the adapter published they are the
+  values of the result report. For a legacy shape they are the bridge's
+  own closed forms for that shape, and not a measurement of the solid it
+  lifts to. V5 then compares the pieces of the lifted solid with a value
+  that did not come from it, and fails where the two disagree by more
+  than β; before, it could not notice such a disagreement. Within a fold
+  of CO1 each step's reported values go to the next step.
 
-  Source lists. The adapter reads the face source list in one place, the
-  coverage rule of CO3. The list is a field of the result type, in the
+  Source lists (RL-18). The adapter may read the face source lists of a
+  result, and does so in one place, the coverage rule of CO3. The list is a field of the result type, in the
   contract at the owner's request, and is otherwise read by the tests of
   section 11.
 - L3. The general path is selected per `Bridge` value by an unexported field
@@ -1440,16 +1508,21 @@ What the trial uses, unchanged, and what it does not.
 - L4. Bridge options for the trial: `Linear` 1e-7, `Relative` 0,
   `Angular` 1e-9, `Volume` 1e-7, and integration options
   (`parametric.IntegrationOptions`) with relative tolerance 1e-9 and a
-  sample budget, `MaxSamples`, of 64,000,000. The sample budget is stated
-  because the default is not enough: at relative tolerance 1e-9 with the
-  default budget of 4,000,000 samples, `MassProperties` runs out of
-  samples on three results with curved caps (the tube of C17, the common
-  of C23, and a leaning cylinder that enters a top face), and `Combine`
-  returns `ErrBudget` (V5). With 64,000,000 all three converge and match
-  their analytic volumes to 1e-9. The larger budget costs time. Its cost
-  is measured against A7 when the acceptance rows first run on the
-  general bridge; a row that then takes two seconds or more fails A7 like
-  any other, and is reported with the time integration took in it.
+  sample budget, `MaxSamples`, of 64,000,000. Since RL-17 `Combine`
+  integrates numerically only a solid that the closed form of V5 does not
+  cover, so these options no longer set the time of a call. They are the
+  options of that fallback and of the comparisons that V5 requires of
+  the tests. The sample budget is stated because the default is not
+  enough: at relative tolerance 1e-9 with the default budget of
+  4,000,000 samples, `MassProperties` runs out of samples on three
+  results with curved caps (the tube of C17, the common of C23, and a
+  leaning cylinder that enters a top face), and with 64,000,000 all three
+  converge and match their analytic volumes to 1e-9. When the acceptance
+  rows first ran on the general bridge, integration was 84 percent of the
+  time in bridge requests. Known mass properties (RL-10) removed the
+  repeated integrations, and nine Tier 1 rows still failed A7 for the one
+  integration of each result, at 5 to 25 seconds a row; that is what
+  RL-17 removes.
 - L5. No file in `geom` is changed, and no commit of the trial changes a
   file in `brep/trimmed`. Changes to `brep/trimmed` that fix a limit E1
   names are made on the foundation branch and reach the trial branch only
@@ -1581,7 +1654,8 @@ Not acceptance cases, with the reason:
   - `valid` is true and `solidCount` equals the legacy value;
   - volume and surface area equal the analytic value in the source test
     where it has one, and the legacy value in every case, within
-    1e-7 × max(1, |expected|);
+    1e-7 × max(1, |expected|). The values compared are those the result
+    report gives, which are the closed forms of V5 (RL-17);
   - bounds equal the legacy bounds within 1e-7 in each coordinate;
   - the mesh of the result is watertight under the bridge's existing mesh
     checks.
@@ -1613,7 +1687,10 @@ Not acceptance cases, with the reason:
   the general path does not reproduce, with its message and which of the
   two kinds it is, so that the owner can check the classification. A
   failure whose kind these rules do not settle is treated as a contract
-  failure until the owner rules.
+  failure until the owner rules. The declined inputs are data, in
+  `internal/plaincadbridge/testdata/general_boolean/legacy_refusals.txt`,
+  by row and line of the trace with the legacy message. The replay reads
+  that file and has no other knowledge of them.
 - A5. The section 11 matrix passes in `brep/boolean`.
 - A6. Oracle. One helper builds a case from data (boxes, prisms and cylinders
   with placements, combined by union, common and cut) with the pinned OCCT
@@ -1661,7 +1738,10 @@ Not acceptance cases, with the reason:
   produce a result being marked as such, and the report to the owner gives
   the largest volume error, the largest area error, and the number of rows
   above 1e-8 in either. The acceptance bound stays 1e-7 (A3); A8 records and
-  does not gate.
+  does not gate. The values are the closed forms of V5 (RL-17). In the
+  slow tier the test also logs for each row the largest difference
+  between the closed form and `MassProperties`, in volume and in area,
+  and the report to the owner gives the largest of each over the rows.
 
 ### 15.4 Order of work
 
@@ -1706,8 +1786,10 @@ The trial passes when all of these hold on one commit:
   row.
 - PC2. One path. `brep/boolean` exports one operation entry point; the bridge
   file of L2 reads a stored shape only to obtain its `trimmed.Solid` and,
-  for a body the adapter published, the volume and area stored with it
-  (L2); and no
+  the volume and area the bridge stores for it (L2); it may read the face
+  source lists of a result to apply the coverage rule of CO3, which is a
+  reading of what `Combine` returned and not a test of what kind of
+  feature an operand is (RL-18); and no
   function in either tests the number of faces, edges or vertices of an
   operand, the primitive it was built from, or its placement, except through
   the recognition of surface values and rigid placements at intake (S2,
@@ -1925,7 +2007,9 @@ path (36 of 92 Tier 1 rows passing, no wrong volume):
   of 1e-7; that is a coincidence, and C24 governs (15.2).
 - RL-13. Rounding at the tolerance. A residual compared with τ must not
   fail by rounding when the geometry sits exactly at τ. One allowance,
-  stated once, is used (T9, T6, T8, section 8, B4). Row T1-005, with a
+  stated once, is used (T9, T6, T8, section 8, B4). It also applies to
+  the tolerance handed to `trimmed.NewSolid`, so the stored solid's
+  tolerance is τ plus the allowance while the report gives τ. Row T1-005, with a
   gap of exactly ε, showed the need.
 - RL-14. A sharper separation proof may be added to SP2, provided it is a
   proof and general. Row T1-034, two bores at right angles whose finite
@@ -1945,3 +2029,20 @@ path (36 of 92 Tier 1 rows passing, no wrong volume):
   shape where the bridge reports a failure. CO3 states the rule and a
   general way to decide it. Those four recorded failures are contract
   failures under A4.
+- RL-17. Closed-form mass properties. After RL-10, nine Tier 1 rows still
+  failed only on the two-second bound, and what remained of their time
+  was one numerical integration of each result at 1e-9 for V5. For the
+  trial's class the integrals have closed forms. `brep/boolean` computes
+  the volume, the area and the centroid of a result, and of an operand
+  whose values the caller did not supply, in closed form, with one
+  general routine over planar faces bounded by lines and conic arcs and
+  cylinder faces whose chart boundary is lines, circles and ellipse
+  sections. V5 and the report use it. `trimmed.Solid.MassProperties`
+  stays as the independent check, made by the leaves of section 11 and
+  by the slow-tier replay and not on every call. A solid with a face
+  outside what the closed form covers is integrated numerically. V5 is
+  then a check of selection, merging and assembly against the classified
+  pieces, not an independent measurement (P3, P5, V5, section 8, L4, A3,
+  A8).
+- RL-18. The adapter may read the face source lists of a result in order
+  to apply the coverage rule of CO3 (L2, PC2).
