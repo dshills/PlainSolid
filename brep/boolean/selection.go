@@ -6,6 +6,11 @@ type class uint8
 const (
 	outside class = iota
 	inside
+	// A shared piece lies on a same-surface pair, inside the trimmed
+	// region of the other face (K1), with the same or the opposite
+	// outward normal.
+	sharedSame
+	sharedOpposite
 )
 
 // verdict is one cell of the selection table: whether a piece is kept and
@@ -14,11 +19,12 @@ type verdict struct{ keep, flip bool }
 
 // selection is the table of section 7.8. It is indexed by the operation,
 // by the role of the piece's operand (0 for the first operand, 1 for the
-// second) and by the class of the piece.
-var selection = [3][2][2]verdict{
-	Union:  {{outside: {keep: true}}, {outside: {keep: true}}},
-	Common: {{inside: {keep: true}}, {inside: {keep: true}}},
-	Cut:    {{outside: {keep: true}}, {inside: {keep: true, flip: true}}},
+// second) and by the class of the piece. Of a shared piece only the
+// first operand's copy is ever kept.
+var selection = [3][2][4]verdict{
+	Union:  {{outside: {keep: true}, sharedSame: {keep: true}}, {outside: {keep: true}}},
+	Common: {{inside: {keep: true}, sharedSame: {keep: true}}, {inside: {keep: true}}},
+	Cut:    {{outside: {keep: true}, sharedOpposite: {keep: true}}, {inside: {keep: true, flip: true}}},
 }
 
 // kept is a piece that the selection keeps.

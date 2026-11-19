@@ -258,9 +258,9 @@ func (a *arrangement) holds(ch chart, outer, hole []hop) bool {
 
 // probes gives up to five interior points of a piece that are farther
 // than ε from its boundary, the one with the most clearance first, or
-// nil when there is none (F6). Candidates are the middles of the chords
-// that chart lines through the piece cut out of it, across both chart
-// directions, between every two consecutive corners.
+// nil when there is none (F6). Candidates are the middle and the quarter
+// points of the chords that chart lines through the piece cut out of it,
+// across both chart directions, between every two consecutive corners.
 func (a *arrangement) probes(p piece) []geom.Vec3 {
 	ch := a.ops[p.op].faces[p.face].s.chart()
 	border := legsOf(a.elems, p.loops)
@@ -305,19 +305,21 @@ func (a *arrangement) probes(p piece) []geom.Vec3 {
 			}
 			sort.Float64s(cuts)
 			for k := 0; k+1 < len(cuts); k += 2 {
-				q := geom.Vec2{X: (cuts[k] + cuts[k+1]) / 2, Y: level}
-				if axis == 1 {
-					q = geom.Vec2{X: level, Y: (cuts[k] + cuts[k+1]) / 2}
-				}
-				at := ch.lift(q)
-				clear := math.Inf(1)
-				for _, loop := range border {
-					for _, l := range loop {
-						clear = math.Min(clear, at.Distance(l.nearest(at)))
+				for _, part := range [3]float64{0.5, 0.25, 0.75} {
+					q := geom.Vec2{X: cuts[k] + part*(cuts[k+1]-cuts[k]), Y: level}
+					if axis == 1 {
+						q = geom.Vec2{X: q.Y, Y: q.X}
 					}
-				}
-				if clear > a.t.eps {
-					found = append(found, candidate{at, clear})
+					at := ch.lift(q)
+					clear := math.Inf(1)
+					for _, loop := range border {
+						for _, l := range loop {
+							clear = math.Min(clear, at.Distance(l.nearest(at)))
+						}
+					}
+					if clear > a.t.eps {
+						found = append(found, candidate{at, clear})
+					}
 				}
 			}
 		}

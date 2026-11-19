@@ -35,23 +35,6 @@ type body struct {
 	solids int
 }
 
-// sheets makes one sheet of every kept piece, with the piece's own face
-// as its source and, for a shared piece, the face it is shared with (P5).
-func sheets(f *fabric, pieces []piece, keep []kept) []sheet {
-	var out []sheet
-	for _, k := range keep {
-		p := pieces[k.piece]
-		face := f.ops[p.op].faces[p.face]
-		sh := sheet{s: face.s, reversed: face.reversed != k.flip, loops: p.loops, sources: [][2]int{{p.op, p.face}}}
-		if p.mate >= 0 {
-			sh.sources = append(sh.sources, [2]int{1 - p.op, p.mate})
-			sort.Slice(sh.sources, func(i, j int) bool { return sh.sources[i][0] < sh.sources[j][0] })
-		}
-		out = append(out, sh)
-	}
-	return out
-}
-
 // assemble groups the sheets into shells and solids (B1) and builds the
 // output solid (B3 to B6). No geometry is welded here: sheets share edges
 // by identity.

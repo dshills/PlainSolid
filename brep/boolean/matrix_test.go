@@ -23,7 +23,7 @@ var operationNames = [...]string{Union: "union", Common: "common", Cut: "cut"}
 // outcome is what section 11 states for one operation of a row.
 type outcome struct {
 	fails   error   // the error Combine must return
-	maybe   error   // an error Combine may return in place of a validated result
+	maybe   error   // an error Combine may return in place of a validated result (T8)
 	volume  float64 // analytic volume; zero for the empty solid
 	solids  int
 	voids   int
@@ -42,16 +42,90 @@ func solidOf(volume float64, solids, voids, faces int) outcome {
 	return outcome{volume: volume, solids: solids, voids: voids, faces: faces}
 }
 
-var nothing = outcome{}
+var (
+	nothing     = outcome{}
+	nonManifold = outcome{fails: ErrNonManifold}
+)
+
+// matrixEps is the working tolerance of the matrix, for the rows that
+// are stated in terms of it.
+const matrixEps = 1e-7
 
 // matrix lists the rows of section 11 that are implemented, by variant.
+// In every planar row A is the box [0,2]³ unless the row says otherwise.
 var matrix = []struct {
 	row, variant string
 	build        func(t *testing.T) []config
 }{
 	{"C1", "planar", func(t *testing.T) []config {
-		a, b := box(t, 0, 0, 0, 2, 2, 2), box(t, 5, 0, 0, 6, 1, 1)
-		return []config{planarConfig(t, a, b, [3]outcome{Union: solidOf(9, 2, 0, 12), Common: nothing, Cut: solidOf(8, 1, 0, 6)})}
+		return pair(t, box(t, 5, 0, 0, 6, 1, 1), solidOf(9, 2, 0, 12), nothing, solidOf(8, 1, 0, 6))
+	}},
+	{"C2", "planar", func(t *testing.T) []config {
+		return pair(t, box(t, 0, 0, 0, 2, 2, 2), solidOf(8, 1, 0, 6), solidOf(8, 1, 0, 6), nothing)
+	}},
+	{"C3", "planar", func(t *testing.T) []config {
+		return pair(t, box(t, 0.5, 0.5, 0.5, 1.5, 1.5, 1.5), solidOf(8, 1, 0, 6), solidOf(1, 1, 0, 6), solidOf(7, 1, 1, 12))
+	}},
+	{"C4", "planar", func(t *testing.T) []config {
+		union := solidOf(12, 1, 0, 6)
+		union.sources = func(r Result, c config) error {
+			// Bottom from A, top from B, and four sides from one face of
+			// each (merged by M1).
+			return sourceShapes(r, map[string]int{"A at z=0": 1, "B at z=3": 1, "AB": 4})
+		}
+		return pair(t, box(t, 0, 0, 2, 2, 2, 3), union, nothing, solidOf(8, 1, 0, 6))
+	}},
+	{"C5", "planar", func(t *testing.T) []config {
+		return pair(t, box(t, 1, 0, 2, 3, 2, 3), solidOf(12, 1, 0, 0), nothing, solidOf(8, 1, 0, 6))
+	}},
+	{"C6", "planar", func(t *testing.T) []config {
+		common := solidOf(1, 1, 0, 6)
+		common.sources = func(r Result, c config) error {
+			// The three faces on the planes shared with A come from a
+			// face of each; the other three from B alone.
+			return sourceShapes(r, map[string]int{"AB": 3, "B": 3})
+		}
+		return pair(t, box(t, 0, 0, 0, 1, 1, 1), solidOf(8, 1, 0, 6), common, solidOf(7, 1, 0, 9))
+	}},
+	{"C7", "planar", func(t *testing.T) []config {
+		return pair(t, box(t, 2, 0, 2, 3, 2, 3), nonManifold, nothing, solidOf(8, 1, 0, 6))
+	}},
+	{"C8", "planar", func(t *testing.T) []config {
+		return pair(t, box(t, 2, 2, 2, 3, 3, 3), nonManifold, nothing, solidOf(8, 1, 0, 6))
+	}},
+	{"C9", "planar", func(t *testing.T) []config {
+		// A unit box turned 45° about the y axis, resting on its edge
+		// x = 1, z = 2 inside the top face of A.
+		turn, err := geom.Rotation(geom.Vec3{Y: 1}, -math.Pi/4)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return pair(t, moved(t, box(t, 0, 0.5, 0, 1, 1.5, 1), geom.Translation(geom.Vec3{X: 1, Z: 2}).Mul(turn)), nonManifold, nothing, solidOf(8, 1, 0, 6))
+	}},
+	{"C10", "planar", func(t *testing.T) []config {
+		// A box of side 0.75 standing on one corner at (1,1,2), inside
+		// the top face of A. Its three edges there rise along
+		// (2,2,1)/4, (-2,1,2)/4 and (1,-2,2)/4, so that every corner has
+		// coordinates csg/poly can represent exactly.
+		tilt := geom.Affine{{0.5, -0.5, 0.25, 1}, {0.5, 0.25, -0.5, 1}, {0.25, 0.5, 0.5, 2}}
+		return pair(t, moved(t, box(t, 0, 0, 0, 1, 1, 1), tilt), nonManifold, nothing, solidOf(8, 1, 0, 6))
+	}},
+	{"C24", "planar", func(t *testing.T) []config {
+		// C4 with B moved away from A by ε/2: as C4 within β.
+		d := matrixEps / 2
+		return pair(t, box(t, 0, 0, 2+d, 2, 2, 3+d), solidOf(12, 1, 0, 6), nothing, solidOf(8, 1, 0, 6))
+	}},
+	{"C25", "planar", func(t *testing.T) []config {
+		// C4 with B moved into A by 100ε: a real overlap.
+		d := 100 * matrixEps
+		return pair(t, box(t, 0, 0, 2-d, 2, 2, 3-d), solidOf(12-4*d, 1, 0, 6), solidOf(4*d, 1, 0, 6), solidOf(8-4*d, 1, 0, 6))
+	}},
+	{"C26", "planar", func(t *testing.T) []config {
+		// C4 with B moved into A by 2ε: tolerance-scale. ErrTolerance
+		// or a result that validated; a result is as C4 within β.
+		d := 2 * matrixEps
+		either := func(o outcome) outcome { o.maybe = ErrTolerance; return o }
+		return pair(t, box(t, 0, 0, 2-d, 2, 2, 3-d), either(solidOf(12, 1, 0, 0)), either(nothing), either(solidOf(8, 1, 0, 0)))
 	}},
 	{"C27", "planar", func(t *testing.T) []config {
 		a, none := box(t, 0, 0, 0, 2, 2, 2), brep.Solid{}
@@ -62,6 +136,60 @@ var matrix = []struct {
 			planarConfig(t, none, none, [3]outcome{}),
 		}
 	}},
+}
+
+// pair is the usual row: A is the box [0,2]³ and b is the other operand.
+func pair(t *testing.T, b brep.Solid, union, common, cut outcome) []config {
+	t.Helper()
+	return []config{planarConfig(t, box(t, 0, 0, 0, 2, 2, 2), b, [3]outcome{Union: union, Common: common, Cut: cut})}
+}
+
+func moved(t testing.TB, s brep.Solid, m geom.Affine) brep.Solid {
+	t.Helper()
+	out, err := s.Transformed(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// sourceShapes counts the faces of a result by the operands in their
+// source lists ("A", "B" or "AB") and compares with want. A key such as
+// "A at z=0" also requires every corner of those faces at that height.
+func sourceShapes(r Result, want map[string]int) error {
+	got := map[string]int{}
+	for i, f := range r.Solid.Faces() {
+		key := ""
+		for _, s := range r.Sources[i] {
+			if name := operandName(s[0]); !strings.HasSuffix(key, name) {
+				key += name
+			}
+		}
+		for full := range want {
+			var z float64
+			if n, _ := fmt.Sscanf(strings.TrimPrefix(full, key+" at z="), "%g", &z); n != 1 || !strings.HasPrefix(full, key+" at z=") {
+				continue
+			}
+			level := true
+			for _, u := range f.Outer {
+				p, _ := f.Surface.Eval(u.UVStart.X, u.UVStart.Y)
+				level = level && math.Abs(p.Z-z) < 1e-6
+			}
+			if level {
+				key = full
+			}
+		}
+		got[key]++
+	}
+	if len(got) != len(want) {
+		return fmt.Errorf("face sources by operand: got %v, want %v", got, want)
+	}
+	for k, n := range want {
+		if got[k] != n {
+			return fmt.Errorf("face sources by operand: got %v, want %v", got, want)
+		}
+	}
+	return nil
 }
 
 func box(t testing.TB, x0, y0, z0, x1, y1, z1 float64) brep.Solid {

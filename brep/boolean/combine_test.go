@@ -90,27 +90,58 @@ func TestContract(t *testing.T) {
 			}
 		})
 	}
-	t.Run("operands unchanged", func(t *testing.T) {
-		before := [2][4]any{snapshot(t, a), snapshot(t, far)}
-		if _, err := Combine(context.Background(), a, far, Union, good); err != nil {
-			t.Fatal(err)
-		}
-		if after := [2][4]any{snapshot(t, a), snapshot(t, far)}; !reflect.DeepEqual(before, after) {
-			t.Fatal("Combine changed an operand")
+	t.Run("piece limit", func(t *testing.T) {
+		if _, err := Combine(context.Background(), a, far, Union, with(func(o *Options) { o.MaxPieces = 11 })); !errors.Is(err, ErrBudget) {
+			t.Fatalf("got %v, want ErrBudget", err)
 		}
 	})
-	t.Run("equal calls give equal results", func(t *testing.T) {
-		var runs [2]Result
-		for i := range runs {
-			var err error
-			if runs[i], err = Combine(context.Background(), a, far, Union, good); err != nil {
-				t.Fatal(err)
-			}
+	// P7 on operands that do not interact and on operands that do.
+	near := lifted(t, box(t, 1, 1, 1, 3, 3, 3))
+	for name, b := range map[string]trimmed.Solid{"apart": far, "interacting": near} {
+		for op := Union; op <= Cut; op++ {
+			t.Run("operands unchanged/"+name+"/"+operationNames[op], func(t *testing.T) {
+				before := [2][4]any{snapshot(t, a), snapshot(t, b)}
+				if _, err := Combine(context.Background(), a, b, op, good); err != nil {
+					t.Fatal(err)
+				}
+				if after := [2][4]any{snapshot(t, a), snapshot(t, b)}; !reflect.DeepEqual(before, after) {
+					t.Fatal("Combine changed an operand")
+				}
+			})
+			t.Run("equal calls give equal results/"+name+"/"+operationNames[op], func(t *testing.T) {
+				var runs [2]Result
+				for i := range runs {
+					var err error
+					if runs[i], err = Combine(context.Background(), a, b, op, good); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if !sameResult(t, runs[0], runs[1]) {
+					t.Fatal("two equal calls returned different results")
+				}
+			})
 		}
-		if !sameResult(t, runs[0], runs[1]) {
-			t.Fatal("two equal calls returned different results")
+	}
+	t.Run("cancelled during the passes", func(t *testing.T) {
+		// The context is cancelled by the first evaluation of an edge
+		// of B, which is during intake; the passes then see it.
+		ctx, stop := context.WithCancel(context.Background())
+		tripped := restored(t, near, func(_ int, c geom.Curve, _, _ float64) geom.Curve { return tripwire{c, stop} })
+		if _, err := Combine(ctx, a, tripped, Union, good); err != context.Canceled {
+			t.Fatalf("got %v, want the context error", err)
 		}
 	})
+}
+
+// tripwire is a curve that cancels a context when it is evaluated.
+type tripwire struct {
+	geom.Curve
+	stop context.CancelFunc
+}
+
+func (c tripwire) Eval(t float64) (geom.Vec3, error) {
+	c.stop()
+	return c.Curve.Eval(t)
 }
 
 // sameResult compares two results deeply, apart from the surface and

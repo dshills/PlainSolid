@@ -62,27 +62,60 @@ func combine(ctx context.Context, a, b trimmed.Solid, op Operation, o Options) (
 			return Result{}, err
 		}
 	}
-	// I2: an empty operand, or boxes that stay apart when grown by the
-	// filter margin, need no pairwise work. Every face is one piece
-	// outside the other operand.
-	if !empty[0] && !empty[1] && !ops[0].box.clear(ops[1].box, t.margin) {
-		return Result{}, fail(ErrUnsupported, "arrangement", "operands whose boxes overlap need the arrangement of section 7.2, which is not built yet")
+	// I2: an empty operand, or bounds that stay apart when grown by the
+	// filter margin, need no pairwise work: every face is one piece
+	// outside the other operand. Otherwise the intersection stage builds
+	// the arrangement, the faces are split along it and the pieces are
+	// classified. Either way the same stages follow.
+	var arr *arrangement
+	var pieces []piece
+	if empty[0] || empty[1] || ops[0].box.clear(ops[1].box, t.margin) {
+		if arr, err = newArrangement(ctx, ops, t, o); err == nil {
+			err = arr.seal()
+		}
+		if err != nil {
+			return Result{}, err
+		}
+		if pieces = arr.whole(); len(pieces) > o.MaxPieces {
+			return Result{}, fail(ErrBudget, "splitting", "more than MaxPieces %d pieces", o.MaxPieces)
+		}
+	} else {
+		if arr, err = arrange(ctx, ops, t, o); err != nil {
+			return Result{}, err
+		}
+		if pieces, err = arr.split(); err != nil {
+			return Result{}, err
+		}
+		if err = arr.classify(pieces); err != nil {
+			return Result{}, err
+		}
 	}
-	f := unsplit(ops, t)
-	pieces := f.whole()
-	built, err := assemble(ctx, f.points, f.elems, sheets(f, pieces, choose(pieces, op, false)), t)
+	keep := choose(pieces, op, false)
+	if err := arr.manifold(pieces, keep); err != nil {
+		return Result{}, err
+	}
+	edges, sheets, err := arr.coalesce(pieces, keep)
+	if err != nil {
+		return Result{}, err
+	}
+	built, err := assemble(ctx, arr.points, edges, sheets, t)
 	if err != nil {
 		return Result{}, err
 	}
 	r := Result{
 		Solid: built.solid, Shells: built.shells, Voids: built.voids, Owners: built.owners, Solids: built.solids,
-		Tolerance: t.eps, Nodes: len(f.points), Spans: len(f.elems), Pieces: len(pieces),
+		Tolerance: t.eps, Nodes: len(arr.points), Spans: len(arr.spans), Bundles: len(arr.bundles), Traces: len(arr.traces), Pieces: len(pieces),
 	}
 	for _, sh := range built.sheets {
 		r.Sources = append(r.Sources, sh.sources)
 	}
-	for _, p := range f.points {
+	for _, p := range arr.points {
 		r.NodeRadius = math.Max(r.NodeRadius, p.radius)
+	}
+	for _, c := range arr.contacts {
+		at, _ := arr.locus(c)
+		r.Touching = append(r.Touching, c.faces)
+		r.TouchingAt = append(r.TouchingAt, [3]float64{at.X, at.Y, at.Z})
 	}
 	// Section 8. V1 and V2 were checked by assemble.
 	if r.EdgeResidual, r.VertexResidual, err = residuals(built); err != nil {
@@ -101,7 +134,7 @@ func combine(ctx context.Context, a, b trimmed.Solid, op Operation, o Options) (
 		return Result{}, err
 	}
 	r.VolumeA, r.VolumeB, r.Volume = pa.Volume, pb.Volume, pr.Volume
-	if err := identities(f, pieces, op, pa, pb, pr, o, t); err != nil {
+	if err := identities(&arr.fabric, pieces, op, pa, pb, pr, o, t); err != nil {
 		return Result{}, err
 	}
 	if err := membership(ops, empty, built, op, o, t); err != nil {

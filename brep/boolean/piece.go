@@ -47,33 +47,6 @@ type piece struct {
 	mate int
 }
 
-// unsplit is the fabric of operands that do not interact (I2): every
-// vertex is a point of radius ε and every edge is one element.
-func unsplit(ops [2]*operand, t tolerances) *fabric {
-	f := &fabric{ops: ops}
-	for i, o := range ops {
-		firstPoint, firstElem := len(f.points), len(f.elems)
-		for _, v := range o.verts {
-			f.points = append(f.points, point{v, t.eps})
-		}
-		for _, e := range o.edges {
-			f.elems = append(f.elems, element{e.c, e.t0, e.t1, firstPoint + e.start, firstPoint + e.end})
-		}
-		for _, face := range o.faces {
-			var loops [][]hop
-			for _, loop := range face.loops {
-				var hops []hop
-				for _, u := range loop {
-					hops = append(hops, hop{firstElem + u.edge, u.reversed})
-				}
-				loops = append(loops, hops)
-			}
-			f.rims[i] = append(f.rims[i], loops)
-		}
-	}
-	return f
-}
-
 // whole gives every input face as one piece, classified outside the other
 // operand (I2).
 func (f *fabric) whole() []piece {
