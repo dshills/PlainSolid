@@ -37,8 +37,8 @@ the known defects on [the status page](STATUS.md)), the general Boolean of
 STEP reader for boundaries of planes and cylinders, and the bridge's fallback
 to the general Boolean where a legacy path declines a request. `93099dfe`
 differs from `b841cc75`, the PlainCAD row, only in documents. Neither row
-covers `16596a78`, which lets the default bridge import a STEP file it
-exported for a result of the general Boolean. The Go run sets
+covers the four changes after them that [the status page](STATUS.md) lists,
+the last of them `9ca9f026`. The Go run sets
 `PLAINSOLID_SLOW=1` and `-tags research`, so it covers the slow tier and the
 research quarantine; it took 50 minutes of wall time on four lanes. It used Go
 1.23.12 on purpose, because Go 1.25 and later can abort the research tests of
@@ -52,7 +52,7 @@ and cross-browser suites, and the ordinary unit suite.
 
 The Linux and race rows predate the quarantine, the parallel tests in
 `exchange/step` and the mitigation. The default tier (`go test ./...`, Go
-1.27.4) passes at `16596a78` on all 57 packages with tests.
+1.27.4) passes at `9ca9f026` on all 58 packages with tests.
 
 ## What these results do not establish
 
