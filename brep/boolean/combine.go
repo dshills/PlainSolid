@@ -9,7 +9,7 @@ import (
 )
 
 // Combine returns the regularized union, common or cut of two solids
-// bounded by planes (section 4). The operands are closed, outward
+// bounded by planes and cylinders (section 4). The operands are closed, outward
 // oriented, embedded boundaries; the zero Solid is the empty solid. The
 // result validates within the tolerances of o (section 8) or an error of
 // section 9 is returned with the zero Result. A cancelled context returns

@@ -33,7 +33,10 @@ sphere and parallel-cylinder Booleans, oblique cylindrical bores, spline graph
 sections and shared-base graph Booleans, selected spline shell Booleans with
 disjoint, nested or shared planar interfaces and verified transverse wires,
 rounded boxes, polygonal
-revolutions, circular sweeps, and elliptical lofts and extrusions. General curved Booleans, arbitrary
+revolutions, circular sweeps, and elliptical lofts and extrusions.
+`brep/boolean` is one general union, common and cut for solids bounded by
+planes and cylinders, accepted on validation within tolerance; the PlainCAD
+bridge can use it but does not by default. General curved Booleans, arbitrary
 curved trim boundaries and broad CAD exchange remain open. See the
 [status matrix](docs/STATUS.md) for the implemented domains and acceptance gaps.
 
