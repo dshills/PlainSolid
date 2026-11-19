@@ -215,7 +215,12 @@ func (e Edge) tool(ctx context.Context, index int, kind Kind, size float64, o Op
 		return tool{}, err
 	}
 	out := tool{solid: r.Solid, working: make([]bool, len(r.Sources)), owners: make([][]int, len(r.Sources))}
+	faces := r.Solid.Faces()
 	for i, sources := range r.Sources {
+		// The wall of the cylinder, and not a piece of one of its caps.
+		if base, _ := parametric.SurfaceMapping(faces[i].Surface); isPlane(base) {
+			continue
+		}
 		for _, source := range sources {
 			if source[0] == 1 {
 				out.working[i], out.owners[i] = true, []int{index}
