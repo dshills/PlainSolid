@@ -1,0 +1,6 @@
+{"new":true}
+{"req":{"max":[5,5,11],"min":[-5,-5,10],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":100,"surfaceArea":240,"solidCount":1,"bounds":{"min":[-5,-5,10],"max":[5,5,11]}}}
+{"req":{"b":"ps:1","direction":[0,0,1],"normal":[0,0,1],"op":"prismToFace","origin":[0,0,10],"outer":[[-5,-5,0],[5,-5,0],[5,5,0],[-5,5,0]]},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":1000,"surfaceArea":600,"solidCount":1,"bounds":{"min":[-5,-5,0],"max":[5,5,10]}},"analytic":{"volume":[1000.0]}}
+{"req":{"handle":"ps:1","matrix":[[1,0,0,0],[0,1,0,0],[0.5,0,1,0]],"op":"transform"},"ok":true,"handle":"ps:3","result":{"valid":true,"volume":100,"surfaceArea":263.60679774997897,"solidCount":1,"bounds":{"min":[-5,-5,7.5],"max":[5,5,13.5]}}}
+{"req":{"b":"ps:3","direction":[0,0,1],"normal":[-0.5,0,1],"op":"prismToFace","origin":[0,0,10],"outer":[[-1,-1,0],[1,-1,0],[1,1,0],[-1,1,0]]},"ok":true,"handle":"ps:4","result":{"valid":true,"volume":40,"surfaceArea":88.47213595499957,"solidCount":1,"bounds":{"min":[-1,-1,0],"max":[1,1,10.5]}},"analytic":{"volume":[40.0]}}
+{"req":{"b":"ps:3","direction":[0,0,1],"normal":[-0.5,0,1],"op":"prismToFace","origin":[0,0,12],"outer":[[-1,-1,0],[1,-1,0],[1,1,0],[-1,1,0]]},"ok":false,"code":"INVALID"}

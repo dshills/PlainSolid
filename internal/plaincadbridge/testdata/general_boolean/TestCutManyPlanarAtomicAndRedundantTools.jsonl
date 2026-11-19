@@ -1,0 +1,9 @@
+{"new":true}
+{"req":{"max":[10,10,10],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":1000,"surfaceArea":600,"solidCount":1,"bounds":{"min":[0,0,0],"max":[10,10,10]}}}
+{"req":{"max":[2,10,10],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":200,"surfaceArea":280,"solidCount":1,"bounds":{"min":[0,0,0],"max":[2,10,10]}}}
+{"req":{"max":[10,10,10],"min":[8,0,0],"op":"box"},"ok":true,"handle":"ps:3","result":{"valid":true,"volume":200,"surfaceArea":280,"solidCount":1,"bounds":{"min":[8,0,0],"max":[10,10,10]}}}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:2","ps:2","ps:3"]},"ok":true,"handle":"ps:4","result":{"valid":true,"volume":600,"surfaceArea":440,"solidCount":1,"bounds":{"min":[2,0,0],"max":[8,10,10]}},"analytic":{"volume":[600.0]}}
+{"req":{"handle":"ps:1","op":"inspect"},"ok":true,"result":{"valid":true,"volume":1000,"surfaceArea":600,"solidCount":1,"bounds":{"min":[0,0,0],"max":[10,10,10]}},"analytic":{"volume":[1000.0]}}
+{"req":{"a":"ps:1","op":"cutMany","tools":null},"ok":false,"code":"INVALID"}
+{"req":{"a":"ps:1","op":"cutMany","tools":[]},"ok":false,"code":"INVALID"}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:2","missing"]},"ok":false,"code":"HANDLE"}
