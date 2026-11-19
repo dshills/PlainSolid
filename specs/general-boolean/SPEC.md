@@ -3,7 +3,9 @@
 Status: owner decisions recorded on 2026-11-18 (section 18). Rulings made
 on 2026-11-18 and 2026-11-19 by the reviewing session, under the owner's
 delegation, are in section 19 and wait for the owner to confirm or reverse
-them. This
+them. The trial reached a closing state on 2026-11-19 with no pass and no
+stop declared; section 20 lists what is open, and the plan states where
+the trial stands. This
 document is a specification only and contains no implementation.
 
 ## 1. Purpose
@@ -482,7 +484,9 @@ building stage. It holds:
 - AR6. Same-surface pairs, each with a flag saying whether the two faces have
   the same or opposite outward normals.
 - AR7. Touching-contact records: the locus (a node, or a span or trace) and
-  the faces of A and of B that meet there.
+  the faces of A and of B that meet there. X4 makes them for a vertex in
+  a face, X5 for a span that lies in a face and for an isolated point of
+  a span, and X6 for a touching trace. X6 makes none for an edge.
 
 ### 7.3 Intersection stage
 
@@ -518,21 +522,35 @@ positions.
   returns `ErrTolerance` (T8): the two tolerant tests disagree.
 - X5. Edge with face. Each span, as split so far, is tested against each
   face of the other operand using section 7.5. An isolated point inside the
-  trimmed region becomes a node on the span and in the face, recorded as
-  crossing or touching. A span that lies on the carrier and inside the
-  trimmed region over its whole length is added to the face's interior-span
-  list, and is also recorded as a touching contact (AR7) when the boundary
-  of its own operand leaves the span to one and the same side of the
-  face's carrier on both sides of the span. This is asked of each of the
-  two uses of the span's edge separately: each use gives the direction in
-  which its face leaves the edge. Where the two uses are by one face, as
-  at a seam (I4), they leave in different directions and both are asked;
-  a seam that lies in a face of the other operand while its wall passes
-  through that face is not a touching contact, and one whose wall is
-  tangent to the face is. A span that lies along the face boundary is already
-  in a bundle, and X5 does not test it against that face again. A span
-  that crosses the carrier, with or without an end on it, is the case of
-  the isolated point. Two outcomes return `ErrTolerance` (T8), because
+  trimmed region becomes a node on the span and in the face. A span that
+  lies on the carrier and inside the trimmed region over its whole length
+  is added to the face's interior-span list. A span that lies along the
+  face boundary is already in a bundle, and X5 does not test it against
+  that face again. A span that crosses the carrier, with or without an
+  end on it, is the case of the isolated point.
+
+  Touching (RL-23). One rule decides whether a contact found here is a
+  touching contact (AR7), for a span that lies in the face and for an
+  isolated point where the span is tangent to the face's carrier alike:
+  the contact is touching only when the faces of the span's edge stay on
+  one side of the carrier. Each of the two uses of the edge is judged on
+  its own, from points of its face near the contact. The points are
+  taken at short steps in the chart of that face, on a fan of directions
+  from close to one direction of the edge round to close to the other. A
+  face judged this way is on one side of the carrier, on both sides,
+  which means it passes through the surface, or on the surface. A face
+  on the surface is flush; that is a matter for the same-surface test
+  and makes no touching contact. The contact is touching when both uses
+  are on one side and it is the same side for both. Where the two uses
+  are by one face, as at a seam (I4), both are judged: a seam that lies
+  in a face of the other operand while its wall passes through that face
+  is not a touching contact, and one whose wall is tangent to the face
+  is. An isolated point where the span passes through the carrier is a
+  crossing and makes no record. A direction that leaves the edge is not
+  used to judge a side, because at a tangent contact such a direction
+  lies in the tangent plane and tells nothing.
+
+  Two outcomes return `ErrTolerance` (T8), because
   X1 to X3 should have settled them. The first is an isolated point that
   X9 puts on the boundary of the trimmed region where the span has no
   node. The second concerns only a span that is in no bundle with an edge
@@ -548,7 +566,11 @@ positions.
   at the nodes already on it, and each interval between consecutive nodes
   that lies inside both trimmed regions becomes a trace, unless a span or
   bundle already occupies that interval, in which case that span or bundle is
-  recorded for both faces instead. An interval that lies along the boundary
+  recorded for both faces instead. A carrier curve marked touching makes a
+  touching-contact record (AR7) for a trace only. Where a span or bundle
+  occupies the interval, the two surfaces are tangent along an edge, and
+  X6 makes no record for it: whether that edge is a touching contact is
+  X5's question, which looks at the faces of the edge (RL-23). An interval that lies along the boundary
   of one of the two faces, where that face has no span between the two
   nodes, contradicts the earlier passes and returns `ErrInconsistent`. On a
   closed carrier curve with exactly
@@ -561,7 +583,11 @@ positions.
   (AR4), and F3 walks a closed trace as a loop through its one node.
 - X7. When a surface pair yields more than one carrier curve, the points
   where those curves meet each other inside both trimmed regions become
-  nodes before X6 cuts the curves.
+  nodes before X6 cuts the curves. No Tier 1 pair has two curves that
+  meet, so the code lacked X7 until the Tier 2 attempt needed it; it is
+  on the trial branch with a test of its own (RL-22). At such a node the
+  two surfaces are tangent to each other, and how X5 and N3 are to treat
+  an edge through it is open (section 20).
 - X8. After X6, any two traces in one face that cross at a point that is not
   a node indicate an inconsistent arrangement, and the call returns
   `ErrInconsistent`.
@@ -1176,7 +1202,7 @@ volume is given.
 | C20 | As C19, but the base circle touches one edge of the top face from inside at a point | One solid, V(A) + V(B); the top face of A touches itself at the point of contact and is divided in two (M6) | Empty | A |
 | C21 | A box; B a cylinder through A along z with both caps flush with A's faces | A | B | Box with a through bore, V(A) − πr²h, 7 faces |
 | C22 | A box; B a cylinder entering A's top face and ending inside A | V(A) + part of B outside | Part of B inside | Blind hole; V(A) − πr²·depth |
-| C23 | A box; B a cylinder whose axis is oblique to the faces it passes through | — | Part of B inside A | Through bore with elliptic openings; V(A) − V(common) |
+| C23 | A box; B a cylinder whose axis is oblique to the faces it passes through | One solid, V(A) + V(B) − V(common) | Part of B inside A | Through bore with elliptic openings; V(A) − V(common) |
 | C24 | C4 with B moved away from A by ε / 2 | As C4 within β | Empty | A |
 | C25 | C4 with B moved into A by 100ε | One solid, V = 12 − 400ε within β | V = 400ε within β | V = 8 − 400ε within β |
 | C26 | C4 with B moved into A by 2ε | `ErrTolerance` or a validated result (T8) | same | same |
@@ -1310,6 +1336,9 @@ the sources come from and that each is a face of the wall:
   result of the step before reported, so that an intermediate solid is
   integrated once and not again as an operand.
 - CO2. `overlapVolume(a, b)` is V(a ∩ b), and 0 when the common is empty.
+  When the common is pinched into parts that meet only at points, N2
+  refuses it and the request fails, although the volume is defined.
+  Whether the request is to give that volume is open (section 20).
 - CO3. `prismToFace` and `circleToFace` build a tool that ends on a target
   face. Their result is reproduced as the common of the sweep, extended past
   the target plane, with a block one face of which lies on the target plane.
@@ -1432,6 +1461,23 @@ What the trial uses, unchanged, and what it does not.
   foundation branch (RL-9): the triangle on a seam, `Classify` and
   `unionArcUV`, `Tessellate` with a positive angle bound, and the mesh
   edge that is not closed.
+
+  The foundation branch ended at `b0c23193` and is merged into the trial
+  branch (RL-26). It fixed collinear corners, arcs of two curves at one
+  vertex, unclosed edges on a wall with a seam, which also removed the
+  triangle on a seam and a disconnected fan of triangles, curved trims
+  that left their seed triangle, and part of tessellation with an angle
+  bound. No leaf of section 11 is held by a limit any longer. Two Tier 1
+  rows are:
+  - T1-092. Its Booleans and its to-face rules pass. Its `mesh` request
+    with an angle bound still returns "tessellation budget exceeded".
+  - T1-029. Every checked response agrees. It takes 3.6 seconds alone,
+    over the bound of A7, because the display meshes its requests ask
+    for have 557,056 and 139,264 triangles, where the default bridge's
+    own mesher returns 144 for that bore. The time is spent in
+    `Tessellate` of `brep/trimmed` and not in `Combine`, so the row is
+    counted as held by a limit of that package (RL-26): it is not a
+    pass, and it does not count toward a stop until the owner rules.
 
 ## 14. Code location and architecture
 
@@ -1638,7 +1684,16 @@ Not acceptance cases, with the reason:
   path returns the through hole. The record and C24 cannot both hold, so
   the row is excluded. Any other row whose recorded result depends on a
   separation between the operands that is below ε is excluded for the
-  same reason, stated in its row.
+  same reason, stated in its row. Row T1-091 is one (RL-19): it gives a
+  tool tangent to a hole and the same tool 1e-15 away, which are one
+  input at the working tolerance and get one outcome, while the record
+  expects two.
+- An operand with a placement that is not rigid (S4, RL-19). The stock of
+  row T1-041 is a STEP import whose faces carry such a placement, so it
+  is outside the input class.
+
+  With T1-009, T1-091 and T1-041 excluded, 89 of the 92 frozen Tier 1
+  rows are in scope.
 
 ### 15.3 How a case is checked
 
@@ -1695,16 +1750,34 @@ Not acceptance cases, with the reason:
 - A6. Oracle. One helper builds a case from data (boxes, prisms and cylinders
   with placements, combined by union, common and cut) with the pinned OCCT
   and reports validity, volume, area, centroid and solid count. Cases are
-  rows of a data file; there is no per-case C++. It is run once, as the last step
-  of the trial, after Tier 2 has been kept or reverted (15.5), on every section 11 row that returns a solid, except the
-  tolerance rows C24 to C26, on one row per Tier 1 family, and on every case that A4 marks as succeeding where the record declines, with the comparison bound of
+  rows of a data file; there is no per-case C++. The cases are every
+  section 11 row that returns a solid, except the tolerance rows C24 to
+  C26; one case per Tier 1 family; and every case that A4 marks as
+  succeeding where the record declines. The comparison bound is that of
   `internal/occtcheck/oracle_test.go:68` (3e-7 relative for area and volume,
   3e-7 absolute for centroid). Face counts are compared for the section 11
-  rows that state one. C24 to C26 depend on ε, which the oracle does not
-  share, and are checked against their analytic values only. A case
-  marked by A4 that cannot be built from the helper's primitives, for
-  example one with a STEP-imported operand, is reported as succeeding
-  without an independent check. The owner approved this one run (OD-5).
+  rows that state one, the dividers of M6 not counted.
+
+  What the run does not compare:
+  - C24 to C26, which depend on ε. The oracle does not share it, and they
+    are checked against their analytic values only.
+  - C27, which has one operand against nothing and so no Boolean to make.
+  - The To face family. Its tool is the result of a to-face request and
+    not a box, a prism or a cylinder, so the family has no independent
+    check.
+  - Tier 2, which is not supported (RL-22).
+  - The rest of a family's row. A family case holds the first bridge of
+    the first row of its family and stops at the first request the
+    primitives cannot express, so it covers the start of that row and
+    not the whole row.
+  - A case marked by A4 that cannot be built from the helper's
+    primitives, for example one with a STEP-imported operand. It is
+    reported as succeeding without an independent check.
+
+  The run is the last verification step of the trial, after Tier 2 has
+  been kept or reverted (15.5). The owner approved one run (OD-5). By
+  ruling two were made (RL-21, RL-25), and both are recorded in
+  `ACCEPTANCE.md`.
 - A7. Every acceptance row and matrix row runs in under two seconds under
   `go test` on the 14-core development machine that `tools/ci/README.md`
   refers to, with the default settings of `go test` (no race detector, no
@@ -1717,13 +1790,15 @@ Not acceptance cases, with the reason:
   a function that holds many rows meets it by running them as parallel
   subtests (RL-7); that uses the default `-parallel` and changes no
   setting. Rows that run side by side take longer and vary from run to
-  run, so the replay test treats time in its own way (RL-15). A row
-  listed in the pending list as taking more than two seconds runs in
-  that test only with `PLAINSOLID_SLOW=1`, where its time is logged, so
-  that the default tier stays fast. A row not listed fails that test
-  for its time only beyond four seconds. Neither changes what the pass
-  needs: every Tier 1 row under two seconds when run alone, and none
-  left on the list of slow rows.
+  run, so the replay test treats time in its own way (RL-15, RL-20). In
+  the default tier it logs the time of a row and fails none for it: the
+  replay then runs beside every other package, and a row that takes 1.6
+  seconds alone took 5.5 seconds there. A row listed in the pending list
+  as taking more than two seconds runs only with `PLAINSOLID_SLOW=1`. In
+  the slow tier, where the replay runs by itself, a row that is not
+  listed fails for its time beyond four seconds. None of this changes
+  what the pass needs: every Tier 1 row in scope under two seconds when
+  run alone, and none left on the list of slow rows.
 - A8. Achieved accuracy (OD-7). For every acceptance row, the test of A2
   reports the error the general path achieves in volume and in surface area:
   |value − expected| / max(1, |expected|), where expected is the analytic
@@ -1742,6 +1817,36 @@ Not acceptance cases, with the reason:
   slow tier the test also logs for each row the largest difference
   between the closed form and `MassProperties`, in volume and in area,
   and the report to the owner gives the largest of each over the rows.
+- A9. Audit of refusals (RL-23). A refusal as non-manifold is an explicit
+  error, and a false one hides a result that exists. Before a pass is
+  declared, on the final code, every `ErrNonManifold` that the stress
+  sets return is confirmed by a method that does not reuse the
+  classification of this package: the contact the error names must be
+  shown to be a place where the boundary of the result is not a
+  manifold. The stress sets are the five the trial ran, each with union,
+  common and cut and with volumes compared with `csg/poly` or a closed
+  form: pairs of axis-aligned boxes on a grid; chains that feed a result
+  back as an operand; a rotated box with integer corners against a box;
+  a box against an upright cylinder; and two upright cylinders. Two
+  methods were used, and each is accepted where it is decisive.
+  - For a contact between planar faces: the operands are taken as
+    membership tests in closed form and the result as the Boolean of
+    those tests, and the connected regions inside and outside the result
+    are counted on small spheres about the contact. At a manifold point
+    there is one of each. This is not decisive where two surfaces are
+    tangent.
+  - For a tangent contact: operand B is moved by an amount far above the
+    tolerance and far below any feature, in fourteen directions, six
+    along the axes and eight diagonal, and the numbers of solids, voids
+    and handles of each result are noted. The trial moved B by 0.001, in
+    sets whose features are no smaller than 0.5. If
+    they are the same for all, nothing changes at the unmoved
+    configuration, and a refusal there refuses a manifold.
+
+  A refusal that neither method settles is settled by hand and named in
+  the report. A refusal found false is a defect of section 7.3 or 7.9
+  and fails the audit. The sets and the audit run outside the default
+  tier, and their outputs go with the report to the owner.
 
 ### 15.4 Order of work
 
@@ -1775,9 +1880,10 @@ These are requirements on the plan.
 
 The trial passes when all of these hold on one commit:
 
-- PC1. Every Tier 1 row passes A3, A4 and A7, section 11 passes (A5), the
-  oracle run passes (A6), and the record of A8 is complete for every Tier 1
-  row. `ErrInconsistent` or `ErrValidation` on any of them is a failure,
+- PC1. Every Tier 1 row in scope (15.2) passes A3, A4 and A7, section 11
+  passes (A5), the oracle run passes (A6), the audit of refusals finds
+  none false (A9), and the record of A8 is complete for every Tier 1
+  row in scope. `ErrInconsistent` or `ErrValidation` on any of them is a failure,
   and so is a leaf or row held back by a limit of `brep/trimmed` (E1,
   RL-9): PC1 holds only when it passes, after the fix on the foundation
   branch has been merged. A row with a response that A4 marks as
@@ -1810,7 +1916,9 @@ The trial passes when all of these hold on one commit:
   `go run ./tools/refgraph -tags research -pkg brep/trimmed -exclude examples -check research`
   pass.
 - PC4. Non-test Go in `brep/boolean` is at most 15,000 lines, and the bridge
-  file of L2 at most 400.
+  file of L2 at most 600. The second figure was 400 (RL-24). The cap is
+  there to catch rules about families growing in the adapter, and its
+  purpose is unchanged.
 
 PC1 to PC4 decide the pass. Tier 2 does not (OD-1): it is attempted only
 after PC1 to PC4 hold in every respect except the oracle run, which comes
@@ -1820,6 +1928,13 @@ of 7.4 and 7.5 and their tests only (SP5). Tier 2 is *supported* when its
 rows then pass A3 and A4 while every Tier 1 row, section 11 and PC2 to PC4
 still hold; otherwise it is reported as unsupported, the change is not
 kept, and the trial goes on to the oracle run without it.
+
+Two things were done in another order, by ruling (RL-21). Tier 2 was
+attempted before every Tier 1 row had passed, and the oracle run was made
+before the last rows held by limits of `brep/trimmed` were settled. Both
+were allowed because those rows waited on `brep/trimmed` and not on the
+Boolean. Tier 2 is not supported (RL-22): the attempt was not kept and is
+on its own branch.
 
 On a pass, the report to the owner lists the bridge paths and kernel
 constructors that no acceptance row needs any longer. From the survey these
@@ -1944,7 +2059,10 @@ reverses it. Each entry states the ruling and where it is applied.
   `trimmed.Solid.Bounds` before publishing bounds. One minimal change to
   the `transform` path of `bridge.go` is allowed, so that it republishes
   an analytic body of more than one shell, with the behavior for one
-  shell unchanged (L2, L3).
+  shell unchanged (L2, L3). RL-15 later
+  replaced two parts of this ruling: the bounds are the box of the
+  result's edges, and `transform` republishes every body the adapter
+  published.
 - RL-3. Faces stored as spline patches stay excluded. The freeze counted no
   Boolean response lost to them (S2, 15.2).
 - RL-4. Two Boolean responses on STEP-imported bodies stay unchecked. The
@@ -2046,3 +2164,85 @@ path (36 of 92 Tier 1 rows passing, no wrong volume):
   A8).
 - RL-18. The adapter may read the face source lists of a result in order
   to apply the coverage rule of CO3 (L2, PC2).
+
+Rulings of 2026-11-19, as the trial came to its closing state:
+
+- RL-19. Two more rows are excluded. T1-091 is a distinction below the
+  tolerance, like T1-009. T1-041 has a stock that is an import with a
+  placement that is not rigid (S4). In scope are 89 of the 92 Tier 1
+  rows (15.2, PC1).
+- RL-20. The replay fails a row for its time only in the slow tier, where
+  it runs by itself; in the default tier it logs the time. T1-065 passes
+  A7 on its time alone (A7).
+- RL-21. Order of the phases. Phase 4 was attempted before gate G3, and
+  the oracle run was made before the last rows limited by the foundation
+  were settled, because those rows waited on `brep/trimmed` and not on
+  the Boolean (15.5, A6).
+- RL-22. Tier 2 is not supported. The attempt is on
+  `codex/general-boolean-tier2-attempt` (`cc7a679e`); 1 of 17 rows
+  passes. The surface pair itself is one row of 7.4, as SP5 expects. The
+  attempt needed X7, which this document states and the code lacked; X7
+  is now on the trial branch with its own test. It also met two gaps in
+  the rules, which section 20 names as open, and one row needs an entry
+  of 7.5 for a conic with a cylinder (X7, CO2, 15.5).
+- RL-23. Touching contacts at an edge. An audit of the refusals as
+  non-manifold, by an independent method, found 56 false refusals among
+  operations on a box and a cylinder or on two cylinders. One rule now
+  decides them: an edge is a touching contact only when the faces of the
+  edge stay on one side of the other surface, judged from points of each
+  face near the contact, and X6 makes no touching record for an edge
+  that a touching trace runs along. The audit is a required check (X5,
+  X6, AR7, A9, PC1).
+- RL-24. The cap on the adapter file is 600 lines, raised from 400
+  because comments were being shortened to fit. Its purpose is unchanged
+  (PC4).
+- RL-25. Oracle. Two runs were made, on `1ae12376` and on `8a76218e`.
+  The reviewing session authorized the second because the touching rule
+  and `brep/trimmed` had changed after the first. Both agree with OCCT on
+  all 88 cases and 257 steps. OD-5 approved one run; the second is for
+  the owner to confirm (A6).
+- RL-26. Foundation. `codex/trimmed-collinear-corners` ended at
+  `b0c23193` and is merged into the trial branch. Two Tier 1 rows remain
+  held, T1-092 and T1-029 (E1). An amendment to B2 that the reviewing
+  session approved for T1-092, to cut a rim where it turns back along
+  its wall, was built and measured, did not help, and made one working
+  mesh fail. It was not kept and was never part of this document; it is
+  on `codex/general-boolean-rim-extremes-attempt` (`36758499`).
+
+## 20. Open items
+
+These are known and not settled. No ruling covers them, and this document
+does not decide them.
+
+- OP-1. X4 still judges a vertex in a face by directions that leave the
+  vertex. That is the weakness the audit found and RL-23 fixed for an
+  edge; for a vertex it has not been audited.
+- OP-2. A result may now have a cuspidal edge: two faces tangent along an
+  edge with the material between them. No rule says whether such a
+  result is wanted or is to be refused.
+- OP-3. The audit of refusals (A9) covers boxes, rotated boxes and
+  upright cylinders. It does not cover oblique cylinders or the
+  acceptance rows.
+- OP-4. The recorded failures of the rows that are slow on the default
+  bridge, other than T1-041, have not been read. Under A4 they count as
+  contract failures without having been classified.
+- OP-5. A touching hit where two traces cross. Where equal cylinders
+  whose axes meet cross along two ellipses, the ellipses meet at two
+  points at which the cylinders are tangent to each other. An edge of
+  one operand through such a point is tangent to the other cylinder
+  there; X5 records a touching contact and N3 refuses the result,
+  although the operands cross at that point. Sections 7.3 and 7.9 have
+  no rule for it. Nine Tier 2 rows.
+- OP-6. The overlap volume of a pinched common (CO2). The common of a
+  stock with one bore and the tool of a crossing bore is two wedges that
+  meet only at two points. N2 refuses it, correctly, and the record gives
+  a volume. Eight Tier 2 rows.
+- OP-7. Section 7.5 has no entry for the conic and cylinder of one Tier 2
+  row, T2-015. This one is an addition to the table.
+- OP-8. T1-092 and T1-029 do not pass, for the reasons E1 gives. Whether
+  to wait for more work on `brep/trimmed`, to change what the bridge
+  asks of its mesher, or to accept the two rows as they stand is the
+  owner's decision.
+- OP-9. The rounding allowance of T9 follows the size of the bounding
+  box, while rounding grows with the distance of the model from the
+  origin. A small model far from the origin is not covered.
