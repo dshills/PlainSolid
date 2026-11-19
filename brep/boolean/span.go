@@ -276,6 +276,20 @@ func (a *arrangement) seal() error {
 			a.inner[i][f] = append(a.inner[i][f], tr.elem)
 		}
 	}
+	// A span may have been found in a face by more than one pass: each
+	// list names an element once, in index order.
+	for i := range a.inner {
+		for f, list := range a.inner[i] {
+			sort.Ints(list)
+			unique := list[:0]
+			for k, e := range list {
+				if k == 0 || e != list[k-1] {
+					unique = append(unique, e)
+				}
+			}
+			a.inner[i][f] = unique
+		}
+	}
 	for _, b := range a.bundles {
 		for k, s := range b.spans {
 			other := a.spans[b.spans[1-k]]
