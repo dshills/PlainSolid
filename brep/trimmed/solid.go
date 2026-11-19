@@ -363,6 +363,18 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 			for j, side := range tri.side {
 				a, b := tri.ids[j], tri.ids[(j+1)%3]
 				if a == b {
+					// An interior side between the two chart copies of
+					// one vertex, on a face that winds around its
+					// surface, is a closed curve in space unless it
+					// stays at the vertex, as it does along a pole. Like
+					// a closed edge it needs two levels: after one, both
+					// of its halves join the same two mesh vertices.
+					if side.edge < 0 && s.minimumLevel < 2 {
+						p := mix(tri.uv[j], tri.uv[(j+1)%3], .5)
+						if q, err := numericalWrappedSupport(s.faces[i].Surface).Eval(p.X, p.Y); err == nil && !closePoint(q, vertices[a], tolerance) {
+							s.minimumLevel = 2
+						}
+					}
 					continue
 				}
 				k := seedSide{min(a, b), max(a, b)}

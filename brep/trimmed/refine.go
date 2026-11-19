@@ -60,12 +60,14 @@ func (s Solid) refineFrom(ctx context.Context, level, startLevel int, deflection
 		return mesh.Mesh{}, err
 	}
 	initial := s.seedTriangles()
+	var interiorLevels []int
 	if startLevel > 0 {
 		var e error
 		initial, e = s.sampledSeeds(ctx, startLevel, &m, boundary)
 		if e != nil {
 			return mesh.Mesh{}, e
 		}
+		interiorLevels = s.sampledInteriorLevels(initial, m.Vertices)
 	}
 	for fi, triangles := range initial {
 		f := s.faces[fi]
@@ -98,6 +100,9 @@ func (s Solid) refineFrom(ctx context.Context, level, startLevel int, deflection
 			if startLevel > 0 && startLevel == end {
 				end++
 			}
+		}
+		if startLevel > 0 {
+			end = max(end, startLevel+interiorLevels[fi])
 		}
 		for depth := startLevel; depth < end; depth++ {
 			next := make([]samples, 0, 4*len(current))
@@ -412,6 +417,70 @@ func (s Solid) sampledSeeds(ctx context.Context, level int, m *mesh.Mesh, bounda
 		}
 	}
 	return out, nil
+}
+
+// sampledInteriorLevels gives, for each face, how often the interior sides of
+// its sampled triangles must be halved before the triangles can be joined
+// into one mesh. Mesh edges are told apart by the two vertices they join. On
+// a face that winds around its surface, two different chart segments can join
+// the same two vertices the two ways around, and a segment can join the two
+// chart copies of one vertex. An interior side that shares its two vertices
+// with a different side needs a vertex of its own in between, which one
+// halving gives. An interior side from a vertex back to itself that leaves
+// the vertex, and so is a closed curve in space, needs two, because after one
+// its two halves join the same two vertices again. A side that stays at its
+// vertex, as along a pole, needs none.
+func (s Solid) sampledInteriorLevels(seeds [][]samples, vertices []geom.Vec3) []int {
+	// A side is the same as another when it is the same stretch of the same
+	// edge, which two faces share, or the same chart segment of one face,
+	// which two of its triangles share.
+	type side struct {
+		face, edge int
+		a, b       geom.Vec2
+		from, to   float64
+	}
+	levels := make([]int, len(seeds))
+	first := map[[2]int]side{}
+	for fi, list := range seeds {
+		for _, t := range list {
+			for j, a := range t.ids {
+				b, p, q := t.ids[(j+1)%3], t.uv[j], t.uv[(j+1)%3]
+				interior := t.edge[j].edge < 0
+				if a == b {
+					if interior && levels[fi] < 2 {
+						middle := mix(p, q, .5)
+						if at, err := numericalWrappedSupport(s.faces[fi].Surface).Eval(middle.X, middle.Y); err == nil && !closePoint(at, vertices[a], s.tolerance) {
+							levels[fi] = 2
+						}
+					}
+					continue
+				}
+				if p.X > q.X || p.X == q.X && p.Y > q.Y {
+					p, q = q, p
+				}
+				this := side{face: fi, edge: -1, a: p, b: q}
+				if !interior {
+					this = side{face: -1, edge: t.edge[j].edge, from: min(t.start[j], t.end[j]), to: max(t.start[j], t.end[j])}
+				}
+				key := [2]int{min(a, b), max(a, b)}
+				prior, seen := first[key]
+				if !seen {
+					first[key] = this
+					continue
+				}
+				if prior == this {
+					continue
+				}
+				if interior {
+					levels[fi] = max(levels[fi], 1)
+				}
+				if prior.edge < 0 {
+					levels[prior.face] = max(levels[prior.face], 1)
+				}
+			}
+		}
+	}
+	return levels
 }
 
 // The two four-edge toroid rims and the two uses of its shared curved seam
