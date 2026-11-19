@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 )
 
@@ -121,19 +122,23 @@ func combine(ctx context.Context, a, b trimmed.Solid, op Operation, o Options) (
 	if r.EdgeResidual, r.VertexResidual, err = residuals(built); err != nil {
 		return Result{}, err
 	}
-	pa, err := measure(ctx, a, empty[0], o.Integration)
-	if err != nil {
+	// V5 integrates an operand unless the caller gave its measures.
+	var pa, pb parametric.Properties
+	if o.KnownA != nil {
+		pa = *o.KnownA
+	} else if pa, err = measure(ctx, a, empty[0], o.Integration); err != nil {
 		return Result{}, err
 	}
-	pb, err := measure(ctx, b, empty[1], o.Integration)
-	if err != nil {
+	if o.KnownB != nil {
+		pb = *o.KnownB
+	} else if pb, err = measure(ctx, b, empty[1], o.Integration); err != nil {
 		return Result{}, err
 	}
 	pr, err := measure(ctx, built.solid, built.faces == nil, o.Integration)
 	if err != nil {
 		return Result{}, err
 	}
-	r.VolumeA, r.VolumeB, r.Volume = pa.Volume, pb.Volume, pr.Volume
+	r.VolumeA, r.VolumeB, r.Volume, r.Properties = pa.Volume, pb.Volume, pr.Volume, pr
 	if err := identities(&arr.fabric, pieces, op, pa, pb, pr, o, t); err != nil {
 		return Result{}, err
 	}

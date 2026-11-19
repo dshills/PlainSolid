@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
 )
@@ -166,4 +167,42 @@ func sameResult(t *testing.T, x, y Result) bool {
 	rx, sx, ux := strip(x)
 	ry, sy, uy := strip(y)
 	return reflect.DeepEqual(rx, ry) && reflect.DeepEqual(sx, sy) && reflect.DeepEqual(ux, uy)
+}
+
+// TestKnownMeasures covers the measures a caller hands to Combine: V5
+// takes the volume and area of an operand from them and does not
+// integrate it, the result reports its own mass properties for the next
+// call, and a value is trusted as given, so a wrong one fails V5.
+func TestKnownMeasures(t *testing.T) {
+	stock, tool := lifted(t, box(t, 0, 0, 0, 4, 4, 4)), tube(t, 2, 2, -1, 1, 6)
+	plain, err := Combine(context.Background(), stock, tool, Cut, matrixOptions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantArea := 96 - 2*math.Pi + 8*math.Pi
+	if p := plain.Properties; math.Abs(p.Volume-plain.Volume) > 0 || math.Abs(p.Area-wantArea) > 1e-7 {
+		t.Fatalf("the result reports volume %g and area %g, want %g and %g", p.Volume, p.Area, plain.Volume, wantArea)
+	}
+	o := matrixOptions
+	o.KnownA, o.KnownB = &parametric.Properties{Volume: 64, Area: 96}, &parametric.Properties{Volume: 6 * math.Pi, Area: 14 * math.Pi}
+	// The volumes the result reports for the operands are the given
+	// ones to the last bit, which integration would not return.
+	known, err := Combine(context.Background(), stock, tool, Cut, o)
+	if err != nil || known.VolumeA != 64 || known.VolumeB != 6*math.Pi || math.Abs(known.Volume-plain.Volume) > 1e-9 {
+		t.Fatalf("with known measures: %v, volumes %g %g %g", err, known.VolumeA, known.VolumeB, known.Volume)
+	}
+	// The result of one call as the operand of the next, with the
+	// measures it reported.
+	o.KnownA, o.KnownB = &known.Properties, nil
+	if next, err := Combine(context.Background(), known.Solid, lifted(t, box(t, 3, 3, 3, 5, 5, 5)), Cut, o); err != nil || math.Abs(next.Volume-(known.Volume-1)) > 1e-7 {
+		t.Fatalf("second cut: %v, volume %g", err, next.Volume)
+	}
+	o.KnownA = &parametric.Properties{Volume: 65, Area: 96}
+	if _, err := Combine(context.Background(), stock, tool, Cut, o); !errors.Is(err, ErrValidation) {
+		t.Fatalf("a wrong known volume gives %v, want a V5 failure", err)
+	}
+	o.KnownA = &parametric.Properties{Volume: math.Inf(1)}
+	if _, err := Combine(context.Background(), stock, tool, Cut, o); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("a known volume that is not finite gives %v", err)
+	}
 }

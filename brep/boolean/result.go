@@ -1,6 +1,9 @@
 package boolean
 
-import "plainsolid/brep/trimmed"
+import (
+	"plainsolid/brep/parametric"
+	"plainsolid/brep/trimmed"
+)
 
 // Result is what Combine returns (P5). On an error it is the zero value.
 type Result struct {
@@ -29,6 +32,10 @@ type Result struct {
 	// VolumeA, VolumeB and Volume are the integrated volumes of the
 	// operands and of the result.
 	VolumeA, VolumeB, Volume float64
+	// Properties are the mass properties of the result as V5 integrated
+	// them: its area, centroid and inertia beside the volume. They are
+	// zero for the empty solid.
+	Properties parametric.Properties
 	// EdgeResidual and VertexResidual are the largest residuals that
 	// validation found (V3, V4).
 	EdgeResidual, VertexResidual float64

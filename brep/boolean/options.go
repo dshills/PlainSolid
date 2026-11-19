@@ -46,6 +46,14 @@ type Options struct {
 	MaxGrowth float64
 	// Integration is passed to the mass-property integration of V5.
 	Integration parametric.IntegrationOptions
+	// KnownA and KnownB, when not nil, are mass properties the caller
+	// already has for the operands, for example from the Result that
+	// produced one of them. V5 then takes the volume and the area of
+	// that operand from them and does not integrate it again; the other
+	// fields are not read. A value given here is trusted as given:
+	// Combine does not compare it with the solid, so a wrong one makes
+	// V5 judge the result against the wrong volume.
+	KnownA, KnownB *parametric.Properties
 }
 
 // normalized checks P4 and fills the defaults of P3 and section 10.
@@ -54,6 +62,11 @@ func (o Options) normalized() (Options, error) {
 	for _, v := range []float64{o.Linear, o.Relative, o.Angular, o.Volume, o.MaxGrowth, o.Integration.RelativeTolerance} {
 		if math.IsNaN(v) || math.IsInf(v, 0) {
 			return bad("a non-finite option")
+		}
+	}
+	for _, k := range [2]*parametric.Properties{o.KnownA, o.KnownB} {
+		if k != nil && !(k.Volume >= 0 && k.Area >= 0 && !math.IsInf(k.Volume, 0) && !math.IsInf(k.Area, 0)) {
+			return bad("a known volume or area that is negative or not finite")
 		}
 	}
 	switch {

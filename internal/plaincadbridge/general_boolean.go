@@ -42,7 +42,7 @@ func (b *Bridge) generalBoolean(ctx context.Context, a, c stored, op string) (Sh
 	if err != nil {
 		return Shape{}, err
 	}
-	return b.putGeneral(ctx, r)
+	return b.putGeneral(r)
 }
 
 // generalCut holds a cut to the contract that the bridge's cuts share:
@@ -60,20 +60,33 @@ func generalCombine(ctx context.Context, a, c stored, op boolean.Operation) (boo
 	if err != nil {
 		return boolean.Result{}, err
 	}
-	return generalStep(ctx, x, c, op)
+	return generalStep(ctx, x, generalKnown(a), c, op)
 }
 
-// generalStep is one step of a fold: a solid combined with a stored shape.
-func generalStep(ctx context.Context, x trimmed.Solid, c stored, op boolean.Operation) (boolean.Result, error) {
+// generalStep is one step of a fold: a solid, with its measures where
+// they are known, combined with a stored shape.
+func generalStep(ctx context.Context, x trimmed.Solid, known *parametric.Properties, c stored, op boolean.Operation) (boolean.Result, error) {
 	y, err := generalOperand(c)
 	if err != nil {
 		return boolean.Result{}, err
 	}
-	r, err := boolean.Combine(ctx, x, y, op, generalOptions)
+	o := generalOptions
+	o.KnownA, o.KnownB = known, generalKnown(c)
+	r, err := boolean.Combine(ctx, x, y, op, o)
 	if err != nil {
 		return boolean.Result{}, generalFailure(err)
 	}
 	return r, nil
+}
+
+// generalKnown is the volume and area the bridge stores for a published
+// shape, which the general Boolean then does not integrate again. A
+// shape that was never published has none.
+func generalKnown(s stored) *parametric.Properties {
+	if g := s.result.GeometryAssertions; g.Valid {
+		return &parametric.Properties{Volume: g.Volume, Area: g.SurfaceArea}
+	}
+	return nil
 }
 
 // generalOperand reads a stored shape only to obtain its trimmed solid
@@ -107,16 +120,13 @@ func generalOperand(s stored) (trimmed.Solid, error) {
 
 // putGeneral publishes a result of the general Boolean: the empty solid
 // as the legacy paths publish it, and any other as an analytic body that
-// holds the result solid, with its integrated volume and area.
-func (b *Bridge) putGeneral(ctx context.Context, r boolean.Result) (Shape, error) {
+// holds the result solid, with the volume and area that the general
+// Boolean integrated for it.
+func (b *Bridge) putGeneral(r boolean.Result) (Shape, error) {
 	if r.Solids == 0 {
 		return b.put(brep.Solid{})
 	}
-	p, err := r.Solid.MassProperties(ctx, generalOptions.Integration)
-	if err != nil {
-		return Shape{}, err
-	}
-	return b.publishGeneral(&analyticBody{solid: r.Solid, volume: p.Volume, area: p.Area}, r.Solids)
+	return b.publishGeneral(&analyticBody{solid: r.Solid, volume: r.Properties.Volume, area: r.Properties.Area}, r.Solids)
 }
 
 // publishGeneral stores an analytic body of any number of shells. It
@@ -197,30 +207,32 @@ func (b *Bridge) generalCutMany(ctx context.Context, a stored, tools []string) (
 		return Shape{}, err
 	}
 	var r boolean.Result
-	before := math.NaN()
+	before, known := math.NaN(), generalKnown(a)
 	for i, id := range tools {
 		c, err := b.get(id)
 		if err != nil {
 			return Shape{}, err
 		}
-		if r, err = generalStep(ctx, x, c, boolean.Cut); err != nil {
+		if r, err = generalStep(ctx, x, known, c, boolean.Cut); err != nil {
 			return Shape{}, err
 		}
 		if i == 0 {
 			before = r.VolumeA
 		}
-		x = r.Solid
+		measures := r.Properties
+		x, known = r.Solid, &measures
 	}
 	if err := generalCut(before, r); err != nil {
 		return Shape{}, err
 	}
-	return b.putGeneral(ctx, r)
+	return b.putGeneral(r)
 }
 
 // generalJoinAll is joinAll as a left fold of unions (CO1): the targets,
 // then the tool.
 func (b *Bridge) generalJoinAll(ctx context.Context, targets []string, tool stored) (Shape, error) {
 	var x trimmed.Solid
+	var known *parametric.Properties
 	var r boolean.Result
 	for i, id := range targets {
 		c, err := b.get(id)
@@ -231,17 +243,19 @@ func (b *Bridge) generalJoinAll(ctx context.Context, targets []string, tool stor
 			if x, err = generalOperand(c); err != nil {
 				return Shape{}, err
 			}
+			known = generalKnown(c)
 			continue
 		}
-		if r, err = generalStep(ctx, x, c, boolean.Union); err != nil {
+		if r, err = generalStep(ctx, x, known, c, boolean.Union); err != nil {
 			return Shape{}, err
 		}
-		x = r.Solid
+		measures := r.Properties
+		x, known = r.Solid, &measures
 	}
 	// As on the legacy path, the targets may be apart, the tool has to
 	// connect them, and it has to add material.
 	before := r.Volume
-	r, err := generalStep(ctx, x, tool, boolean.Union)
+	r, err := generalStep(ctx, x, known, tool, boolean.Union)
 	if err != nil {
 		return Shape{}, err
 	}
@@ -251,7 +265,7 @@ func (b *Bridge) generalJoinAll(ctx context.Context, targets []string, tool stor
 	if !removesMaterial(r.Volume, before) {
 		return Shape{}, errors.New("the join added no volume beyond the selected target bodies")
 	}
-	return b.putGeneral(ctx, r)
+	return b.putGeneral(r)
 }
 
 // generalOverlapVolume is the volume of the common (CO2).
@@ -337,7 +351,7 @@ func (b *Bridge) generalToFace(ctx context.Context, target stored, q request) (S
 	if err != nil {
 		return Shape{}, err
 	}
-	return b.putGeneral(ctx, r)
+	return b.putGeneral(r)
 }
 
 // generalFailure maps the errors of the general Boolean to bridge
