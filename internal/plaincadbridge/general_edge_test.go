@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"strings"
 	"testing"
+	"time"
 
 	"plainsolid/brep/blend"
 	"plainsolid/brep/boolean"
@@ -431,4 +433,141 @@ func TestGeneralChamferConcave(t *testing.T) {
 	both["edges"] = []any{edgeRef(vector{20, 0, 0}, vector{20, 0, 10}), edgeRef(vector{10, 10, 0}, vector{10, 10, 10})}
 	refused(t, b, both, "UNSUPPORTED", alone.Error.Message)
 	t.Logf("the blocked concave edge is refused with: %s", alone.Error.Message)
+}
+
+// TestGeneralFillet fillets edges of general results and compares volume
+// and area with the closed forms of section 11.1: at a right angle an
+// edge of length L and radius r loses L·r²(1 − π/4) of volume, 2·L·r of
+// its two faces and r²(1 − π/4) of each end face, and gains L·r·π/2.
+func TestGeneralFillet(t *testing.T) {
+	b := New()
+	filleted := func(v, a, length, r float64, edges int) (float64, float64) {
+		section := r * r * (1 - math.Pi/4)
+		return v - length*section, a + length*r*(math.Pi/2-2) - 2*float64(edges)*section
+	}
+	t.Run("Q2, a slotted box", func(t *testing.T) {
+		s := slottedBox(t, b)
+		out := shape(t, b, treat("fillet", s.Handle, vector{0, 0, 0}, vector{20, 0, 0}, vector{0, 0, 1}, 2))
+		v, a := filleted(1840, 1048, 20, 2, 1)
+		requireGeneral(t, b, out, v, a)
+		// F4: the fillet meets its two faces along smooth edges, which
+		// take no treatment; the treated edge is gone.
+		for _, e := range [][2]vector{{{0, 0, 0}, {20, 0, 0}}, {{0, 2, 0}, {20, 2, 0}}, {{0, 0, 2}, {20, 0, 2}}} {
+			if available(t, b, out.Handle, e[0], e[1]) {
+				t.Fatalf("the edge %v is available on the filleted body", e)
+			}
+		}
+		if !available(t, b, out.Handle, vector{0, 10, 0}, vector{20, 10, 0}) {
+			t.Fatal("an untouched edge is not available")
+		}
+	})
+	t.Run("Q3, two parallel edges", func(t *testing.T) {
+		s := slottedBox(t, b)
+		out := shape(t, b, q{"op": "fillet", "handle": s.Handle, "normal": vector{0, 0, 1}, "radius": 2, "edges": []any{
+			edgeRef(vector{0, 0, 0}, vector{20, 0, 0}), edgeRef(vector{0, 10, 0}, vector{20, 10, 0})}})
+		v, a := filleted(1840, 1048, 40, 2, 2)
+		requireGeneral(t, b, out, v, a)
+	})
+	t.Run("Q5, each top edge of a pocketed box", func(t *testing.T) {
+		s := pocketedBox(t, b)
+		for _, e := range [][2]vector{{{0, 0, 10}, {40, 0, 10}}, {{40, 0, 10}, {40, 30, 10}}, {{40, 30, 10}, {0, 30, 10}}, {{0, 30, 10}, {0, 0, 10}}} {
+			out := shape(t, b, treat("fillet", s.Handle, e[0], e[1], vector{0, 0, 1}, 1))
+			length := math.Abs(float64(e[1][0]-e[0][0])) + math.Abs(float64(e[1][1]-e[0][1]))
+			v, a := filleted(11800, 3880, length, 1, 1)
+			requireGeneral(t, b, out, v, a)
+		}
+	})
+	t.Run("a box bored by a legacy path and slotted by the fallback", func(t *testing.T) {
+		stock := box(t, b, vector{}, vector{20, 10, 10})
+		bored := shape(t, b, q{"op": "cut", "a": stock.Handle, "b": circle(t, b, vector{5, 5, 0}, vector{0, 0, 1}, 2, 10).Handle})
+		slotted := declined(t, b, "", "cut", bored.Handle, box(t, b, vector{12, -1, 6}, vector{16, 11, 11}).Handle)
+		out := shape(t, b, treat("fillet", slotted.Handle, vector{0, 0, 0}, vector{20, 0, 0}, vector{0, 0, 1}, 1))
+		v, a := filleted(slotted.GeometryAssertions.Volume, slotted.GeometryAssertions.SurfaceArea, 20, 1, 1)
+		requireGeneral(t, b, out, v, a)
+	})
+	t.Run("Q10, a body that is not axis-aligned", func(t *testing.T) {
+		// A turn of 0.7 about the direction (1,2,3), and a shift.
+		x, y, z := 1/math.Sqrt(14), 2/math.Sqrt(14), 3/math.Sqrt(14)
+		c, s := math.Cos(0.7), math.Sin(0.7)
+		m := [][]float64{
+			{c + x*x*(1-c), x*y*(1-c) - z*s, x*z*(1-c) + y*s, 3},
+			{y*x*(1-c) + z*s, c + y*y*(1-c), y*z*(1-c) - x*s, -2},
+			{z*x*(1-c) - y*s, z*y*(1-c) + x*s, c + z*z*(1-c), 5},
+		}
+		moved := func(p vector) vector {
+			var out vector
+			for i, row := range m {
+				out[i] = row[0]*p[0] + row[1]*p[1] + row[2]*p[2] + row[3]
+			}
+			return out
+		}
+		turned := shape(t, b, q{"op": "transform", "handle": slottedBox(t, b).Handle, "matrix": m})
+		normal := moved(vector{0, 0, 1})
+		for i := range normal {
+			normal[i] -= m[i][3]
+		}
+		out := shape(t, b, treat("fillet", turned.Handle, moved(vector{0, 0, 0}), moved(vector{20, 0, 0}), normal, 2))
+		v, a := filleted(1840, 1048, 20, 2, 1)
+		requireGeneral(t, b, out, v, a)
+	})
+	t.Run("eight edges in one request", func(t *testing.T) {
+		// The four edges of the pocketed box along x, and the four
+		// concave edges at the corners of its pocket.
+		s := pocketedBox(t, b)
+		var edges []any
+		for _, p := range []vector{{0, 0, 0}, {0, 30, 0}, {0, 0, 10}, {0, 30, 10}} {
+			edges = append(edges, edgeRef(p, vector{40, p[1], p[2]}))
+		}
+		for _, p := range []vector{{15, 10, 8}, {25, 10, 8}, {25, 20, 8}, {15, 20, 8}} {
+			edges = append(edges, edgeRef(p, vector{p[0], p[1], 10}))
+		}
+		start := time.Now()
+		out := shape(t, b, q{"op": "fillet", "handle": s.Handle, "normal": vector{0, 0, 1}, "radius": 0.5, "edges": edges})
+		t.Logf("eight fillets took %v", time.Since(start))
+		section := 0.25 * (1 - math.Pi/4)
+		near(t, out.GeometryAssertions.Volume, 11800-4*40*section+4*2*section)
+		if out.GeometryAssertions.SolidCount != 1 {
+			t.Fatalf("%d solids", out.GeometryAssertions.SolidCount)
+		}
+	})
+}
+
+// TestGeneralFilletRefused gives a general result the fillets that are
+// out of scope.
+func TestGeneralFilletRefused(t *testing.T) {
+	b := New()
+	slotted := slottedBox(t, b)
+	bottom := func(s Shape, r float64) q {
+		return treat("fillet", s.Handle, vector{0, 0, 0}, vector{20, 0, 0}, vector{0, 0, 1}, r)
+	}
+	t.Run("X7, a radius below the working tolerance", func(t *testing.T) {
+		refused(t, b, bottom(slotted, 5e-8), "UNSUPPORTED", "fillet failed: the treatment size does not fit the selected edge")
+	})
+	t.Run("X8 by K3, a fillet as wide as its face", func(t *testing.T) {
+		refused(t, b, bottom(box10(t, b), 10), "UNSUPPORTED", "fillet"+doesNotFit)
+	})
+	t.Run("X1, the same fillet twice", func(t *testing.T) {
+		out := shape(t, b, bottom(slotted, 1))
+		refused(t, b, bottom(out, 1), "UNSUPPORTED", "fillet"+lostEdge)
+	})
+	t.Run("X11, a bore across the fillet", func(t *testing.T) {
+		// The bore opens in the bottom face inside the reach of the
+		// fillet and leaves the edge whole. Its wall and the fillet are
+		// cylinders with crossing axes.
+		bored := general(t, b, "cut", box(t, b, vector{}, vector{20, 10, 10}), circle(t, b, vector{9, 1, 0}, vector{0, 0, 1}, 0.5, 10))
+		count, next := len(b.shapes), b.next
+		a := ask(t, b, bottom(bored, 2))
+		if a.OK || a.Error == nil || a.Error.Code != "UNSUPPORTED" || !strings.HasPrefix(a.Error.Message, "fillet failed: boolean: unsupported input") {
+			t.Fatalf("ok %v, error %+v", a.OK, a.Error)
+		}
+		if len(b.shapes) != count || b.next != next {
+			t.Fatal("the refused request published a shape")
+		}
+	})
+}
+
+// box10 is the box (0,0,0)–(20,10,10) as a general result.
+func box10(t *testing.T, b *Bridge) Shape {
+	t.Helper()
+	return lifted(t, b, box(t, b, vector{}, vector{20, 10, 10}))
 }

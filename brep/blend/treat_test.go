@@ -42,6 +42,10 @@ func measured(t *testing.T, s trimmed.Solid) (Body, float64, float64) {
 // the section of its tool, the width of the new face, and the setback
 // along each old face.
 func form(e Edge, kind Kind, size float64) (section, width, setback float64) {
+	if kind == Fillet {
+		setback = size / math.Tan(e.angle/2)
+		return size*setback - size*size*(math.Pi-e.angle)/2, size * (math.Pi - e.angle), setback
+	}
 	return size * size * math.Sin(e.angle) / 2, 2 * size * math.Sin(e.angle/2), size
 }
 
@@ -164,7 +168,7 @@ func TestTreatGuards(t *testing.T) {
 	ctx := context.Background()
 	s := slottedBox(t)
 	e := located(t, s, vec(0, 0, 0), vec(20, 0, 0))
-	wedge, err := e.tool(0, Chamfer, 0.5, treatOptions)
+	wedge, err := e.tool(ctx, 0, Chamfer, 0.5, treatOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -245,4 +249,84 @@ func TestChamferConcave(t *testing.T) {
 			near(t, r.Properties.Area, 1400-20*(2-math.Sqrt2))
 		}
 	})
+}
+
+// TestFilletClosedForms fillets edges below the bridge and compares with
+// the closed forms.
+func TestFilletClosedForms(t *testing.T) {
+	t.Run("Q7, an edge of 120 degrees", func(t *testing.T) {
+		s := hexPrism(t)
+		requireForm(t, s, Fillet, 1.5, located(t, s, vec(5, 0, 0), vec(5, 0, 8)))
+	})
+	t.Run("Q8, the acute edge of a triangular prism", func(t *testing.T) {
+		s := trianglePrism(t)
+		r := requireForm(t, s, Fillet, 5.0/16, located(t, s, vec(4, 0, 0), vec(4, 0, 5)))
+		// The values the legacy path's test states for this request.
+		radius, w := 5.0/16, math.Atan2(3, -4)
+		area := 6 - radius*radius*(3-w/2)
+		perimeter := 12 - 6*radius + radius*w
+		near(t, r.Properties.Volume, 5*area)
+		near(t, r.Properties.Area, 2*area+5*perimeter)
+	})
+	t.Run("Q9, the concave edge of an L prism", func(t *testing.T) {
+		s := lPrism(t)
+		concave := located(t, s, vec(10, 10, 0), vec(10, 10, 10))
+		convex := located(t, s, vec(20, 10, 0), vec(20, 10, 10))
+		r := requireForm(t, s, Fillet, 1, concave)
+		near(t, r.Properties.Volume, 3000+10*(1-math.Pi/4))
+		// The values the legacy path's test states for both edges.
+		r = requireForm(t, s, Fillet, 1, convex, concave)
+		near(t, r.Properties.Volume, 3000)
+		near(t, r.Properties.Area, 1400-20*(2-math.Pi/2))
+	})
+	t.Run("a result of the Boolean", func(t *testing.T) {
+		s := slottedBox(t)
+		requireForm(t, s, Fillet, 2, located(t, s, vec(0, 0, 0), vec(20, 0, 0)))
+	})
+	t.Run("three edges, in at most seven calls (L1)", func(t *testing.T) {
+		s := boxSolid(t, vec(0, 0, 0), vec(20, 10, 10))
+		edges := []Edge{located(t, s, vec(0, 0, 0), vec(20, 0, 0)), located(t, s, vec(0, 10, 0), vec(20, 10, 0)), located(t, s, vec(0, 10, 10), vec(20, 10, 10))}
+		calls := 0
+		counted := treatOptions
+		counted.calls = &calls
+		r, err := Treat(context.Background(), Body{Solid: s, Solids: 1}, edges, Fillet, 1, counted)
+		if err != nil {
+			t.Fatal(err)
+		}
+		near(t, r.Properties.Volume, 2000-60*(1-math.Pi/4))
+		if calls > 2*len(edges)+1 {
+			t.Fatalf("%d calls of boolean.Combine for %d edges", calls, len(edges))
+		}
+	})
+	t.Run("two fillets that meet at a corner", func(t *testing.T) {
+		// Two cylinders of one radius with crossing axes: the Boolean
+		// takes no such pair, and its refusal is the answer (X11).
+		s := boxSolid(t, vec(0, 0, 0), vec(20, 10, 10))
+		edges := []Edge{located(t, s, vec(0, 0, 0), vec(20, 0, 0)), located(t, s, vec(0, 0, 0), vec(0, 10, 0))}
+		if _, err := Treat(context.Background(), Body{Solid: s, Solids: 1}, edges, Fillet, 1, treatOptions); !errors.Is(err, boolean.ErrUnsupported) {
+			t.Fatal(err)
+		}
+	})
+}
+
+// TestExtremeAngles treats an edge of 5 degrees and an edge of 175
+// degrees. Each tool fits its prism with room to spare, so each must
+// meet its closed form.
+func TestExtremeAngles(t *testing.T) {
+	rise := 10 * math.Tan(5*math.Pi/180)
+	sharp := prismSolid(t, 10, [2]float64{0, 0}, [2]float64{100, 0}, [2]float64{100, 10 * rise})
+	flat := prismSolid(t, 10, [2]float64{0, 0}, [2]float64{10, 0}, [2]float64{20, rise}, [2]float64{20, 10}, [2]float64{0, 10})
+	for _, c := range []struct {
+		name  string
+		solid trimmed.Solid
+		x     float64
+		angle float64
+	}{{"5 degrees", sharp, 0, 5}, {"175 degrees", flat, 10, 175}} {
+		e := located(t, c.solid, vec(c.x, 0, 0), vec(c.x, 0, 10))
+		if math.Abs(e.angle-c.angle*math.Pi/180) > 1e-12 || !e.convex {
+			t.Fatalf("%s: angle %v, convex %v", c.name, e.angle*180/math.Pi, e.convex)
+		}
+		t.Run(c.name+", chamfer", func(t *testing.T) { requireForm(t, c.solid, Chamfer, 1, e) })
+		t.Run(c.name+", fillet", func(t *testing.T) { requireForm(t, c.solid, Fillet, 0.5, e) })
+	}
 }

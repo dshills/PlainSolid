@@ -37,8 +37,8 @@ revolutions, circular sweeps, and elliptical lofts and extrusions.
 `brep/boolean` is one general union, common and cut for solids bounded by
 planes and cylinders, accepted on validation within tolerance; the PlainCAD
 bridge asks it only where its own paths decline a request. `brep/blend`
-chamfers straight edges between planar faces of such a result, convex or
-concave, by cutting or uniting with the same Boolean. General curved Booleans, arbitrary
+chamfers and fillets straight edges between planar faces of such a result,
+convex or concave, by cutting or uniting with the same Boolean. General curved Booleans, arbitrary
 curved trim boundaries and broad CAD exchange remain open. See the
 [status matrix](docs/STATUS.md) for the implemented domains and acceptance gaps.
 

@@ -32,7 +32,7 @@ func generalEdgeAvailable(s stored, start, end geom.Vec3) bool {
 }
 
 // generalEdgeKinds maps the operations to the treatments of brep/blend.
-var generalEdgeKinds = map[string]blend.Kind{"chamfer": blend.Chamfer}
+var generalEdgeKinds = map[string]blend.Kind{"chamfer": blend.Chamfer, "fillet": blend.Fillet}
 
 // aligned reports whether two unit vectors are parallel or antiparallel.
 func aligned(a, b geom.Vec3) bool { return a.Cross(b).Length() <= generalEdgeTolerance.Angular }

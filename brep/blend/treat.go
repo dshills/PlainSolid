@@ -19,6 +19,9 @@ const (
 	// Chamfer replaces the edge by a plane that meets each of its faces
 	// at the size, measured along the face from the edge.
 	Chamfer Kind = iota
+	// Fillet replaces the edge by a cylinder of the size as radius,
+	// tangent to both of its faces.
+	Fillet
 )
 
 // Body is the solid to treat, with what the caller knows of it.
@@ -35,6 +38,16 @@ type Body struct {
 type Options struct {
 	Boolean   boolean.Options
 	Tolerance Tolerance
+	// calls, when set by a test, counts the boolean.Combine calls.
+	calls *int
+}
+
+// combine is boolean.Combine, counted.
+func (o Options) combine(ctx context.Context, a, b trimmed.Solid, op boolean.Operation, options boolean.Options) (boolean.Result, error) {
+	if o.calls != nil {
+		*o.calls++
+	}
+	return boolean.Combine(ctx, a, b, op, options)
 }
 
 // The ways a treatment is refused, besides an error of boolean.Combine,
@@ -79,7 +92,7 @@ func Treat(ctx context.Context, body Body, edges []Edge, kind Kind, size float64
 	tools := make([]tool, len(edges))
 	var calls [2][]int
 	for i, e := range edges {
-		t, err := e.tool(i, kind, size, o)
+		t, err := e.tool(ctx, i, kind, size, o)
 		if err != nil {
 			return boolean.Result{}, err
 		}
@@ -108,7 +121,7 @@ func Treat(ctx context.Context, body Body, edges []Edge, kind Kind, size float64
 			op = boolean.Union
 		}
 		options.KnownA = body.Known
-		if r, err = boolean.Combine(ctx, body.Solid, united.solid, op, options); err != nil {
+		if r, err = o.combine(ctx, body.Solid, united.solid, op, options); err != nil {
 			return boolean.Result{}, err
 		}
 		if err := check(r, body.Solids, united, edges, call, k == 1, o); err != nil {
@@ -123,15 +136,36 @@ func Treat(ctx context.Context, body Body, edges []Edge, kind Kind, size float64
 	return r, nil
 }
 
-// tool builds the tool of one edge (T1, T3). index is the place of the
-// edge in the request.
-func (e Edge) tool(index int, _ Kind, size float64, o Options) (tool, error) {
-	// A section thinner than the point tolerance is no section.
-	if !(2*size*math.Sin(e.angle/2) > o.Tolerance.Point) {
+// tool builds the tool of one edge (T1 to T5). index is the place of the
+// edge in the request. The tool spans the chain exactly. ErrSize is
+// returned when a prism or a cylinder cannot be constructed; an error of
+// the boolean.Combine call of a fillet tool is returned as it is.
+func (e Edge) tool(ctx context.Context, index int, kind Kind, size float64, o Options) (tool, error) {
+	span := e.end.Sub(e.start)
+	length := span.Length()
+	axis := span.Scale(1 / length)
+	// The setback along each face, and the width of the section across
+	// the bisector. A section thinner than the point tolerance is none.
+	setback := size
+	if kind == Fillet {
+		setback = size / math.Tan(e.angle/2)
+	}
+	if !(setback > o.Tolerance.Point) || !(2*setback*math.Sin(e.angle/2) > o.Tolerance.Point) || math.IsInf(setback, 0) {
 		return tool{}, ErrSize
 	}
-	section := []geom.Vec3{e.start, e.start.Add(e.into[0].Scale(size)), e.start.Add(e.into[1].Scale(size))}
-	prism, err := brep.Prism(section, e.end.Sub(e.start))
+	section := []geom.Vec3{e.start, e.start.Add(e.into[0].Scale(setback)), e.start.Add(e.into[1].Scale(setback))}
+	var centre geom.Vec3
+	if kind == Fillet {
+		// The centre of the arc is on the bisector, at the radius from
+		// both faces; with it the section is a kite.
+		bisector, err := e.into[0].Add(e.into[1]).Unit()
+		if err != nil {
+			return tool{}, ErrSize
+		}
+		centre = e.start.Add(bisector.Scale(size / math.Sin(e.angle/2)))
+		section = []geom.Vec3{section[0], section[1], centre, section[2]}
+	}
+	prism, err := brep.Prism(section, span)
 	if err != nil {
 		return tool{}, ErrSize
 	}
@@ -139,24 +173,53 @@ func (e Edge) tool(index int, _ Kind, size float64, o Options) (tool, error) {
 	if err != nil {
 		return tool{}, ErrSize
 	}
-	// The working face of the prism is the one face with no vertex on
-	// the line of the edge.
-	axis := e.end.Sub(e.start)
-	axis = axis.Scale(1 / axis.Length())
-	vertices, edges := solid.Vertices(), solid.Edges()
-	out := tool{solid: solid, working: make([]bool, len(solid.Faces())), owners: make([][]int, len(solid.Faces()))}
-	for i, face := range solid.Faces() {
-		out.working[i] = true
-		for _, u := range face.Outer {
-			for _, v := range [2]int{edges[u.Edge].Start, edges[u.Edge].End} {
-				d := vertices[v].Sub(e.start)
-				if d.Sub(axis.Scale(d.Dot(axis))).Length() <= o.Tolerance.Point {
-					out.working[i] = false
+	if kind == Chamfer {
+		// The working face of the prism is the one face with no vertex
+		// on the line of the edge.
+		vertices, edges := solid.Vertices(), solid.Edges()
+		out := tool{solid: solid, working: make([]bool, len(solid.Faces())), owners: make([][]int, len(solid.Faces()))}
+		for i, face := range solid.Faces() {
+			out.working[i] = true
+			for _, u := range face.Outer {
+				for _, v := range [2]int{edges[u.Edge].Start, edges[u.Edge].End} {
+					d := vertices[v].Sub(e.start)
+					if d.Sub(axis.Scale(d.Dot(axis))).Length() <= o.Tolerance.Point {
+						out.working[i] = false
+					}
 				}
 			}
+			if out.working[i] {
+				out.owners[i] = []int{index}
+			}
 		}
-		if out.working[i] {
-			out.owners[i] = []int{index}
+		return out, nil
+	}
+	// The fillet tool is the kite prism less the cylinder about the
+	// centre. The cylinder passes through two edges of the prism and is
+	// tangent there to its flanks. The working faces are those that
+	// come from the cylinder.
+	frame, err := geom.FrameFromNormal(centre, axis)
+	if err != nil {
+		return tool{}, ErrSize
+	}
+	round, err := parametric.Cylinder(frame, size, length)
+	if err != nil {
+		return tool{}, ErrSize
+	}
+	cylinder, err := trimmed.FromParametric(round)
+	if err != nil {
+		return tool{}, ErrSize
+	}
+	r, err := o.combine(ctx, solid, cylinder, boolean.Cut, o.Boolean)
+	if err != nil {
+		return tool{}, err
+	}
+	out := tool{solid: r.Solid, working: make([]bool, len(r.Sources)), owners: make([][]int, len(r.Sources))}
+	for i, sources := range r.Sources {
+		for _, source := range sources {
+			if source[0] == 1 {
+				out.working[i], out.owners[i] = true, []int{index}
+			}
 		}
 	}
 	return out, nil
@@ -168,7 +231,7 @@ func (e Edge) tool(index int, _ Kind, size float64, o Options) (tool, error) {
 func unite(ctx context.Context, tools []tool, o Options) (tool, error) {
 	all := tools[0]
 	for _, next := range tools[1:] {
-		r, err := boolean.Combine(ctx, all.solid, next.solid, boolean.Union, o.Boolean)
+		r, err := o.combine(ctx, all.solid, next.solid, boolean.Union, o.Boolean)
 		if err != nil {
 			return tool{}, err
 		}
