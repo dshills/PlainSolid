@@ -160,8 +160,15 @@ those tests cut, and the tests would have to be rewritten against
 behaviour before a bore family is moved, as the probe already found for
 the tests of plain bores.
 
-Still open: the turned case of Phase 1 is skipped, A-C9 does not hold,
-and Phase 6 is not started.
+The owner had the branch merged to `main` as it stands on 2026-11-19.
+Of Phase 6, the capability summary of the README and the status and
+verification pages are done; sections 15.1 and 15.5, OD-1 and RL-22 of
+the base specification are not yet rewritten, and the third record of
+its `ACCEPTANCE.md` stands in for them.
+
+Still open: the turned case of Phase 1 is skipped; a blind floor inside
+a crossing can fail depending on a seam (Phase 4); and A-C9 does not
+hold.
 
 ## Rules for every phase
 

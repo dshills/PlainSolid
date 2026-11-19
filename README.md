@@ -35,7 +35,9 @@ disjoint, nested or shared planar interfaces and verified transverse wires,
 rounded boxes, polygonal
 revolutions, circular sweeps, and elliptical lofts and extrusions.
 `brep/boolean` is one general union, common and cut for solids bounded by
-planes and cylinders, accepted on validation within tolerance; the PlainCAD
+planes and cylinders, accepted on validation within tolerance; cylinders
+whose axes are not parallel are taken where their radii are equal and their
+axes meet. The PlainCAD
 bridge asks it only where its own paths decline a request. `brep/blend`
 chamfers and fillets straight edges between planar faces of such a result,
 convex or concave, by cutting or uniting with the same Boolean. General curved Booleans, arbitrary
