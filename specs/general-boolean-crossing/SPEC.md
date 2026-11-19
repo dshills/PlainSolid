@@ -279,12 +279,12 @@ probe. Section 12 states what leaving it out means for the owner's plan.
 - F1. CO1 changes for `cutMany`. The tools are applied one after another
   as today. A tool whose step returns `ErrUnsupported` is set aside and
   the fold goes on with the next tool.
-- F2. When every tool has been tried once, the tools set aside are tried
-  again, in their original order, against the body as it then stands. A
-  round is one pass over the tools then set aside, from the first to the
-  last; a tool that applies in a round leaves the set, and the round goes
-  on with the next. Rounds repeat until no tool is set aside or a whole
-  round applies none.
+- F2. The first pass over the tools is the first round. After it the
+  tools set aside are tried again, in their original order, against the
+  body as it then stands. A round is one pass over the tools then set
+  aside, from the first to the last; a tool that applies in a round
+  leaves the set, and the round goes on with the next. Rounds repeat
+  until no tool is set aside or a whole round applies none.
 - F3. When a round applies none, the request fails with the error that
   the first tool still set aside returned in that round, and nothing is
   published.
@@ -297,10 +297,10 @@ probe. Section 12 states what leaving it out means for the owner's plan.
   request at once, as today.
 - F6. The rules of CO1 on the whole request are unchanged: it must remove
   material and leave some.
-- F7. A request of n tools makes at most n + n(n + 1)/2 calls of
-  `Combine`: n in the first pass, and then rounds over at most n, n − 1,
-  … tools, of which every round but the last applies at least one. With
-  the bridge's limit of 32 tools that is 560.
+- F7. A request of n tools makes at most n(n + 1)/2 calls of `Combine`:
+  rounds over at most n, n − 1, … tools, of which every round but the
+  last applies at least one. With the bridge's limit of 32 tools that is
+  528.
 
 ### 6.4 Conics that the curve table cannot meet
 

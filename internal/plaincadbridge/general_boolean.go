@@ -270,33 +270,80 @@ func generalBounds(s trimmed.Solid) (geom.Box, error) {
 	return box, nil
 }
 
-// generalCutMany is cutMany as a left fold of cuts (CO1). Nothing is
-// published unless every step succeeds.
+// generalCutMany is cutMany as a fold of cuts (CO1). The tools are cut
+// one after another; one that the general Boolean cannot cut from the
+// body as it stands is set aside and tried again after the others
+// (inAnyOrder). Nothing is published unless every tool is cut.
 func (b *Bridge) generalCutMany(ctx context.Context, a stored, tools []string) (Shape, error) {
 	x, err := generalOperand(a)
 	if err != nil {
 		return Shape{}, err
 	}
-	var r boolean.Result
-	before, known := math.NaN(), generalKnown(a)
+	cutters := make([]stored, len(tools))
 	for i, id := range tools {
-		c, err := b.get(id)
+		if cutters[i], err = b.get(id); err != nil {
+			return Shape{}, err
+		}
+	}
+	var r boolean.Result
+	before, known, cut := math.NaN(), generalKnown(a), false
+	err = inAnyOrder(len(cutters), func(i int) error {
+		step, err := generalStepRaw(ctx, x, known, cutters[i], boolean.Cut)
 		if err != nil {
-			return Shape{}, err
+			return err
 		}
-		if r, err = generalStep(ctx, x, known, c, boolean.Cut); err != nil {
-			return Shape{}, err
+		if !cut {
+			before, cut = step.VolumeA, true
 		}
-		if i == 0 {
-			before = r.VolumeA
-		}
+		r = step
 		measures := r.Properties
 		x, known = r.Solid, &measures
+		return nil
+	})
+	if err != nil {
+		return Shape{}, generalFailure(err)
 	}
 	if err := generalCut(before, r); err != nil {
 		return Shape{}, err
 	}
 	return b.putGeneral(r)
+}
+
+// inAnyOrder applies n steps, each once, and returns nil when all are
+// applied. The steps are tried in order. One that the general Boolean
+// returns as unsupported is set aside, and when the rest have been tried
+// the steps set aside are tried again in their order, round after round,
+// while each round applies at least one. A round that applies none ends
+// with the error its first step returned. Any other error ends at once.
+// A body less several tools is the same set of points in whatever order
+// they are taken, and a tool that has no closed form against the body as
+// it stands may have one once another tool has removed what it met.
+func inAnyOrder(n int, apply func(i int) error) error {
+	aside := make([]int, 0, n)
+	for i := range n {
+		aside = append(aside, i)
+	}
+	for len(aside) > 0 {
+		var left []int
+		var first error
+		for _, i := range aside {
+			err := apply(i)
+			switch {
+			case err == nil:
+			case !errors.Is(err, boolean.ErrUnsupported):
+				return err
+			default:
+				if left = append(left, i); first == nil {
+					first = err
+				}
+			}
+		}
+		if len(left) == len(aside) {
+			return first
+		}
+		aside = left
+	}
+	return nil
 }
 
 // generalJoinAll is joinAll as a left fold of unions (CO1): the targets,

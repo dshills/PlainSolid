@@ -58,6 +58,39 @@ is not a manifold. T2-001, 002, 003, 010, 011 and 017 pass and left
 `pending.txt`; so did T2-005 and T2-014, whose values all agree and
 which take over two seconds only beside other rows. OP-6 is closed.
 
+Phase 3 is committed as work in progress and stopped, as its own stop
+rule says. The fold of `cutMany` sets a refused tool aside and tries it
+again after the others (`inAnyOrder`), and that is tested. It does not
+make T2-004 pass. Of the six orders of a small bore, a larger bore
+across it and a bore that covers the small one, three are cut to one
+volume and three are refused: in those the small tool comes after the
+bore across it, and once the covering bore is cut the small tool lies in
+its hole, clear of the body, but the general Boolean cannot prove it
+clear of what is left of the wall of the bore across. The two cylinders
+have no closed form together (a quartic pair), so the faces must be
+proved separate, and the proof of SP2 bounds a wall face by a whole ring
+of its cylinder, which here includes the part the covering bore removed.
+
+What would take it further is a sharper proof under SP2, which SP5
+allows as an addition: that a face of one cylinder lies wholly outside,
+or wholly inside, the other cylinder. That needs the least and greatest
+distance from the face to the other axis, on its edges and at the
+turning points inside it, and those are zeros of a trigonometric
+polynomial of degree two, the same computation as the conic method of
+Phase 5. T2-015 fails first at Phase 5's entry and is a concealed cutter
+as well, so it is likely to need the same proof after it. The plan has
+no phase for that proof, and with it B1 would be exceeded, so it is the
+owner's to decide.
+
+Tier 2 stands at 13 rows passing (T2-001, 002, 003, 005, 006, 008, 009,
+010, 011, 012, 014, 016, 017), two listed for time with every value
+right (T2-007, 013), and two failing (T2-004, 015), both concealed
+cutters. The eight Tier 2 rows of the probe are among the 13.
+
+Size after Phase 3: `brep/boolean` 6,049 lines outside tests (37 of the
+350 of B1); the adapter file 557, which is 89 more than before this work
+and 9 over the 80 of B2 (ST-C4).
+
 ## Rules for every phase
 
 - R-1. One phase is one commit on a `codex/` branch in its own worktree.

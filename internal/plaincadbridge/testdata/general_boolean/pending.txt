@@ -1,7 +1,7 @@
 T1-009 TestBlindFloorNearExitReferenceIsAmbiguous excluded: a sub-tolerance feature, a floor 5e-8 thick under a working tolerance of 1e-7 (C24 governs)
 T1-041 TestSideNotchMixedBoreBatchIsAtomic excluded: its stock comes from an import whose faces carry a placement that is not rigid, outside the class (S4)
 T1-091 TestToFaceAnalyticCircleHoleExactGap excluded: a sub-tolerance distinction (RL-12): the record fails a tool tangent to a hole and passes the same tool 1e-15 away; both get the outcome of the tangent tool
-T2-004 TestContainedCrossedBores the tools of a cutMany give a quartic pair in the order stated (specs/general-boolean-crossing 6.3)
+T2-004 TestContainedCrossedBores a cutter that a later bore covers is refused: once covered it cannot be proved clear of the wall of the bore across it (SP2; specs/general-boolean-crossing/PLAN.md, Phase 3)
 T2-007 TestBlindTripleCrossedBoreScopeAndSTEP time over two seconds; every value agrees (specs/general-boolean-crossing A-C3)
 T2-013 TestCrossedObliqueBoreCoordinatePlacements time over two seconds; every value agrees (specs/general-boolean-crossing A-C3)
 T2-015 TestConcealedCrossedObliqueBoreSTEPCanonical a conic that the curve table cannot meet with a cylinder (specs/general-boolean-crossing 6.4)

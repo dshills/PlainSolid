@@ -1336,6 +1336,13 @@ the sources come from and that each is a face of the wall:
   properties of its first operand, the volume and the area that the
   result of the step before reported, so that an intermediate solid is
   integrated once and not again as an operand.
+
+  Order of the tools of a `cutMany`. A tool whose step returns
+  `ErrUnsupported` is set aside and tried again after the others, round
+  after round while each round applies at least one; a round that applies
+  none fails the request with its first error
+  ([the crossing specification](../general-boolean-crossing/SPEC.md),
+  F1 to F7).
 - CO2. `overlapVolume(a, b)` is V(a ∩ b), and 0 when the common is empty.
   When the common is pinched into parts that meet only at points, N2
   refuses it. The request then answers V(a) − V(a − b) from the cut,

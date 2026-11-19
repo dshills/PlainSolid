@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"testing"
 
 	"plainsolid/brep/boolean"
@@ -85,5 +86,105 @@ func TestGeneralOverlapOfCrossingBores(t *testing.T) {
 				t.Fatalf("overlap with a tool of another radius: ok=%v, %+v", r.OK, r.Error)
 			}
 		})
+	}
+}
+
+// TestInAnyOrder states the fold of cutMany (CO1): a step returned as
+// unsupported is set aside and tried again after the others, a round that
+// applies none ends with its first error, and any other error ends at
+// once.
+func TestInAnyOrder(t *testing.T) {
+	unsupported := func(i int) error { return fmt.Errorf("step %d: %w", i, boolean.ErrUnsupported) }
+	invalid := fmt.Errorf("bad: %w", boolean.ErrInvalid)
+	for _, c := range []struct {
+		name string
+		n    int
+		// needs[i] lists the steps that must be applied before step i can be.
+		needs   map[int][]int
+		fails   map[int]error
+		order   []int
+		calls   int
+		wantErr string
+	}{
+		{"every step applies at once", 3, nil, nil, []int{0, 1, 2}, 3, ""},
+		{"one step waits for a later one", 3, map[int][]int{0: {2}}, nil, []int{1, 2, 0}, 4, ""},
+		{"each step waits for the next", 4, map[int][]int{0: {1}, 1: {2}, 2: {3}}, nil, []int{3, 2, 1, 0}, 10, ""},
+		{"a step that never applies", 3, map[int][]int{1: {1}}, nil, []int{0, 2}, 4, "step 1"},
+		{"no step applies", 2, map[int][]int{0: {0}, 1: {1}}, nil, nil, 2, "step 0"},
+		{"another error ends at once", 3, nil, map[int]error{1: invalid}, []int{0}, 2, "bad"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			done, calls := map[int]bool{}, 0
+			var order []int
+			err := inAnyOrder(c.n, func(i int) error {
+				calls++
+				if e := c.fails[i]; e != nil {
+					return e
+				}
+				for _, need := range c.needs[i] {
+					if !done[need] {
+						return unsupported(i)
+					}
+				}
+				done[i] = true
+				order = append(order, i)
+				return nil
+			})
+			if fmt.Sprint(order) != fmt.Sprint(c.order) || calls != c.calls || calls > c.n*(c.n+1)/2 {
+				t.Fatalf("applied %v in %d calls, want %v in %d", order, calls, c.order, c.calls)
+			}
+			if (err == nil) != (c.wantErr == "") || err != nil && !strings.Contains(err.Error(), c.wantErr) {
+				t.Fatalf("error %v, want %q", err, c.wantErr)
+			}
+		})
+	}
+}
+
+// TestGeneralCutManyInAnyOrder cuts three bores from a block in every
+// order: a small one along z, a larger one along x across it, and one
+// along z that covers the small one. Taken small, across, covering, the
+// second meets the first along a curve with no closed form and waits for
+// the third.
+//
+// Where the small bore comes after the one across it, it is refused in
+// every round, and the request fails: by then the small tool lies in the
+// hole of the covering bore, clear of everything, and the general Boolean
+// cannot prove it clear of what is left of the wall of the bore across
+// (SP2). That is the limit this test records; it is stop condition of
+// Phase 3 in specs/general-boolean-crossing/PLAN.md. A request that has a
+// pair with no closed form in every order fails and publishes nothing.
+func TestGeneralCutManyInAnyOrder(t *testing.T) {
+	type q = map[string]any
+	b := newGeneral()
+	stock := box(t, b, vector{}, vector{20, 20, 20})
+	small := circle(t, b, vector{10, 10, -1}, vector{0, 0, 1}, 1, 22)
+	across := circle(t, b, vector{-1, 10, 10}, vector{1, 0, 0}, 2, 22)
+	covering := circle(t, b, vector{10, 10, -1}, vector{0, 0, 1}, 2, 22)
+	want := 8000 - 2*80*math.Pi + 16*8./3
+	for _, c := range []struct {
+		order []string
+		cut   bool
+	}{
+		{[]string{small.Handle, across.Handle, covering.Handle}, true},
+		{[]string{small.Handle, covering.Handle, across.Handle}, true},
+		{[]string{covering.Handle, small.Handle, across.Handle}, true},
+		{[]string{across.Handle, small.Handle, covering.Handle}, false},
+		{[]string{across.Handle, covering.Handle, small.Handle}, false},
+		{[]string{covering.Handle, across.Handle, small.Handle}, false},
+		{[]string{small.Handle, across.Handle}, false},
+		{[]string{across.Handle, small.Handle}, false},
+	} {
+		before := len(b.shapes)
+		r := ask(t, b, q{"op": "cutMany", "a": stock.Handle, "tools": c.order})
+		if c.cut {
+			if !r.OK {
+				t.Fatalf("tools %v: %+v", c.order, r.Error)
+			}
+			near(t, r.Result.GeometryAssertions.Volume, want)
+			continue
+		}
+		if r.OK || r.Error.Code != "UNSUPPORTED" || !strings.Contains(r.Error.Message, "not parallel") || len(b.shapes) != before {
+			t.Fatalf("tools %v: ok=%v, %+v", c.order, r.OK, r.Error)
+		}
 	}
 }
