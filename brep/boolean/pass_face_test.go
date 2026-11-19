@@ -376,3 +376,60 @@ func TestSeparationBySubdivision(t *testing.T) {
 		t.Fatalf("%d solids of volume %.10g, want one of %.10g", two.Solids, two.Volume, want)
 	}
 }
+
+// TestMeetings covers X7 at the level of the pass, with curves made for
+// the test, since no surface pair of the table yields two curves that
+// meet. The top face of a box and the bottom face of the box on it lie in
+// the plane z = 2. Two lines in that plane that cross inside both faces
+// give one node, held by both faces; lines that cross outside one of the
+// faces, and lines that do not meet, give none.
+func TestMeetings(t *testing.T) {
+	ops, tol, o := taken(t, box(t, 0, 0, 0, 4, 4, 2), box(t, 1, 1, 2, 3, 3, 5), nil)
+	a, err := newArrangement(context.Background(), ops, tol, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The two faces that contain the point (2, 2, 2).
+	centre := geom.Vec3{X: 2, Y: 2, Z: 2}
+	faces := [2]int{-1, -1}
+	for op := range ops {
+		for f := range ops[op].faces {
+			if a.inFace(op, f, centre, tol.eps) == within && math.Abs(ops[op].faces[f].s.offset(centre)) < tol.eps {
+				faces[op] = f
+			}
+		}
+	}
+	if faces[0] < 0 || faces[1] < 0 {
+		t.Fatalf("faces at %v: %v", centre, faces)
+	}
+	through := func(p geom.Vec3, x, y float64) curve {
+		dir, _ := geom.Vec3{X: x, Y: y}.Unit()
+		return line{p, dir}
+	}
+	for _, c := range []struct {
+		name   string
+		curves []curve
+		nodes  int
+	}{
+		{"two lines that cross inside both faces", []curve{through(centre, 1, 0), through(centre, 1, 2)}, 1},
+		{"two lines that cross outside the smaller face", []curve{through(geom.Vec3{X: 0.5, Y: 0.5, Z: 2}, 1, 0), through(geom.Vec3{X: 0.5, Y: 0.5, Z: 2}, 0, 1)}, 0},
+		{"two lines that do not meet", []curve{through(centre, 1, 0), through(geom.Vec3{X: 2, Y: 2.5, Z: 2}, 1, 0)}, 0},
+		{"one curve", []curve{through(centre, 1, 0)}, 0},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			before := [3]int{len(a.nodes), len(a.loose[0][faces[0]]), len(a.loose[1][faces[1]])}
+			if err := a.meetings(c.curves, faces[0], faces[1]); err != nil {
+				t.Fatal(err)
+			}
+			after := [3]int{len(a.nodes), len(a.loose[0][faces[0]]), len(a.loose[1][faces[1]])}
+			for i := range after {
+				if after[i]-before[i] != c.nodes {
+					t.Fatalf("nodes and the two faces' lists grew by %v, want %d each", [3]int{after[0] - before[0], after[1] - before[1], after[2] - before[2]}, c.nodes)
+				}
+			}
+			if c.nodes == 1 && a.nodes[after[0]-1].pos.Distance(centre) > tol.eps {
+				t.Fatalf("the node is at %v, want %v", a.nodes[after[0]-1].pos, centre)
+			}
+		})
+	}
+}

@@ -54,10 +54,40 @@ func (a *arrangement) faceWithFace() error {
 				// SP3: no closed form, and SP2 does not prove them separate.
 				return fail(ErrUnsupported, "X6", "face %d of A and face %d of B are cylinders with axes that are not parallel", fa, fb)
 			}
+			if err := a.meetings(pair.curves, fa, fb); err != nil {
+				return err
+			}
 			for i, c := range pair.curves {
 				if err := a.lay(c, fa, fb, pair.touching[i]); err != nil {
 					return err
 				}
+			}
+		}
+	}
+	return nil
+}
+
+// meetings is X7: where two carrier curves of one surface pair meet each
+// other inside both faces, a node is made before X6 cuts the curves, so
+// that both are cut there. No pair of the trial's table has two curves
+// that meet, two lines along a cylinder being parallel; the rule is here
+// because section 7.3 states it for any pair.
+func (a *arrangement) meetings(curves []curve, fa, fb int) error {
+	for i, c := range curves {
+		for _, other := range curves[:i] {
+			m, err := curveMeets(c, other, a.t)
+			if err != nil {
+				return failAt(err, "face %d of A with face %d of B", fa, fb)
+			}
+			for _, h := range m.hits {
+				if a.inFace(0, fa, h.p, a.t.eps) != within || a.inFace(1, fb, h.p, a.t.eps) != within {
+					continue
+				}
+				n, err := a.add(h.p)
+				if err != nil {
+					return err
+				}
+				a.loose[0][fa], a.loose[1][fb] = append(a.loose[0][fa], n), append(a.loose[1][fb], n)
 			}
 		}
 	}
