@@ -223,10 +223,12 @@ func TestSideNotchRetainsConnectedCoaxialCuts(t *testing.T) {
 		blind := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": lower.Handle})
 		want := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": all.Handle})
 		near(t, overlapMeasure(t, b, blind.Handle, all.Handle), blind.GeometryAssertions.Volume-want.GeometryAssertions.Volume)
-		before := len(b.shapes)
-		if _, err := b.cutMany(blind.Handle, []string{upper.Handle}); err == nil || len(b.shapes) != before {
-			t.Fatal("a disconnected coaxial notch must be rejected atomically", err)
-		}
+		// The legacy notch holds one connected axial span and declines a
+		// second notch apart from the first. The general Boolean cuts it:
+		// the same footprint as the first, which is five deep, over four.
+		apart := declined(t, b, "coaxial notch cuts require connected axial spans", "cutMany", blind.Handle, upper.Handle)
+		footprint := (stock.GeometryAssertions.Volume - blind.GeometryAssertions.Volume) / 5
+		near(t, apart.GeometryAssertions.Volume, blind.GeometryAssertions.Volume-4*footprint)
 		for _, tc := range []struct {
 			base  Shape
 			tools []string

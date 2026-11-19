@@ -157,13 +157,13 @@ func TestOverlapVolumePreservesOrdinaryQueriesAndCommonGeometry(t *testing.T) {
 	if overlapMeasure(t, b, stock.Handle, second.Handle) <= 0 {
 		t.Fatal("missed overlapping material")
 	}
-	before := len(b.shapes)
-	reply := b.Call(`{"op":"common","a":"` + stock.Handle + `","b":"` + second.Handle + `"}`)
-	if !strings.Contains(reply, `"code":"UNSUPPORTED"`) || len(b.shapes) != before {
-		t.Fatal("common returned fabricated intersection geometry", reply)
-	}
+	// The legacy paths have no geometry for the common of a tool with a
+	// bored stock and decline it. The general Boolean builds it: the unit
+	// disk less its lens with the unit bore one away, over a height of 4.
+	crescent := declined(t, b, "overlap with an existing bore is unresolved", "common", stock.Handle, second.Handle)
+	near(t, crescent.GeometryAssertions.Volume, 4*(math.Pi/3+math.Sqrt(3)/2))
 	grazing := circle(t, b, vector{3.5, 0, 0}, vector{0, 0, 1}, 1, 8)
-	before = len(b.shapes)
+	before := len(b.shapes)
 	want := 8 * (math.Pi - math.Acos(.5) + .5*math.Sqrt(.75))
 	near(t, overlapMeasure(t, b, base.Handle, grazing.Handle), want)
 	near(t, overlapMeasure(t, b, grazing.Handle, base.Handle), want)

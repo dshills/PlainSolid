@@ -139,10 +139,10 @@ func TestObliqueThroughBoreRejectsIncompleteOpeningsAtomically(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tool := circle(t, bridge, tc.origin, tc.axis, tc.radius, tc.height)
 			before, next := len(bridge.shapes), bridge.next
-			if _, err := bridge.overlapVolume(stock.Handle, tool.Handle); err == nil || !strings.Contains(err.Error(), tc.diagnostic) {
+			if _, err := legacyOverlapVolume(bridge.shapes[stock.Handle], bridge.shapes[tool.Handle]); err == nil || !strings.Contains(err.Error(), tc.diagnostic) {
 				t.Fatalf("invalid scope result: %v", err)
 			}
-			if _, err := bridge.cutMany(stock.Handle, []string{tool.Handle}); err == nil || !strings.Contains(err.Error(), tc.diagnostic) {
+			if _, err := bridge.legacyCutMany(bridge.shapes[stock.Handle], []string{tool.Handle}); err == nil || !strings.Contains(err.Error(), tc.diagnostic) {
 				t.Fatalf("invalid cutMany result: %v", err)
 			}
 			if _, err := bridge.curvedBoolean(bridge.shapes[stock.Handle], bridge.shapes[tool.Handle], "cut"); err == nil || !strings.Contains(err.Error(), tc.diagnostic) {
@@ -151,6 +151,24 @@ func TestObliqueThroughBoreRejectsIncompleteOpeningsAtomically(t *testing.T) {
 			if len(bridge.shapes) != before || bridge.next != next || bridge.shapes[stock.Handle].result != stock {
 				t.Fatal("rejection changed stock or leaked a handle")
 			}
+			// The bridge answers what the legacy paths decline here with
+			// the general Boolean. The overlap is measured in each case.
+			overlap := overlapMeasure(t, bridge, stock.Handle, tool.Handle)
+			if tc.name == "ellipse touches stock side" {
+				// The whole tool lies in the stock between its openings:
+				// a cylinder of length 2√10. It touches a side along a
+				// line, so the cut would not be a manifold and is refused.
+				near(t, overlap, math.Pi*tc.radius*tc.radius*2*math.Sqrt(10))
+				if _, err := bridge.cutMany(stock.Handle, []string{tool.Handle}); err == nil || !strings.Contains(err.Error(), tc.diagnostic) {
+					t.Fatalf("a cut that touches a side along a line: %v", err)
+				}
+				if len(bridge.shapes) != before || bridge.next != next {
+					t.Fatal("rejection leaked a handle")
+				}
+				return
+			}
+			cut := declined(t, bridge, tc.diagnostic, "cutMany", stock.Handle, tool.Handle)
+			near(t, cut.GeometryAssertions.Volume, 120-overlap)
 		})
 	}
 }

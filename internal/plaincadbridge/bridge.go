@@ -390,149 +390,8 @@ func (b *Bridge) execute(q request) (any, error) {
 		if b.general {
 			return b.generalBoolean(ctx, a, c, q.Op)
 		}
-		if a.tangent != nil || c.tangent != nil {
-			return nil, unsupportedEdge("Boolean operations on side-tangent blind bores are outside the supported domain")
-		}
-		if q.Op == "cut" {
-			if body, ok := tangentBlindBoreRecipe(a, c); ok {
-				return b.putTangentBlindBore(body)
-			}
-		}
-		if q.Op != "common" {
-			if result, removed, handled, err := retainedPlanarBoolean(a, c, q.Op); handled {
-				if err != nil {
-					return nil, err
-				}
-				if q.Op == "cut" && removed <= 0 {
-					return nil, unsupportedEdge("Boolean cut removed no volume")
-				}
-				return b.putAnalyticBody(result)
-			}
-		}
-
-		if q.Op == "cut" {
-			if result, handled, err := b.cutSideOpeningFamilies(a, []stored{c}); handled {
-				return result, err
-			}
-			if a.analytic != nil && a.analytic.sideNotch != nil {
-				if result, handled, err := b.cutSideNotchBores(a, []stored{c}); handled {
-					return result, err
-				}
-			}
-			if result, handled, err := b.rectangularIslandPocket(a, c); handled {
-				return result, err
-			}
-			if result, handled, err := b.cutRoundedStack(a, c); handled {
-				return result, err
-			}
-			if result, _, handled, err := cutRoundedBores(a, []stored{c}); handled {
-				if err != nil {
-					return nil, err
-				}
-				return b.putAnalyticBody(result)
-			}
-			if result, _, handled, err := cutThroughProfiles(a, []stored{c}); handled {
-				if err != nil {
-					return nil, err
-				}
-				return b.putAnalyticBody(result)
-			}
-			if c.planar() {
-				if result, handled, err := b.rectangularPocket(a, c); handled {
-					return result, err
-				}
-				if !a.planar() {
-					stock, converted, err := a.planarCutBoundary()
-					if err != nil {
-						return nil, err
-					}
-					if converted {
-						if pocket, ok := openPlanarPocket(stock, c.solid); ok {
-							return b.publish(pocket)
-						}
-						solid, err := poly.Combine(ctx, stock, c.solid, poly.Difference, poly.Options{})
-						if err != nil {
-							return nil, err
-						}
-						return b.put(solid)
-					}
-				}
-			}
-			if body, removed, handled, err := cutPocketCylinder(a, c.cylinder); handled {
-				if err != nil {
-					return nil, err
-				}
-				if removed <= 0 {
-					return nil, unsupportedEdge("Boolean cut removed no volume")
-				}
-				return b.putAnalyticBody(body)
-			}
-			if a.analytic != nil && a.analytic.shaft != nil && c.planar() {
-				return b.cutShaftSocket(*a.analytic.shaft, c.solid)
-			}
-			if sector, ok := coaxialThrough(a, c.cylinder); ok {
-				sector.inner = c.cylinder.radius
-				return b.putRadialSector(sector)
-			}
-			if result, handled, err := b.cutCircularStockBores(a, []stored{c}); handled {
-				return result, err
-			}
-		}
-		if q.Op == "fuse" {
-			if result, handled, err := b.fuseRoundedStack(a, c); handled {
-				return result, err
-			}
-			if result, handled, err := b.fuseAnnularPedestal(a, c); handled {
-				return result, err
-			}
-			if result, handled, err := b.fuseCoaxial(a, c); handled {
-				return result, err
-			}
-			if a.planar() && c.cylinder != nil {
-				if result, handled, err := b.fusePlainCircularBoss(a, c.cylinder); handled {
-					return result, err
-				}
-			}
-		}
-		if a.analytic != nil || c.analytic != nil {
-			return nil, &failureError{"UNSUPPORTED", "Boolean operation is outside the supported analytic stock domain"}
-		}
-		if result, handled, err := b.cornerCylinderBoolean(a, c, q.Op); handled {
-			return result, err
-		}
-		if q.Op == "fuse" && a.bore != nil && c.cylinder != nil {
-			if result, handled, err := b.fuseCircularBoss(a.bore, c.cylinder); handled {
-				return result, err
-			}
-		}
-		if q.Op == "fuse" && a.bore != nil && c.planar() {
-			if result, handled, err := b.fuseBoredStock(a.bore, c.solid); handled {
-				return result, err
-			}
-		}
-		if a.treated != nil || c.treated != nil {
-			return b.treatedBoolean(a, c, q.Op)
-		}
-		if a.cylinder != nil || c.cylinder != nil || a.bore != nil || c.bore != nil {
-			return b.curvedBoolean(a, c, q.Op)
-		}
-		if q.Op == "fuse" {
-			if box, ok := joinedRectangularStock(a.solid, c.solid); ok {
-				return b.put(box)
-			}
-		}
-		op := poly.Difference
-		if q.Op == "fuse" {
-			op = poly.Union
-		}
-		if q.Op == "common" {
-			op = poly.Intersection
-		}
-		s, err := poly.Combine(ctx, a.solid, c.solid, op, poly.Options{})
-		if err != nil {
-			return nil, err
-		}
-		return b.put(s)
+		result, err := b.legacyBoolean(ctx, a, c, q.Op)
+		return orGeneral(result, err, func() (any, error) { return b.generalBoolean(ctx, a, c, q.Op) })
 	case "displayEdges", "clone", "inspect", "mesh", "stl", "dispose", "transform", "shell", "planarFace":
 		s, err := b.get(q.Handle)
 		if err != nil {
@@ -638,7 +497,7 @@ func (b *Bridge) execute(q request) (any, error) {
 				if err != nil {
 					return nil, err
 				}
-				if b.general && generalBody(body) {
+				if b.generalResult(body) {
 					// A general Boolean result: putAnalyticBody takes
 					// no void and no second solid, and pads the bounds.
 					return b.publishGeneral(body, s.result.GeometryAssertions.SolidCount)

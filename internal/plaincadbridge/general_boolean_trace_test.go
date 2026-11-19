@@ -326,11 +326,19 @@ func requireGeneralBooleanReply(t *testing.T, step generalBooleanStep, reply gen
 
 // TestGeneralBooleanTraces replays every frozen acceptance row on a default
 // bridge and requires the recorded responses, so that the traces are known to
-// be a faithful record of what the legacy paths answer.
+// be a faithful record of what the legacy paths answer. One kind of response
+// may differ. Where the record is a legacy path declining an input, as
+// legacy_refusals.txt lists it, the default bridge falls back to the general
+// Boolean, and a valid result is accepted there as on a general bridge
+// (specification A4).
 func TestGeneralBooleanTraces(t *testing.T) {
 	names := generalBooleanTraceNames(t)
 	if len(names) == 0 {
 		t.Fatal("no traces under " + generalBooleanTraceDir)
+	}
+	refusals, row := generalBooleanRefusals(t), map[string]string{}
+	for _, r := range generalBooleanRows(t) {
+		row[r.function] = r.id
 	}
 	for _, name := range names {
 		t.Run(name, func(t *testing.T) {
@@ -341,13 +349,21 @@ func TestGeneralBooleanTraces(t *testing.T) {
 			// rows run side by side.
 			t.Parallel()
 			replay := generalBooleanReplay{open: New}
-			for _, step := range loadGeneralBooleanTrace(t, name) {
+			for line, step := range loadGeneralBooleanTrace(t, name) {
 				reply, issued := replay.issue(t, step)
 				if step.New {
 					continue
 				}
 				if !issued {
 					t.Fatalf("default bridge did not publish a handle that %s uses", step.Req)
+				}
+				if refusals[row[name]][line] && !step.OK && reply.OK {
+					var got Shape
+					if reply.Handle != "" && (json.Unmarshal(reply.Result, &got) != nil || !got.GeometryAssertions.Valid) {
+						t.Fatalf("request %s: the result where legacy declined is not valid: %s", step.Req, reply.Result)
+					}
+					t.Logf("fallback %s line %d: %.160s", row[name], line, reply.Result)
+					continue
 				}
 				requireGeneralBooleanReply(t, step, reply, 1e-12)
 			}

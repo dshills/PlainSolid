@@ -2,6 +2,7 @@ package plaincadbridge
 
 import (
 	"encoding/json"
+	"math"
 	"strings"
 	"testing"
 )
@@ -37,7 +38,11 @@ func TestCutManyValidationDoesNotPublish(t *testing.T) {
 	base := box(t, b, vector{0, 0, 0}, vector{10, 10, 10})
 	planar := box(t, b, vector{0, 0, 0}, vector{2, 10, 10})
 	cylinder := circle(t, b, vector{5, 5, 0}, vector{0, 0, 1}, 1, 10)
-	cases := [][]string{{planar.Handle, cylinder.Handle}, make([]string, 33), {planar.Handle, "missing"}}
+	// A set of a planar and a cylindrical tool is outside every legacy
+	// path. The general Boolean cuts with one after the other.
+	mixed := declined(t, b, "requires planar tools on planar stock or cylindrical tools on qualified stock", "cutMany", base.Handle, planar.Handle, cylinder.Handle)
+	near(t, mixed.GeometryAssertions.Volume, 800-10*math.Pi)
+	cases := [][]string{make([]string, 33), {planar.Handle, "missing"}}
 	for _, tools := range cases {
 		before := len(b.shapes)
 		encoded, _ := json.Marshal(map[string]any{"op": "cutMany", "a": base.Handle, "tools": tools})

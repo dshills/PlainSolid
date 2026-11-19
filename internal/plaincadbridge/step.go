@@ -801,7 +801,7 @@ func (b *Bridge) exportSTEPInUnits(handles []string, units stepFileUnit) (stepEx
 			}
 			return s.exportProvedSTEPRevolution(context.Background())
 		}
-		if b.general && s.analytic != nil && generalBody(s.analytic) {
+		if s.analytic != nil && b.generalResult(s.analytic) {
 			sources[i], written[i], e = writeGeneralSTEPBody(s)
 		} else {
 			sources[i], e = writeSTEPBody(s)
@@ -824,8 +824,11 @@ func (b *Bridge) exportSTEPInUnits(handles []string, units stepFileUnit) (stepEx
 	}
 	// Readback uses a private registry so no caller handles are published or lost.
 	verify := New()
-	verify.general = b.general
 	for i, p := range parts {
+		// A part that step.WriteTrimmedBoundary wrote is read back by the
+		// reader that goes with it, on the default bridge too. importStep
+		// on the default bridge does not use that reader.
+		verify.general = b.general || written[i]
 		s, e := verify.importSTEPInUnits(string(p), units)
 		if e != nil && written[i] {
 			return fail(generalSTEPReadback(e))

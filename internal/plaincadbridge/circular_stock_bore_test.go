@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"math"
 	"os"
-	"strings"
 	"testing"
 )
 
@@ -157,9 +156,12 @@ func TestCircularStockAuthoredEccentricInnerWireAndSignedCut(t *testing.T) {
 	near(t, hole.GeometryAssertions.Volume, 493*math.Pi)
 	near(t, hole.GeometryAssertions.SurfaceArea, 312*math.Pi)
 	outside := circle(t, b, vector{11.5, 0, 8}, vector{0, 0, 1}, 1, 2)
-	if _, err := b.cutMany(base.Handle, []string{outside.Handle}); err == nil || !strings.Contains(err.Error(), "outside wall") {
-		t.Fatalf("expected side-crossing rejection, got %v", err)
-	}
+	// The legacy path declines a tool across the outside wall. The general
+	// Boolean cuts it: the lens of a unit circle 9.5 from the axis of the
+	// stock of radius 10, over a height of 2.
+	crossed := declined(t, b, "outside wall", "cutMany", base.Handle, outside.Handle)
+	lens := math.Acos((9.5*9.5+1-100)/19) + 100*math.Acos((9.5*9.5+100-1)/190) - math.Sqrt(1.5*.5*18.5*20.5)/2
+	near(t, crossed.GeometryAssertions.Volume, 495*math.Pi-2*lens)
 }
 
 func TestCircularStockDisjointOpposedBoresAndSTEP(t *testing.T) {

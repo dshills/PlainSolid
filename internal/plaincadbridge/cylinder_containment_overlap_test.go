@@ -4,6 +4,7 @@ import (
 	"math"
 	"plainsolid/brep"
 	"plainsolid/geom"
+	"strings"
 	"testing"
 )
 
@@ -47,4 +48,11 @@ func TestContainingCylinderOverlapCapture(t *testing.T) {
 	if r, e := b.overlapVolume(tool.Handle, partial.Handle); e == nil && r.(map[string]float64)["volume"] == 20 {
 		t.Fatal("partial falsely contained", r)
 	}
+	// The legacy proof declines the partial overlap, and the general
+	// Boolean measures it: over the length of 10, the strip of the disk of
+	// radius 25 between heights 0 and 1, beyond the abscissa 24.
+	if _, e := legacyOverlapVolume(b.shapes[tool.Handle], b.shapes[partial.Handle]); e == nil || !strings.Contains(e.Error(), "strictly contained radial footprint") {
+		t.Fatal("the legacy proof did not decline the partial overlap", e)
+	}
+	near(t, overlapMeasure(t, b, tool.Handle, partial.Handle), 10*((math.Sqrt(624)+625*math.Asin(1./25))/2-24))
 }

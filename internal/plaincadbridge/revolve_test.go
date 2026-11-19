@@ -45,11 +45,11 @@ func TestRevolveAndCoaxialThroughBore(t *testing.T) {
 			}
 			near(t, floor.Area, 4*math.Pi)
 		} else {
-			n := b.next
-			input := strings.NewReplacer("A", target.Handle, "B", q["b"].(string)).Replace(`{"op":"cut","a":"A","b":"B"}`)
-			if response := b.Call(input); !strings.Contains(response, `"ok":false`) || b.next != n {
-				t.Fatal("short coaxial tool on a partial sector was accepted", response)
-			}
+			// On a partial sector the legacy path declines a tool that
+			// stops short of the far cap. The general Boolean cuts the
+			// blind bore, nine deep.
+			blind := declined(t, b, "", "cut", target.Handle, q["b"].(string))
+			near(t, blind.GeometryAssertions.Volume, math.Abs(angle)*107)
 		}
 		near(t, b.shapes[target.Handle].result.GeometryAssertions.Volume, math.Abs(angle)*125)
 	}

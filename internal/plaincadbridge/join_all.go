@@ -22,6 +22,14 @@ func (b *Bridge) joinAll(ids []string, toolID string) (Shape, error) {
 	if b.general {
 		return b.generalJoinAll(ctx, ids, tool)
 	}
+	result, err := b.legacyJoinAll(ctx, ids, tool)
+	return orGeneral(result, err, func() (Shape, error) { return b.generalJoinAll(ctx, ids, tool) })
+}
+
+// legacyJoinAll is joinAll for planar targets and a planar or containing
+// circular tool.
+func (b *Bridge) legacyJoinAll(ctx context.Context, ids []string, tool stored) (Shape, error) {
+	var err error
 	inputs := make([]stored, len(ids))
 	for i, id := range ids {
 		inputs[i], err = b.get(id)

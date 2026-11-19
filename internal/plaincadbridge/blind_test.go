@@ -115,12 +115,12 @@ func TestRadiallyDisjointCommonAndUnsupportedCavity(t *testing.T) {
 			}
 		}
 	}
+	// A tool that ends inside the stock at both ends leaves a closed cavity.
+	// No legacy path represents one. The general Boolean cuts it.
 	tool := circle(t, b, vector{5, 5, 2}, vector{0, 0, 1}, 2, 5)
-	before := len(b.shapes)
-	reply := b.Call(`{"op":"cut","a":"` + base.Handle + `","b":"` + tool.Handle + `"}`)
-	if !strings.Contains(reply, `"code":"UNSUPPORTED"`) || len(b.shapes) != before {
-		t.Fatal(reply)
-	}
+	cavity := declined(t, b, "", "cut", base.Handle, tool.Handle)
+	near(t, cavity.GeometryAssertions.Volume, 2000-20*math.Pi)
+	near(t, cavity.GeometryAssertions.SurfaceArea, 1000+28*math.Pi)
 }
 
 func TestBlindFloorNearExitReferenceIsAmbiguous(t *testing.T) {
@@ -232,8 +232,18 @@ func TestGuidedOppositeEndBlindToolAllAxes(t *testing.T) {
 func TestExitOpenBlindRejectsUnpreservedEndpoints(t *testing.T) {
 	b := New()
 	base := box(t, b, vector{-4, -4, 0}, vector{4, 4, 20})
-	for _, tc := range []struct{ z, h float64 }{{16, math.Nextafter(20, 0) - 16}, {.1, 1e16}} {
+	for i, tc := range []struct{ z, h float64 }{{16, math.Nextafter(20, 0) - 16}, {.1, 1e16}} {
 		tool := circle(t, b, vector{0, 0, tc.z}, vector{0, 0, 1}, 1, tc.h)
+		if i == 0 {
+			// The legacy path declines a tool that stops one unit in the
+			// last place short of the far face. Within tolerance that is
+			// the far face, and the general Boolean cuts the pocket, four
+			// deep.
+			pocket := declined(t, b, "not a measurable entry-open blind pocket or through bore", "cut", base.Handle, tool.Handle)
+			near(t, pocket.GeometryAssertions.Volume, 1280-4*math.Pi)
+			near(t, pocket.GeometryAssertions.SurfaceArea, 768+8*math.Pi)
+			continue
+		}
 		before := len(b.shapes)
 		reply := b.Call(`{"op":"cut","a":"` + base.Handle + `","b":"` + tool.Handle + `"}`)
 		if !strings.Contains(reply, `"code":"UNSUPPORTED"`) || len(b.shapes) != before {

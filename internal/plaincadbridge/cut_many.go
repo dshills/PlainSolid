@@ -24,6 +24,13 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 	if b.general {
 		return b.generalCutMany(context.Background(), a, tools)
 	}
+	result, err := b.legacyCutMany(a, tools)
+	return orGeneral(result, err, func() (Shape, error) { return b.generalCutMany(context.Background(), a, tools) })
+}
+
+// legacyCutMany is cutMany by the paths that each take one family of stock.
+func (b *Bridge) legacyCutMany(a stored, tools []string) (Shape, error) {
+	var err error
 	if a.tangent != nil {
 		return Shape{}, unsupportedEdge("Boolean operations on side-tangent blind bores are outside the supported domain")
 	}

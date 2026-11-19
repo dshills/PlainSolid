@@ -36,7 +36,7 @@ rounded boxes, polygonal
 revolutions, circular sweeps, and elliptical lofts and extrusions.
 `brep/boolean` is one general union, common and cut for solids bounded by
 planes and cylinders, accepted on validation within tolerance; the PlainCAD
-bridge can use it but does not by default. General curved Booleans, arbitrary
+bridge asks it only where its own paths decline a request. General curved Booleans, arbitrary
 curved trim boundaries and broad CAD exchange remain open. See the
 [status matrix](docs/STATUS.md) for the implemented domains and acceptance gaps.
 

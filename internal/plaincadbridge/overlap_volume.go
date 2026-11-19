@@ -26,6 +26,13 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 	if b.general {
 		return generalOverlapVolume(context.Background(), a, c)
 	}
+	result, err := legacyOverlapVolume(a, c)
+	return orGeneral(result, err, func() (any, error) { return generalOverlapVolume(context.Background(), a, c) })
+}
+
+// legacyOverlapVolume is overlapVolume by the proofs that each take one
+// pairing of stock.
+func legacyOverlapVolume(a, c stored) (any, error) {
 	result := func(volume float64) (any, error) { return map[string]float64{"volume": volume}, nil }
 	if a.tangent != nil || c.tangent != nil {
 		return nil, unsupportedEdge("overlap volume on a side-tangent blind bore is outside the supported domain")

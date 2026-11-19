@@ -14,10 +14,11 @@ import (
 	"plainsolid/geom"
 )
 
-// This file is the adapter of the general Boolean trial
-// (specs/general-boolean). It is reached only on a Bridge whose general
-// field is set, which only a test constructor does; the default bridge is
-// unchanged.
+// This file is the adapter of the general Boolean (specs/general-boolean).
+// On a Bridge whose general field is set, which only a test constructor
+// does, it serves every Boolean request. On the default bridge it is the
+// fallback: a legacy path answers first, and orGeneral says when the
+// general Boolean is asked.
 
 // generalOptions are the tolerances the bridge passes to the general
 // Boolean (L4). The general Boolean measures volume, area and centroid in
@@ -34,8 +35,8 @@ var generalOptions = boolean.Options{
 
 var generalOperations = map[string]boolean.Operation{"fuse": boolean.Union, "common": boolean.Common, "cut": boolean.Cut}
 
-// generalBoolean serves cut, fuse and common with boolean.Combine. There
-// is no fall back to a legacy path.
+// generalBoolean serves cut, fuse and common with boolean.Combine. It
+// never calls a legacy path.
 func (b *Bridge) generalBoolean(ctx context.Context, a, c stored, op string) (Shape, error) {
 	r, err := generalCombine(ctx, a, c, generalOperations[op])
 	if err == nil && op == "cut" {
@@ -128,7 +129,7 @@ func (b *Bridge) putGeneral(r boolean.Result) (Shape, error) {
 	if r.Solids == 0 {
 		return b.put(brep.Solid{})
 	}
-	return b.publishGeneral(&analyticBody{solid: r.Solid, volume: r.Properties.Volume, area: r.Properties.Area}, r.Solids)
+	return b.publishGeneral(&analyticBody{solid: r.Solid, volume: r.Properties.Volume, area: r.Properties.Area, general: true}, r.Solids)
 }
 
 // publishGeneral stores an analytic body of any number of shells. It
@@ -145,10 +146,10 @@ func (b *Bridge) publishGeneral(body *analyticBody, solids int) (Shape, error) {
 	}})
 }
 
-// generalBody reports whether an analytic body is one that publishGeneral
-// stored: a solid with its measures and no recipe of a legacy path.
+// generalBody reports whether an analytic body is a solid with its measures
+// and no recipe of a legacy path, which is what publishGeneral stores.
 func generalBody(body *analyticBody) bool {
-	plain := analyticBody{solid: body.solid, volume: body.volume, area: body.area}
+	plain := analyticBody{solid: body.solid, volume: body.volume, area: body.area, general: body.general}
 	v, w := reflect.ValueOf(*body), reflect.ValueOf(plain)
 	for i := range v.NumField() {
 		if v.Field(i).IsZero() != w.Field(i).IsZero() {
@@ -156,6 +157,15 @@ func generalBody(body *analyticBody) bool {
 		}
 	}
 	return true
+}
+
+// generalResult reports whether a stored analytic body is handled as a
+// result of the general Boolean when it is transformed or written to STEP.
+// On a general bridge that is every body without a legacy recipe, as in the
+// trial. On the default bridge it is only a body that putGeneral published,
+// so a legacy body with no recipe keeps the handling it had.
+func (b *Bridge) generalResult(body *analyticBody) bool {
+	return (b.general || body.general) && generalBody(body)
 }
 
 // generalBounds is the box of a solid bounded by planes and cylinders:
@@ -402,4 +412,19 @@ func generalFailure(err error) error {
 		return err
 	}
 	return &failureError{code, err.Error()}
+}
+
+// orGeneral is the fallback of the default bridge. A legacy path answers
+// first. Where it refuses the request as unsupported, the general Boolean
+// is tried, and what it gives is the answer. Where the general Boolean
+// fails as well, the answer is the legacy refusal, unchanged.
+func orGeneral[T any](legacy T, err error, general func() (T, error)) (T, error) {
+	var refusal *failureError
+	if !errors.As(err, &refusal) || refusal.code != "UNSUPPORTED" {
+		return legacy, err
+	}
+	if r, e := general(); e == nil {
+		return r, nil
+	}
+	return legacy, err
 }

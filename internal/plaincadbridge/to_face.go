@@ -23,6 +23,12 @@ func (b *Bridge) toFace(q request) (Shape, error) {
 	if b.general {
 		return b.generalToFace(context.Background(), target, q)
 	}
+	result, err := b.legacyToFace(target, q)
+	return orGeneral(result, err, func() (Shape, error) { return b.generalToFace(context.Background(), target, q) })
+}
+
+// legacyToFace is toFace by the paths that each take one kind of target.
+func (b *Bridge) legacyToFace(target stored, q request) (Shape, error) {
 	if !target.planar() {
 		return b.toAnalyticFace(target, q)
 	}

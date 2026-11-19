@@ -59,8 +59,19 @@ func TestThroughCircleCutAllAxesAndSigns(t *testing.T) {
 func TestFiniteCylinderCoverageAndPartialCommon(t *testing.T) {
 	b := New()
 	base := box(t, b, vector{-4, -4, 0}, vector{4, 4, 8})
-	for _, tc := range []struct{ z, height float64 }{{9, 8}, {-9, 8}, {math.SmallestNonzeroFloat64, 8}, {0, math.Nextafter(8, 0)}} {
+	for _, tc := range []struct {
+		z, height float64
+		through   bool
+	}{{9, 8, false}, {-9, 8, false}, {math.SmallestNonzeroFloat64, 8, true}, {0, math.Nextafter(8, 0), true}} {
 		tool := circle(t, b, vector{0, 0, tc.z}, vector{0, 0, 1}, 1, tc.height)
+		if tc.through {
+			// The legacy path declines a tool that misses an opening
+			// plane by one unit in the last place. Within tolerance the
+			// tool covers both, and the general Boolean cuts the bore.
+			bore := declined(t, b, "finite cylinder", "cut", base.Handle, tool.Handle)
+			near(t, bore.GeometryAssertions.Volume, 512-8*math.Pi)
+			continue
+		}
 		before := len(b.shapes)
 		reply := b.Call(`{"op":"cut","a":"` + base.Handle + `","b":"` + tool.Handle + `"}`)
 		if !strings.Contains(reply, `"code":"UNSUPPORTED"`) || len(b.shapes) != before {

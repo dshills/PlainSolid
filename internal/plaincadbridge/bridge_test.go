@@ -2,8 +2,10 @@ package plaincadbridge
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"math"
 	"strings"
 	"testing"
@@ -42,6 +44,37 @@ func box(t *testing.T, b *Bridge, lo, hi vector) Shape {
 	t.Helper()
 	return shape(t, b, map[string]any{"op": "box", "min": lo, "max": hi})
 }
+
+// declined requires that the legacy path of a Boolean declines the request
+// as unsupported, with the diagnostic and without publishing, and that the
+// bridge then answers the request with the general Boolean. It returns that
+// answer. The tools are one handle, or the tool set of a cutMany.
+func declined(t *testing.T, b *Bridge, diagnostic, op, target string, tools ...string) Shape {
+	t.Helper()
+	before, next := len(b.shapes), b.next
+	a, c := b.shapes[target], b.shapes[tools[0]]
+	q := map[string]any{"op": op, "a": target, "b": tools[0]}
+	var err error
+	if op == "cutMany" {
+		q = map[string]any{"op": op, "a": target, "tools": tools}
+		_, err = b.legacyCutMany(a, tools)
+	} else {
+		_, err = b.legacyBoolean(context.Background(), a, c, op)
+	}
+	var refusal *failureError
+	if !errors.As(err, &refusal) || refusal.code != "UNSUPPORTED" || !strings.Contains(err.Error(), diagnostic) {
+		t.Fatalf("the legacy path did not decline the %s with %q: %v", op, diagnostic, err)
+	}
+	if len(b.shapes) != before || b.next != next {
+		t.Fatal("the declined request published a shape")
+	}
+	answer := shape(t, b, q)
+	if s := b.shapes[answer.Handle]; s.analytic == nil || !s.analytic.general {
+		t.Fatalf("the %s was not answered by the general Boolean", op)
+	}
+	return answer
+}
+
 func near(t *testing.T, a, b float64) {
 	t.Helper()
 	if math.Abs(a-b) > 1e-8*math.Max(1, math.Abs(b)) {

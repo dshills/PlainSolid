@@ -56,11 +56,11 @@ func TestCornerThroughRejectsFiniteShortTool(t *testing.T) {
 	b := New()
 	base := box(t, b, vector{0, 20, 0}, vector{10, 30, 10})
 	tool := circle(t, b, vector{}, vector{0, 1, 0}, 2, math.Nextafter(30, 0))
-	before := len(b.shapes)
-	reply := b.Call(`{"op":"cut","a":"` + base.Handle + `","b":"` + tool.Handle + `"}`)
-	if !strings.Contains(reply, `"code":"UNSUPPORTED"`) || len(b.shapes) != before {
-		t.Fatal(reply)
-	}
+	// The legacy path declines a tool that stops one unit in the last place
+	// short of the far face. Within tolerance it reaches the face, and the
+	// general Boolean cuts the quarter bore.
+	corner := declined(t, b, "", "cut", base.Handle, tool.Handle)
+	near(t, corner.GeometryAssertions.Volume, 1000-10*math.Pi)
 }
 func TestCornerThroughReversedFiniteAxis(t *testing.T) {
 	b := New()

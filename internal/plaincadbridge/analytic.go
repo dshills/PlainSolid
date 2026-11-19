@@ -47,6 +47,9 @@ type analyticBody struct {
 	islandPocket    *trimmed.RectangularIslandPocket
 	filletedCap     *filletedCapStock
 	volume, area    float64
+	// general marks a body that putGeneral published: a result of the
+	// general Boolean, or a boundary read from STEP and passed through it.
+	general bool
 }
 
 func (b *Bridge) putAnalytic(s trimmed.Solid, volume, area float64) (Shape, error) {
