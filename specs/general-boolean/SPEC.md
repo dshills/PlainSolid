@@ -998,7 +998,7 @@ The trial passes when all of these hold on one commit:
   `go vet -tags research ./...` and
   `go run ./tools/refgraph -tags research -pkg brep/trimmed -exclude examples -check research`
   pass.
-- PC4. Non-test Go in `brep/boolean` is at most 12,000 lines, and the bridge
+- PC4. Non-test Go in `brep/boolean` is at most 15,000 lines, and the bridge
   file of L2 at most 400.
 
 PC1 to PC4 decide the pass. Tier 2 does not (OD-1): it is attempted only
@@ -1083,8 +1083,11 @@ decision and where this document applies it.
   manifold returns `ErrNonManifold` (7.9, section 11). This includes the
   union of two solids that touch only along an edge or at a vertex; the
   alternative of returning the two solids unjoined was not taken.
-- OD-4. The bounds of the trial stand as written: 12,000 non-test lines
-  (PC4), one corrective phase (ST3) and two seconds per case (A7).
+- OD-4. The bounds of the trial are 15,000 non-test lines (PC4), one
+  corrective phase (ST3) and two seconds per case (A7). The line cap was
+  first set at 12,000; the owner raised it once the plan estimated 11,300
+  lines for the required work, so that the trial does not stop on size
+  alone. The plan's per-part line estimates remain as warnings.
 - OD-5. One oracle run with the pinned OCCT build, at the end of the trial,
   is approved (A6). `AGENTS.md` reserves such runs for an owner request, and
   this decision is that request.
