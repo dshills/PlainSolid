@@ -143,10 +143,12 @@ func (b *Bridge) generalTreat(s stored, op string, edges []blend.Edge, kind blen
 // general result (C1 to C5). The request has passed the argument checks
 // of treatCapPerimeter, and normal is a unit vector.
 func (b *Bridge) generalCapPerimeter(s stored, q request, normal geom.Vec3, size float64) (Shape, error) {
+	// Fillets around a cap meet at its corners, where two cylinders of one
+	// radius cross at a right angle along an arc of an ellipse. The general
+	// Boolean takes that pair (specs/general-boolean-crossing).
+	kind := blend.Chamfer
 	if q.Op == "capFillet" {
-		// Fillets around a cap meet at its corners, where two cylinders
-		// of one radius cross; the general Boolean takes no such pair.
-		return Shape{}, unsupportedEdge("capFillet failed: fillets that meet at a corner are unsupported on this stock")
+		kind = blend.Fillet
 	}
 	reject := unsupportedEdge("original cap perimeter was lost or is ambiguous")
 	solid, err := generalOperand(s)
@@ -190,5 +192,5 @@ func (b *Bridge) generalCapPerimeter(s stored, q request, normal geom.Vec3, size
 			return Shape{}, reject
 		}
 	}
-	return b.generalTreat(s, q.Op, edges, blend.Chamfer, size)
+	return b.generalTreat(s, q.Op, edges, kind, size)
 }

@@ -376,8 +376,34 @@ func TestGeneralCapChamfer(t *testing.T) {
 		}
 	})
 	const lost = "original cap perimeter was lost or is ambiguous"
-	t.Run("X12, a fillet around the cap", func(t *testing.T) {
-		refused(t, b, perimeter("capFillet", vector{0, 0, 1}, corners), "UNSUPPORTED", "capFillet failed: fillets that meet at a corner are unsupported on this stock")
+	t.Run("a fillet around the cap", func(t *testing.T) {
+		// Each fillet of radius 1 along 20 removes 20(1 − π/4), and two
+		// that meet remove 5/3 − π/2 in common at their corner. A fillet
+		// surface is a quarter cylinder cut at both ends by the plane
+		// that bisects the corner: its length at the angle φ from the
+		// cap is 18 + 2·sin φ, and its area 9π + 2.
+		out := shape(t, b, perimeter("capFillet", vector{0, 0, 1}, corners))
+		requireGeneral(t, b, out, 4000-40*math.Pi-80*(1-math.Pi/4)+4*(5./3-math.Pi/2), 1452+68*math.Pi)
+		if available(t, b, out.Handle, corners[0], corners[1]) {
+			t.Fatal("a filleted edge is available")
+		}
+		// The filleted part meshes, is written to STEP and read back,
+		// and takes a bore clear of the fillets and the other cap.
+		m, err := b.shapes[out.Handle].tessellate(request{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := m.ValidateSolid(); err != nil {
+			t.Fatal(err)
+		}
+		sameShape(t, shape(t, b, q{"op": "importStep", "source": generalSTEPExported(t, b, out.Handle)}), out)
+		bored := shape(t, b, q{"op": "cut", "a": out.Handle, "b": circle(t, b, vector{5, 5, 0}, vector{0, 0, 1}, 1, 10).Handle})
+		near(t, bored.GeometryAssertions.Volume, out.GeometryAssertions.Volume-10*math.Pi)
+		// The other cap of the filleted part takes the same fillet.
+		second := perimeter("capFillet", vector{0, 0, -1}, []vector{{0, 0, 0}, {20, 0, 0}, {20, 20, 0}, {0, 20, 0}})
+		second["handle"] = out.Handle
+		both := shape(t, b, second)
+		near(t, both.GeometryAssertions.Volume, out.GeometryAssertions.Volume-80*(1-math.Pi/4)+4*(5./3-math.Pi/2))
 	})
 	t.Run("X13, a reference that is lost", func(t *testing.T) {
 		refused(t, b, perimeter("capChamfer", vector{0, 0, 1}, []vector{{0, 0, 10}, {20, 0, 10}, {20, 20, 10}, {0, 19, 10}}), "UNSUPPORTED", lost)

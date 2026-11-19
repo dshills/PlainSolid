@@ -442,8 +442,10 @@ of all three); N1 (X4) and N2 (X5) for each edge in that order; R9
 the edges, each constructed (X7) and, for a fillet, cut by T2 (X11);
 the calls of B1 and then of B3 (X11); and after each call of B3 the
 checks K1 to K7 in their order.
-`capFillet` with four `edges` returns X12 as soon as the argument
-checks of `treatCapPerimeter` (D2) have passed.
+`capFillet` with four `edges` returned X12 as soon as the argument
+checks of `treatCapPerimeter` (D2) had passed, until the Boolean took
+equal cylinders with crossing axes; it is now treated as `capChamfer`
+is, with fillets (OD-E6).
 
 | # | Input | Code | Message |
 |---|---|---|---|
@@ -458,8 +460,8 @@ checks of `treatCapPerimeter` (D2) have passed.
 | X9 | K2 fails: an edge that does not end on faces perpendicular to it (an oblique end, or an end in the material at a wall), or a flank under a neighbouring feature | `UNSUPPORTED` | "`<op>` failed: the treatment does not end on faces of the stock, or reaches under a neighbouring feature" |
 | X10 | K5, K6 or K7 fails | `UNSUPPORTED` | "`<op>` failed: the treatment would divide the stock or leaves the selected edge in place" |
 | X11 | `boolean.Combine` returns an error in T2, B1 or B3. The known case: a fillet cylinder that meets a cylinder with a different axis direction, for example a bore across the fillet, or two fillets that meet at a corner inside one united tool | as L2 maps it; `UNSUPPORTED` for the known case | "`<op>` failed: " and the Boolean's message |
-| X12 | `capFillet` with four `edges`: its fillets meet at corners, where two cylinders of equal radius cross; the Boolean leaves that pair unsupported (Boolean RL-22) | `UNSUPPORTED` | "capFillet failed: fillets that meet at a corner are unsupported on this stock" |
-| X13 | `capChamfer` with a reference that does not resolve (C1), or whose edges fail C2 or C3 | `UNSUPPORTED` | "original cap perimeter was lost or is ambiguous" (today's) |
+| X12 | Withdrawn on 2026-11-19 (OD-E6). It was: `capFillet` with four `edges`, whose fillets meet at corners where two cylinders of equal radius cross, which the Boolean left unsupported | was `UNSUPPORTED` | was "capFillet failed: fillets that meet at a corner are unsupported on this stock" |
+| X13 | `capChamfer`, or `capFillet` with four `edges`, with a reference that does not resolve (C1), or whose edges fail C2 or C3 | `UNSUPPORTED` | "original cap perimeter was lost or is ambiguous" (today's) |
 | X14 | `capChamfer` or `capFillet` with `origin` and no `edges` | today's | today's: the result needs a cone or a torus, outside the surface class of a general result |
 | X15 | `filletCylinderRims`, `chamferCylinderRims` | today's | today's: the result needs a torus or a cone |
 
@@ -468,8 +470,8 @@ a chamfer with two distances, a variable radius, and a chain of edges
 that turns a corner.
 
 Whether the acceptance cases need any of these (4.3): no. X2, X9 (oblique
-ends), X12, X14 and X15 on stock that a Boolean has already cut are
-rejected by the legacy paths as well. X6 is rejected by the legacy paths
+ends), X14 and X15 on stock that a Boolean has already cut are rejected
+by the legacy paths as well, and so is the request of the withdrawn X12. X6 is rejected by the legacy paths
 for every stock. X11 is the legacy clearance rule, met here by the
 Boolean's own refusal.
 
@@ -676,6 +678,14 @@ decision, where this document applies it, and what was not taken.
 - OD-E6. `capFillet` with four edges on a general result is unsupported
   (X12) until the Boolean takes equal cylinders with crossing axes
   (Boolean OD-1, RL-22). The legacy path also refuses it on bored stock.
+  The Boolean has taken them since 2026-11-19
+  ([the crossing specification](../general-boolean-crossing/SPEC.md)),
+  so the condition of this decision is met and X12 is withdrawn: the
+  four fillets are cut as one tool, as the four chamfers of `capChamfer`
+  are, and meet at each corner along an arc of an ellipse. That was done
+  on the branch `codex/general-cap-fillet` while the owner was away, on
+  the reading that the decision asked for it once the condition held;
+  the owner has not confirmed that reading.
 - OD-E7. Concavity is decided from the solid, and `direction` is not
   required for a concave edge (N3). The legacy path refuses a concave
   axial edge without it.

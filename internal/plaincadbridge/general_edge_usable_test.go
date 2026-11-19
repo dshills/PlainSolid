@@ -113,6 +113,7 @@ func TestGeneralTreatmentAgreesWithLegacy(t *testing.T) {
 	holed := func(t *testing.T, b *Bridge) Shape {
 		return shape(t, b, q{"op": "cut", "a": box(t, b, vector{}, vector{20, 20, 10}).Handle, "b": circle(t, b, vector{10, 10, 0}, vector{0, 0, 1}, 2, 10).Handle})
 	}
+	slab := func(t *testing.T, b *Bridge) Shape { return box(t, b, vector{}, vector{20, 20, 10}) }
 	top := [2]vector{{0, 0, 10}, {20, 0, 10}}
 	for _, c := range []struct {
 		name    string
@@ -139,6 +140,10 @@ func TestGeneralTreatmentAgreesWithLegacy(t *testing.T) {
 		{"Q5, chamfer of a cap edge", pocketed, q{"op": "chamfer", "normal": axis, "distance": 1.0, "edges": edges([2]vector{{0, 0, 10}, {40, 0, 10}})}},
 		{"Q5, fillet of a cap edge", pocketed, q{"op": "fillet", "normal": axis, "radius": 1.0, "edges": edges([2]vector{{0, 0, 10}, {40, 0, 10}})}},
 		{"Q6, chamfer of a cap perimeter", holed, q{"op": "capChamfer", "normal": axis, "distance": 1.0, "edges": edges(
+			[2]vector{{0, 0, 10}, {20, 0, 10}}, [2]vector{{20, 0, 10}, {20, 20, 10}}, [2]vector{{20, 20, 10}, {0, 20, 10}}, [2]vector{{0, 20, 10}, {0, 0, 10}})}},
+		// The legacy path fillets a cap perimeter on a plain box and not
+		// on one with a hole.
+		{"a box, fillet of a cap perimeter", slab, q{"op": "capFillet", "normal": axis, "radius": 1.0, "edges": edges(
 			[2]vector{{0, 0, 10}, {20, 0, 10}}, [2]vector{{20, 0, 10}, {20, 20, 10}}, [2]vector{{20, 20, 10}, {0, 20, 10}}, [2]vector{{0, 20, 10}, {0, 0, 10}})}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
