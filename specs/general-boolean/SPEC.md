@@ -56,7 +56,10 @@ formats.
   Mäntylä, "An Introduction to Solid Modeling", 1988; Hoffmann, "Geometric
   and Solid Modeling", 1989). Implementation sessions work from this document
   and that literature and do not open the OCCT source (OD-6).
-- G4. The trial does not edit `brep/trimmed`. It uses only identifiers
+- G4. The trial's own commits do not edit `brep/trimmed`. A limit of that
+  package that a valid result exposes is fixed there on a separate
+  foundation branch, which is merged into the trial branch (E1, RL-9). The
+  trial uses only identifiers
   declared in files of `brep/trimmed` that are in the default build: a file
   is in the default build when it does not start with `//go:build research`.
   The trial does not extend a research file and does not remove the tag from
@@ -484,12 +487,18 @@ positions.
   list, and is also recorded as a touching contact (AR7) when both faces
   next to it in its own operand lie strictly on one side of the face's
   carrier near the span. A span that lies along the face boundary is already
-  in a bundle. Two outcomes return `ErrTolerance` (T8), because X1 to X3
-  should have settled them: an isolated point that X9 puts on the boundary
-  of the trimmed region where no node of the span exists; and a span with
-  one end on the face's carrier and the other off it, or with both ends on
-  it and its mid point on the boundary of the trimmed region, which
-  neither lies in the face nor is clear of it.
+  in a bundle, and X5 does not test it against that face again. A span
+  that crosses the carrier, with or without an end on it, is the case of
+  the isolated point. Two outcomes return `ErrTolerance` (T8), because
+  X1 to X3 should have settled them. The first is an isolated point that
+  X9 puts on the boundary of the trimmed region where the span has no
+  node. The second concerns only a span that is in no bundle with an edge
+  of the face and whose carrier section 7.5 reports as lying on the
+  face's carrier: its two ends and its mid point should then all be
+  within tolerance of that carrier, and its mid point inside or outside
+  the trimmed region. If some of the three points are on the carrier and
+  some are not, or the mid point is on the boundary of the trimmed
+  region, the span neither lies in the face nor is clear of it.
 - X6. Face with face. Each pair is resolved by section 7.4 into one of: no
   contact; a same-surface pair (AR6), which creates no trace; or one or more
   carrier curves, each marked crossing or touching. Each carrier curve is cut
@@ -710,9 +719,15 @@ For each input face, in its chart:
 - K1. A piece of a face that is in one or more same-surface pairs is tested,
   at one interior point, against the trimmed region of the other face of
   each of those pairs, in index order. Inside one of them: the piece is
-  *shared*, with that pair's same or opposite flag. A boundary answer from
-  any of them returns `ErrInconsistent`. Outside all of them: the piece is
-  not shared and is classified by K2.
+  *shared*, with that pair's same or opposite flag. Outside all of them: the
+  piece is not shared and is classified by K2. A point that is inside none
+  of them and on the boundary of one decides nothing, and the next
+  interior point of the piece is taken, from the same points K2 uses. A
+  valid input needs this: an edge that the other face uses twice, a seam
+  or the radial edge of a polar plane chart (I4), runs through that
+  face's region, and X9 reports a point on it as boundary. If every
+  interior point tried is on a boundary, the call returns
+  `ErrInconsistent`.
 - K2. Every piece that K1 does not mark shared is classified *inside* or *outside* the other operand
   at one interior point at least ε from the piece boundary, using
   `trimmed.Solid.Classify` (`brep/trimmed/location.go:63`) on the other
@@ -788,8 +803,12 @@ cut returns A with its vertex at the contact.
   point, so such a face is divided. A repeated corner comes from F3: a
   piece whose loop passes twice through a node, which M1 has not merged
   into a face without it. The two ends of a seam are different chart
-  points and are not a repeated corner. After M4, for each face that has
-  a repeated corner, in index order:
+  points and are not a repeated corner. After M4, every curved edge of
+  the result is cut into arcs of at most a quarter turn, the first step
+  of B2. The vertices this adds are corners like any other, so a circle
+  that touches an edge has corners beside the point of contact wherever
+  its own vertex lies. Then, for each face that has a repeated corner, in
+  index order:
   1. Numbering. The corners of a loop are numbered from 0 in loop order,
      starting at the loop's first use. The loops of a face are taken outer
      loop first, then its holes in order.
@@ -832,9 +851,9 @@ cut returns A with its vertex at the contact.
      planar face with straight edges always has a chord that meets (a),
      (b) and (d) exactly, so it can lack a candidate only through (c) or
      the tolerances of (b). A face with curved edges, or on a cylinder,
-     can lack one outright: a circular hole that touches a straight edge
-     has no corner on the circle other than the point of contact. Adding
-     a vertex to make a candidate is not part of the trial. If two
+     can lack one outright, when no chord between two of its corners
+     stays inside it. Adding a vertex beyond those of the quarter-turn
+     cut, to make a candidate, is not part of the trial. If two
      different loops of one face hold corners at one chart point, the call
      returns `ErrInconsistent`: F3 puts every passage of a piece through
      one point into one loop, and M3 keeps merging from changing that.
@@ -864,11 +883,16 @@ the arrangement. No geometric welding takes place at this stage.
 - B2. Output conditioning. `trimmed.NewSolid` requires at least three uses
   per loop, distinct chart vertices within a face, and loops whose chord
   polygons are simple (`brep/trimmed/solid.go:211-306`). Assembly must add
-  vertices on curved edges until this holds: it first cuts every curved edge
-  into arcs of at most a quarter turn, then halves the arcs of any loop that
-  still fails, at most six times. If a loop still fails after six halvings
-  the call returns `ErrValidation`. Conditioning never moves
-  geometry. Conditioning vertices are excluded from every topology count
+  vertices on curved edges until this holds. Every curved edge is first cut
+  into arcs of at most a quarter turn, and where its carrier parameter
+  passes a whole turn; this cut is made before M6, so that M6 can use its
+  vertices. Then, while `trimmed.NewSolid` does not accept the solid,
+  every arc of the solid is halved, at most six times. All arcs are
+  halved and not only those of the loop that failed, because the error
+  from `NewSolid` does not reliably name the loop. If the solid is still
+  refused after six halvings the call returns `ErrValidation` with the
+  first refusal, the one the quarter-turn arcs met. Conditioning never
+  moves geometry. Conditioning vertices are excluded from every topology count
   this document compares. Conditioning cannot separate two corners of a
   face at one chart point; M6 has removed every such pair before assembly.
 - B3. P-curves are straight for a line on a plane and for a line or circle
@@ -967,7 +991,9 @@ the operand and the input face or edge indices involved.
 
 `ErrInconsistent` and `ErrValidation` mean the trial's own logic failed on an
 input in scope. Every occurrence on an acceptance or matrix case counts
-against the pass condition, with the one exception E1 states (RL-1).
+against the pass condition. An `ErrValidation` that comes only from a
+limit of `brep/trimmed` is reported under E1 and RL-9: it is not a pass,
+and it does not count toward a stop until the owner rules.
 
 ## 10. Work limits
 
@@ -1020,7 +1046,7 @@ volume is given.
 | C17 | Coaxial cylinders: A of radius R and height interval [0,2], B of radius r < R and height interval [−1,3] | A with B's two ends standing out; V = 2πR² + 2πr² | V = 2πr² | Tube, V = 2π(R² − r²), 4 faces |
 | C18 | Parallel cylinders of radius r, axis distance d with 4ε ≤ d ≤ 2r − 4ε, same height h | V = h(2πr² − lens) | V = h·lens, lens = 2r²·acos(d/2r) − (d/2)·√(4r² − d²) | V = h(πr² − lens) |
 | C19 | A box; B a cylinder standing on A's top face, base circle strictly inside the face | One solid, V(A) + V(B); the top face has one hole | Empty | A |
-| C20 | As C19, but the base circle touches one edge of the top face from inside at a point | `ErrNonManifold` | Empty | A |
+| C20 | As C19, but the base circle touches one edge of the top face from inside at a point | One solid, V(A) + V(B); the top face of A touches itself at the point of contact and is divided in two (M6) | Empty | A |
 | C21 | A box; B a cylinder through A along z with both caps flush with A's faces | A | B | Box with a through bore, V(A) − πr²h, 7 faces |
 | C22 | A box; B a cylinder entering A's top face and ending inside A | V(A) + part of B outside | Part of B inside | Blind hole; V(A) − πr²·depth |
 | C23 | A box; B a cylinder whose axis is oblique to the faces it passes through | — | Part of B inside A | Through bore with elliptic openings; V(A) − V(common) |
@@ -1030,10 +1056,27 @@ volume is given.
 | C27 | Either operand empty | The other operand | Empty | A if B is empty, else empty |
 | C28 | A = [0,5]×[0,8]×[2,12]; B the box with corners (3,6,2), (5,8,3), (3,9,5), (1,7,4), (5,2,6), (7,4,7), (5,5,9), (3,3,8). The corner (5,8,3) of B lies on an edge of A, B passes through the faces x = 5 and y = 8 of A, and the corner (3,6,2) of B touches the face z = 2 of A from inside | One solid, V = 410.125, 14 faces: two faces of A touch themselves at (5,8,3) and each is divided in two (M6) | One solid, V = 43.875, 8 faces | `ErrNonManifold` |
 
-In C7 to C14 and C20 the result where an error is listed is a point set whose
+In C7 to C14 the result where an error is listed is a point set whose
 boundary is not a manifold. The trial reports it; it does not represent it
 (OD-3). The same holds for the cut of C28, whose cavity touches the face
 z = 2 at one point.
+
+The union of C20 is a manifold, and an earlier revision of this table was
+wrong to list `ErrNonManifold` for it. Around the point of contact the
+kept corners form one cycle: the side face of A, the top face of A on one
+side of the point, the wall of B, the top face on the other side. Every
+edge there has two uses (N1), and no touching contact is recorded (N3):
+the circle and the edge are two edges that meet, which carry no label
+(CC2), the base of B lies in the top face and not strictly on one side of
+it (X5), and the side face of A and the wall of B share only that point,
+so their line of tangency makes no trace (X6). The top face of the result
+passes twice through the point and M6 divides it, between a corner of the
+face and a vertex of the quarter-turn cut of the circle. This holds
+wherever the vertex of the base circle lies, the point of contact
+included. No other row changes with M6: in C7 to C14 an error comes from
+N1, N2 or N3 before merging, and in the union of C14 and the cut of C20
+the face that touches itself is merged into one without the contact (M1,
+M3).
 
 C28 is the smallest input that the stress test of the planar phase found
 for a face that touches itself. In its union, the piece of the face x = 5
@@ -1052,7 +1095,12 @@ C1 to C3 and C27 are run with box operands and again with cylinder operands.
 Stored forms (S3, I5). The carrier of an edge must not depend on how its
 curve is stored, so C15 and C21 are each run with the cylinder operand in
 every one of these forms, and the outcome, volume, face count and face
-source lists must be the same for all of them:
+source lists must be the same for all of them. Source lists are compared
+by operand: for each face of the result, which of A and B its sources
+come from. They are not compared by the number of sources, because one
+wall of a cylinder is one stored face in some forms and several in
+others, four in SF3, and a merged wall names every stored face it came
+from (P5):
 
 - SF1. Edges stored as `geom.Line` and `geom.Ellipse` values, the form B6
   gives a result.
@@ -1074,7 +1122,11 @@ edge returns `ErrUnsupported` naming that edge. The deviation of the first
 test cannot be at the middle of the range: `trimmed.NewSolid` samples
 every edge at the eighths of its range and would refuse to build the
 operand, while I5 samples at the sixteenths. A deviation at the exact
-middle is tested on the edge alone, below `Combine`. In `internal/plaincadbridge`, the
+middle is tested on the edge alone, below `Combine`. For the same reason
+the two tests of the sampling bound of I5 step 6, an uneven
+parameterization of a full circle and a curve that runs forward and then
+back, are made on the edge alone: `trimmed.NewSolid` would reject either
+curve in a solid. In `internal/plaincadbridge`, the
 acceptance rows already use operands made by the `box`, `prism`, `circle`
 and `mixedExtrude` requests; the frozen list must contain at least one
 checked Boolean response with an operand from each of those four requests,
@@ -1086,7 +1138,10 @@ Face sources (P5) are checked on every row that returns a non-empty solid:
 each face has at least one source; the list has no duplicates and is in the
 order P5 states; each index names a face of its operand; and the carrier of
 each source face is the same surface as the carrier of the result face
-within τ. Five rows also fix the lists:
+within τ. Five rows also fix the lists. Where a list below names the
+lateral face of a cylinder, it means every stored face of that operand's
+wall, one or several by the stored form; what is fixed is which operands
+the sources come from and that each is a face of the wall:
 
 - C4, union: the bottom face has one source, a face of A; the top face has
   one source, a face of B; each of the four side faces has two sources, one
@@ -1136,25 +1191,55 @@ What the trial uses, unchanged, and what it does not.
 
 - E1. The trial needs from `brep/trimmed` that `NewSolidContext` accept every
   result that meets B2 and B3, and that `Classify` answer inside, outside or
-  boundary for every operand in the class at tolerance ε. If either fails on
-  a valid input, the trial does not edit `brep/trimmed`: it records the case
-  and stops under section 16, with one exception.
+  boundary for every operand in the class at tolerance ε. The trial's own
+  commits do not edit `brep/trimmed` (G4, L5). What happens when the
+  package fails on a valid input depends on the failure:
 
-  Exception (RL-1, section 19). `trimmed.NewSolidContext` rejects a valid
-  planar result with "mesh: triangle N is degenerate or overflows" when a
-  face in a plane that is not axis-aligned has three consecutive corners
-  on one straight line: the three points are exactly collinear in space
-  and their rounded chart coordinates are not. The stress test of the
-  planar phase met this in 12 of 4,500 operations. The smallest input is
-  A = [3,11]×[4,8]×[4,12] and B the box with corners (2,0,−1), (6,4,1),
-  (2,6,5), (−2,2,3), (3,−2,1), (7,2,3), (3,4,7), (−1,0,5), union, where a
-  face of B has the corners (2,6,5), (3,5.5,4), (6,4,1) in a row. This is
-  a robustness defect of `brep/trimmed`. It is investigated in separate
-  work on its own branch and does not end the trial. `Combine` returns
-  `ErrValidation` for such input (B4) and does not work around it. A leaf
-  or row that fails for this reason alone is reported as such, with its
-  input, and does not count toward ST3, ST5 or the pass condition until
-  the owner rules. Every other failure of E1 is ST5 as before.
+  - A limit of `brep/trimmed` that a valid result exposes: the package
+    cannot represent, or wrongly rejects, a result that meets B2 and B3.
+    This does not end the trial (RL-9, section 19). The limit is fixed in
+    `brep/trimmed` itself, on a separate foundation branch,
+    `codex/trimmed-collinear-corners`, which is merged into the trial
+    branch. Until the fix is merged, `Combine` returns `ErrValidation` for
+    such input (B2, B4) and does not work around the limit. A leaf or row
+    that fails for such a limit alone is reported under that reason, with
+    its input. It is not a pass, and it does not count toward ST3 or ST5
+    until the owner rules.
+  - Any other failure, such as a wrong answer from `Classify` on a valid
+    operand: the case is recorded and the trial stops under section 16
+    (ST5).
+
+  Three limits are known:
+
+  - Collinear corners. `NewSolidContext` rejects a valid planar result
+    with "mesh: triangle N is degenerate or overflows" when a face in a
+    plane that is not axis-aligned has three consecutive corners on one
+    straight line: the three points are exactly collinear in space and
+    their rounded chart coordinates are not. The stress test of the
+    planar phase met this in 12 of 4,500 operations. The smallest input
+    is A = [3,11]×[4,8]×[4,12] and B the box with corners (2,0,−1),
+    (6,4,1), (2,6,5), (−2,2,3), (3,−2,1), (7,2,3), (3,4,7), (−1,0,5),
+    union, where a face of B has the corners (2,6,5), (3,5.5,4), (6,4,1)
+    in a row. No matrix leaf has met it.
+  - Arcs of two curves at one vertex. `NewSolid` requires the end of one
+    use and the start of the next to be the same bits, each being what its
+    p-curve evaluates to, and `Classify` accepts only `trimmed.EllipseUV`
+    as an arc p-curve from outside the package. Two different `EllipseUV`
+    arcs give a common point values that differ in the last bits. So a
+    face in which arcs of two different circles or ellipses meet at a
+    vertex cannot be built. This blocks all three leaves of C18, whose
+    caps are bounded by arcs of two circles, and every other result with
+    a lens-shaped face; the Tier 1 families Bore union and Side dual disk
+    are overlapping parallel bores and probably depend on it. In the
+    cylinder stress test of Phase 2 it was 162 of 600 operations on two
+    upright cylinders. `Combine` reports the case itself, before it calls
+    `NewSolid`.
+  - A display mesh that does not close. `NewSolidContext` rejects the
+    union of C23 with "mesh: edge is not closed and consistently
+    oriented", in every conditioning round. The input is A =
+    [0,4]×[0,4]×[0,2] and B a cylinder of radius 0.5 and length 6 whose
+    axis passes through (2,2,1) at 30° from the vertical. The cut and the
+    common of the same operands pass.
 
 ## 14. Code location and architecture
 
@@ -1183,16 +1268,36 @@ What the trial uses, unchanged, and what it does not.
 - L3. The general path is selected per `Bridge` value by an unexported field
   set through a constructor used only by tests. The default bridge behavior
   does not change during the trial, and there is no environment variable or
-  package-level switch. One change outside the adapter file is allowed
+  package-level switch. The selector needs two kinds of edit outside the
+  adapter file, and both are allowed: the declaration of that field on
+  `Bridge` in `bridge.go`, and one branch in each bridge operation the
+  trial serves (`cut`, `fuse`, `common`, `cutMany`, `joinAll`,
+  `overlapVolume`, `prismToFace`, `circleToFace`) that calls the adapter
+  when the field is set, placed after the operation's existing argument
+  validation (CO1). A bridge whose field is not set never reaches those
+  branches. One further change outside the adapter file is allowed
   (RL-2): the `transform` request in `bridge.go` may republish an analytic
   body of more than one shell, which today fails with "expected one
   connected analytic shell". The change must be minimal and must leave
   the transform of a body of one shell as it is; the existing tests of
   the default bridge and the trace replay on it verify that.
-- L4. Bridge tolerances for the trial: `Linear` 1e-7, `Relative` 0,
-  `Angular` 1e-9, `Volume` 1e-7, integration relative tolerance 1e-9.
-- L5. No file in `brep/trimmed` or `geom` is changed. No dependency is
-  added.
+- L4. Bridge options for the trial: `Linear` 1e-7, `Relative` 0,
+  `Angular` 1e-9, `Volume` 1e-7, and integration options
+  (`parametric.IntegrationOptions`) with relative tolerance 1e-9 and a
+  sample budget, `MaxSamples`, of 64,000,000. The sample budget is stated
+  because the default is not enough: at relative tolerance 1e-9 with the
+  default budget of 4,000,000 samples, `MassProperties` runs out of
+  samples on three results with curved caps (the tube of C17, the common
+  of C23, and a leaning cylinder that enters a top face), and `Combine`
+  returns `ErrBudget` (V5). With 64,000,000 all three converge and match
+  their analytic volumes to 1e-9. The larger budget costs time. Its cost
+  is measured against A7 when the acceptance rows first run on the
+  general bridge; a row that then takes two seconds or more fails A7 like
+  any other, and is reported with the time integration took in it.
+- L5. No file in `geom` is changed, and no commit of the trial changes a
+  file in `brep/trimmed`. Changes to `brep/trimmed` that fix a limit E1
+  names are made on the foundation branch and reach the trial branch only
+  by a merge of that branch (RL-9). No dependency is added.
 - AR8. Architecture, a constraint on the code and not functional behavior:
   the arrangement of section 7.2 is the only data passed from the
   intersection stage to the building stage; every later stage reads its
@@ -1389,7 +1494,9 @@ The trial passes when all of these hold on one commit:
 - PC1. Every Tier 1 row passes A3 and A4, section 11 passes (A5), the
   oracle run passes (A6), and the record of A8 is complete for every Tier 1
   row. `ErrInconsistent` or `ErrValidation` on any of them is a failure,
-  except as E1 states for one known defect of `brep/trimmed` (RL-1).
+  and so is a leaf or row held back by a limit of `brep/trimmed` (E1,
+  RL-9): PC1 holds only when it passes, after the fix on the foundation
+  branch has been merged.
 - PC2. One path. `brep/boolean` exports one operation entry point; the bridge
   file of L2 reads a stored shape only to obtain its `trimmed.Solid`; and no
   function in either tests the number of faces, edges or vertices of an
@@ -1461,10 +1568,11 @@ the first of:
   phase, any Tier 1 row or section 11 row still fails; or the planar gate
   of PL2 still fails after the corrective phase has been spent on it (PL4).
 - ST4. Size. PC4 is exceeded before PC1 holds.
-- ST5. Foundation. E1 fails on a valid input, or a Tier 1 row cannot pass
-  without changing `brep/trimmed`, `geom` or adding a dependency. The
-  failure that E1 names as its exception (RL-1) is not counted here until
-  the owner rules.
+- ST5. Foundation. `Classify` or another function of `brep/trimmed` gives
+  a wrong answer on a valid input, or a Tier 1 row cannot pass without
+  changing `geom` or adding a dependency. A limit of `brep/trimmed` that
+  a valid result exposes is not counted here: E1 and RL-9 send it to the
+  foundation branch, and it counts only if the owner rules that it does.
 - ST6. Design. A Tier 1 row needs a change to sections 7.2, 7.3 or 7.6 to
   7.11 that this document does not allow, as opposed to an addition to the
   tables of 7.4 and 7.5.
@@ -1535,13 +1643,10 @@ The reviewing session made these on 2026-11-18, while the owner was away,
 under the owner's delegation to it. Each stands until the owner confirms or
 reverses it. Each entry states the ruling and where it is applied.
 
-- RL-1. A known defect of `brep/trimmed` does not end the trial.
-  `trimmed.NewSolidContext` rejects some valid planar results whose face,
-  in a plane that is not axis-aligned, has three collinear corners. The
-  defect is investigated in separate work on its own branch. `Combine`
-  returns `ErrValidation` for such input, and a leaf or row that fails for
-  this reason alone does not count toward ST3, ST5 or the pass condition
-  until the owner rules (E1, ST5, PC1, section 9).
+- RL-1. A known defect of `brep/trimmed`, the rejection of some planar
+  results with three collinear corners, does not end the trial. RL-9 now
+  states this for every such limit and replaces the wording of RL-1; the
+  collinear-corner case is the first of the limits E1 lists.
 - RL-2. Publication (the plan's decision D4). The adapter stores a result
   with a void or with several solids by calling `publish` directly, and an
   empty result through `put`. It removes the tolerance pad of
@@ -1572,3 +1677,17 @@ reverses it. Each entry states the ruling and where it is applied.
   it, the check M7, and row C28. This is a change to sections 7.6 to 7.11
   made by a ruling, so ST6 does not apply to it. It is recorded here as a
   change to the design that a test outside the acceptance rows forced.
+  The union of C20 was corrected with it: N1 to N3 pass there, so the row
+  states a solid with a divided top face, and M6 takes its corners after
+  the quarter-turn cut of B2 so that the outcome does not depend on where
+  the vertex of the base circle lies.
+- RL-9. Limits of `brep/trimmed`. A limit of `brep/trimmed` that a valid
+  result exposes is fixed in `brep/trimmed`, on a separate foundation
+  branch, `codex/trimmed-collinear-corners`, which is merged into the
+  trial branch. The trial's own commits still do not edit `brep/trimmed`.
+  A leaf or row that fails only for such a limit is reported under that
+  reason and does not count toward ST3 or ST5 until the owner rules. It
+  is not a pass either: PC1 holds only when the leaf or row passes. Three
+  limits are known: collinear corners (RL-1), arcs of two curves at one
+  vertex of a face, which blocks C18, and the display mesh of the union
+  of C23 (G4, E1, L5, ST5, PC1, section 9).
