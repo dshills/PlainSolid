@@ -66,93 +66,107 @@ func boundaryRotation(axis geom.Vec3, angle float64, offset geom.Vec3) geom.Affi
 	}
 }
 
-// TestWriteTrimmedBoundary writes results of the general Boolean and
-// measures each file from its entities alone: the volume and the area must
-// be those the Boolean reports in closed form, the box must be the box of
-// the solid's edges, and the file must have the faces and edges of the
-// solid. The cases differ in what they put in a boundary, not in what the
-// writer does: a seam, loops of arcs on planes and on cylinders, ellipses,
-// a wall with its normal towards the axis and one with it away, and
-// surfaces and curves under a placement that turns or mirrors.
-func TestWriteTrimmedBoundary(t *testing.T) {
-	block := func(t *testing.T) trimmed.Solid { return boundaryBox(t, geom.Vec3{}, geom.Vec3{X: 4, Y: 4, Z: 4}) }
+// boundaryResult is a result of the general Boolean, placed or not, with
+// the measures the Boolean reports for it in closed form.
+type boundaryResult struct {
+	name  string
+	solid trimmed.Solid
+	want  parametric.Properties
+}
+
+// boundaryResults are the solids the writer and the reader are tested on.
+// They differ in what they put in a boundary, not in what the writer or
+// the reader does with it: a seam, loops of arcs on planes and on
+// cylinders, ellipses, a wall with its normal towards the axis and one
+// with it away, and surfaces and curves under a placement that turns or
+// mirrors.
+func boundaryResults(t *testing.T) []boundaryResult {
+	t.Helper()
 	up := geom.Vec3{Z: 1}
 	turn := boundaryRotation(geom.Vec3{X: 1, Y: 2, Z: 3}, 0.7, geom.Vec3{X: 5, Y: -3, Z: 2})
 	mirror := geom.Affine{{-1, 0, 0, 10}, {0, 1, 0, 0}, {0, 0, 1, 0}}
+	oblique := geom.Vec3{X: 0.3, Z: 1}
+	var out []boundaryResult
 	for _, c := range []struct {
 		name  string
-		tool  func(t *testing.T) trimmed.Solid
+		tool  trimmed.Solid
 		op    boolean.Operation
 		place *geom.Affine
 	}{
-		{"planes only", func(t *testing.T) trimmed.Solid {
-			return boundaryBox(t, geom.Vec3{X: 2, Y: 1, Z: 1}, geom.Vec3{X: 6, Y: 3, Z: 3})
-		}, boolean.Cut, nil},
-		{"through bore", func(t *testing.T) trimmed.Solid { return boundaryCylinder(t, geom.Vec3{X: 2, Y: 2, Z: -1}, up, 1, 6) }, boolean.Cut, nil},
-		{"blind bore", func(t *testing.T) trimmed.Solid { return boundaryCylinder(t, geom.Vec3{X: 2, Y: 2, Z: 2}, up, 1, 6) }, boolean.Cut, nil},
-		{"boss", func(t *testing.T) trimmed.Solid { return boundaryCylinder(t, geom.Vec3{X: 2, Y: 2, Z: 2}, up, 1, 6) }, boolean.Union, nil},
-		{"cylinder cut by planes", func(t *testing.T) trimmed.Solid { return boundaryCylinder(t, geom.Vec3{X: 2, Y: 2, Z: -1}, up, 1, 6) }, boolean.Common, nil},
-		{"bore that leaves through a side", func(t *testing.T) trimmed.Solid {
-			return boundaryCylinder(t, geom.Vec3{X: 3.5, Y: 2, Z: -1}, up, 1, 6)
-		}, boolean.Cut, nil},
-		{"oblique bore", func(t *testing.T) trimmed.Solid {
-			return boundaryCylinder(t, geom.Vec3{X: 1, Y: 2, Z: -3}, geom.Vec3{X: 0.3, Z: 1}, 0.7, 12)
-		}, boolean.Cut, nil},
-		{"oblique boss", func(t *testing.T) trimmed.Solid {
-			return boundaryCylinder(t, geom.Vec3{X: 1, Y: 2, Z: 1}, geom.Vec3{X: 0.3, Z: 1}, 0.7, 6)
-		}, boolean.Union, nil},
-		{"through bore, turned", func(t *testing.T) trimmed.Solid { return boundaryCylinder(t, geom.Vec3{X: 2, Y: 2, Z: -1}, up, 1, 6) }, boolean.Cut, &turn},
-		{"oblique boss, turned", func(t *testing.T) trimmed.Solid {
-			return boundaryCylinder(t, geom.Vec3{X: 1, Y: 2, Z: 1}, geom.Vec3{X: 0.3, Z: 1}, 0.7, 6)
-		}, boolean.Union, &turn},
-		{"blind bore, mirrored", func(t *testing.T) trimmed.Solid { return boundaryCylinder(t, geom.Vec3{X: 1.5, Y: 2, Z: 2}, up, 1, 6) }, boolean.Cut, &mirror},
-		{"oblique boss, mirrored", func(t *testing.T) trimmed.Solid {
-			return boundaryCylinder(t, geom.Vec3{X: 1, Y: 2, Z: 1}, geom.Vec3{X: 0.3, Z: 1}, 0.7, 6)
-		}, boolean.Union, &mirror},
+		{"planes only", boundaryBox(t, geom.Vec3{X: 2, Y: 1, Z: 1}, geom.Vec3{X: 6, Y: 3, Z: 3}), boolean.Cut, nil},
+		{"through bore", boundaryCylinder(t, geom.Vec3{X: 2, Y: 2, Z: -1}, up, 1, 6), boolean.Cut, nil},
+		{"blind bore", boundaryCylinder(t, geom.Vec3{X: 2, Y: 2, Z: 2}, up, 1, 6), boolean.Cut, nil},
+		{"boss", boundaryCylinder(t, geom.Vec3{X: 2, Y: 2, Z: 2}, up, 1, 6), boolean.Union, nil},
+		{"cylinder cut by planes", boundaryCylinder(t, geom.Vec3{X: 2, Y: 2, Z: -1}, up, 1, 6), boolean.Common, nil},
+		{"bore that leaves through a side", boundaryCylinder(t, geom.Vec3{X: 3.5, Y: 2, Z: -1}, up, 1, 6), boolean.Cut, nil},
+		{"oblique bore", boundaryCylinder(t, geom.Vec3{X: 1, Y: 2, Z: -3}, oblique, 0.7, 12), boolean.Cut, nil},
+		{"oblique boss", boundaryCylinder(t, geom.Vec3{X: 1, Y: 2, Z: 1}, oblique, 0.7, 6), boolean.Union, nil},
+		{"through bore, turned", boundaryCylinder(t, geom.Vec3{X: 2, Y: 2, Z: -1}, up, 1, 6), boolean.Cut, &turn},
+		{"oblique boss, turned", boundaryCylinder(t, geom.Vec3{X: 1, Y: 2, Z: 1}, oblique, 0.7, 6), boolean.Union, &turn},
+		{"blind bore, mirrored", boundaryCylinder(t, geom.Vec3{X: 1.5, Y: 2, Z: 2}, up, 1, 6), boolean.Cut, &mirror},
+		{"oblique boss, mirrored", boundaryCylinder(t, geom.Vec3{X: 1, Y: 2, Z: 1}, oblique, 0.7, 6), boolean.Union, &mirror},
 	} {
+		r, err := boolean.Combine(context.Background(), boundaryBox(t, geom.Vec3{}, geom.Vec3{X: 4, Y: 4, Z: 4}), c.tool, c.op, boundaryOptions)
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		solid := r.Solid
+		if c.place != nil {
+			if solid, err = solid.Transformed(*c.place); err != nil {
+				t.Fatalf("%s: %v", c.name, err)
+			}
+		}
+		out = append(out, boundaryResult{c.name, solid, r.Properties})
+	}
+	return out
+}
+
+// boundaryMeasured requires a file to measure, from its entities alone, as
+// the solid does: the volume and the area the Boolean reports in closed
+// form, and the box of the solid's edges.
+func boundaryMeasured(t *testing.T, file []byte, c boundaryResult) stepmeasure.Measures {
+	t.Helper()
+	got, err := stepmeasure.Boundary(file)
+	if err != nil {
+		t.Fatalf("%v\n%s", err, file)
+	}
+	if math.Abs(got.Volume-c.want.Volume) > 1e-9*c.want.Volume || math.Abs(got.Area-c.want.Area) > 1e-9*c.want.Area {
+		t.Errorf("file measures volume %.12g and area %.12g, the solid has %.12g and %.12g", got.Volume, got.Area, c.want.Volume, c.want.Area)
+	}
+	// The box of the edges, from samples of the solid's own curves.
+	var samples []geom.Vec3
+	for _, e := range c.solid.Edges() {
+		for k := 0; k <= 256; k++ {
+			p, err := e.Curve.Eval(e.Range.Min + (e.Range.Max-e.Range.Min)*float64(k)/256)
+			if err != nil {
+				t.Fatal(err)
+			}
+			samples = append(samples, p)
+		}
+	}
+	box, err := geom.Bounds(samples)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Box.Min.Distance(box.Min) > 1e-4 || got.Box.Max.Distance(box.Max) > 1e-4 {
+		t.Errorf("file has box %v, the edges of the solid have %v", got.Box, box)
+	}
+	return got
+}
+
+// TestWriteTrimmedBoundary writes results of the general Boolean and
+// measures each file from its entities alone. The file must also have the
+// faces and edges of the solid.
+func TestWriteTrimmedBoundary(t *testing.T) {
+	for _, c := range boundaryResults(t) {
 		t.Run(c.name, func(t *testing.T) {
-			r, err := boolean.Combine(context.Background(), block(t), c.tool(t), c.op, boundaryOptions)
-			if err != nil {
-				t.Fatal(err)
-			}
-			solid := r.Solid
-			if c.place != nil {
-				if solid, err = solid.Transformed(*c.place); err != nil {
-					t.Fatal(err)
-				}
-			}
 			var out bytes.Buffer
-			if err := step.WriteTrimmedBoundary(&out, solid, .001, "PlainSolid"); err != nil {
+			if err := step.WriteTrimmedBoundary(&out, c.solid, .001, "PlainSolid"); err != nil {
 				t.Fatal(err)
 			}
-			got, err := stepmeasure.Boundary(out.Bytes())
-			if err != nil {
-				t.Fatalf("%v\n%s", err, out.String())
-			}
-			if got.Faces != len(solid.Faces()) || got.Edges != len(solid.Edges()) {
-				t.Errorf("file has %d faces and %d edges, solid has %d and %d", got.Faces, got.Edges, len(solid.Faces()), len(solid.Edges()))
-			}
-			want := r.Properties
-			if math.Abs(got.Volume-want.Volume) > 1e-9*want.Volume || math.Abs(got.Area-want.Area) > 1e-9*want.Area {
-				t.Errorf("file measures volume %.12g and area %.12g, the solid has %.12g and %.12g", got.Volume, got.Area, want.Volume, want.Area)
-			}
-			// The box of the edges, from samples of the solid's own curves.
-			var samples []geom.Vec3
-			for _, e := range solid.Edges() {
-				for k := 0; k <= 256; k++ {
-					p, err := e.Curve.Eval(e.Range.Min + (e.Range.Max-e.Range.Min)*float64(k)/256)
-					if err != nil {
-						t.Fatal(err)
-					}
-					samples = append(samples, p)
-				}
-			}
-			box, err := geom.Bounds(samples)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if got.Box.Min.Distance(box.Min) > 1e-4 || got.Box.Max.Distance(box.Max) > 1e-4 {
-				t.Errorf("file has box %v, the edges of the solid have %v", got.Box, box)
+			got := boundaryMeasured(t, out.Bytes(), c)
+			if got.Faces != len(c.solid.Faces()) || got.Edges != len(c.solid.Edges()) {
+				t.Errorf("file has %d faces and %d edges, solid has %d and %d", got.Faces, got.Edges, len(c.solid.Faces()), len(c.solid.Edges()))
 			}
 		})
 	}

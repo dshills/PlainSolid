@@ -438,6 +438,9 @@ func (b *Bridge) importSTEPInUnits(source string, units stepFileUnit) (Shape, er
 		}
 		return b.putSTEPAnalytic(m.Bodies[0].Solid, m.LengthUnit)
 	}
+	if b.general {
+		return b.importGeneralSTEP(source)
+	}
 	return Shape{}, &failureError{"UNSUPPORTED", "STEP source is not a supported complete planar or analytic solid"}
 }
 
@@ -821,6 +824,7 @@ func (b *Bridge) exportSTEPInUnits(handles []string, units stepFileUnit) (stepEx
 	}
 	// Readback uses a private registry so no caller handles are published or lost.
 	verify := New()
+	verify.general = b.general
 	for i, p := range parts {
 		s, e := verify.importSTEPInUnits(string(p), units)
 		if e != nil && written[i] {
