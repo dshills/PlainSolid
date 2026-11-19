@@ -7,9 +7,10 @@ and "the base specification" is
 
 ## State
 
-On 2026-11-19: nothing is implemented. The specification is written and
-the owner has not decided OD-C1 to OD-C7. No phase starts before that
-decision.
+On 2026-11-19: the owner decided OD-C1 to OD-C7, each as the
+specification recommended, so no phase below changes (Phase 0). The
+phases are implemented on the branch `codex/general-boolean-crossing`,
+one commit each.
 
 ## Rules for every phase
 

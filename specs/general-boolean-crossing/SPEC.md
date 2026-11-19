@@ -1,8 +1,9 @@
 # Crossing cylinders in the general Boolean
 
-Status: written on 2026-11-19 against `main` at `d4a157a6`. Nothing in it
-is implemented. The owner has not yet decided the items of section 11.
-Section 3.4 records the experiment the design rests on.
+Status: written on 2026-11-19 against `main` at `d4a157a6`. The owner
+decided OD-C1 to OD-C7 on 2026-11-19, each as this document recommended
+(section 11). [The plan](PLAN.md) records what is implemented. Section
+3.4 records the experiment the design rests on.
 
 ## 1. Purpose
 
@@ -467,7 +468,8 @@ Work stops and is reported, without going on, when:
 
 ## 11. Open decisions
 
-Each is the owner's. The text above is written to the recommendation.
+Each was the owner's. The owner decided all seven on 2026-11-19, each
+as recommended, so the text above stands as written.
 
 - OD-C1. Scope. Recommended: the equal pair only; quartic pairs stay out
   (OD-2 stands). Alternative: specify quartic pairs as well, as a second
