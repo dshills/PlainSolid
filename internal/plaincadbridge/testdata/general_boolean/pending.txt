@@ -5,9 +5,8 @@ T1-027 TestOpposedBlindBoresIntersectAtDifferentDepths foundation: other (trimme
 T1-029 TestObliqueThroughBoreScopeAndSTL foundation: other (trimmed mesh: edge not closed, as C23 union); foundation: other (trimmed tessellation budget on a result); time over two seconds
 T1-034 TestRadialDisjointBoresSTEP foundation: other (trimmed mesh: a triangle on the seam of a cylinder wall)
 T1-041 TestSideNotchMixedBoreBatchIsAtomic foundation: other (trimmed mesh: a triangle on the seam of a cylinder wall); other: intake refuses the placement of an operand face; time over two seconds
-T1-065 TestCircularStockDisjointOpposedBoresAndSTEP time over two seconds
 T1-083 TestPocketFloorCircleCutsAndCounterbore foundation: other (trimmed mesh: a triangle on the seam of a cylinder wall)
-T1-091 TestToFaceAnalyticCircleHoleExactGap other: the record separates a tool tangent to a hole from one 1e-15 away, a sub-tolerance feature (the kind RL-12 excludes); the tangent case has no chord for M6
+T1-091 TestToFaceAnalyticCircleHoleExactGap excluded: a sub-tolerance distinction (RL-12): the record fails a tool tangent to a hole and passes the same tool 1e-15 away; both get the outcome of the tangent tool
 T1-092 TestObliqueToFaceUsesCircularExtent foundation: other (trimmed tessellation budget on a result); time over two seconds
 T2-001 TestCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
 T2-002 TestBlindCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
