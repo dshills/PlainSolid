@@ -1,8 +1,8 @@
 {"new":true}
-{"req":{"offset":[0,0,10],"op":"prism","outer":[[-5,-5,0],[5,-5,0],[5,5,0],[-5,5,0]]},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":1000,"surfaceArea":600,"solidCount":1,"bounds":{"min":[-5,-5,0],"max":[5,5,10]}},"analytic":{"volume":[1000.0]}}
-{"req":{"offset":[0,0,12],"op":"prism","outer":[[-2.5,-2.5,0],[2.5,-2.5,0],[2.5,2.5,0],[-2.5,2.5,0]]},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":300,"surfaceArea":290,"solidCount":1,"bounds":{"min":[-2.5,-2.5,0],"max":[2.5,2.5,12]}},"analytic":{"volume":[300.0]}}
+{"req":{"offset":[0,0,10],"op":"prism","outer":[[-5,-5,0],[5,-5,0],[5,5,0],[-5,5,0]]},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":1000,"surfaceArea":600,"solidCount":1,"bounds":{"min":[-5,-5,0],"max":[5,5,10]}}}
+{"req":{"offset":[0,0,12],"op":"prism","outer":[[-2.5,-2.5,0],[2.5,-2.5,0],[2.5,2.5,0],[-2.5,2.5,0]]},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":300,"surfaceArea":290,"solidCount":1,"bounds":{"min":[-2.5,-2.5,0],"max":[2.5,2.5,12]}}}
 {"req":{"a":"ps:1","b":"ps:2","op":"fuse"},"ok":true,"handle":"ps:3","result":{"valid":true,"volume":1050,"surfaceArea":640,"solidCount":1,"bounds":{"min":[-5,-5,0],"max":[5,5,12]}},"analytic":{"volume":[1050.0]}}
-{"req":{"a":"ps:3","b":"ps:2","op":"cut"},"ok":true,"handle":"ps:4","result":{"valid":true,"volume":750,"surfaceArea":750,"solidCount":1,"bounds":{"min":[-5,-5,0],"max":[5,5,10]}},"analytic":{"volume":[750.0],"surfaceArea":[750.0]}}
+{"req":{"a":"ps:3","b":"ps:2","op":"cut"},"ok":true,"handle":"ps:4","result":{"valid":true,"volume":750,"surfaceArea":750,"solidCount":1,"bounds":{"min":[-5,-5,0],"max":[5,5,10]}},"analytic":{"volume":[750.0]}}
 {"req":{"handle":"ps:1","op":"inspect"},"ok":true,"result":{"valid":true,"volume":1000,"surfaceArea":600,"solidCount":1,"bounds":{"min":[-5,-5,0],"max":[5,5,10]}},"analytic":{"volume":[1000.0]}}
 {"req":{"handle":"ps:2","op":"inspect"},"ok":true,"result":{"valid":true,"volume":300,"surfaceArea":290,"solidCount":1,"bounds":{"min":[-2.5,-2.5,0],"max":[2.5,2.5,12]}},"analytic":{"volume":[300.0]}}
 {"req":{"handle":"ps:3","op":"inspect"},"ok":true,"result":{"valid":true,"volume":1050,"surfaceArea":640,"solidCount":1,"bounds":{"min":[-5,-5,0],"max":[5,5,12]}},"analytic":{"volume":[1050.0]}}

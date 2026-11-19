@@ -1,5 +1,5 @@
 {"new":true}
-{"req":{"holes":[[[-1,-1,10],[-1,1,10],[1,1,10],[1,-1,10]]],"offset":[0,0,1],"op":"prism","outer":[[-5,-5,10],[5,-5,10],[5,5,10],[-5,5,10]]},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":96,"surfaceArea":240,"solidCount":1,"bounds":{"min":[-5,-5,10],"max":[5,5,11]}},"analytic":{"volume":[96.0]}}
+{"req":{"holes":[[[-1,-1,10],[-1,1,10],[1,1,10],[1,-1,10]]],"offset":[0,0,1],"op":"prism","outer":[[-5,-5,10],[5,-5,10],[5,5,10],[-5,5,10]]},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":96,"surfaceArea":240,"solidCount":1,"bounds":{"min":[-5,-5,10],"max":[5,5,11]}}}
 {"req":{"b":"ps:1","center":[0,0,0],"direction":[0,0,1],"normal":[0,0,1],"op":"circleToFace","origin":[0,0,10],"radius":2},"ok":false,"code":"INVALID"}
 {"req":{"b":"ps:1","center":[3,0,0],"direction":[0,0,1],"normal":[0,0,1],"op":"circleToFace","origin":[0,0,10],"radius":1},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":31.41592653589793,"surfaceArea":69.11503837897544,"solidCount":1,"bounds":{"min":[1.9999999999899714,-1.0000000000100073,-1.0071054273576011e-11],"max":[4.000000000010029,1.0000000000100073,10.000000000010072]}},"analytic":{"volume":[31.41592653589793]}}
 {"req":{"b":"ps:1","center":[5,0,0],"direction":[0,0,1],"normal":[0,0,1],"op":"circleToFace","origin":[0,0,10],"radius":1},"ok":false,"code":"INVALID"}

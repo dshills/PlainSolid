@@ -1,5 +1,5 @@
 {"new":true}
-{"req":{"max":[5,5,8],"min":[-5,-5,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":800,"surfaceArea":520,"solidCount":1,"bounds":{"min":[-5,-5,0],"max":[5,5,8]}},"analytic":{"volume":[800.0]}}
+{"req":{"max":[5,5,8],"min":[-5,-5,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":800,"surfaceArea":520,"solidCount":1,"bounds":{"min":[-5,-5,0],"max":[5,5,8]}}}
 {"req":{"height":10,"normal":[0,0,1],"op":"circle","origin":[-2,0,-1],"radius":1},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":31.41592653589793,"surfaceArea":69.11503837897544,"solidCount":1,"bounds":{"min":[-3.0000000000100218,-1.0000000000100073,-1.0000000000100642],"max":[-0.9999999999899786,1.0000000000100073,9.000000000010065]}}}
 {"req":{"a":"ps:1","b":"ps:2","op":"cut"},"ok":true,"handle":"ps:3","result":{"valid":true,"volume":774.8672587712816,"surfaceArea":563.9822971502571,"solidCount":1,"bounds":{"min":[-5,-5,0],"max":[5,5,8]}}}
 {"req":{"handle":"ps:3","op":"clone"},"ok":true,"handle":"ps:4","result":{"valid":true,"volume":774.8672587712816,"surfaceArea":563.9822971502571,"solidCount":1,"bounds":{"min":[-5,-5,0],"max":[5,5,8]}}}
