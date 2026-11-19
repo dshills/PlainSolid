@@ -335,6 +335,9 @@ func (b *Bridge) execute(q request) (any, error) {
 			if q.EdgeStart == nil || q.EdgeEnd == nil {
 				return nil, errors.New("edge endpoints required")
 			}
+			if s.analytic != nil && b.generalResult(s.analytic) {
+				return map[string]bool{"available": generalEdgeAvailable(s, q.EdgeStart.vec(), q.EdgeEnd.vec())}, nil
+			}
 			return map[string]bool{"available": s.edgeAvailable(q.EdgeStart.vec(), q.EdgeEnd.vec())}, nil
 		}
 		return b.treatEdge(s, q)
