@@ -15,13 +15,14 @@ As of 2026-11-18, with kernel code at `c35d3358`.
 | Check | Last result | Kernel commit |
 |---|---|---|
 | PlainCAD application with PlainSolid selected (app `efae4d2`) | Passed all eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract and 1,691 unit cases | `9f95a188`, 2026-11-16 |
-| Complete Go suite, macOS ARM64, Go 1.27.4 | 6,121 passed, 608 optional skips, 0 failed; vet and Linux and Windows amd64 cross-builds passed | `9f95a188`, 2026-11-16 |
+| Complete Go suite with the research tag, macOS ARM64, Go 1.23.12 | 6,285 passed, 624 optional skips, 0 failed of 6,909 | `ecaae04d`, 2026-11-18 |
 | Complete Go suite, Linux ARM64, Go 1.26.0 | 6,018 passed, 599 optional skips, 0 failed | `c7afb429`, 2026-11-16 |
 | Complete Go suite with the race detector, macOS ARM64 | 5,557 passed, 580 optional skips, 0 failed | `ab33a412`, 2026-11-15 |
 | Default Go tier (`go test ./...`), macOS ARM64 | 4,781 passed, 1,217 skipped, 0 failed, in 78 s | the research quarantine, 2026-11-18 |
 
-`main` is about 100 commits past the last complete Go and PlainCAD runs. Only
-the default tier has been run on those commits.
+The complete Go suite, slow tier and research code included, passes on
+`ecaae04d` under Go 1.23.12. The PlainCAD application suites, the Linux run
+and the race run have not been repeated since the commits shown.
 
 The default build leaves out the research quarantine: 540 production files of
 `brep/trimmed` (94,416 lines) that no other package reaches, with their tests.
