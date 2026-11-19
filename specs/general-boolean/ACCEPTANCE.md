@@ -17,8 +17,11 @@ on a default bridge and requires the recorded responses within 1e-12
 relative; the comment at the top of that file defines the trace format.
 
 - Traces: `internal/plaincadbridge/testdata/general_boolean/<function>.jsonl`,
-  109 files, 7,937,677 bytes in all. Most of that is STEP text inside
-  `importStep` requests.
+  109 files, 709,831 bytes in all. The STEP text of the 163 `importStep`
+  requests is not in them: each of its 126 distinct texts is stored once,
+  gzip-compressed, under `step/` in the same directory, 1,147,480 bytes in
+  all, and the reader puts it back (RL-5). With the text inline the traces
+  were 7,937,677 bytes.
 - Direct calls. Many source tests do not send every operation through
   `Bridge.Call`; they call the bridge method that a request dispatches to,
   such as `b.cutMany(…)` or `b.importSTEP(…)`. The owner decided on

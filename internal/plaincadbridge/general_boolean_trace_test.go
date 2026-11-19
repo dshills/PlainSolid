@@ -2,7 +2,10 @@ package plaincadbridge
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
+	"fmt"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -26,7 +29,11 @@ import (
 //	{"req":…, "ok":…, …}    one request and its recorded response
 //
 // req is the request as issued. reqText replaces it for input that is not one
-// JSON object. code is the failure code when ok is false. handle is the handle
+// JSON object. source stands for the source member of req when that is STEP
+// text of 1 KB or more: it names the file step/<source>.step.gz, which holds
+// the text once for every request that sends it, and the reader puts the
+// member back. The name is the first 16 hexadecimal digits of the SHA-256 of
+// the text. code is the failure code when ok is false. handle is the handle
 // the response published. result holds what a replay compares. analytic holds
 // the expected values the source test asserted with near for this response.
 // unchecked names the exclusion of specification section 15.2 that keeps a
@@ -59,6 +66,7 @@ type generalBooleanStep struct {
 	New       bool                    `json:"new"`
 	Req       json.RawMessage         `json:"req"`
 	ReqText   *string                 `json:"reqText"`
+	Source    string                  `json:"source"`
 	OK        bool                    `json:"ok"`
 	Code      string                  `json:"code"`
 	Handle    string                  `json:"handle"`
@@ -128,9 +136,46 @@ func loadGeneralBooleanTrace(t *testing.T, name string) []generalBooleanStep {
 		if !step.New && step.Req == nil && step.ReqText == nil {
 			t.Fatalf("%s line %d: neither a bridge nor a request", name, len(steps)+1)
 		}
+		if step.Source != "" {
+			req, err := generalBooleanWithSource(step.Req, step.Source)
+			if err != nil {
+				t.Fatalf("%s line %d: %v", name, len(steps)+1, err)
+			}
+			step.Req = req
+		}
 		steps = append(steps, step)
 	}
 	return steps
+}
+
+// generalBooleanWithSource returns req with a source member whose value is the
+// text stored under name.
+func generalBooleanWithSource(req json.RawMessage, name string) (json.RawMessage, error) {
+	var members map[string]json.RawMessage
+	if err := json.Unmarshal(req, &members); err != nil {
+		return nil, fmt.Errorf("source %s needs a request that is an object: %w", name, err)
+	}
+	if _, ok := members["source"]; ok {
+		return nil, fmt.Errorf("source %s: the request has a source already", name)
+	}
+	packed, err := os.ReadFile(filepath.Join(generalBooleanTraceDir, "step", name+".step.gz"))
+	if err != nil {
+		return nil, err
+	}
+	z, err := gzip.NewReader(bytes.NewReader(packed))
+	if err != nil {
+		return nil, fmt.Errorf("source %s: %w", name, err)
+	}
+	text, err := io.ReadAll(z)
+	if err != nil {
+		return nil, fmt.Errorf("source %s: %w", name, err)
+	}
+	value, err := json.Marshal(string(text))
+	if err != nil {
+		return nil, err
+	}
+	members["source"] = value
+	return json.Marshal(members)
 }
 
 var generalBooleanHandle = regexp.MustCompile(`"ps:[0-9]+"`)
