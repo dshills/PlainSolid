@@ -1,20 +1,79 @@
 # Plan: general Boolean trial
 
 This plan implements [the specification](SPEC.md) as it stands at commit
-`076d0633`. It is a plan only and contains no implementation.
+`52eb7eda`. It is a plan only and contains no implementation.
 Identifiers such as PC2, A3 or ST4 are requirement identifiers of the
-specification; RL-1 to RL-18 are the rulings of its section 19.
+specification; RL-1 to RL-26 are the rulings of its section 19. The
+sections below the first describe the parts as they were planned and
+what was done in each, so that a later session can rely on them.
 
-State during Part 3.2. Phase 0 is complete: gate G0 passed on `b37228e6`.
-Parts 1.1 to 1.5 are complete: gate G1 passed on `dde63dee`, and with row
-C28 on `245791e8`. Phase 2 is complete to its checkpoint G2 on `4fb6a3d4`.
-Part 3.1 is complete on `e2de6c99`. Part 3.2 is under way: on `c5ac49a7`,
-with the rulings RL-10 to RL-15 applied, 47 of the 92 Tier 1 rows pass,
-and no volume is wrong. All of it is on the trial's branch (R1). What
-remains of Part 3.2 is the coverage rule of CO3 (RL-16, RL-18), the
-closed-form mass properties (RL-17), and the rows that wait on the
-foundation branch (RL-9). The sections on finished parts describe what
-was done, so that a later session can rely on them.
+## State on 2026-11-19
+
+The owner declared the trial a pass on 2026-11-19, with T1-092 and T1-029
+as recorded exceptions (OD-9). The trial stands on
+`codex/general-boolean-kernel` at `5f5b03ec` (last change to non-test Go
+`8a76218e`). `5f5b03ec` changes only where the traces keep their STEP
+text; every request reads back byte for byte, so the oracle runs and the
+stress sets, made before it, still describe the final code.
+
+Passed:
+- Tier 1: 87 of the 89 rows in scope, on one general path. Largest error
+  3.3e-9 in volume and 4.4e-9 in area; no volume is wrong.
+- The section 11 matrix, and `go test ./...` in the default tier.
+- The oracle: two runs agree with OCCT on all 88 cases and 257 steps.
+- Five stress sets: no volume differs, every refusal confirmed by audit.
+- Size: kernel 5,982 lines of 15,000; adapter 405 of 600.
+- PC3 passes in full on `5f5b03ec` merged with `main` at `7a314c15`. The
+  complete suite passed on `9f3d41c9` under Go 1.23.12 (6,344 of 6,969, no
+  failure) and was not repeated after that.
+
+Did not pass:
+- T1-092: its `mesh` request exhausts the tessellation budget (`brep/trimmed`).
+- T1-029: every value agrees; 3.6 s alone, over A7, from its display meshes.
+- Tier 2: not supported (1 of 17 rows). Excluded: T1-009, T1-091, T1-041.
+- Not verified: the To face family, C24 to C27 and Tier 2 against the
+  oracle. Open items are in section 20 of the specification.
+
+Branches, none merged to `main` or pushed:
+- `codex/general-boolean-kernel`: the trial. `codex/general-boolean-spec`:
+  the specification and this plan.
+- `codex/trimmed-collinear-corners` (`b0c23193`): fixes to `brep/trimmed`,
+  merged into the trial branch.
+- `codex/general-boolean-tier2-attempt` (`cc7a679e`) and
+  `codex/general-boolean-rim-extremes-attempt` (`36758499`): tried, not kept.
+
+Rulings by the reviewing session. OD-9 confirms RL-1, RL-9, RL-11, RL-12,
+RL-19 and RL-26; the others stand until the owner confirms or reverses them:
+- RL-1, RL-9: limits of `brep/trimmed` are fixed on a foundation branch.
+- RL-2: how the adapter publishes results (the plan's D4).
+- RL-3, RL-4: spline-patch faces and two STEP Booleans stay out.
+- RL-5: the 7.9 MB of traces is reduced before any merge to `main`. Done
+  at `5f5b03ec`: 1.9 MB.
+- RL-6, RL-7: one trial branch; replay rows run side by side.
+- RL-8: a face that touches itself is divided (M6).
+- RL-10, RL-17: mass properties passed in, and computed in closed form.
+- RL-11: a legacy refusal need not fail; a contract failure must.
+- RL-12, RL-19: T1-009, T1-091 and T1-041 are excluded.
+- RL-13: a rounding allowance where a residual is compared with τ.
+- RL-14: a sharper separation proof in SP2.
+- RL-15, RL-20: adapter rules, and how the replay treats time.
+- RL-16, RL-18: to-face needs coverage, read from the source lists.
+- RL-21: Phase 4 before G3, and the oracle before the last rows.
+- RL-22: Tier 2 is not supported; X7 was added to the code.
+- RL-23: one rule for a touching contact at an edge; the refusal audit.
+- RL-24: adapter cap raised from 400 to 600 lines.
+- RL-25: a second oracle run, where the owner approved one.
+- RL-26: the foundation branch ended; a B2 amendment was tried, not kept.
+
+Decided by the owner (OD-9): a pass. T1-092 and T1-029 are accepted as
+limits of the mesher of `brep/trimmed`, outside the Boolean. PC1 as written
+is not met by those two rows, and the decision says so.
+
+Not done, and each needs the owner's request:
+- Merging the three branches to `main`.
+- The mesher work for the two rows, which comes before any family moves
+  to the general path. The default bridge stays on the legacy path.
+- Lifting recipe-held stock to a `trimmed.Solid` (OD-8).
 
 ## Terms
 
@@ -151,7 +210,7 @@ that package first exists.
 
   ```sh
   find brep/boolean -name '*.go' ! -name '*_test.go' -print0 | xargs -0 cat | wc -l   # cap 15000
-  wc -l < internal/plaincadbridge/general_boolean.go                                   # cap 400
+  wc -l < internal/plaincadbridge/general_boolean.go                                   # cap 600 (RL-24)
   ```
 
   The commit message states both numbers and the part's budget from the
@@ -216,8 +275,10 @@ that package first exists.
 
   The replay runs its rows side by side, and a row near two seconds
   then lands on either side of the bound from run to run. So the replay
-  test itself fails an unlisted row for its time only beyond four
-  seconds (RL-15), and the second command above is a warning for
+  test itself fails a row for its time only in the slow tier, where it
+  runs by itself, and there only an unlisted row beyond four seconds; in
+  the default tier it logs the time and fails none for it (RL-15,
+  RL-20). The second command above is a warning for
   acceptance rows: each row it prints is timed again alone, by name,
   which is the time A7 means, and is entered in the pending list as slow
   if it is at or above two seconds alone. For matrix leaves the second
@@ -328,20 +389,17 @@ reason. The cap is 15,000 (PC4) and only the cap trips ST4.
 | Part | 1.1 | 1.2 | 1.3 | 1.4 | 2.1 | 2.2 | 2.3 | 1.5 | 3.1 | 3.2 | 4 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | First estimate | 1,600 | 3,100 | 4,700 | 6,200 | 8,500 | 9,900 | 11,100 | none | 11,100 | 11,600 | 12,200 |
-| Measured | 1,479 | 2,550 | 3,113 | 3,605 | 4,811 | 4,825 | 5,160 | 5,456 | 5,467 | 5,613 so far | |
-| Expected now | | | | | | | | | | 6,050 | 6,350 |
+| Measured | 1,479 | 2,550 | 3,113 | 3,605 | 4,811 | 4,825 | 5,160 | 5,456 | 5,467 | 5,982 | not kept |
 
-The kernel stands at 5,613 lines on `c5ac49a7`, with the rulings RL-10
-to RL-15 in. What Part 3.2 still adds is the closed form of the mass
-properties (RL-17), estimated at 350 lines for the two kinds of face and
-the centroid, and fixes that the pending rows show (100). Phase 4 is kept
-at 300. The required work is then expected near 6,050 lines, about 40
-percent of the cap. The cap is the owner's (D6) and is not changed here.
+The kernel ended at 5,982 lines on `8a76218e`, 40 percent of the cap and
+under half of the first estimate. The Tier 2 attempt of Phase 4 is not
+on the trial branch, so it adds nothing here.
 
-The adapter file is the tighter bound: 378 lines of its 400 on
-`c5ac49a7`. The coverage rule of CO3 is still to be added to it. If that
-does not fit in 400 lines the trip table applies (ST4); the cap is the
-owner's and code is not moved to another file to get under it.
+The adapter file is 405 lines. Its cap was 400 and is 600 by RL-24: the
+file had reached 398 with comments shortened to fit, and the comments
+are written out again. It holds conversion, the cut and join rules, the
+known measures, publication, bounds, the two folds, the overlap volume
+and to-face with its three rules, and no rule about a family.
 
 ## Phase 0: freeze the acceptance rows
 
@@ -1211,7 +1269,19 @@ Steps:
 Before it starts, the branch that holds the amended specification and
 plan is merged into the trial branch (R1).
 
-Done so far, on `c5ac49a7`: steps 1 to 6 and step 8 (`bd51862f`,
+Part 3.2 as it ended, on `8a76218e`: all its steps were carried out
+except that gate G3's PC3 in full was not run on the final tip. 87 of
+the 89 Tier 1 rows in scope pass; T1-092 and T1-029 are held by
+`brep/trimmed` (specification E1). The coverage rule of CO3 and the
+closed form of the mass properties are in, and the closed form agrees
+with numerical integration on 100 matrix results and 559 published
+results of the replay, to 1.7e-10 at worst. One defect of the rules
+themselves was found late, by the audit of refusals that A9 now
+requires: X5 and X6 called 56 valid operations on cylinders touching
+contacts. `512c011d` replaced three tests with one rule (RL-23), and
+the specification states it.
+
+The note that follows was written part way, on `c5ac49a7`: steps 1 to 6 and step 8 (`bd51862f`,
 `9b55a129`, `bdd9e401`, `0cc6aa90`, `15fc884e`, `49cfe914`). Tier 1 went
 from 36 to 47 rows: three by known mass properties, one by the rounding
 allowance, seven by A4. The 45 rows that do not pass: 26 on arcs of two
@@ -1360,6 +1430,17 @@ corrective phase follows if it has not been spent; otherwise ST3.
 
 ## Phase 4: Tier 2, optional
 
+As done: attempted before G3, by ruling (RL-21), in one session, and not
+kept (RL-22). The attempt is on `codex/general-boolean-tier2-attempt`
+(`cc7a679e`), cut from the tag `general-boolean-before-tier2`; 1 of the
+17 rows passes. The surface pair was one row of 7.4, as SP5 expects.
+Beyond the tables it needed X7, which the specification states and the
+code lacked; X7 alone was then brought to the trial branch with its own
+test (`1ae12376`). It also met two gaps the specification now names as
+open, a touching hit where two traces cross (OP-5) and the overlap
+volume of a pinched common (OP-6), and one row needs an entry of 7.5
+(OP-7).
+
 One part, one session. Starts only after G3. It is not required for a pass
 (OD-1).
 
@@ -1391,6 +1472,20 @@ report says so as evidence under SP5. Neither outcome fails the trial.
 Checks: K1 to K7.
 
 ## Phase 5: oracle and close
+
+As done: the helper, the case file and the test are on the trial branch
+(`4aaadda3`, `1ae12376`). The oracle was run twice (RL-25): on
+`1ae12376`, before the last rows held by `brep/trimmed` were settled
+(RL-21), and on `8a76218e`, after the touching rule and `brep/trimmed`
+had changed. Both agree with OCCT on 88 cases and 257 steps: 58 leaves
+of section 11, 17 family cases and 13 results where the legacy path
+declined. The largest differences are 1.7e-9 in volume and 2.7e-8 in
+the centroid, both at the cap that lies exactly ε below a face, where
+OCCT keeps a sliver. `ACCEPTANCE.md` holds the A8 columns and both
+records (`6e300395`, `9f3d41c9`). Not compared: the To face family, C27,
+C24 to C26 and Tier 2; and a family case covers only the start of its
+row (A6). Gate G4 as written, one run on the final code commit with
+nothing but `ACCEPTANCE.md` after it, holds for the second run.
 
 Two parts. The oracle run is the last verification step of the trial:
 every build, test and standing check comes before it, and after it only
@@ -1532,7 +1627,7 @@ not by this phase unless the owner directs it there.
 | SP5, the Tier 2 row of 7.4, Tier 2 rows | 4 |
 | L6, A6, A8 record, PC1 complete, RC1, RC2 | 5.1, 5.2 |
 | A1, E1 probe | 0 |
-| G1 to G4, AR8, ST1 to ST6, OD-1 to OD-8, RL-1 to RL-18 | Rules, standing checks and the trip table, in every part |
+| G1 to G4, AR8, ST1 to ST6, OD-1 to OD-8, RL-1 to RL-26 | Rules, standing checks and the trip table, in every part |
 
 ## Risks the plan carries
 
@@ -1566,8 +1661,12 @@ not by this phase unless the owner directs it there.
   the existing analytic-body code, which was written for one shell and for
   specific recipes. A row that fails for that reason may need a bridge
   change outside the listed files, which is a stop-and-ask.
-- The adapter cap. The adapter is 378 lines of its 400 on `c5ac49a7`,
-  and the coverage rule is still to be added. Exceeding the cap is ST4.
+- The adapter cap. The adapter is 405 lines of a cap of 600 (RL-24).
+  Exceeding the cap is ST4.
+- Open items. Section 20 of the specification lists what is known and
+  not settled: X4 and a vertex in a face, cuspidal edges, the reach of
+  the refusal audit, the unread failures of the slow legacy rows, the two
+  gaps Tier 2 met, and the two rows that remain.
 - V5 after RL-17. The volumes V5 compares all come from this package, so
   V5 no longer measures a result independently on every call. A wrong
   carrier at intake, or an error shared by the pipeline and the closed
@@ -1596,7 +1695,9 @@ the same day by the reviewing session under the owner's delegation, as were
 the other rulings of section 19 of the specification; each of those stands
 until the owner confirms or reverses it. Where this plan applies them:
 RL-1 and RL-9 in R4, K5, K7 and the trip table; RL-10 to RL-18 in Part
-3.2, and RL-15 also in R6, K4 and the notes on Part 3.1; RL-2 in D4 and Part 3.1; RL-3 and RL-4 in
+3.2, and RL-15 also in R6, K4 and the notes on Part 3.1; RL-19 to RL-26
+in the state section at the top and in the notes on Part 3.2, Phase 4
+and Phase 5; RL-2 in D4 and Part 3.1; RL-3 and RL-4 in
 Phase 0, step 5; RL-5 after gate G0 and in the close of Part 5.2; RL-6 in
 R1; RL-7 in R6 and Phase 0, step 6; RL-8 in Part 1.5.
 
