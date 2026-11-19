@@ -16,9 +16,9 @@ import (
 )
 
 // The traces under testdata/general_boolean are the frozen acceptance rows of
-// specs/general-boolean/ACCEPTANCE.md: the requests one existing bridge test
-// function issues through Bridge.Call, in order, with the responses the
-// default bridge gave. This file defines the format by reading it.
+// specs/general-boolean/ACCEPTANCE.md: the bridge operations one existing
+// bridge test function performs, in order, as requests, with the responses
+// the default bridge gave. This file defines the format by reading it.
 //
 // One JSON object per line:
 //
@@ -31,19 +31,28 @@ import (
 // the expected values the source test asserted with near for this response.
 // unchecked names the exclusion of specification section 15.2 that keeps a
 // response out of the comparison on a general bridge.
+// direct marks a request that the source test did not send through
+// Bridge.Call: it called the bridge method that the request dispatches to,
+// and the recorder wrote the equivalent request.
 
 const generalBooleanTraceDir = "testdata/general_boolean"
 
 // generalBooleanSlowLegacy names the rows whose source test is skipped in the
 // default tier. Replaying one costs what the source test costs.
 var generalBooleanSlowLegacy = map[string]bool{
-	"TestPlainCADExactWallSideOpenDualDisk":     true,
-	"TestPlainCADOffCenterSideOpenDualDisk":     true,
-	"TestPlainCADOffsetSideOpenDualDisk":        true,
-	"TestPlainCADSideOpenDualDiskCuts":          true,
-	"TestPlainCADUnequalCenterSideOpenDualDisk": true,
-	"TestPlainCADUnequalSideOpenDualDiskCuts":   true,
-	"TestRetainedPlanarBoreFillRoofAndRedrill":  true,
+	"TestBlindCrossedObliqueBoreSTEPAndFurtherCut":   true,
+	"TestBlindTripleCrossedBoreScopeAndSTEP":         true,
+	"TestClippedCrossedBoreScopeAndSTEP":             true,
+	"TestCrossedObliqueBoreCoordinatePlacements":     true,
+	"TestMultipleBlindTripleCrossedBoreScopeAndSTEP": true,
+	"TestPlainCADExactWallSideOpenDualDisk":          true,
+	"TestPlainCADOffCenterSideOpenDualDisk":          true,
+	"TestPlainCADOffsetSideOpenDualDisk":             true,
+	"TestPlainCADSideOpenDualDiskCuts":               true,
+	"TestPlainCADUnequalCenterSideOpenDualDisk":      true,
+	"TestPlainCADUnequalSideOpenDualDiskCuts":        true,
+	"TestRetainedPlanarBoreFillRoofAndRedrill":       true,
+	"TestSideNotchMixedBoreBatchIsAtomic":            true,
 }
 
 type generalBooleanStep struct {
@@ -56,6 +65,7 @@ type generalBooleanStep struct {
 	Result    *generalBooleanResult   `json:"result"`
 	Analytic  *generalBooleanAnalytic `json:"analytic"`
 	Unchecked string                  `json:"unchecked"`
+	Direct    bool                    `json:"direct"`
 }
 
 // generalBooleanResult is the compared part of a response: the assertions and
