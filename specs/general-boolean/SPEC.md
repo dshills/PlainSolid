@@ -163,14 +163,15 @@ Each of these is outside the trial, and input that needs one returns
   - `Linear`: absolute linear tolerance in model units, ≥ 0.
   - `Relative`: dimensionless tolerance, ≥ 0, scaled by model size (T1).
   - `Angular`: bound on the absolute sine used in parallel and perpendicular
-    tests, in [0, 1), with the meaning of `geom.IntersectionTolerance.Angular`
+    tests, in (0, 0.5], with the meaning of `geom.IntersectionTolerance.Angular`
     (`geom/intersection.go:19`).
   - `Volume`: relative bound for the volume identities (V5), > 0.
   - `Samples`: number of membership samples (V6); zero selects 64.
   - Work limits (section 10); zero selects the stated default.
   - Integration options for mass properties, of type
     `parametric.IntegrationOptions`.
-- P4. `Linear` and `Relative` must not both be zero, `Angular` must be > 0 and
+- P4. `Linear` and `Relative` must not both be zero, `Angular` must be > 0 and at most 0.5, so that no pair of directions is
+  both parallel and perpendicular under T5, and
   `Volume` must be > 0. There is no hidden default tolerance. `Samples` and
   every work limit must be ≥ 0, and a nonzero `MaxGrowth` must be ≥ 1. Every
   option must be finite. A violation returns `ErrInvalid` before any
@@ -194,7 +195,7 @@ Each of these is outside the trial, and input that needs one returns
   returned.
 - P7. `Combine` does not modify its operands and holds no package-level
   mutable state. Two calls with equal operands, operation and options return
-  equal results: all iteration is in index order and no randomness is used.
+  equal results.
 
 ## 6. Tolerance model
 
@@ -265,9 +266,12 @@ building stage. It holds:
 
 - AR1. Nodes: position, radius, and the input vertices merged into each.
 - AR2. For each input edge, the ordered list of nodes on it and the spans
-  between them.
+  between them. A closed edge, such as a full circle, has at least one
+  node, that of its vertex. With exactly one node it has one span, a
+  *closed span*, both of whose ends are that node.
 - AR3. Bundles: for each set of coincident spans, the member spans and their
-  relative directions.
+  relative directions. The members of a bundle are all closed spans or all
+  open spans.
 - AR4. Traces: carrier, end nodes, the face of A and the face of B it lies
   in, and whether the contact is crossing or touching.
 - AR5. For each input face, three lists: spans and traces that lie in its
@@ -290,10 +294,16 @@ one member from A and one from B.
 - X2. Vertex with edge. A node on an edge of the other operand, and not
   coincident with an end of that edge, is added to the edge's node list.
 - X3. Edge with edge. Using section 7.5, each pair yields isolated points,
-  an overlap interval, or nothing. An isolated point becomes a node on both
-  edges (merging with an existing node where coincident). It carries no
-  crossing or touching label (CC2). The ends of an overlap interval become nodes on both
-  edges and the spans between them form a bundle.
+  one or two overlap intervals, an overlap of the whole of two closed edges
+  (CC4), or nothing. An isolated point becomes a node on both edges
+  (merging with an existing node where coincident). It carries no crossing
+  or touching label (CC2). The ends of each overlap interval become nodes
+  on both edges; a whole overlap has no ends and adds no node. Every node
+  of either edge that lies in an overlap is then a node of both, so within
+  the overlap the two edges have the same nodes and their spans correspond
+  one to one. Each pair of corresponding spans forms a bundle (AR3). When
+  two closed edges overlap wholly and their vertices are one node, each has
+  one closed span and the two closed spans form one bundle.
 - X4. Vertex with face. A node on a face's carrier and strictly inside its
   trimmed region, with no coincidence already recorded by X1 or X2 against
   that face's boundary, is recorded in the face's interior-node list. It is
@@ -314,7 +324,10 @@ one member from A and one from B.
   at the nodes already on it, and each interval between consecutive nodes
   that lies inside both trimmed regions becomes a trace, unless a span or
   bundle already occupies that interval, in which case that span or bundle is
-  recorded for both faces instead. A closed carrier curve with no node on it
+  recorded for both faces instead. On a closed carrier curve with exactly
+  one node, the one interval is the whole curve, from that node round to
+  itself; a closed span or a bundle of closed spans occupies it when it
+  lies on that curve. A closed carrier curve with no node on it
   that lies inside both trimmed regions first receives one node, at the
   point of parameter zero of the carrier, and then becomes one closed trace
   whose two end nodes are that node. Every trace therefore has end nodes
@@ -392,14 +405,15 @@ Let d be the distance between two cylinder axes, r₁ ≥ r₂ their radii, and 
 | Line, cylinder | `geom.IntersectLineCylinder` (`geom/line_surfaces.go:120`) | 0 to 2 points with tangency flag, line on surface, none. |
 | Line, circle or ellipse | Line with the conic's plane, then `geom.IntersectLineEllipse` (`geom/planar_intersections.go:36`) when coplanar | 0 to 2 points with tangency flag, none. |
 | Circle or ellipse, plane | Plane with the conic's plane (`geom.IntersectPlanes`), then line with conic | 0 to 2 points with tangency flag, conic in plane, none. |
-| Circle or ellipse, cylinder with axis parallel to the axis of the conic's own cylinder | Project along the axis; both become circles; circle with circle | 0 to 2 points with tangency flag, conic on surface, none. |
+| Circle or ellipse, cylinder; the conic's plane is parallel to the cylinder's axis (T5) | The conic's plane with the cylinder (`geom.IntersectPlaneCylinder`) gives 0 to 2 lines; each line with the conic | 0 to 4 points, none. A point is touching when the plane is tangent to the cylinder or the conic is tangent to the line. |
+| Circle or ellipse, cylinder; the conic's plane is not parallel to the axis and the conic projects to a circle along the axis (CC5) | Project along the axis; the cylinder becomes a circle; circle with circle | 0 to 2 points with tangency flag, conic on surface, none. |
 | Two conics in different planes | Line of the two planes, then each conic with that line | Points common to both. |
 | Two coplanar conics, homothetic (CC3) | Affine map taking both to circles; circle with circle | 0 to 2 points with tangency flag, overlap interval when the same conic, none. |
 | Two coplanar conics, not homothetic | — | `ErrUnsupported`. |
-| Circle or ellipse, cylinder not covered above | — | `ErrUnsupported` unless the owning faces are proved separate by SP2. |
+| Circle or ellipse, cylinder; any other | — | None when the conic is proved clear of the cylinder face (CC5); otherwise `ErrUnsupported`. |
 
-- CC1. Circle with circle, the homothetic reduction, the parallel-cylinder
-  reduction, point-to-parameter inversion for a conic, and segment-to-segment
+- CC1. Circle with circle, the homothetic reduction, the projection of a
+  conic along a cylinder axis (CC5), point-to-parameter inversion for a conic, and segment-to-segment
   distance have no existing helper and are written in the new package.
 - CC2. Crossing and touching are defined for a curve met with a surface
   carrier (X5) and for the carrier curves of a surface pair (X6, section
@@ -417,15 +431,46 @@ Let d be the distance between two cylinder axes, r₁ ≥ r₂ their radii, and 
   parallel (T5). Two conics are candidates when their planes are parallel
   (T5), they are homothetic (CC3), and their centres, major radii and minor
   radii each differ by at most ε. A line and a conic, and two conics in
-  planes that are not parallel, never overlap. For a candidate pair the
-  candidate interval is the part of the first edge's parameter interval
-  onto which the second edge projects. If that interval is empty, or the
-  distance between its two end points is at most ε, there is no overlap and
-  the pair is resolved for isolated points only. Otherwise the two end
-  points and the mid point of the candidate interval, taken on the first
-  carrier, are each tested against the second carrier: all three within ε
-  gives an overlap interval; none within ε gives no overlap; any other
-  outcome returns `ErrTolerance`.
+  planes that are not parallel, never overlap.
+
+  For a candidate pair, the second edge is projected onto the first
+  carrier, and the candidate intervals are the parts of the first edge that
+  the projection covers. Intervals are taken in the parameter of the first
+  carrier. For a conic that parameter is periodic: an interval may run
+  through the parameter origin of the carrier, or through the vertex of a
+  closed edge, and is still one interval. The outcomes are:
+  - no candidate interval;
+  - one candidate interval;
+  - two candidate intervals, which happens only for two arcs of one closed
+    carrier that overlap at both ends; each is treated on its own;
+  - a *whole overlap*, when both edges are closed and so each covers the
+    whole carrier. It has no end points.
+
+  The mid point of an interval is the point at the middle of its parameter
+  range, taken in the direction of the first edge. An interval is
+  degenerate when its mid point is within ε of both of its end points; this
+  measures its extent along the carrier and not the separation of its end
+  points, so an interval that runs almost all the way round a closed
+  carrier is not degenerate. A degenerate interval is no overlap, and the
+  pair is resolved for isolated points only.
+
+  Each interval that is not degenerate is tested at its two end points and
+  its mid point, and a whole overlap at three points of the first carrier
+  one third of the period apart, starting at the first edge's vertex. Each
+  point is taken on the first carrier and tested against the second: all
+  three within ε gives an overlap; none within ε gives no overlap; any
+  other outcome returns `ErrTolerance`.
+- CC5. A circle or ellipse with a cylinder. Nothing here refers to a
+  cylinder that the conic's own faces lie on. Write the conic as centre c
+  and two axis vectors u and v (major radius times major direction, minor
+  radius times minor direction), and let u′ and v′ be their projections
+  onto a plane perpendicular to the cylinder's axis. The conic projects to
+  a circle along the axis when the lengths of u′ and v′ differ by at most ε
+  and the absolute value of the cosine of the angle between them is at
+  most `Angular`; its projected radius is the mean of the two lengths. The
+  conic is proved clear of a cylinder face when the distance from c to the
+  face's axis segment (the segment of SP2) exceeds a + r + ε, where a is
+  the conic's major radius and r the cylinder's radius.
 
 ### 7.6 Splitting faces
 
@@ -501,7 +546,9 @@ After selection, before merging:
   pieces of B must not both contain the contact locus.
 
 A failure of N1, N2 or N3 returns `ErrNonManifold` with the locus. A touching
-contact that passes N3 leaves no edge or vertex in the result.
+contact that passes N3 adds no edge or vertex to the result. Edges and
+vertices that the kept pieces already have at that locus remain: in C8 the
+cut returns A with its vertex at the contact.
 
 ### 7.10 Merging
 
@@ -675,7 +722,7 @@ volume is given.
 | C15 | Coaxial cylinders, equal radius, heights [0,2] and [1,3] | One cylinder, 3 faces, V = 3πr² | V = πr² | V = πr² |
 | C16 | Coaxial cylinders, equal radius, heights [0,2] and [2,4]: caps shared, opposite normals | One cylinder, 3 faces, V = 4πr² | Empty | A |
 | C17 | Coaxial cylinders: A of radius R and height interval [0,2], B of radius r < R and height interval [−1,3] | A with B's two ends standing out; V = 2πR² + 2πr² | V = 2πr² | Tube, V = 2π(R² − r²), 4 faces |
-| C18 | Parallel cylinders of radius r, axis distance d < 2r, same height h | V = h(2πr² − lens) | V = h·lens, lens = 2r²·acos(d/2r) − (d/2)·√(4r² − d²) | V = h(πr² − lens) |
+| C18 | Parallel cylinders of radius r, axis distance d with 4ε ≤ d ≤ 2r − 4ε, same height h | V = h(2πr² − lens) | V = h·lens, lens = 2r²·acos(d/2r) − (d/2)·√(4r² − d²) | V = h(πr² − lens) |
 | C19 | A box; B a cylinder standing on A's top face, base circle strictly inside the face | One solid, V(A) + V(B); the top face has one hole | Empty | A |
 | C20 | As C19, but the base circle touches one edge of the top face from inside at a point | `ErrNonManifold` | Empty | A |
 | C21 | A box; B a cylinder through A along z with both caps flush with A's faces | A | B | Box with a through bore, V(A) − πr²h, 7 faces |
@@ -777,7 +824,9 @@ What the trial uses, unchanged, and what it does not.
   the arrangement of section 7.2 is the only data passed from the
   intersection stage to the building stage; every later stage reads its
   lists and none recomputes an intersection; there is one arrangement per
-  call; and the passes run in the order of section 7.3. None of this is
+  call; the passes run in the order of section 7.3; and every traversal is
+  in index order with no randomness, which is how the guarantee of P7 is
+  met. None of this is
   observable from outside `Combine`. It is what makes the pipeline one
   path, and it is checked by review of the diff under PC2.
 - L6. The oracle helper of A6 is `tools/occtref/general_boolean.cxx` with one
@@ -883,7 +932,11 @@ Not acceptance cases, with the reason:
   share, and are checked against their analytic values only. The owner
   approved this one run (OD-5).
 - A7. Every acceptance row and matrix row runs in under two seconds under
-  `go test` on the development machine. A row that needs longer is a failure
+  `go test` on the 14-core development machine that `tools/ci/README.md`
+  refers to, with the default settings of `go test` (no race detector, no
+  change to `-p` or `-parallel`). The time of a row is the elapsed time
+  that `go test -json` reports for its subtest, which includes building its
+  operands. A row that needs longer is a failure
   of the row, not a candidate for the slow tier.
 - A8. Achieved accuracy (OD-7). For every acceptance row, the test of A2
   reports the error the general path achieves in volume and in surface area:
