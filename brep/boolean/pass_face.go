@@ -112,10 +112,10 @@ func patchOf(s cylinder, from, to geom.Vec3) patch {
 	return patch{s, 0, 2 * math.Pi, s.axis().param(from), s.axis().param(to)}
 }
 
-// box holds the patch. Every point of an arc is within its sagitta of
+// extent holds the patch. Every point of an arc is within its sagitta of
 // its chord, and the patch is straight along the axis, so the box of the
 // four corners grown by the sagitta holds every point of it.
-func (p patch) box() bounds {
+func (p patch) extent() bounds {
 	corner := func(angle, v float64) geom.Vec3 {
 		return p.s.axis().at(v).Add(p.s.frame.XAxis().Scale(p.s.radius * math.Cos(angle))).Add(p.s.frame.YAxis().Scale(p.s.radius * math.Sin(angle)))
 	}
@@ -141,7 +141,7 @@ const (
 // their carriers and bounds.
 func (a *arrangement) separate(p, q patch, bp, bq bounds, depth int, tests *int) bool {
 	*tests--
-	x, y := p.box(), q.box()
+	x, y := p.extent(), q.extent()
 	x = bounds{geom.Vec3{X: math.Max(x.lo.X, bp.lo.X), Y: math.Max(x.lo.Y, bp.lo.Y), Z: math.Max(x.lo.Z, bp.lo.Z)}, geom.Vec3{X: math.Min(x.hi.X, bp.hi.X), Y: math.Min(x.hi.Y, bp.hi.Y), Z: math.Min(x.hi.Z, bp.hi.Z)}}
 	y = bounds{geom.Vec3{X: math.Max(y.lo.X, bq.lo.X), Y: math.Max(y.lo.Y, bq.lo.Y), Z: math.Max(y.lo.Z, bq.lo.Z)}, geom.Vec3{X: math.Min(y.hi.X, bq.hi.X), Y: math.Min(y.hi.Y, bq.hi.Y), Z: math.Min(y.hi.Z, bq.hi.Z)}}
 	empty := func(b bounds) bool {
