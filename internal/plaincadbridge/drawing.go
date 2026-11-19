@@ -121,8 +121,13 @@ func (s stored) drawingGeometry() (drawingGeometry, error) {
 	return out, nil
 }
 
+// rectangularCylinderDomain reports the rectangle of the chart that a face
+// of a cylinder covers, where its outline is that rectangle and nothing
+// else: every use is straight in the chart and lies on one side of the box
+// of the outline. A side may be one use or several, as it is where a rim was
+// cut in arcs.
 func rectangularCylinderDomain(f trimmed.Face) (u, z parametric.Interval, ok bool) {
-	if len(f.Outer) != 4 || len(f.Holes) != 0 {
+	if len(f.Outer) < 4 || len(f.Holes) != 0 {
 		return
 	}
 	p := f.Outer[0].UVStart
@@ -136,8 +141,8 @@ func rectangularCylinderDomain(f trimmed.Face) (u, z parametric.Interval, ok boo
 		z.Min, z.Max = min(z.Min, a.Y), max(z.Max, a.Y)
 	}
 	for _, trim := range f.Outer {
-		a := trim.UVStart
-		if a.X != u.Min && a.X != u.Max || a.Y != z.Min && a.Y != z.Max {
+		a, b := trim.UVStart, trim.UVEnd
+		if side := a.X == b.X && (a.X == u.Min || a.X == u.Max) || a.Y == b.Y && (a.Y == z.Min || a.Y == z.Max); !side {
 			return u, z, false
 		}
 	}

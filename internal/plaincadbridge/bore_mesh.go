@@ -54,7 +54,7 @@ func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, err
 	// Keep the established single-rim refinement when a coarser mesh
 	// would lose more than the material-volume budget after STL rounding.
 	fine := o
-	fine.Angle = min(o.Angle, .045)
+	fine.Angle = min(o.Angle, fineMeshAngle)
 	if len(s.bore.cylinders) != 1 || fine.Angle == o.Angle {
 		return s.bore.solid.Tessellate(ctx, o)
 	}
@@ -63,11 +63,36 @@ func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, err
 		return mesh.Mesh{}, err
 	}
 	volume := s.result.GeometryAssertions.Volume
-	tolerance := volume * 1e-4
+	tolerance := volume * meshVolumeBudget
 	if math.Abs(float32MeshVolume(m)-volume) < tolerance {
 		return m, nil
 	}
 	return s.bore.solid.Tessellate(ctx, fine)
+}
+
+// meshVolumeBudget is the part of the volume of a solid by which its mesh
+// may differ from it, after the rounding of an STL, before the solid is
+// meshed again at fineMeshAngle, the facet angle of that second mesh.
+const (
+	meshVolumeBudget = 1e-4
+	fineMeshAngle    = .045
+)
+
+// tessellateGeneral meshes a result of the general Boolean and holds the
+// mesh to the budget that tessellateBore keeps for a single bore. Where the
+// second mesh cannot be built within its limits, the first is the answer.
+func (s stored) tessellateGeneral(o parametric.TessellationOptions) (mesh.Mesh, error) {
+	m, err := s.analytic.tessellate(o)
+	fine := o
+	fine.Angle = min(o.Angle, fineMeshAngle)
+	volume := s.result.GeometryAssertions.Volume
+	if err != nil || fine.Angle == o.Angle || math.Abs(float32MeshVolume(m)-volume) < volume*meshVolumeBudget {
+		return m, err
+	}
+	if refined, err := s.analytic.tessellate(fine); err == nil {
+		return refined, nil
+	}
+	return m, nil
 }
 
 func float32MeshVolume(m mesh.Mesh) float64 {

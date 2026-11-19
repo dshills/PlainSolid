@@ -213,7 +213,45 @@ func generalBounds(s trimmed.Solid) (geom.Box, error) {
 			}
 		}
 	}
-	return geom.Bounds(points)
+	box, err := geom.Bounds(points)
+	if err != nil {
+		return geom.Box{}, err
+	}
+	// A planar face across a coordinate axis, with the solid on one side of
+	// it, holds every point of the solid that lies in its plane. Where the
+	// box ends within tolerance of such a plane on the side the face looks
+	// to, the box ends at the plane: the vertices in it were computed, from
+	// arcs among other things, and are off it by rounding.
+	lo, hi := [3]*float64{&box.Min.X, &box.Min.Y, &box.Min.Z}, [3]*float64{&box.Max.X, &box.Max.Y, &box.Max.Z}
+	for _, f := range s.Faces() {
+		base, m := parametric.SurfaceMapping(f.Surface)
+		plane, ok := base.(geom.PlaneSurface)
+		if !ok {
+			continue
+		}
+		frame := plane.Frame()
+		o, n := m.Apply(frame.Origin()), m.ApplyVector(frame.ZAxis())
+		at, along := [3]float64{o.X, o.Y, o.Z}, [3]float64{n.X, n.Y, n.Z}
+		for i := range 3 {
+			if math.Abs(along[i]) != 1 || along[(i+1)%3] != 0 || along[(i+2)%3] != 0 {
+				continue
+			}
+			// The stored normal is the outward one where the two signs
+			// agree, as in the drawing of bores.
+			outward := along[i]
+			if f.Reversed != (m.Determinant() < 0) {
+				outward = -outward
+			}
+			end := lo[i]
+			if outward > 0 {
+				end = hi[i]
+			}
+			if math.Abs(*end-at[i]) <= s.Tolerance() {
+				*end = at[i]
+			}
+		}
+	}
+	return box, nil
 }
 
 // generalCutMany is cutMany as a left fold of cuts (CO1). Nothing is
