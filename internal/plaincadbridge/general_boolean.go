@@ -157,16 +157,21 @@ func generalBody(body *analyticBody) bool {
 }
 
 // generalBounds is the box of a solid bounded by planes and cylinders:
-// the box of its edges. A coordinate is linear along every ruling of
-// such a face, and a ruling ends on the boundary, so no face reaches
-// further than its edges. trimmed.Solid.Bounds is wider on both counts:
-// it boxes the whole parameter rectangle of each face, and it pads the
-// box by the tolerance of the solid.
+// the box of its edges, each arc taken to its true extent. It holds
+// every face. A coordinate is a linear function of position; on a planar
+// face a linear function is greatest and least on the boundary, and on a
+// cylinder it is linear along each ruling, which ends on the boundary of
+// the face at both ends. trimmed.Solid.Bounds is wider on two counts: it
+// boxes the whole parameter rectangle of each face, and it pads the box
+// by the tolerance of the solid.
 func generalBounds(s trimmed.Solid) (geom.Box, error) {
 	points := s.Vertices()
 	for _, e := range s.Edges() {
-		// Where a coordinate of the curve turns: its derivative changes
-		// sign between two of the samples, and bisection finds the place.
+		// Where a coordinate of the curve turns, its derivative passes
+		// through zero. The samples only bracket the place; bisection
+		// of the derivative finds it, so the box has the extent of the
+		// arc and not of a polygon in it. An arc of the result is at
+		// most a quarter turn, which turns once at most in a coordinate.
 		const samples = 16
 		slope := func(t float64) [3]float64 {
 			d, _ := e.Curve.Derivative(t)
@@ -177,8 +182,8 @@ func generalBounds(s trimmed.Solid) (geom.Box, error) {
 			lo, hi := e.Range.Min+float64(k)*step, e.Range.Min+float64(k+1)*step
 			from, to := slope(lo), slope(hi)
 			for i := range 3 {
-				if from[i]*to[i] >= 0 {
-					continue
+				if from[i]*to[i] > 0 || from[i] == 0 {
+					continue // no turn here, or one at a sample already taken
 				}
 				u, v := lo, hi
 				for range 60 {

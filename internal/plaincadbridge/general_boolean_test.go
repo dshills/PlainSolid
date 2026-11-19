@@ -123,6 +123,47 @@ func TestGeneralBooleanTransform(t *testing.T) {
 	}
 }
 
+// TestGeneralBooleanBounds requires the bounds of the geometry, which the
+// adapter takes from the edges of the result: a quarter wall, whose
+// extent is at its vertices; a cylinder that leans, whose rims turn
+// inside their arcs; and an oblique cut, whose wall trimmed.Solid.Bounds
+// boxes half a unit past the stock at either end (acceptance row T1-035).
+func TestGeneralBooleanBounds(t *testing.T) {
+	type q = map[string]any
+	for _, c := range []struct {
+		name     string
+		op       string
+		build    []q
+		min, max vector
+	}{
+		{"a quarter wall", "common", []q{
+			{"op": "box", "min": vector{0, 0, 0}, "max": vector{20, 20, 8}},
+			{"op": "circle", "origin": vector{0, 0, -1}, "normal": vector{0, 0, 1}, "radius": 3, "height": 10},
+		}, vector{0, 0, 0}, vector{3, 3, 8}},
+		{"a leaning cylinder", "common", []q{
+			{"op": "box", "min": vector{-20, -20, -20}, "max": vector{20, 20, 20}},
+			{"op": "circle", "origin": vector{0, 0, 0}, "normal": vector{1, 2, 2}, "radius": 1, "height": 6},
+		}, vector{-math.Sqrt(8) / 3, -math.Sqrt(5) / 3, -math.Sqrt(5) / 3}, vector{2 + math.Sqrt(8)/3, 4 + math.Sqrt(5)/3, 4 + math.Sqrt(5)/3}},
+		{"an oblique cut", "cut", []q{
+			{"op": "box", "min": vector{0, 0, 0}, "max": vector{20, 20, 20}},
+			{"op": "circle", "origin": vector{1, 4, -4}, "normal": vector{1, 0, 4}, "radius": 1, "height": 30},
+		}, vector{0, 0, 0}, vector{20, 20, 20}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			b := newGeneral()
+			for _, request := range c.build {
+				shape(t, b, request)
+			}
+			got := shape(t, b, q{"op": c.op, "a": "ps:1", "b": "ps:2"}).Bounds
+			for i := range 3 {
+				if math.Abs(float64(got.Min[i]-c.min[i])) > 1e-9 || math.Abs(float64(got.Max[i]-c.max[i])) > 1e-9 {
+					t.Fatalf("bounds %v, want %v to %v", got, c.min, c.max)
+				}
+			}
+		})
+	}
+}
+
 // TestGeneralBooleanFailures fixes the bridge failure of each error of
 // the general Boolean, and of a stored shape the adapter does not take.
 func TestGeneralBooleanFailures(t *testing.T) {
