@@ -61,7 +61,7 @@ func residuals(b *body) (edgeResidual, vertexResidual float64, err error) {
 						return 0, 0, failWith(ErrValidation, "V3", err)
 					}
 					d := math.Max(math.Abs(b.sheets[fi].s.offset(onEdge)), onEdge.Distance(onFace))
-					if edgeResidual = math.Max(edgeResidual, d); !(d <= b.tau) {
+					if edgeResidual = math.Max(edgeResidual, d); !(d <= b.tau+b.slack) {
 						return 0, 0, fail(ErrValidation, "V3", "edge %d is %g from face %d", u.Edge, d, fi)
 					}
 				}
@@ -75,7 +75,7 @@ func residuals(b *body) (edgeResidual, vertexResidual float64, err error) {
 				return 0, 0, failWith(ErrValidation, "V4", err)
 			}
 			d := p.Distance(b.verts[v])
-			if vertexResidual = math.Max(vertexResidual, d); !(d <= b.tau) {
+			if vertexResidual = math.Max(vertexResidual, d); !(d <= b.tau+b.slack) {
 				return 0, 0, fail(ErrValidation, "V4", "vertex %d is %g from an end of edge %d", v, d, ei)
 			}
 		}

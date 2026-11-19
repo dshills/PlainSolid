@@ -87,3 +87,12 @@ func filled[T, K any](keys []K, value T) []T {
 	}
 	return out
 }
+
+// slack is the allowance for rounding in a comparison of a measured
+// distance with a tolerance (V1, V3, V4). A distance between two points
+// of a model of size L is computed from coordinates that each carry a
+// rounding error of about one unit in the last place of L, so a feature
+// that sits exactly at the tolerance measures a few such units above or
+// below it. The comparison allows eight of them. This is not a looser
+// tolerance: for a model of size 100 it is 1.8e-13.
+func (t tolerances) slack() float64 { return 8 * 0x1p-52 * t.size }

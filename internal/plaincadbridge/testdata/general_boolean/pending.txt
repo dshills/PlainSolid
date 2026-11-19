@@ -1,6 +1,5 @@
 T1-001 TestThroughCircleCutAllAxesAndSigns time over two seconds
 T1-002 TestFiniteCylinderCoverageAndPartialCommon other: succeeds where the record fails (A4)
-T1-005 TestGuidedRadiusThree other: a gap of exactly the working tolerance fails V1 by rounding
 T1-008 TestRadiallyDisjointCommonAndUnsupportedCavity other: succeeds where the record fails (A4)
 T1-009 TestBlindFloorNearExitReferenceIsAmbiguous other: the record keeps a floor 5e-8 thick, which C24 merges
 T1-012 TestExitOpenBlindRejectsUnpreservedEndpoints other: succeeds where the record fails (A4)

@@ -284,3 +284,23 @@ func TestFacePassCurved(t *testing.T) {
 		}
 	})
 }
+
+// TestGapOfExactlyTheTolerance covers the rounding allowance of V1, V3
+// and V4: the cap of the tool lies exactly ε below a face of the stock,
+// which T8 calls a coincidence, so the rim of the tool bounds a face on
+// the plane of the stock at a distance of exactly τ. The comparison with
+// τ must not fail by the rounding of that distance. The operands are
+// those of acceptance row T1-005.
+func TestGapOfExactlyTheTolerance(t *testing.T) {
+	stock := lifted(t, box(t, -40, -25, 0, 40, 25, 20))
+	tool := tube(t, -10, -8, -1e-7, 3, 20.0000001)
+	o := matrixOptions
+	o.Linear = 1e-7
+	r, err := Combine(context.Background(), stock, tool, Common, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := math.Pi * 9 * 20; r.Solids != 1 || math.Abs(r.Volume-want) > 1e-5 || !(r.EdgeResidual <= r.Tolerance*(1+1e-6)) {
+		t.Fatalf("%d solids of volume %.12g with edge residual %g, want one of %.12g within %g", r.Solids, r.Volume, r.EdgeResidual, want, r.Tolerance)
+	}
+}

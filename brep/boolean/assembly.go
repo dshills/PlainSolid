@@ -25,6 +25,7 @@ type sheet struct {
 type body struct {
 	solid  trimmed.Solid
 	tau    float64 // the tolerance the solid records (T6)
+	slack  float64 // the allowance for rounding in a comparison with tau
 	verts  []geom.Vec3
 	edges  []parametric.Edge
 	faces  []trimmed.Face
@@ -39,7 +40,7 @@ type body struct {
 // output solid (B3 to B6). No geometry is welded here: sheets share edges
 // by identity.
 func assemble(ctx context.Context, points []point, edges []element, in []sheet, t tolerances) (*body, error) {
-	b := &body{tau: t.eps}
+	b := &body{tau: t.eps, slack: t.slack()}
 	if len(in) == 0 {
 		return b, nil // B5
 	}
@@ -109,7 +110,7 @@ func assemble(ctx context.Context, points []point, edges []element, in []sheet, 
 			if volumes[j] < -volumes[k] || parent[k] >= 0 && volumes[j] >= volumes[parent[k]] {
 				continue
 			}
-			shell, err := emit(ctx, points, edges, pick(in, members[j]), b.tau)
+			shell, err := emit(ctx, points, edges, pick(in, members[j]), b.tau, b.slack)
 			if err != nil {
 				return nil, err
 			}
@@ -168,7 +169,7 @@ func assemble(ctx context.Context, points []point, edges []element, in []sheet, 
 		}
 		b.solids++
 	}
-	out, err := emit(ctx, points, edges, sequence, b.tau)
+	out, err := emit(ctx, points, edges, sequence, b.tau, b.slack)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +194,7 @@ const conditioningRounds = 6
 // is first cut into arcs of at most a quarter turn; while the solid is
 // not accepted the arcs are halved, at most six times. Conditioning adds
 // vertices and never moves geometry.
-func emit(ctx context.Context, points []point, edges []element, in []sheet, tau float64) (*body, error) {
+func emit(ctx context.Context, points []point, edges []element, in []sheet, tau, slack float64) (*body, error) {
 	curved := false
 	for _, sh := range in {
 		for _, loop := range sh.loops {
@@ -204,7 +205,7 @@ func emit(ctx context.Context, points []point, edges []element, in []sheet, tau 
 	}
 	var first error
 	for round := 0; ; round++ {
-		b, err := build(ctx, points, edges, in, tau, round)
+		b, err := build(ctx, points, edges, in, tau, slack, round)
 		if err == nil || ctx.Err() != nil {
 			return b, err
 		}
@@ -220,8 +221,8 @@ func emit(ctx context.Context, points []point, edges []element, in []sheet, tau 
 // build is one attempt of emit, with every curved edge cut into arcs of
 // at most a quarter turn halved round times. The points and edges the
 // sheets use are numbered in index order, conditioning vertices last.
-func build(ctx context.Context, points []point, edges []element, in []sheet, tau float64, round int) (*body, error) {
-	b := &body{tau: tau, sheets: in}
+func build(ctx context.Context, points []point, edges []element, in []sheet, tau, slack float64, round int) (*body, error) {
+	b := &body{tau: tau, slack: slack, sheets: in}
 	usedEdge, usedPoint := table[bool](edges), table[bool](points)
 	for _, sh := range in {
 		for _, loop := range sh.loops {
@@ -360,7 +361,7 @@ func build(ctx context.Context, points []point, edges []element, in []sheet, tau
 		}
 		b.faces = append(b.faces, face)
 	}
-	solid, err := trimmed.NewSolidContext(ctx, b.verts, b.edges, b.faces, tau)
+	solid, err := trimmed.NewSolidContext(ctx, b.verts, b.edges, b.faces, tau+slack)
 	if err != nil {
 		if e := ctx.Err(); e != nil {
 			return nil, e
