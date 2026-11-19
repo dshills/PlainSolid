@@ -2,6 +2,7 @@ package plaincadbridge
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -335,6 +337,49 @@ func TestGeneralBooleanAcceptance(t *testing.T) {
 						t.Logf("A7 %s: not listed, and took %.2fs in this run", row.id, elapsed.Seconds())
 					}
 				})
+			}
+		})
+	}
+}
+
+// TestGeneralBooleanMeasures is the independent check of the closed-form
+// volume and area that the general Boolean reports and the adapter
+// publishes. It replays every acceptance row on a general bridge and
+// integrates each result the bridge publishes with
+// trimmed.Solid.MassProperties at the bridge's integration tolerance.
+// It runs in the slow tier only, and apart from the acceptance replay
+// so that it does not add to the times that replay measures.
+func TestGeneralBooleanMeasures(t *testing.T) {
+	slowtest.Skip(t)
+	var mu sync.Mutex
+	results, volume, area := 0, 0., 0.
+	t.Cleanup(func() {
+		t.Logf("closed form against integration on %d published results: largest difference %.3g in volume, %.3g in area, relative to max(1, value)", results, volume, area)
+	})
+	for _, row := range generalBooleanRows(t) {
+		t.Run(row.id, func(t *testing.T) {
+			t.Parallel()
+			replay := generalBooleanReplay{open: newGeneral}
+			for _, step := range loadGeneralBooleanTrace(t, row.function) {
+				reply, issued := replay.issue(t, step)
+				if step.New || !issued || !reply.OK || reply.Handle == "" {
+					continue
+				}
+				body := replay.bridge.shapes[reply.Handle].analytic
+				if body == nil || !generalBody(body) {
+					continue
+				}
+				p, err := body.solid.MassProperties(context.Background(), generalOptions.Integration)
+				if err != nil {
+					t.Fatalf("%s: %v", step.Req, err)
+				}
+				dv, da := generalBooleanError(body.volume, p.Volume), generalBooleanError(body.area, p.Area)
+				mu.Lock()
+				results, volume, area = results+1, math.Max(volume, dv), math.Max(area, da)
+				mu.Unlock()
+				if dv > 1e-8 || da > 1e-8 {
+					t.Errorf("%.200s: closed form %.12g and %.12g, integration %.12g and %.12g", step.Req, body.volume, body.area, p.Volume, p.Area)
+				}
 			}
 		})
 	}

@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"plainsolid/brep"
@@ -489,8 +490,44 @@ func pendingLeaves(t *testing.T) map[string]bool {
 // TestMatrix runs the rows of section 11 as TestMatrix/<row>/<variant>/<operation>.
 // A leaf named in testdata/pending.txt is expected to fail: its failure
 // is logged, and its passing is a test failure.
+// agreement compares the measures a result reports, which are closed
+// forms over its faces, with trimmed.Solid.MassProperties on the same
+// solid at the integration tolerance of the matrix, and keeps the largest
+// differences it has seen. The numerical integration is the independent
+// check of the closed form; Combine itself does not run it.
+type agreement struct {
+	sync.Mutex
+	leaves                 int
+	volume, area, centroid float64
+}
+
+var integrated agreement
+
+func (a *agreement) compare(r Result) error {
+	if r.Solids == 0 {
+		return nil
+	}
+	p, err := r.Solid.MassProperties(context.Background(), matrixOptions.Integration)
+	if err != nil {
+		return err
+	}
+	relative := func(x, y float64) float64 { return math.Abs(x-y) / math.Max(1, math.Abs(y)) }
+	volume, area, centroid := relative(r.Properties.Volume, p.Volume), relative(r.Properties.Area, p.Area), r.Properties.Centroid.Distance(p.Centroid)
+	a.Lock()
+	a.leaves++
+	a.volume, a.area, a.centroid = math.Max(a.volume, volume), math.Max(a.area, area), math.Max(a.centroid, centroid)
+	a.Unlock()
+	if volume > 1e-8 || area > 1e-8 || centroid > 1e-7 {
+		return fmt.Errorf("closed form gives volume %.12g, area %.12g and centroid %v; integration gives %.12g, %.12g and %v", r.Properties.Volume, r.Properties.Area, r.Properties.Centroid, p.Volume, p.Area, p.Centroid)
+	}
+	return nil
+}
+
 func TestMatrix(t *testing.T) {
 	pending := pendingLeaves(t)
+	t.Cleanup(func() {
+		t.Logf("closed form against integration on %d results: largest difference %.3g in volume, %.3g in area (both relative to max(1, value)), %.3g in centroid", integrated.leaves, integrated.volume, integrated.area, integrated.centroid)
+	})
 	var rows []string
 	seen := map[string]bool{}
 	for _, m := range matrix {
@@ -564,6 +601,9 @@ func checkLeaf(c config, op Operation) error {
 	case err != nil && want.maybe != nil && errors.Is(err, want.maybe):
 		return nil
 	case err != nil:
+		return err
+	}
+	if err := integrated.compare(r); err != nil {
 		return err
 	}
 	topology := r.Solid.Topology()

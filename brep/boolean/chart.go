@@ -29,6 +29,10 @@ type chart interface {
 	// flux integrates x·n / 3 over the region the loops bound, where n is
 	// the carrier normal: the region's share of an enclosed volume.
 	flux(loops [][]leg) float64
+	// moments gives, in closed form, the area of the region the loops
+	// bound and its shares of an enclosed volume and of its first
+	// moment, for an outward normal along the carrier normal.
+	moments(loops [][]leg) moments
 }
 
 // path is the image of a leg in a chart: the point at parameter t is

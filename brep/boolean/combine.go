@@ -122,22 +122,34 @@ func combine(ctx context.Context, a, b trimmed.Solid, op Operation, o Options) (
 	if r.EdgeResidual, r.VertexResidual, err = residuals(built); err != nil {
 		return Result{}, err
 	}
-	// V5 integrates an operand unless the caller gave its measures.
-	var pa, pb parametric.Properties
-	if o.KnownA != nil {
-		pa = *o.KnownA
-	} else if pa, err = measure(ctx, a, empty[0], o.Integration); err != nil {
-		return Result{}, err
+	// V5 takes the measures of an operand from the caller when it gave
+	// them, and otherwise from the closed form over its faces, as it
+	// takes those of the result. Only a solid with a face that the
+	// closed form does not cover is integrated numerically.
+	var measures [3]parametric.Properties
+	for i, known := range [2]*parametric.Properties{o.KnownA, o.KnownB} {
+		faces := ops[i].faces
+		closed, ok := measured(len(faces), func(f int) (surface, bool, [][]leg) { return faces[f].s, faces[f].reversed, arr.borders[i][f] })
+		switch {
+		case known != nil:
+			measures[i] = *known
+		case ok:
+			measures[i] = closed
+		default:
+			if measures[i], err = measure(ctx, [2]trimmed.Solid{a, b}[i], empty[i], o.Integration); err != nil {
+				return Result{}, err
+			}
+		}
 	}
-	if o.KnownB != nil {
-		pb = *o.KnownB
-	} else if pb, err = measure(ctx, b, empty[1], o.Integration); err != nil {
-		return Result{}, err
+	pr, ok := measured(len(sheets), func(f int) (surface, bool, [][]leg) {
+		return sheets[f].s, sheets[f].reversed, legsOf(edges, sheets[f].loops)
+	})
+	if !ok {
+		if pr, err = measure(ctx, built.solid, built.faces == nil, o.Integration); err != nil {
+			return Result{}, err
+		}
 	}
-	pr, err := measure(ctx, built.solid, built.faces == nil, o.Integration)
-	if err != nil {
-		return Result{}, err
-	}
+	pa, pb := measures[0], measures[1]
 	r.VolumeA, r.VolumeB, r.Volume, r.Properties = pa.Volume, pb.Volume, pr.Volume, pr
 	if err := identities(&arr.fabric, pieces, op, pa, pb, pr, o, t); err != nil {
 		return Result{}, err
