@@ -19,8 +19,12 @@ import (
 // field is set, which only a test constructor does; the default bridge is
 // unchanged.
 
-// generalOptions are the tolerances of the bridge (L4). The integration
-// options serve only a solid whose measures have no closed form.
+// generalOptions are the tolerances the bridge passes to the general
+// Boolean (L4). The general Boolean measures volume, area and centroid in
+// closed form, so the integration options serve only a solid with a face
+// that the closed form does not cover. They then ask for 1e-9 with the
+// sample budget that a result with an oblique or annular cap needs to
+// converge; the default of four million samples runs out on those.
 var generalOptions = boolean.Options{
 	Linear:      1e-7,
 	Angular:     1e-9,
@@ -118,7 +122,8 @@ func generalOperand(s stored) (trimmed.Solid, error) {
 
 // putGeneral publishes a result of the general Boolean: the empty solid
 // as the legacy paths publish it, and any other as an analytic body that
-// holds the result solid, with the volume and area the result reports.
+// holds the result solid, with the volume and area that the general
+// Boolean reports for it. The adapter does not integrate the result.
 func (b *Bridge) putGeneral(r boolean.Result) (Shape, error) {
 	if r.Solids == 0 {
 		return b.put(brep.Solid{})
@@ -155,10 +160,12 @@ func generalBody(body *analyticBody) bool {
 
 // generalBounds is the box of a solid bounded by planes and cylinders:
 // the box of its edges, each arc taken to its true extent. It holds
-// every face: a coordinate is linear in position, so on a planar face it
-// is extreme on the boundary, and on a cylinder it is linear along each
-// ruling, which ends on the boundary. trimmed.Solid.Bounds is wider: it
-// boxes the parameter rectangle of each face and pads by the tolerance.
+// every face. A coordinate is a linear function of position; on a planar
+// face a linear function is greatest and least on the boundary, and on a
+// cylinder it is linear along each ruling, which ends on the boundary of
+// the face at both ends. trimmed.Solid.Bounds is wider on two counts: it
+// boxes the whole parameter rectangle of each face, and it pads the box
+// by the tolerance of the solid.
 func generalBounds(s trimmed.Solid) (geom.Box, error) {
 	points := s.Vertices()
 	for _, e := range s.Edges() {
