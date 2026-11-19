@@ -59,48 +59,106 @@ func edgeCarrier(e parametric.Edge, s1, s2 surface, t tolerances) (edge, error) 
 	}
 	switch {
 	case found == 0:
-		return edge{}, fail(ErrUnsupported, "edge carrier", "the stored curve lies on no line of its faces (deviation %g); curved edges are not accepted before Part 2.1", least)
+		return edge{}, fail(ErrUnsupported, "edge carrier", "the stored curve lies on no line, circle or ellipse of its faces (deviation %g)", least)
 	case found > 1:
 		return edge{}, fail(ErrTolerance, "edge carrier", "two carriers fit the stored curve")
 	}
-	// Interval and direction (step 6): orient the carrier along the edge
-	// and require every step between samples to advance.
-	if chosen.param(points[edgeSamples-1]) < chosen.param(points[0]) {
-		chosen = chosen.flipped()
+	// Interval and direction (step 6). A step between two samples is
+	// halved, up to six times, until it is short enough to be read
+	// without doubt: on a closed carrier at most an eighth of a period.
+	// The carrier is then turned along the edge, and every step must
+	// advance; one that does not is halved again before the edge is
+	// refused.
+	type sample struct {
+		s float64
+		p geom.Vec3
 	}
-	var advance func(s0, s1, u0, u1 float64, depth int) bool
-	advance = func(s0, s1, u0, u1 float64, depth int) bool {
-		if u1 > u0 {
-			return true
+	period := chosen.period()
+	step := func(a, b sample) float64 {
+		d := chosen.param(b.p) - chosen.param(a.p)
+		if period > 0 {
+			d -= period * math.Round(d/period)
 		}
-		if depth == 0 {
-			return false
-		}
-		mid := (s0 + s1) / 2
-		p, err := e.Curve.Eval(mid)
-		if err != nil || !p.IsFinite() {
-			return false
-		}
-		um := chosen.param(p)
-		return advance(s0, mid, u0, um, depth-1) && advance(mid, s1, um, u1, depth-1)
+		return d
 	}
-	for k := 0; k+1 < edgeSamples; k++ {
-		u0, u1 := chosen.param(points[k]), chosen.param(points[k+1])
-		if !advance(at(k, edgeSamples-1), at(k+1, edgeSamples-1), u0, u1, edgeRefinements) {
-			return edge{}, fail(ErrUnsupported, "edge carrier", "the stored curve runs back along its carrier after sample %d", k)
+	var cut func(a, b sample, depth int, bad func(float64) bool) ([]sample, bool)
+	cut = func(a, b sample, depth int, bad func(float64) bool) ([]sample, bool) {
+		if !bad(step(a, b)) {
+			return []sample{b}, true
 		}
+		p, err := e.Curve.Eval((a.s + b.s) / 2)
+		if depth == 0 || err != nil || !p.IsFinite() {
+			return nil, false
+		}
+		mid := sample{(a.s + b.s) / 2, p}
+		first, ok := cut(a, mid, depth-1, bad)
+		if !ok {
+			return nil, false
+		}
+		second, ok := cut(mid, b, depth-1, bad)
+		return append(first, second...), ok
 	}
-	return edge{start: e.Start, end: e.End, c: chosen, t0: chosen.param(points[0]), t1: chosen.param(points[edgeSamples-1]), box: around(points...)}, nil
+	refine := func(list []sample, bad func(float64) bool) ([]sample, int) {
+		out := list[:1:1]
+		for k := 1; k < len(list); k++ {
+			more, ok := cut(list[k-1], list[k], edgeRefinements, bad)
+			if !ok {
+				return nil, k - 1
+			}
+			out = append(out, more...)
+		}
+		return out, -1
+	}
+	list := make([]sample, edgeSamples)
+	for k, p := range points {
+		list[k] = sample{at(k, edgeSamples-1), p}
+	}
+	list, failed := refine(list, func(d float64) bool { return period > 0 && math.Abs(d) > period/8 })
+	total := 0.
+	for k := 1; failed < 0 && k < len(list); k++ {
+		total += step(list[k-1], list[k])
+	}
+	if failed < 0 && total < 0 {
+		chosen, total = chosen.flipped(), -total
+	}
+	if failed < 0 {
+		_, failed = refine(list, func(d float64) bool { return d <= 0 || period > 0 && d > period/8 })
+	}
+	if failed >= 0 {
+		return edge{}, fail(ErrUnsupported, "edge carrier", "the stored curve does not advance along its carrier after sample %d", failed)
+	}
+	out := edge{start: e.Start, end: e.End, c: chosen, t0: chosen.param(points[0]), box: around(points...)}
+	out.t1 = out.t0 + total
+	if period > 0 {
+		// A closed edge has the whole period as its interval. The bounds
+		// of an arc reach past its samples by its sagitta.
+		closed := total > period/2 && points[0].Distance(points[edgeSamples-1]) <= 2*t.eps
+		if (e.Start == e.End) != closed || total > period*(1+1e-9) {
+			return edge{}, fail(ErrUnsupported, "edge carrier", "the stored curve runs %g of a turn between its ends", total/period)
+		}
+		if closed {
+			out.t1 = out.t0 + period
+		}
+		_, _, along, across := chosen.terms()
+		out.box = out.box.grown(math.Max(along.Length(), across.Length()) * (1 - math.Cos(total/(2*float64(edgeSamples-1)))))
+	}
+	return out, nil
 }
 
 // edgeCandidates lists the carriers an edge may lie on (I5 steps 3 and 4).
 // For two different surfaces they are the carrier curves of the row of
 // section 7.4, the table that the face-with-face pass uses. For one
-// surface the faces fix no curve and the samples do.
+// surface the faces fix no curve and the samples do: a line through the
+// two samples farthest apart, or the curve in which the plane through
+// three samples cuts the surface, or, on a plane, the circle or ellipse
+// through samples.
 func edgeCandidates(points []geom.Vec3, s1, s2 surface, t tolerances) ([]curve, error) {
 	pair, err := surfacePair(s1, s2, t)
 	if err != nil {
 		return nil, err
+	}
+	if pair.open {
+		return nil, fail(ErrUnsupported, "edge carrier", "the faces of the edge are a surface pair with no row")
 	}
 	if !pair.alike {
 		return pair.curves, nil
@@ -117,5 +175,50 @@ func edgeCandidates(points []geom.Vec3, s1, s2 surface, t tolerances) ([]curve, 
 	if err != nil {
 		return nil, fail(ErrInvalid, "edge carrier", "the stored curve is a single point")
 	}
-	return []curve{line{points[a], dir}}, nil
+	straight := line{points[a], dir}
+	fits := func(c curve) bool {
+		for _, p := range points {
+			if off(c, p) > t.eps {
+				return false
+			}
+		}
+		return true
+	}
+	if fits(straight) {
+		return []curve{straight}, nil
+	}
+	// Three samples: the first, the one farthest from it, and the one
+	// farthest from the line through those two.
+	second, third := 0, 0
+	for i, p := range points {
+		if p.Distance(points[0]) > points[second].Distance(points[0]) {
+			second = i
+		}
+	}
+	chord := line{points[0], points[second].Sub(points[0]).Scale(1 / points[second].Distance(points[0]))}
+	for i, p := range points {
+		if off(chord, p) > off(chord, points[third]) {
+			third = i
+		}
+	}
+	frame, err := geom.NewFrame(points[0], chord.dir, chord.dir.Cross(points[third].Sub(points[0])))
+	if err != nil {
+		return nil, fail(ErrInvalid, "edge carrier", "the samples span no plane")
+	}
+	cutting, err := surfacePair(plane{frame}, s1, t)
+	if err != nil {
+		return nil, err
+	}
+	if !cutting.alike {
+		return cutting.curves, nil
+	}
+	// The surface is that plane: the circle through the three samples
+	// or, failing that, the conic through five of them.
+	if c, ok := conicThrough([5]geom.Vec3{points[0], points[second], points[third], points[0], points[second]}, t.eps); ok && fits(c) {
+		return []curve{c}, nil
+	}
+	if c, ok := conicThrough([5]geom.Vec3{points[0], points[3], points[6], points[9], points[12]}, t.eps); ok {
+		return []curve{c}, nil
+	}
+	return nil, nil
 }

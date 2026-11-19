@@ -1,6 +1,11 @@
 package boolean
 
-import "context"
+import (
+	"context"
+	"math"
+
+	"plainsolid/geom"
+)
 
 // arrange runs the intersection stage: the passes of section 7.3 in
 // their fixed order, then seal. Its result is the only data the building
@@ -42,8 +47,12 @@ func (a *arrangement) faceWithFace() error {
 				if same {
 					at := a.ops[0].verts[a.ops[0].edges[x.loops[0][0].edge].start]
 					a.pairs = append(a.pairs, samePair{[2]int{fa, fb}, (x.s.normal(at).Dot(y.s.normal(at)) < 0) != (x.reversed != y.reversed)})
+					continue
 				}
-				continue
+			}
+			if pair.open && !a.apart(fa, fb) {
+				// SP3: no closed form, and SP2 does not prove them separate.
+				return fail(ErrUnsupported, "X6", "face %d of A and face %d of B are cylinders with axes that are not parallel", fa, fb)
 			}
 			for i, c := range pair.curves {
 				if err := a.lay(c, fa, fb, pair.touching[i]); err != nil {
@@ -53,6 +62,36 @@ func (a *arrangement) faceWithFace() error {
 		}
 	}
 	return nil
+}
+
+// extent is the part of a cylinder's axis that a face reaches, as two
+// points, grown by ε at each end.
+func (a *arrangement) extent(op, f int) (geom.Vec3, geom.Vec3) {
+	face := a.ops[op].faces[f]
+	axis := face.s.(cylinder).axis()
+	lo, hi := math.Inf(1), math.Inf(-1)
+	for _, x := range [2]float64{face.box.lo.X, face.box.hi.X} {
+		for _, y := range [2]float64{face.box.lo.Y, face.box.hi.Y} {
+			for _, z := range [2]float64{face.box.lo.Z, face.box.hi.Z} {
+				u := axis.param(geom.Vec3{X: x, Y: y, Z: z})
+				lo, hi = math.Min(lo, u), math.Max(hi, u)
+			}
+		}
+	}
+	return axis.at(lo - a.t.eps), axis.at(hi + a.t.eps)
+}
+
+// apart is the proof of separation of SP2 for two cylinder faces whose
+// axes are not parallel: their bounds grown by ε do not overlap, or their
+// axis segments are farther apart than the two radii and ε.
+func (a *arrangement) apart(fa, fb int) bool {
+	x, y := a.ops[0].faces[fa], a.ops[1].faces[fb]
+	if x.box.clear(y.box, a.t.eps) {
+		return true
+	}
+	p0, p1 := a.extent(0, fa)
+	q0, q1 := a.extent(1, fb)
+	return segmentDistance(p0, p1, q0, q1) > x.s.(cylinder).radius+y.s.(cylinder).radius+a.t.eps
 }
 
 // rimNodes lists the nodes on the boundary of a face, each once.
@@ -86,10 +125,10 @@ func (a *arrangement) tracesCross() error {
 			}
 			m, err := curveMeets(x.c, y.c, a.t)
 			if err != nil {
-				return err
+				continue // the table has no row to check this pair with
 			}
 			for _, h := range m.hits {
-				if h.gap > 2*a.t.eps || h.t <= x.t0 || h.t >= x.t1 || h.s <= y.t0 || h.s >= y.t1 {
+				if h.gap > 2*a.t.eps || h.p.Distance(leg{x.c, x.t0, x.t1}.nearest(h.p)) > a.t.eps || h.p.Distance(leg{y.c, y.t0, y.t1}.nearest(h.p)) > a.t.eps {
 					continue
 				}
 				if a.covers(x.ends[0], h.p) || a.covers(x.ends[1], h.p) || a.covers(y.ends[0], h.p) || a.covers(y.ends[1], h.p) {

@@ -41,11 +41,13 @@ type arrangement struct {
 }
 
 // lap is an overlap of an edge of A with an edge of B (CC4): the nodes at
-// the two ends of the overlap interval, in the direction of A's edge.
+// the two ends of the overlap interval, in the direction of A's edge. A
+// whole overlap of two closed edges has no ends.
 type lap struct {
 	edges   [2]int
 	ends    [2]int
 	opposed bool
+	whole   bool
 }
 
 // lying is a span of an edge that lies on the carrier of a face of the

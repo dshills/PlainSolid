@@ -127,6 +127,24 @@ var matrix = []struct {
 		either := func(o outcome) outcome { o.maybe = ErrTolerance; return o }
 		return pair(t, box(t, 0, 0, 2-d, 2, 2, 3-d), either(solidOf(12, 1, 0, 0)), either(nothing), either(solidOf(8, 1, 0, 0)))
 	}},
+	{"C1", "cyl", func(t *testing.T) []config {
+		return curved(tube(t, 0, 0, 0, 1, 2), tube(t, 5, 0, 0, 0.5, 1), solidOf(2.25*math.Pi, 2, 0, 6), nothing, solidOf(2*math.Pi, 1, 0, 3))
+	}},
+	{"C2", "cyl", func(t *testing.T) []config {
+		whole := solidOf(2*math.Pi, 1, 0, 3)
+		return curved(tube(t, 0, 0, 0, 1, 2), tube(t, 0, 0, 0, 1, 2), whole, whole, nothing)
+	}},
+	{"C3", "cyl", func(t *testing.T) []config {
+		return curved(tube(t, 0, 0, 0, 1, 2), tube(t, 0.2, 0, 0.5, 0.5, 1), solidOf(2*math.Pi, 1, 0, 3), solidOf(0.25*math.Pi, 1, 0, 3), solidOf(1.75*math.Pi, 1, 1, 6))
+	}},
+	{"C27", "cyl", func(t *testing.T) []config {
+		a, none := tube(t, 0, 0, 0, 1, 2), trimmed.Solid{}
+		whole := solidOf(2*math.Pi, 1, 0, 3)
+		return []config{
+			{a: a, b: none, want: [3]outcome{Union: whole, Common: nothing, Cut: whole}},
+			{a: none, b: a, want: [3]outcome{Union: whole, Common: nothing, Cut: nothing}},
+		}
+	}},
 	{"C27", "planar", func(t *testing.T) []config {
 		a, none := box(t, 0, 0, 0, 2, 2, 2), brep.Solid{}
 		whole := solidOf(8, 1, 0, 6)
@@ -136,6 +154,32 @@ var matrix = []struct {
 			planarConfig(t, none, none, [3]outcome{}),
 		}
 	}},
+}
+
+// tube is the cylinder of radius r about the vertical axis through
+// (x, y), from height z0 up by h, as a parametric cylinder lifted with
+// trimmed.FromParametric (the stored form SF2).
+func tube(t testing.TB, x, y, z0, r, h float64) trimmed.Solid {
+	t.Helper()
+	frame, err := geom.NewFrame(geom.Vec3{X: x, Y: y, Z: z0}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := parametric.Cylinder(frame, r, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := trimmed.FromParametric(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+// curved is a row of the cylinder variant: two operands, at least one
+// with a cylinder face, and the three outcomes.
+func curved(a, b trimmed.Solid, union, common, cut outcome) []config {
+	return []config{{a: a, b: b, want: [3]outcome{Union: union, Common: common, Cut: cut}}}
 }
 
 // pair is the usual row: A is the box [0,2]³ and b is the other operand.
@@ -236,28 +280,41 @@ func pendingLeaves(t *testing.T) map[string]bool {
 // is logged, and its passing is a test failure.
 func TestMatrix(t *testing.T) {
 	pending := pendingLeaves(t)
+	var rows []string
+	seen := map[string]bool{}
 	for _, m := range matrix {
-		t.Run(m.row, func(t *testing.T) {
-			t.Run(m.variant, func(t *testing.T) {
-				for op := Union; op <= Cut; op++ {
-					t.Run(operationNames[op], func(t *testing.T) {
-						var err error
-						for i, c := range m.build(t) {
-							if e := checkLeaf(c, op); e != nil && err == nil {
-								err = fmt.Errorf("operands %d: %w", i, e)
-							}
-						}
-						switch {
-						case pending[t.Name()] && err == nil:
-							t.Fatal("the leaf passes but is listed in testdata/pending.txt")
-						case pending[t.Name()]:
-							t.Logf("pending: %v", err)
-						case err != nil:
-							t.Fatal(err)
-						}
-					})
+		if !seen[m.row] {
+			seen[m.row] = true
+			rows = append(rows, m.row)
+		}
+	}
+	for _, row := range rows {
+		t.Run(row, func(t *testing.T) {
+			for _, m := range matrix {
+				if m.row != row {
+					continue
 				}
-			})
+				t.Run(m.variant, func(t *testing.T) {
+					for op := Union; op <= Cut; op++ {
+						t.Run(operationNames[op], func(t *testing.T) {
+							var err error
+							for i, c := range m.build(t) {
+								if e := checkLeaf(c, op); e != nil && err == nil {
+									err = fmt.Errorf("operands %d: %w", i, e)
+								}
+							}
+							switch {
+							case pending[t.Name()] && err == nil:
+								t.Fatal("the leaf passes but is listed in testdata/pending.txt")
+							case pending[t.Name()]:
+								t.Logf("pending: %v", err)
+							case err != nil:
+								t.Fatal(err)
+							}
+						})
+					}
+				})
+			}
 		})
 	}
 }

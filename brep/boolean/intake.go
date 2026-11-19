@@ -45,21 +45,37 @@ type operand struct {
 
 // intake reduces an operand to carriers (I3) and rejects one outside the
 // class of section 4.1 with an error that names the first face or edge at
-// fault (S5).
+// fault (S5). A collapsed edge is accepted as the pole of a polar plane
+// chart and carries nothing into the arrangement (S3): it is left out of
+// the edges and of the loops.
 func intake(index int, s trimmed.Solid, t tolerances) (*operand, error) {
 	o := &operand{solid: s, verts: s.Vertices()}
 	faces, edges := s.Faces(), s.Edges()
 	owners := table[[]int](edges)
+	kept := filled(edges, -1)
+	next := 0
+	for i, e := range edges {
+		if e.Curve != nil {
+			kept[i] = next
+			next++
+		}
+	}
 	for fi, f := range faces {
-		carrier, err := surfaceCarrier(f.Surface, t)
+		carrier, polar, err := surfaceCarrier(f.Surface, t)
 		if err != nil {
 			return nil, fail(ErrUnsupported, "intake", "operand %s face %d: %v", operandName(index), fi, err)
 		}
 		rec := face{s: carrier, reversed: f.Reversed}
 		for _, l := range append([][]trimmed.Use{f.Outer}, f.Holes...) {
-			loop := make([]use, len(l))
-			for i, u := range l {
-				loop[i] = use{u.Edge, u.Reversed}
+			var loop []use
+			for _, u := range l {
+				if kept[u.Edge] < 0 {
+					if !polar {
+						return nil, fail(ErrUnsupported, "intake", "operand %s edge %d is collapsed and not the pole of a polar plane chart", operandName(index), u.Edge)
+					}
+					continue
+				}
+				loop = append(loop, use{kept[u.Edge], u.Reversed})
 				owners[u.Edge] = append(owners[u.Edge], fi)
 			}
 			rec.loops = append(rec.loops, loop)
@@ -68,7 +84,7 @@ func intake(index int, s trimmed.Solid, t tolerances) (*operand, error) {
 	}
 	for ei, e := range edges {
 		if e.Curve == nil {
-			return nil, fail(ErrUnsupported, "intake", "operand %s edge %d is collapsed", operandName(index), ei)
+			continue
 		}
 		// trimmed.Solid gives every edge with a curve exactly two uses.
 		rec, err := edgeCarrier(e, o.faces[owners[ei][0]].s, o.faces[owners[ei][1]].s, t)
@@ -94,18 +110,29 @@ func intake(index int, s trimmed.Solid, t tolerances) (*operand, error) {
 }
 
 // surfaceCarrier recognizes a face by its surface value (S2) and applies
-// its placement, which must be rigid (S4).
-func surfaceCarrier(s geom.Surface, t tolerances) (surface, error) {
+// its placement, which must be rigid (S4). It also tells a plane stored
+// in the polar chart, whose normal points against the z axis of its
+// frame and whose pole is a collapsed edge.
+func surfaceCarrier(s geom.Surface, t tolerances) (surface, bool, error) {
 	base, m := parametric.SurfaceMapping(s)
+	if polar, ok := parametric.PolarPlaneFrame(base); ok {
+		against, err := geom.NewFrame(polar.Origin(), polar.XAxis(), polar.ZAxis().Scale(-1))
+		if err != nil {
+			return nil, false, fail(ErrUnsupported, "intake", "the polar chart is degenerate: %v", err)
+		}
+		frame, err := placed(against, m, t)
+		return plane{frame}, true, err
+	}
 	switch b := base.(type) {
 	case geom.PlaneSurface:
 		frame, err := placed(b.Frame(), m, t)
-		if err != nil {
-			return nil, err
-		}
-		return plane{frame}, nil
+		return plane{frame}, false, err
+	case geom.CylinderSurface:
+		own, radius := b.Parameters()
+		frame, err := placed(own, m, t)
+		return cylinder{frame, radius}, false, err
 	}
-	return nil, fail(ErrUnsupported, "intake", "a surface stored as %T is not a plane; cylinder faces are not accepted before Part 2.1", base)
+	return nil, false, fail(ErrUnsupported, "intake", "a surface stored as %T is neither a plane nor a circular cylinder", base)
 }
 
 // placed maps a frame by a placement. The placement must be rigid within

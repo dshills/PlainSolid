@@ -213,7 +213,7 @@ func emit(ctx context.Context, points []point, edges []element, in []sheet, tau 
 			continue
 		}
 		e := edges[i]
-		c, r, err := e.c.value(points[e.a].pos, points[e.b].pos)
+		c, r, err := e.c.value(points[e.a].pos, points[e.b].pos, e.t0, e.t1)
 		if err != nil {
 			return nil, failWith(ErrValidation, "assembly", err)
 		}

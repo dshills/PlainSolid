@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"plainsolid/brep"
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
 )
@@ -187,4 +188,185 @@ func polyhedron(t testing.TB, vertices []geom.Vec3, polygons [][]int) brep.Solid
 		t.Fatal(err)
 	}
 	return s
+}
+
+// stored builds the cylinder of radius 0.5 and height 2 on the axis
+// through (1,1,0) along z in one of the stored forms of section 11: sf2
+// is a parametric cylinder lifted with trimmed.FromParametric, sf3 a disc
+// built by trimmed.ExtrudeDiskWithHoles. With placed set the solid is
+// moved by a rigid placement that is not axis-aligned (SF4).
+func stored(t testing.TB, form string, placed bool) (trimmed.Solid, geom.Affine) {
+	t.Helper()
+	frame, err := geom.NewFrame(geom.Vec3{X: 1, Y: 1}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var s trimmed.Solid
+	switch form {
+	case "sf2":
+		c, err := parametric.Cylinder(frame, 0.5, 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if s, err = trimmed.FromParametric(c); err != nil {
+			t.Fatal(err)
+		}
+	case "sf3":
+		if s, err = trimmed.ExtrudeDiskWithHoles(context.Background(), frame, trimmed.ExtrusionCircle{Radius: 0.5}, nil, nil, 2); err != nil {
+			t.Fatal(err)
+		}
+	default:
+		t.Fatalf("unknown stored form %q", form)
+	}
+	m := geom.Identity()
+	if placed {
+		turn, err := geom.Rotation(geom.Vec3{X: 1, Y: 2, Z: 3}, 0.7)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m = geom.Translation(geom.Vec3{X: 0.3, Y: -0.2, Z: 0.1}).Mul(turn)
+		if s, err = s.Transformed(m); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return s, m
+}
+
+// TestEdgeCarrierStoredForms: whatever the stored form and placement of
+// a cylinder, every edge is reduced to a line along or across the axis or
+// to a circle of the cylinder's radius about it, over the right interval.
+func TestEdgeCarrierStoredForms(t *testing.T) {
+	tol := tolerances{eps: 1e-7, angular: 1e-9, margin: 4e-7, size: 6}
+	for _, form := range []string{"sf2", "sf3"} {
+		for _, placed := range []bool{false, true} {
+			s, m := stored(t, form, placed)
+			o, err := intake(0, s, tol)
+			if err != nil {
+				t.Fatalf("%s placed %v: %v", form, placed, err)
+			}
+			axis := line{m.Apply(geom.Vec3{X: 1, Y: 1}), m.ApplyVector(geom.Vec3{Z: 1})}
+			turns := [2]float64{}
+			for i, e := range o.edges {
+				a, b := e.c.at(e.t0), e.c.at(e.t1)
+				if a.Distance(o.verts[e.start]) > tol.eps || b.Distance(o.verts[e.end]) > tol.eps || !(e.t0 < e.t1) {
+					t.Fatalf("%s placed %v edge %d: runs from %v to %v, vertices %v and %v", form, placed, i, a, b, o.verts[e.start], o.verts[e.end])
+				}
+				switch k := e.c.(type) {
+				case line:
+					if along := math.Abs(k.dir.Dot(axis.dir)); along > 1e-9 && along < 1-1e-9 {
+						t.Fatalf("%s placed %v edge %d: a line neither along nor across the axis", form, placed, i)
+					}
+				case conic:
+					height := axis.param(k.center)
+					if k.a != k.b && math.Abs(k.a-k.b) > tol.eps || math.Abs(k.a-0.5) > tol.eps || off(axis, k.center) > tol.eps || math.Abs(math.Abs(k.normal().Dot(axis.dir))-1) > 1e-9 || math.Min(math.Abs(height), math.Abs(height-2)) > tol.eps {
+						t.Fatalf("%s placed %v edge %d: conic %+v", form, placed, i, k)
+					}
+					turns[int(math.Round(height/2))] += (e.t1 - e.t0) / (2 * math.Pi)
+				}
+			}
+			if math.Abs(turns[0]-1) > 1e-9 || math.Abs(turns[1]-1) > 1e-9 {
+				t.Fatalf("%s placed %v: the rim edges make %v turns, want one at each end", form, placed, turns)
+			}
+		}
+	}
+}
+
+// helix is one turn of a helix on the cylinder of stored, from its
+// bottom seam vertex to its top one.
+type helix struct{}
+
+func (helix) Eval(t float64) (geom.Vec3, error) {
+	s, c := math.Sincos(2 * math.Pi * t)
+	return geom.Vec3{X: 1 + 0.5*c, Y: 1 + 0.5*s, Z: 2 * t}, nil
+}
+func (helix) Derivative(t float64) (geom.Vec3, error) {
+	s, c := math.Sincos(2 * math.Pi * t)
+	return geom.Vec3{X: -math.Pi * s, Y: math.Pi * c, Z: 2}, nil
+}
+
+// TestEdgeCarrierFailures covers the edges I5 refuses on a curved face.
+func TestEdgeCarrierFailures(t *testing.T) {
+	tol := tolerances{eps: 1e-7, angular: 1e-9, margin: 4e-7, size: 6}
+	t.Run("a helical edge", func(t *testing.T) {
+		// The wall of the sf2 cylinder, split in two faces along a helix
+		// from one end of its seam to the other.
+		s, _ := stored(t, "sf2", false)
+		edges, faces := s.Edges(), s.Faces()
+		edges = append(edges, parametric.Edge{Start: 0, End: 1, Curve: helix{}, Range: parametric.Interval{Max: 1}})
+		split := len(edges) - 1
+		wall := faces[0]
+		turn, top := 2*math.Pi, 2.
+		lower := trimmed.Face{Surface: wall.Surface, Outer: []trimmed.Use{
+			{Edge: 0, UVStart: geom.Vec2{}, UVEnd: geom.Vec2{X: turn}},
+			{Edge: 1, UVStart: geom.Vec2{X: turn}, UVEnd: geom.Vec2{X: turn, Y: top}},
+			{Edge: split, Reversed: true, UVStart: geom.Vec2{X: turn, Y: top}, UVEnd: geom.Vec2{}},
+		}}
+		upper := trimmed.Face{Surface: wall.Surface, Outer: []trimmed.Use{
+			{Edge: split, UVStart: geom.Vec2{}, UVEnd: geom.Vec2{X: turn, Y: top}},
+			{Edge: 2, UVStart: geom.Vec2{X: turn, Y: top}, UVEnd: geom.Vec2{Y: top}},
+			{Edge: 1, Reversed: true, UVStart: geom.Vec2{Y: top}, UVEnd: geom.Vec2{}},
+		}}
+		twisted, err := trimmed.NewSolid(s.Vertices(), edges, append([]trimmed.Face{lower, upper}, faces[1:]...), 1e-9)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = Combine(context.Background(), twisted, trimmed.Solid{}, Union, matrixOptions)
+		if !errors.Is(err, ErrUnsupported) || !strings.Contains(err.Error(), "operand A edge 7") {
+			t.Fatalf("got %v, want ErrUnsupported naming operand A edge 7", err)
+		}
+	})
+	frame, err := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	round, err := geom.NewEllipse(frame, 1, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	floor, wall := plane{frame}, cylinder{frame, 1}
+	whole := parametric.Edge{Curve: round, Range: parametric.Interval{Max: 2 * math.Pi}}
+	t.Run("an uneven full circle", func(t *testing.T) {
+		// Three quarters of the turn lie in the first sixteenth of the
+		// range: the first step between samples is refined.
+		even, err := edgeCarrier(whole, floor, wall, tol)
+		if err != nil {
+			t.Fatal(err)
+		}
+		uneven := whole
+		uneven.Curve = warped{round, func(s float64) float64 {
+			if s < 1./16 {
+				return 12 * s
+			}
+			return 0.75 + (s-1./16)*0.25/(15./16)
+		}}
+		got, err := edgeCarrier(uneven, floor, wall, tol)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if math.Abs(got.t0-even.t0) > 1e-9 || math.Abs(got.t1-even.t1) > 1e-9 || got.c.at(1).Distance(even.c.at(1)) > tol.eps {
+			t.Fatalf("got %+v, want %+v", got, even)
+		}
+	})
+	t.Run("a circle walked forward and back", func(t *testing.T) {
+		there := whole
+		there.Curve = warped{round, func(s float64) float64 { return 0.25 - math.Abs(s-0.5)/2 }}
+		there.Start, there.End = 0, 0
+		if _, err := edgeCarrier(there, floor, wall, tol); !errors.Is(err, ErrUnsupported) {
+			t.Fatalf("got %v, want ErrUnsupported", err)
+		}
+	})
+}
+
+// warped walks a curve of range 2π by a map of the unit interval to
+// turns.
+type warped struct {
+	base geom.Curve
+	turn func(float64) float64
+}
+
+func (c warped) Eval(t float64) (geom.Vec3, error) {
+	return c.base.Eval(2 * math.Pi * c.turn(t/(2*math.Pi)))
+}
+func (c warped) Derivative(t float64) (geom.Vec3, error) {
+	return c.base.Derivative(2 * math.Pi * c.turn(t/(2*math.Pi)))
 }

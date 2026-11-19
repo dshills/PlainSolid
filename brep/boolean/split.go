@@ -85,8 +85,8 @@ func (a *arrangement) splitFace(op, f int) ([]piece, error) {
 		if h.reversed {
 			l, x.from, x.to = l.back(), e.b, e.a
 		}
-		x.out, x.bend = ch.heading(l)
-		x.back, x.backBend = ch.heading(l.back())
+		x.out, x.bend = heading(ch, l)
+		x.back, x.backBend = heading(ch, l.back())
 		halves = append(halves, x)
 	}
 	for _, loop := range a.rims[op][f] {
@@ -131,7 +131,7 @@ func (a *arrangement) splitFace(op, f int) ([]piece, error) {
 	var pieces []piece
 	owner := filled(loops, -1)
 	for i, loop := range loops {
-		if areas[i] = polygonArea(ring(ch, legsOf(a.elems, [][]hop{loop})[0])); areas[i] > 0 {
+		if areas[i] = chartArea(ch, legsOf(a.elems, [][]hop{loop})); areas[i] > 0 {
 			owner[i] = len(pieces)
 			pieces = append(pieces, piece{op: op, face: f, loops: [][]hop{loop}, class: outside, mate: -1})
 		}
@@ -204,10 +204,14 @@ func (a *arrangement) turn(halves []half, i int) (int, error) {
 		}
 		return 0, fail(ErrInconsistent, "F3", "two elements leave point %d along one carrier and are not one bundle", arrived.to)
 	}
-	best, least := -1, 0.
+	best, least, back := -1, 0., -1
 	for k, h := range halves {
-		if h.from != arrived.to || h.elem == arrived.elem && h.reversed != arrived.reversed {
-			continue // not at this point, or the way back along the element of arrival
+		if h.from != arrived.to {
+			continue
+		}
+		if h.elem == arrived.elem && h.reversed != arrived.reversed {
+			back = k // the way back along the element of arrival
+			continue
 		}
 		at, err := angle(h)
 		if err != nil {
@@ -231,6 +235,12 @@ func (a *arrangement) turn(halves []half, i int) (int, error) {
 		if best < 0 || at < least {
 			best, least = k, at
 		}
+	}
+	if best < 0 {
+		// Nothing else leaves the point: the element ends here, as the
+		// radial edge of a polar chart does at its pole, and the walk
+		// turns round on it.
+		best = back
 	}
 	if best < 0 {
 		return -1, fail(ErrInconsistent, "F3", "a walk cannot leave point %d", arrived.to)
@@ -264,9 +274,19 @@ func (a *arrangement) holds(ch chart, outer, hole []hop) bool {
 func (a *arrangement) probes(p piece) []geom.Vec3 {
 	ch := a.ops[p.op].faces[p.face].s.chart()
 	border := legsOf(a.elems, p.loops)
+	// The loops as chart polygons, with curved legs sampled. On a chart
+	// that repeats, each hole is moved by whole periods to lie in the
+	// same turn as the outer loop.
 	var rings [][]geom.Vec2
-	for _, loop := range border {
-		rings = append(rings, ring(ch, loop))
+	for i, loop := range border {
+		r := ring(ch, loop)
+		if period := ch.period(); i > 0 && period > 0 {
+			shift := period * math.Round((rings[0][0].X-r[0].X)/period)
+			for k := range r {
+				r[k].X += shift
+			}
+		}
+		rings = append(rings, r)
 	}
 	type candidate struct {
 		at    geom.Vec3
@@ -317,7 +337,9 @@ func (a *arrangement) probes(p piece) []geom.Vec3 {
 							clear = math.Min(clear, at.Distance(l.nearest(at)))
 						}
 					}
-					if clear > a.t.eps {
+					// A sampled outline is not the boundary: the candidate
+					// counts only if it is in the piece itself.
+					if clear > a.t.eps && locate(ch, border, at, a.t.eps) == within {
 						found = append(found, candidate{at, clear})
 					}
 				}

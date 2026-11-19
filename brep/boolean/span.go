@@ -1,9 +1,6 @@
 package boolean
 
-import (
-	"math"
-	"sort"
-)
+import "sort"
 
 // stop is a node on an input edge, with its parameter on the edge's
 // carrier. The stops of an edge are kept in parameter order (AR2).
@@ -51,7 +48,13 @@ func (a *arrangement) place(op, e, n int) (int, error) {
 	}
 	ed := a.ops[op].edges[e]
 	list := a.stops[op][e]
-	u := math.Max(ed.t0, math.Min(ed.t1, ed.c.param(a.at(n).pos)))
+	u, on := leg{ed.c, ed.t0, ed.t1}.reach(a.at(n).pos)
+	if !on {
+		u = ed.t0
+		if p := a.at(n).pos; p.Distance(ed.c.at(ed.t1)) < p.Distance(ed.c.at(ed.t0)) {
+			u = ed.t1
+		}
+	}
 	k := sort.Search(len(list), func(i int) bool { return list[i].t >= u })
 	for _, j := range [2]int{k - 1, k} {
 		if j >= 0 && j < len(list) && a.coincident(n, list[j].node) {
@@ -65,21 +68,60 @@ func (a *arrangement) place(op, e, n int) (int, error) {
 	return a.find(n), nil
 }
 
+// within lists the positions of the stops of an edge that an overlap
+// covers on one side: from one end node of the overlap to the other in
+// the direction of that edge, around the vertex of a closed edge where
+// the overlap runs through it, or every stop for a whole overlap.
+func (a *arrangement) within(l lap, side int) []int {
+	list := a.stops[side][l.edges[side]]
+	var out []int
+	if l.whole {
+		for k := range list {
+			out = append(out, k)
+		}
+		return out
+	}
+	from, to := a.find(l.ends[0]), a.find(l.ends[1])
+	if side == 1 && l.opposed {
+		from, to = to, from
+	}
+	start := -1
+	for k, s := range list {
+		if a.find(s.node) == from {
+			start = k
+			break
+		}
+	}
+	if start < 0 {
+		return nil
+	}
+	// On a closed edge the last stop is the first again.
+	closed := a.find(list[0].node) == a.find(cyclic(list, -1).node)
+	for k := start; ; k++ {
+		if k == len(list) {
+			if !closed {
+				return nil
+			}
+			k = 0 // the vertex again, now as the start of the first span
+		}
+		out = append(out, k)
+		if a.find(list[k].node) == to && (k != start || from != to) || len(out) > 2*len(list) {
+			return out
+		}
+	}
+}
+
 // agree makes the two edges of an overlap have the same nodes inside it
 // (X3): every node of either that lies in the overlap is put on the other.
 func (a *arrangement) agree(l lap) error {
 	for side := range l.edges {
-		inside := false
-		for _, s := range a.stops[side][l.edges[side]] {
-			n := a.find(s.node)
-			first, last := n == a.find(l.ends[0]), n == a.find(l.ends[1])
-			if inside || first || last {
-				if _, err := a.place(1-side, l.edges[1-side], n); err != nil {
-					return err
-				}
-			}
-			if first || last {
-				inside = !inside
+		var nodes []int
+		for _, k := range a.within(l, side) {
+			nodes = append(nodes, a.stops[side][l.edges[side]][k].node)
+		}
+		for _, n := range nodes {
+			if _, err := a.place(1-side, l.edges[1-side], n); err != nil {
+				return err
 			}
 		}
 	}
@@ -104,62 +146,71 @@ func (a *arrangement) seal() error {
 			return err
 		}
 	}
-	// Spans, in the order of operands and edges.
-	var first [2][]int
+	// Spans, in the order of operands and edges. spanAt gives the span
+	// that starts at each stop, or -1.
+	var spanAt [2][][]int
 	for i, op := range a.ops {
-		for e := range op.edges {
-			first[i] = append(first[i], len(a.spans))
+		for e, ed := range op.edges {
 			list := a.stops[i][e]
+			at := filled(list, -1)
 			for k := 0; k+1 < len(list); k++ {
 				p, q := point(list[k].node), point(list[k+1].node)
-				if p != q {
+				switch {
+				case p != q || len(list) == 2 && ed.c.period() > 0 && ed.t1-ed.t0 >= ed.c.period():
+					// A span, or the closed span of a closed edge.
+					at[k] = len(a.spans)
 					a.spans = append(a.spans, span{op: i, edge: e, a: p, b: q, t0: list[k].t, t1: list[k+1].t, bundle: -1, elem: -1})
-				} else if len(list) == 2 {
+				case len(list) == 2:
 					return fail(ErrTolerance, "arrangement", "edge %d of %s is shorter than the tolerance", e, operandName(i))
 				}
 			}
+			spanAt[i] = append(spanAt[i], at)
 		}
-		first[i] = append(first[i], len(a.spans))
 	}
-	// between lists the spans of an edge from point p to point q.
-	between := func(op, e, p, q int) []int {
+	// spansOf lists the spans that start at the given stops of an edge,
+	// the last of them left out: a span ends there.
+	spansOf := func(op, e int, stops []int) []int {
 		var out []int
-		for s := first[op][e]; s < first[op][e+1]; s++ {
-			if len(out) > 0 || a.spans[s].a == p {
-				out = append(out, s)
-				if a.spans[s].b == q {
-					return out
+		for _, k := range stops[:max(len(stops), 1)-1] {
+			if k < len(spanAt[op][e]) && spanAt[op][e][k] >= 0 {
+				out = append(out, spanAt[op][e][k])
+			}
+		}
+		return out
+	}
+	// between lists the spans of an edge from node x to node y, all of
+	// them when the two are one node of a closed edge.
+	between := func(op, e, x, y int) []int {
+		l := lap{ends: [2]int{x, y}, whole: a.find(x) == a.find(y)}
+		l.edges[op] = e
+		stops := a.within(l, op)
+		return spansOf(op, e, stops)
+	}
+	// Bundles: inside an overlap the spans of the two edges correspond,
+	// each to the one with the same two points in the matching order.
+	for _, l := range a.laps {
+		var lists [2][]int
+		for side := range lists {
+			lists[side] = spansOf(side, l.edges[side], a.within(l, side))
+		}
+		mismatch := fail(ErrTolerance, "arrangement", "edge %d of A and edge %d of B overlap but their spans do not correspond (CC4)", l.edges[0], l.edges[1])
+		if lists[0] == nil || len(lists[0]) != len(lists[1]) {
+			return mismatch
+		}
+		for _, s := range lists[0] {
+			x := &a.spans[s]
+			found := -1
+			for _, o := range lists[1] {
+				if y := a.spans[o]; y.bundle < 0 && (!l.opposed && x.a == y.a && x.b == y.b || l.opposed && x.a == y.b && x.b == y.a) {
+					found = o
+					break
 				}
 			}
-		}
-		return nil
-	}
-	// Bundles: inside an overlap the spans of the two edges correspond.
-	for _, l := range a.laps {
-		p, q := point(l.ends[0]), point(l.ends[1])
-		mine := between(0, l.edges[0], p, q)
-		if l.opposed {
-			p, q = q, p
-		}
-		theirs := between(1, l.edges[1], p, q)
-		if mine == nil || len(mine) != len(theirs) {
-			return fail(ErrTolerance, "arrangement", "edge %d of A and edge %d of B overlap but their spans do not correspond (CC4)", l.edges[0], l.edges[1])
-		}
-		for k, s := range mine {
-			o := theirs[k]
-			if l.opposed {
-				o = theirs[len(theirs)-1-k]
+			if x.bundle >= 0 || found < 0 {
+				return mismatch
 			}
-			x, y := &a.spans[s], &a.spans[o]
-			matched := x.a == y.a && x.b == y.b
-			if l.opposed {
-				matched = x.a == y.b && x.b == y.a
-			}
-			if x.bundle >= 0 || y.bundle >= 0 || !matched {
-				return fail(ErrTolerance, "arrangement", "edge %d of A and edge %d of B overlap but their spans do not correspond (CC4)", l.edges[0], l.edges[1])
-			}
-			x.bundle, y.bundle = len(a.bundles), len(a.bundles)
-			a.bundles = append(a.bundles, bundle{spans: []int{s, o}, reversed: []bool{false, l.opposed}, elem: -1})
+			x.bundle, a.spans[found].bundle = len(a.bundles), len(a.bundles)
+			a.bundles = append(a.bundles, bundle{spans: []int{s, found}, reversed: []bool{false, l.opposed}, elem: -1})
 		}
 	}
 	// Elements: a span in no bundle, or a bundle with the carrier of its
@@ -190,12 +241,18 @@ func (a *arrangement) seal() error {
 			for _, loop := range f.loops {
 				var hops []hop
 				for _, u := range loop {
-					for s := first[i][u.edge]; s < first[i][u.edge+1]; s++ {
-						k := s
-						if u.reversed {
-							k = first[i][u.edge] + first[i][u.edge+1] - 1 - s
+					var own []int
+					for _, s := range spanAt[i][u.edge] {
+						if s >= 0 {
+							own = append(own, s)
 						}
-						hops = append(hops, hop{a.spans[k].elem, u.reversed != a.spans[k].reversed})
+					}
+					for k := range own {
+						s := own[k]
+						if u.reversed {
+							s = cyclic(own, -1-k)
+						}
+						hops = append(hops, hop{a.spans[s].elem, u.reversed != a.spans[s].reversed})
 					}
 				}
 				loops = append(loops, hops)
@@ -204,7 +261,7 @@ func (a *arrangement) seal() error {
 		}
 	}
 	// AR5: what lies in each face, along its boundary, and loose in it.
-	within := func(l lying) []int { return between(l.op, l.edge, point(l.ends[0]), point(l.ends[1])) }
+	within := func(l lying) []int { return between(l.op, l.edge, l.ends[0], l.ends[1]) }
 	for _, l := range a.lies {
 		found := within(l)
 		if found == nil {
@@ -223,7 +280,9 @@ func (a *arrangement) seal() error {
 		for k, s := range b.spans {
 			other := a.spans[b.spans[1-k]]
 			for _, f := range a.owners[other.op][other.edge] {
-				a.along[other.op][f] = append(a.along[other.op][f], s)
+				if f >= 0 {
+					a.along[other.op][f] = append(a.along[other.op][f], s)
+				}
 			}
 		}
 	}

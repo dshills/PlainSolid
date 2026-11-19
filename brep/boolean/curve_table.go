@@ -33,6 +33,9 @@ type meeting struct {
 	// candidates for an overlap (CC4), or a curve may lie in a surface.
 	// The caller then decides on the nodes of the edge.
 	alike bool
+	// open is set when the table has no closed form for the pair, and
+	// the curve must be proved clear of the face (CC5).
+	open bool
 }
 
 // curveRow is one row of the table of section 7.5: a curve family met
@@ -45,14 +48,31 @@ type curveRow struct {
 var curveRows = []curveRow{
 	{lineFamily, lineFamily, lineWithLine},
 	{lineFamily, planeFamily, lineWithPlane},
+	{lineFamily, cylinderFamily, lineWithCylinder},
+	{lineFamily, conicFamily, lineWithConic},
+	{conicFamily, planeFamily, conicWithPlane},
+	{conicFamily, cylinderFamily, conicWithCylinder},
+	{conicFamily, conicFamily, conicWithConic},
 }
 
-// curveMeets resolves a curve with a curve or a surface by the table. A
-// pair with no row is unsupported.
+// curveMeets resolves a curve with a curve or a surface by the table. Two
+// curves may stand in either order in a row. A pair with no row is
+// unsupported.
 func curveMeets(c curve, with carrier, t tolerances) (meeting, error) {
 	for _, r := range curveRows {
 		if r.curve == c.family() && r.with == with.family() {
 			return r.meet(c, with, t)
+		}
+	}
+	if other, ok := with.(curve); ok {
+		for _, r := range curveRows {
+			if r.curve == other.family() && r.with == c.family() {
+				m, err := r.meet(other, c, t)
+				for i := range m.hits {
+					m.hits[i].t, m.hits[i].s = m.hits[i].s, m.hits[i].t
+				}
+				return m, err
+			}
 		}
 	}
 	return meeting{}, fail(ErrUnsupported, "curve table", "no row for carrier families %d and %d", c.family(), with.family())
@@ -95,4 +115,195 @@ func lineWithPlane(c curve, with carrier, t tolerances) (meeting, error) {
 		return meeting{alike: true}, nil
 	}
 	return meeting{hits: []hit{{p: r.Point, t: r.Parameter}}}, nil
+}
+
+// lineInConicPlane meets a line with a conic of its own plane. A line
+// within eps of tangency touches at one point. In a hit, t is the
+// parameter on the line and s the parameter on the conic.
+func lineInConicPlane(l line, c conic, t tolerances) []hit {
+	// In the conic's coordinates, each scaled by its radius, the conic is
+	// the unit circle.
+	rel := l.origin.Sub(c.center)
+	ox, oy := rel.Dot(c.x)/c.a, rel.Dot(c.y)/c.b
+	dx, dy := l.dir.Dot(c.x)/c.a, l.dir.Dot(c.y)/c.b
+	qa, qb := dx*dx+dy*dy, ox*dx+oy*dy
+	if qa == 0 {
+		return nil
+	}
+	near := -qb / qa
+	fx, fy := ox+dx*near, oy+dy*near
+	m := math.Hypot(fx, fy)
+	at := func(u float64, touching bool) hit {
+		p := l.at(u)
+		return hit{p: p, t: u, s: c.param(p), gap: off(c, p), touching: touching}
+	}
+	if m > 0 {
+		// The gap between the foot of the centre on the line and the
+		// conic point in its direction.
+		if gap := math.Abs(1-1/m) * math.Hypot(c.a*fx/m, c.b*fy/m); gap <= t.eps {
+			return []hit{at(near, true)}
+		}
+	}
+	if m >= 1 {
+		return nil
+	}
+	half := math.Sqrt((1 - m*m) / qa)
+	return []hit{at(near-half, false), at(near+half, false)}
+}
+
+// lineWithConic meets a line with a circle or ellipse: through the
+// conic's plane at one point, or within it.
+func lineWithConic(c curve, with carrier, t tolerances) (meeting, error) {
+	l, k := c.(line), with.(conic)
+	n := k.normal()
+	height := l.origin.Sub(k.center).Dot(n)
+	if t.perpendicular(l.dir, n) {
+		if math.Abs(height) > t.eps {
+			return meeting{}, nil
+		}
+		return meeting{hits: lineInConicPlane(l, k, t)}, nil
+	}
+	u := -height / l.dir.Dot(n)
+	p := l.at(u)
+	return meeting{hits: []hit{{p: p, t: u, s: k.param(p), gap: off(k, p)}}}, nil
+}
+
+// lineWithCylinder meets a line with a cylinder. A line parallel to the
+// axis may lie on the surface. Any other passes through at two points,
+// touches at one when it runs within eps of the surface, or misses.
+func lineWithCylinder(c curve, with carrier, t tolerances) (meeting, error) {
+	l, s := c.(line), with.(cylinder)
+	if t.parallel(l.dir, s.frame.ZAxis()) {
+		return meeting{alike: true}, nil
+	}
+	o, d := s.across(l.origin.Sub(s.frame.Origin())), s.across(l.dir)
+	near := -o.Dot(d) / d.Dot(d)
+	reach := o.Add(d.Scale(near)).Length()
+	switch {
+	case math.Abs(reach-s.radius) <= t.eps:
+		return meeting{hits: []hit{{p: l.at(near), t: near, gap: math.Abs(reach - s.radius), touching: true}}}, nil
+	case reach > s.radius:
+		return meeting{}, nil
+	}
+	if gl, err := geom.NewLine(l.origin, l.dir); err == nil {
+		if gc, err := geom.NewCylinderSurface(s.frame, s.radius); err == nil {
+			r, err := geom.IntersectLineCylinder(gl, gc, geom.LineSurfaceOptions{DistanceTolerance: t.eps})
+			if found := r.Hits; err == nil && len(found) == 2 {
+				return meeting{hits: []hit{{p: found[0].Point, t: found[0].Parameter}, {p: found[1].Point, t: found[1].Parameter}}}, nil
+			}
+		}
+	}
+	half := math.Sqrt((s.radius*s.radius - reach*reach) / d.Dot(d))
+	return meeting{hits: []hit{{p: l.at(near - half), t: near - half}, {p: l.at(near + half), t: near + half}}}, nil
+}
+
+// planeOf is the plane of a conic as a carrier.
+func planeOf(k conic) (plane, error) {
+	frame, err := geom.NewFrame(k.center, k.x, k.normal())
+	return plane{frame}, err
+}
+
+// conicWithPlane meets a circle or ellipse with a plane: along the line
+// of the two planes, where the conic passes through, touches or misses.
+// A conic in a parallel plane may lie in the plane.
+func conicWithPlane(c curve, with carrier, t tolerances) (meeting, error) {
+	k, s := c.(conic), with.(plane)
+	own, err := planeOf(k)
+	if err != nil {
+		return meeting{}, failWith(ErrInvalid, "curve table", err)
+	}
+	pair, err := planeWithPlane(own, s, t)
+	if err != nil || pair.alike {
+		return meeting{alike: pair.alike}, err
+	}
+	var m meeting
+	for _, h := range lineInConicPlane(pair.curves[0].(line), k, t) {
+		h.t, h.s = h.s, 0
+		m.hits = append(m.hits, h)
+	}
+	return m, nil
+}
+
+// conicWithCylinder meets a circle or ellipse with a cylinder. When the
+// conic's plane is parallel to the axis, the plane cuts generators and
+// each is met with the conic. When the conic projects to a circle along
+// the axis, two circles are met in the cross-section. No other case has
+// a closed form here.
+func conicWithCylinder(c curve, with carrier, t tolerances) (meeting, error) {
+	k, s := c.(conic), with.(cylinder)
+	if t.perpendicular(k.normal(), s.frame.ZAxis()) {
+		own, err := planeOf(k)
+		if err != nil {
+			return meeting{}, failWith(ErrInvalid, "curve table", err)
+		}
+		pair, err := planeWithCylinder(own, s, t)
+		if err != nil {
+			return meeting{}, err
+		}
+		var m meeting
+		for i, generator := range pair.curves {
+			for _, h := range lineInConicPlane(generator.(line), k, t) {
+				h.t, h.s, h.touching = h.s, 0, h.touching || pair.touching[i]
+				m.hits = append(m.hits, h)
+			}
+		}
+		return m, nil
+	}
+	centre, radius, round := t.shadow(k, s)
+	if !round {
+		return meeting{open: true}, nil
+	}
+	circles := circleWithCircle(centre, radius, geom.Vec2{}, s.radius, t.eps)
+	m := meeting{alike: circles.same}
+	for _, q := range circles.points {
+		// The conic point above q: its parameter is the angle of q in the
+		// projected axis vectors.
+		rel := s.frame.XAxis().Scale(q.X - centre.X).Add(s.frame.YAxis().Scale(q.Y - centre.Y))
+		at := math.Atan2(rel.Dot(k.y)*k.b, rel.Dot(k.x)*k.a)
+		p := k.at(at)
+		m.hits = append(m.hits, hit{p: p, t: k.param(p), gap: math.Abs(s.offset(p)), touching: circles.touching})
+	}
+	return m, nil
+}
+
+// conicWithConic meets two circles or ellipses. In different planes they
+// can only meet on the line of the two planes. In one plane, homothetic
+// conics reduce to two circles (CC3), and may be one conic; any other
+// coplanar pair is unsupported.
+func conicWithConic(c curve, with carrier, t tolerances) (meeting, error) {
+	k, d := c.(conic), with.(conic)
+	own, err := planeOf(k)
+	if err != nil {
+		return meeting{}, failWith(ErrInvalid, "curve table", err)
+	}
+	other, err := planeOf(d)
+	if err != nil {
+		return meeting{}, failWith(ErrInvalid, "curve table", err)
+	}
+	pair, err := planeWithPlane(own, other, t)
+	if err != nil {
+		return meeting{}, err
+	}
+	var m meeting
+	if !pair.alike {
+		for _, h := range lineInConicPlane(pair.curves[0].(line), k, t) {
+			m.hits = append(m.hits, hit{p: h.p, t: h.s, s: d.param(h.p), gap: off(d, h.p)})
+		}
+		return m, nil
+	}
+	if math.Abs(own.offset(d.center)) > t.eps {
+		return meeting{}, nil
+	}
+	if !t.homothetic(k, d) {
+		return meeting{}, fail(ErrUnsupported, "curve table", "two coplanar conics that are not homothetic")
+	}
+	major, _, _ := k.axes()
+	centre, radius, back := asCircles(k, d)
+	circles := circleWithCircle(geom.Vec2{}, major, centre, radius, t.eps)
+	m.alike = circles.same
+	for _, q := range circles.points {
+		p := back(q)
+		m.hits = append(m.hits, hit{p: p, t: k.param(p), s: d.param(p), gap: off(d, p), touching: circles.touching})
+	}
+	return m, nil
 }

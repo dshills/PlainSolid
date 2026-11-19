@@ -136,8 +136,8 @@ func (a *arrangement) facesOnOneSide(op, vertex int, s surface) []int {
 				// The use leaves the vertex; the one before it arrives.
 				leave := a.borders[op][f][i][k]
 				arrive := cyclic(a.borders[op][f][i], k-1).back()
-				out, _ := ch.heading(leave)
-				in, _ := ch.heading(arrive)
+				out, _ := heading(ch, leave)
+				in, _ := heading(ch, arrive)
 				at := o.verts[vertex]
 				sides := [2]int{a.t.side(s, at, leave.c.tangent(leave.t0).Scale(sign(leave.t1-leave.t0))), a.t.side(s, at, arrive.c.tangent(arrive.t0).Scale(sign(arrive.t1-arrive.t0)))}
 				convex := out.X*in.Y-out.Y*in.X > 0
