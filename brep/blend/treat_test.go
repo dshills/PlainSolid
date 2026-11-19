@@ -134,9 +134,6 @@ func TestChamferClosedForms(t *testing.T) {
 		near(t, r.Properties.Area, 2*area+5*perimeter)
 	}
 	t.Run("Q8, two edges of a triangular prism", func(t *testing.T) {
-		t.Skip("stopped under ST-1 of specs/general-edge-treatment/PLAN.md: the chamfer plane of the edge at (4,0) " +
-			"contains the direction (1,3,7), the first ray of trimmed.Solid.Classify, and boolean.Combine fails " +
-			"its membership check V6 on the tool with \"trimmed: ray surface residual exceeds tolerance\"")
 		s := trianglePrism(t)
 		q8(t, s, [2]geom.Vec3{vec(4, 0, 0), vec(4, 0, 5)}, [2]geom.Vec3{vec(0, 0, 0), vec(0, 0, 5)})
 	})
