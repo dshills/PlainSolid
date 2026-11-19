@@ -144,15 +144,11 @@ func TestInAnyOrder(t *testing.T) {
 // order: a small one along z, a larger one along x across it, and one
 // along z that covers the small one. Taken small, across, covering, the
 // second meets the first along a curve with no closed form and waits for
-// the third.
-//
-// Where the small bore comes after the one across it, it is refused in
-// every round, and the request fails: by then the small tool lies in the
-// hole of the covering bore, clear of everything, and the general Boolean
-// cannot prove it clear of what is left of the wall of the bore across
-// (SP2). That is the limit this test records; it is stop condition of
-// Phase 3 in specs/general-boolean-crossing/PLAN.md. A request that has a
-// pair with no closed form in every order fails and publishes nothing.
+// the third. Taken with the small one after the one across it, the small
+// one waits for the covering one, and then lies in its hole, where it is
+// proved clear of what is left of the wall of the bore across. A request
+// that has a pair with no closed form in every order fails and publishes
+// nothing.
 func TestGeneralCutManyInAnyOrder(t *testing.T) {
 	type q = map[string]any
 	b := newGeneral()
@@ -161,30 +157,22 @@ func TestGeneralCutManyInAnyOrder(t *testing.T) {
 	across := circle(t, b, vector{-1, 10, 10}, vector{1, 0, 0}, 2, 22)
 	covering := circle(t, b, vector{10, 10, -1}, vector{0, 0, 1}, 2, 22)
 	want := 8000 - 2*80*math.Pi + 16*8./3
-	for _, c := range []struct {
-		order []string
-		cut   bool
-	}{
-		{[]string{small.Handle, across.Handle, covering.Handle}, true},
-		{[]string{small.Handle, covering.Handle, across.Handle}, true},
-		{[]string{covering.Handle, small.Handle, across.Handle}, true},
-		{[]string{across.Handle, small.Handle, covering.Handle}, false},
-		{[]string{across.Handle, covering.Handle, small.Handle}, false},
-		{[]string{covering.Handle, across.Handle, small.Handle}, false},
-		{[]string{small.Handle, across.Handle}, false},
-		{[]string{across.Handle, small.Handle}, false},
+	for _, order := range [][]string{
+		{small.Handle, across.Handle, covering.Handle},
+		{small.Handle, covering.Handle, across.Handle},
+		{covering.Handle, small.Handle, across.Handle},
+		{across.Handle, small.Handle, covering.Handle},
+		{across.Handle, covering.Handle, small.Handle},
+		{covering.Handle, across.Handle, small.Handle},
 	} {
-		before := len(b.shapes)
-		r := ask(t, b, q{"op": "cutMany", "a": stock.Handle, "tools": c.order})
-		if c.cut {
-			if !r.OK {
-				t.Fatalf("tools %v: %+v", c.order, r.Error)
-			}
-			near(t, r.Result.GeometryAssertions.Volume, want)
-			continue
-		}
+		got := shape(t, b, q{"op": "cutMany", "a": stock.Handle, "tools": order})
+		near(t, got.GeometryAssertions.Volume, want)
+	}
+	before := len(b.shapes)
+	for _, order := range [][]string{{small.Handle, across.Handle}, {across.Handle, small.Handle}} {
+		r := ask(t, b, q{"op": "cutMany", "a": stock.Handle, "tools": order})
 		if r.OK || r.Error.Code != "UNSUPPORTED" || !strings.Contains(r.Error.Message, "not parallel") || len(b.shapes) != before {
-			t.Fatalf("tools %v: ok=%v, %+v", c.order, r.OK, r.Error)
+			t.Fatalf("tools %v: ok=%v, %+v", order, r.OK, r.Error)
 		}
 	}
 }

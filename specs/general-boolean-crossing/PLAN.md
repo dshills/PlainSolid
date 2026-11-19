@@ -91,6 +91,51 @@ Size after Phase 3: `brep/boolean` 6,049 lines outside tests (37 of the
 350 of B1); the adapter file 557, which is 89 more than before this work
 and 9 over the 80 of B2 (ST-C4).
 
+Asked whether to finish without the two concealed-cutter rows, the owner
+chose to have them worked on (OD-C8). That is done, as Phase 5 below
+with one addition, and both rows pass:
+
+- The curve table meets a circle or an ellipse with a cylinder where it
+  had no entry (section 6.4), by the zeros, decided at the tolerance, of
+  a trigonometric polynomial of degree two (`brep/boolean/trig.go`). A
+  first version that looked for changes of sign reported four crossings
+  at an exact tangency, from rounding; Q6 records why the tolerance is
+  where the decision is made. The row for two coplanar conics that are
+  not homothetic was not needed and is unchanged.
+- SP2 has a further proof (section 6.7, `separation.go`): a face of one
+  cylinder clear of the whole of another. With it a cutter that a later
+  bore covers is proved clear of the wall of a bore across it.
+- The three bores of Phase 3 are now cut in all six orders to one
+  volume. T2-004 and T2-015 pass and left `pending.txt`.
+- T2-014 has two more requests that the record refuses and the general
+  Boolean now answers, a blind bore whose floor lies inside the crossing
+  (A-C4). They are in `legacy_refusals.txt`. The values of the requests
+  of A-C4 that the default bridge now answers were checked against an
+  integration by slices written for the purpose, which agrees to 6e-6,
+  its own error; the oracle of Phase 4 has not run.
+
+Tier 2 now: 15 rows pass and two are listed for time with every value
+right (T2-007, 013). None fails.
+
+Default bridge: 3,115 of 3,118 responses are those of `d4a157a6`; the
+other three are requests of T2-014, a legacy refusal before and an
+answer now.
+
+Size: `brep/boolean` 6,383 lines outside tests, 371 more than before
+this work (B1, raised to 450 under OD-C8); the adapter 557, 89 more
+(B2, raised to 100).
+
+Outside the two packages of the plan, `go test ./...` showed one
+consequence: `brep/blend` had a test, and a sentence of its package
+comment, saying that two fillets that meet at a corner are refused.
+`blend.Treat` now cuts them, and its test holds the result to the closed
+form: each fillet removes (1 − π/4)r²l and both remove (5/3 − π/2)r³ at
+the corner. `brep/blend` itself is unchanged, and the bridge still
+refuses a fillet round a cap of a general result.
+
+Still open: the turned case of Phase 1 is skipped; Phases 4 and 6 are
+not started.
+
 ## Rules for every phase
 
 - R-1. One phase is one commit on a `codex/` branch in its own worktree.
@@ -251,26 +296,26 @@ the owner decides OD-C3 against it. Phase 6 is last.
     Boolean. All eight must pass; one that does not is reported with its
     failure and the phase stops under R-8.
 - Stop: ST-C1 on any oracle disagreement; ST-C5.
-- Done when: every Tier 2 row other than T2-015 passes or is listed
-  under A-C3 with its reason, the oracle cases agree within the bounds
-  of A6, and R-2 to R-5 pass. T2-015 stays in `pending.txt` with its
-  present reason until Phase 5, or under A-C3 if Phase 5 is left out.
+- Done when: every Tier 2 row passes or is listed under A-C3 with its
+  reason, the oracle cases agree within the bounds of A6, and R-2 to R-5
+  pass. Phase 5 was done before this phase, at the owner's choice
+  (OD-C8), so the oracle runs once, after it, with a case for a cut that
+  needs the entry of section 6.4.
 
-### Phase 5: conics the curve table cannot meet
+### Phase 5: a conic the curve table cannot meet, and a face clear of a cylinder
 
 - Files: `brep/boolean/curve_table.go`, `closed_forms.go` and their test
   files; `pending.txt`; section 7.5 of the base specification.
-- Work: Q1 to Q7. The method for two coplanar conics is one function
-  that takes two conics as data; the row for a conic with a cylinder
-  projects and calls it (Q2).
+- Work: Q1 to Q6, and G1 to G6 in `brep/boolean/pass_face.go` and a new
+  file. Both rest on one polynomial type that takes its coefficients as
+  data.
 - Tests: the table of A-C7, each hit in closed form; the Tier 1 rows are
   unchanged (R-3), since the new result replaces `ErrUnsupported` only.
 - Expected: T2-015 passes and leaves `pending.txt`. The experiment did
   not test this, so it is a hypothesis: T2-015 failed at this entry and
   may meet another limit after it.
-- The oracle run of Phase 4 is repeated after this phase, with one case
-  added for a cut that needs the new entry, since this phase changes
-  which hits the Boolean finds.
+- Phase 4 follows this phase (OD-C8), and its oracle run has a case for
+  a cut that needs the new entry.
 - Stop: ST-C1, ST-C3, ST-C4. If T2-015 still fails after the entry
   exists, that is a stop under R-8: the phase commits the entry and its
   tests as work in progress, leaves the row in `pending.txt` with the
@@ -292,6 +337,18 @@ the owner decides OD-C3 against it. Phase 6 is last.
   research ./... && go vet -tags research ./...`, as `AGENTS.md`
   requires.
 - Done when: the documents agree with the code and the checks pass.
+
+## Open before the work can be called complete
+
+- The turned case of Phase 1 (ST-C6) is still skipped: two crossing
+  bores at a sine of 0.8 in a hexagonal prism off the coordinate axes,
+  which `trimmed.NewSolid` refuses. The specification admits the case
+  (A-C2), so Phase 6 cannot record the work as complete while it is
+  skipped. The owner chooses between a change in `brep/trimmed`, which
+  N2 puts outside this work; a change in how the Boolean places the
+  corners of an outline (section 7.10 of the base specification, U2);
+  or recording the case as a limit, which amends A-C2. Nothing is done
+  about it until then.
 
 ## Risks
 

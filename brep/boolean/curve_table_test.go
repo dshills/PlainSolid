@@ -62,6 +62,11 @@ func (unknown) family() family { return 255 }
 
 // TestCurveTableCurved covers the rows of section 7.5 with a circle, an
 // ellipse or a cylinder.
+// ellipseCosine is the cosine of the parameter at which the ellipse of
+// centre (1, 0) and radii 0.5 and 0.25 passes the unit circle: the root of
+// cos t + 0.0625 + 0.1875·cos² t = 0 that is a cosine.
+var ellipseCosine = (-1 + math.Sqrt(1-4*0.1875*0.0625)) / (2 * 0.1875)
+
 func TestCurveTableCurved(t *testing.T) {
 	const eps = 1e-7
 	tol := tolerances{eps: eps, angular: 1e-9, margin: 4 * eps, size: 10}
@@ -107,7 +112,14 @@ func TestCurveTableCurved(t *testing.T) {
 		{"circle across the axis, touching", conic{geom.Vec3{X: 2, Z: 3}, x, y, 1, 1}, tube, false, false, []geom.Vec3{{X: 1, Z: 3}}, true},
 		{"section circle on the cylinder", conic{geom.Vec3{Z: 3}, x, y, 1, 1}, tube, true, false, nil, false},
 		{"oblique section on the cylinder", conic{geom.Vec3{Z: 1}, oblique, y, math.Sqrt2, 1}, tube, true, false, nil, false},
-		{"ellipse across the axis", conic{geom.Vec3{}, x, y, 2, 1}, tube, false, true, nil, false},
+		{"ellipse across the axis, touching at two points", conic{geom.Vec3{}, x, y, 2, 1}, tube, false, false, []geom.Vec3{{Y: 1}, {Y: -1}}, true},
+		{"ellipse across the axis, through at four points", conic{geom.Vec3{Z: 2}, x, y, 2, 0.5}, tube, false, false, []geom.Vec3{{X: math.Sqrt(0.8), Y: math.Sqrt(0.2), Z: 2}, {X: math.Sqrt(0.8), Y: -math.Sqrt(0.2), Z: 2}, {X: -math.Sqrt(0.8), Y: math.Sqrt(0.2), Z: 2}, {X: -math.Sqrt(0.8), Y: -math.Sqrt(0.2), Z: 2}}, false},
+		{"ellipse inside the cylinder", conic{geom.Vec3{}, x, y, 0.5, 0.25}, tube, false, false, nil, false},
+		{"ellipse touching from outside", conic{geom.Vec3{X: 1.5}, x, y, 0.5, 0.25}, tube, false, false, []geom.Vec3{{X: 1}}, true},
+		{"ellipse within the tolerance of touching", conic{geom.Vec3{X: 1.5 + eps/2}, x, y, 0.5, 0.25}, tube, false, false, []geom.Vec3{{X: 1}}, true},
+		{"ellipse clear of touching by twice the tolerance", conic{geom.Vec3{X: 1.5 + 2*eps}, x, y, 0.5, 0.25}, tube, false, false, nil, false},
+		{"ellipse through at two points", conic{geom.Vec3{X: 1}, x, y, 0.5, 0.25}, tube, false, false, []geom.Vec3{{X: 1 + 0.5*ellipseCosine, Y: 0.25 * math.Sqrt(1-ellipseCosine*ellipseCosine)}, {X: 1 + 0.5*ellipseCosine, Y: -0.25 * math.Sqrt(1-ellipseCosine*ellipseCosine)}}, false},
+		{"circle in a tilted plane, through at four points", conic{geom.Vec3{}, geom.Vec3{X: 0.25, Z: math.Sqrt(1 - 0.0625)}, y, 2, 2}, tube, false, false, []geom.Vec3{{X: 0.25 * 2 * math.Sqrt(0.8), Y: 2 * math.Sqrt(0.2), Z: 2 * math.Sqrt(0.8) * math.Sqrt(1-0.0625)}, {X: 0.25 * 2 * math.Sqrt(0.8), Y: -2 * math.Sqrt(0.2), Z: 2 * math.Sqrt(0.8) * math.Sqrt(1-0.0625)}, {X: -0.25 * 2 * math.Sqrt(0.8), Y: 2 * math.Sqrt(0.2), Z: -2 * math.Sqrt(0.8) * math.Sqrt(1-0.0625)}, {X: -0.25 * 2 * math.Sqrt(0.8), Y: -2 * math.Sqrt(0.2), Z: -2 * math.Sqrt(0.8) * math.Sqrt(1-0.0625)}}, false},
 		{"circles in different planes", circle, conic{geom.Vec3{X: 2}, x, z, 1, 1}, false, false, []geom.Vec3{{X: 1}}, false},
 		{"circles of one plane, crossing", circle, conic{geom.Vec3{X: 1}, x, y, 1, 1}, false, false, []geom.Vec3{{X: 0.5, Y: math.Sqrt(0.75)}, {X: 0.5, Y: -math.Sqrt(0.75)}}, false},
 		{"circles of one plane, touching", circle, conic{geom.Vec3{X: 3}, x, y, 2, 2}, false, false, []geom.Vec3{{X: 1}}, true},

@@ -18,8 +18,8 @@
 // body, nothing else meets or touches the new faces, the volume that
 // changed is the volume of the tool, and the body is not divided. An
 // edge that ends at a wall or on an oblique face, a treatment that
-// reaches another feature, and anything boolean.Combine refuses, such as
-// two fillets that meet at a corner, are refused with an error.
+// reaches another feature, and anything boolean.Combine refuses are
+// refused with an error.
 //
 // The package holds no state and does not modify a solid it is given.
 package blend

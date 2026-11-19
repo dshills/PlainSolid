@@ -656,7 +656,12 @@ Let d be the distance between two cylinder axes, r₁ ≥ r₂ their radii, and 
   cells has been separated. When the depth or the count is used up,
   nothing is proved and the pair of faces returns `ErrUnsupported`. A
   cell may cover more of the surface than the face does, which leaves
-  some separate faces unproved and proves none wrongly. A proof does not decide that two faces meet:
+  some separate faces unproved and proves none wrongly. Another such
+  proof, tried before it, is that one face is clear of the whole of the
+  other's cylinder: every point of it farther from the other axis than
+  that radius and 2μ, or every point nearer than that radius less 2μ
+  ([the crossing specification](../general-boolean-crossing/SPEC.md),
+  G1 to G6). A proof does not decide that two faces meet:
   faces that are not proved separate, and that are outside the rows of
   the table, return `ErrUnsupported`.
 - SP3. "Out", always `ErrUnsupported` unless SP2 applies: non-parallel
@@ -703,7 +708,7 @@ Let d be the distance between two cylinder axes, r₁ ≥ r₂ their radii, and 
 | Two conics in different planes | Line of the two planes, then each conic with that line | Points common to both. |
 | Two coplanar conics, homothetic (CC3) | Affine map taking both to circles; circle with circle | 0 to 2 points with tangency flag, overlap interval when the same conic, none. |
 | Two coplanar conics, not homothetic | — | `ErrUnsupported`. |
-| Circle or ellipse, cylinder; any other | — | None when the conic is proved clear of the cylinder face (CC5); otherwise `ErrUnsupported`. |
+| Circle or ellipse, cylinder; any other | The square of the distance from the conic's point to the cylinder's axis is a trigonometric polynomial of degree two in the conic's parameter; where it passes, or comes within tolerance of, the square of the radius ([the crossing specification](../general-boolean-crossing/SPEC.md), Q1 to Q6) | 0 to 4 points with tangency flag, conic in the surface, none. |
 
 - CC1. Circle with circle, the homothetic reduction, the projection of a
   conic along a cylinder axis (CC5), point-to-parameter inversion for a conic, and segment-to-segment
@@ -2265,14 +2270,17 @@ and this document does not decide them.
   one operand through such a point is tangent to the other cylinder
   there; X5 records a touching contact and N3 refuses the result,
   although the operands cross at that point. Sections 7.3 and 7.9 have
-  no rule for it. Nine Tier 2 rows.
+  no rule for it. Nine Tier 2 rows. Closed on 2026-11-19: with the row
+  of section 7.4 in place on the rules as they stand since RL-23, no
+  Tier 2 row meets it, and all seventeen give their values.
 - OP-6. The overlap volume of a pinched common (CO2). The common of a
   stock with one bore and the tool of a crossing bore is two wedges that
   meet only at two points. N2 refuses it, correctly, and the record gives
   a volume. Eight Tier 2 rows. Closed on 2026-11-19: CO2 now answers
   with the volume the cut removes.
 - OP-7. Section 7.5 has no entry for the conic and cylinder of one Tier 2
-  row, T2-015. This one is an addition to the table.
+  row, T2-015. This one is an addition to the table. Closed on
+  2026-11-19: the table has the entry.
 - OP-8. Settled by OD-9: T1-092 and T1-029 are accepted as they stand,
   as exceptions to PC1. The work on the mesher that they need is not
   part of the trial.

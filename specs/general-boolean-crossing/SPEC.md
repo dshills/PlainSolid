@@ -2,8 +2,11 @@
 
 Status: written on 2026-11-19 against `main` at `d4a157a6`. The owner
 decided OD-C1 to OD-C7 on 2026-11-19, each as this document recommended
-(section 11). [The plan](PLAN.md) records what is implemented. Section
-3.4 records the experiment the design rests on.
+(section 11). On the same day, when two rows with concealed cutters
+still failed after section 6.3, the owner chose to have them worked on
+(OD-C8); sections 6.4 and 6.7 are written to what that work built.
+[The plan](PLAN.md) records what is implemented. Section 3.4 records the
+experiment the design rests on.
 
 ## 1. Purpose
 
@@ -178,15 +181,23 @@ expected.
 - S2. `overlapVolume` where the common is a pinched common (section 6.2).
 - S3. `cutMany` whose tools give a quartic pair in the order stated and
   none in another (section 6.3).
-- S4. The meeting of a circle or an ellipse with a cylinder, and of two
-  coplanar conics, where the curve table has no entry (section 6.4).
+- S4. The meeting of a circle or an ellipse with a cylinder where the
+  curve table has no entry (section 6.4).
+- S5. A proof that a face of one cylinder is clear of the whole of
+  another cylinder (section 6.7).
 
 ### 4.2 Out of scope
 
 - N1. Quartic pairs. A call that meets one returns `ErrUnsupported`, as
   today (R1). OD-2 stands.
-- N2. Any change to `brep/trimmed`, `geom`, `exchange/step` or
-  `brep/blend`.
+- N2. Any change to `brep/trimmed`, `geom` or `exchange/step`, and any
+  change to what `brep/blend` does. One test of `brep/blend` and one
+  sentence of its package comment said that two fillets meeting at a
+  corner are refused, because the Boolean took no such pair; it now
+  does, and the test holds the result to its closed form instead. The
+  bridge still refuses a fillet round a cap on a general result (OD-E6
+  of [the edge treatment specification](../general-edge-treatment/SPEC.md)),
+  which is that document's to change.
 - N3. The drawing callout of a crossed bore. The drawing warns and omits
   the callout, as the legacy path does (section 3.4).
 - N4. Making the general Boolean the bridge's first path for any family.
@@ -302,52 +313,50 @@ probe. Section 12 states what leaving it out means for the owner's plan.
   last applies at least one. With the bridge's limit of 32 tools that is
   528.
 
-### 6.4 Conics that the curve table cannot meet
+### 6.4 A conic that the curve table cannot meet with a cylinder
 
-- Q1. The curve table of section 7.5 gets two results where it has
-  `ErrUnsupported` today: for two coplanar conics that are not
-  homothetic, "0 to 4 points with tangency flag, none"; and for a circle
-  or an ellipse with a cylinder in the case the table calls "any other",
-  the same, through Q2.
-- Q2. A circle or an ellipse with a cylinder. The existing proof that the
-  conic is clear of the cylinder face (CC5) is tried first, as today.
-  Otherwise the conic is projected along the cylinder's axis onto a plane
-  across it. The cylinder becomes a circle and the conic an ellipse in
-  that plane, and the two are met by Q3. The distance from a point to the
-  cylinder is the distance from its projection to that circle, so ε
-  applies in the plane as it does in space.
-- Q3. Two coplanar conics. All distances are measured in the plane of the
-  conics, in model units, and never in a mapped copy of the plane. Let
-  σ(t) be the signed distance from the point of the second conic at
-  parameter t to the first conic: negative inside the first, positive
-  outside it, zero on it.
-- Q4. Hits. A *crossing hit* is a t at which σ is zero and changes sign.
-  A *touching hit* is a t at which |σ| has a local minimum of at most ε
-  and σ does not change sign; a zero of σ of even multiplicity is one.
-  Crossing hits are taken in increasing t from the parameter origin of
-  the second conic, and the last is followed by the first. A crossing hit
-  whose point is coincident (T3) with that of the next one is replaced,
-  together with it, by one touching hit, at the t where |σ| is greatest
-  on the shorter of the two arcs of the conic between them. Pairing goes
-  once round in that order over the hits not yet replaced, and a hit so
-  replaced is not paired again. These are the meanings CC2 gives the two words
-  for a curve and a surface.
-- Q5. The method must return every hit of Q4, each once, with its flag,
-  its parameter t on the second conic, and the parameter of the point of
-  the first conic nearest to it, or return `ErrTolerance`. The point of
-  each hit returned must be within ε of both conics. It must never return some of the hits.
-  It returns `ErrTolerance` only for a configuration that is
-  tolerance-scale (T8); on any other it must succeed.
-- Q6. There are at most four hits. This is a note and not a requirement:
-  after an affine map that takes the first conic to a circle, the
-  function whose sign is that of σ is a trigonometric polynomial of
-  degree two in t, with at most four zeros and four turning points in a
-  period. How the hits are computed is not prescribed.
-- Q7. Conics that are the same over an interval are found by the existing
-  rule CC4 before Q3 is tried.
-- Q8. Section 6.4 is the last phase of the plan. It is required unless
-  the owner decides OD-C4 against it; T2-015 then stays unsupported and
-  returns `ErrUnsupported` as today.
+- Q1. The curve table of section 7.5 gets a result where it has
+  `ErrUnsupported` today, for a circle or an ellipse with a cylinder in
+  the case the table calls "any other": 0 to 4 points with tangency
+  flag, conic in the surface, none. The row for two coplanar conics that
+  are not homothetic is not changed: no Tier 2 row needs it, and it
+  returns `ErrUnsupported` as before.
+- Q2. Let d(t) be the distance from the point of the conic at parameter
+  t to the cylinder's axis, r the radius, and σ(t) = (d(t)² − r²)/(2r).
+  σ is the distance of the point from the cylinder's surface to within
+  ε²/(2r) wherever that distance is at most ε, and it is the quantity
+  the tolerance is applied to. The parameters of one period at which
+  |σ| ≤ ε form a set of intervals. Each hit also carries the distance of
+  its point from the surface itself, and it is that distance to which a
+  caller applies the coincidence rule T3.
+- Q3. Hits. An interval of Q2 with σ > ε before it and σ < −ε after it,
+  or the reverse, holds one *crossing hit*, at a parameter in it where σ
+  is zero. An interval with σ > ε on both sides, or σ < −ε on both, holds
+  one *touching hit*, at the parameter in it where σ is farthest towards
+  the other side. So a conic that comes within ε of the cylinder and
+  turns back touches it, whether or not it dips through the surface by
+  less than ε on the way; these are the meanings CC2 gives the two words.
+- Q4. The method must return every hit of Q3, each once, with its
+  parameter on the conic, its point, and the distance of the point from
+  the cylinder. Where |σ| ≤ ε all the way round, it returns no hit and
+  marks the pair as one whose conic lies in the surface within
+  tolerance, the mark the row for a conic that projects to a circle
+  already returns; the caller then decides on the nodes of the edge.
+- Q5. Completeness. 2rσ = d² − r² is a trigonometric polynomial of
+  degree two in t, and B, the sum of the absolute values of its two
+  first-order coefficients and four times those of its two second-order
+  ones, bounds its second derivative: over a part of width h it leaves
+  the chord between its end values by at most B·h²/8. The method must
+  decide every part of the period on that bound: a part is above the
+  tolerance, below it, or within it only where the bound shows it. A
+  part it cannot decide is halved. Halving stops at a width of
+  w = (π/4)/2³⁰; a part still undecided then has a value within B·w²/8
+  of 2rε or of −2rε, and is counted as within the tolerance, which moves
+  an end of an interval of Q2 by less than w.
+- Q6. Deciding at the tolerance and not at zero is required: at an exact
+  tangency the rounding of d² − r² changes sign several times within
+  1e-8 of the point, and a method that looks for changes of sign reports
+  crossings there that do not exist.
 
 ### 6.5 Errors
 
@@ -378,6 +387,38 @@ probe. Section 12 states what leaving it out means for the owner's plan.
   A request that a legacy path answers therefore runs the code it runs
   today.
 
+### 6.7 A face clear of the whole of another cylinder
+
+- G1. SP2 of the base specification gains one proof, for a face F of a
+  cylinder A and a cylinder B whose axis is not parallel to A's. F is
+  *clear* of B when every point of F is farther from B's axis than
+  r_B + 2μ, or r_B > 2μ and every point is nearer than r_B − 2μ. Two
+  cylinder faces are proved separate when either is clear of the other's
+  cylinder.
+- G2. The distance from a point of F to B's axis is greatest on an edge
+  of F: along A's axis its square is a quadratic that opens upwards. It
+  is least either on an edge of F or at one of at most four points of A:
+  where the ruling of A through the common perpendicular of the axes, on
+  either side, comes nearest to B's axis, and where a ruling of A meets
+  B's axis.
+- G3. On an edge that is an arc of a circle or an ellipse the square of
+  the distance is the trigonometric polynomial of Q5, and the proof
+  holds only where the bound of Q5 shows it above (r_B + 2μ)², or below
+  (r_B − 2μ)², over the whole arc. On a straight edge it is a quadratic
+  in the parameter, least at an end or where it turns and greatest at an
+  end.
+- G4. F is proved outside B only if, besides its edges, none of the
+  points of G2 that is within r_B + 2μ of B's axis lies in F or on its
+  rim (X9, with the filter margin as radius).
+- G5. The proof has nothing in it that depends on which faces or
+  operands it is given, and it never calls two faces separate that come
+  within 2μ of each other, which are the two conditions SP2 sets for an
+  added proof. It is tried after the two tests of SP2 and before the
+  proof by subdivision.
+- G6. It is an addition under SP5: it changes which pairs outside the
+  table are found to have no contact, adds no carrier curve, and touches
+  none of sections 7.2, 7.3 and 7.6 to 7.11.
+
 ## 7. Amendments to the base specification
 
 Made in the phase that implements each, not before:
@@ -386,13 +427,14 @@ Made in the phase that implements each, not before:
   until Tier 2 is supported (15.5) this row returns `ErrUnsupported` as
   SP3 states" and gains E1 and E4.
 - SP3: as E5.
-- Section 7.5: the rows "Two coplanar conics, not homothetic" and "Circle
-  or ellipse, cylinder; any other" give the method of 6.4.
+- Section 7.5: the row "Circle or ellipse, cylinder; any other" gives the
+  method of 6.4.
 - CO1: F1 to F7. CO2: P1 to P4.
 - Sections 15.1 and 15.5 and OD-1: Tier 2 is supported, with the rows
   that A-C3 lists as exceptions.
 - OP-5: closed; it does not arise (section 3.4). OP-6: closed by P1.
-  OP-7: closed by 6.4, or left open under OD-C4.
+  OP-7: closed by 6.4.
+- SP2: the proof of 6.7.
 - RL-22 is superseded by a new ruling that cites this document.
 - `ACCEPTANCE.md`, `pending.txt` and `legacy_refusals.txt` record the
   outcome of each Tier 2 row.
@@ -414,12 +456,14 @@ Made in the phase that implements each, not before:
   - a stock that is not a box and axes of which none lies along a
     coordinate axis, against the same closed form.
 - A-C3. Exceptions, each recorded in `pending.txt` with its reason:
-  - T2-007 and T2-013, for time alone, if the owner so decides (OD-C5);
-  - T2-015, if 6.4 is left out (OD-C4);
-  - T2-004, if 6.3 is left out (OD-C3).
-- A-C4. The two requests of T2-014 that the record refuses and the
-  general Boolean answers are classified as declined inputs (A4), listed
-  in `legacy_refusals.txt`, and added to the oracle run (OD-C7).
+  T2-007 and T2-013, for time alone (OD-C5). There is no other.
+- A-C4. The requests of T2-014 that the record refuses and the general
+  Boolean answers are classified as declined inputs (A4), listed in
+  `legacy_refusals.txt`, and added to the oracle run (OD-C7). There are
+  four, at lines 12, 26, 39 and 53 of the trace: a cutter that deepens a
+  blind bore from inside the stock, and a blind bore whose floor lies
+  inside the crossing, each in two placements. OD-C7 was decided for the
+  first kind; the second came with section 6.4 and is treated the same.
 - A-C5. The oracle run (A6) gains one case for each of the three Tier 2
   families, and each case A-C4 lists. The bounds are those of A6.
 - A-C6. The matrix of section 11 of the base specification gains rows
@@ -428,12 +472,18 @@ Made in the phase that implements each, not before:
   pass ε/4 apart (admitted); radii that differ by ε/2 with axes that pass
   ε apart (a quartic pair by E1, refused); a quartic pair of radii 5 and
   2 (refused); and the three set operations on one equal pair.
-- A-C7. Section 6.4 has a test table of two coplanar conics with zero
-  hits, one touching hit, two crossing hits, two crossing and one
-  touching, and four crossing hits; a pair whose nearest approach is 2ε,
-  which has no hit (Q4); and a circle and an ellipse with a cylinder
-  through Q2. Each
-  expected hit is given in closed form.
+- A-C7. Section 6.4 has a test table of an ellipse with a cylinder, each
+  expected point in closed form: touching at two points, through at
+  four, inside with no hit, touching from outside, within ε/2 of
+  touching, clear of touching by 2ε with no hit, through at two points,
+  and a circle in a tilted plane through at four. The polynomial of Q5
+  has its own table: no zero, zero all the way round, two and four
+  zeros, touching from above and from below, within and clear of the
+  tolerance, a dip through zero of less than the tolerance, a double
+  zero, and zeros on either side of the parameter origin.
+- A-C7a. Section 6.7 is tested through section 6.3: three bores, of
+  which a later one covers an earlier one, cut in all six orders to one
+  closed-form volume.
 - A-C8. D1 to D3 are each a test in `internal/plaincadbridge`.
 - A-C9. The eight Tier 2 tests of section 3.3 pass when the bridge cuts
   their first bore with the general Boolean. This is checked once, by a
@@ -441,9 +491,12 @@ Made in the phase that implements each, not before:
 
 ## 9. Budgets
 
-- B1. `brep/boolean` grows by at most 350 lines outside test files. It
-  has 6,012 today, against the base specification's limit of 15,000.
-- B2. The bridge adapter grows by at most 80 lines outside test files.
+- B1. `brep/boolean` grows by at most 450 lines outside test files. It
+  had 6,012 before this work, against the base specification's limit of
+  15,000. The first figure here was 350; sections 6.4 and 6.7 together
+  were known to exceed it when the owner chose them (OD-C8).
+- B2. The bridge adapter grows by at most 100 lines outside test files.
+  The first figure was 80, and sections 6.2 and 6.3 took 89.
 - B3. A new test finishes in under two seconds or starts with
   `slowtest.Skip(t)`.
 - B4. The Tier 2 rows are held to the two seconds of A7, measured as the
@@ -458,8 +511,8 @@ Work stops and is reported, without going on, when:
   that passed validation.
 - ST-C2. A requirement needs a change to section 7.2, 7.3 or 7.6 to 7.11
   of the base specification (SP5), or to any package of N2.
-- ST-C3. The method of 6.4 cannot meet Q4 and Q5 on the table of A-C7
-  without a rule for one arrangement of conics.
+- ST-C3. The method of 6.4 cannot meet Q3 to Q5 on the table of A-C7
+  without a rule for one arrangement of a conic and a cylinder.
 - ST-C4. A budget of section 9 is exceeded.
 - ST-C5. A response of D3 changes that is not a legacy refusal turned
   into an answer.
@@ -497,6 +550,12 @@ as recommended, so the text above stands as written.
   general Boolean cuts a floor inside the crossing and the oracle checks
   the value. Alternative: reproduce the refusal, which needs a rule that
   depends on the family (ST2 of the base specification).
+
+- OD-C8. Concealed cutters. After section 6.3, T2-004 and T2-015 still
+  failed: a cutter that a later bore covers could not be proved clear of
+  the wall of a bore across it. Asked whether to finish without those
+  rows, the owner chose on 2026-11-19 to have them worked on. Sections
+  6.4 and 6.7 are that work, and B1 and B2 were raised for it.
 
 ## 12. What this leaves for the owner's plan
 

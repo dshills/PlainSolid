@@ -117,7 +117,8 @@ func (a *arrangement) extent(op, f int) (geom.Vec3, geom.Vec3) {
 // apart is the proof of separation of SP2 for two cylinder faces whose
 // axes are not parallel: their bounds grown by the filter margin do not
 // overlap, or their axis segments are farther apart than the two radii
-// and twice the margin (T4), or subdivision separates them.
+// and twice the margin (T4), or one face is clear of the whole of the
+// other's cylinder, or subdivision separates them.
 func (a *arrangement) apart(fa, fb int) bool {
 	x, y := a.ops[0].faces[fa], a.ops[1].faces[fb]
 	if x.box.clear(y.box, a.t.margin) {
@@ -126,6 +127,9 @@ func (a *arrangement) apart(fa, fb int) bool {
 	p0, p1 := a.extent(0, fa)
 	q0, q1 := a.extent(1, fb)
 	if segmentDistance(p0, p1, q0, q1) > x.s.(cylinder).radius+y.s.(cylinder).radius+2*a.t.margin {
+		return true
+	}
+	if a.clearOf(0, fa, y.s.(cylinder)) || a.clearOf(1, fb, x.s.(cylinder)) {
 		return true
 	}
 	p, q := patchOf(x.s.(cylinder), p0, p1), patchOf(y.s.(cylinder), q0, q1)

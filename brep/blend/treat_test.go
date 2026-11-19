@@ -299,13 +299,17 @@ func TestFilletClosedForms(t *testing.T) {
 		}
 	})
 	t.Run("two fillets that meet at a corner", func(t *testing.T) {
-		// Two cylinders of one radius with crossing axes: the Boolean
-		// takes no such pair, and its refusal is the answer (X11).
+		// Two cylinders of one radius with crossing axes, which the
+		// Boolean takes since specs/general-boolean-crossing. Each fillet
+		// of radius r along a length l removes (1 − π/4)·r²·l, and what
+		// both remove at the corner is (5/3 − π/2)·r³.
 		s := boxSolid(t, vec(0, 0, 0), vec(20, 10, 10))
 		edges := []Edge{located(t, s, vec(0, 0, 0), vec(20, 0, 0)), located(t, s, vec(0, 0, 0), vec(0, 10, 0))}
-		if _, err := Treat(context.Background(), Body{Solid: s, Solids: 1}, edges, Fillet, 1, treatOptions); !errors.Is(err, boolean.ErrUnsupported) {
+		r, err := Treat(context.Background(), Body{Solid: s, Solids: 1}, edges, Fillet, 1, treatOptions)
+		if err != nil {
 			t.Fatal(err)
 		}
+		near(t, r.Properties.Volume, 2000-30*(1-math.Pi/4)+(5./3-math.Pi/2))
 	})
 }
 

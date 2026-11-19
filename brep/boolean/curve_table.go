@@ -251,7 +251,7 @@ func conicWithCylinder(c curve, with carrier, t tolerances) (meeting, error) {
 	}
 	centre, radius, round := t.shadow(k, s)
 	if !round {
-		return meeting{open: true}, nil
+		return conicAcrossCylinder(k, s, t), nil
 	}
 	circles := circleWithCircle(centre, radius, geom.Vec2{}, s.radius, t.eps)
 	m := meeting{alike: circles.same}
@@ -306,4 +306,33 @@ func conicWithConic(c curve, with carrier, t tolerances) (meeting, error) {
 		m.hits = append(m.hits, hit{p: p, t: k.param(p), s: d.param(p), gap: off(d, p), touching: circles.touching})
 	}
 	return m, nil
+}
+
+// axisDistance is the square of the distance from the point of a conic at
+// parameter t to the axis of a cylinder, as a polynomial in t: across the
+// axis the conic is c + u·cos t + v·sin t, whose square is of degree two.
+func axisDistance(k conic, s cylinder) trig {
+	c, u, v := s.across(k.center.Sub(s.frame.Origin())), s.across(k.x.Scale(k.a)), s.across(k.y.Scale(k.b))
+	return trig{c.Dot(c) + (u.Dot(u)+v.Dot(v))/2, 2 * c.Dot(u), 2 * c.Dot(v), (u.Dot(u) - v.Dot(v)) / 2, u.Dot(v)}
+}
+
+// conicAcrossCylinder meets a circle or an ellipse with a cylinder where
+// the conic's plane is not along the axis and the conic does not project
+// to a circle (section 6.4 of specs/general-boolean-crossing). The conic
+// passes through the cylinder where the square of its distance to the
+// axis passes the square of the radius, and touches it where the distance
+// comes within the tolerance of the radius and turns back. A distance
+// within ε of the radius r is a square within about 2rε of r². There are
+// at most four hits. A conic within the tolerance of the cylinder all the
+// way round may lie in it.
+func conicAcrossCylinder(k conic, s cylinder, t tolerances) meeting {
+	f := axisDistance(k, s)
+	f[0] -= s.radius * s.radius
+	found, everywhere := f.hits(2 * s.radius * t.eps)
+	m := meeting{alike: everywhere}
+	for _, h := range found {
+		p := k.at(h.t)
+		m.hits = append(m.hits, hit{p: p, t: k.param(p), gap: math.Abs(s.offset(p)), touching: h.touching})
+	}
+	return m
 }
