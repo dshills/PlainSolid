@@ -15,15 +15,15 @@ As of 2026-11-19, with kernel code at `948b2cec`.
 | Check | Last result | Kernel commit |
 |---|---|---|
 | PlainCAD application with PlainSolid selected (app `efae4d2`) | Passed all eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract and 1,691 unit cases; none skipped or flaky | `948b2cec`, 2026-11-19 |
-| Complete Go suite with the research tag, macOS ARM64, Go 1.23.12 | 6,285 passed, 624 optional skips, 0 failed of 6,909 | `5c226e76`, 2026-11-19 |
+| Complete Go suite with the research tag, macOS ARM64, Go 1.23.12 | 6,348 passed, 625 optional skips, 0 failed of 6,973 | `4204c5c0`, 2026-11-19 |
 | Complete Go suite, Linux ARM64, Go 1.26.0 | 6,018 passed, 599 optional skips, 0 failed | `c7afb429`, 2026-11-16 |
 | Complete Go suite with the race detector, macOS ARM64 | 5,557 passed, 580 optional skips, 0 failed | `ab33a412`, 2026-11-15 |
 | Default Go tier (`go test ./...`), macOS ARM64, Go 1.27.4 | All 56 packages with tests pass | `948b2cec`, 2026-11-19 |
 
-The PlainCAD application suites pass on `948b2cec`, which has the Go compiler
-mitigation, the general Boolean and the band mesher. The complete Go suite,
-slow tier and research code included, last passed on `main` at `5c226e76`,
-before the last two. The Linux run and the race run have not been repeated
+The PlainCAD application suites and the complete Go suite, slow tier and
+research code included, pass with the Go compiler mitigation, the general
+Boolean and the band mesher in place; `4204c5c0` differs from `948b2cec`
+only in documents. The Linux run and the race run have not been repeated
 since the commits shown.
 
 The default build leaves out the research quarantine: 540 production files of
