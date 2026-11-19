@@ -23,6 +23,16 @@ type edge struct {
 	box        bounds
 }
 
+// closed reports whether the edge runs once round a closed carrier. The
+// interval of such an edge is t0 to t0 plus the period (I5 step 6), and
+// that sum, taken back from t1, can fall short of the period by the
+// rounding of t1. The test allows that rounding and nothing more: an open
+// arc would have to end within it of a whole turn to be taken for closed.
+func (e edge) closed() bool {
+	period := e.c.period()
+	return period > 0 && period-(e.t1-e.t0) <= 8*0x1p-52*math.Abs(e.t1)
+}
+
 // face is an input face reduced to its carrier, its orientation against
 // the carrier normal, and its loops. In the chart of the carrier every
 // loop keeps the face on its left: the outer loop comes first and runs

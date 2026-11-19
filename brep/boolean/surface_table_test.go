@@ -121,7 +121,14 @@ func TestSurfaceTableCurved(t *testing.T) {
 		{"parallel cylinders, one inside the other", tube, stand(0.1, up, 0.5), 0, 0, false, false, false},
 		{"coaxial cylinders", tube, stand(0, up, 0.5), 0, 0, false, false, false},
 		{"the same cylinder", tube, stand(eps, up.Scale(-1), 1+eps), 0, 0, false, true, false},
-		{"cylinders with axes that are not parallel", tube, stand(0, geom.Vec3{X: 1}, 1), 0, 0, false, false, true},
+		{"equal cylinders whose axes meet at a right angle", tube, stand(0, geom.Vec3{X: 1}, 1), 0, 2, false, false, false},
+		{"equal cylinders whose axes meet at a slant", tube, stand(0, geom.Vec3{X: 1, Z: 2}, 1), 0, 2, false, false, false},
+		{"equal cylinders at the least angle", tube, stand(0, geom.Vec3{X: 1. / 64, Z: math.Sqrt(1 - 1./4096)}, 1), 0, 2, false, false, false},
+		{"equal cylinders below the least angle", tube, stand(0, geom.Vec3{X: 1. / 128, Z: math.Sqrt(1 - 1./16384)}, 1), 0, 0, false, false, true},
+		{"cylinders equal and meeting within the tolerance", tube, stand(eps/4, geom.Vec3{Y: 1}, 1+eps/2), 0, 2, false, false, false},
+		{"radii and axes each within the tolerance, together beyond it", tube, stand(eps, geom.Vec3{Y: 1}, 1+eps/2), 0, 0, false, false, true},
+		{"equal cylinders whose axes pass each other", tube, stand(0.5, geom.Vec3{Y: 1}, 1), 0, 0, false, false, true},
+		{"unequal cylinders whose axes meet", tube, stand(0, geom.Vec3{X: 1}, 0.75), 0, 0, false, false, true},
 	} {
 		p, err := surfacePair(c.a, c.b, tol)
 		if err != nil {
@@ -146,6 +153,9 @@ func TestSurfaceTableCurved(t *testing.T) {
 		}
 		if lines != c.lines || conics != c.conics || p.alike != c.alike || p.open != c.open {
 			t.Errorf("%s: got %+v", c.name, p)
+		}
+		if narrow := c.name == "equal cylinders below the least angle"; p.narrow != narrow {
+			t.Errorf("%s: narrow %v", c.name, p.narrow)
 		}
 	}
 }

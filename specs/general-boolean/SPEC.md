@@ -630,7 +630,7 @@ Let d be the distance between two cylinder axes, r₁ ≥ r₂ their radii, and 
 | Cylinder, cylinder | Parallel, d within ε of r₁ + r₂ | One line, touching (external tangency). |
 | Cylinder, cylinder | Parallel, d > ε and d within ε of r₁ − r₂ | One line, touching (internal tangency). |
 | Cylinder, cylinder | Parallel, d > r₁ + r₂ + ε, or d < r₁ − r₂ − ε | No contact. |
-| Cylinder, cylinder | Not parallel, radii differ by ≤ ε, axes meet (d ≤ ε) | Two ellipses, crossing, meeting each other at two nodes (X7). Tier 2 only (OD-1); until Tier 2 is supported (15.5) this row returns `ErrUnsupported` as SP3 states. |
+| Cylinder, cylinder | Not parallel, the difference of the radii and the distance of the axes together ≤ ε, sine of the angle between the axes ≥ 1/64 | Two ellipses, crossing, meeting each other at two nodes (X7): the sections of the first cylinder by the two planes through the point where the axes meet that bisect their angle. [The crossing specification](../general-boolean-crossing/SPEC.md), E1 to E4. |
 | Cylinder, cylinder | Not parallel, any other, proved separate by SP2 | No contact. |
 | Cylinder, cylinder | Not parallel, any other, not proved separate | `ErrUnsupported` naming both faces. |
 
@@ -659,10 +659,11 @@ Let d be the distance between two cylinder axes, r₁ ≥ r₂ their radii, and 
   some separate faces unproved and proves none wrongly. A proof does not decide that two faces meet:
   faces that are not proved separate, and that are outside the rows of
   the table, return `ErrUnsupported`.
-- SP3. "Out" for the trial, always `ErrUnsupported` unless SP2 applies:
-  non-parallel cylinders of unequal radius; non-parallel cylinders of equal
-  radius whose axes do not meet; and, until Tier 2 is supported (15.5),
-  non-parallel cylinders of equal radius whose axes meet.
+- SP3. "Out", always `ErrUnsupported` unless SP2 applies: non-parallel
+  cylinders of unequal radius; non-parallel cylinders of equal radius whose
+  axes do not meet; and non-parallel cylinders of equal radius whose axes
+  meet at an angle of sine below 1/64. Equal radius and meeting axes are
+  judged together, as the row of the table states.
 - SP4. The same-surface test is made node by node, before any other row of
   the table, for every pair of parallel planes and for every *candidate*
   pair of parallel cylinders. A pair of parallel cylinders is a candidate

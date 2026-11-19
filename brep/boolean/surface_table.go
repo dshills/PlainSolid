@@ -19,8 +19,10 @@ type pairing struct {
 	// samples (I5). When the nodes say they are not, curves decides.
 	alike bool
 	// open is set when the table has no closed form for the pair and the
-	// faces must be proved separate (SP2, SP3).
-	open bool
+	// faces must be proved separate (SP2, SP3). narrow is set with it
+	// for cylinders of equal radius whose axes meet at too small an angle
+	// for their row.
+	open, narrow bool
 }
 
 // surfaceRow is one family pair of the table of section 7.4. A surface
@@ -148,15 +150,21 @@ func planeWithCylinder(a, b surface, t tolerances) (pairing, error) {
 	return out, nil
 }
 
+// minCrossingSine is the least sine of the angle between the axes of two
+// crossing cylinders of equal radius for which the row gives their
+// ellipses (E4 of specs/general-boolean-crossing).
+const minCrossingSine = 1. / 64
+
 // cylinderWithCylinder holds the rows for two cylinders. Parallel
 // cylinders meet in two generators, touch along one from outside or from
 // inside, or miss; coaxial ones do not meet. A pair whose surfaces are
 // nowhere farther apart than the tolerance scale is alike (SP4). Axes
-// that are not parallel have no closed form here (SP3).
+// that are not parallel have a closed form for equal radii and axes that
+// meet, and none otherwise (SP3).
 func cylinderWithCylinder(a, b surface, t tolerances) (pairing, error) {
 	c, d := a.(cylinder), b.(cylinder)
 	if !t.parallel(c.frame.ZAxis(), d.frame.ZAxis()) {
-		return pairing{open: true}, nil
+		return crossingCylinders(c, d, t)
 	}
 	ch := cylinderChart(c)
 	off := d.frame.Origin().Sub(c.frame.Origin())
@@ -170,6 +178,45 @@ func cylinderWithCylinder(a, b surface, t tolerances) (pairing, error) {
 	for _, q := range m.points {
 		out.curves = append(out.curves, line{ch.frame.ToWorld(geom.Vec3{X: q.X, Y: q.Y}), c.frame.ZAxis()})
 		out.touching = append(out.touching, m.touching)
+	}
+	return out, nil
+}
+
+// crossingCylinders is the row for two cylinders whose axes are not
+// parallel. Where the radii and the axes agree within the tolerance
+// together, the surfaces cross along two ellipses: the sections of the
+// first cylinder by the two planes through the point where the axes
+// meet that bisect the angle between them. The line between the nearest
+// points of the axes is perpendicular to both axes and so lies in both
+// planes; the mirror in either plane therefore takes the first cylinder
+// to one of the second's radius about a line that far from the second
+// axis, and each ellipse is on both within the tolerance. The ellipses
+// meet each other at two points (X7). Any other pair has no closed form
+// and is open; so is one whose axes are too nearly parallel, which is
+// narrow as well.
+func crossingCylinders(c, d cylinder, t tolerances) (pairing, error) {
+	zc, zd := c.frame.ZAxis(), d.frame.ZAxis()
+	p, q := nearestOnLines(c.axis(), d.axis())
+	if math.Abs(c.radius-d.radius)+p.Distance(q) > t.eps {
+		return pairing{open: true}, nil
+	}
+	if zc.Cross(zd).Length() < minCrossingSine-t.angular {
+		return pairing{open: true, narrow: true}, nil
+	}
+	var out pairing
+	for _, turn := range [2]float64{-1, 1} {
+		frame, err := geom.FrameFromNormal(p.Add(q).Scale(0.5), zc.Add(zd.Scale(turn)))
+		if err != nil {
+			return pairing{}, failWith(ErrInvalid, "surface pair", err)
+		}
+		section, err := planeWithCylinder(plane{frame}, c, t)
+		if err != nil {
+			return pairing{}, err
+		}
+		if len(section.curves) != 1 || section.touching[0] || section.curves[0].family() != conicFamily {
+			return pairing{open: true}, nil
+		}
+		out.curves, out.touching = append(out.curves, section.curves[0]), append(out.touching, false)
 	}
 	return out, nil
 }

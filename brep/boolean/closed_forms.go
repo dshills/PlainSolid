@@ -200,3 +200,11 @@ func conicThrough(points [5]geom.Vec3, eps float64) (conic, bool) {
 	x := u.Scale(cs).Add(v.Scale(s))
 	return conic{lift(centre), x, n.Cross(x), math.Sqrt(k / l1), math.Sqrt(k / l2)}, true
 }
+
+// nearestOnLines gives the points of two lines that are not parallel at
+// which they come nearest to each other.
+func nearestOnLines(a, b line) (geom.Vec3, geom.Vec3) {
+	w := a.origin.Sub(b.origin)
+	k, d, e := a.dir.Dot(b.dir), a.dir.Dot(w), b.dir.Dot(w)
+	return a.at((k*e - d) / (1 - k*k)), b.at((e - k*d) / (1 - k*k))
+}

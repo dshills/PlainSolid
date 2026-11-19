@@ -23,6 +23,8 @@ T1-063 21 cutMany: circular stock requires the bore strictly inside its outside 
 T1-064 6 cutMany: circular stock requires the bore strictly inside its outside wall
 T1-074 6 overlapVolume: overlap volume requires a strictly contained radial footprint: trimmed: cylinder bore: bore touches or crosses a non-opening face
 T1-081 4 cutMany: cutMany requires planar tools on planar stock or cylindrical tools on qualified stock
+T2-014 12 cutMany: finite cylinder does not cover both opening planes; blind or partial cuts are unsupported
+T2-014 39 cutMany: finite cylinder does not cover both opening planes; blind or partial cuts are unsupported
 T2-015 25 cutMany: finite cylinder does not cover both opening planes; blind or partial cuts are unsupported
 T2-015 26 cutMany: finite cylinder does not cover both opening planes; blind or partial cuts are unsupported
 T2-015 52 cutMany: trimmed: tools 0 and 1 do not have separated bounds

@@ -1,19 +1,15 @@
 T1-009 TestBlindFloorNearExitReferenceIsAmbiguous excluded: a sub-tolerance feature, a floor 5e-8 thick under a working tolerance of 1e-7 (C24 governs)
 T1-041 TestSideNotchMixedBoreBatchIsAtomic excluded: its stock comes from an import whose faces carry a placement that is not rigid, outside the class (S4)
 T1-091 TestToFaceAnalyticCircleHoleExactGap excluded: a sub-tolerance distinction (RL-12): the record fails a tool tangent to a hole and passes the same tool 1e-15 away; both get the outcome of the tangent tool
-T2-001 TestCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
-T2-002 TestBlindCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
-T2-003 TestDoubleBlindCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
-T2-004 TestContainedCrossedBores Tier 2, not attempted; unsupported surface pair
-T2-005 TestClippedCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
-T2-006 TestTripleCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
-T2-007 TestBlindTripleCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
-T2-008 TestMultipleBlindTripleCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
-T2-009 TestCrossedCompanionBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
-T2-010 TestCrossedObliqueBoreScope Tier 2, not attempted; unsupported surface pair
-T2-011 TestCrossedObliqueReciprocalScope Tier 2, not attempted; unsupported surface pair
-T2-013 TestCrossedObliqueBoreCoordinatePlacements Tier 2, not attempted; unsupported surface pair
-T2-014 TestBlindCrossedObliqueBoreSTEPAndFurtherCut Tier 2, not attempted; unsupported surface pair
-T2-015 TestConcealedCrossedObliqueBoreSTEPCanonical Tier 2, not attempted; unsupported surface pair
-T2-016 TestObliqueFloorCrossedBoreReimport Tier 2, not attempted; unsupported surface pair
-T2-017 TestDoubleBlindCrossedObliqueBore Tier 2, not attempted; unsupported surface pair
+T2-001 TestCrossedBoreScopeAndSTEP overlapVolume of a pinched common is refused (specs/general-boolean-crossing 6.2); every other value agrees
+T2-002 TestBlindCrossedBoreScopeAndSTEP overlapVolume of a pinched common is refused (specs/general-boolean-crossing 6.2); every other value agrees
+T2-003 TestDoubleBlindCrossedBoreScopeAndSTEP overlapVolume of a pinched common is refused (specs/general-boolean-crossing 6.2); every other value agrees
+T2-004 TestContainedCrossedBores the tools of a cutMany give a quartic pair in the order stated (specs/general-boolean-crossing 6.3)
+T2-005 TestClippedCrossedBoreScopeAndSTEP overlapVolume of a pinched common is refused (specs/general-boolean-crossing 6.2); every other value agrees
+T2-007 TestBlindTripleCrossedBoreScopeAndSTEP time over two seconds; every value agrees (specs/general-boolean-crossing A-C3)
+T2-010 TestCrossedObliqueBoreScope overlapVolume of a pinched common is refused (specs/general-boolean-crossing 6.2); every other value agrees
+T2-011 TestCrossedObliqueReciprocalScope overlapVolume of a pinched common is refused (specs/general-boolean-crossing 6.2); every other value agrees
+T2-013 TestCrossedObliqueBoreCoordinatePlacements time over two seconds; every value agrees (specs/general-boolean-crossing A-C3)
+T2-014 TestBlindCrossedObliqueBoreSTEPAndFurtherCut overlapVolume of a pinched common is refused (specs/general-boolean-crossing 6.2); every other value agrees
+T2-015 TestConcealedCrossedObliqueBoreSTEPCanonical a conic that the curve table cannot meet with a cylinder (specs/general-boolean-crossing 6.4)
+T2-017 TestDoubleBlindCrossedObliqueBore overlapVolume of a pinched common is refused (specs/general-boolean-crossing 6.2); every other value agrees

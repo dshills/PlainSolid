@@ -156,7 +156,7 @@ func (a *arrangement) seal() error {
 			for k := 0; k+1 < len(list); k++ {
 				p, q := point(list[k].node), point(list[k+1].node)
 				switch {
-				case p != q || len(list) == 2 && ed.c.period() > 0 && ed.t1-ed.t0 >= ed.c.period():
+				case p != q || len(list) == 2 && ed.closed():
 					// A span, or the closed span of a closed edge.
 					at[k] = len(a.spans)
 					a.spans = append(a.spans, span{op: i, edge: e, a: p, b: q, t0: list[k].t, t1: list[k+1].t, bundle: -1, elem: -1})

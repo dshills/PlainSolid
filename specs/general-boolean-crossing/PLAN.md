@@ -12,6 +12,46 @@ specification recommended, so no phase below changes (Phase 0). The
 phases are implemented on the branch `codex/general-boolean-crossing`,
 one commit each.
 
+Phase 1 is committed as work in progress and stopped under ST-C6. The
+row of the equal pair is in, with every test of A-C2 and A-C6 passing
+but one: two crossing bores at a sine of 0.8 in a hexagonal prism, in a
+pose that puts no axis along a coordinate axis. Its second cut returns
+`ErrValidation`, "V1: trimmed: curved trim refinement folds or
+degenerates in UV". The same prism in the pose of the coordinate axes
+passes, as do a box in the turned pose and the turned prism at a right
+angle. The test is committed skipped, with that reason.
+
+What refuses it: `trimmed.NewSolid` meshes each face once as a check. On
+the wall of the upright bore, between its bottom rim and the crossing,
+the corners of the outline along the rim are computed from the arcs of
+the rim and differ in the last bits of the axial coordinate, where in
+the pose of the coordinate axes they are equal exactly; the check then
+meets a triangle of no area. No arrangement of the Boolean's arcs that
+was tried (its six halvings) passes. `brep/trimmed` is outside this work
+(N2), and how the Boolean places the corners of an outline is section
+7.10 of the base specification (U2), so both ways on are the owner's to
+choose.
+
+What else Phase 1 found and did:
+
+- Sines of 1/8 and 1/64 pass their closed forms (risk K-1).
+- A defect of `brep/boolean` that the turned tests met first and that is
+  fixed in this phase: a closed edge was told from an open one by taking
+  its interval back from its end and comparing with the period exactly,
+  which fails by rounding for a cylinder whose rim does not start at
+  parameter zero. `edge.closed` now allows that rounding. It changes no
+  rule of the base specification.
+- T2-006, 008, 009 and 016 pass and left `pending.txt`; T2-007 and
+  T2-013 are listed there for time; the reasons of the other rows say
+  which phase they wait for.
+- Default bridge (R-5): 3,116 of 3,118 responses are byte for byte those
+  of `d4a157a6`. The other two are the requests of T2-014 that A-C4
+  names, a legacy refusal before and an answer now; they are in
+  `legacy_refusals.txt`. Their value is not yet checked by the oracle
+  (Phase 4).
+- Size: `brep/boolean` has 6,049 lines outside test files, 37 more than
+  before, of the 350 of B1.
+
 ## Rules for every phase
 
 - R-1. One phase is one commit on a `codex/` branch in its own worktree.

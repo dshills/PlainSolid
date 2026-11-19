@@ -52,6 +52,9 @@ func (a *arrangement) faceWithFace() error {
 			}
 			if pair.open && !a.apart(fa, fb) {
 				// SP3: no closed form, and SP2 does not prove them separate.
+				if pair.narrow {
+					return fail(ErrUnsupported, "X6", "face %d of A and face %d of B are cylinders of equal radius whose axes meet and are too nearly parallel", fa, fb)
+				}
 				return fail(ErrUnsupported, "X6", "face %d of A and face %d of B are cylinders with axes that are not parallel", fa, fb)
 			}
 			if err := a.meetings(pair.curves, fa, fb); err != nil {

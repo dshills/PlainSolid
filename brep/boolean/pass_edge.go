@@ -77,8 +77,7 @@ func (a *arrangement) overlap(ea, eb int) error {
 		}
 		return on == 3, nil
 	}
-	closed := func(e edge) bool { return period > 0 && e.t1-e.t0 >= period }
-	if closed(x) && closed(y) {
+	if x.closed() && y.closed() {
 		third := period / 3
 		same, err := test([3]geom.Vec3{x.c.at(x.t0), x.c.at(x.t0 + third), x.c.at(x.t0 + 2*third)})
 		if err != nil || !same {
@@ -116,7 +115,7 @@ func (a *arrangement) overlap(ea, eb int) error {
 	switch {
 	case period == 0:
 		cover(begin)
-	case closed(x):
+	case x.closed():
 		// One part, which may run through the vertex of the first edge.
 		begin += period * math.Ceil((x.t0-begin)/period)
 		parts = append(parts, part{begin, begin + length, [2]int{first, last}})
