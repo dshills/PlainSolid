@@ -645,6 +645,13 @@ func (s Solid) tessellateWithTrimMemo(ctx context.Context, o parametric.Tessella
 	if m, ok, err := s.compactCylinderMesh(ctx, o); ok {
 		return m, err
 	}
+	return s.refineUniformly(ctx, o)
+}
+
+// refineUniformly splits every seed triangle of every face in four, level
+// after level, until all of them pass. It is what Tessellate does for a
+// solid that no other mesher takes; o is already normalized.
+func (s Solid) refineUniformly(ctx context.Context, o parametric.TessellationOptions) (mesh.Mesh, error) {
 	n := 0
 	maximum := 0.
 	for i, triangles := range s.seeds {

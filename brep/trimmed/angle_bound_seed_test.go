@@ -8,14 +8,19 @@ import (
 
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"plainsolid/mesh"
 )
 
 // A wall with an oblique rim must meet a bound on the angle between a
-// triangle and the surface. It could not while a seed triangle had two sides
-// on one smooth rim, or while a triangle that joined both chart copies of a
-// seam vertex kept a trim from being seated: every level then left triangles
-// in the plane of the cap, or the fallback of sampled chords was used, which
-// meets no such bound.
+// triangle and the surface. Under uniform refinement it could not while a
+// seed triangle had two sides on one smooth rim, or while a triangle that
+// joined both chart copies of a seam vertex kept a trim from being seated:
+// every level then left triangles in the plane of the cap, or the fallback of
+// sampled chords was used, which meets no such bound.
+//
+// Tessellate now meshes such a wall in strips along the axis (compactBand)
+// and reaches uniform refinement only where the strips cannot be finished,
+// so both are tested here: Tessellate, and uniform refinement by itself.
 func TestTessellateAngleBoundOnObliqueRim(t *testing.T) {
 	slope := math.Tan(math.Pi / 6)
 	capped := func(arcs int) func(*testing.T) ([]geom.Vec3, []parametric.Edge, []Face) {
@@ -39,20 +44,38 @@ func TestTessellateAngleBoundOnObliqueRim(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			m, err := solid.Tessellate(context.Background(), parametric.TessellationOptions{Deflection: 0.1, Angle: 0.5})
+			const bound = 0.5
+			o, err := normalizeTrimmedTessellationOptions(context.Background(), parametric.TessellationOptions{Deflection: 0.1, Angle: bound})
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := m.ValidateSolid(); err != nil {
-				t.Fatal(err)
-			}
-			if len(m.Triangles) > c.most {
-				t.Fatalf("%d triangles, want at most %d", len(m.Triangles), c.most)
-			}
-			// Within the angle bound the chords of the wall are short:
-			// the mesh has at least 97% of the volume and no more.
-			if got := m.SignedVolume(); got > c.volume+1e-9 || got < 0.97*c.volume {
-				t.Fatalf("mesh volume %.12g, want a little under %.12g", got, c.volume)
+			// A chord of the wall turns by at most twice the bound, and
+			// a prism on such chords has sin(2*bound)/(2*bound) of the
+			// volume of its cylinder. Uniform refinement halves its
+			// chords well past the bound and keeps 97%.
+			for _, mesher := range []struct {
+				name string
+				run  func() (mesh.Mesh, error)
+				part float64
+			}{
+				{"Tessellate", func() (mesh.Mesh, error) { return solid.Tessellate(context.Background(), o) }, math.Sin(2*bound) / (2 * bound)},
+				{"uniform refinement", func() (mesh.Mesh, error) {
+					return solid.withTessellationTrimMemo(&tessellationTrimMemo{limit: tessellationTrimMemoLimit}).refineUniformly(context.Background(), o)
+				}, 0.97},
+			} {
+				m, err := mesher.run()
+				if err != nil {
+					t.Fatalf("%s: %v", mesher.name, err)
+				}
+				if err := m.ValidateSolid(); err != nil {
+					t.Fatalf("%s: %v", mesher.name, err)
+				}
+				if len(m.Triangles) > c.most {
+					t.Fatalf("%s: %d triangles, want at most %d", mesher.name, len(m.Triangles), c.most)
+				}
+				if got := m.SignedVolume(); got > c.volume+1e-9 || got < mesher.part*c.volume {
+					t.Fatalf("%s: mesh volume %.12g, want between %.12g and %.12g", mesher.name, got, mesher.part*c.volume, c.volume)
+				}
 			}
 		})
 	}

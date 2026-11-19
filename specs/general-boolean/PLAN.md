@@ -18,7 +18,10 @@ stress sets, made before it, still describe the final code.
 
 Passed:
 - Tier 1: 87 of the 89 rows in scope, on one general path. Largest error
-  3.3e-9 in volume and 4.4e-9 in area; no volume is wrong.
+  3.3e-9 in volume and 4.4e-9 in area; no volume is wrong. With the mesher
+  change on `claude/busy-robinson-8b37f0` the other two pass as well, so
+  89 of 89 there: T1-092 in 0.05 s alone with a mesh of 256 triangles,
+  T1-029 in 0.11 s alone with two meshes of 144.
 - The section 11 matrix, and `go test ./...` in the default tier.
 - The oracle: two runs agree with OCCT on all 88 cases and 257 steps.
 - Five stress sets: no volume differs, every refusal confirmed by audit.
@@ -28,8 +31,11 @@ Passed:
   failure) and was not repeated after that.
 
 Did not pass:
-- T1-092: its `mesh` request exhausts the tessellation budget (`brep/trimmed`).
-- T1-029: every value agrees; 3.6 s alone, over A7, from its display meshes.
+- T1-092 and T1-029, on the trial branch and on `main` at `71e1eab5`: the
+  first's `mesh` request exhausts the tessellation budget, the second takes
+  3.6 s alone, over A7. Both pass on `claude/busy-robinson-8b37f0`, where
+  `brep/trimmed` meshes a cylinder wall between two rims in strips along
+  the axis. That branch is not merged.
 - Tier 2: not supported (1 of 17 rows). Excluded: T1-009, T1-091, T1-041.
 - Not verified: the To face family, C24 to C27 and Tier 2 against the
   oracle. Open items are in section 20 of the specification.
@@ -71,8 +77,9 @@ is not met by those two rows, and the decision says so.
 
 Not done, and each needs the owner's request:
 - Merging the three branches to `main`.
-- The mesher work for the two rows, which comes before any family moves
-  to the general path. The default bridge stays on the legacy path.
+- Merging the mesher work for the two rows, `claude/busy-robinson-8b37f0`,
+  which comes before any family moves to the general path. The default
+  bridge stays on the legacy path.
 - Lifting recipe-held stock to a `trimmed.Solid` (OD-8).
 
 ## Terms

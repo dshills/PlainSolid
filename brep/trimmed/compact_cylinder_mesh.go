@@ -15,9 +15,14 @@ const maxCompactFaceVertices = 2048
 var errCompactBoundaryLimit = fmt.Errorf("trimmed: compact boundary sampling limit")
 
 // compactCylinderMesh specializes flat faces joined to rectangular cylinder
-// patches, including mapped analytic supports. It subdivides the angular
-// direction and leaves straight edges intact. All faces share model-edge
-// samples and use the ordinary sampled deflection and normal checks.
+// patches, including mapped analytic supports, and to cylinder bands
+// (compactBand). It subdivides the angular direction and leaves straight
+// edges intact. All faces share model-edge samples and use the ordinary
+// sampled deflection and normal checks.
+//
+// A solid with a band was meshed by uniform refinement before bands were
+// charts here. Where this mesher cannot finish such a solid it reports that
+// the solid is not its to mesh, and the caller goes on as it did then.
 func (s Solid) compactCylinderMesh(ctx context.Context, o parametric.TessellationOptions) (mesh.Mesh, bool, error) {
 	return s.compactCylinderMeshWithNormals(ctx, o, nil)
 }
@@ -42,14 +47,24 @@ func (s Solid) TessellateCompactNormals(ctx context.Context, o parametric.Tessel
 }
 
 func (s Solid) compactCylinderMeshWithNormals(ctx context.Context, o parametric.TessellationOptions, normals *[][3]geom.Vec3) (mesh.Mesh, bool, error) {
-	if o.AnalyticBound {
+	m, banded, ok, err := s.compactCylinderCharts(ctx, o, normals)
+	if banded && ok && err != nil && ctx.Err() == nil {
 		return mesh.Mesh{}, false, nil
+	}
+	return m, ok, err
+}
+
+// compactCylinderCharts is compactCylinderMeshWithNormals, and also reports
+// whether a face of the solid is a band.
+func (s Solid) compactCylinderCharts(ctx context.Context, o parametric.TessellationOptions, normals *[][3]geom.Vec3) (result mesh.Mesh, banded, ok bool, err error) {
+	if o.AnalyticBound {
+		return mesh.Mesh{}, false, false, nil
 	}
 	curved := make([]bool, len(s.edges))
 	found := false
 	for _, f := range s.faces {
 		if err := ctx.Err(); err != nil {
-			return mesh.Mesh{}, true, err
+			return mesh.Mesh{}, banded, true, err
 		}
 		surface, _ := parametric.SurfaceMapping(f.Surface)
 		if isCompactPlane(surface) {
@@ -58,7 +73,7 @@ func (s Solid) compactCylinderMeshWithNormals(ctx context.Context, o parametric.
 		switch surface.(type) {
 		case geom.TorusSurface:
 			if !compactTorus(f) {
-				return mesh.Mesh{}, false, nil
+				return mesh.Mesh{}, banded, false, nil
 			}
 			for _, u := range f.Outer {
 				curved[u.Edge] = true
@@ -67,10 +82,13 @@ func (s Solid) compactCylinderMeshWithNormals(ctx context.Context, o parametric.
 		default:
 			_, ok := compactAxialStart(f)
 			if !ok {
-				return mesh.Mesh{}, false, nil
+				return mesh.Mesh{}, banded, false, nil
+			}
+			if _, _, band := compactBand(f); band {
+				banded = true
 			}
 			for _, u := range f.Outer {
-				if u.UVStart.X != u.UVEnd.X {
+				if compactRim(u) {
 					curved[u.Edge] = true
 				}
 			}
@@ -78,12 +96,12 @@ func (s Solid) compactCylinderMeshWithNormals(ctx context.Context, o parametric.
 		}
 	}
 	if !found {
-		return mesh.Mesh{}, false, nil
+		return mesh.Mesh{}, banded, false, nil
 	}
 	for i, e := range s.edges {
 		if !curved[i] {
 			if !compactStraightEdge(e.Curve) {
-				return mesh.Mesh{}, false, nil
+				return mesh.Mesh{}, banded, false, nil
 			}
 		}
 	}
@@ -94,7 +112,7 @@ func (s Solid) compactCylinderMeshWithNormals(ctx context.Context, o parametric.
 	}
 	for iteration := 0; iteration <= len(s.edges)*11; iteration++ {
 		if err := ctx.Err(); err != nil {
-			return mesh.Mesh{}, true, err
+			return mesh.Mesh{}, banded, true, err
 		}
 		counts := s.compactEdgeCounts(levels, curved)
 		m, err := s.compactCandidateNormals(ctx, counts, o, nil, true)
@@ -102,7 +120,7 @@ func (s Solid) compactCylinderMeshWithNormals(ctx context.Context, o parametric.
 			m, err = s.compactCandidateNormals(ctx, counts, o, normals, false)
 		}
 		if err == errCompactBoundaryLimit {
-			return mesh.Mesh{}, false, nil
+			return mesh.Mesh{}, banded, false, nil
 		}
 		if refine, ok := err.(*compactRefinement); ok {
 			roots := map[int]bool{}
@@ -110,21 +128,21 @@ func (s Solid) compactCylinderMeshWithNormals(ctx context.Context, o parametric.
 				roots[groups[edge]] = true
 			}
 			if len(roots) == 0 {
-				return mesh.Mesh{}, true, parametric.ErrBudget
+				return mesh.Mesh{}, banded, true, parametric.ErrBudget
 			}
 			for i := range levels {
 				if roots[groups[i]] && curved[i] {
 					if levels[i] > o.MaxSubdivisions/2 {
-						return mesh.Mesh{}, true, parametric.ErrBudget
+						return mesh.Mesh{}, banded, true, parametric.ErrBudget
 					}
 					levels[i] *= 2
 				}
 			}
 			continue
 		}
-		return m, true, err
+		return m, banded, true, err
 	}
-	return mesh.Mesh{}, true, parametric.ErrBudget
+	return mesh.Mesh{}, banded, true, parametric.ErrBudget
 }
 
 // A rectangular cylindrical chart may start at either a rim or an axial seam.
@@ -219,7 +237,9 @@ func (s Solid) compactCandidateNormals(ctx context.Context, counts []int, o para
 		if compactTorus(f) {
 			count = 2 * counts[f.Outer[0].Edge] * counts[f.Outer[1].Edge]
 		}
-		if _, ok := compactAxialStart(f); ok && !compactCrossedStrip(f) {
+		// A band has as many triangles as any polygon of its samples.
+		_, _, band := compactBand(f)
+		if _, ok := compactAxialStart(f); ok && !band && !compactCrossedStrip(f) {
 			count = 0
 			for _, u := range f.Outer {
 				if u.UVStart.X != u.UVEnd.X {
@@ -276,6 +296,7 @@ func (s Solid) compactCandidateNormals(ctx context.Context, counts []int, o para
 		sides := map[[2]geom.Vec2]boundarySide{}
 		outer := make([][]geom.Vec2, len(f.Outer))
 		start, cylinder := compactAxialStart(f)
+		_, lower, band := compactBand(f)
 		for ri, loop := range loops {
 			for ui := range loop {
 				u := loop[ui]
@@ -335,6 +356,20 @@ func (s Solid) compactCandidateNormals(ctx context.Context, counts []int, o para
 				m.Vertices = append(m.Vertices, world)
 				return nil
 			})
+			if err != nil {
+				return mesh.Mesh{}, err
+			}
+		} else if band {
+			var err error
+			triangles, err = compactBandTriangles(outer[:lower], outer[lower:])
+			if err == errRefine {
+				// The samples do not yet give the band a strip of
+				// triangles; finer rims do.
+				for _, u := range f.Outer {
+					failures.edges[u.Edge] = true
+				}
+				continue
+			}
 			if err != nil {
 				return mesh.Mesh{}, err
 			}
