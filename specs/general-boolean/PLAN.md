@@ -1,7 +1,7 @@
 # Plan: general Boolean trial
 
 This plan implements [the specification](SPEC.md) as it stands at commit
-`6c0a5f63` on branch `codex/general-boolean-spec`. It is a plan only. It
+`0f4acf80`. It is a plan only. It
 contains no implementation, and nothing in it starts until the owner says so.
 Identifiers such as PC2, A3 or ST4 are requirement identifiers of the
 specification.
@@ -49,14 +49,15 @@ specification. They apply to every part and are not repeated in the parts.
 
 - R1. Work is on one branch, `codex/general-boolean`, in its own worktree.
   `BASE` is the commit it is created from: the commit of `main` that holds
-  the merged specification and this plan. If the owner chooses the
-  alternative of D1, `BASE` is the tip of `codex/general-boolean-spec`
-  instead; nothing else in the plan changes. Nothing is merged to `main` or
-  pushed unless the owner asks.
+  the merged specification and this plan (D1). Nothing is merged to `main`
+  or pushed unless the owner asks.
 - R2. A part does its steps, commits, runs its checks against that commit,
-  and adds fixing commits until the checks pass. It then stops with a
-  report: what changed, what was run, what was not verified, and what comes
-  next. It does not start the next part.
+  and adds fixing commits until the checks pass. The session may then go on
+  to the next part of the same phase. It stops at the end of the phase, at a
+  part whose checks it cannot make pass, and at any trigger in the table of
+  "When a check or a stop condition trips". It never starts the next phase.
+  When it stops it reports, for each part it attempted: what changed, what
+  was run, what was not verified, and what comes next.
 - R3. The record of a part is its commit message. No dated narrative is
   added to `docs/STATUS.md` or `docs/VERIFICATION.md`; those pages and
   `README.md` change only if the trial passes and the owner merges it (RC1).
@@ -108,7 +109,7 @@ that package first exists.
 - K2. Size (PC4, ST4). Both commands print a number at or under the cap:
 
   ```sh
-  find brep/boolean -name '*.go' ! -name '*_test.go' -print0 | xargs -0 cat | wc -l   # cap 12000
+  find brep/boolean -name '*.go' ! -name '*_test.go' -print0 | xargs -0 cat | wc -l   # cap 15000
   wc -l < internal/plaincadbridge/general_boolean.go                                   # cap 400
   ```
 
@@ -198,7 +199,9 @@ the smallest input that shows the failure.
 
 ST3 speaks of phases. A part is sized for one session, and R9 lets a part
 run over. So that ST3 has a definite meaning, each phase has a session
-budget (owner decision D2):
+budget (owner decision D2). The unit is one attempt at one part: a session
+that runs several parts of a phase (R2) uses one unit for each part it
+attempts, and a session that resumes an unfinished part uses one more.
 
 | Phase | Parts | Session budget |
 |---|---|---|
@@ -220,7 +223,7 @@ the change is reverted.
 
 Cumulative non-test lines in `brep/boolean` expected at the end of each
 part. These are warnings, not caps. A part that ends more than 15 percent
-above its line says so in its report, with the reason. The cap is 12,000
+above its line says so in its report, with the reason. The cap is 15,000
 (PC4) and only the cap trips ST4.
 
 | Part | 1.1 | 1.2 | 1.3 | 1.4 | 2.1 | 2.2 | 2.3 | 3.2 | 4 |
@@ -927,28 +930,33 @@ not by this phase unless the owner directs it there.
   (splitting, overlap on a periodic carrier, and splitting on a periodic
   chart) and are the parts most likely to need a second session.
 
-## Decisions for the owner before implementation starts
+## Owner decisions
 
-- D1. Branch. The plan assumes (R1) that the specification and this plan
-  are merged to `main` first and that the implementation branch
-  `codex/general-boolean` is created from that commit of `main`. The
-  alternative is to create it from the tip of `codex/general-boolean-spec`.
-- D2. Session budgets. ST3 needs a definite size for a phase. The plan
-  proposes the table in "Session budgets": 21 sessions at most for the
-  planned phases and 2 for the corrective phase.
+The owner decided these on 2026-11-18. None is open except D4, which waits
+for a probe.
+
+- D1. Branch. The specification and this plan are merged to `main` first,
+  and the implementation branch `codex/general-boolean` is created from that
+  commit of `main` (R1).
+- D2. Session budgets. The table in "Session budgets" is accepted: 21 units
+  at most for the planned phases and 2 for the corrective phase. One session
+  may run all the parts of a phase one after another and stops at the phase
+  gate (R2); each part it attempts uses one unit.
 - D3. Trace capture. Phase 0 records the existing tests by a temporary,
   uncommitted patch to `bridge.go` and `bridge_test.go`, and commits the
-  reduced traces as test data. The alternative is to rewrite each
-  acceptance function by hand as table data, which is slower and can drift
-  from the source test.
-- D4. Publication of results with voids or several solids. L2 says results
-  are published through the existing analytic-body path, and
-  `putAnalyticBody` rejects more than one shell. The plan has the adapter
-  call `publish` directly for those results, without changing
-  `analytic.go`. Phase 0 probes whether `inspect`, `mesh` and `stl` work on
-  such a body; this decision, and which bridge changes are permitted if
-  they do not, is needed before Part 3.1 and can wait for that probe.
+  reduced traces as test data. Rewriting each acceptance function by hand
+  was not chosen.
+- D4. Publication of results with voids or several solids. Open until Phase
+  0 has probed it. L2 says results are published through the existing
+  analytic-body path, and `putAnalyticBody` rejects more than one shell. The
+  plan has the adapter call `publish` directly for those results, without
+  changing `analytic.go`. Phase 0 probes whether `inspect`, `mesh` and `stl`
+  work on such a body and reports; the owner then decides this, and which
+  bridge changes are permitted if they do not, before Part 3.1.
 - D5. Face source lists. They are a field of the result with no reader
-  outside tests during the trial. `AGENTS.md` asks every exported
-  identifier to have an outside caller; the plan treats the field as
-  covered by the owner's request for it.
+  outside tests during the trial. `AGENTS.md` asks every exported identifier
+  to have an outside caller; the owner asked for this field, and that
+  request covers it.
+- D6. Line cap. 15,000 non-test lines in `brep/boolean` (PC4), raised from
+  12,000 because this plan estimates 11,300 for the required work. The
+  per-part figures in "Size budget" stay as warnings.
