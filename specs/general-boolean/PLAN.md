@@ -1,7 +1,7 @@
 # Plan: general Boolean trial
 
 This plan implements [the specification](SPEC.md) as it stands at commit
-`493cb01f`. It is a plan only and contains no implementation.
+`52eb7eda`. It is a plan only and contains no implementation.
 Identifiers such as PC2, A3 or ST4 are requirement identifiers of the
 specification; RL-1 to RL-26 are the rulings of its section 19. The
 sections below the first describe the parts as they were planned and
@@ -9,8 +9,12 @@ what was done in each, so that a later session can rely on them.
 
 ## State on 2026-11-19
 
-No pass and no stop is declared. The trial stands on
-`codex/general-boolean-kernel` at `9f3d41c9` (last Go change `8a76218e`).
+The owner declared the trial a pass on 2026-11-19, with T1-092 and T1-029
+as recorded exceptions (OD-9). The trial stands on
+`codex/general-boolean-kernel` at `5f5b03ec` (last change to non-test Go
+`8a76218e`). `5f5b03ec` changes only where the traces keep their STEP
+text; every request reads back byte for byte, so the oracle runs and the
+stress sets, made before it, still describe the final code.
 
 Passed:
 - Tier 1: 87 of the 89 rows in scope, on one general path. Largest error
@@ -19,14 +23,16 @@ Passed:
 - The oracle: two runs agree with OCCT on all 88 cases and 257 steps.
 - Five stress sets: no volume differs, every refusal confirmed by audit.
 - Size: kernel 5,982 lines of 15,000; adapter 405 of 600.
+- PC3 passes in full on `5f5b03ec` merged with `main` at `7a314c15`. The
+  complete suite passed on `9f3d41c9` under Go 1.23.12 (6,344 of 6,969, no
+  failure) and was not repeated after that.
 
 Did not pass:
 - T1-092: its `mesh` request exhausts the tessellation budget (`brep/trimmed`).
 - T1-029: every value agrees; 3.6 s alone, over A7, from its display meshes.
 - Tier 2: not supported (1 of 17 rows). Excluded: T1-009, T1-091, T1-041.
-- Not verified: PC3 in full and the complete suite on the final tip; the
-  To face family, C24 to C27 and Tier 2 against the oracle. Open items
-  are in section 20 of the specification.
+- Not verified: the To face family, C24 to C27 and Tier 2 against the
+  oracle. Open items are in section 20 of the specification.
 
 Branches, none merged to `main` or pushed:
 - `codex/general-boolean-kernel`: the trial. `codex/general-boolean-spec`:
@@ -36,11 +42,13 @@ Branches, none merged to `main` or pushed:
 - `codex/general-boolean-tier2-attempt` (`cc7a679e`) and
   `codex/general-boolean-rim-extremes-attempt` (`36758499`): tried, not kept.
 
-Rulings by the reviewing session, for the owner to confirm or reverse:
+Rulings by the reviewing session. OD-9 confirms RL-1, RL-9, RL-11, RL-12,
+RL-19 and RL-26; the others stand until the owner confirms or reverses them:
 - RL-1, RL-9: limits of `brep/trimmed` are fixed on a foundation branch.
 - RL-2: how the adapter publishes results (the plan's D4).
 - RL-3, RL-4: spline-patch faces and two STEP Booleans stay out.
-- RL-5: the 7.9 MB of traces is reduced before any merge to `main`.
+- RL-5: the 7.9 MB of traces is reduced before any merge to `main`. Done
+  at `5f5b03ec`: 1.9 MB.
 - RL-6, RL-7: one trial branch; replay rows run side by side.
 - RL-8: a face that touches itself is divided (M6).
 - RL-10, RL-17: mass properties passed in, and computed in closed form.
@@ -57,12 +65,15 @@ Rulings by the reviewing session, for the owner to confirm or reverse:
 - RL-25: a second oracle run, where the owner approved one.
 - RL-26: the foundation branch ended; a B2 amendment was tried, not kept.
 
-The decision in front of the owner:
-- Pass: accept T1-092 and T1-029 as limits outside the Boolean. PC1 as
-  written is not met, since it asks for every row in scope.
-- Stop: no stop condition ST1 to ST6 is met as written.
-- Continue: more work on `brep/trimmed`, or on what the bridge asks of
-  its mesher, for the two remaining rows.
+Decided by the owner (OD-9): a pass. T1-092 and T1-029 are accepted as
+limits of the mesher of `brep/trimmed`, outside the Boolean. PC1 as written
+is not met by those two rows, and the decision says so.
+
+Not done, and each needs the owner's request:
+- Merging the three branches to `main`.
+- The mesher work for the two rows, which comes before any family moves
+  to the general path. The default bridge stays on the legacy path.
+- Lifting recipe-held stock to a `trimmed.Solid` (OD-8).
 
 ## Terms
 
