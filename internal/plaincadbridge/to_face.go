@@ -20,6 +20,9 @@ func (b *Bridge) toFace(q request) (Shape, error) {
 	if err != nil {
 		return Shape{}, err
 	}
+	if b.general {
+		return b.generalToFace(context.Background(), target, q)
+	}
 	if !target.planar() {
 		return b.toAnalyticFace(target, q)
 	}

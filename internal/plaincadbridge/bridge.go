@@ -638,6 +638,11 @@ func (b *Bridge) execute(q request) (any, error) {
 				if err != nil {
 					return nil, err
 				}
+				if b.general && generalBody(body) {
+					// A general Boolean result: putAnalyticBody takes
+					// no void and no second solid, and pads the bounds.
+					return b.publishGeneral(body, s.result.GeometryAssertions.SolidCount)
+				}
 				return b.putAnalyticBody(body)
 			}
 			if s.tangent != nil {
