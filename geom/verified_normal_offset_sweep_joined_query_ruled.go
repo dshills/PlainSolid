@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"runtime"
 )
 
 // Use the same complete transverse normal-foot proof as the original
@@ -80,6 +81,7 @@ func joinedSweepRulingWitness(owner, axis int, span *NormalOffsetSweepLineSpan, 
 			return nil, a.err
 		}
 	}
+	runtime.KeepAlive(&start) // golang/go#82026: keeps start in the stack map. Remove once the Go fix is in use.
 	for i, value := range station {
 		if value != nil {
 			witness.Parameters[i] = copySweepInterval(exactInterval{value, value})

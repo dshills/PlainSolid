@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 	"sort"
 )
 
@@ -120,6 +121,7 @@ func (w *WrappedSurfacePatch) ComposeParameterCurvePieces(ctx context.Context, c
 			values := make([]*big.Rat, len(net))
 			for i, h := range net {
 				values[i] = new(big.Rat).Sub(h[axis], new(big.Rat).Mul(seam, h[3]))
+				runtime.KeepAlive(&h) // golang/go#82026: keeps h in the stack map. Remove once the Go fix is in use.
 				if e := budget.check(values[i]); e != nil {
 					return zero, e
 				}

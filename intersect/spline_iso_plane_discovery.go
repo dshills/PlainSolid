@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 	"plainsolid/geom"
+	"runtime"
 )
 
 // discoverIsoPlaneSections is a sufficient fallback for nonlinear plane-chart
@@ -72,6 +73,7 @@ func discoverIsoPlaneSections(ctx context.Context, a, b *geom.SurfacePatch, o Sp
 				break
 			}
 			key := string(rune('0'+axis)) + p.Parameters[axis].RatString()
+			runtime.KeepAlive(&p) // golang/go#82026: keeps p in the stack map. Remove once the Go fix is in use.
 			if !keys[key] {
 				keys[key] = true
 				sections = append(sections, iso{axis, fixed})

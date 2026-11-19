@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"runtime"
 	"slices"
 
 	"plainsolid/geom"
@@ -317,5 +318,6 @@ func offsetFacetHull(points []offsetVector, ids []int, normal offsetVector) []in
 	if normal[axis].Sign() < 0 {
 		slices.Reverse(ring)
 	}
+	runtime.KeepAlive(&normal) // Stack-map defect, js/wasm by-value parameter form (see docs/STATUS.md): keeps normal in the stack map. Remove once Go is fixed.
 	return ring
 }

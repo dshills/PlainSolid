@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 	"sort"
 )
 
@@ -169,6 +170,7 @@ func (r *WrappedCylinderUnionComplex) EvaluateEdgeRational(ctx context.Context, 
 	for axis := 0; axis < 2; axis++ {
 		ends := r.edges[edge].UV
 		uv[axis] = new(big.Rat).Add(ends[0][axis], new(big.Rat).Mul(t, new(big.Rat).Sub(ends[1][axis], ends[0][axis])))
+		runtime.KeepAlive(&ends) // golang/go#82026: keeps ends in the stack map. Remove once the Go fix is in use.
 		if e := b.check(uv[axis]); e != nil {
 			return zero, e
 		}

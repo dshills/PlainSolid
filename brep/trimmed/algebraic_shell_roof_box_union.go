@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
 
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
@@ -199,6 +200,7 @@ func fuseStackedOrderedRoofBoxes(ctx context.Context, a, b Solid, boxes [2]*mixe
 	if interfaceFaces[lo] != low.roofFace || interfaceFaces[1-lo] != boxes[1-lo].floorFace {
 		return Solid{}, zero, geom.ErrUnrepresentable
 	}
+	runtime.KeepAlive(&boxes) // Stack-map defect, js/wasm by-value parameter form (see docs/STATUS.md): keeps boxes in the stack map. Remove once Go is fixed.
 	if err := roofBoxCheckSourceEdges(ctx, out, w); err != nil {
 		return Solid{}, zero, err
 	}
@@ -266,6 +268,7 @@ func fuseContainedOrderedRoofBoxes(ctx context.Context, solids [2]Solid, boxes [
 		return Solid{}, zero, geom.ErrUnrepresentable
 	}
 	ordered := [2]*mixedRoofBox{boxes[outer], boxes[inner]}
+	runtime.KeepAlive(&boxes)
 	cuts := roofEnvelopeKnotCuts(ordered, d)
 	for i := 0; i < len(cuts[0])-1; i++ {
 		for j := 0; j < len(cuts[1])-1; j++ {

@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 )
 
 // BoundSurfaceOrientedVolumeFlux encloses the exact integral of
@@ -130,6 +131,7 @@ func boundSurfaceOrientedFlux(ctx context.Context, p *SurfacePatch, origin Vec3,
 			}
 			scale.Quo(scale, big.NewRat(factor, 1))
 			t, e := intervalMultiply(power, n[momentAxis], b)
+			runtime.KeepAlive(&n) // golang/go#82026: keeps n in the stack map. Remove once the Go fix is in use.
 			if e != nil {
 				return nil, nil, e
 			}
@@ -167,6 +169,7 @@ func boundSurfaceOrientedFlux(ctx context.Context, p *SurfacePatch, origin Vec3,
 				return nil, nil, e
 			}
 		}
+		runtime.KeepAlive(&n)
 	}
 	return lower, upper, nil
 }

@@ -3,6 +3,7 @@ package trimmed
 import (
 	"math"
 	"math/big"
+	"runtime"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
@@ -163,6 +164,8 @@ func equalAnalyticParameterLine(a, b analyticUVLine, axis int, periodic bool) bo
 	// Treat the two canonical seam parameters as the same ideal angle.
 	// A large multiple of represented 2π may accrue a real phase error.
 	p, q := a.uv[0][axis], b.uv[0][axis]
+	runtime.KeepAlive(&a) // Stack-map defect, js/wasm by-value parameter form (see docs/STATUS.md): keeps a in the stack map. Remove once Go is fixed.
+	runtime.KeepAlive(&b)
 	return p.Sign() == 0 && q.Cmp(ratInset(2*math.Pi)) == 0 || q.Sign() == 0 && p.Cmp(ratInset(2*math.Pi)) == 0
 }
 

@@ -5,6 +5,7 @@ import (
 	"io"
 	"math/big"
 	"plainsolid/geom"
+	"runtime"
 )
 
 // RationalMappedPlacement authors a proper rigid occurrence from rational origin
@@ -30,6 +31,7 @@ func (o ExactMappedOccurrence) Matrix() (m [3][4]*big.Rat) {
 			if a[i] != nil {
 				m[i][j] = new(big.Rat).Set(a[i])
 			}
+			runtime.KeepAlive(&a) // golang/go#82026: keeps a in the stack map. Remove once the Go fix is in use.
 		}
 	}
 	return

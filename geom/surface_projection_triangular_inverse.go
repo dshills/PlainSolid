@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 )
 
 // TriangularSurfaceInverseOptions requires ProjectionAxes[0] to be affine in
@@ -265,6 +266,7 @@ func invertTriangularSurfaceRational(ctx context.Context, p *SurfacePatch, query
 			coefficients := make([]*big.Rat, m)
 			for i, h := range net {
 				coefficients[i] = new(big.Rat).Sub(h[third], new(big.Rat).Mul((*model)[third], h[3]))
+				runtime.KeepAlive(&h) // golang/go#82026: keeps h in the stack map. Remove once the Go fix is in use.
 				if e := b.check(coefficients[i]); e != nil {
 					return r, e
 				}

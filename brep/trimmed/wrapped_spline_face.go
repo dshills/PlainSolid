@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math/big"
+	"runtime"
 
 	"plainsolid/brep/edgecheck"
 	"plainsolid/brep/parametric"
@@ -135,6 +136,7 @@ func sameWrappedUVLines(a, b analyticUVLine) bool {
 				if uv[i].Cmp(ratInset(lo[i])) < 0 || uv[i].Cmp(ratInset(hi[i])) > 0 {
 					return false
 				}
+				runtime.KeepAlive(&uv) // golang/go#82026: keeps uv in the stack map. Remove once the Go fix is in use.
 			}
 		}
 		if equalAnalyticParameterLine(a, b, i, false) {

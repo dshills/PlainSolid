@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 )
 
 // AffineGraphOverlap gives exact original parameter rectangles whose projected
@@ -57,6 +58,7 @@ func ClipAffineXYGraphOverlap(ctx context.Context, a, c *SurfacePatch, o Surface
 			axes[i][j] = axis
 			l := new(big.Rat).Quo(new(big.Rat).Sub(new(big.Rat).SetFloat64(lo[j]), row[2]), row[axis])
 			h := new(big.Rat).Quo(new(big.Rat).Sub(new(big.Rat).SetFloat64(hi[j]), row[2]), row[axis])
+			runtime.KeepAlive(&row) // golang/go#82026: keeps row in the stack map. Remove once the Go fix is in use.
 			if l.Cmp(h) > 0 {
 				l, h = h, l
 			}

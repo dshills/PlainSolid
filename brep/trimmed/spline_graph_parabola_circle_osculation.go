@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math/big"
+	"runtime"
 
 	"plainsolid/geom"
 )
@@ -99,6 +100,7 @@ func verifyOsculatingUVJet(uv ExactQuadraticUV, p *geom.SplineGraphParabolaCircl
 		w[i] = h[2]
 		x[i] = new(big.Rat).Sub(h[axis], new(big.Rat).Mul(p.Parameters[axis], w[i]))
 		y[i] = new(big.Rat).Sub(h[1-axis], new(big.Rat).Mul(p.Parameters[1-axis], w[i]))
+		runtime.KeepAlive(&h) // golang/go#82026: keeps h in the stack map. Remove once the Go fix is in use.
 	}
 	if x[0].Sign() != 0 || y[0].Sign() != 0 {
 		return geom.ErrConvergence

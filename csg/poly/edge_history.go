@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"plainsolid/brep"
+	"runtime"
 	"sort"
 )
 
@@ -101,6 +102,7 @@ func edgeAncestry(s brep.Solid, points []point, faces []Source, inputs [2]brep.S
 				continue
 			}
 			t0, t1 := div(sub(p[axis], x[axis]), d[axis]), div(sub(q[axis], x[axis]), d[axis])
+			runtime.KeepAlive(&q) // golang/go#82026: keeps q in the stack map. Remove once the Go fix is in use.
 			lo, hi := t0, t1
 			if lo.Cmp(hi) > 0 {
 				lo, hi = hi, lo

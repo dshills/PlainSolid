@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 	"sort"
 )
 
@@ -172,6 +173,7 @@ func IntersectExactCurveSegment(ctx context.Context, c *ExactSplineCurve, start,
 			for i, h := range net {
 				delta := new(big.Rat).Sub(h[axis], new(big.Rat).Mul(start[axis], h[3]))
 				base := new(big.Rat).Sub(h[pivot], new(big.Rat).Mul(start[pivot], h[3]))
+				runtime.KeepAlive(&h) // golang/go#82026: keeps h in the stack map. Remove once the Go fix is in use.
 				coeff[i] = new(big.Rat).Sub(new(big.Rat).Mul(delta, direction[pivot]), new(big.Rat).Mul(base, direction[axis]))
 				if e := budget.check(coeff[i]); e != nil {
 					return r, e

@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 )
 
 // SphereAxisMinimumKind distinguishes exact minimizer sets, never representative
@@ -188,6 +189,7 @@ func (s SpherePairMaterial) NearestOverlapAxisBoundaryRational(ctx context.Conte
 		}
 	}
 	out.Families[2] = circle(0)
+	runtime.KeepAlive(&circleCenter) // golang/go#82026: keeps circleCenter in the stack map. Remove once the Go fix is in use.
 	if a.err != nil {
 		return out, a.err
 	}

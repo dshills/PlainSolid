@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 	"slices"
 )
 
@@ -109,6 +110,7 @@ func factorGraphCircleProduct(ctx context.Context, quotient []rationalPolynomial
 			return nil, err
 		}
 		residual := new(big.Rat).Add(c[1-dim], new(big.Rat).Mul(a[1-dim], radiusSquared))
+		runtime.KeepAlive(&c) // golang/go#82026: keeps c in the stack map. Remove once the Go fix is in use.
 		if err := budget.check(residual); err != nil {
 			return nil, err
 		}

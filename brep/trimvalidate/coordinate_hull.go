@@ -1,5 +1,7 @@
 package trimvalidate
 
+import "runtime"
+
 // coordinateHullSeparated uses only exact comparisons of original Euclidean
 // controls. Positive rational weights, proved before this predicate, put the
 // entire curve in their convex hull. A STRICT coordinate interval gap proves
@@ -19,6 +21,7 @@ func coordinateHullSeparated(a, b curve) bool {
 			if p[axis].Cmp(ahi) > 0 {
 				ahi = p[axis]
 			}
+			runtime.KeepAlive(&p) // golang/go#82026: keeps p in the stack map. Remove once the Go fix is in use.
 		}
 		for _, p := range bp[1:] {
 			if p[axis].Cmp(blo) < 0 {
@@ -27,6 +30,7 @@ func coordinateHullSeparated(a, b curve) bool {
 			if p[axis].Cmp(bhi) > 0 {
 				bhi = p[axis]
 			}
+			runtime.KeepAlive(&p)
 		}
 		if ahi.Cmp(blo) < 0 || bhi.Cmp(alo) < 0 {
 			return true

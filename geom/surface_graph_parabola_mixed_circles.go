@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 )
 
 // ParabolaSeparatedCircleVertex records an original quarter-arc endpoint
@@ -98,6 +99,7 @@ func DiscoverSplineGraphParabolaMixedCircles(ctx context.Context, a, c *SurfaceP
 		if control[dependent].Cmp(maximum) > 0 {
 			maximum = control[dependent]
 		}
+		runtime.KeepAlive(&control) // golang/go#82026: keeps control in the stack map. Remove once the Go fix is in use.
 	}
 	other := circles[1-cross]
 	separatedRegion, err := separatedParabolaCircleRegion(p, minimum, maximum, other.Center, other.RadiusSquared, b)

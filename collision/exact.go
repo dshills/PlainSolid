@@ -3,6 +3,7 @@ package collision
 import (
 	"math/big"
 	"plainsolid/geom"
+	"runtime"
 )
 
 type scalar = *big.Rat
@@ -33,7 +34,11 @@ func nonzeroAxis(p point) int {
 func interpolate(a, b point, t scalar) point { return plus(a, scale(minus(b, a), t)) }
 func orient(a, b, c point, drop int) scalar {
 	u, v := (drop+1)%3, (drop+2)%3
-	return sub(mul(sub(b[u], a[u]), sub(c[v], a[v])), mul(sub(b[v], a[v]), sub(c[u], a[u])))
+	r := sub(mul(sub(b[u], a[u]), sub(c[v], a[v])), mul(sub(b[v], a[v]), sub(c[u], a[u])))
+	runtime.KeepAlive(&a) // Stack-map defect, js/wasm by-value parameter form (see docs/STATUS.md): keeps a in the stack map. Remove once Go is fixed.
+	runtime.KeepAlive(&b)
+	runtime.KeepAlive(&c)
+	return r
 }
 func triangleNormal(t [3]point) point { return cross(minus(t[1], t[0]), minus(t[2], t[0])) }
 func unique(points []point) []point {

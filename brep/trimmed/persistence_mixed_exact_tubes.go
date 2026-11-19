@@ -4,6 +4,7 @@ import (
 	"context"
 	"plainsolid/geom"
 	"plainsolid/intersect"
+	"runtime"
 )
 
 // nativeExactTubeValidationFace substitutes only independently proved affine-UV
@@ -68,6 +69,7 @@ func nativeExactTubeValidationFace(ctx context.Context, s Solid, f Face) (Face, 
 				if p[offset].Cmp(ratInset(uv.X)) != 0 || p[offset+1].Cmp(ratInset(uv.Y)) != 0 {
 					return Face{}, geom.ErrUnrepresentable
 				}
+				runtime.KeepAlive(&p) // golang/go#82026: keeps p in the stack map. Remove once the Go fix is in use.
 			}
 			edge := s.edges[u.Edge]
 			ids := [2]int{edge.Start, edge.End}

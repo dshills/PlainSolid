@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"runtime"
 	"slices"
 
 	"plainsolid/brep/parametric"
@@ -92,6 +93,7 @@ func sewPiecewiseRoofEnvelope(ctx context.Context, a, b Solid, q *MixedRoofMater
 			}
 			positiveCells++
 			upper, err := orderedRoofRestrictedGraph(ctx, roofs[owner], cell, w)
+			runtime.KeepAlive(&roofs) // golang/go#82026: keeps roofs in the stack map. Remove once the Go fix is in use.
 			if err != nil {
 				return Solid{}, nil, err
 			}
@@ -293,6 +295,7 @@ func orderedRoofCrossingCuts(ctx context.Context, boxes [2]*mixedRoofBox, xy [2]
 		}
 		cuts[axis] = append(cuts[axis], cut)
 	}
+	runtime.KeepAlive(&xy) // Stack-map defect, js/wasm by-value parameter form (see docs/STATUS.md): keeps xy in the stack map. Remove once Go is fixed.
 	if len(cuts[axis]) == 0 {
 		return cuts, geom.ErrUnrepresentable
 	}

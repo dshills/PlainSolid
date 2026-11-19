@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"runtime"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
@@ -311,5 +312,6 @@ func combineTangentSplineShellEllipse(ctx context.Context, solids [2]Solid, all 
 		edges[owner][i] = []int{i}
 	}
 	out = solids[owner]
+	runtime.KeepAlive(&solids) // Stack-map defect, js/wasm by-value parameter form (see docs/STATUS.md): keeps solids in the stack map. Remove once Go is fixed.
 	return out, history, proof, nil
 }
