@@ -7,6 +7,7 @@ import (
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"runtime"
 )
 
 // SideOpenDualDiskMeshOptions requests a two-sided source/display distance and
@@ -216,6 +217,7 @@ func proveDualDiskWall(ctx context.Context, f Face) (dualDiskWallProof, error) {
 			return out, e
 		}
 		samples[i] = [2]*big.Rat{j.Point[xaxis], new(big.Rat).Mul(j.Point[yaxis], big.NewRat(int64(sign), 1))}
+		runtime.KeepAlive(&j) // golang/go#82026: keeps j in the stack map. Remove once the Go fix is in use.
 	}
 	var rows [2][3]*big.Rat
 	for i := 0; i < 2; i++ {
@@ -245,6 +247,7 @@ func proveDualDiskWall(ctx context.Context, f Face) (dualDiskWallProof, error) {
 		arc[i] = [3]*big.Rat{new(big.Rat).Mul(w, poles[2*i][xaxis]), new(big.Rat).Mul(new(big.Rat).Mul(w, poles[2*i][yaxis]), big.NewRat(int64(sign), 1)), w}
 	}
 	z0, z1 := new(big.Rat).Mul(poles[0][axis], big.NewRat(int64(sign), 1)), new(big.Rat).Mul(poles[1][axis], big.NewRat(int64(sign), 1))
+	runtime.KeepAlive(&poles)
 	rebuilt, e := geom.NewExactRationalCylindricalSpanPatch(ctx, frame, center, radius, z0, z1, arc)
 	if e != nil {
 		return out, e

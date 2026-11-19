@@ -1,6 +1,9 @@
 package draft
 
-import "math/big"
+import (
+	"math/big"
+	"runtime"
+)
 
 // A basis index is the mask of independent square-root generators in a term.
 // The empty mask is rational. A nil coefficient is exactly zero.
@@ -10,7 +13,9 @@ func (a insetAlgebraic) coefficient(i int) *big.Rat {
 	if a[i] == nil {
 		return new(big.Rat)
 	}
-	return new(big.Rat).Set(a[i])
+	c := new(big.Rat).Set(a[i])
+	runtime.KeepAlive(&a) // Stack-map defect, js/wasm by-value parameter form (see docs/STATUS.md): keeps a in the stack map. Remove once Go is fixed.
+	return c
 }
 
 type insetRadicalField struct {

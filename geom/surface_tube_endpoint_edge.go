@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 )
 
 // TubeEndpointEdgeOptions bounds exact proposed-endpoint verification. Zero
@@ -162,6 +163,7 @@ func (t VerifiedSurfaceTube) CertifyEndpointOnEdge(ctx context.Context, upper bo
 		}
 	}
 	r.EdgeParameter = new(big.Rat).Set(hint[varying])
+	runtime.KeepAlive(&hint) // Stack-map defect, js/wasm by-value parameter form (see docs/STATUS.md): keeps hint in the stack map. Remove once Go is fixed.
 	r.NormalizedEdgeParameter = new(big.Rat).Set(normalized)
 	r.Proven = true
 	return r, nil

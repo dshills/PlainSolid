@@ -8,6 +8,7 @@ import (
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
 	"plainsolid/mesh"
+	"runtime"
 	"slices"
 )
 
@@ -19,9 +20,12 @@ type adaptiveSideKey struct {
 
 func adaptiveKey(fi int, t samples, i int) adaptiveSideKey {
 	if t.edge[i].edge >= 0 {
-		return adaptiveSideKey{face: -1, edge: t.edge[i].edge, start: min(t.start[i], t.end[i]), end: max(t.start[i], t.end[i])}
+		key := adaptiveSideKey{face: -1, edge: t.edge[i].edge, start: min(t.start[i], t.end[i]), end: max(t.start[i], t.end[i])}
+		runtime.KeepAlive(&t) // Stack-map defect, js/wasm by-value parameter form (see docs/STATUS.md): keeps t in the stack map. Remove once Go is fixed.
+		return key
 	}
 	a, b := t.uv[i], t.uv[(i+1)%3]
+	runtime.KeepAlive(&t)
 	if a.X > b.X || a.X == b.X && a.Y > b.Y {
 		a, b = b, a
 	}

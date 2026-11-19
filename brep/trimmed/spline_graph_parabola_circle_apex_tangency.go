@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math/big"
+	"runtime"
 
 	"plainsolid/geom"
 )
@@ -135,15 +136,19 @@ func parabolaCircleTangentRay(s Solid, edgeID, vertex, axis int, slope, second *
 	if f.Sign() == 0 || derivative[d].Cmp(new(big.Rat).Mul(slope, f)) != 0 {
 		return 0, geom.ErrConvergence
 	}
+	runtime.KeepAlive(&derivative) // golang/go#82026: keeps derivative in the stack map. Remove once the Go fix is in use.
 	constantSecond := func(coordinate int) *big.Rat {
 		coefficients := curve.control
 		middle := new(big.Rat).Mul(big.NewRat(2, 1), coefficients[1][coordinate])
 		diff := new(big.Rat).Sub(coefficients[2][coordinate], middle)
-		return diff.Add(diff, coefficients[0][coordinate]).Mul(diff, big.NewRat(2, 1))
+		value := diff.Add(diff, coefficients[0][coordinate]).Mul(diff, big.NewRat(2, 1))
+		runtime.KeepAlive(&coefficients)
+		return value
 	}
 	secondNumerator := constantSecond(d)
 	secondNumerator.Sub(secondNumerator, new(big.Rat).Mul(slope, constantSecond(axis)))
 	offset := new(big.Rat).Sub(uv[d], new(big.Rat).Mul(slope, uv[axis]))
+	runtime.KeepAlive(&uv)
 	secondNumerator.Sub(secondNumerator, new(big.Rat).Mul(offset, constantSecond(2)))
 	scale := new(big.Rat).Mul(f, f)
 	scale.Mul(scale, curve.control[0][2])

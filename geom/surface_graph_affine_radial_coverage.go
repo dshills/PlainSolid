@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 )
 
 // AffineRadialContours retains exact original charts and a complete radial
@@ -113,6 +114,7 @@ func CertifyAffineRadialGraphContours(ctx context.Context, a, c *SurfacePatch, c
 			}
 			lo := new(big.Rat).Quo(new(big.Rat).Sub(new(big.Rat).SetFloat64(uv[i][0]), row[2]), row[axis])
 			hi := new(big.Rat).Quo(new(big.Rat).Sub(new(big.Rat).SetFloat64(uv[i][1]), row[2]), row[axis])
+			runtime.KeepAlive(&row) // golang/go#82026: keeps row in the stack map. Remove once the Go fix is in use.
 			if lo.Cmp(hi) > 0 {
 				lo, hi = hi, lo
 			}

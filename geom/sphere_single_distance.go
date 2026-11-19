@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 )
 
 // SphereSingleNearest is the complete minimum on the one retained full sphere.
@@ -84,6 +85,7 @@ func (s SpherePairMaterial) nearestSingleSphereBoundaryRational(ctx context.Cont
 	w.WholeSphere = S.Sign() == 0
 	constant := a.add(S, s.radius2[index])
 	coefficient := a.mul(big.NewRat(2, 1), R[index])
+	runtime.KeepAlive(&R) // golang/go#82026: keeps R in the stack map. Remove once the Go fix is in use.
 	out.Lower = a.sub(constant, a.mul(coefficient, hi))
 	out.Upper = a.sub(constant, a.mul(coefficient, lo))
 	if a.err != nil {

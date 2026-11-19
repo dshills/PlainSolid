@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math/big"
+	"runtime"
 
 	"plainsolid/geom"
 )
@@ -329,6 +330,7 @@ func stationProfileEnclosure(segments []stationMassSegment, includeMoments bool,
 				if v[axis].Cmp(hi) > 0 {
 					hi = v[axis]
 				}
+				runtime.KeepAlive(&v) // golang/go#82026: keeps v in the stack map. Remove once the Go fix is in use.
 			}
 			moments[axis].Lower = b.add(moments[axis].Lower, b.add(inner, b.mul(lo, gap)))
 			moments[axis].Upper = b.add(moments[axis].Upper, b.add(inner, b.mul(hi, gap)))

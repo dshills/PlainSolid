@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math/big"
+	"runtime"
 	"slices"
 
 	"plainsolid/brep/parametric"
@@ -283,6 +284,7 @@ func refineParabolaCircleFootprint(ctx context.Context, uv [][2]*big.Rat, tris [
 			if p[axis].Cmp(hi) > 0 {
 				hi = p[axis]
 			}
+			runtime.KeepAlive(&p) // golang/go#82026: keeps p in the stack map. Remove once the Go fix is in use.
 		}
 		width[axis] = new(big.Rat).Quo(new(big.Rat).Sub(hi, lo), big.NewRat(int64(n), 1))
 	}

@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 )
 
 // ExactParameterKnotEvent retains immutable UV-curve and unique algebraic
@@ -64,6 +65,7 @@ func NewExactParameterKnotEvent(ctx context.Context, curve *ExactSplineCurve, ax
 			return nil, ErrInvalid
 		}
 		values[i] = new(big.Rat).Sub(h[axis], new(big.Rat).Mul(knot, h[3]))
+		runtime.KeepAlive(&h) // golang/go#82026: keeps h in the stack map. Remove once the Go fix is in use.
 		if e := b.check(values[i]); e != nil {
 			return nil, e
 		}

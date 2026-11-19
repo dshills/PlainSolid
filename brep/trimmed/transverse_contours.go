@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"fmt"
+	"runtime"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
@@ -137,6 +138,7 @@ func transverseRingNesting(ctx context.Context, rings []transverseRing, chart in
 			for _, u := range other.parts[chart] {
 				face.Outer = append(face.Outer, Use{UVStart: u.from, UVEnd: u.to, Curve: u.curve})
 			}
+			runtime.KeepAlive(&other) // golang/go#82026: keeps other in the stack map. Remove once the Go fix is in use.
 			known := false
 			for _, sample := range ring.parts[chart][:min(8, len(ring.parts[chart]))] {
 				trim, reversed, ok := trimTube(sample.curve)

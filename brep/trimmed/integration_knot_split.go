@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"runtime"
 )
 
 // Split only the numerical integration domain. Surface evaluators, original
@@ -63,6 +64,7 @@ func massClipHalfplane(poly []massExactUV, axis int, knot *big.Rat, positive boo
 		if currentInside {
 			appendPoint(current)
 		}
+		runtime.KeepAlive(&previous) // golang/go#82026: keeps previous in the stack map. Remove once the Go fix is in use.
 		previous, previousInside = current, currentInside
 	}
 	if len(out) > 1 && massEqualUV(out[0], out[len(out)-1]) {

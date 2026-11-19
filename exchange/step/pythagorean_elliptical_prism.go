@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
+	"runtime"
 )
 
 // PythagoreanEllipticalPrism has exact rational source axes and lossless native
@@ -43,6 +44,7 @@ func rationalPrismPoint(b mappedRationalBasis, x, y, z float64) (geom.Vec3, erro
 		q := new(big.Rat).Set(b.Origin[i])
 		for j, axis := range [3][3]*big.Rat{b.X, b.Y, b.Z} {
 			q.Add(q, new(big.Rat).Mul(axis[i], new(big.Rat).SetFloat64([]float64{x, y, z}[j])))
+			runtime.KeepAlive(&axis) // golang/go#82026: keeps axis in the stack map. Remove once the Go fix is in use.
 		}
 		var ok bool
 		v[i], ok = q.Float64()

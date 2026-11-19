@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 )
 
 // SameParameterLines proves pointwise agreement of two affine parameter lines
@@ -49,6 +50,7 @@ func (r *WrappedSurfaceChartRelation) SameParameterLines(ctx context.Context, a,
 				if p[axis].Cmp(new(big.Rat).SetFloat64(bounds[axis][0])) < 0 || p[axis].Cmp(new(big.Rat).SetFloat64(bounds[axis][1])) > 0 {
 					return false, ErrDomain
 				}
+				runtime.KeepAlive(&p) // golang/go#82026: keeps p in the stack map. Remove once the Go fix is in use.
 			}
 		}
 	}

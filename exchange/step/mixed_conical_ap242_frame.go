@@ -2,6 +2,7 @@ package step
 
 import (
 	"math/big"
+	"runtime"
 
 	"plainsolid/geom"
 )
@@ -37,6 +38,7 @@ func mixedConicalFrameProjection(f *File, placementID int64, frame geom.Frame, e
 		if axis[(j+1)%3].Sign() == 0 && axis[(j+2)%3].Sign() == 0 && axis[j].Cmp(big.NewRat(1, 1)) == 0 {
 			return true
 		}
+		runtime.KeepAlive(&axis) // golang/go#82026: keeps axis in the stack map. Remove once the Go fix is in use.
 	}
 	source, err := simple(f, placementID, "AXIS2_PLACEMENT_3D", 4)
 	return err == nil && mixedConicalPrimitiveIntegerDirection(f, source.Args[2].Ref) &&

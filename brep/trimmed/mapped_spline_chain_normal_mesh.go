@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"runtime"
 
 	"plainsolid/geom"
 )
@@ -269,6 +270,7 @@ func (r *mappedRoofNormals) normalRectangle(p *geom.SurfacePatch, uv [3][2]*big.
 			if corner[axis].Cmp(hi) > 0 {
 				hi = corner[axis]
 			}
+			runtime.KeepAlive(&corner) // golang/go#82026: keeps corner in the stack map. Remove once the Go fix is in use.
 		}
 		lower, upper := new(big.Rat).Sub(lo, r.trimRadius), new(big.Rat).Add(hi, r.trimRadius)
 		if lower.Cmp(floor[axis]) < 0 {

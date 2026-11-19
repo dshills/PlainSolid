@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 	"sort"
 )
 
@@ -108,6 +109,7 @@ func FindExactCurvePointParameters(ctx context.Context, c *ExactSplineCurve, poi
 			for i := range coeff {
 				h := p.net[i*p.countV]
 				coeff[i] = new(big.Rat).Sub(h[axis], new(big.Rat).Mul(point[axis], h[3]))
+				runtime.KeepAlive(&h) // golang/go#82026: keeps h in the stack map. Remove once the Go fix is in use.
 				if e := budget.check(coeff[i]); e != nil {
 					return r, e
 				}

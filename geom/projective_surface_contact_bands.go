@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 	"sort"
 )
 
@@ -162,6 +163,7 @@ func (g ProjectiveSurfaceContactGraph) buildParallelContactBands(ctx context.Con
 			s.ExactOperations = b.operations - start
 			section.Whole = s
 		}
+		runtime.KeepAlive(&a) // golang/go#82026: keeps a in the stack map. Remove once the Go fix is in use.
 		sections = append(sections, section)
 	}
 	sort.Slice(sections, func(i, j int) bool { return sections[i].Station.Cmp(sections[j].Station) < 0 })

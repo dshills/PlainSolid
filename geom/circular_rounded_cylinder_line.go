@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 	"sort"
 )
 
@@ -227,6 +228,7 @@ func IntersectCircularRoundedCylinderLine(ctx context.Context, p CircularRounded
 					ends[j] = result.Hits[j*(len(result.Hits)-1)].Parameter
 				}
 			}
+			runtime.KeepAlive(&m2) // golang/go#82026: keeps m2 in the stack map. Remove once the Go fix is in use.
 			if len(result.Hits) == 1 && ends[0].Min.Cmp(ends[1].Min) == 0 && ends[0].Max.Cmp(ends[1].Max) == 0 {
 				return result, nil // isolated tangent or clipped rim
 			}
@@ -298,6 +300,7 @@ func IntersectCircularRoundedCylinderLine(ctx context.Context, p CircularRounded
 			hit(exact(t), part)
 		}
 	}
+	runtime.KeepAlive(&m2)
 	sort.Slice(result.Hits, func(i, j int) bool { return result.Hits[i].Parameter.Min.Cmp(result.Hits[j].Parameter.Min) < 0 })
 	unique := result.Hits[:0]
 	for _, h := range result.Hits {

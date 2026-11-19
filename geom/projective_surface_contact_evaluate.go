@@ -3,6 +3,7 @@ package geom
 import (
 	"context"
 	"math/big"
+	"runtime"
 )
 
 type projectiveContactGraphProof struct {
@@ -188,6 +189,8 @@ func (g ProjectiveSurfaceContactGraph) EvaluateArcRational(ctx context.Context, 
 	width := a.sub(section[dep].Upper, section[dep].Lower)
 	offset := a.add(section[dep].Lower, a.mul(width, domain[dep].lo))
 	scale := a.mul(width, a.sub(domain[dep].hi, domain[dep].lo))
+	runtime.KeepAlive(&section) // golang/go#82026: keeps section in the stack map. Remove once the Go fix is in use.
+	runtime.KeepAlive(&domain)
 	if a.err != nil {
 		return r, 0, a.err
 	}

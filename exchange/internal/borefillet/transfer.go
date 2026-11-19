@@ -3,6 +3,7 @@ package borefillet
 import (
 	"context"
 	"math/big"
+	"runtime"
 
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
@@ -163,7 +164,9 @@ func circleSense(c Circle, a, b [3]*big.Rat) (bool, error) {
 		return false, geom.ErrConvergence
 	}
 	delta := func(p [3]*big.Rat) (*big.Rat, *big.Rat) {
-		return new(big.Rat).Sub(p[0], c.Center[0]), new(big.Rat).Sub(p[y], c.Center[y])
+		dx, dy := new(big.Rat).Sub(p[0], c.Center[0]), new(big.Rat).Sub(p[y], c.Center[y])
+		runtime.KeepAlive(&p) // Stack-map defect, js/wasm by-value parameter form (see docs/STATUS.md): keeps p in the stack map. Remove once Go is fixed.
+		return dx, dy
 	}
 	ax, ay := delta(a)
 	bx, by := delta(b)

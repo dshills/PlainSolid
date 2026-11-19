@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"runtime"
 )
 
 func coincidentTraversalRange(direction int) [2]*big.Rat {
@@ -115,6 +116,7 @@ func refinedCoincidentWire(ctx context.Context, a, b []Use, loop int, matrix [3]
 				break
 			}
 			hi := new(big.Rat).Quo(new(big.Rat).Sub(end[axis], first[axis]), delta)
+			runtime.KeepAlive(&first) // golang/go#82026: keeps first in the stack map. Remove once the Go fix is in use.
 			if hi.Cmp(lo) <= 0 || hi.Cmp(big.NewRat(1, 1)) > 0 {
 				break
 			}

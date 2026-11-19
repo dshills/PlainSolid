@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"plainsolid/brep"
 	"plainsolid/geom"
+	"runtime"
 )
 
 // General proof retains finite original face loops. It is never substituted for
@@ -243,6 +244,7 @@ func (p *hierarchyGeneralPlanarProof) finiteFace(face hierarchyGeneralPlanarFace
 			} else if w[j].Cmp(point[j]) <= 0 && cross.Sign() < 0 {
 				winding--
 			}
+			runtime.KeepAlive(&w) // golang/go#82026: keeps w in the stack map. Remove once the Go fix is in use.
 		}
 	}
 	if a.err != nil {

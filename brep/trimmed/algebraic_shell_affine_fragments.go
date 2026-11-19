@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"plainsolid/brep/parametric"
 	"plainsolid/geom"
+	"runtime"
 	"sort"
 )
 
@@ -162,6 +163,7 @@ func (s *AffineShellPairedImprint) fragmentFacePolygonPoints(ctx context.Context
 			return nil, err
 		}
 		c, err := vertex(e.UV[owner][1])
+		runtime.KeepAlive(&e) // golang/go#82026: keeps e in the stack map. Remove once the Go fix is in use.
 		if err != nil {
 			return nil, err
 		}

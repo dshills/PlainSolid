@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math/big"
+	"runtime"
 
 	"plainsolid/brep/trimvalidate"
 	"plainsolid/geom"
@@ -198,6 +199,7 @@ func bezierTrimExcludesUVBox(ctx context.Context, h [][3]*big.Rat, box geom.UVBo
 			for _, v := range x.net {
 				below = below && v[i].Cmp(new(big.Rat).Mul(span[0], v[2])) < 0
 				above = above && v[i].Cmp(new(big.Rat).Mul(span[1], v[2])) > 0
+				runtime.KeepAlive(&v) // golang/go#82026: keeps v in the stack map. Remove once the Go fix is in use.
 			}
 			excluded = excluded || below || above
 		}

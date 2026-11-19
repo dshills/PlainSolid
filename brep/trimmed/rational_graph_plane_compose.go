@@ -3,6 +3,7 @@ package trimmed
 import (
 	"context"
 	"math/big"
+	"runtime"
 
 	"plainsolid/geom"
 )
@@ -112,7 +113,9 @@ func composedGraphPlaneTrim(p *geom.SurfacePatch, plane polynomialPlaneEquation,
 
 func strictComposedGraphControls(h [][3]*big.Rat, free int, lo, hi *big.Rat, depth int) bool {
 	inside := func(p [3]*big.Rat) bool {
-		return p[2].Sign() > 0 && p[1-free].Cmp(new(big.Rat).Mul(lo, p[2])) > 0 && p[1-free].Cmp(new(big.Rat).Mul(hi, p[2])) < 0
+		ok := p[2].Sign() > 0 && p[1-free].Cmp(new(big.Rat).Mul(lo, p[2])) > 0 && p[1-free].Cmp(new(big.Rat).Mul(hi, p[2])) < 0
+		runtime.KeepAlive(&p) // Stack-map defect, js/wasm by-value parameter form (see docs/STATUS.md): keeps p in the stack map. Remove once Go is fixed.
+		return ok
 	}
 	if !inside(h[0]) || !inside(h[len(h)-1]) {
 		return false

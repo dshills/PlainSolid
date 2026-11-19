@@ -11,6 +11,7 @@ import (
 	"plainsolid/brep"
 	"plainsolid/collision"
 	"plainsolid/geom"
+	"runtime"
 	"sort"
 )
 
@@ -586,7 +587,11 @@ func hull(ids []int, points []point, n point, b *budget) []int {
 	})
 	turn := func(a, c, d int) int {
 		x, y, z := points[a], points[c], points[d]
-		return sub(mul(sub(y[u], x[u]), sub(z[v], x[v])), mul(sub(y[v], x[v]), sub(z[u], x[u]))).Sign()
+		sign := sub(mul(sub(y[u], x[u]), sub(z[v], x[v])), mul(sub(y[v], x[v]), sub(z[u], x[u]))).Sign()
+		runtime.KeepAlive(&x) // golang/go#82026: keeps x in the stack map. Remove once the Go fix is in use.
+		runtime.KeepAlive(&y)
+		runtime.KeepAlive(&z)
+		return sign
 	}
 	chain := func(order []int) []int {
 		var h []int
@@ -619,6 +624,7 @@ func hull(ids []int, points []point, n point, b *budget) []int {
 			out[i], out[j] = out[j], out[i]
 		}
 	}
+	runtime.KeepAlive(&n) // Stack-map defect, js/wasm by-value parameter form (see docs/STATUS.md): keeps n in the stack map. Remove once Go is fixed.
 	return out
 }
 func assemble(points []point, loops [][]int, supports []plane, r Result, b *budget) (Result, error) {

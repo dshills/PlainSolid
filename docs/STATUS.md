@@ -38,22 +38,34 @@ exchange beyond the listed families, and the release matrix in
 
 ## Known defects
 
-- **Heap abort in `brep/trimmed` tests on Apple Silicon.** With Go 1.25.14
-  through 1.27.4 on macOS ARM64 the test binary can abort with "found pointer
-  to free object". `go test -tags research -count=40 -run
-  ProjectiveSplineRoofAdjacentStep ./brep/trimmed` aborts within seconds. It
-  passes with Go 1.23.12, with `GOGC=off`, and with compiler optimizations off
-  (`-gcflags='all=-N -l'`). No data race, `unsafe`, cgo or assembly is
-  involved, so the Go compiler is the suspect; it has not been reported
-  upstream. The reproducing feature is research code, so it is no longer in
-  the default tier, which has not aborted since the quarantine (seven runs).
-  Before the quarantine about one serial run in ten aborted. Do not add
-  `t.Parallel()` to tests in `brep/trimmed`; it raised the rate to about one
-  run in two. Details are in
-  [the separation plan](../specs/brep-trimmed-split/PLAN.md).
-- **`TestBuildProjectiveSplineRoofAdjacentStepFuse` depends on the Go
-  version.** It fails with Go 1.26.0 on Linux ARM64 and Go 1.26.4 on macOS,
-  and passes with 1.23.12, 1.25.14, 1.26.8, 1.27.1 and 1.27.4.
+- **The Go compiler can drop a live local from the stack map.** A local array
+  or struct that holds pointers and is indexed by a variable can be missing
+  from the stack map of a call while a pointer into it is still in use, so
+  the collector frees what it refers to. No kernel code is at fault. With Go
+  1.25.14 to 1.27.4 this is golang/go#82026 (open, milestone Go 1.28, no
+  backport announced when read on 2026-11-18); Go 1.23.12 does not show that
+  form.
+- **js/wasm has a second form, for by-value array parameters.** It shows with
+  every Go version tried, 1.23.12 included, and does not depend on the
+  optimization behind golang/go#82026. It has not been reported upstream.
+- **Exposure and mitigation.** In the default build of the packages that
+  `./cmd/plaincadwasm` links, a patched compiler flagged 65 variables in 57
+  functions on js/wasm and 6 in 5 on darwin/arm64, and none on linux/amd64 or
+  windows/amd64. The `runtime.KeepAlive(&v)` calls in those packages make each
+  flagged variable a stack object and keep it in the stack map; with them the
+  detector flags nothing on js/wasm or darwin/arm64. Leave them in until the
+  Go release in use is fixed, and rerun the detector when those packages
+  change. No flagged site in the default build was seen to fail.
+- **Research files are not covered.** `go test -tags research -count=40 -run
+  ProjectiveSplineRoofAdjacentStep ./brep/trimmed` still aborts on macOS ARM64
+  with "found pointer to free object", from a local in
+  `buildProjectiveRoofAdjacentStepFuse`. With Go 1.26.4 on macOS the same
+  cause makes `TestBuildProjectiveSplineRoofAdjacentStepFuse` fail an
+  assertion instead; its failure with Go 1.26.0 on Linux ARM64 was not
+  rerun. Do not add `t.Parallel()` to tests in `brep/trimmed`; it raised the
+  abort rate to about one run in two.
+- The reproducers, the detector patch and the measurements are on branch
+  `codex/go-abort-repro`, in `tools/go-abort-repro`.
 
 ## PlainCAD gates
 

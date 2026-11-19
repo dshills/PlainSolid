@@ -3,6 +3,7 @@ package trimmed
 import (
 	"math/big"
 	"plainsolid/geom"
+	"runtime"
 )
 
 // ConvexAffinePolygonSectionOwner is an exact original normalized edge
@@ -45,6 +46,7 @@ func (r *ConvexAffinePolygonCrossing) recordSectionPoint(b *nativePrismAffineBud
 			axis = 1
 		}
 		parameter := b.op('/', b.op('-', uv[axis], start[axis]), b.op('-', end[axis], start[axis]))
+		runtime.KeepAlive(&start) // golang/go#82026: keeps start in the stack map. Remove once the Go fix is in use.
 		if use.Reversed {
 			parameter = b.op('-', big.NewRat(1, 1), parameter)
 		}
