@@ -44,10 +44,23 @@ func TestNativeCuspidalCubicCutGenericDisplay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The exterior part is where A is above B: the integral of A−B over
+	// the footprint, 33/512, and the pointed volume once more. Its coarse
+	// display used to be refused with "mesh: edge is not closed", because
+	// two sampled triangles joined the same two vertices by different
+	// chart segments.
 	display.Deflection, display.Angle = .05, .15
-	failed, err := exterior.Boundary().Tessellate(ctx, display)
-	if err == nil || len(failed.Triangles) != 0 {
-		t.Fatal("exterior display published a mesh without qualified closure", err)
+	mesh, err = exterior.Boundary().Tessellate(ctx, display)
+	if err != nil {
+		t.Fatal(err)
 	}
-	t.Logf("exterior preview refused: %v", err)
+	if _, err := collision.NewMeshPointLocator(ctx, mesh, nil, collision.LocationOptions{}); err != nil {
+		t.Fatal("exterior display is not closed and embedded", err)
+	}
+	relativeError = math.Abs(mesh.SignedVolume()/(33.0/512+cuspidalPointedCutVolume) - 1)
+	if relativeError > .1 {
+		t.Fatal("exterior display differs from the source volume by over 10%", mesh.SignedVolume(), relativeError)
+	}
+	t.Logf("exterior preview %d triangles volume %.15g, %.3f%% relative error",
+		len(mesh.Triangles), mesh.SignedVolume(), 100*relativeError)
 }
