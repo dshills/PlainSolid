@@ -41,6 +41,7 @@ func asynchronousMappedChainSTEP(t *testing.T, ctx context.Context) ([]byte, tri
 }
 
 func TestMappedChainRectangularSTEPAsynchronousSupportKnots(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, source := asynchronousMappedChainSTEP(t, ctx)
 	o := MappedChainShellSTEPOptions{AllowMultiSpanRoofs: true}
@@ -112,6 +113,7 @@ func TestMappedChainRectangularSTEPAsynchronousSupportKnots(t *testing.T) {
 }
 
 func TestMappedChainRectangularSTEPAsynchronousSupportKnotsOCCT(t *testing.T) {
+	t.Parallel()
 	exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if exe == "" {
 		t.Skip("optional pinned OCCT STEP consumer")

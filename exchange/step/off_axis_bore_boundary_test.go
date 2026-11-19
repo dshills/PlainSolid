@@ -11,6 +11,7 @@ import (
 // Cut(MakeSphere(5),MakeCylinder(Ax2((1,0,-.75),+Z),2,7)), STEPControl_AsIs.
 // The retained approximate intersection must not enter an exact body importer.
 func TestOffAxisSphereBoreExactExchangeBoundary(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)

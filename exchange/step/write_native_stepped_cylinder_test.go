@@ -28,6 +28,7 @@ func nativeSteppedCylinder(t *testing.T, reversed bool) parametric.Solid {
 }
 
 func TestNativeSteppedCylinderSTEP(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, reversed := range []bool{false, true} {
 		s := nativeSteppedCylinder(t, reversed)
@@ -60,6 +61,7 @@ func TestNativeSteppedCylinderSTEP(t *testing.T) {
 }
 
 func TestOCCTNativeSteppedCylinderSTEP(t *testing.T) {
+	t.Parallel()
 	var data bytes.Buffer
 	if err := WriteNativeSteppedCylinder(&data, nativeSteppedCylinder(t, false), "retained step", .001); err != nil {
 		t.Fatal(err)

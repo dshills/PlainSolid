@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"plainsolid/internal/slowtest"
 	"reflect"
 	"slices"
 	"strings"
@@ -18,6 +19,7 @@ import (
 )
 
 func TestNativeParabolaCircleFourCrossingsEnvelope(t *testing.T) {
+	slowtest.Skip(t)
 	ctx := context.Background()
 	independentVolume := [2]float64{1.9904462736296447, 2.008815400934687}
 	independentArea := [2][2]float64{{9.9092364774890704, 10.111133914954703}, {9.916041055442772, 10.122303353816424}}

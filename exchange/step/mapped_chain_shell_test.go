@@ -39,6 +39,7 @@ func mappedChainSTEPFixture(t *testing.T) (trimmed.MappedSplineChainShell, []byt
 }
 
 func TestMappedChainRectangularSTEP(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	source, file := mappedChainSTEPFixture(t)
 	loaded, err := ReadMappedChainRectangularShell(ctx, bytes.NewReader(file), Limits{}, MappedChainShellSTEPOptions{})
@@ -108,6 +109,7 @@ func TestMappedChainRectangularSTEP(t *testing.T) {
 }
 
 func TestMappedChainRectangularSTEPRejectsChanges(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	source, file := mappedChainSTEPFixture(t)
 	loaded, err := ReadMappedChainRectangularShell(ctx, bytes.NewReader(file), Limits{}, MappedChainShellSTEPOptions{})
@@ -205,6 +207,7 @@ func TestMappedChainRectangularSTEPRejectsChanges(t *testing.T) {
 }
 
 func TestMappedChainRectangularSTEPOCCT(t *testing.T) {
+	t.Parallel()
 	exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if exe == "" {
 		t.Skip("optional pinned OCCT STEP solid transfer")

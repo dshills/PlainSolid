@@ -24,6 +24,7 @@ func groupedConvexArcOriginal(t *testing.T) []byte {
 	return raw
 }
 func TestRepairGroupedOCCTConvexArc(t *testing.T) {
+	t.Parallel()
 	raw := groupedConvexArcOriginal(t)
 	ctx := context.Background()
 	m, e := RepairGroupedOCCTConvexArcExtrusion(ctx, bytes.NewReader(raw), Limits{}, ConvexArcRepairOptions{1e-12})
@@ -115,6 +116,7 @@ func TestRepairGroupedOCCTConvexArc(t *testing.T) {
 	}
 }
 func TestRepairGroupedOCCTConvexArcReject(t *testing.T) {
+	t.Parallel()
 	raw := groupedConvexArcOriginal(t)
 	ctx := context.Background()
 	base, e := RepairGroupedOCCTConvexArcExtrusion(ctx, bytes.NewReader(raw), Limits{}, ConvexArcRepairOptions{1e-12})
@@ -198,6 +200,7 @@ func TestRepairGroupedOCCTConvexArcReject(t *testing.T) {
 	}
 }
 func TestRepairGroupedOCCTConvexArcLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if bin == "" {
 		t.Skip("set pinned independent author/read comparator")

@@ -14,6 +14,7 @@ import (
 )
 
 func TestIndependentTorusAssembly(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/independent-torus-assembly.step")
 	if e != nil {
@@ -62,6 +63,7 @@ func independentTorusAssemblyModel(t testing.TB) IndependentTorusAssemblyModel {
 		{ID: "second", Parent: "root", Child: "torus", Transform: geom.Affine{{0, 0, 1, 0}, {1, 0, 0, 20}, {0, 1, 0, 0}}}}}
 }
 func TestIndependentTorusAssemblyWriter(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m := independentTorusAssemblyModel(t)
 	var out bytes.Buffer
@@ -137,6 +139,7 @@ func TestIndependentTorusAssemblyWriter(t *testing.T) {
 }
 
 func TestIndependentTorusAssemblyReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/independent-torus-assembly.step")
 	if e != nil {
@@ -327,6 +330,7 @@ func FuzzIndependentTorusAssembly(f *testing.F) {
 }
 
 func TestIndependentTorusAssemblySource(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/independent-torus-assembly.step")
 	if e != nil {

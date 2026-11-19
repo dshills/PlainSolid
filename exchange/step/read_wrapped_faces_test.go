@@ -10,6 +10,7 @@ import (
 )
 
 func TestWrappedFaceModel(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	input := WrappedSurfaceModel{LengthUnit: .0254, Surfaces: []WrappedSplineSurface{{Name: "first", Geometry: wrappedCylinder(t)}, {Name: "second", Geometry: wrappedCylinder(t)}}}
 	if e := WriteWrappedSplineFaces(&b, input); e != nil {
@@ -39,6 +40,7 @@ func TestWrappedFaceModel(t *testing.T) {
 }
 
 func TestReadWrappedFaceModelOCCT(t *testing.T) {
+	t.Parallel()
 	path := t.TempDir() + "/source.step"
 	stepOracle(t, path, "write-step-wrapped-surface")
 	raw, e := os.ReadFile(path)

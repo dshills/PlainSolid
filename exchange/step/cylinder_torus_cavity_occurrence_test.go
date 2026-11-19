@@ -12,6 +12,7 @@ import (
 )
 
 func TestCylinderTorusCavitySignedOccurrence(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	var raw bytes.Buffer
 	WriteCylinderTorusCavity(&raw, CylinderTorusCavityBody{"placed", 5, 2, 8, -3, 4}, .001)
@@ -81,6 +82,7 @@ func TestCylinderTorusCavitySignedOccurrence(t *testing.T) {
 }
 
 func TestCylinderTorusCavityObliqueOccurrence(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	var raw bytes.Buffer
 	WriteCylinderTorusCavity(&raw, CylinderTorusCavityBody{"placed", 5, 2, 8, -3, 4}, .001)

@@ -12,6 +12,7 @@ func planeSupportFixture() PlaneSupportModel {
 	return PlaneSupportModel{Name: "supports", SetName: "set", LengthUnit: .001, Surfaces: []PlaneSupport{{Name: "plane", PlacementName: "frame", LocationName: "center", NormalName: "axis", ReferenceName: "radial", Location: geom.Vec3{X: 2, Y: 3, Z: 4}, Normal: geom.Vec3{X: -1}, Reference: geom.Vec3{Z: -1}}}}
 }
 func TestPlaneSupportsRoundtrip(t *testing.T) {
+	t.Parallel()
 	for _, unit := range []float64{.001, .3048, 1} {
 		m := planeSupportFixture()
 		m.LengthUnit = unit
@@ -44,6 +45,7 @@ func TestPlaneSupportsRoundtrip(t *testing.T) {
 	}
 }
 func TestPlaneSupportsReject(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	_ = WritePlaneSupports(&b, planeSupportFixture())
 	s := b.String()
@@ -64,6 +66,7 @@ func TestPlaneSupportsReject(t *testing.T) {
 }
 
 func TestPlaneSupportsOwnershipAndAtomicity(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	_ = WritePlaneSupports(&b, planeSupportFixture())
 	s := b.String()

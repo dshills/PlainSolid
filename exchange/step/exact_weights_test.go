@@ -8,6 +8,7 @@ import (
 )
 
 func TestCertifiedFaceRejectsSourceWeightRounding(t *testing.T) {
+	t.Parallel()
 	// Both support and edge curves would otherwise normalize 1/3 identically,
 	// making comparison of decoded curves conceal a source alteration.
 	g, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{{}, {Y: 2}, {X: 2}, {X: 2, Y: 2}}, []float64{0, 0, 1, 1}, []float64{0, 0, 1, 1}, []float64{1, 1, 3, 3})

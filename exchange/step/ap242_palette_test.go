@@ -15,6 +15,7 @@ import (
 )
 
 func TestAP242PaletteAssembly(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-ap242-palette-assembly.step")
 	if e != nil {
 		t.Fatal(e)
@@ -52,6 +53,7 @@ func TestAP242PaletteAssembly(t *testing.T) {
 }
 
 func TestAP242PaletteRoundtripLive(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-ap242-palette-assembly.step")
 	if e != nil {
 		t.Fatal(e)
@@ -150,6 +152,7 @@ func TestAP242PaletteRoundtripLive(t *testing.T) {
 }
 
 func TestDraughtingPaletteExact(t *testing.T) {
+	t.Parallel()
 	names := []string{"black", "white", "red", "green", "blue", "yellow", "magenta", "cyan"}
 	want := []RGB{{0, 0, 0}, {1, 1, 1}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 1, 0}, {1, 0, 1}, {0, 1, 1}}
 	for i, name := range names {
@@ -162,6 +165,7 @@ func TestDraughtingPaletteExact(t *testing.T) {
 }
 
 func TestAP242PaletteOwnershipReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-ap242-palette-assembly.step")
 	if e != nil {
 		t.Fatal(e)

@@ -36,6 +36,7 @@ func windingPolygon(turns int) string {
 	return b.String()
 }
 func TestPolynomialWindingIndependent(t *testing.T) {
+	t.Parallel()
 	for _, turns := range []int{1, 2, -1, -2} {
 		r, e := BoundPolynomialSplineWinding(strings.NewReader(windingPolygon(turns)), Limits{}, 1000, geom.Vec3{}, PolynomialWindingOptions{})
 		if e != nil || r.Turns != turns {
@@ -50,6 +51,7 @@ func TestPolynomialWindingIndependent(t *testing.T) {
 	}
 }
 func TestPolynomialWindingOCCT(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -71,6 +73,7 @@ func FuzzPolynomialWinding(f *testing.F) {
 }
 
 func TestPolynomialWindingSubdivisionBudget(t *testing.T) {
+	t.Parallel()
 	var b strings.Builder
 	b.WriteString(strings.Split(polynomialResidualFixture(), "DATA;")[0] + "DATA;")
 	points := [][2]int{{1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}, {1, 0}}

@@ -18,16 +18,42 @@ As of 2026-11-18, with kernel code at `c35d3358`.
 | Complete Go suite, macOS ARM64, Go 1.27.4 | 6,121 passed, 608 optional skips, 0 failed; vet and Linux and Windows amd64 cross-builds passed | `9f95a188`, 2026-11-16 |
 | Complete Go suite, Linux ARM64, Go 1.26.0 | 6,018 passed, 599 optional skips, 0 failed | `c7afb429`, 2026-11-16 |
 | Complete Go suite with the race detector, macOS ARM64 | 5,557 passed, 580 optional skips, 0 failed | `ab33a412`, 2026-11-15 |
-| Fast Go tier (`go test ./...`), macOS ARM64 | 5,293 passed, 1,615 skipped, 0 failed | `c35d3358`, 2026-11-18 |
+| Default Go tier (`go test ./...`), macOS ARM64 | 4,781 passed, 1,217 skipped, 0 failed, in 78 s | the research quarantine, 2026-11-18 |
 
-`main` is 97 commits past the last complete Go and PlainCAD runs. Only the
-fast tier has been run on those commits. Commands, evidence files and what the
+`main` is about 100 commits past the last complete Go and PlainCAD runs. Only
+the default tier has been run on those commits.
+
+The default build leaves out the research quarantine: 540 production files of
+`brep/trimmed` (94,416 lines) that no other package reaches, with their tests.
+They start with `//go:build research` and build only with `-tags research`.
+The default test inventory is 5,998 cases; with the tag it is 6,909. The code
+linked into the PlainCAD bridge is unchanged by the quarantine: the same 7,138
+functions with the same sizes. Commands, evidence files and what the
 results do not establish are in [the verification record](VERIFICATION.md).
 
 Not qualified: native Windows runtime, the complete suite on the current
 commit, curved modeling beyond the subsets in the matrix below, independent
 exchange beyond the listed families, and the release matrix in
 [the specification](SPECIFICATION.md).
+
+## Known defects
+
+- **Heap abort in `brep/trimmed` tests on Apple Silicon.** With Go 1.25.14
+  through 1.27.4 on macOS ARM64 the test binary can abort with "found pointer
+  to free object". `go test -tags research -count=40 -run
+  ProjectiveSplineRoofAdjacentStep ./brep/trimmed` aborts within seconds. It
+  passes with Go 1.23.12, with `GOGC=off`, and with compiler optimizations off
+  (`-gcflags='all=-N -l'`). No data race, `unsafe`, cgo or assembly is
+  involved, so the Go compiler is the suspect; it has not been reported
+  upstream. The reproducing feature is research code, so it is no longer in
+  the default tier, which has not aborted since the quarantine (seven runs).
+  Before the quarantine about one serial run in ten aborted. Do not add
+  `t.Parallel()` to tests in `brep/trimmed`; it raised the rate to about one
+  run in two. Details are in
+  [the separation plan](../specs/brep-trimmed-split/PLAN.md).
+- **`TestBuildProjectiveSplineRoofAdjacentStepFuse` depends on the Go
+  version.** It fails with Go 1.26.0 on Linux ARM64 and Go 1.26.4 on macOS,
+  and passes with 1.23.12, 1.25.14, 1.26.8, 1.27.1 and 1.27.4.
 
 ## PlainCAD gates
 

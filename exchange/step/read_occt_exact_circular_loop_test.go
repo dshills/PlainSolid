@@ -25,6 +25,7 @@ func occtLoopFixture(t testing.TB) []byte {
 	return b
 }
 func TestReadOCCTExactCircularLoop(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m, e := ReadOCCTExactCircularLoopExtrusion(ctx, bytes.NewReader(occtLoopFixture(t)), Limits{})
 	if e != nil {
@@ -53,6 +54,7 @@ func TestReadOCCTExactCircularLoop(t *testing.T) {
 }
 
 func TestReadOCCTExactCircularLoopReject(t *testing.T) {
+	t.Parallel()
 	raw := occtLoopFixture(t)
 	ctx := context.Background()
 	for _, test := range []struct {
@@ -108,6 +110,7 @@ func TestReadOCCTExactCircularLoopReject(t *testing.T) {
 	}
 }
 func TestReadOCCTExactCircularLoopReindex(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := occtLoopFixture(t)
 	m, e := ReadOCCTExactCircularLoopExtrusion(ctx, bytes.NewReader(raw), Limits{})
@@ -139,6 +142,7 @@ func TestReadOCCTExactCircularLoopReindex(t *testing.T) {
 	}
 }
 func TestReadOCCTExactCircularLoopLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_EXACT_CIRCULAR_LOOP")
 	if bin == "" {
 		t.Skip("optional pinned author/TransferRoots")
@@ -232,6 +236,7 @@ func FuzzReadOCCTExactCircularLoop(f *testing.F) {
 }
 
 func TestReadOCCTExactCircularLoopEquivalentSource(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := occtLoopFixture(t)
 	shuffled := sideDiskMutateSource(t, raw, func(f *File) {

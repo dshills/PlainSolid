@@ -30,6 +30,7 @@ func checkHollowCone(t *testing.T, m AnalyticModel) {
 	}
 }
 func TestHollowConeRoundtrip(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteHollowCones(&b, hollowConeModel(t)); e != nil {
 		t.Fatal(e)
@@ -44,6 +45,7 @@ func TestHollowConeRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTHollowCone(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "tube.step")
 	stepOracle(t, path, "write-step-hollow-cone")
 	raw, e := os.ReadFile(path)
@@ -79,6 +81,7 @@ func TestOCCTHollowCone(t *testing.T) {
 }
 
 func TestIndependentHollowCone(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/hollow-cone.step")
 	if e != nil {
 		t.Fatal(e)
@@ -90,6 +93,7 @@ func TestIndependentHollowCone(t *testing.T) {
 	checkHollowCone(t, m)
 }
 func TestHollowConeInvalid(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"crossing", "apex", "widening", "height", "nan"} {
 		m := hollowConeModel(t)
 		b := &m.Bodies[0]
@@ -177,6 +181,7 @@ func FuzzHollowConeSTEP(f *testing.F) {
 }
 
 func TestHollowConeRotatedMultiple(t *testing.T) {
+	t.Parallel()
 	m := hollowConeModel(t)
 	fr, e := geom.NewFrame(geom.Vec3{X: -2, Y: 4, Z: 1}, geom.Vec3{X: 1, Y: 1}, geom.Vec3{X: 1, Y: -1, Z: 2})
 	if e != nil {

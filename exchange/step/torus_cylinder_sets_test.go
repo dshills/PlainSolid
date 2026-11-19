@@ -21,6 +21,7 @@ func torusCylinderSTEPBody(op geom.TorusCylinderOperation) TorusCylinderBody {
 	return TorusCylinderBody{"torus cylinder", 5, 2, 6, -3, 4, op}
 }
 func TestTorusCylinderSTEP(t *testing.T) {
+	t.Parallel()
 	for _, op := range []geom.TorusCylinderOperation{geom.TorusCylinderCommon, geom.TorusCylinderDifference, geom.TorusCylinderUnion} {
 		b := torusCylinderSTEPBody(op)
 		proof, e := CertifyTorusCylinderExport(b, 1e-8)
@@ -70,6 +71,7 @@ func TestTorusCylinderSTEP(t *testing.T) {
 	}
 }
 func TestOCCTTorusCylinderSTEP(t *testing.T) {
+	t.Parallel()
 	for _, op := range []geom.TorusCylinderOperation{geom.TorusCylinderCommon, geom.TorusCylinderDifference, geom.TorusCylinderUnion} {
 		b := torusCylinderSTEPBody(op)
 		var buf bytes.Buffer
@@ -127,6 +129,7 @@ func TestOCCTTorusCylinderSTEP(t *testing.T) {
 }
 
 func TestOCCTTorusCylinderSTEPOriginalBoolean(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_TORUS_CYLINDER_STEP")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_TORUS_CYLINDER_STEP to pinned reader")
@@ -201,6 +204,7 @@ func TestOCCTTorusCylinderSTEPOriginalBoolean(t *testing.T) {
 }
 
 func TestTorusCylinderSTEPExactDecimal(t *testing.T) {
+	t.Parallel()
 	for _, x := range []float64{.1, -.1, 1.0 / 3, math.SmallestNonzeroFloat64, math.MaxFloat64, 2 * math.Pi} {
 		v, ok := new(big.Rat).SetString(torusCylinderSTEPReal(x))
 		if !ok || v.Cmp(new(big.Rat).SetFloat64(x)) != 0 {

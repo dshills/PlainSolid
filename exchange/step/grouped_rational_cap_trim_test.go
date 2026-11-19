@@ -13,6 +13,7 @@ import (
 )
 
 func TestGroupedCapFiniteTrim(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/occt-both-default-oblique-prism-fillet.step")
 	if e != nil {
 		t.Fatal(e)
@@ -33,6 +34,7 @@ func TestGroupedCapFiniteTrim(t *testing.T) {
 	}
 }
 func TestGroupedCapFiniteTrimReject(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/occt-both-default-oblique-prism-fillet.step")
 	if e != nil {
 		t.Fatal(e)
@@ -91,6 +93,7 @@ func TestGroupedCapFiniteTrimReject(t *testing.T) {
 	}
 }
 func TestGroupedCapFiniteTrimLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if bin == "" {
 		t.Skip("set pinned author")

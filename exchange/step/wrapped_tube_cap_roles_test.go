@@ -7,6 +7,7 @@ import (
 )
 
 func TestWrappedTubeCapRoles(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-tube.step")
 	if e != nil {
 		t.Fatal(e)

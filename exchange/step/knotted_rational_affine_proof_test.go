@@ -6,6 +6,7 @@ import (
 )
 
 func TestQuadraticOriginalSpanRestriction(t *testing.T) {
+	t.Parallel()
 	knots := [3]*big.Rat{big.NewRat(-3, 1), big.NewRat(0, 1), big.NewRat(3, 1)}
 	want := [2][4][3]string{{{"1", "-2", "1"}, {"0", "2", "-3/2"}, {"0", "0", "1/2"}, {"0", "0", "0"}}, {{"0", "0", "0"}, {"1/2", "-1", "1/2"}, {"1/2", "1", "-3/2"}, {"0", "0", "1"}}}
 	for s := 0; s < 2; s++ {

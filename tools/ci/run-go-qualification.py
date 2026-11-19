@@ -94,8 +94,10 @@ def main():
     env = os.environ.copy()
     for key in ("GOOS", "GOARCH", "GOFLAGS"):
         env.pop(key, None)
-    # Qualification covers the slow tier that a plain `go test` skips.
-    env.update(GOMAXPROCS=str(opts.go_workers), CGO_ENABLED="1" if opts.race else "0", PLAINSOLID_SLOW="1")
+    # Qualification covers what a plain `go test` skips: the slow tier and
+    # the files behind the research build tag.
+    env.update(GOMAXPROCS=str(opts.go_workers), CGO_ENABLED="1" if opts.race else "0", PLAINSOLID_SLOW="1",
+               GOFLAGS="-tags=research")
     if opts.cache is not None:
         env["GOCACHE"] = str(opts.cache.resolve())
     elif not env.get("GOCACHE"):

@@ -40,6 +40,7 @@ func mappedChainTwoCrossingsSTEP(t *testing.T, ctx context.Context) ([]byte, tri
 }
 
 func TestMappedChainRectangularSTEPTwoSupportKnots(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	data, source := mappedChainTwoCrossingsSTEP(t, ctx)
 	for _, disabled := range []MappedChainShellSTEPOptions{{AllowMultiSpanRoofs: true}, {AllowTwoInteriorRoofKnots: true}} {
@@ -122,6 +123,7 @@ func TestMappedChainRectangularSTEPTwoSupportKnots(t *testing.T) {
 }
 
 func TestMappedChainRectangularSTEPTwoSupportKnotsOCCT(t *testing.T) {
+	t.Parallel()
 	exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if exe == "" {
 		t.Skip("optional pinned OCCT STEP consumer")

@@ -13,6 +13,7 @@ import (
 )
 
 func TestCylinderCellPairedCurveSense(t *testing.T) {
+	t.Parallel()
 	for _, cells := range []int{2, 4} {
 		name := "split"
 		if cells == 4 {
@@ -60,6 +61,7 @@ func TestCylinderCellPairedCurveSense(t *testing.T) {
 	}
 }
 func TestCylinderCellPairedCurveSenseOCCT(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_SPLIT_CYLINDER")
 	if bin == "" {
 		t.Skip("optional OCCT")

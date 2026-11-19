@@ -89,6 +89,7 @@ func TestWrappedAnnularFrustum(t *testing.T) {
 	}
 }
 func TestWrappedAnnularFrustumOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-wrapped-annular-frustum")
 	raw, e := os.ReadFile(source)
@@ -124,6 +125,7 @@ func TestWrappedAnnularFrustumOCCT(t *testing.T) {
 }
 
 func TestIndependentWrappedAnnularFrustum(t *testing.T) {
+	t.Parallel()
 	for _, path := range []string{"testdata/wrapped-annular-frustum.step", "testdata/wrapped-tube.step"} {
 		raw, e := os.ReadFile(path)
 		if e != nil {

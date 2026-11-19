@@ -162,6 +162,7 @@ func verifyUnsplitMixedBasisMappedChain(t *testing.T, ctx context.Context, raw [
 }
 
 func TestOCCTMappedChainRectangularUnsplitThreeSupportKnotsMixedBases(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(mixedBasisUnsplitMappedChainPath)
 	if err != nil {
 		t.Fatal(err)
@@ -170,6 +171,7 @@ func TestOCCTMappedChainRectangularUnsplitThreeSupportKnotsMixedBases(t *testing
 }
 
 func TestOCCTMappedChainRectangularUnsplitThreeSupportKnotsMixedBasesRejectsInvalidSource(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, err := os.ReadFile(mixedBasisUnsplitMappedChainPath)
 	if err != nil {
@@ -255,6 +257,7 @@ func TestOCCTMappedChainRectangularUnsplitThreeSupportKnotsMixedBasesRejectsInva
 }
 
 func TestOCCTMappedChainRectangularUnsplitThreeSupportKnotsMixedBasesLive(t *testing.T) {
+	t.Parallel()
 	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_MIXED_BASIS_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT mixed-basis author and STEP consumer")

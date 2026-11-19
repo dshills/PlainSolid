@@ -25,6 +25,7 @@ func nestedAssemblyModel(t *testing.T) AssemblyModel {
 	return AssemblyModel{LengthUnit: .001, Products: []AssemblyPart{{ID: "root", Name: "Machine"}, {ID: "module", Name: "Module"}, {ID: "part", Name: "Bracket", Bodies: []Body{{Name: "box", Solid: box}}}}, Occurrences: []AssemblyInstance{{ID: "m", Name: "Module occurrence", Parent: "root", Child: "module", Transform: geom.Translation(geom.Vec3{Z: 5})}, {ID: "a", Name: "Left bracket", Parent: "module", Child: "part", Transform: geom.Translation(geom.Vec3{X: 10})}, {ID: "b", Name: "Right bracket", Parent: "module", Child: "part", Transform: geom.Translation(geom.Vec3{Y: 20}).Mul(rotation)}}}
 }
 func TestWriteAssemblyRoundtrip(t *testing.T) {
+	t.Parallel()
 	m := nestedAssemblyModel(t)
 	var b, again bytes.Buffer
 	if e := WriteAssembly(&b, m); e != nil {
@@ -70,6 +71,7 @@ func TestWriteAssemblyRoundtrip(t *testing.T) {
 	}
 }
 func TestWriteAssemblyFailures(t *testing.T) {
+	t.Parallel()
 	for _, w := range []io.Writer{nil, failWriter{}, shortWriter{}} {
 		if e := WriteAssembly(w, nestedAssemblyModel(t)); e == nil {
 			t.Fatal("writer")
@@ -97,6 +99,7 @@ func TestWriteAssemblyFailures(t *testing.T) {
 	}
 }
 func TestOCCTAssemblyExport(t *testing.T) {
+	t.Parallel()
 	m := nestedAssemblyModel(t)
 	path := filepath.Join(t.TempDir(), "assembly.step")
 	f, e := os.Create(path)
@@ -160,6 +163,7 @@ func TestOCCTAssemblyExport(t *testing.T) {
 }
 
 func TestAssemblyMultipleLocalBodies(t *testing.T) {
+	t.Parallel()
 	m := nestedAssemblyModel(t)
 	other, e := brep.Box(geom.Vec3{X: 5}, geom.Vec3{X: 6, Y: 2, Z: 3})
 	if e != nil {

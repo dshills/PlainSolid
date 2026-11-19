@@ -20,6 +20,7 @@ func multiHoledSTEP(t testing.TB) []byte {
 	return b
 }
 func TestMultiHoledSplineFaces(t *testing.T) {
+	t.Parallel()
 	raw := multiHoledSTEP(t)
 	m, e := ReadMultiHoledSplineFaces(bytes.NewReader(raw), Limits{})
 	if e != nil || len(m.Faces) != 1 || len(m.Faces[0].Holes) != 2 {
@@ -59,6 +60,7 @@ func TestMultiHoledSplineFaces(t *testing.T) {
 	}
 }
 func TestMultiHoledSplineSeparation(t *testing.T) {
+	t.Parallel()
 	raw := multiHoledSTEP(t)
 	m, e := ReadMultiHoledSplineFaces(bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -95,6 +97,7 @@ func TestMultiHoledSplineSeparation(t *testing.T) {
 	}
 }
 func TestOCCTMultiHoledSplineFace(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-multiholed-spline-face")
 	raw, e := os.ReadFile(source)

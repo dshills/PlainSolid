@@ -13,6 +13,7 @@ import (
 )
 
 func TestWrappedCavityStoredOCCT(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-cavity.step")
 	if e != nil {
 		t.Fatal(e)
@@ -34,6 +35,7 @@ func TestWrappedCavityStoredOCCT(t *testing.T) {
 }
 
 func TestWrappedCavityLiveOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-wrapped-cavity")
 	raw, e := os.ReadFile(source)
@@ -88,6 +90,7 @@ func TestWrappedCavityLiveOCCT(t *testing.T) {
 	}
 }
 func TestWrappedCavityReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-cavity.step")
 	if e != nil {
 		t.Fatal(e)

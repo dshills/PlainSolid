@@ -41,7 +41,7 @@ if [[ $mode != complete ]]; then
   )
   for test in "${long_tests[@]}"; do
     if ! grep -Fxq "$test" <<< "$listing"; then
-      echo "Missing long test in test-shard.sh: $test" >&2
+      echo "Missing long test in test-shard.sh: $test (the long tests are behind the research build tag; set GOFLAGS=-tags=research)" >&2
       exit 1
     fi
   done

@@ -29,6 +29,7 @@ func sideDiskDescriptor(t *testing.T, through bool) SideOpenDualDiskDescriptor {
 	return SideOpenDualDiskDescriptor{Name: "two merged side pockets", Frame: f, Min: geom.Vec2{Y: 4}, Max: geom.Vec2{X: 10, Y: 10}, Discs: [2]trimmed.ExtrusionCircle{{Center: geom.Vec2{X: 3.5, Y: 4}, Radius: 2.5}, {Center: geom.Vec2{X: 6.5, Y: 4}, Radius: 2.5}}, Height: 6, Depth: depth, LengthUnit: .001, Tolerance: 1e-9}
 }
 func TestWriteSideOpenDualDiskProduct(t *testing.T) {
+	t.Parallel()
 	for _, through := range []bool{false, true} {
 		var b bytes.Buffer
 		if e := WriteSideOpenDualDiskProduct(context.Background(), &b, sideDiskDescriptor(t, through)); e != nil {
@@ -51,6 +52,7 @@ func TestWriteSideOpenDualDiskProduct(t *testing.T) {
 }
 
 func TestOCCTWriteSideOpenDualDiskProduct(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS")
 	if oracle == "" {
 		t.Skip("optional independent OCCT helper")
@@ -113,6 +115,7 @@ func TestOCCTWriteSideOpenDualDiskProduct(t *testing.T) {
 }
 
 func TestWriteSideOpenDualDiskProductRejectsAtomically(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		edit func(*SideOpenDualDiskDescriptor)
@@ -167,6 +170,7 @@ type sideDiskErrorWriter struct{ err error }
 func (w sideDiskErrorWriter) Write(p []byte) (int, error) { return 0, w.err }
 
 func TestWriteSideOpenDualDiskProductOrderAndSource(t *testing.T) {
+	t.Parallel()
 	for _, through := range []bool{false, true} {
 		for _, swapped := range []bool{false, true} {
 			d := sideDiskDescriptor(t, through)

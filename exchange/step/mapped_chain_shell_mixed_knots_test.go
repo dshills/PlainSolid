@@ -40,6 +40,7 @@ func mappedChainMixedSTEP(t *testing.T, ctx context.Context) ([]byte, MappedChai
 }
 
 func TestMappedChainRectangularSTEPMixedSupportKnots(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, o, shell := mappedChainMixedSTEP(t, ctx)
 	if out, err := ReadMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, MappedChainShellSTEPOptions{AllowMultiSpanRoofs: true}); err == nil ||
@@ -98,6 +99,7 @@ func TestMappedChainRectangularSTEPMixedSupportKnots(t *testing.T) {
 }
 
 func TestMappedChainSupportKnotNativeRecordCompatibility(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, name := range []string{"mapped_chain_two_crossings_source.json", "mapped_chain_asynchronous_crossings_source.json", "mapped_chain_mixed_crossings_source.json"} {
 		raw, err := os.ReadFile(filepath.Join("testdata", name))
@@ -116,6 +118,7 @@ func TestMappedChainSupportKnotNativeRecordCompatibility(t *testing.T) {
 }
 
 func TestMappedChainRectangularSTEPMixedSupportKnotsOCCT(t *testing.T) {
+	t.Parallel()
 	exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if exe == "" {
 		t.Skip("optional pinned OCCT STEP consumer")

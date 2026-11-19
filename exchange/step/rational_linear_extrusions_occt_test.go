@@ -51,6 +51,7 @@ func checkRationalExtrusionOCCTSource(t *testing.T, raw []byte) {
 	}
 }
 func TestRationalLinearExtrusionRetainedOCCT(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/rational-linear-extrusion-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -58,6 +59,7 @@ func TestRationalLinearExtrusionRetainedOCCT(t *testing.T) {
 	checkRationalExtrusionOCCTSource(t, raw)
 }
 func TestOCCTRationalLinearExtrusions(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_RATIONAL_EXTRUSION")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_RATIONAL_EXTRUSION to updated standalone helper")

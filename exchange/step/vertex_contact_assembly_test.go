@@ -33,6 +33,7 @@ func vertexContactSTEPFixture(t *testing.T) Model {
 }
 
 func TestPlanarVertexContactAssemblySTEP(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m := vertexContactSTEPFixture(t)
 	for _, faceted := range []bool{false, true} {
@@ -59,6 +60,7 @@ func TestPlanarVertexContactAssemblySTEP(t *testing.T) {
 }
 
 func TestPlanarVertexContactAssemblySTEPRejectsEdgeOverlapAndContainment(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, interval := range [][2]geom.Vec3{
 		{{X: 1, Y: 1}, {X: 2, Y: 2, Z: 1}},
@@ -85,6 +87,7 @@ func TestPlanarVertexContactAssemblySTEPRejectsEdgeOverlapAndContainment(t *test
 }
 
 func TestPlanarVertexContactAssemblySTEPOCCT(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_VERTEX_CONTACT_STEP")
 	if bin == "" {
 		t.Skip("optional pinned OCCT standard STEP reader")
@@ -113,6 +116,7 @@ func TestPlanarVertexContactAssemblySTEPOCCT(t *testing.T) {
 }
 
 func TestPlanarVertexContactAssemblySTEPNeverRoundsAContactCoordinate(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m := vertexContactSTEPFixture(t)
 	for _, f := range []bool{false, true} {
@@ -150,6 +154,7 @@ func TestPlanarVertexContactAssemblySTEPNeverRoundsAContactCoordinate(t *testing
 }
 
 func TestPlanarVertexContactAssemblySTEPRejectsNonplanarOriginalWire(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m := vertexContactSTEPFixture(t)
 	s := m.Bodies[0].Solid
@@ -171,6 +176,7 @@ func TestPlanarVertexContactAssemblySTEPRejectsNonplanarOriginalWire(t *testing.
 }
 
 func TestPlanarVertexContactAssemblySTEPObliqueExactSupports(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m := vertexContactSTEPFixture(t)
 	for i := range m.Bodies {
@@ -205,6 +211,7 @@ func TestPlanarVertexContactAssemblySTEPObliqueExactSupports(t *testing.T) {
 }
 
 func TestPlanarVertexContactAssemblySTEPRejectsNearDeclaredSupports(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	var out bytes.Buffer
 	if _, err := WriteVertexContactAssembly(ctx, &out, vertexContactSTEPFixture(t), VertexContactSTEPOptions{}); err != nil {
@@ -273,6 +280,7 @@ func TestPlanarVertexContactAssemblySTEPRejectsNearDeclaredSupports(t *testing.T
 }
 
 func TestPlanarVertexContactAssemblySTEPExactPhysicalUnits(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m := vertexContactSTEPFixture(t)
 	o := VertexContactSTEPOptions{}

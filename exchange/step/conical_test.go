@@ -31,6 +31,7 @@ func checkConical(t *testing.T, m AnalyticModel, top float64) {
 	}
 }
 func TestOCCTConicalImport(t *testing.T) {
+	t.Parallel()
 	for _, mode := range []string{"write-step-cone", "write-step-frustum"} {
 		p := filepath.Join(t.TempDir(), "cone.step")
 		stepOracle(t, p, mode)
@@ -60,6 +61,7 @@ func coneModel(t *testing.T, top float64) ConeModel {
 	return ConeModel{LengthUnit: .001, Bodies: []ConeBody{{Name: "cone", Frame: f, BaseRadius: 2, TopRadius: top, Height: 4}}}
 }
 func TestConicalRoundtrip(t *testing.T) {
+	t.Parallel()
 	for _, top := range []float64{0, 1} {
 		var b bytes.Buffer
 		if e := WriteCones(&b, coneModel(t, top)); e != nil {
@@ -73,6 +75,7 @@ func TestConicalRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTConicalExport(t *testing.T) {
+	t.Parallel()
 	for _, top := range []float64{0, 1} {
 		p := filepath.Join(t.TempDir(), "cone.step")
 		f, e := os.Create(p)
@@ -106,6 +109,7 @@ func TestOCCTConicalExport(t *testing.T) {
 	}
 }
 func TestConicalFailures(t *testing.T) {
+	t.Parallel()
 	for _, top := range []float64{0, 1} {
 		var raw bytes.Buffer
 		if e := WriteCones(&raw, coneModel(t, top)); e != nil {
@@ -173,6 +177,7 @@ func FuzzReadConical(f *testing.F) {
 }
 
 func TestConicalRotatedAndSurfaceParameters(t *testing.T) {
+	t.Parallel()
 	f, e := geom.NewFrame(geom.Vec3{X: 1, Y: 2, Z: 3}, geom.Vec3{X: 1, Y: -1}, geom.Vec3{X: 1, Y: 1, Z: 1})
 	if e != nil {
 		t.Fatal(e)

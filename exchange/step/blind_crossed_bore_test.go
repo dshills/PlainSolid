@@ -18,10 +18,12 @@ import (
 )
 
 func TestBlindCrossedBoreSTEP(t *testing.T) {
+	t.Parallel()
 	testFiniteCrossedBoreSTEP(t, false)
 }
 
 func TestDoubleBlindCrossedBoreSTEP(t *testing.T) {
+	t.Parallel()
 	testFiniteCrossedBoreSTEP(t, true)
 }
 

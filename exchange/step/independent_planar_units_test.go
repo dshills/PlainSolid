@@ -17,6 +17,7 @@ import (
 )
 
 func TestIndependentPlanarUnits(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/independent-planar-units.step")
 	if e != nil {

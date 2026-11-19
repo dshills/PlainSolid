@@ -15,6 +15,7 @@ import (
 )
 
 func TestRepairCircularNAUO(t *testing.T) {
+	t.Parallel()
 	raw, _, id := circularNAUOSource(t)
 	a, e := RepairCircularNAUOProduct(bytes.NewReader(raw), Limits{}, id, CircularNAUORepairOptions{MaxDistance: 1e-9})
 	if e != nil {
@@ -54,6 +55,7 @@ func TestRepairCircularNAUO(t *testing.T) {
 	}
 }
 func TestRepairCircularNAUOReject(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"zero", "negative", "nan", "large-tolerance", "small-tolerance", "vertex-gap", "wrong-ray", "nonbinary-radius", "nonbinary-corner", "bad-owner", "limit"} {
 		t.Run(kind, func(t *testing.T) {
 			raw, a, id := circularNAUOSource(t)
@@ -149,6 +151,7 @@ func TestRepairCircularNAUOReject(t *testing.T) {
 	}
 }
 func TestOCCTRepairCircularNAUO(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_DISK_BOUND_MASS")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

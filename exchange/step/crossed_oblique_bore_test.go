@@ -13,6 +13,7 @@ import (
 )
 
 func TestCrossedObliqueBoreSTEP(t *testing.T) {
+	t.Parallel()
 	for _, n := range []geom.Vec3{{Z: 1}, {X: -1}, {Y: 1}} {
 		f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
 		if err != nil {

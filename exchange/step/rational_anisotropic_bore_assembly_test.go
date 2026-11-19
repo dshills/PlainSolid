@@ -80,6 +80,7 @@ func TestRationalAnisotropicBoreAssembly(t *testing.T) {
 	}
 }
 func TestRationalAnisotropicBoreAssemblyReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := rationalAnisotropicBoreFixture(t)
 	for _, b := range [][]byte{bytes.Replace(raw, []byte("(0.6,0.8,0.)"), []byte("(0.6000000000000001,0.8,0.)"), 1), bytes.Replace(raw, []byte("(0.6,0.8,0.)"), []byte("(0.6,0.8,0.1)"), 1), bytes.Replace(raw, []byte("#12 = CARTESIAN_POINT('',(0.,0.,0.))"), []byte("#12 = CARTESIAN_POINT('',(1.,0.,0.))"), 1)} {

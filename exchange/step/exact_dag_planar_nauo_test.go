@@ -9,6 +9,7 @@ import (
 )
 
 func TestExactDAGPlanarNAUO(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-exact-dag-nauo.step")
 	if e != nil {
 		t.Fatal(e)
@@ -58,6 +59,7 @@ func TestExactDAGPlanarNAUO(t *testing.T) {
 }
 
 func TestExactDAGPlanarNAUOReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-exact-dag-nauo.step")
 	if e != nil {
 		t.Fatal(e)
@@ -187,6 +189,7 @@ func FuzzExactDAGPlanarNAUO(f *testing.F) {
 // Each duplicate is a complete independent NAUO/CDSR relationship, not an
 // invented path. This reaches the expansion cap without hitting direct-use caps.
 func TestExactDAGNAUOExpansionBudget(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-exact-dag-nauo.step")
 	if e != nil {
 		t.Fatal(e)

@@ -92,6 +92,7 @@ func TestWriteExactWallSideOpenDualDiskProduct(t *testing.T) {
 	}
 }
 func TestWriteExactWallSideOpenDualDiskProductRejects(t *testing.T) {
+	t.Parallel()
 	edits := []struct {
 		name string
 		edit func(*ExactWallSideOpenDualDiskDescriptor)
@@ -129,6 +130,7 @@ func TestWriteExactWallSideOpenDualDiskProductRejects(t *testing.T) {
 	}
 }
 func TestOCCTWriteExactWallSideOpenDualDiskProduct(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS")
 	if oracle == "" {
 		t.Skip("optional independent OCCT helper")
@@ -192,6 +194,7 @@ func TestOCCTWriteExactWallSideOpenDualDiskProduct(t *testing.T) {
 }
 
 func TestWriteExactWallSideOpenDualDiskClassProof(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	binary := ExactWallSideOpenDualDiskDescriptor(generalSideDiskDescriptor(t, false, false, false))
 	if e := WriteExactWallSideOpenDualDiskProduct(context.Background(), &b, binary); e == nil || b.Len() != 0 {

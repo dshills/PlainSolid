@@ -7,6 +7,7 @@ import (
 )
 
 func TestRepairedCircularNAUOAssembly(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name string
 		uses int
@@ -43,6 +44,7 @@ func TestRepairedCircularNAUOAssembly(t *testing.T) {
 	}
 }
 func TestRepairedCircularNAUOAssemblyReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-circular-nauo-dag.step")
 	if e != nil {
 		t.Fatal(e)

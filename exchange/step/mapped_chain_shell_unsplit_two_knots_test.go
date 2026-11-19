@@ -31,6 +31,7 @@ func unsplitTwoKnotFixture(t *testing.T) ([]byte, MappedChainShellSTEPOptions) {
 }
 
 func TestOCCTMappedChainRectangularUnsplitTwoSupportKnots(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, o := unsplitTwoKnotFixture(t)
 	for _, disabled := range []MappedChainShellSTEPOptions{
@@ -146,6 +147,7 @@ func TestOCCTMappedChainRectangularUnsplitTwoSupportKnots(t *testing.T) {
 }
 
 func TestOCCTMappedChainRectangularUnsplitTwoSupportKnotsRejectsJunctions(t *testing.T) {
+	t.Parallel()
 	data, o := unsplitTwoKnotFixture(t)
 	cases := []struct {
 		name, wantError string
@@ -195,6 +197,7 @@ func TestOCCTMappedChainRectangularUnsplitTwoSupportKnotsRejectsJunctions(t *tes
 }
 
 func TestOCCTMappedChainRectangularUnsplitTwoSupportKnotsReversedEdge(t *testing.T) {
+	t.Parallel()
 	raw, o := unsplitTwoKnotFixture(t)
 	f, err := Parse(bytes.NewReader(raw), Limits{})
 	if err != nil {
@@ -226,6 +229,7 @@ func TestOCCTMappedChainRectangularUnsplitTwoSupportKnotsReversedEdge(t *testing
 }
 
 func TestOCCTMappedChainRectangularUnsplitTwoSupportKnotsLive(t *testing.T) {
+	t.Parallel()
 	exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if exe == "" {
 		t.Skip("optional pinned OCCT STEP consumer")

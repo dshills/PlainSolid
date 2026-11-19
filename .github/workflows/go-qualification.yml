@@ -6,8 +6,10 @@ concurrency:
 permissions:
   contents: read
 env:
-  # Qualification runs the complete suite; a plain `go test` skips the slow tier.
+  # Qualification runs the complete suite: the slow tier that a plain `go test`
+  # skips, and the code behind the research build tag.
   PLAINSOLID_SLOW: "1"
+  GOFLAGS: -tags=research
 jobs:
   test:
     strategy:

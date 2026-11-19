@@ -21,6 +21,7 @@ func diskAssemblyFixture() DiskHoleAssemblyModel {
 	return DiskHoleAssemblyModel{LengthUnit: .001, Products: []DiskHoleAssemblyPart{{ID: "root", Name: "Bored assembly"}, {ID: "blind", Name: "Blind stock", Bodies: []DiskHoleExtrusionBody{{Name: "Blind body", Frame: f, Outer: outer, Height: 4, Blind: []trimmed.ExtrusionBlindHole{{ExtrusionCircle: inner, Depth: 2}}}}}, {ID: "through", Name: "Through stock", Bodies: []DiskHoleExtrusionBody{{Name: "Through body", Frame: f, Outer: outer, Height: 4, Holes: []trimmed.ExtrusionCircle{inner}}}}}, Occurrences: []AssemblyInstance{{ID: "first", Name: "Blind vertical", Parent: "root", Child: "blind", Transform: geom.Translation(geom.Vec3{X: 10})}, {ID: "second", Name: "Blind horizontal", Parent: "root", Child: "blind", Transform: geom.Affine{{0, 0, 1, 0}, {1, 0, 0, 20}, {0, 1, 0, 0}}}, {ID: "third", Name: "Through vertical", Parent: "root", Child: "through", Transform: geom.Translation(geom.Vec3{X: -10})}}}
 }
 func TestDiskHoleAssembly(t *testing.T) {
+	t.Parallel()
 	var out bytes.Buffer
 	if e := WriteDiskHoleAssembly(&out, diskAssemblyFixture()); e != nil {
 		t.Fatal(e)
@@ -62,6 +63,7 @@ func TestDiskHoleAssembly(t *testing.T) {
 	}
 }
 func TestDiskHoleAssemblyRejects(t *testing.T) {
+	t.Parallel()
 	var out bytes.Buffer
 	if e := WriteDiskHoleAssembly(&out, diskAssemblyFixture()); e != nil {
 		t.Fatal(e)
@@ -109,6 +111,7 @@ func TestDiskHoleAssemblyRejects(t *testing.T) {
 	}
 }
 func TestOCCTDiskHoleAssembly(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_DISK_ASSEMBLY")
 	if bin == "" {
 		t.Skip("optional pinned XCAF reader")
@@ -169,6 +172,7 @@ func FuzzDiskHoleAssembly(f *testing.F) {
 }
 
 func TestDiskHoleAssemblyOwnership(t *testing.T) {
+	t.Parallel()
 	var out bytes.Buffer
 	if e := WriteDiskHoleAssembly(&out, diskAssemblyFixture()); e != nil {
 		t.Fatal(e)

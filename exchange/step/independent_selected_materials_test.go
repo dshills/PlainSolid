@@ -13,6 +13,7 @@ import (
 )
 
 func TestSelectedIndependentMaterials(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/independent-selected-materials.step")
 	if e != nil {

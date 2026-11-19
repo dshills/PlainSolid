@@ -19,6 +19,7 @@ func orthogonalHoledModel(t testing.TB) OrthogonalHoledSplineFaceModel {
 	return OrthogonalHoledSplineFaceModel{LengthUnit: 1, Faces: []OrthogonalHoledSplineFace{{Name: "concave holes", Geometry: g, Boundary: []geom.Vec2{{}, {X: 4}, {X: 4, Y: 2}, {X: 2, Y: 2}, {X: 2, Y: 4}, {Y: 4}}, Holes: [][]geom.Vec2{{{X: .5, Y: .5}, {X: 1.5, Y: .5}, {X: 1.5, Y: 1}, {X: 1, Y: 1}, {X: 1, Y: 1.5}, {X: .5, Y: 1.5}}, {{X: 2.5, Y: .5}, {X: 3.5, Y: .5}, {X: 3.5, Y: 1.5}, {X: 2.5, Y: 1.5}}}}}}
 }
 func TestIndependentOrthogonalHoledSplineFace(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/orthogonal-holed-spline-face.step")
 	if e != nil {
 		t.Fatal(e)
@@ -40,6 +41,7 @@ func TestIndependentOrthogonalHoledSplineFace(t *testing.T) {
 }
 
 func TestOrthogonalHoledRoundtrip(t *testing.T) {
+	t.Parallel()
 	m := orthogonalHoledModel(t)
 	var b bytes.Buffer
 	if e := WriteOrthogonalHoledSplineFaces(&b, m); e != nil {
@@ -111,6 +113,7 @@ func TestOrthogonalHoledRoundtrip(t *testing.T) {
 
 }
 func TestOrthogonalHoledRejection(t *testing.T) {
+	t.Parallel()
 	square := func(x, y, size float64) []geom.Vec2 {
 		return []geom.Vec2{{X: x, Y: y}, {X: x + size, Y: y}, {X: x + size, Y: y + size}, {X: x, Y: y + size}}
 	}
@@ -161,6 +164,7 @@ func TestOrthogonalHoledRejection(t *testing.T) {
 	}
 }
 func TestOCCTOrthogonalHoledSplineFace(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-orthogonal-holed-spline-face")
 	raw, e := os.ReadFile(source)

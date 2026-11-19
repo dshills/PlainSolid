@@ -12,6 +12,7 @@ type mappedShortWriter struct{}
 
 func (mappedShortWriter) Write(p []byte) (int, error) { return len(p) - 1, nil }
 func TestEditedMappedPlanarGraph(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-multiple-mapped-planar-boxes.step")
 	if e != nil {
 		t.Fatal(e)

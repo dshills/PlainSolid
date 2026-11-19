@@ -18,6 +18,7 @@ import (
 )
 
 func TestTripleCrossedBoreSTEP(t *testing.T) {
+	t.Parallel()
 	for ni, n := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		frame, e := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
 		if e != nil {
@@ -83,6 +84,7 @@ func TestTripleCrossedBoreSTEP(t *testing.T) {
 }
 
 func TestTripleCrossedBoreSTEPRejectsTampering(t *testing.T) {
+	t.Parallel()
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	m := TripleCrossedBoreModel{LengthUnit: .001, Body: TripleCrossedBoreBody{Name: "triple", Frame: f, Dimensions: geom.Vec3{X: 20, Y: 16, Z: 12}, Crossing: geom.Vec3{X: 8, Y: 7, Z: 5}, Radius: 2}}
 	var out bytes.Buffer

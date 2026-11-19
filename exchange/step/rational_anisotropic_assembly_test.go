@@ -18,6 +18,7 @@ func rationalAnisotropicFixture(t testing.TB) []byte {
 	return b
 }
 func TestRationalAnisotropicAssembly(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := rationalAnisotropicFixture(t)
 	m, e := ReadRationalWrappedAnisotropicStationAssembly(ctx, bytes.NewReader(raw), Limits{}, WrappedSurfaceOptions{})
@@ -63,6 +64,7 @@ func TestRationalAnisotropicAssembly(t *testing.T) {
 	}
 }
 func TestRationalAnisotropicAssemblyReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := rationalAnisotropicFixture(t)
 	for _, b := range [][]byte{bytes.Replace(raw, []byte("#19 = AXIS2_PLACEMENT_3D('',#20,#21,#22)"), []byte("#19 = AXIS2_PLACEMENT_3D('',#20,#109,#22)"), 1), bytes.Replace(raw, []byte("(0.6,0.8,0.)"), []byte("(0.6000000000000001,0.8,0.)"), 1), bytes.Replace(raw, []byte("(0.6,0.8,0.)"), []byte("(0.6,0.8,0.1)"), 1), bytes.Replace(raw, []byte("#12 = CARTESIAN_POINT('',(0.,0.,0.))"), []byte("#12 = CARTESIAN_POINT('',(1.,0.,0.))"), 1)} {

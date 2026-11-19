@@ -243,6 +243,7 @@ func FuzzReadSideCutProducts(f *testing.F) {
 }
 
 func TestSideCutFuzzOuterPayloadsReject(t *testing.T) {
+	t.Parallel()
 	for kind := byte(0); kind < sideCutFuzzKinds; kind++ {
 		raw := sideCutFuzzSeed(t, kind, false)
 		bad := [][]byte{raw[:len(raw)/2], append([]byte("unexpected-prefix\x00"), raw...), append(append([]byte(nil), raw...), []byte("#999999=CARTESIAN_POINT('',(0.,0.,0.));")...), bytes.Replace(raw, []byte("END-ISO-10303-21;"), []byte("END-ISO-10303-21;\x00"), 1)}

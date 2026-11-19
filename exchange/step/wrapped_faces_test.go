@@ -12,6 +12,7 @@ import (
 )
 
 func TestWrappedFundamentalFace(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-surface.step")
 	if e != nil {
 		t.Fatal(e)
@@ -49,6 +50,7 @@ func TestWrappedFundamentalFace(t *testing.T) {
 }
 
 func TestWrappedFundamentalFaceOCCT(t *testing.T) {
+	t.Parallel()
 	path := t.TempDir() + "/wrapped.step"
 	stepOracle(t, path, "write-step-wrapped-surface")
 	raw, e := os.ReadFile(path)
@@ -78,6 +80,7 @@ func TestWrappedFundamentalFaceOCCT(t *testing.T) {
 }
 
 func TestWriteWrappedFundamentalFace(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteWrappedSplineFaces(&b, WrappedSurfaceModel{Surfaces: []WrappedSplineSurface{{Name: "cylinder", Geometry: wrappedCylinder(t)}}, LengthUnit: .001}); e != nil {
 		t.Fatal(e)
@@ -156,6 +159,7 @@ func wrappedToroidForSTEP(t *testing.T) *geom.WrappedSurfacePatch {
 }
 
 func TestWriteDoublyWrappedFundamentalFace(t *testing.T) {
+	t.Parallel()
 	w := wrappedToroidForSTEP(t)
 	var e error
 	var b bytes.Buffer

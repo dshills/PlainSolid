@@ -36,6 +36,7 @@ func rationalPosedThroughHoleCanonical(t *testing.T) (RationalPosedConvexArcThro
 }
 
 func TestRationalPosedExactCircularLoopThroughHoleCanonical(t *testing.T) {
+	t.Parallel()
 	m, raw := rationalPosedThroughHoleCanonical(t)
 	ctx := context.Background()
 	strict, err := ReadRationalPosedExactCircularLoopThroughHoleExtrusion(ctx, bytes.NewReader(raw), Limits{})
@@ -73,6 +74,7 @@ func TestRationalPosedExactCircularLoopThroughHoleCanonical(t *testing.T) {
 }
 
 func TestRationalPosedExactCircularLoopThroughHoleCanonicalRejects(t *testing.T) {
+	t.Parallel()
 	_, raw := rationalPosedThroughHoleCanonical(t)
 	ctx := context.Background()
 	for _, edit := range [][3]string{
@@ -99,6 +101,7 @@ func TestRationalPosedExactCircularLoopThroughHoleCanonicalRejects(t *testing.T)
 }
 
 func TestRationalPosedExactCircularLoopThroughHoleCanonicalLive(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL to the pinned author helper")

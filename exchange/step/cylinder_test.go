@@ -28,6 +28,7 @@ func checkCylinder(t *testing.T, m AnalyticModel) {
 	}
 }
 func TestOCCTCylinderImport(t *testing.T) {
+	t.Parallel()
 	p := filepath.Join(t.TempDir(), "cylinder.step")
 	stepOracle(t, p, "write-step-cylinder")
 	f, e := os.Open(p)
@@ -51,6 +52,7 @@ func cylinderModel(t *testing.T) CylinderModel {
 	return CylinderModel{LengthUnit: .001, Bodies: []CylinderBody{{Name: "cylinder", Frame: f, Radius: 2, Height: 4}}}
 }
 func TestCylinderRoundtrip(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteCylinders(&b, cylinderModel(t)); e != nil {
 		t.Fatal(e)
@@ -62,6 +64,7 @@ func TestCylinderRoundtrip(t *testing.T) {
 	checkCylinder(t, m)
 }
 func TestOCCTCylinderExport(t *testing.T) {
+	t.Parallel()
 	p := filepath.Join(t.TempDir(), "cylinder.step")
 	f, e := os.Create(p)
 	if e != nil {
@@ -90,6 +93,7 @@ func TestOCCTCylinderExport(t *testing.T) {
 	}
 }
 func TestCylinderMalformedGraphs(t *testing.T) {
+	t.Parallel()
 	var raw bytes.Buffer
 	if e := WriteCylinders(&raw, cylinderModel(t)); e != nil {
 		t.Fatal(e)
@@ -164,6 +168,7 @@ func FuzzReadCylinder(f *testing.F) {
 }
 
 func TestCylinderRotatedFrame(t *testing.T) {
+	t.Parallel()
 	frame, e := geom.NewFrame(geom.Vec3{X: 1, Y: 2, Z: 3}, geom.Vec3{X: 1, Y: -1}, geom.Vec3{X: 1, Y: 1, Z: 1})
 	if e != nil {
 		t.Fatal(e)

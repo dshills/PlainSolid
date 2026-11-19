@@ -62,6 +62,7 @@ func encodeRationalWorldCircularLoop(t testing.TB, m rationalPosedPCurveRepairMa
 }
 
 func TestRationalPosedExactCircularLoopStrictRoundTrip(t *testing.T) {
+	t.Parallel()
 	cases := rationalWorldCircularLoopFixtures(t)
 	ctx := context.Background()
 	var originals [][]byte
@@ -122,6 +123,7 @@ func TestRationalPosedExactCircularLoopStrictRoundTrip(t *testing.T) {
 }
 
 func TestRationalPosedExactCircularLoopStrictRejection(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m := rationalWorldCircularLoopFixtures(t)[0].material
 	raw := encodeRationalWorldCircularLoop(t, m, false)
@@ -207,6 +209,7 @@ func TestRationalPosedExactCircularLoopStrictRejection(t *testing.T) {
 }
 
 func TestRationalPosedExactCircularLoopLive(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL to the pinned author helper")

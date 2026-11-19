@@ -1,3 +1,5 @@
+//go:build research
+
 package step
 
 import (
@@ -192,6 +194,7 @@ func TestWrappedRationalStationBoreSTEP(t *testing.T) {
 }
 
 func TestWrappedRationalStationBoreSTEPOCCT(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("PLAINSOLID_OCCT_ORACLE") == "" {
 		t.Skip("set PLAINSOLID_OCCT_ORACLE and PLAINSOLID_OCCT_STEP=1")
 	}

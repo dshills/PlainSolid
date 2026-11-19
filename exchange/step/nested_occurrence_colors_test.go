@@ -25,6 +25,7 @@ func nestedColorsFixture(t testing.TB) []byte {
 	return b
 }
 func TestNestedOccurrenceColors(t *testing.T) {
+	t.Parallel()
 	raw := nestedColorsFixture(t)
 	m, e := ReadNestedOccurrenceColoredAssembly(context.Background(), bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -76,6 +77,7 @@ func TestNestedOccurrenceColors(t *testing.T) {
 }
 
 func TestNestedOccurrenceColorsReject(t *testing.T) {
+	t.Parallel()
 	raw := nestedColorsFixture(t)
 	changes := [][2]string{
 		{"#16 = CARTESIAN_POINT('',(100.,0.,0.))", "#16 = CARTESIAN_POINT('',(100.000000000000000001,0.,0.))"},
@@ -119,6 +121,7 @@ func TestNestedOccurrenceColorsReject(t *testing.T) {
 }
 
 func TestNestedOccurrenceColorsNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m, e := ReadNestedOccurrenceColoredAssembly(ctx, bytes.NewReader(nestedColorsFixture(t)), Limits{})
 	if e != nil {
@@ -196,6 +199,7 @@ func TestNestedOccurrenceColorsNative(t *testing.T) {
 }
 
 func TestNestedOccurrenceColorsLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_AP242_NESTED_OCCURRENCE")
 	if bin == "" {
 		t.Skip("optional pinned XCAF observer")

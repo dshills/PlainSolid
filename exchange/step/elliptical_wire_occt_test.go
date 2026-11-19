@@ -14,6 +14,7 @@ import (
 )
 
 func TestOCCTEllipticalWire(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_ELLIPSE_WIRE")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

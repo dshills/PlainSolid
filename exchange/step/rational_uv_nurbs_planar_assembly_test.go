@@ -26,6 +26,7 @@ func rationalUVNURBSFixture(t testing.TB) []byte {
 	return b
 }
 func TestRationalUVNURBSPlanarAssembly(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := rationalUVNURBSFixture(t)
 	m, e := ReadRationalUVNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -118,6 +119,7 @@ func rationalUVNURBSNativeFixture(t testing.TB) []byte {
 	return out.Bytes()
 }
 func TestRationalUVNURBSNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := rationalUVNURBSNativeFixture(t)
 	m, e := ReadRationalUVNURBSPlanarAssemblyJSON(ctx, bytes.NewReader(raw), IndependentMaterialJSONLimits{})
@@ -186,6 +188,7 @@ func TestRationalUVNURBSNative(t *testing.T) {
 	}
 }
 func TestRationalUVNURBSLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_RATIONAL_UV_NURBS_PLANAR")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")
@@ -267,6 +270,7 @@ func FuzzRationalUVNURBSPlanar(f *testing.F) {
 }
 
 func TestRationalUVNURBSHomogeneousProof(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := rationalUVNURBSFixture(t)
 	m, e := ReadRationalUVNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -399,6 +403,7 @@ func TestRationalUVNURBSHomogeneousProof(t *testing.T) {
 }
 
 func TestRationalUVNURBSCurveProof(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := rationalUVNURBSFixture(t)
 	m, e := ReadRationalUVNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})

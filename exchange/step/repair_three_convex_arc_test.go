@@ -108,6 +108,7 @@ func checkThreeConvexArcSource(t *testing.T, raw []byte) (RationalPosedGroupedPC
 }
 
 func TestRepairThreeConvexArcSource(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, err := os.ReadFile(threeConvexArcSource)
 	if err != nil {
@@ -140,6 +141,7 @@ func TestRepairThreeConvexArcSource(t *testing.T) {
 }
 
 func TestRepairThreeConvexArcRejectsChangedOwners(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(threeConvexArcSource)
 	if err != nil {
 		t.Fatal(err)
@@ -166,6 +168,7 @@ func checkGroupedConvexArcUnrepresentable(t *testing.T, raw []byte, distance flo
 }
 
 func TestRepairThreeConvexArcRejectsUnrepresentableTangencies(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(threeConvexArcUnrepresentableSource)
 	if err != nil {
 		t.Fatal(err)
@@ -174,6 +177,7 @@ func TestRepairThreeConvexArcRejectsUnrepresentableTangencies(t *testing.T) {
 }
 
 func TestRepairThreeConvexArcLive(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL to the pinned author helper")

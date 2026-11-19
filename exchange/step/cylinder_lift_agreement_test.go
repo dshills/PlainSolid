@@ -51,6 +51,7 @@ func TestCylinderLiftAgreementOCCT(t *testing.T) {
 	}
 }
 func TestLiftTrigIndependent(t *testing.T) {
+	t.Parallel()
 	for _, u := range []*big.Rat{big.NewRat(0, 1), big.NewRat(1, 2), big.NewRat(-1, 2)} {
 		s, c, errBound, e := liftTrigBernstein([]*big.Rat{u, u})
 		if e != nil {

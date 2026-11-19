@@ -32,6 +32,7 @@ func readUnsplitMappedChainFixture(t *testing.T) []byte {
 }
 
 func TestOCCTMappedChainRectangularUnsplitSupportKnot(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := readUnsplitMappedChainFixture(t)
 	o := MappedChainShellSTEPOptions{AllowMultiSpanRoofs: true, AllowUnsplitSupportKnot: true}
@@ -141,6 +142,7 @@ func TestOCCTMappedChainRectangularUnsplitSupportKnot(t *testing.T) {
 }
 
 func TestOCCTMappedChainRectangularUnsplitSupportKnotRejectsMalformedSource(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := readUnsplitMappedChainFixture(t)
 	o := MappedChainShellSTEPOptions{AllowMultiSpanRoofs: true, AllowUnsplitSupportKnot: true}
@@ -197,6 +199,7 @@ func TestOCCTMappedChainRectangularUnsplitSupportKnotRejectsMalformedSource(t *t
 }
 
 func TestOCCTMappedChainRectangularUnsplitSupportKnotReversedEdge(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	file, err := Parse(bytes.NewReader(readUnsplitMappedChainFixture(t)), Limits{})
 	if err != nil {
@@ -219,6 +222,7 @@ func TestOCCTMappedChainRectangularUnsplitSupportKnotReversedEdge(t *testing.T) 
 }
 
 func TestOCCTMappedChainRectangularUnsplitSupportKnotLive(t *testing.T) {
+	t.Parallel()
 	exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if exe == "" {
 		t.Skip("optional pinned OCCT STEP consumer")

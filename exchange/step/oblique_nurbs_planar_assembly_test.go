@@ -26,6 +26,7 @@ func obliqueNURBSFixture(t testing.TB) []byte {
 	return b
 }
 func TestObliqueNURBSPlanarAssembly(t *testing.T) {
+	t.Parallel()
 	raw := obliqueNURBSFixture(t)
 	ctx := context.Background()
 	m, e := ReadObliqueNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -131,6 +132,7 @@ func TestObliqueNURBSPlanarAssembly(t *testing.T) {
 	}
 }
 func TestObliqueNURBSPlanarReject(t *testing.T) {
+	t.Parallel()
 	raw := obliqueNURBSFixture(t)
 	ctx := context.Background()
 	m, e := ReadObliqueNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -220,6 +222,7 @@ func TestObliqueNURBSPlanarReject(t *testing.T) {
 	}
 }
 func TestObliqueNURBSPlanarLimits(t *testing.T) {
+	t.Parallel()
 	raw := obliqueNURBSFixture(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -237,6 +240,7 @@ func TestObliqueNURBSPlanarLimits(t *testing.T) {
 	}
 }
 func TestObliqueNURBSPlanarLive(t *testing.T) {
+	t.Parallel()
 	raw := obliqueNURBSFixture(t)
 	ctx := context.Background()
 	m, e := ReadObliqueNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})

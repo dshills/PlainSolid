@@ -16,6 +16,7 @@ func placedChainFixture() PlacedLongEdgeChainModel {
 	return PlacedLongEdgeChainModel{Model: longEdgeChainFixture(), Transform: geom.Affine{{0, -1, 0, 32}, {0, 0, -1, 16}, {1, 0, 0, -4}}}
 }
 func TestPlacedLongEdgeChain(t *testing.T) {
+	t.Parallel()
 	for _, transform := range []geom.Affine{geom.Identity(), placedChainFixture().Transform, {{-1, 0, 0, 2}, {0, -1, 0, 4}, {0, 0, 1, 8}}} {
 		m := placedChainFixture()
 		m.Transform = transform
@@ -37,6 +38,7 @@ func TestPlacedLongEdgeChain(t *testing.T) {
 	}
 }
 func TestPlacedLongEdgeChainRejects(t *testing.T) {
+	t.Parallel()
 	m := placedChainFixture()
 	for _, a := range []geom.Affine{{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, -1, 0}}, {{1, .1, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}}, {{1, 0, 0, math.Inf(1)}, {0, 1, 0, 0}, {0, 0, 1, 0}}} {
 		m.Transform = a
@@ -70,6 +72,7 @@ func TestPlacedLongEdgeChainRejects(t *testing.T) {
 	}
 }
 func TestPlacedLongEdgeSourceIntegrity(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WritePlacedLongEdgeChains(&b, placedChainFixture()); e != nil {
 		t.Fatal(e)
@@ -127,6 +130,7 @@ func TestPlacedLongEdgeSourceIntegrity(t *testing.T) {
 }
 
 func TestPlacedLongEdgeChainOCCT(t *testing.T) {
+	t.Parallel()
 	m := placedChainFixture()
 	var b bytes.Buffer
 	if e := WritePlacedLongEdgeChains(&b, m); e != nil {

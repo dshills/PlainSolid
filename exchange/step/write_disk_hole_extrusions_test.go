@@ -29,6 +29,7 @@ func diskExtrusionFixture(t *testing.T, height float64) DiskHoleExtrusionModel {
 }
 
 func TestWriteDiskHoleExtrusionsGraph(t *testing.T) {
+	t.Parallel()
 	for _, z := range []float64{3, -3} {
 		model := diskExtrusionFixture(t, z)
 		var out bytes.Buffer
@@ -86,6 +87,7 @@ func TestWriteDiskHoleExtrusionsGraph(t *testing.T) {
 }
 
 func TestWriteDiskHoleExtrusionsOCCT(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("PLAINSOLID_OCCT_STEP") == "" {
 		t.Skip("optional OCCT")
 	}

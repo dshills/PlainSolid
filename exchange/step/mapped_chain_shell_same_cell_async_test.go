@@ -181,6 +181,7 @@ func verifySameCellAsynchronousMaterial(t *testing.T, ctx context.Context, m tri
 }
 
 func TestOCCTMappedChainRectangularSameCellAsynchronousSupportKnots(t *testing.T) {
+	t.Parallel()
 	verifySameCellAsynchronousSource(t, context.Background(), readSameCellAsynchronousFixture(t))
 }
 
@@ -195,6 +196,7 @@ func TestOCCTMappedChainRectangularSameCellAsynchronousSupportKnotsClosedDisplay
 }
 
 func TestOCCTMappedChainRectangularSameCellAsynchronousSupportKnotsRejectsInvalidSource(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, o := readSameCellAsynchronousFixture(t), sameCellAsynchronousOptions()
 	older := o
@@ -229,6 +231,7 @@ func TestOCCTMappedChainRectangularSameCellAsynchronousSupportKnotsRejectsInvali
 }
 
 func TestOCCTMappedChainRectangularSameCellAsynchronousSupportKnotsLive(t *testing.T) {
+	t.Parallel()
 	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_SAME_CELL_ASYNC_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT source author and STEP consumer")

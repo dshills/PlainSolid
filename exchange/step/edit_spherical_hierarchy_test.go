@@ -12,6 +12,7 @@ import (
 )
 
 func TestIndependentSphericalHierarchyEditSharedDatum(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, err := os.ReadFile("testdata/independent-spherical-hierarchy.step")
 	if err != nil {

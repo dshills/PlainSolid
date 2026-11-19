@@ -106,6 +106,7 @@ func TestReadSideOpenDualDiskProductCircleRephase(t *testing.T) {
 	}
 }
 func TestReadSideOpenDualDiskProductCircleRephaseRejects(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteSideOpenDualDiskProduct(context.Background(), &b, sideDiskDescriptor(t, false)); e != nil {
 		t.Fatal(e)
@@ -144,6 +145,7 @@ func TestReadSideOpenDualDiskProductCircleRephaseRejects(t *testing.T) {
 	}
 }
 func TestOCCTSideOpenDualDiskCircleRephase(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS")
 	if oracle == "" {
 		t.Skip("optional independent OCCT helper")

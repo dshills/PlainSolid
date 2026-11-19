@@ -13,6 +13,7 @@ func polynomialResidualFixture() string {
 	return "ISO-10303-21;HEADER;FILE_DESCRIPTION(('test'),'2;1');FILE_NAME('','','',(''),'','','');FILE_SCHEMA(('AUTOMOTIVE_DESIGN'));ENDSEC;DATA;#1=CARTESIAN_POINT('',(0.,0.,0.));#2=CARTESIAN_POINT('',(1.,0.,0.));#3=B_SPLINE_CURVE_WITH_KNOTS('',1,(#1,#2),.UNSPECIFIED.,.F.,.F.,(2,2),(0.,1.),.UNSPECIFIED.);ENDSEC;END-ISO-10303-21;"
 }
 func TestPolynomialSphereResidualIndependent(t *testing.T) {
+	t.Parallel()
 	raw := polynomialResidualFixture()
 	r, e := BoundPolynomialSplineSphereResidual(strings.NewReader(raw), Limits{}, 3, geom.Vec3{}, 1)
 	if e != nil {
@@ -33,6 +34,7 @@ func TestPolynomialSphereResidualIndependent(t *testing.T) {
 	}
 }
 func TestPolynomialSphereResidualPartitioned(t *testing.T) {
+	t.Parallel()
 	raw := polynomialResidualFixture()
 	raw = strings.Replace(raw, "#3=B_SPLINE", "#4=CARTESIAN_POINT('',(0.,0.,0.));#3=B_SPLINE", 1)
 	raw = strings.Replace(raw, "(#1,#2)", "(#1,#2,#4)", 1)
@@ -57,6 +59,7 @@ func TestPolynomialSphereResidualPartitioned(t *testing.T) {
 }
 
 func TestPolynomialSphereResidualOCCT(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)

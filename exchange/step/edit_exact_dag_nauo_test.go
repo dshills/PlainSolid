@@ -24,6 +24,7 @@ func exactDAGRootEdit(a ExactDAGPlanarNAUO) ExactNAUOPlacement {
 	return ExactNAUOPlacement{NAUOID: a.Occurrences[0].Path[0].NAUOID, Origin: [3]*big.Rat{big.NewRat(200, 1), big.NewRat(0, 1), big.NewRat(0, 1)}, XAxis: [3]*big.Rat{big.NewRat(1, 1), big.NewRat(0, 1), big.NewRat(0, 1)}, ZAxis: [3]*big.Rat{big.NewRat(0, 1), big.NewRat(0, 1), big.NewRat(1, 1)}}
 }
 func TestEditExactDAGNAUORoot(t *testing.T) {
+	t.Parallel()
 	a := exactDAGEditSource(t)
 	p := exactDAGRootEdit(a)
 	before, e := mappedPlanarSourceBytes(a.Source)
@@ -87,6 +88,7 @@ func TestEditExactDAGNAUORoot(t *testing.T) {
 	}
 }
 func TestEditExactDAGNAUOFromAndRational(t *testing.T) {
+	t.Parallel()
 	a := exactDAGEditSource(t)
 	p := exactDAGRootEdit(a)
 	from := a.Source.Entities[a.Occurrences[0].Path[0].FromPlacementID].Records[0]
@@ -113,6 +115,7 @@ func TestEditExactDAGNAUOFromAndRational(t *testing.T) {
 	}
 }
 func TestEditExactDAGNAUOReject(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"empty", "duplicate", "internal", "unknown", "nonterminating", "nonorthogonal", "irrational", "nil", "large", "shared-target", "limit"} {
 		t.Run(kind, func(t *testing.T) {
 			a := exactDAGEditSource(t)

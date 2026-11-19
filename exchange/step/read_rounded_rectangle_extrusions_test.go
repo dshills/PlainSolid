@@ -7,6 +7,7 @@ import (
 )
 
 func TestReadRoundedRectangleExtrusions(t *testing.T) {
+	t.Parallel()
 	for _, height := range []float64{-3, 3} {
 		for _, blind := range []bool{false, true} {
 			m := roundedSTEPFixture(t, height)
@@ -45,6 +46,7 @@ func TestReadRoundedRectangleExtrusions(t *testing.T) {
 }
 
 func TestReadRoundedRectangleExtrusionsRejectsChangedSource(t *testing.T) {
+	t.Parallel()
 	m := roundedSTEPFixture(t, 3)
 	var b bytes.Buffer
 	if e := WriteRoundedRectangleExtrusions(&b, m); e != nil {

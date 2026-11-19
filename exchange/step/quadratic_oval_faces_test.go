@@ -21,6 +21,7 @@ func quadraticFaceFixture(t *testing.T) QuadraticOvalFaceModel {
 	return QuadraticOvalFaceModel{LengthUnit: .001, Faces: []QuadraticOvalFace{{Name: "Curved annulus", Geometry: s, Outer: q, Holes: []QuadraticOval{h}}}}
 }
 func TestQuadraticOvalSTEP(t *testing.T) {
+	t.Parallel()
 	m := quadraticFaceFixture(t)
 	var b bytes.Buffer
 	if e := WriteQuadraticOvalFaces(&b, m); e != nil {
@@ -80,6 +81,7 @@ func TestQuadraticOvalSTEP(t *testing.T) {
 	}
 }
 func TestOCCTQuadraticOvalSTEP(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteQuadraticOvalFaces(&b, quadraticFaceFixture(t)); e != nil {
 		t.Fatal(e)
@@ -107,6 +109,7 @@ func TestOCCTQuadraticOvalSTEP(t *testing.T) {
 }
 
 func TestIndependentQuadraticOvalSTEP(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/quadratic-annulus.step")
 	if e != nil {
 		t.Fatal(e)
@@ -118,6 +121,7 @@ func TestIndependentQuadraticOvalSTEP(t *testing.T) {
 }
 
 func TestOCCTQuarterOvalFixture(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/quadratic-annulus-quarters.step")
 	if e != nil {
 		t.Fatal(e)
@@ -143,6 +147,7 @@ func TestOCCTQuarterOvalFixture(t *testing.T) {
 }
 
 func TestOCCTQuadraticOvalBothDirections(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-quadratic-annulus")
 	raw, e := os.ReadFile(source)
@@ -181,6 +186,7 @@ func TestOCCTQuadraticOvalBothDirections(t *testing.T) {
 }
 
 func TestPartitionedOvalReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/quadratic-annulus-quarters.step")
 	if e != nil {
 		t.Fatal(e)

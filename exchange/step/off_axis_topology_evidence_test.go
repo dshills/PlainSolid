@@ -9,6 +9,7 @@ import (
 )
 
 func TestOffAxisTopologyEvidence(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -28,6 +29,7 @@ func TestOffAxisTopologyEvidence(t *testing.T) {
 	}
 }
 func TestOffAxisTopologyEvidenceRejects(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -114,6 +116,7 @@ func TestOffAxisBoreEvidenceBundle(t *testing.T) {
 }
 
 func TestOffAxisTopologyRenumbered(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)

@@ -12,6 +12,7 @@ import (
 )
 
 func TestNestedEllipticalAnnularPrism(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/occt-nested-elliptical-annular-prism.step")
 	if e != nil {

@@ -38,6 +38,7 @@ func independentAnalyticAssemblyModel(t testing.TB) IndependentAnalyticAssemblyM
 	return IndependentAnalyticAssemblyModel(m)
 }
 func TestIndependentAnalyticAssembly(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/independent-analytic-assembly.step")
 	if e != nil {

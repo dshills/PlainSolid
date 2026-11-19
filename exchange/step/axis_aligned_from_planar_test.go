@@ -24,6 +24,7 @@ func planarHoledL(t testing.TB) brep.Solid {
 	return s
 }
 func TestAxisAlignedFromPlanar(t *testing.T) {
+	t.Parallel()
 	native := planarHoledL(t)
 	source := Model{LengthUnit: .001, Bodies: []Body{{Name: "holed L", Solid: native}}}
 	m, e := AxisAlignedSplineShellsFromPlanar(context.Background(), source)
@@ -72,6 +73,7 @@ func TestAxisAlignedFromPlanar(t *testing.T) {
 	}
 }
 func TestAxisAlignedFromPlanarReject(t *testing.T) {
+	t.Parallel()
 	native := planarHoledL(t)
 	skew, e := native.Transformed(geom.Affine{{1, 1, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}})
 	if e != nil {
@@ -89,6 +91,7 @@ func TestAxisAlignedFromPlanarReject(t *testing.T) {
 	}
 }
 func TestOCCTAxisAlignedFromPlanar(t *testing.T) {
+	t.Parallel()
 	m, e := AxisAlignedSplineShellsFromPlanar(context.Background(), Model{LengthUnit: .001, Bodies: []Body{{Name: "native holed prism", Solid: planarHoledL(t)}}})
 	if e != nil {
 		t.Fatal(e)

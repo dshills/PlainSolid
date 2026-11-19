@@ -132,6 +132,7 @@ func TestReadEccentricAnnularChamferSTEPReject(t *testing.T) {
 }
 
 func TestEccentricAnnularChamferPinnedSTEPAuthor(t *testing.T) {
+	t.Parallel()
 	author := os.Getenv("PLAINSOLID_OCCT_ECCENTRIC_ANNULAR_EXACT_AUTHOR")
 	if author == "" {
 		t.Skip("pinned OCCT exact STEP author not configured")

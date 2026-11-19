@@ -130,6 +130,7 @@ func TestExactCircularSweepInsetSTEPRoundTrip(t *testing.T) {
 }
 
 func TestExactCircularSweepInsetSTEPLiveOCCT(t *testing.T) {
+	t.Parallel()
 	reader := os.Getenv("PLAINSOLID_OCCT_DIRECTED_CIRCULAR_STEP")
 	if reader == "" {
 		t.Skip("optional pinned independent STEP reader")

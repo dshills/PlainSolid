@@ -184,6 +184,7 @@ type mixedConicalOccurrenceMeasure struct {
 }
 
 func TestMixedConicalAP242PinnedAuthor(t *testing.T) {
+	t.Parallel()
 	cmd := os.Getenv("PLAINSOLID_OCCT_MIXED_CONICAL_AP242")
 	if cmd == "" {
 		t.Skip("pinned mixed conical AP242 author not configured")

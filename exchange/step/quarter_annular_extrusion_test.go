@@ -13,6 +13,7 @@ import (
 )
 
 func TestQuarterAnnularExtrusionSTEP(t *testing.T) {
+	t.Parallel()
 	for _, normal := range []geom.Vec3{{Z: 1}, {Y: 1}, {Y: -1}} {
 		for _, unit := range []float64{.001, .01} {
 			f, err := geom.NewFrame(geom.Vec3{X: 1, Y: 2, Z: 3}, geom.Vec3{X: 1}, normal)

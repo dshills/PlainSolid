@@ -81,6 +81,7 @@ func TestOCCTExactDirectedCircularLoopOriginalWires(t *testing.T) {
 }
 
 func TestOCCTExactDirectedCircularLoopLiveOriginal(t *testing.T) {
+	t.Parallel()
 	author, reader := os.Getenv("PLAINSOLID_OCCT_DIRECTED_LOOP_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_DIRECTED_CIRCULAR_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned independent STEP author and reader")

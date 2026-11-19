@@ -36,6 +36,7 @@ func checkShoulders(t *testing.T, m AnalyticModel, collar bool) {
 	}
 }
 func TestAxialShouldersRoundtrip(t *testing.T) {
+	t.Parallel()
 	for _, collar := range []bool{false, true} {
 		var b bytes.Buffer
 		if e := WriteAxialProfiles(&b, shoulderModel(t, collar)); e != nil {
@@ -49,6 +50,7 @@ func TestAxialShouldersRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTAxialShoulders(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"groove", "collar", "cut-groove"} {
 		collar := kind == "collar"
 		path := filepath.Join(t.TempDir(), "reference.step")
@@ -91,6 +93,7 @@ func TestOCCTAxialShoulders(t *testing.T) {
 }
 
 func TestIndependentAxialShoulders(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"groove", "collar", "cut-groove"} {
 		collar := kind == "collar"
 		raw, e := os.ReadFile("testdata/axial-" + kind + ".step")
@@ -105,6 +108,7 @@ func TestIndependentAxialShoulders(t *testing.T) {
 	}
 }
 func TestWideningShoulderOrientationProof(t *testing.T) {
+	t.Parallel()
 	var raw bytes.Buffer
 	if e := WriteAxialProfiles(&raw, shoulderModel(t, true)); e != nil {
 		t.Fatal(e)
@@ -139,6 +143,7 @@ func TestWideningShoulderOrientationProof(t *testing.T) {
 	}
 }
 func TestAxialShouldersMixedFourSections(t *testing.T) {
+	t.Parallel()
 	m := axialModel(t)
 	m.Bodies[0].Sections = []CylinderSection{{1, 1}, {3, 1}, {2, 1}, {4, 1}}
 	var b bytes.Buffer
@@ -170,6 +175,7 @@ func FuzzAxialShoulderSTEP(f *testing.F) {
 // Mutate the independent OCCT cut graph, including its noncanonical upper wall.
 // Parameter-origin normalization must not hide mismatched model/UV geometry.
 func TestAxialShiftedOriginProof(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile("testdata/axial-cut-groove.step")
 	if err != nil {
 		t.Fatal(err)

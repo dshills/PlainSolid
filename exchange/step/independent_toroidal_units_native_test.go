@@ -13,6 +13,7 @@ import (
 )
 
 func TestIndependentToroidalUnitsNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	source, e := os.ReadFile("testdata/independent-toroidal-units.step")
 	if e != nil {

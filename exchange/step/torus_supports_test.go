@@ -12,6 +12,7 @@ func torusSupportFixture() TorusSupportModel {
 	return TorusSupportModel{Name: "supports", SetName: "set", LengthUnit: .001, Surfaces: []TorusSupport{{Name: "torus", PlacementName: "frame", LocationName: "center", AxisName: "axis", ReferenceName: "radial", Location: geom.Vec3{X: 2, Y: 3, Z: 4}, Axis: geom.Vec3{X: -1}, Reference: geom.Vec3{Z: -1}, MajorRadius: 4, MinorRadius: 1.25}}}
 }
 func TestTorusSupportsRoundtrip(t *testing.T) {
+	t.Parallel()
 	for _, unit := range []float64{.001, .3048, 1} {
 		m := torusSupportFixture()
 		m.LengthUnit = unit
@@ -44,6 +45,7 @@ func TestTorusSupportsRoundtrip(t *testing.T) {
 	}
 }
 func TestTorusSupportsReject(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	_ = WriteTorusSupports(&b, torusSupportFixture())
 	s := b.String()
@@ -64,6 +66,7 @@ func TestTorusSupportsReject(t *testing.T) {
 }
 
 func TestTorusSupportsOwnershipAndAtomicity(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	_ = WriteTorusSupports(&b, torusSupportFixture())
 	s := b.String()

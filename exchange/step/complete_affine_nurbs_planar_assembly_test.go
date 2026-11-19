@@ -26,6 +26,7 @@ func completeAffineNURBSFixture(t testing.TB) []byte {
 	return b
 }
 func TestCompleteAffineNURBSPlanarAssembly(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := completeAffineNURBSFixture(t)
 	m, e := ReadCompleteAffineNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -121,6 +122,7 @@ func completeAffineNURBSNativeFixture(t testing.TB) []byte {
 	return out.Bytes()
 }
 func TestCompleteAffineNURBSNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := completeAffineNURBSNativeFixture(t)
 	m, e := ReadCompleteAffineNURBSPlanarAssemblyJSON(ctx, bytes.NewReader(raw), IndependentMaterialJSONLimits{})
@@ -192,6 +194,7 @@ func TestCompleteAffineNURBSNative(t *testing.T) {
 	}
 }
 func TestCompleteAffineNURBSLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_COMPLETE_AFFINE_NURBS_PLANAR")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")
@@ -273,6 +276,7 @@ func FuzzCompleteAffineNURBSPlanar(f *testing.F) {
 }
 
 func TestCompleteAffineNURBSHomogeneousProof(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := completeAffineNURBSFixture(t)
 	m, e := ReadCompleteAffineNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -405,6 +409,7 @@ func TestCompleteAffineNURBSHomogeneousProof(t *testing.T) {
 }
 
 func TestCompleteAffineNURBSCurveProof(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := completeAffineNURBSFixture(t)
 	m, e := ReadCompleteAffineNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -516,6 +521,7 @@ func TestCompleteAffineNURBSCurveProof(t *testing.T) {
 }
 
 func TestCompleteAffineNURBSModelProof(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := completeAffineNURBSFixture(t)
 	m, e := ReadCompleteAffineNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})

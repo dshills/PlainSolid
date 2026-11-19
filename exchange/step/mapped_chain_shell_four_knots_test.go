@@ -196,6 +196,7 @@ func verifyMappedRoofSlopeJump(t *testing.T, ctx context.Context, surface *geom.
 }
 
 func TestOCCTMappedChainRectangularFourSupportKnots(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(fourKnotMappedChainPath)
 	if err != nil {
 		t.Fatal(err)
@@ -260,6 +261,7 @@ func verifyMappedChainCutDisplayWithClosedOptions(t *testing.T, ctx context.Cont
 }
 
 func TestOCCTMappedChainRectangularFourSupportKnotsRejectsInvalidSource(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, err := os.ReadFile(fourKnotMappedChainPath)
 	if err != nil {
@@ -334,6 +336,7 @@ func TestOCCTMappedChainRectangularFourSupportKnotsRejectsInvalidSource(t *testi
 }
 
 func TestOCCTMappedChainRectangularFourSupportKnotsLive(t *testing.T) {
+	t.Parallel()
 	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_FOUR_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT four-cut author and STEP consumer")

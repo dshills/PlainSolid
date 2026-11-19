@@ -28,6 +28,7 @@ func cylinderMaterialFixture(t testing.TB) CylinderMaterialAssemblyModel {
 	return m
 }
 func TestCylinderMaterialAssembly(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteCylinderMaterialAssembly(&b, cylinderMaterialFixture(t)); e != nil {
 		t.Fatal(e)
@@ -87,6 +88,7 @@ func cylinderMaterialReexport(t testing.TB, a CylinderMaterialAssembly) []byte {
 	return b.Bytes()
 }
 func TestCylinderMaterialAssemblyRejects(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteCylinderMaterialAssembly(&b, cylinderMaterialFixture(t)); e != nil {
 		t.Fatal(e)
@@ -143,6 +145,7 @@ func TestCylinderMaterialAssemblyRejects(t *testing.T) {
 	}
 }
 func TestOCCTCylinderMaterialAssembly(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_CYLINDER_ASSEMBLY")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

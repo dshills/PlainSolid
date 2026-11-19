@@ -14,6 +14,7 @@ import (
 )
 
 func TestTorusCylinderPairedImport(t *testing.T) {
+	t.Parallel()
 	for _, c := range []float64{4, 6} {
 		for _, op := range []geom.TorusCylinderOperation{geom.TorusCylinderCommon, geom.TorusCylinderDifference, geom.TorusCylinderUnion} {
 			for _, caps := range [][2]float64{{-3, 4}, {-4, 3}} {
@@ -71,6 +72,7 @@ func TestTorusCylinderPairedImport(t *testing.T) {
 }
 
 func TestTorusCylinderImportRejectsMutations(t *testing.T) {
+	t.Parallel()
 	if _, e := ReadTorusCylinderSet(nil, Limits{}, 1e-8); e == nil {
 		t.Fatal("nil input")
 	}
@@ -157,6 +159,7 @@ func TestTorusCylinderImportRejectsMutations(t *testing.T) {
 }
 
 func TestTorusCylinderImportUnobservableCapsScale(t *testing.T) {
+	t.Parallel()
 	for _, exp := range []int{-100, 100} {
 		scale := math.Ldexp(1, exp)
 		b := torusCylinderSTEPBody(geom.TorusCylinderDifference)

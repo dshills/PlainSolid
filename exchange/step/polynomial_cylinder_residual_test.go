@@ -12,6 +12,7 @@ import (
 )
 
 func TestPolynomialCylinderResidualIndependent(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		axis  geom.Vec3
 		upper *big.Rat
@@ -40,6 +41,7 @@ func TestPolynomialCylinderResidualIndependent(t *testing.T) {
 	}
 }
 func TestPolynomialCylinderResidualOCCT(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/off-axis-sphere-bore-occt.step")
 	if e != nil {
 		t.Fatal(e)

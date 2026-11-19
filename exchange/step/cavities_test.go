@@ -33,6 +33,7 @@ func checkCavity(t *testing.T, m CavityModel) {
 	}
 }
 func TestCavityRoundtrip(t *testing.T) {
+	t.Parallel()
 	for _, reversed := range []bool{true} {
 		m := cavityModel(t)
 		if !reversed {
@@ -54,6 +55,7 @@ func TestCavityRoundtrip(t *testing.T) {
 	}
 }
 func TestCavityRejects(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"orientation", "touch", "outside", "overlap"} {
 		m := cavityModel(t)
 		switch kind {
@@ -75,6 +77,7 @@ func TestCavityRejects(t *testing.T) {
 	}
 }
 func TestOCCTCavities(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "reference.step")
 	stepOracle(t, path, "write-step-cavity")
 	raw, e := os.ReadFile(path)
@@ -107,6 +110,7 @@ func TestOCCTCavities(t *testing.T) {
 }
 
 func TestIndependentCavityFixture(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/cavity.step")
 	if e != nil {
 		t.Fatal(e)
@@ -124,6 +128,7 @@ func TestIndependentCavityFixture(t *testing.T) {
 }
 
 func TestMultipleCavityShells(t *testing.T) {
+	t.Parallel()
 	m := cavityModel(t)
 	second, e := brep.Box(geom.Vec3{X: 6, Y: 6, Z: 6}, geom.Vec3{X: 7, Y: 7, Z: 7})
 	if e != nil {

@@ -23,6 +23,7 @@ func pythagoreanPrismFixture(t testing.TB) []byte {
 	return b
 }
 func TestPythagoreanEllipticalPrism(t *testing.T) {
+	t.Parallel()
 	raw := pythagoreanPrismFixture(t)
 	m, e := ReadPythagoreanEllipticalPrism(context.Background(), bytes.NewReader(raw), Limits{}, 1e-9)
 	if e != nil {
@@ -64,6 +65,7 @@ func TestPythagoreanEllipticalPrism(t *testing.T) {
 }
 
 func TestWritePythagoreanEllipticalPrism(t *testing.T) {
+	t.Parallel()
 	d := PythagoreanEllipticalPrismDefinition{Name: "Exact 3:4 prism", Origin: geom.Vec3{X: 1, Y: 2, Z: 3}, Reference: geom.Vec3{X: 3, Y: 4}, Axis: geom.Vec3{Z: 1}, MajorRadius: 10, MinorRadius: 5, Height: 3}
 	var out bytes.Buffer
 	if e := WritePythagoreanEllipticalPrismSTEP(context.Background(), &out, d, 1e-9); e != nil {
@@ -96,6 +98,7 @@ func TestWritePythagoreanEllipticalPrism(t *testing.T) {
 }
 
 func TestPythagoreanEllipticalPrismSourceMutations(t *testing.T) {
+	t.Parallel()
 	raw := string(pythagoreanPrismFixture(t))
 	for _, x := range [][2]string{{"(0.6,0.8,-0.)", "(0.600000000000001,0.8,0.)"}, {"#68 = CARTESIAN_POINT('',(1.,2.,6.));", "#68 = CARTESIAN_POINT('',(1.,2.,7.));"}, {"#23 = CARTESIAN_POINT('',(7.,10.,3.));", "#23 = CARTESIAN_POINT('',(7.,11.,3.));"}, {"(0.6,0.8,-0.)", "(-0.6,-0.8,0.)"}} {
 		s := strings.Replace(raw, x[0], x[1], 1)

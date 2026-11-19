@@ -17,6 +17,7 @@ func planarRevolveFixture(axis geom.Vec3, angle float64) PlanarPolygonRevolveMod
 	return PlanarPolygonRevolveModel{LengthUnit: .001, Bodies: []PlanarPolygonRevolveBody{{Name: "PlainCAD axis edit", Points: []geom.Vec3{{}, {X: 20}, {X: 20, Y: 10}, {Y: 10}}, AxisDirection: axis, Angle: angle}}}
 }
 func TestPlanarPolygonRevolvePlainCAD(t *testing.T) {
+	t.Parallel()
 	for _, axis := range []geom.Vec3{{X: 2}, {Y: 2}, {X: -2}, {Y: -2}} {
 		for _, angle := range []float64{math.Pi / 2, -math.Pi / 2, -1.3 * math.Pi} {
 			m := planarRevolveFixture(axis, angle)
@@ -67,6 +68,7 @@ func TestPlanarPolygonRevolvePlainCAD(t *testing.T) {
 	}
 }
 func TestPlanarPolygonRevolveOCCT(t *testing.T) {
+	t.Parallel()
 	for _, axis := range []geom.Vec3{{X: 2}, {Y: 2}, {X: -2}} {
 		for _, angle := range []float64{math.Pi / 2, -math.Pi / 2} {
 			m := planarRevolveFixture(axis, angle)
@@ -116,6 +118,7 @@ func TestPlanarPolygonRevolveOCCT(t *testing.T) {
 	}
 }
 func TestPlanarRectangleRejects(t *testing.T) {
+	t.Parallel()
 	m := planarRevolveFixture(geom.Vec3{Y: 1}, -1)
 	var raw bytes.Buffer
 	if e := WritePlanarPolygonRevolves(&raw, m); e != nil {
@@ -213,6 +216,7 @@ func TestPlanarRectangleRejects(t *testing.T) {
 }
 
 func TestPlanarRectangleIndependentOCCT(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-cylinder-sector")
 	data, e := os.ReadFile(source)
@@ -264,6 +268,7 @@ func TestPlanarRectangleIndependentOCCT(t *testing.T) {
 	}
 }
 func TestPlanarPolygonNonrectangularFallback(t *testing.T) {
+	t.Parallel()
 	m := PlanarPolygonRevolveModel{LengthUnit: .001, Bodies: []PlanarPolygonRevolveBody{{Points: []geom.Vec3{{}, {X: 4}, {X: 4, Y: 3}, {X: 2, Y: 3}, {X: 2, Y: 1}, {Y: 1}}, AxisDirection: geom.Vec3{Y: 1}, Angle: -1}}}
 	var out bytes.Buffer
 	if e := WritePlanarPolygonRevolves(&out, m); e != nil {

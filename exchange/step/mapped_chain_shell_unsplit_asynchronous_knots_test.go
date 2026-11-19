@@ -32,6 +32,7 @@ func unsplitAsynchronousFixture(t *testing.T) ([]byte, MappedChainShellSTEPOptio
 }
 
 func TestOCCTMappedChainRectangularUnsplitAsynchronousSupportKnots(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, o := unsplitAsynchronousFixture(t)
 	for _, disabled := range []MappedChainShellSTEPOptions{
@@ -142,6 +143,7 @@ func TestOCCTMappedChainRectangularUnsplitAsynchronousSupportKnots(t *testing.T)
 }
 
 func TestOCCTMappedChainRectangularUnsplitAsynchronousSupportKnotsRejectsCollapsedPartition(t *testing.T) {
+	t.Parallel()
 	raw, o := unsplitAsynchronousFixture(t)
 	f, err := Parse(bytes.NewReader(raw), Limits{})
 	if err != nil {
@@ -208,6 +210,7 @@ func TestOCCTMappedChainRectangularUnsplitAsynchronousSupportKnotsRejectsCollaps
 }
 
 func TestOCCTMappedChainRectangularUnsplitAsynchronousSupportKnotsRejectsUnrepresentableCompanion(t *testing.T) {
+	t.Parallel()
 	raw, o := unsplitAsynchronousFixture(t)
 	for _, edit := range [][2]string{
 		{"(2.,107.,111.)", "(2.,23.,27.)"},
@@ -228,6 +231,7 @@ func TestOCCTMappedChainRectangularUnsplitAsynchronousSupportKnotsRejectsUnrepre
 }
 
 func TestOCCTMappedChainRectangularUnsplitAsynchronousSupportKnotsRejectsChangedModel(t *testing.T) {
+	t.Parallel()
 	raw, o := unsplitAsynchronousFixture(t)
 	f, err := Parse(bytes.NewReader(raw), Limits{})
 	if err != nil {
@@ -244,6 +248,7 @@ func TestOCCTMappedChainRectangularUnsplitAsynchronousSupportKnotsRejectsChanged
 }
 
 func TestOCCTMappedChainRectangularUnsplitAsynchronousOptionPreservesSynchronizedProofs(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for i, path := range []string{unsplitMappedChainPath, unsplitTwoKnotPath} {
 		raw, err := os.ReadFile(path)
@@ -266,6 +271,7 @@ func TestOCCTMappedChainRectangularUnsplitAsynchronousOptionPreservesSynchronize
 }
 
 func TestOCCTMappedChainRectangularUnsplitAsynchronousSupportKnotsLive(t *testing.T) {
+	t.Parallel()
 	exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if exe == "" {
 		t.Skip("optional pinned OCCT STEP consumer")

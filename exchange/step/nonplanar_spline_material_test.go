@@ -92,6 +92,7 @@ func TestNonplanarSplineMaterialFamilies(t *testing.T) {
 	}
 }
 func TestNonplanarSplineMaterialReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := nonplanarMaterialFixture(t, nonplanarMaterialCases[0].file)
 	for name, edit := range map[string]func(*File){
@@ -212,6 +213,7 @@ func TestNonplanarSplineMaterialReject(t *testing.T) {
 	}
 }
 func TestNonplanarSplineMaterialLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_SPLINE_ROOF_VOID")
 	if bin == "" {
 		t.Skip("independent STEP material comparator")

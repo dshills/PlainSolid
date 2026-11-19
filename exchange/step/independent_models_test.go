@@ -8,6 +8,7 @@ import (
 )
 
 func TestIndependentModelsPreserveNamesAndRejectDetachedGeometry(t *testing.T) {
+	t.Parallel()
 	f, _ := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	var source bytes.Buffer
 	if e := WriteCylinders(&source, CylinderModel{LengthUnit: .001, Bodies: []CylinderBody{{Name: "A '#42' \\ circle", Frame: f, Radius: 2, Height: 3}}}); e != nil {

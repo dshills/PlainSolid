@@ -1,3 +1,5 @@
+//go:build research
+
 package trimmed
 
 // AlgebraicShellBooleanHistory maps both original shells to the qualified

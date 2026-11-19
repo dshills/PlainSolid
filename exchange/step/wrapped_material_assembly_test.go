@@ -87,6 +87,7 @@ func TestWrappedMaterialAssembly(t *testing.T) {
 	}
 }
 func TestOCCTWrappedMaterialAssembly(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteWrappedMaterialAssembly(&b, wrappedAssemblyFixture(t)); e != nil {
 		t.Fatal(e)
@@ -141,6 +142,7 @@ func TestOCCTWrappedMaterialAssembly(t *testing.T) {
 }
 
 func TestOCCTWrappedMaterialAssemblyMass(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteWrappedMaterialAssembly(&b, wrappedAssemblyFixture(t)); e != nil {
 		t.Fatal(e)

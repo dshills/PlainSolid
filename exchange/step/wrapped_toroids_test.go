@@ -10,6 +10,7 @@ import (
 )
 
 func TestWrappedToroidalBodies(t *testing.T) {
+	t.Parallel()
 	m := WrappedToroidalModel{LengthUnit: .001, Bodies: []WrappedToroidalBody{{Name: "weighted toroid", Face: WrappedSplineFace{Name: "periodic skin", Geometry: wrappedToroidForSTEP(t)}}}}
 	var b bytes.Buffer
 	if e := WriteWrappedToroidalBodies(&b, m); e != nil {
@@ -56,6 +57,7 @@ func TestWrappedToroidalBodies(t *testing.T) {
 }
 
 func TestWrappedToroidalBodiesOCCT(t *testing.T) {
+	t.Parallel()
 	m := WrappedToroidalModel{LengthUnit: .001, Bodies: []WrappedToroidalBody{{Name: "weighted toroid", Face: WrappedSplineFace{Geometry: wrappedToroidForSTEP(t)}}}}
 	var b bytes.Buffer
 	if e := WriteWrappedToroidalBodies(&b, m); e != nil {
@@ -83,6 +85,7 @@ func TestWrappedToroidalBodiesOCCT(t *testing.T) {
 }
 
 func TestWrappedToroidalBodiesFromOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-wrapped-toroid")
 	raw, e := os.ReadFile(source)
@@ -122,6 +125,7 @@ func TestWrappedToroidalBodiesFromOCCT(t *testing.T) {
 }
 
 func TestWrappedToroidalStoredOCCT(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-toroid.step")
 	if e != nil {
 		t.Fatal(e)

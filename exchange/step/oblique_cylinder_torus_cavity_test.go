@@ -12,6 +12,7 @@ import (
 )
 
 func TestObliqueCylinderTorusCavitySTEP(t *testing.T) {
+	t.Parallel()
 	r := big.NewRat
 	b := ObliqueCylinderTorusCavityBody{Name: "oblique", MajorRadius: 3, MinorRadius: 1, CylinderRadius: 8, Lower: -6, Upper: 6, Frame: [3][4]*big.Rat{{r(3, 5), r(0, 1), r(4, 5), r(1, 1)}, {r(0, 1), r(1, 1), r(0, 1), r(0, 1)}, {r(-4, 5), r(0, 1), r(3, 5), r(0, 1)}}}
 	var raw bytes.Buffer

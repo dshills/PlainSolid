@@ -16,6 +16,7 @@ import (
 )
 
 func TestLayeredDiskBoresSTEP(t *testing.T) {
+	t.Parallel()
 	for _, height := range []float64{8, -8} {
 		m := diskExtrusionFixture(t, height)
 		b := &m.Bodies[0]
@@ -50,6 +51,7 @@ func TestLayeredDiskBoresSTEP(t *testing.T) {
 }
 
 func TestLayeredDiskBoresSTEPPreservesOpposedCoaxialWeb(t *testing.T) {
+	t.Parallel()
 	for _, height := range []float64{8, -8} {
 		model := diskExtrusionFixture(t, height)
 		body := &model.Bodies[0]

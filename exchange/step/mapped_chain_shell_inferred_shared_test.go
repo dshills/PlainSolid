@@ -197,10 +197,12 @@ func verifyInferredSharedMappedChainMaterial(t *testing.T, ctx context.Context, 
 }
 
 func TestOCCTMappedChainRectangularInferredSharedSupportKnot(t *testing.T) {
+	t.Parallel()
 	verifyInferredSharedMappedChain(t, context.Background(), readInferredSharedMappedChainFixture(t, inferredSharedMappedChainPath), false)
 }
 
 func TestOCCTMappedChainRectangularInferredSharedSupportKnotClosedDisplay(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, inferredSharedMappedChainPath)
 	m, err := ReadOCCTMappedChainRectangularShell(ctx, bytes.NewReader(raw), Limits{}, inferredSharedMappedChainOptions())
@@ -211,6 +213,7 @@ func TestOCCTMappedChainRectangularInferredSharedSupportKnotClosedDisplay(t *tes
 }
 
 func TestOCCTMappedChainRectangularInferredSharedSupportKnotRejectsInvalidSource(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, o := readInferredSharedMappedChainFixture(t, inferredSharedMappedChainPath), inferredSharedMappedChainOptions()
 	previous := sameCellAsynchronousOptions()
@@ -260,6 +263,7 @@ func rejectInferredSharedStoredKnot(t *testing.T, ctx context.Context, raw []byt
 }
 
 func TestOCCTMappedChainRectangularInferredSharedSupportKnotLive(t *testing.T) {
+	t.Parallel()
 	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_INFERRED_SHARED_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT source author and STEP consumer")
@@ -282,6 +286,7 @@ func TestOCCTMappedChainRectangularInferredSharedSupportKnotLive(t *testing.T) {
 }
 
 func TestOCCTMappedChainRectangularInferredSharedSupportKnotPair(t *testing.T) {
+	t.Parallel()
 	verifyInferredSharedMappedChain(t, context.Background(), readInferredSharedMappedChainFixture(t, inferredSharedPairMappedChainPath), true)
 }
 
@@ -299,6 +304,7 @@ func TestOCCTMappedChainRectangularInferredSharedSupportKnotPairClosedDisplay(t 
 }
 
 func TestOCCTMappedChainRectangularInferredSharedSupportKnotPairRejectsUnrepresentableSecondStop(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, inferredSharedPairMappedChainPath)
 	o := inferredSharedMappedChainOptions()
@@ -332,6 +338,7 @@ func TestOCCTMappedChainRectangularInferredSharedSupportKnotPairRejectsUnreprese
 }
 
 func TestOCCTMappedChainRectangularInferredSharedSupportKnotPairLive(t *testing.T) {
+	t.Parallel()
 	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_INFERRED_SHARED_PAIR_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT source author and STEP consumer")

@@ -31,6 +31,7 @@ func circularNAUOSource(t *testing.T) ([]byte, Assembly, int64) {
 	return nil, Assembly{}, 0
 }
 func TestInspectCircularNAUO(t *testing.T) {
+	t.Parallel()
 	raw, _, id := circularNAUOSource(t)
 	a, e := InspectCircularNAUOProduct(bytes.NewReader(raw), Limits{}, id)
 	if e != nil {
@@ -58,6 +59,7 @@ func TestInspectCircularNAUO(t *testing.T) {
 	}
 }
 func TestInspectCircularNAUOMutations(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"cap-owner", "rim-radius", "pcurve-radius", "coedge", "bad-loop", "seam-owner", "seam-order", "angle-unit", "product-owner", "limit", "unknown"} {
 		t.Run(kind, func(t *testing.T) {
 			raw, assembly, id := circularNAUOSource(t)
@@ -143,6 +145,7 @@ func TestInspectCircularNAUOMutations(t *testing.T) {
 	}
 }
 func TestInspectCircularNAUOExactVertexDoesNotHidePeriod(t *testing.T) {
+	t.Parallel()
 	raw, a, id := circularNAUOSource(t)
 	report, e := InspectCircularNAUOProduct(bytes.NewReader(raw), Limits{}, id)
 	if e != nil {
@@ -174,6 +177,7 @@ func TestInspectCircularNAUOExactVertexDoesNotHidePeriod(t *testing.T) {
 	}
 }
 func TestOCCTCircularNAUOInput(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_DISK_BOUND_MASS")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

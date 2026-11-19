@@ -25,6 +25,7 @@ func wrappedToroidalVoidFixture(t *testing.T) WrappedToroidalVoid {
 	return WrappedToroidalVoid{Name: "Hollow rational toroid", Outer: WrappedSplineFace{Name: "Exterior", Geometry: a}, Inner: WrappedSplineFace{Name: "Void", Geometry: b}, LengthUnit: .001}
 }
 func TestWrappedToroidalVoid(t *testing.T) {
+	t.Parallel()
 	m := wrappedToroidalVoidFixture(t)
 	var b bytes.Buffer
 	if e := WriteWrappedToroidalVoid(&b, m); e != nil {
@@ -65,6 +66,7 @@ func TestWrappedToroidalVoid(t *testing.T) {
 	}
 }
 func TestWrappedToroidalVoidOCCT(t *testing.T) {
+	t.Parallel()
 	m := wrappedToroidalVoidFixture(t)
 	var b bytes.Buffer
 	if e := WriteWrappedToroidalVoid(&b, m); e != nil {
@@ -93,6 +95,7 @@ func TestWrappedToroidalVoidOCCT(t *testing.T) {
 }
 
 func TestWrappedToroidalVoidStoredOCCT(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-toroidal-void.step")
 	if e != nil {
 		t.Fatal(e)
@@ -106,6 +109,7 @@ func TestWrappedToroidalVoidStoredOCCT(t *testing.T) {
 	}
 }
 func TestWrappedToroidalVoidFromOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-wrapped-toroidal-void")
 	raw, e := os.ReadFile(source)
@@ -141,6 +145,7 @@ func TestWrappedToroidalVoidFromOCCT(t *testing.T) {
 	}
 }
 func TestWrappedToroidalVoidEllipticalProfiles(t *testing.T) {
+	t.Parallel()
 	m := wrappedToroidalVoidFixture(t)
 	var e error
 	m.Outer.Geometry, e = geom.NewCanonicalWrappedCircularToroid(context.Background(), geom.Vec3{X: 1, Y: 2, Z: 3}, 3, 1, 2, geom.SurfacePatchOptions{})

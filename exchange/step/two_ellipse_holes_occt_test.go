@@ -14,6 +14,7 @@ import (
 )
 
 func TestOCCTTwoEllipticalHoleFace(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_TWO_ELLIPSE_HOLES")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

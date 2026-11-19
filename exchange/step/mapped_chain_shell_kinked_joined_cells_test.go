@@ -100,6 +100,7 @@ func TestOCCTMappedChainRectangularKinkedJoinedIndependentRoofsClosedDisplay(t *
 }
 
 func TestOCCTMappedChainRectangularKinkedJoinedIndependentRoofsRejectsMovedSupport(t *testing.T) {
+	t.Parallel()
 	raw := readInferredSharedMappedChainFixture(t, kinkedJoinedRoofPath)
 	bad := readInferredSharedMappedChainFixture(t, kinkedJoinedMovedSupportPath)
 	ctx := context.Background()
@@ -121,6 +122,7 @@ func rejectKinkedJoinedMovedSupport(t *testing.T, ctx context.Context, source Ma
 }
 
 func TestOCCTMappedChainRectangularKinkedJoinedIndependentRoofsLive(t *testing.T) {
+	t.Parallel()
 	verifyPinnedThreeJoinedRoofs(t, threeJoinedKinked)
 }
 

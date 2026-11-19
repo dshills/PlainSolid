@@ -58,6 +58,7 @@ func TestReadUnequalCenterSideOpenDualDiskProduct(t *testing.T) {
 	}
 }
 func TestReadUnequalCenterSideOpenDualDiskProductEncodingProofs(t *testing.T) {
+	t.Parallel()
 	for _, through := range []bool{false, true} {
 		var b bytes.Buffer
 		if e := WriteUnequalCenterSideOpenDualDiskProduct(context.Background(), &b, unequalCenterSideDiskDescriptor(t, through, true, true)); e != nil {
@@ -84,6 +85,7 @@ func TestReadUnequalCenterSideOpenDualDiskProductEncodingProofs(t *testing.T) {
 	}
 }
 func TestOCCTReadUnequalCenterSideOpenDualDiskProduct(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS")
 	if oracle == "" {
 		t.Skip("optional independent OCCT helper")
@@ -145,6 +147,7 @@ func TestOCCTReadUnequalCenterSideOpenDualDiskProduct(t *testing.T) {
 	}
 }
 func TestReadUnequalCenterSideOpenDualDiskJoinAndOwnerRejects(t *testing.T) {
+	t.Parallel()
 	d := unequalCenterSideDiskDescriptor(t, false, false, false)
 	var b bytes.Buffer
 	if e := WriteUnequalCenterSideOpenDualDiskProduct(context.Background(), &b, d); e != nil {
@@ -220,6 +223,7 @@ func TestReadUnequalCenterSideOpenDualDiskJoinAndOwnerRejects(t *testing.T) {
 	}
 }
 func TestReadUnequalCenterSideOpenDualDiskStockOrigin(t *testing.T) {
+	t.Parallel()
 	d := unequalCenterSideDiskDescriptor(t, false, true, true)
 	d.Min = geom.Vec2{X: 2, Y: 3}
 	d.Max = geom.Vec2{X: 62, Y: 13}
@@ -246,6 +250,7 @@ func TestReadUnequalCenterSideOpenDualDiskStockOrigin(t *testing.T) {
 	}
 }
 func TestReadUnequalCenterSideOpenDualDiskVendorRejects(t *testing.T) {
+	t.Parallel()
 	for _, mode := range []string{"side", "through"} {
 		raw, e := os.ReadFile("testdata/occt_unequal_center_dual_disk_" + mode + ".step")
 		if e != nil {

@@ -8,6 +8,7 @@ import (
 )
 
 func TestGeometricTangentComposite(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/geometric-tangent-composite-curve.step")
 	if e != nil {
 		t.Fatal(e)
@@ -60,6 +61,7 @@ func TestGeometricTangentComposite(t *testing.T) {
 	}
 }
 func TestGeometricTangentProportionalPredicate(t *testing.T) {
+	t.Parallel()
 	vec := func(x, y, z int64) [3]*big.Rat {
 		return [3]*big.Rat{big.NewRat(x, 1), big.NewRat(y, 1), big.NewRat(z, 1)}
 	}

@@ -157,6 +157,7 @@ func verifyOCCTMappedChainSTEP(t *testing.T, raw []byte, reordered bool) MappedC
 }
 
 func TestOCCTMappedChainRectangularRecordedSTEP(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile("testdata/occt_mapped_chain_rectangular.step")
 	if err != nil {
 		t.Fatal(err)
@@ -206,6 +207,7 @@ func TestOCCTMappedChainRectangularRecordedSTEP(t *testing.T) {
 }
 
 func TestOCCTMappedChainRectangularLiveAuthor(t *testing.T) {
+	t.Parallel()
 	exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_AUTHOR")
 	if exe == "" {
 		t.Skip("optional pinned OCCT source author")

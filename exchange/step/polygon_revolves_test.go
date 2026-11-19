@@ -37,6 +37,7 @@ func polygonRevolveFixture(t *testing.T, kind string, angle float64) PolygonRevo
 	return PolygonRevolveModel{LengthUnit: .001, Bodies: []PolygonRevolveBody{{Name: kind, Frame: f, Profile: p, Angle: angle, AllowAxisContact: kind == "axis-concave" || kind == "apex" || kind == "apex-end"}}}
 }
 func TestPolygonRevolveSTEP(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"concave", "cone"} {
 		for _, angle := range []float64{math.Pi / 2, -math.Pi / 3, 3 * math.Pi / 2} {
 			m := polygonRevolveFixture(t, kind, angle)
@@ -116,6 +117,7 @@ func TestPolygonRevolveSTEP(t *testing.T) {
 	}
 }
 func TestPolygonRevolveSTEPOCCT(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("PLAINSOLID_OCCT_STEP") == "" {
 		t.Skip("optional OCCT")
 	}
@@ -193,6 +195,7 @@ func TestPolygonRevolveSTEPOCCT(t *testing.T) {
 }
 
 func TestPolygonRevolveInputWinding(t *testing.T) {
+	t.Parallel()
 	m := polygonRevolveFixture(t, "cone", -math.Pi/3)
 	before := append([]geom.Vec2(nil), m.Bodies[0].Profile...)
 	for i, j := 0, len(before)-1; i < j; i, j = i+1, j-1 {

@@ -14,6 +14,7 @@ import (
 )
 
 func TestRepairCircularTubeCentimeterSource(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-circular-tube-nauo-cm-scaled.step")
 	if e != nil {
 		t.Fatal(e)
@@ -67,6 +68,7 @@ func TestRepairCircularTubeCentimeterSource(t *testing.T) {
 	}
 }
 func TestOCCTRepairCircularTubeCentimeterSource(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_DISK_BOUND_MASS")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

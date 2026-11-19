@@ -24,6 +24,7 @@ func curvedOvalFixture(t testing.TB) CurvedOvalFace {
 	return CurvedOvalFace{Name: "curved rational oval", Geometry: s, Outer: QuadraticOval{Center: geom.Vec2{X: .5, Y: .5}, Radii: geom.Vec2{X: 3. / 16, Y: 3. / 16}, QuarterWeight: .5}, LengthUnit: .001}
 }
 func TestCurvedOvalComposition(t *testing.T) {
+	t.Parallel()
 	o, _ := (CurvedOvalOptions{}).defaults()
 	_, curves, e := certifyCurvedOval(curvedOvalFixture(t), o)
 	if e != nil {
@@ -40,6 +41,7 @@ func TestCurvedOvalComposition(t *testing.T) {
 	}
 }
 func TestCurvedOvalFaceRoundtrip(t *testing.T) {
+	t.Parallel()
 	m := curvedOvalFixture(t)
 	var b bytes.Buffer
 	if e := WriteCurvedOvalFace(&b, m, CurvedOvalOptions{}); e != nil {
@@ -64,6 +66,7 @@ func TestCurvedOvalFaceRoundtrip(t *testing.T) {
 }
 
 func TestCurvedOvalRationalSupport(t *testing.T) {
+	t.Parallel()
 	m := curvedOvalFixture(t)
 	d := m.Geometry.Data()
 	wu := []float64{1, 1.5, 2}

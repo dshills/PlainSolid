@@ -11,6 +11,7 @@ import (
 )
 
 func TestOCCTTangentCompositeCurves(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_STEP_COMPOSITE")
 	if oracle == "" {
 		t.Skip("optional tangent composite helper")

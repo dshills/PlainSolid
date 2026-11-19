@@ -30,6 +30,7 @@ func boundedSplineFixture(t *testing.T) BoundedSplineFaceModel {
 	return m
 }
 func TestBoundedSplineFaceRoundtrip(t *testing.T) {
+	t.Parallel()
 	m := boundedSplineFixture(t)
 	var out bytes.Buffer
 	if e := WriteBoundedSplineFaces(&out, m); e != nil {
@@ -48,6 +49,7 @@ func TestBoundedSplineFaceRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTBoundedSplineFace(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-bounded-spline-face")
 	raw, e := os.ReadFile(source)
@@ -89,6 +91,7 @@ func TestOCCTBoundedSplineFace(t *testing.T) {
 	}
 }
 func TestBoundedSplineFaceUnrepresentable(t *testing.T) {
+	t.Parallel()
 	m := boundedSplineFixture(t)
 	m.Faces[0].Domain.UMin = .25
 	var b bytes.Buffer
@@ -99,6 +102,7 @@ func TestBoundedSplineFaceUnrepresentable(t *testing.T) {
 }
 
 func TestBoundedSplineFaceMalformed(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/bounded-spline-face.step")
 	if e != nil {
 		t.Fatal(e)

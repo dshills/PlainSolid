@@ -33,6 +33,7 @@ func unsplitThreeKnotFixture(t *testing.T) ([]byte, MappedChainShellSTEPOptions)
 }
 
 func TestOCCTMappedChainRectangularUnsplitThreeSupportKnots(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, o := unsplitThreeKnotFixture(t)
 	disabled := o
@@ -154,6 +155,7 @@ func TestOCCTMappedChainRectangularUnsplitThreeSupportKnots(t *testing.T) {
 }
 
 func TestOCCTMappedChainRectangularUnsplitThreeSupportKnotsRejectsInvalidPartition(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, o := unsplitThreeKnotFixture(t)
 	decimal := func(x float64) string {
@@ -210,6 +212,7 @@ func TestOCCTMappedChainRectangularUnsplitThreeSupportKnotsRejectsInvalidPartiti
 }
 
 func TestOCCTMappedChainRectangularUnsplitThreeSupportKnotsReversedEdge(t *testing.T) {
+	t.Parallel()
 	raw, o := unsplitThreeKnotFixture(t)
 	f, err := Parse(bytes.NewReader(raw), Limits{})
 	if err != nil {
@@ -234,6 +237,7 @@ func TestOCCTMappedChainRectangularUnsplitThreeSupportKnotsReversedEdge(t *testi
 }
 
 func TestOCCTMappedChainRectangularUnsplitThreeSupportKnotsPreservesEarlierModes(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	_, o := unsplitThreeKnotFixture(t)
 	o.AllowAsynchronousSupportKnots = true
@@ -261,6 +265,7 @@ func TestOCCTMappedChainRectangularUnsplitThreeSupportKnotsPreservesEarlierModes
 }
 
 func TestOCCTMappedChainRectangularUnsplitThreeSupportKnotsLive(t *testing.T) {
+	t.Parallel()
 	exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if exe == "" {
 		t.Skip("optional pinned OCCT STEP consumer")

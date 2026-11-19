@@ -14,6 +14,7 @@ import (
 )
 
 func TestTrimmedGeneratrixCylinder(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/trimmed-generatrix-cylinder.step")
 	if e != nil {
 		t.Fatal(e)
@@ -56,6 +57,7 @@ func TestTrimmedGeneratrixCylinder(t *testing.T) {
 	}
 }
 func TestOCCTTrimmedGeneratrixCylinder(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_SPLIT_CYLINDER")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

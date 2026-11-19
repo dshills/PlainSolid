@@ -26,6 +26,7 @@ func nestedRationalAnisotropicBoreFixture(t testing.TB) []byte {
 	return b
 }
 func TestNestedRationalAnisotropicAssemblies(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, bore := range []bool{false, true} {
 		var instances []RationalHierarchyInstance
@@ -89,6 +90,7 @@ func TestNestedRationalAnisotropicAssemblies(t *testing.T) {
 	}
 }
 func TestNestedRationalAnisotropicReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, bore := range []bool{false, true} {
 		raw := nestedRationalAnisotropicFixture(t)

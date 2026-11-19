@@ -13,6 +13,7 @@ import (
 )
 
 func TestAnalyticDiskNativeSigned(t *testing.T) {
+	t.Parallel()
 	for _, height := range []float64{3, -3} {
 		for _, mode := range []string{"solid", "through", "mixed", "blind", "opposed"} {
 			t.Run(mode+real(height), func(t *testing.T) {
@@ -61,6 +62,7 @@ func TestAnalyticDiskNativeSigned(t *testing.T) {
 	}
 }
 func TestAnalyticDiskIndependent(t *testing.T) {
+	t.Parallel()
 	data, e := os.ReadFile("testdata/disk-pocket-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -78,6 +80,7 @@ func TestAnalyticDiskIndependent(t *testing.T) {
 	}
 }
 func TestAnalyticDiskOCCT(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-disk-pocket")
 	data, e := os.ReadFile(source)
@@ -123,6 +126,7 @@ func TestAnalyticDiskOCCT(t *testing.T) {
 }
 
 func TestAnalyticDiskRejects(t *testing.T) {
+	t.Parallel()
 	data, e := os.ReadFile("testdata/disk-pocket-occt.step")
 	if e != nil {
 		t.Fatal(e)

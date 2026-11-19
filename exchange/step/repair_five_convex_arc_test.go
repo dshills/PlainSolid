@@ -187,6 +187,7 @@ func TestRepairFiveConvexArcSource(t *testing.T) {
 }
 
 func TestRepairFiveConvexArcRejectsChangedCharts(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(fiveConvexArcSource + ".step")
 	if err != nil {
 		t.Fatal(err)
@@ -246,6 +247,7 @@ func checkFiveConvexArcNondyadic(t *testing.T, raw []byte) {
 }
 
 func TestRepairFiveConvexArcRejectsNondyadicTangencies(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(fiveConvexArcSource + "-nondyadic.step")
 	if err != nil {
 		t.Fatal(err)
@@ -254,6 +256,7 @@ func TestRepairFiveConvexArcRejectsNondyadicTangencies(t *testing.T) {
 }
 
 func TestRepairFiveConvexArcLive(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL to the pinned author helper")

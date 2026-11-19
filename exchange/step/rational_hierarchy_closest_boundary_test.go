@@ -13,6 +13,7 @@ import (
 )
 
 func TestHierarchyClosestBoundary(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, vendor := range []bool{false, true} {
 		name := "rational-spherical-hierarchy.step"
@@ -106,6 +107,7 @@ func TestHierarchyClosestBoundary(t *testing.T) {
 }
 
 func TestHierarchyClosestExactCandidateTies(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	o := geom.ExactCurvePlaneEventOptions{}
 	rational, _, e := geom.NewExactRationalRoot(ctx, big.NewRat(1, 1), o)

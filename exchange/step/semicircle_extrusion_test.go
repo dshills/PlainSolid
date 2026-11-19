@@ -13,6 +13,7 @@ import (
 )
 
 func TestSemicircleSTEP(t *testing.T) {
+	t.Parallel()
 	for _, n := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		for _, radius := range []float64{3, 2.5} {
 			f, _ := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
@@ -61,6 +62,7 @@ func TestSemicircleSTEP(t *testing.T) {
 	}
 }
 func TestSemicircleSTEPRejectsTampering(t *testing.T) {
+	t.Parallel()
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	m := SemicircleExtrusionModel{LengthUnit: .001, Body: SemicircleExtrusionBody{Name: "half disk", Frame: f, Radius: 3, Height: 2}}
 	var b bytes.Buffer

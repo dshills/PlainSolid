@@ -10,6 +10,7 @@ import (
 )
 
 func TestPreflightSweptFixtureRouting(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name, kind string
 		standalone bool
@@ -91,6 +92,7 @@ func TestPreflightSweptFixtureRouting(t *testing.T) {
 	}
 }
 func TestPreflightSweptHintsDoNotAcceptGraphs(t *testing.T) {
+	t.Parallel()
 	base := "#1=GEOMETRIC_SET();#2=GEOMETRICALLY_BOUNDED_SURFACE_SHAPE_REPRESENTATION();#3=RECTANGULAR_TRIMMED_SURFACE();#4=SURFACE_OF_REVOLUTION();"
 	for _, tc := range []struct {
 		suffix string

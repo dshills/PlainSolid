@@ -14,6 +14,7 @@ import (
 )
 
 func TestExactControlEllipticalPrismCore(t *testing.T) {
+	t.Parallel()
 	b := mappedRationalBasis{Origin: [3]*big.Rat{big.NewRat(1, 10), big.NewRat(2, 1), big.NewRat(3, 1)}, X: [3]*big.Rat{big.NewRat(3, 5), big.NewRat(4, 5), new(big.Rat)}, Y: [3]*big.Rat{big.NewRat(-4, 5), big.NewRat(3, 5), new(big.Rat)}, Z: [3]*big.Rat{new(big.Rat), new(big.Rat), big.NewRat(1, 1)}}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()

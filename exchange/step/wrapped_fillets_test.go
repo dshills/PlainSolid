@@ -40,6 +40,7 @@ func TestWrappedRimFilletSTEP(t *testing.T) {
 }
 
 func TestOCCTWrappedRimFilletSTEP(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-wrapped-rim-fillet")
 	raw, e := os.ReadFile(source)
@@ -93,6 +94,7 @@ func TestOCCTWrappedRimFilletSTEP(t *testing.T) {
 }
 
 func TestIndependentWrappedRimFillet(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-rim-fillet.step")
 	if e != nil {
 		t.Fatal(e)

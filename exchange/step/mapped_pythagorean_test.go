@@ -24,6 +24,7 @@ func pythagoreanMappedFixture(t *testing.T) (NativeMappedPlanarModel, []Pythagor
 	return m, []PythagoreanLocalFrame{{Origin: geom.Vec3{X: 5, Y: -10, Z: 2}, XAxis: geom.Vec3{X: 3, Y: 4}, ZAxis: geom.Vec3{Z: 1}}, {XAxis: geom.Vec3{X: 1}, ZAxis: geom.Vec3{Z: 1}}}
 }
 func TestPythagoreanMapped(t *testing.T) {
+	t.Parallel()
 	m, f := pythagoreanMappedFixture(t)
 	var b bytes.Buffer
 	if e := WritePythagoreanMappedPlanarMaterials(&b, m, f, Limits{}); e != nil {
@@ -50,6 +51,7 @@ func TestPythagoreanMapped(t *testing.T) {
 }
 
 func TestPythagoreanMappedIndependent(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-pythagorean-mapped-planar.step")
 	if e != nil {
 		t.Fatal(e)
@@ -66,6 +68,7 @@ func TestPythagoreanMappedIndependent(t *testing.T) {
 	}
 }
 func TestPythagoreanMappedReject(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"irrational", "orthogonal", "rounding", "frame-limit", "limits"} {
 		t.Run(kind, func(t *testing.T) {
 			m, f := pythagoreanMappedFixture(t)
@@ -117,6 +120,7 @@ func TestPythagoreanMappedReject(t *testing.T) {
 	}
 }
 func TestOCCTPythagoreanMapped(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_DISK_BOUND_MASS")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")
@@ -165,6 +169,7 @@ func TestOCCTPythagoreanMapped(t *testing.T) {
 }
 
 func TestPythagoreanMappedSourceAdversaries(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-pythagorean-mapped-planar.step")
 	if e != nil {
 		t.Fatal(e)

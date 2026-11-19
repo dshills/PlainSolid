@@ -7,6 +7,7 @@ import (
 )
 
 func TestRefinedLensAssembly(t *testing.T) {
+	t.Parallel()
 	m := lensAssemblyFixture(t)
 	r := refinedCurveLensFixture(t)
 	m.Products[1].Bodies = []SplineLensBody{r.Body}
@@ -32,6 +33,7 @@ func TestRefinedLensAssembly(t *testing.T) {
 	}
 }
 func TestRefinedLensAssemblyOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-refined-curve-lens-assembly")
 	raw, e := os.ReadFile(source)
@@ -72,6 +74,7 @@ func FuzzRefinedLensAssembly(f *testing.F) {
 }
 
 func TestRefinedLensAssemblyRejectsUnownedCurves(t *testing.T) {
+	t.Parallel()
 	m := lensAssemblyFixture(t)
 	r := refinedCurveLensFixture(t)
 	m.Products[1].Bodies = []SplineLensBody{r.Body}

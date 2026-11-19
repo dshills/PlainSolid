@@ -20,6 +20,7 @@ func exactLoopSTEPBytes(t testing.TB, negative bool) []byte {
 	return b.Bytes()
 }
 func TestReadExactCircularLoopExtrusion(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, negative := range []bool{false, true} {
 		raw := exactLoopSTEPBytes(t, negative)
@@ -74,6 +75,7 @@ func TestReadExactCircularLoopExtrusion(t *testing.T) {
 	}
 }
 func TestReadExactCircularLoopExtrusionReject(t *testing.T) {
+	t.Parallel()
 	raw := exactLoopSTEPBytes(t, false)
 	ctx := context.Background()
 	for _, test := range []struct {

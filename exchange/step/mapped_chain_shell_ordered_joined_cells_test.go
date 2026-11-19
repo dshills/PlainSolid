@@ -348,6 +348,7 @@ func TestOCCTMappedChainRectangularOrderedJoinedRoofsRejectsFalseReceipt(t *test
 }
 
 func TestOCCTMappedChainRectangularOrderedJoinedRoofsLive(t *testing.T) {
+	t.Parallel()
 	author := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_ORDERED_JOINED_ROOFS_AUTHOR")
 	reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {

@@ -147,6 +147,7 @@ func TestWrappedAnisotropicStationAssemblies(t *testing.T) {
 	}
 }
 func TestWrappedAnisotropicStationAssemblyReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, bore := range []bool{false, true} {
 		raw := anisotropicAssemblyFixture(t, bore)
@@ -186,6 +187,7 @@ func TestWrappedAnisotropicStationAssemblyReject(t *testing.T) {
 	}
 }
 func TestWrappedAnisotropicStationAssemblyLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_ANISOTROPIC_STATION")
 	if bin == "" {
 		t.Skip("optional independent XCAF")
@@ -316,6 +318,7 @@ func TestWrappedAnisotropicStationAssemblyLive(t *testing.T) {
 }
 
 func TestWrappedAnisotropicStationAssemblyAtomic(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m, e := ReadWrappedAnisotropicStationAssembly(ctx, bytes.NewReader(anisotropicAssemblyFixture(t, false)), Limits{}, WrappedSurfaceOptions{})
 	if e != nil {

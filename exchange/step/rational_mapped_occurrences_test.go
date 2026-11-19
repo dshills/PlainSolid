@@ -36,6 +36,7 @@ func rationalMappedFixture(t *testing.T) (*File, []RationalMappedPlacement) {
 	return a.Source, ps
 }
 func TestRationalMappedOccurrences(t *testing.T) {
+	t.Parallel()
 	source, ps := rationalMappedFixture(t)
 	var out bytes.Buffer
 	if e := WriteRationalMappedPlanarPlacements(&out, source, ps, Limits{}); e != nil {
@@ -73,6 +74,7 @@ func TestRationalMappedOccurrences(t *testing.T) {
 	}
 }
 func TestRationalMappedReject(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"missing", "duplicate", "origin", "nonorthogonal", "irrational", "nil", "limit"} {
 		t.Run(kind, func(t *testing.T) {
 			source, ps := rationalMappedFixture(t)
@@ -101,6 +103,7 @@ func TestRationalMappedReject(t *testing.T) {
 	}
 }
 func TestOCCTRationalMappedBounds(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_MAPPED_BOUNDS")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")
@@ -151,6 +154,7 @@ func TestOCCTRationalMappedBounds(t *testing.T) {
 }
 
 func TestRationalMappedOriginalOwnership(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-rational-mapped-occurrence.step")
 	if e != nil {
 		t.Fatal(e)

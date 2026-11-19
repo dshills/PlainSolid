@@ -27,6 +27,7 @@ func advancedSolids(t *testing.T) []brep.Solid {
 	return []brep.Solid{box, prism}
 }
 func TestWriteAdvancedTopology(t *testing.T) {
+	t.Parallel()
 	for _, s := range advancedSolids(t) {
 		m := Model{LengthUnit: .001, Bodies: []Body{{"solid", s}}}
 		var b, again bytes.Buffer
@@ -62,6 +63,7 @@ func TestWriteAdvancedTopology(t *testing.T) {
 	}
 }
 func TestOCCTAdvancedSTEPExport(t *testing.T) {
+	t.Parallel()
 	for i, s := range advancedSolids(t) {
 		var b bytes.Buffer
 		if e := WriteAdvanced(&b, Model{LengthUnit: .001, Bodies: []Body{{"solid", s}}}); e != nil {

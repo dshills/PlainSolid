@@ -253,6 +253,7 @@ func TestHierarchyTorusDistance(t *testing.T) {
 	}
 }
 func TestHierarchyDistanceFourFamilyIntegration(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, _ := os.ReadFile("testdata/rational-spherical-hierarchy.step")
 	m, e := ReadRationalSphericalHierarchy(ctx, bytes.NewReader(raw), Limits{}, 1e-9)
@@ -290,6 +291,7 @@ func TestHierarchyDistanceFourFamilyIntegration(t *testing.T) {
 }
 
 func TestHierarchyTorusDistanceGuardsAndRationalMeridian(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, _ := os.ReadFile("testdata/rational-spherical-hierarchy.step")
 	m, e := ReadRationalSphericalHierarchy(ctx, bytes.NewReader(raw), Limits{}, 1e-9)

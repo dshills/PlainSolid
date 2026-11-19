@@ -13,6 +13,7 @@ import (
 )
 
 func TestIndependentConicalSector(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/conical-sector.step")
 	if e != nil {
 		t.Fatal(e)
@@ -28,6 +29,7 @@ func TestIndependentConicalSector(t *testing.T) {
 }
 
 func TestConicalSectorRoundtrip(t *testing.T) {
+	t.Parallel()
 	frame, e := geom.NewFrame(geom.Vec3{X: 1, Y: 2, Z: 3}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	if e != nil {
 		t.Fatal(e)
@@ -48,6 +50,7 @@ func TestConicalSectorRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTConicalSector(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, path, "write-step-conical-sector")
 	raw, e := os.ReadFile(path)
@@ -83,6 +86,7 @@ func TestOCCTConicalSector(t *testing.T) {
 	}
 }
 func TestConicalSectorMalformed(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/conical-sector.step")
 	if e != nil {
 		t.Fatal(e)
@@ -141,6 +145,7 @@ func FuzzConicalSectorSTEP(f *testing.F) {
 }
 
 func TestConicalSectorDimensions(t *testing.T) {
+	t.Parallel()
 	frame, _ := geom.NewFrame(geom.Vec3{}, geom.Vec3{X: 1}, geom.Vec3{Z: 1})
 	for _, radii := range [][2]float64{{1, 1}, {1, 2}, {1, 0}, {math.NaN(), 1}, {3, math.Inf(1)}} {
 		var b bytes.Buffer

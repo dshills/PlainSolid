@@ -26,6 +26,7 @@ func elevatedNURBSFixture(t testing.TB) []byte {
 	return b
 }
 func TestElevatedNURBSPlanarAssembly(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := elevatedNURBSFixture(t)
 	m, e := ReadElevatedNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -94,6 +95,7 @@ func TestElevatedNURBSPlanarAssembly(t *testing.T) {
 	}
 }
 func TestElevatedNURBSPlanarReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := elevatedNURBSFixture(t)
 	m, e := ReadElevatedNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -161,6 +163,7 @@ func elevatedNURBSNativeFixture(t testing.TB) []byte {
 	return out.Bytes()
 }
 func TestElevatedNURBSNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := elevatedNURBSNativeFixture(t)
 	m, e := ReadElevatedNURBSPlanarAssemblyJSON(ctx, bytes.NewReader(raw), IndependentMaterialJSONLimits{})
@@ -223,6 +226,7 @@ func TestElevatedNURBSNative(t *testing.T) {
 	}
 }
 func TestElevatedNURBSLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_ELEVATED_NURBS_PLANAR")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")
@@ -304,6 +308,7 @@ func FuzzElevatedNURBSPlanar(f *testing.F) {
 }
 
 func TestElevatedNURBSMixedAndRoundedSource(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-ap242-elevated-mixed-nurbs-planar.step")
 	if e != nil {
 		t.Fatal(e)
@@ -334,6 +339,7 @@ func TestElevatedNURBSMixedAndRoundedSource(t *testing.T) {
 // Independently generate exact Bernstein controls from the preserved endpoints
 // to exercise the admitted degree ceiling, including a degree-one tensor axis.
 func TestElevatedNURBSMaximumDegree(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := elevatedNURBSFixture(t)
 	source, e := ReadElevatedNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})

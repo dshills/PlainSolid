@@ -56,6 +56,7 @@ func sideDiskFlipLines(t *testing.T, raw []byte, mode string) ([]byte, int) {
 	return out, count
 }
 func TestReadSideOpenDualDiskProductReversedLines(t *testing.T) {
+	t.Parallel()
 	for _, through := range []bool{false, true} {
 		d := sideDiskDescriptor(t, through)
 		var b bytes.Buffer
@@ -90,6 +91,7 @@ func TestReadSideOpenDualDiskProductReversedLines(t *testing.T) {
 	}
 }
 func TestReadSideOpenDualDiskProductReversedLineRejects(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteSideOpenDualDiskProduct(context.Background(), &b, sideDiskDescriptor(t, false)); e != nil {
 		t.Fatal(e)
@@ -132,6 +134,7 @@ func TestReadSideOpenDualDiskProductReversedLineRejects(t *testing.T) {
 	}
 }
 func TestOCCTSideOpenDualDiskReversedLines(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS")
 	if oracle == "" {
 		t.Skip("optional independent OCCT helper")

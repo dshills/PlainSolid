@@ -20,6 +20,7 @@ func eccentricEllipseFixture(t testing.TB) []byte {
 	return b
 }
 func TestEccentricEllipticalFace(t *testing.T) {
+	t.Parallel()
 	raw := eccentricEllipseFixture(t)
 	f, e := ReadEccentricEllipticalFace(bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -74,6 +75,7 @@ func TestEccentricEllipticalFace(t *testing.T) {
 	}
 }
 func TestEccentricEllipticalFaceReject(t *testing.T) {
+	t.Parallel()
 	raw := eccentricEllipseFixture(t)
 	for _, m := range [][2]string{{"#54 = PCURVE('',#31,#55)", "#54 = PCURVE('',#25,#55)"}, {"#49,(#54)", "#49,(#30)"}, {"#58 = CARTESIAN_POINT('',(2.,1.))", "#58 = CARTESIAN_POINT('',(2.00000000000000001,1.))"}, {"#59 = DIRECTION('',(0.,1.))", "#59 = DIRECTION('',(0.,-1.))"}, {"#52 = DIRECTION('',(0.,1.,0.))", "#52 = DIRECTION('',(0.,-1.,0.))"}, {"#42 = FACE_BOUND('',#43,.F.)", "#42 = FACE_BOUND('',#43,.T.)"}, {"#51 = CARTESIAN_POINT('',(0.,2.,1.))", "#51 = CARTESIAN_POINT('',(0.,2.5,1.))"}, {"#46 = VERTEX_POINT('',#47)", "#46 = VERTEX_POINT('',#23)"}} {
 		b := bytes.Replace(raw, []byte(m[0]), []byte(m[1]), 1)
@@ -160,6 +162,7 @@ func eccentricEllipseMoved(t testing.TB, c, r geom.Vec2) []byte {
 	return raw
 }
 func TestEccentricEllipticalFaceClearance(t *testing.T) {
+	t.Parallel()
 	for _, r := range []geom.Vec2{{X: 1}, {Y: 1}, {X: -1}, {Y: -1}} {
 		raw := eccentricEllipseMoved(t, geom.Vec2{X: 2, Y: 1}, r)
 		f, e := ReadEccentricEllipticalFace(bytes.NewReader(raw), Limits{})

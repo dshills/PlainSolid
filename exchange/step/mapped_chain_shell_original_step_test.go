@@ -105,6 +105,7 @@ func sameOriginalMappedStepSpline(a, b mappedChainStepSpline) bool {
 }
 
 func TestOCCTMappedChainRectangularUnsplitMixedBasesOriginalSTEP(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(mixedBasisUnsplitMappedChainPath)
 	if err != nil {
 		t.Fatal(err)

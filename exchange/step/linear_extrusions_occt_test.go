@@ -13,6 +13,7 @@ import (
 )
 
 func TestOCCTLinearExtrusions(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_LINEAR_EXTRUSION")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_LINEAR_EXTRUSION to standalone helper")

@@ -25,6 +25,7 @@ func splitWriterFixture(t *testing.T) SplitCylinderDescriptor {
 	return SplitCylinderDescriptor{Name: "split 'posed'", Frame: f, Radius: 2, Height: 3, LengthUnit: .001}
 }
 func TestWriteSplitCylinderModel(t *testing.T) {
+	t.Parallel()
 	d := splitWriterFixture(t)
 	for _, unit := range []float64{.001, 1} {
 		d.LengthUnit = unit
@@ -51,6 +52,7 @@ type splitShortWriter struct{}
 
 func (splitShortWriter) Write(b []byte) (int, error) { return len(b) - 1, nil }
 func TestWriteSplitCylinderModelReject(t *testing.T) {
+	t.Parallel()
 	good := splitWriterFixture(t)
 	bad := good
 	bad.Radius = -1
@@ -75,6 +77,7 @@ func TestWriteSplitCylinderModelReject(t *testing.T) {
 	}
 }
 func TestWriteSplitCylinderModelOCCT(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_SPLIT_CYLINDER")
 	if bin == "" {
 		t.Skip("optional independent helper")
@@ -113,6 +116,7 @@ func TestWriteSplitCylinderModelOCCT(t *testing.T) {
 }
 
 func TestWriteSplitCylinderExactFractionalDimensions(t *testing.T) {
+	t.Parallel()
 	d := splitWriterFixture(t)
 	d.Radius = 2.125
 	d.Height = 3.25

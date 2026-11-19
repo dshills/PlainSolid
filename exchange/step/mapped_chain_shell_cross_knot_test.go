@@ -42,6 +42,7 @@ func crossKnotMappedSTEP(t *testing.T, ctx context.Context) ([]byte, trimmed.Map
 }
 
 func TestMappedChainRectangularSTEPRepairedSupportCrossing(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, shell := crossKnotMappedSTEP(t, ctx)
 	o := MappedChainShellSTEPOptions{AllowMultiSpanRoofs: true}
@@ -150,6 +151,7 @@ func TestMappedChainRectangularSTEPRepairedSupportCrossing(t *testing.T) {
 }
 
 func TestMappedChainRectangularSTEPRejectsNonDecimalCrossing(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, err := os.ReadFile("testdata/mapped_chain_cross_knot_source.json")
 	if err != nil {
@@ -175,6 +177,7 @@ func TestMappedChainRectangularSTEPRejectsNonDecimalCrossing(t *testing.T) {
 }
 
 func TestMappedChainRectangularSTEPRepairedSupportCrossingOCCT(t *testing.T) {
+	t.Parallel()
 	exe := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if exe == "" {
 		t.Skip("optional pinned OCCT STEP consumer")

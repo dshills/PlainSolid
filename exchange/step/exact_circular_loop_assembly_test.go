@@ -32,6 +32,7 @@ func exactCircularLoopAssemblyFixture(t testing.TB) []byte {
 	return out.Bytes()
 }
 func TestExactCircularLoopAssembly(t *testing.T) {
+	t.Parallel()
 	raw := exactCircularLoopAssemblyFixture(t)
 	ctx := context.Background()
 	m, e := ReadExactCircularLoopAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -63,6 +64,7 @@ func TestExactCircularLoopAssembly(t *testing.T) {
 }
 
 func TestExactCircularLoopAssemblyOriginal(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-model-only-rounded-assembly.step")
 	if e != nil {
 		t.Fatal(e)
@@ -77,6 +79,7 @@ func TestExactCircularLoopAssemblyOriginal(t *testing.T) {
 }
 
 func TestExactCircularLoopAssemblyReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := exactCircularLoopAssemblyFixture(t)
 	edits := []func(*File){
@@ -130,6 +133,7 @@ func TestExactCircularLoopAssemblyReject(t *testing.T) {
 	}
 }
 func TestExactCircularLoopAssemblyLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_EXACT_CIRCULAR_LOOP")
 	if bin == "" {
 		t.Skip("optional OCCT XCAF")

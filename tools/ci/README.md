@@ -20,23 +20,57 @@ gh workflow run go-qualification.yml --ref main
 
 ## Test tiers
 
-A plain `go test ./...` runs the fast tier: every test except those whose
-first statement is `slowtest.Skip(t)` (package `plainsolid/internal/slowtest`).
-`PLAINSOLID_SLOW=1` enables the rest. The Go qualification workflow and
-`run-go-qualification.py` set it, so both run the complete suite. `smoke.sh`
-also sets it so that each case it names runs whichever tier it is in. The
-fast tier takes about five minutes on a 14-core machine; the complete suite is
-several hours of test time.
+A plain `go test ./...` runs the default tier. Two things are left out of it:
 
-Use the fast tier for each change and the complete suite before a release or
-when changing the code a slow test covers. To run one slow test:
+- **Slow tests.** A test whose first statement is `slowtest.Skip(t)` (package
+  `plainsolid/internal/slowtest`) runs only with `PLAINSOLID_SLOW=1`.
+- **Research code.** Files that start with `//go:build research` are not
+  compiled at all without `-tags research`. They are the files of
+  `brep/trimmed` that no other package reaches, their tests, and the tests in
+  other packages that use them.
+
+The Go qualification workflow and `run-go-qualification.py` set both
+`PLAINSOLID_SLOW=1` and `GOFLAGS=-tags=research`, so they run the complete
+suite. `smoke.sh` sets `PLAINSOLID_SLOW=1` so that each case it names runs
+whichever tier it is in; every case it names is in the default build. The
+default tier takes under two minutes on a 14-core machine; the complete suite
+is several hours of test time.
+
+## Research build tag
+
+Go CI compiles and vets the research configuration on every push, and checks
+that the tag still marks exactly the right files:
 
 ```sh
-PLAINSOLID_SLOW=1 go test ./brep/trimmed -run '^TestNestedQuarticTubeMaterial$'
+go build -tags research ./... && go vet -tags research ./...
+go run ./tools/refgraph -tags research -pkg brep/trimmed -exclude examples -check research
 ```
 
+Research tests run only in qualification. Nothing runs them automatically;
+qualification is started by the owner and is required before a release.
+
+To work on research code, set `GOFLAGS=-tags=research` in the shell or the
+editor. If a default build fails with an undefined `trimmed` name, a core file
+or another package has started to use a research file: remove the tag from
+that file on purpose and rerun the check, which then names any other file that
+must change with it. A test file may not mix core and research declarations;
+put the research ones in a `*_research_test.go` file beside it.
+
+Use the default tier for each change and the complete suite before a release
+or when changing the code a slow test covers. To run one slow test:
+
+```sh
+PLAINSOLID_SLOW=1 go test -tags research ./brep/trimmed -run '^TestNestedQuarticTubeMaterial$'
+```
+
+Default-tier tests in `exchange/step` call `t.Parallel()` first; a new test
+there should too, unless it writes shared state. Tests in `brep/trimmed` must
+stay serial: see the known defects in [the status page](../../docs/STATUS.md).
+
 A new test that takes about two seconds or more should call
-`slowtest.Skip(t)` first. To re-tier from measurements, feed `go test -json`
+`slowtest.Skip(t)` first. Judge that by wall time. For a test whose subtests
+call `t.Parallel`, `go test` reports only the parent's own statements, which
+can read 0.01 s for a test that takes a minute; the marker accounts for this. To re-tier from measurements, feed `go test -json`
 output from a complete run to the marker; it only adds marks and is safe to
 rerun. Fuzz targets are never marked.
 

@@ -27,6 +27,7 @@ func rationalRevolutionFixture(t *testing.T) RevolutionSurfaceModel {
 	return m
 }
 func TestRevolutionSurfaceRationalSource(t *testing.T) {
+	t.Parallel()
 	m := rationalRevolutionFixture(t)
 	var b bytes.Buffer
 	if e := WriteRevolutionSurfaces(&b, m); e != nil {
@@ -56,6 +57,7 @@ func TestRevolutionSurfaceRationalSource(t *testing.T) {
 	}
 }
 func TestOCCTRevolutionRational(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_REVOLUTION_SURFACE")
 	if oracle == "" {
 		t.Skip("optional oracle")
@@ -147,6 +149,7 @@ func TestOCCTRevolutionRational(t *testing.T) {
 }
 
 func TestRevolutionSurfaceRationalRetainedOCCT(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/revolution-rational-occt.step")
 	if e != nil {
 		t.Fatal(e)

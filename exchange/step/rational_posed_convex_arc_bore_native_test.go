@@ -14,6 +14,7 @@ import (
 )
 
 func TestRationalPosedConvexArcThroughBoreNative(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(tiltedBoreSource + "through-bore.step")
 	if err != nil {
 		t.Fatal(err)

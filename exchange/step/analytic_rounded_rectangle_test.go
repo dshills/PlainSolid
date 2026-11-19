@@ -10,6 +10,7 @@ import (
 )
 
 func TestAnalyticRoundedRectangleIndependent(t *testing.T) {
+	t.Parallel()
 	data, e := os.ReadFile("testdata/rounded-stock-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -28,6 +29,7 @@ func TestAnalyticRoundedRectangleIndependent(t *testing.T) {
 	}
 }
 func TestAnalyticRoundedRectangleNative(t *testing.T) {
+	t.Parallel()
 	for _, h := range []float64{3, -3} {
 		m := roundedSTEPFixture(t, h)
 		m.Bodies[0].Holes = nil
@@ -46,6 +48,7 @@ func TestAnalyticRoundedRectangleNative(t *testing.T) {
 	}
 }
 func TestAnalyticRoundedRectangleOCCT(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-rounded-stock")
 	data, e := os.ReadFile(source)
@@ -91,6 +94,7 @@ func TestAnalyticRoundedRectangleOCCT(t *testing.T) {
 }
 
 func TestAnalyticRoundedRectangleRejects(t *testing.T) {
+	t.Parallel()
 	data, e := os.ReadFile("testdata/rounded-stock-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -228,6 +232,7 @@ func FuzzReadAnalyticRoundedRectangle(f *testing.F) {
 }
 
 func TestAnalyticRoundedRectangleCornerPatterns(t *testing.T) {
+	t.Parallel()
 	for _, radii := range [][4]float64{{.5, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, .75, 0}, {0, 0, 0, 1.5}, {.5, 1, .75, 1.5}} {
 		m := roundedSTEPFixture(t, 3)
 		m.Bodies[0].Holes = nil

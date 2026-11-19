@@ -16,6 +16,7 @@ import (
 )
 
 func TestSideNotchSTEP(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		normal geom.Vec3
 		inset  float64

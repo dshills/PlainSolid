@@ -109,6 +109,7 @@ func TestReadNestedMixedConicalAP242Assembly(t *testing.T) {
 }
 
 func TestReadNestedMixedConicalAP242AssemblyReject(t *testing.T) {
+	t.Parallel()
 	ctx, o := context.Background(), geom.SurfacePatchOptions{}
 	exact := nestedMixedConicalAP242Fixture(t, "exact")
 	if _, err := ReadMixedConicalAP242Assembly(ctx, bytes.NewReader(exact), Limits{}, o); err == nil {
@@ -166,6 +167,7 @@ type nestedMixedOccurrenceMeasure struct {
 }
 
 func TestNestedMixedConicalAP242PinnedAuthor(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_MIXED_CONICAL_AP242")
 	if oracle == "" {
 		t.Skip("pinned mixed conical AP242 author not configured")

@@ -14,6 +14,7 @@ import (
 )
 
 func TestOCCTRepairEllipticalPrism(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_ELLIPTICAL_PRISM")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

@@ -14,6 +14,7 @@ import (
 )
 
 func TestRationalHierarchyCylinderLine(t *testing.T) {
+	t.Parallel()
 	for _, vendor := range []bool{false, true} {
 		name := "rational-spherical-hierarchy.step"
 		if vendor {

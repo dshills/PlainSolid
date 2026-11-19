@@ -21,6 +21,7 @@ func ellipticalPrismFixture(t testing.TB) []byte {
 	return b
 }
 func TestRepairEllipticalPrism(t *testing.T) {
+	t.Parallel()
 	raw := ellipticalPrismFixture(t)
 	o := EllipticalWireRepairOptions{MaxDistance: 1e-11}
 	m, e := RepairRoundedEllipticalPrismShell(bytes.NewReader(raw), Limits{}, o)
@@ -76,6 +77,7 @@ func FuzzRepairEllipticalPrism(f *testing.F) {
 }
 
 func TestRepairEllipticalPrismRenumberedHeight(t *testing.T) {
+	t.Parallel()
 	s := string(ellipticalPrismFixture(t))
 	s = strings.ReplaceAll(s, "(1.,5.,", "(1.,7.,")
 	s = strings.ReplaceAll(s, "(0.,-3.)", "(0.,-5.)")

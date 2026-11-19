@@ -95,6 +95,7 @@ func TestMixedConicalAP242DAGAppearanceRetarget(t *testing.T) {
 }
 
 func TestMixedConicalAP242DAGAppearancePinnedAuthor(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_MIXED_CONICAL_AP242_APPEARANCE")
 	if oracle == "" {
 		t.Skip("pinned XCAF appearance author not configured")

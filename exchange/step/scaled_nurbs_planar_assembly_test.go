@@ -25,6 +25,7 @@ func scaledNURBSFixture(t testing.TB) []byte {
 	return b
 }
 func TestScaledNURBSPlanarAssembly(t *testing.T) {
+	t.Parallel()
 	raw := scaledNURBSFixture(t)
 	ctx := context.Background()
 	m, e := ReadScaledNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -135,6 +136,7 @@ func TestScaledNURBSPlanarAssembly(t *testing.T) {
 	}
 }
 func TestScaledNURBSPlanarAssemblyReject(t *testing.T) {
+	t.Parallel()
 	raw := scaledNURBSFixture(t)
 	ctx := context.Background()
 	m, e := ReadScaledNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -194,6 +196,7 @@ func TestScaledNURBSPlanarAssemblyReject(t *testing.T) {
 	}
 }
 func TestScaledNURBSPlanarAssemblyLimits(t *testing.T) {
+	t.Parallel()
 	raw := scaledNURBSFixture(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -211,6 +214,7 @@ func TestScaledNURBSPlanarAssemblyLimits(t *testing.T) {
 	}
 }
 func TestScaledNURBSPlanarAssemblyLive(t *testing.T) {
+	t.Parallel()
 	raw := scaledNURBSFixture(t)
 	m, e := ReadScaledNURBSPlanarAssembly(context.Background(), bytes.NewReader(raw), Limits{})
 	if e != nil {

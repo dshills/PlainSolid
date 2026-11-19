@@ -12,6 +12,7 @@ import (
 )
 
 func TestCircularSegmentSTEP(t *testing.T) {
+	t.Parallel()
 	for _, n := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		for _, sweep := range []float64{math.Pi / 2, 1.5 * math.Pi, 2.5} {
 			f, _ := geom.FrameFromNormal(geom.Vec3{}, n)
@@ -64,6 +65,7 @@ func TestCircularSegmentSTEP(t *testing.T) {
 }
 
 func TestCircularSegmentActualSolverSTEP(t *testing.T) {
+	t.Parallel()
 	f, _ := geom.FrameFromNormal(geom.Vec3{Z: 13}, geom.Vec3{Z: 1})
 	p := CircularSegmentExtrusionBody{Frame: f, Radius: 20, Height: 5, StartAngle: 2.5002222596456e-7, Sweep: 3.141592153545341}
 	m := CircularSegmentExtrusionModel{Body: p, LengthUnit: .001}
@@ -79,6 +81,7 @@ func TestCircularSegmentActualSolverSTEP(t *testing.T) {
 }
 
 func TestCircularSegmentSTEPRejectsAngularTamper(t *testing.T) {
+	t.Parallel()
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	m := CircularSegmentExtrusionModel{LengthUnit: .001, Body: CircularSegmentExtrusionBody{Frame: f, Radius: 3, Height: 2, StartAngle: -.5, Sweep: 1}}
 	var b bytes.Buffer

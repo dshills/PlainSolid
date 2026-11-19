@@ -9,6 +9,7 @@ import (
 )
 
 func TestPartitionedLensRejectsSourceChanges(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/partitioned-spline-lens.step")
 	if e != nil {
 		t.Fatal(e)
@@ -113,6 +114,7 @@ func FuzzPartitionedSplineLens(f *testing.F) {
 }
 
 func TestPartitionedLensRejectsRoundedSupportAndIrrationalCuts(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/partitioned-spline-lens.step")
 	if e != nil {
 		t.Fatal(e)

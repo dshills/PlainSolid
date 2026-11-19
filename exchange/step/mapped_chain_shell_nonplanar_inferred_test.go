@@ -312,6 +312,7 @@ func nonplanarInferredDisplayOptions() trimmed.MixedExactMultiSpanMeshOptions {
 }
 
 func TestOCCTMappedChainRectangularNonplanarInferredMixedSupportKnotsRejectsChangedPole(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, nonplanarInferredMappedChainPath)
 	o := inferredMixedMappedChainOptions()
@@ -338,6 +339,7 @@ func TestOCCTMappedChainRectangularNonplanarInferredMixedSupportKnotsRejectsChan
 }
 
 func TestOCCTMappedChainRectangularNonplanarInferredMixedSupportKnotsLive(t *testing.T) {
+	t.Parallel()
 	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_NONPLANAR_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT source author and STEP consumer")
@@ -370,6 +372,7 @@ func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnotsClo
 }
 
 func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnotsRejectsFalseWeight(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, nonplanarRationalInferredMappedChainPath)
 	o := inferredMixedMappedChainOptions()
@@ -395,6 +398,7 @@ func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnotsRej
 }
 
 func TestOCCTMappedChainRectangularNonplanarRationalInferredMixedSupportKnotsLive(t *testing.T) {
+	t.Parallel()
 	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_NONPLANAR_RATIONAL_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT source author and STEP consumer")
@@ -428,6 +432,7 @@ func TestOCCTMappedChainRectangularNonplanarIndependentOwnerClocksClosedDisplay(
 }
 
 func TestOCCTMappedChainRectangularNonplanarIndependentOwnerClocksRejectsFalseOwnerWeight(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := readInferredSharedMappedChainFixture(t, nonplanarIndependentOwnerClocksPath)
 	o := inferredMixedMappedChainOptions()
@@ -467,6 +472,7 @@ func TestOCCTMappedChainRectangularNonplanarIndependentOwnerClocksRejectsFalseOw
 }
 
 func TestOCCTMappedChainRectangularNonplanarIndependentOwnerClocksLive(t *testing.T) {
+	t.Parallel()
 	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_INDEPENDENT_OWNER_CLOCKS_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT source author and STEP consumer")

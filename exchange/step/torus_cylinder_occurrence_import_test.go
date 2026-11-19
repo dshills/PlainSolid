@@ -12,6 +12,7 @@ import (
 )
 
 func TestTorusCylinderPlacedPairedImport(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	for _, mode := range []int{1, 2} {
 		for _, c := range []float64{4, 6} {
@@ -87,6 +88,7 @@ func TestTorusCylinderPlacedPairedImport(t *testing.T) {
 	}
 }
 func TestTorusCylinderPlacedImportRejects(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	s, e := NewTorusCylinderSTEPOccurrence(ctx, torusCylinderSTEPBody(geom.TorusCylinderUnion), torusCylinderExportPose(t, 2), .001, 1e-8)
 	if e != nil {
@@ -202,6 +204,7 @@ func TestTorusCylinderPlacedImportRejects(t *testing.T) {
 }
 
 func TestTorusCylinderPlacedImportExactDecimalLexemes(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	source, e := NewTorusCylinderSTEPOccurrence(ctx, torusCylinderSTEPBody(geom.TorusCylinderUnion), torusCylinderExportPose(t, 2), .001, 1e-8)
 	if e != nil {

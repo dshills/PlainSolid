@@ -183,6 +183,7 @@ func TestRationalPosedConvexArcNonMillimetreUnits(t *testing.T) {
 }
 
 func TestRationalPosedConvexArcRejectsInexactInchDeclaration(t *testing.T) {
+	t.Parallel()
 	raw := rationalTiltUnitFixtures[1].source(t, singleTiltUnitSource)
 	for _, edit := range []struct{ name, old, replacement string }{
 		{"same binary64 scale", "LENGTH_MEASURE_WITH_UNIT(25.4,", "LENGTH_MEASURE_WITH_UNIT(25.40000000000000001,"},
@@ -203,6 +204,7 @@ func TestRationalPosedConvexArcRejectsInexactInchDeclaration(t *testing.T) {
 }
 
 func TestRationalPosedConvexArcNonMillimetreUnitsLive(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL to the pinned author helper")

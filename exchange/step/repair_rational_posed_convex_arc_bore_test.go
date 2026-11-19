@@ -87,6 +87,7 @@ func checkRationalPosedConvexArcBore(t *testing.T, raw []byte) RationalPosedConv
 }
 
 func TestInspectRationalPosedConvexArcThroughBore(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(tiltedBoreSource + "through-bore.step")
 	if err != nil {
 		t.Fatal(err)
@@ -105,6 +106,7 @@ func TestInspectRationalPosedConvexArcThroughBore(t *testing.T) {
 }
 
 func TestInspectRationalPosedConvexArcThroughBoreRejects(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, err := os.ReadFile(tiltedBoreSource + "through-bore.step")
 	if err != nil {
@@ -152,6 +154,7 @@ func checkRationalPosedConvexArcBlindControl(t *testing.T, raw []byte) {
 }
 
 func TestInspectRationalPosedConvexArcThroughBoreLive(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL to the pinned author helper")

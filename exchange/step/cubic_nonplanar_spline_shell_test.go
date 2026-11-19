@@ -25,6 +25,7 @@ func cubicNonplanarRoofFixture(t testing.TB) []byte {
 	return b
 }
 func TestCubicNonplanarSplineShellOriginal(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := cubicNonplanarRoofFixture(t)
 	if _, e := ReadSplineShells(bytes.NewReader(raw), Limits{}); e == nil {
@@ -142,6 +143,7 @@ func TestCubicNonplanarSplineShellOriginal(t *testing.T) {
 	}
 }
 func TestCubicNonplanarSplineShellReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := cubicNonplanarRoofFixture(t)
 	m, e := ReadCubicNonplanarSplineShellSource(ctx, bytes.NewReader(raw), Limits{})
@@ -217,6 +219,7 @@ func TestCubicNonplanarSplineShellReject(t *testing.T) {
 	}
 }
 func TestCubicNonplanarSplineShellLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_CUBIC_SPLINE_ROOF")
 	if bin == "" {
 		t.Skip("standalone OCCT helper")

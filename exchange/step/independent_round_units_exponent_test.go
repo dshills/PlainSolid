@@ -8,6 +8,7 @@ import (
 )
 
 func TestIndependentRoundUnitsBoundedExponent(t *testing.T) {
+	t.Parallel()
 	source, e := os.ReadFile("testdata/independent-round-units.step")
 	if e != nil {
 		t.Fatal(e)

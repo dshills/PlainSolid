@@ -13,6 +13,7 @@ import (
 )
 
 func TestPlaneSupportsRetained(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/plane-support.step")
 	if e != nil {
 		t.Fatal(e)
@@ -26,6 +27,7 @@ func TestPlaneSupportsRetained(t *testing.T) {
 	}
 }
 func TestOCCTPlaneSupports(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_PLANE_SUPPORT")
 	if bin == "" {
 		t.Skip("optional OCCT")

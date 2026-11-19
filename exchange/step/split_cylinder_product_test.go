@@ -15,6 +15,7 @@ import (
 )
 
 func TestSplitCylinderProduct(t *testing.T) {
+	t.Parallel()
 	d := splitWriterFixture(t)
 	var b bytes.Buffer
 	if e := WriteSplitCylinderProduct(&b, d); e != nil {
@@ -48,6 +49,7 @@ func TestSplitCylinderProduct(t *testing.T) {
 	}
 }
 func TestSplitCylinderProductOCCTRoots(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_SPLIT_CYLINDER")
 	if bin == "" {
 		t.Skip("optional OCCT")
@@ -96,6 +98,7 @@ func TestSplitCylinderProductOCCTRoots(t *testing.T) {
 }
 
 func TestSplitCylinderProductReferences(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteSplitCylinderProduct(&b, splitWriterFixture(t)); e != nil {
 		t.Fatal(e)

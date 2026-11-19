@@ -12,6 +12,7 @@ import (
 )
 
 func TestOrthogonalEllipticalAnnularPrism(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, e := os.ReadFile("testdata/occt-orthogonal-elliptical-annular-prism.step")
 	if e != nil {

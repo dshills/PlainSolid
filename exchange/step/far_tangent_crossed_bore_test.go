@@ -13,6 +13,7 @@ import (
 )
 
 func TestFarTangentCrossedBoreSTEP(t *testing.T) {
+	t.Parallel()
 	for _, n := range []geom.Vec3{{Z: 1}, {X: -1}, {Y: 1}} {
 		f, err := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
 		if err != nil {
@@ -41,6 +42,7 @@ func TestFarTangentCrossedBoreSTEP(t *testing.T) {
 }
 
 func TestFarTangentCrossedBoreSTEPNoDepthSnapping(t *testing.T) {
+	t.Parallel()
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	p := CrossedBoreBody{Name: "no depth snapping", Frame: f, Dimensions: geom.Vec3{X: 20, Y: 16, Z: 12},
 		Crossing: geom.Vec3{X: 10, Y: 8, Z: 6}, Radius: 2, BlindDepth: math.Nextafter(8, math.Inf(1))}

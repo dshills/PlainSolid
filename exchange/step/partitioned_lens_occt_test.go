@@ -9,6 +9,7 @@ import (
 )
 
 func TestPartitionedSplineLensOCCT(t *testing.T) {
+	t.Parallel()
 	source := t.TempDir() + "/source.step"
 	stepOracle(t, source, "write-step-partitioned-spline-lens")
 	raw, e := os.ReadFile(source)

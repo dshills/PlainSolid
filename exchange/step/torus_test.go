@@ -36,6 +36,7 @@ func checkTorus(t *testing.T, m AnalyticModel) {
 	}
 }
 func TestTorusRoundtrip(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteTori(&b, torusModel(t)); e != nil {
 		t.Fatal(e)
@@ -47,6 +48,7 @@ func TestTorusRoundtrip(t *testing.T) {
 	checkTorus(t, m)
 }
 func TestOCCTTorusImport(t *testing.T) {
+	t.Parallel()
 	p := filepath.Join(t.TempDir(), "torus.step")
 	stepOracle(t, p, "write-step-torus")
 	f, e := os.Open(p)
@@ -61,6 +63,7 @@ func TestOCCTTorusImport(t *testing.T) {
 	checkTorus(t, m)
 }
 func TestOCCTTorusExport(t *testing.T) {
+	t.Parallel()
 	p := filepath.Join(t.TempDir(), "torus.step")
 	f, e := os.Create(p)
 	if e != nil {
@@ -90,6 +93,7 @@ func TestOCCTTorusExport(t *testing.T) {
 }
 
 func TestTorusSeamRejections(t *testing.T) {
+	t.Parallel()
 	var raw bytes.Buffer
 	if e := WriteTori(&raw, torusModel(t)); e != nil {
 		t.Fatal(e)
@@ -143,6 +147,7 @@ func TestTorusSeamRejections(t *testing.T) {
 	}
 }
 func TestTorusWriterFailures(t *testing.T) {
+	t.Parallel()
 	m := torusModel(t)
 	for _, w := range []io.Writer{nil, failWriter{}, shortWriter{}} {
 		if e := WriteTori(w, m); e == nil {

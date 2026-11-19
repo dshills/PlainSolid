@@ -24,6 +24,7 @@ func convexArcOriginal(t *testing.T) []byte {
 	return raw
 }
 func TestRepairOCCTConvexArcOriginal(t *testing.T) {
+	t.Parallel()
 	raw := convexArcOriginal(t)
 	ctx := context.Background()
 	if _, e := ReadOCCTExactCircularLoopExtrusion(ctx, bytes.NewReader(raw), Limits{}); e == nil {
@@ -94,6 +95,7 @@ func TestRepairOCCTConvexArcOriginal(t *testing.T) {
 	}
 }
 func TestRepairOCCTConvexArcReject(t *testing.T) {
+	t.Parallel()
 	raw := convexArcOriginal(t)
 	ctx := context.Background()
 	for _, tol := range []float64{0, -1, math.NaN(), math.Inf(1), 1e-18, 1e-3} {
@@ -191,6 +193,7 @@ func TestRepairOCCTConvexArcReject(t *testing.T) {
 	}
 }
 func TestRepairOCCTConvexArcLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if bin == "" {
 		t.Skip("set pinned independent author/read comparator")

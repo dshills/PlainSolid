@@ -13,6 +13,7 @@ import (
 )
 
 func TestIndependentSplineShell(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/spline-shell.step")
 	if e != nil {
 		t.Fatal(e)
@@ -39,6 +40,7 @@ func splineShellFixture(t *testing.T) SplineShellModel {
 	return m
 }
 func TestSplineShellRoundtrip(t *testing.T) {
+	t.Parallel()
 	m := splineShellFixture(t)
 	var out bytes.Buffer
 	if e := WriteSplineShells(&out, m); e != nil {
@@ -54,6 +56,7 @@ func TestSplineShellRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTSplineShell(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-spline-shell")
 	raw, e := os.ReadFile(source)
@@ -96,6 +99,7 @@ func TestOCCTSplineShell(t *testing.T) {
 }
 
 func TestSplineShellInvalidGraph(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/spline-shell.step")
 	if e != nil {
 		t.Fatal(e)
@@ -141,6 +145,7 @@ func TestSplineShellInvalidGraph(t *testing.T) {
 	}
 }
 func TestSplineShellDisconnected(t *testing.T) {
+	t.Parallel()
 	m := splineShellFixture(t)
 	extra := []BoundedSplineFace{}
 	for _, face := range m.Bodies[0].Faces {

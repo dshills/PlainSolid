@@ -12,6 +12,7 @@ import (
 )
 
 func TestRepairGroupedPCurveOCCTConvexArc(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	b, e := os.ReadFile("testdata/occt-both-default-oblique-prism-fillet.step")
 	if e != nil {
@@ -103,6 +104,7 @@ func TestRepairGroupedPCurveOCCTConvexArc(t *testing.T) {
 	}
 }
 func TestRepairGroupedPCurveOCCTConvexArcLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if bin == "" {
 		t.Skip("set pinned author")

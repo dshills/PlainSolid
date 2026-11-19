@@ -10,6 +10,7 @@ import (
 )
 
 func TestWrappedCylinderStoredOCCT(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-cylinder.step")
 	if e != nil {
 		t.Fatal(e)
@@ -24,6 +25,7 @@ func TestWrappedCylinderStoredOCCT(t *testing.T) {
 }
 
 func TestWrappedCylinderRoundtripOCCT(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-cylinder.step")
 	if e != nil {
 		t.Fatal(e)
@@ -68,6 +70,7 @@ func TestWrappedCylinderRoundtripOCCT(t *testing.T) {
 }
 
 func TestWrappedCylinderReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/wrapped-cylinder.step")
 	if e != nil {
 		t.Fatal(e)

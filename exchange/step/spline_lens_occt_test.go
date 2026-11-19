@@ -8,8 +8,9 @@ import (
 	"testing"
 )
 
-func TestSplineLensOCCT(t *testing.T) { checkSplineLensOCCT(t, "write-step-spline-lens") }
+func TestSplineLensOCCT(t *testing.T) { t.Parallel(); checkSplineLensOCCT(t, "write-step-spline-lens") }
 func TestRefinedSplineLensOCCT(t *testing.T) {
+	t.Parallel()
 	checkSplineLensOCCT(t, "write-step-refined-spline-lens")
 }
 func checkSplineLensOCCT(t *testing.T, mode string) {

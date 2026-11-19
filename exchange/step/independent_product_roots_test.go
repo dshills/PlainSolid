@@ -31,6 +31,7 @@ func independentMixedRootedSource(t *testing.T) []byte {
 	return joined.Bytes()
 }
 func TestIndependentModelsRetainRootedMixedProducts(t *testing.T) {
+	t.Parallel()
 	parts, e := SplitIndependentModels(bytes.NewReader(independentMixedRootedSource(t)), Limits{})
 	if e != nil || len(parts) != 3 {
 		t.Fatal(e, len(parts))
@@ -66,6 +67,7 @@ func TestIndependentModelsRetainRootedMixedProducts(t *testing.T) {
 	}
 }
 func TestIndependentModelsMetadataLessAndSharedContexts(t *testing.T) {
+	t.Parallel()
 	box, _ := brep.Box(geom.Vec3{}, geom.Vec3{X: 2, Y: 3, Z: 4})
 	var b bytes.Buffer
 	if e := WriteAdvanced(&b, Model{LengthUnit: .001, Bodies: []Body{{Name: "a", Solid: box}, {Name: "b", Solid: box}}}); e != nil {
@@ -106,6 +108,7 @@ func TestIndependentModelsMetadataLessAndSharedContexts(t *testing.T) {
 	}
 }
 func TestIndependentModelsRejectCrossRootsAndOrphans(t *testing.T) {
+	t.Parallel()
 	raw := independentMixedRootedSource(t)
 	tests := []struct {
 		name string
@@ -187,6 +190,7 @@ func TestIndependentModelsRejectCrossRootsAndOrphans(t *testing.T) {
 }
 
 func TestIndependentModelsRetainSplitCylinderRoots(t *testing.T) {
+	t.Parallel()
 	frame, _ := geom.NewFrame(geom.Vec3{X: 20}, geom.Vec3{Y: 1}, geom.Vec3{X: 1})
 	d := SplitCylinderDescriptor{Name: "split product", Frame: frame, Radius: 2, Height: 4, LengthUnit: .001}
 	var a, b, joined bytes.Buffer

@@ -16,6 +16,7 @@ import (
 )
 
 func TestOverlappingPocketSourceGraph(t *testing.T) {
+	t.Parallel()
 	for _, mode := range []string{"side", "interior"} {
 		b, e := os.ReadFile("testdata/overlapping-" + mode + "-pockets.step")
 		if e != nil {
@@ -49,6 +50,7 @@ func TestOverlappingPocketSourceGraph(t *testing.T) {
 	}
 }
 func TestOverlappingSidePocketPCurveDiscrepancy(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/overlapping-side-pockets.step")
 	if e != nil {
 		t.Fatal(e)
@@ -115,6 +117,7 @@ func TestOverlappingSidePocketPCurveDiscrepancy(t *testing.T) {
 
 // An independent exact two-arc model profile, without angular parameters.
 func TestOverlappingSidePocketExactRationalArcs(t *testing.T) {
+	t.Parallel()
 	for side := 0; side < 2; side++ {
 		poles := [][2]int64{{1, 4}, {1, 9}, {5, 6}}
 		weights := []*big.Rat{big.NewRat(1, 1), big.NewRat(1, 2), big.NewRat(5, 4)}
@@ -153,6 +156,7 @@ func TestOverlappingSidePocketExactRationalArcs(t *testing.T) {
 	}
 }
 func TestOverlappingSidePocketOCCTMeasures(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS")
 	if bin == "" {
 		t.Skip("optional independent Boolean oracle")

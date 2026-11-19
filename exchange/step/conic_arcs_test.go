@@ -55,6 +55,7 @@ func checkConic(t *testing.T, m ConicArcModel, kind string) {
 	}
 }
 func TestConicArcRoundtrip(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"parabola", "hyperbola"} {
 		var b bytes.Buffer
 		if e := WriteConicArcs(&b, conicArcModel(t, kind)); e != nil {
@@ -80,6 +81,7 @@ func TestConicArcRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTConicArcs(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"parabola", "hyperbola"} {
 		t.Run(kind, func(t *testing.T) {
 			fixture := filepath.Join(t.TempDir(), "fixture.step")
@@ -126,6 +128,7 @@ func TestOCCTConicArcs(t *testing.T) {
 }
 
 func TestIndependentConicFixtures(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"parabola", "hyperbola"} {
 		raw, e := os.ReadFile("testdata/" + kind + ".step")
 		if e != nil {
@@ -152,6 +155,7 @@ func FuzzConicArcSTEP(f *testing.F) {
 }
 
 func TestConicArcInvalidParameters(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"parabola", "hyperbola"} {
 		for _, span := range [][2]float64{{0, 0}, {1, -1}, {math.NaN(), 1}, {0, math.Inf(1)}} {
 			m := conicArcModel(t, kind)

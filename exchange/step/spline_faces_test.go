@@ -11,6 +11,7 @@ import (
 )
 
 func TestIndependentSplineFace(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/rectangular-spline-face.step")
 	if e != nil {
 		t.Fatal(e)
@@ -31,6 +32,7 @@ func TestIndependentSplineFace(t *testing.T) {
 }
 
 func TestSplineFaceRoundtrip(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/rectangular-spline-face.step")
 	if e != nil {
 		t.Fatal(e)
@@ -49,6 +51,7 @@ func TestSplineFaceRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTSplineFace(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-surface")
 	raw, e := os.ReadFile(source)
@@ -83,6 +86,7 @@ func TestOCCTSplineFace(t *testing.T) {
 }
 
 func TestSplineFaceMalformed(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/rectangular-spline-face.step")
 	if e != nil {
 		t.Fatal(e)
@@ -126,6 +130,7 @@ func TestSplineFaceMalformed(t *testing.T) {
 	}
 }
 func TestSplineFaceGraphAndFold(t *testing.T) {
+	t.Parallel()
 	graph, e := geom.NewBSplineSurface(1, 1, 2, 2, []geom.Vec3{{}, {Y: 1}, {X: 1}, {X: 1, Y: 1, Z: 1}}, []float64{2, 2, 5, 5}, []float64{-3, -3, 1, 1}, []float64{1, 2, 1, 2})
 	if e != nil {
 		t.Fatal(e)
@@ -164,6 +169,7 @@ func FuzzReadSplineFaces(f *testing.F) {
 }
 
 func TestSplineFaceRefinedBoundary(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/rectangular-spline-face.step")
 	if e != nil {
 		t.Fatal(e)

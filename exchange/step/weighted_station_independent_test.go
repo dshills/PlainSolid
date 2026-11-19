@@ -1,3 +1,5 @@
+//go:build research
+
 package step
 
 import (
@@ -14,6 +16,7 @@ import (
 
 // This oracle builds original weighted supports in OCCT, never from Go output.
 func TestIndependentWeightedStationSTEP(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_WEIGHTED_STATION_AUTHOR")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_WEIGHTED_STATION_AUTHOR")

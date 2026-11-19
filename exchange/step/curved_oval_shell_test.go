@@ -28,6 +28,7 @@ func curvedOvalShellFixture(t testing.TB) CurvedOvalOpenShell {
 	return CurvedOvalOpenShell{Annulus: a, Disk: d, LengthUnit: a.LengthUnit}
 }
 func TestCurvedOvalOpenShell(t *testing.T) {
+	t.Parallel()
 	m := curvedOvalShellFixture(t)
 	var b bytes.Buffer
 	if e := WriteCurvedOvalOpenShell(&b, m, CurvedOvalOptions{}); e != nil {
@@ -57,6 +58,7 @@ func TestCurvedOvalOpenShell(t *testing.T) {
 	}
 }
 func TestCurvedOvalOpenShellOCCT(t *testing.T) {
+	t.Parallel()
 	path := t.TempDir() + "/source.step"
 	stepOracle(t, path, "write-step-curved-oval-shell")
 	raw, e := os.ReadFile(path)

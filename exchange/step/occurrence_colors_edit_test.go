@@ -15,6 +15,7 @@ import (
 )
 
 func TestEditOccurrenceSurfaceColor(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-ap242-occurrence-colors.step")
 	if e != nil {
 		t.Fatal(e)
@@ -110,6 +111,7 @@ func sharedOccurrenceColorSource(t *testing.T, whole bool) *File {
 	return f
 }
 func TestEditOccurrenceSharedColors(t *testing.T) {
+	t.Parallel()
 	for _, whole := range []bool{false, true} {
 		f := sharedOccurrenceColorSource(t, whole)
 		edited, e := EditOccurrenceSurfaceColor(context.Background(), f, 386, RGB{1, 1, 0}, Limits{})
@@ -142,6 +144,7 @@ func TestEditOccurrenceSharedColors(t *testing.T) {
 	}
 }
 func TestEditOccurrenceColorReject(t *testing.T) {
+	t.Parallel()
 	m, _ := occurrenceColorsNativeFixture(t)
 	f := m.Assembly.Assembly.Source
 	for _, id := range []int64{0, -1, 35, 380, 734, 99999} {
@@ -164,6 +167,7 @@ func TestEditOccurrenceColorReject(t *testing.T) {
 	}
 }
 func TestEditOccurrenceColorsLive(t *testing.T) {
+	t.Parallel()
 	original, _ := occurrenceColorsNativeFixture(t)
 	sources := []*File{original.Assembly.Assembly.Source, sharedOccurrenceColorSource(t, false), sharedOccurrenceColorSource(t, true)}
 	for _, f := range sources {

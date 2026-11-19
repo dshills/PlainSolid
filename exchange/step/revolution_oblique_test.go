@@ -21,6 +21,7 @@ func obliqueRevolutionFixture(t *testing.T) []byte {
 	return b
 }
 func TestRevolutionSurfaceObliqueSource(t *testing.T) {
+	t.Parallel()
 	b := obliqueRevolutionFixture(t)
 	m, e := ReadRevolutionSurfaces(bytes.NewReader(b), Limits{})
 	if e != nil {
@@ -44,6 +45,7 @@ func TestRevolutionSurfaceObliqueSource(t *testing.T) {
 	}
 }
 func TestOCCTRevolutionOblique(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_REVOLUTION_SURFACE")
 	if oracle == "" {
 		t.Skip("optional oracle")
@@ -132,6 +134,7 @@ func TestOCCTRevolutionOblique(t *testing.T) {
 }
 
 func TestRevolutionSurfaceObliqueRetainedOCCT(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/revolution-oblique-occt.step")
 	if e != nil {
 		t.Fatal(e)

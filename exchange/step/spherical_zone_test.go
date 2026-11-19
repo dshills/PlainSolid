@@ -30,6 +30,7 @@ func checkZone(t *testing.T, m AnalyticModel) {
 	}
 }
 func TestSphericalZoneRoundtrip(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteSphericalZones(&b, zoneModel(t)); e != nil {
 		t.Fatal(e)
@@ -44,6 +45,7 @@ func TestSphericalZoneRoundtrip(t *testing.T) {
 	}
 }
 func TestOCCTSphericalZone(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "reference.step")
 	stepOracle(t, path, "write-step-spherical-zone")
 	raw, e := os.ReadFile(path)
@@ -79,6 +81,7 @@ func TestOCCTSphericalZone(t *testing.T) {
 }
 
 func TestSphericalZoneMalformed(t *testing.T) {
+	t.Parallel()
 	var raw bytes.Buffer
 	if e := WriteSphericalZones(&raw, zoneModel(t)); e != nil {
 		t.Fatal(e)
@@ -140,6 +143,7 @@ func TestSphericalZoneMalformed(t *testing.T) {
 	}
 }
 func TestIndependentSphericalZone(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/spherical-zone.step")
 	if e != nil {
 		t.Fatal(e)
@@ -167,6 +171,7 @@ func FuzzSphericalZoneSTEP(f *testing.F) {
 }
 
 func TestSphericalZoneAsymmetricRotated(t *testing.T) {
+	t.Parallel()
 	m := zoneModel(t)
 	frame, e := geom.NewFrame(geom.Vec3{X: 3, Y: -2, Z: 5}, geom.Vec3{Y: 1}, geom.Vec3{X: 1})
 	if e != nil {

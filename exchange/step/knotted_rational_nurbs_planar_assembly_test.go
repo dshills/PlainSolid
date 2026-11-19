@@ -26,6 +26,7 @@ func knottedRationalNURBSFixture(t testing.TB) []byte {
 	return b
 }
 func TestKnottedRationalNURBSPlanarAssembly(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := knottedRationalNURBSFixture(t)
 	m, e := ReadKnottedRationalNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -124,6 +125,7 @@ func knottedRationalNURBSNativeFixture(t testing.TB) []byte {
 	return out.Bytes()
 }
 func TestKnottedRationalNURBSNative(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := knottedRationalNURBSNativeFixture(t)
 	m, e := ReadKnottedRationalNURBSPlanarAssemblyJSON(ctx, bytes.NewReader(raw), IndependentMaterialJSONLimits{})
@@ -198,6 +200,7 @@ func TestKnottedRationalNURBSNative(t *testing.T) {
 	}
 }
 func TestKnottedRationalNURBSLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_KNOTTED_RATIONAL_NURBS_PLANAR")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")
@@ -279,6 +282,7 @@ func FuzzKnottedRationalNURBSPlanar(f *testing.F) {
 }
 
 func TestKnottedRationalNURBSHomogeneousProof(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := knottedRationalNURBSFixture(t)
 	m, e := ReadKnottedRationalNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -414,6 +418,7 @@ func TestKnottedRationalNURBSHomogeneousProof(t *testing.T) {
 }
 
 func TestKnottedRationalNURBSCurveProof(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := knottedRationalNURBSFixture(t)
 	m, e := ReadKnottedRationalNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -525,6 +530,7 @@ func TestKnottedRationalNURBSCurveProof(t *testing.T) {
 }
 
 func TestKnottedRationalNURBSModelProof(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw := knottedRationalNURBSFixture(t)
 	m, e := ReadKnottedRationalNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})

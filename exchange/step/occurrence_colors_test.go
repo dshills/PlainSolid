@@ -15,6 +15,7 @@ import (
 )
 
 func TestOccurrenceColoredAssembly(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-ap242-occurrence-colors.step")
 	if e != nil {
 		t.Fatal(e)
@@ -40,6 +41,7 @@ func TestOccurrenceColoredAssembly(t *testing.T) {
 }
 
 func TestOccurrenceColorsReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-ap242-occurrence-colors.step")
 	if e != nil {
 		t.Fatal(e)
@@ -80,6 +82,7 @@ func TestOccurrenceColorsReject(t *testing.T) {
 }
 
 func TestOccurrenceColorsRetargetAndLive(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-ap242-occurrence-colors.step")
 	if e != nil {
 		t.Fatal(e)

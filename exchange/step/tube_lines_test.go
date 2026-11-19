@@ -56,6 +56,7 @@ func tubeLineFixture(t testing.TB, kind string) TubeLine {
 	return TubeLine{Name: "Certified line", Segment: segments[0], Start: start, End: end}
 }
 func TestWriteTubeLines(t *testing.T) {
+	t.Parallel()
 	line := tubeLineFixture(t, "")
 	m := TubeLineModel{Lines: []TubeLine{line}, LengthUnit: .001}
 	var b bytes.Buffer
@@ -81,6 +82,7 @@ func TestWriteTubeLines(t *testing.T) {
 	}
 }
 func TestWriteTubeLinesRejection(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"curved", "nonbinary", "wrong", "partial", "reverse", "zero", "cancel", "budget", "count"} {
 		t.Run(kind, func(t *testing.T) {
 			line := tubeLineFixture(t, kind)
@@ -125,6 +127,7 @@ func TestWriteTubeLinesRejection(t *testing.T) {
 	}
 }
 func TestOCCTTubeLines(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("PLAINSOLID_OCCT_ORACLE") == "" || os.Getenv("PLAINSOLID_OCCT_STEP") == "" {
 		t.Skip("optional OCCT oracle")
 	}
@@ -153,6 +156,7 @@ func TestOCCTTubeLines(t *testing.T) {
 }
 
 func TestWriteTubeLinesReversedTraversalAndIO(t *testing.T) {
+	t.Parallel()
 	line := tubeLineFixture(t, "")
 	recipe, _, _ := line.Segment.TrimA().Recipe()
 	data := recipe.Data()

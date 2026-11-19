@@ -28,6 +28,7 @@ func splineLensFixture(t testing.TB) SplineLensBody {
 	return SplineLensBody{Name: "exact elliptical lens", FaceNames: [2]string{"upper bowl", "lower bowl"}, Upper: supports[0], Lower: supports[1], Center: geom.Vec2{X: .5, Y: .5}, Radii: geom.Vec2{X: .25, Y: .25}, LengthUnit: .001}
 }
 func TestSplineLensRoundtrip(t *testing.T) {
+	t.Parallel()
 	m := splineLensFixture(t)
 	var b bytes.Buffer
 	if e := WriteSplineLensBody(&b, m, CurvedOvalOptions{}); e != nil {

@@ -12,6 +12,7 @@ import (
 )
 
 func TestFiniteUnequalCompactSplineAgreement(t *testing.T) {
+	t.Parallel()
 	for _, r := range [][3]float64{{3, 2, 0}, {4, 2, .5}} {
 		maxModel, maxOwner, maxResidual := 0., 0., 0.
 		frame, _ := geom.FrameFromNormal(geom.Vec3{X: 20.125, Y: -40.25, Z: 100.5}, geom.Vec3{Z: -1})

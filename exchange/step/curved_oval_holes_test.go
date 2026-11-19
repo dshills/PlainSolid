@@ -9,6 +9,7 @@ import (
 )
 
 func TestCurvedOvalHoles(t *testing.T) {
+	t.Parallel()
 	for _, multi := range []bool{false, true} {
 		m := curvedOvalFixture(t)
 		h := m.Outer
@@ -46,6 +47,7 @@ func TestCurvedOvalHoles(t *testing.T) {
 	}
 }
 func TestCurvedOvalInvalidHoles(t *testing.T) {
+	t.Parallel()
 	base := curvedOvalFixture(t)
 	h := base.Outer
 	h.Radii = geom.Vec2{X: 3. / 32, Y: 3. / 32}
@@ -60,9 +62,13 @@ func TestCurvedOvalInvalidHoles(t *testing.T) {
 		}
 	}
 }
-func TestCurvedOvalHoleOCCT(t *testing.T) { checkCurvedOvalOCCT(t, "write-step-curved-oval-hole") }
+func TestCurvedOvalHoleOCCT(t *testing.T) {
+	t.Parallel()
+	checkCurvedOvalOCCT(t, "write-step-curved-oval-hole")
+}
 
 func TestCurvedOvalHoleSourceRejections(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/curved-oval-hole.step")
 	if e != nil {
 		t.Fatal(e)

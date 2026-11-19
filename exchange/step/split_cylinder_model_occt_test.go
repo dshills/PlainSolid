@@ -12,6 +12,7 @@ import (
 )
 
 func TestSplitCylinderModelOCCT(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_SPLIT_CYLINDER")
 	if bin == "" {
 		t.Skip("optional independent OCCT helper")

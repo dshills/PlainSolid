@@ -15,6 +15,7 @@ import (
 // dependency. It compares independently constructed OCCT cuts to closed-form
 // quarter-circle section measures, and retains strict legacy import rejection.
 func TestUnequalCenterSideIndependentFixtures(t *testing.T) {
+	t.Parallel()
 	for _, mode := range []string{"side", "through"} {
 		raw, e := os.ReadFile("testdata/occt_unequal_center_dual_disk_" + mode + ".step")
 		if e != nil {
@@ -42,6 +43,7 @@ func TestUnequalCenterSideIndependentFixtures(t *testing.T) {
 	}
 }
 func TestOCCTUnequalCenterSideIndependentReference(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS")
 	if oracle == "" {
 		t.Skip("optional independent OCCT helper")

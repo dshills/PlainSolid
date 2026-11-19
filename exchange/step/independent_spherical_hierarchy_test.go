@@ -249,6 +249,7 @@ func TestIndependentSphericalHierarchyReject(t *testing.T) {
 	}
 }
 func TestIndependentSphericalHierarchyLimits(t *testing.T) {
+	t.Parallel()
 	raw, _ := os.ReadFile("testdata/independent-spherical-hierarchy.step")
 	ctx := context.Background()
 	for _, l := range []Limits{{MaxSolids: 3}, {MaxBytes: 32}, {MaxEntities: 16}, {MaxFaces: 1}} {

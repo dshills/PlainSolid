@@ -7,6 +7,7 @@ import (
 )
 
 func TestRepairedTubeNAUOAssembly(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-tube-nauo-dag.step")
 	if e != nil {
 		t.Fatal(e)

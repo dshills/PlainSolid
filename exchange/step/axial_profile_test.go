@@ -30,6 +30,7 @@ func checkAxial(t *testing.T, m AnalyticModel) {
 	}
 }
 func TestAxialProfileRoundtrip(t *testing.T) {
+	t.Parallel()
 	var b bytes.Buffer
 	if e := WriteAxialProfiles(&b, axialModel(t)); e != nil {
 		t.Fatal(e)
@@ -41,6 +42,7 @@ func TestAxialProfileRoundtrip(t *testing.T) {
 	checkAxial(t, m)
 }
 func TestOCCTAxialProfile(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "reference.step")
 	stepOracle(t, path, "write-step-axial-profile")
 	raw, e := os.ReadFile(path)
@@ -76,6 +78,7 @@ func TestOCCTAxialProfile(t *testing.T) {
 }
 
 func TestAxialProfileLongerAndInvalid(t *testing.T) {
+	t.Parallel()
 	m := axialModel(t)
 	m.Bodies[0].Sections = append(m.Bodies[0].Sections, CylinderSection{.25, .5})
 	var b bytes.Buffer
@@ -114,6 +117,7 @@ func TestAxialProfileLongerAndInvalid(t *testing.T) {
 	}
 }
 func TestAxialProfileCoverage(t *testing.T) {
+	t.Parallel()
 	var raw bytes.Buffer
 	if e := WriteAxialProfiles(&raw, axialModel(t)); e != nil {
 		t.Fatal(e)
@@ -167,6 +171,7 @@ func TestAxialProfileCoverage(t *testing.T) {
 	}
 }
 func TestIndependentAxialProfile(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/axial-profile.step")
 	if e != nil {
 		t.Fatal(e)

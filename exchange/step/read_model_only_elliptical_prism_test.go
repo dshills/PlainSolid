@@ -26,6 +26,7 @@ func modelOnlyPrismFixture(t testing.TB) []byte {
 	return b.Bytes()
 }
 func TestReadModelOnlyEllipticalPrism(t *testing.T) {
+	t.Parallel()
 	original := nativeEllipsePrism(t)
 	for _, delta := range []geom.Vec3{{}, {X: 8, Y: -2, Z: 4}} {
 		var b bytes.Buffer
@@ -103,6 +104,7 @@ func TestReadModelOnlyEllipticalPrism(t *testing.T) {
 	}
 }
 func TestModelOnlyEllipticalPrismGraphMutations(t *testing.T) {
+	t.Parallel()
 	raw := string(modelOnlyPrismFixture(t))
 	for _, x := range [][2]string{{"#21=EDGE_CURVE('',#22,#24,#27,.T.);", "#21=EDGE_CURVE('',#22,#24,#27,.F.);"}, {"#80=ORIENTED_EDGE('',*,*,#21,.F.);", "#80=ORIENTED_EDGE('',*,*,#21,.T.);"}, {"#111=ORIENTED_EDGE('',*,*,#82,.T.);", "#111=ORIENTED_EDGE('',*,*,#54,.T.);"}, {"#56=ELLIPSE('',#57,4.,2.);", "#56=ELLIPSE('',#57,5.,2.);"}, {"#71=CARTESIAN_POINT('',(1,5,3));", "#71=CARTESIAN_POINT('',(1,4,3));"}, {"#39=DIRECTION('',(-0.,-1.,-0.));", "#39=DIRECTION('',(0.,1.,0.));"}, {"#108=ADVANCED_FACE('',(#109),#97,.F.);", "#108=ADVANCED_FACE('',(#109),#97,.T.);"}, {"(#17,#108,#112)", "(#17,#108,#108)"}, {".MILLI.,.METRE.", ".CENTI.,.METRE."}} {
 		bad := strings.Replace(raw, x[0], x[1], 1)

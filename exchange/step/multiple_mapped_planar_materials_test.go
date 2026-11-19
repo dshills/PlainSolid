@@ -22,6 +22,7 @@ func multipleMappedSource(t testing.TB) []byte {
 	return b
 }
 func TestMultipleMappedPlanarMaterials(t *testing.T) {
+	t.Parallel()
 	raw := multipleMappedSource(t)
 	m, e := ReadMappedPlanarMaterials(bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -58,6 +59,7 @@ func TestMultipleMappedPlanarMaterials(t *testing.T) {
 	}
 }
 func TestMultipleMappedPlanarMaterialsRejects(t *testing.T) {
+	t.Parallel()
 	raw := multipleMappedSource(t)
 	m, e := ReadMappedPlanarMaterials(bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -117,6 +119,7 @@ func TestMultipleMappedPlanarMaterialsRejects(t *testing.T) {
 	}
 }
 func TestOCCTMultipleMappedPlanarMaterials(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_DISK_BOUND_MASS")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

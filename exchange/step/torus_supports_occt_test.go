@@ -13,6 +13,7 @@ import (
 )
 
 func TestTorusSupportsRetained(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/torus-support.step")
 	if e != nil {
 		t.Fatal(e)
@@ -26,6 +27,7 @@ func TestTorusSupportsRetained(t *testing.T) {
 	}
 }
 func TestOCCTTorusSupports(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_TORUS_SUPPORT")
 	if bin == "" {
 		t.Skip("optional OCCT")

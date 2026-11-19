@@ -10,6 +10,7 @@ import (
 )
 
 func TestOCCTSTEPSurfaceExport(t *testing.T) {
+	t.Parallel()
 	m, e := ReadSurfaces(strings.NewReader(independentSurface), Limits{})
 	if e != nil {
 		t.Fatal(e)
@@ -45,6 +46,7 @@ func TestOCCTSTEPSurfaceExport(t *testing.T) {
 // OCCT exports a topological face graph. Decode the exact support surface,
 // without claiming that ReadSurfaces imports that face or its trimming graph.
 func TestOCCTSTEPSurfaceDecode(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "occt.step")
 	stepOracle(t, path, "write-step-surface")
 	f, e := os.Open(path)

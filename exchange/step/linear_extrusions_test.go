@@ -19,6 +19,7 @@ func linearExtrusionFixture(t *testing.T) []byte {
 	return b
 }
 func TestLinearExtrusionIndependentRoundtrip(t *testing.T) {
+	t.Parallel()
 	raw := linearExtrusionFixture(t)
 	m, e := ReadLinearExtrusions(bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -68,6 +69,7 @@ func TestLinearExtrusionIndependentRoundtrip(t *testing.T) {
 	}
 }
 func TestLinearExtrusionRejects(t *testing.T) {
+	t.Parallel()
 	raw := linearExtrusionFixture(t)
 	for _, pair := range [][2]string{
 		{"#7,0.,1.,-1.,2.,.T.,.T.", "#7,0.,1.,-1.,2.,.F.,.T."},
@@ -121,6 +123,7 @@ func FuzzLinearExtrusions(f *testing.F) {
 }
 
 func TestLinearExtrusionSourceWeightAndOwnership(t *testing.T) {
+	t.Parallel()
 	raw := linearExtrusionFixture(t)
 	m, e := ReadLinearExtrusions(bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -155,6 +158,7 @@ func TestLinearExtrusionSourceWeightAndOwnership(t *testing.T) {
 }
 
 func TestLinearExtrusionRetainedOCCTSupport(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/linear-extrusion-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -194,6 +198,7 @@ type extrusionFailWriter struct{}
 
 func (extrusionFailWriter) Write([]byte) (int, error) { return 0, io.ErrClosedPipe }
 func TestLinearExtrusionWriterError(t *testing.T) {
+	t.Parallel()
 	m, e := ReadLinearExtrusions(bytes.NewReader(linearExtrusionFixture(t)), Limits{})
 	if e != nil {
 		t.Fatal(e)

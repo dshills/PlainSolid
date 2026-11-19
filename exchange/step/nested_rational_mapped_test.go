@@ -9,6 +9,7 @@ import (
 )
 
 func TestNestedRationalMapped(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-nested-rational-mapped.step")
 	if e != nil {
 		t.Fatal(e)
@@ -41,6 +42,7 @@ func TestNestedRationalMapped(t *testing.T) {
 }
 
 func TestNestedRationalMappedReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-nested-rational-mapped.step")
 	if e != nil {
 		t.Fatal(e)

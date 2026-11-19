@@ -12,6 +12,7 @@ import (
 )
 
 func TestOCCTObliqueCylinderImport(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "oblique.step")
 	stepOracle(t, path, "write-step-oblique-cylinder")
 	b, e := os.ReadFile(path)
@@ -60,6 +61,7 @@ func checkOblique(t *testing.T, s string) {
 	}
 }
 func TestTrimmedAnalyticBodies(t *testing.T) {
+	t.Parallel()
 	var b strings.Builder
 	if e := WriteCylinders(&b, cylinderModel(t)); e != nil {
 		t.Fatal(e)
@@ -79,6 +81,7 @@ func TestTrimmedAnalyticBodies(t *testing.T) {
 // The persisted independently generated OCCT fixture also runs without OCCT.
 // Its volume and centroid checks use closed-form cylinder integrals.
 func TestObliqueCylinderFixture(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/oblique-cylinder.step")
 	if e != nil {
 		t.Fatal(e)
@@ -87,6 +90,7 @@ func TestObliqueCylinderFixture(t *testing.T) {
 }
 
 func TestObliqueRejectsFalseLocus(t *testing.T) {
+	t.Parallel()
 	b, e := os.ReadFile("testdata/oblique-cylinder.step")
 	if e != nil {
 		t.Fatal(e)

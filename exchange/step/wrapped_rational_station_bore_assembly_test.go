@@ -80,6 +80,7 @@ func TestWrappedRationalStationBoreAssembly(t *testing.T) {
 	}
 }
 func TestWrappedRationalStationBoreAssemblyLive(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_WEIGHTED_STATION_ASSEMBLY")
 	if bin == "" {
 		t.Skip("optional independent XCAF")

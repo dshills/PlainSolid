@@ -103,6 +103,7 @@ func TestReadMixedConicalAP242DAG(t *testing.T) {
 }
 
 func TestReadMixedConicalAP242DAGReject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	exact := mixedConicalAP242DAGFixture(t, "exact")
 	reject := func(t *testing.T, file []byte, l MixedConicalAP242DAGLimits, want error) {
@@ -160,6 +161,7 @@ func TestReadMixedConicalAP242DAGReject(t *testing.T) {
 }
 
 func TestMixedConicalAP242DAGPinnedAuthor(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_MIXED_CONICAL_AP242_DAG")
 	if oracle == "" {
 		t.Skip("pinned mixed conical DAG author not configured")

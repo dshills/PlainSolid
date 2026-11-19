@@ -15,6 +15,7 @@ import (
 )
 
 func TestSetOccurrenceColorCreate(t *testing.T) {
+	t.Parallel()
 	for _, file := range []string{"occt-ap242-palette-assembly.step", "occt-ap242-occurrence-colors.step"} {
 		raw, e := os.ReadFile("testdata/" + file)
 		if e != nil {
@@ -74,6 +75,7 @@ func TestSetOccurrenceColorCreate(t *testing.T) {
 }
 
 func TestSetOccurrenceColorReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/occt-ap242-palette-assembly.step")
 	if e != nil {
 		t.Fatal(e)
@@ -136,6 +138,7 @@ func TestSetOccurrenceColorReject(t *testing.T) {
 	}
 }
 func TestSetOccurrenceColorLive(t *testing.T) {
+	t.Parallel()
 	for variant, file := range []string{"occt-ap242-palette-assembly.step", "occt-ap242-occurrence-colors.step"} {
 		raw, e := os.ReadFile("testdata/" + file)
 		if e != nil {

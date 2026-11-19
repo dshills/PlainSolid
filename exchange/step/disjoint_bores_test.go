@@ -91,6 +91,7 @@ func checkDisjointBoresSTEP(t *testing.T, p DisjointBoresBody) {
 	}
 }
 func TestDisjointBoresSTEP(t *testing.T) {
+	t.Parallel()
 	for ni, n := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {X: -1}, {Y: 1}, {Y: -1}} {
 		f, _ := geom.FrameFromNormal(geom.Vec3{X: 16, Y: 32, Z: 48}, n)
 		for count := 2; count <= 3; count++ {
@@ -120,6 +121,7 @@ func TestDisjointBoresSTEPAtLimit(t *testing.T) {
 	}
 }
 func TestDisjointBoresSTEPRejects(t *testing.T) {
+	t.Parallel()
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	base := DisjointBoresBody{Name: "rejections", Frame: f, Dimensions: geom.Vec3{X: 24, Y: 24, Z: 24}, Bores: []DisjointBore{{0, geom.Vec3{Y: 4, Z: 4}, 1.5}, {1, geom.Vec3{X: 12, Z: 12}, 2}}}
 	for _, cuts := range [][]DisjointBore{base.Bores[:1], {base.Bores[0], {0, geom.Vec3{Y: 12, Z: 12}, 1}}, {base.Bores[0], {1, geom.Vec3{X: 12, Z: 4}, 2}}, {base.Bores[0], {1, geom.Vec3{X: 12, Y: 1, Z: 12}, 2}}, make([]DisjointBore, 33)} {

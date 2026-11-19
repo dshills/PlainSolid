@@ -45,3 +45,23 @@ jobs:
           GOARCH: wasm
           CGO_ENABLED: '0'
         run: go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/plainsolid.wasm" ./cmd/plaincadwasm
+  research:
+    # Code behind the research build tag is not in the default build. Compile
+    # and vet it on every push so that it cannot rot, and check that the tag
+    # still marks exactly the files no other package reaches. Its tests run
+    # only in the Go qualification workflow.
+    name: Research configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache-dependency-path: go.mod
+      - name: Build with the research tag
+        run: go build -tags research ./...
+      - name: Vet with the research tag
+        run: go vet -tags research ./...
+      - name: Tag matches the classification
+        run: go run ./tools/refgraph -tags research -pkg brep/trimmed -exclude examples -check research

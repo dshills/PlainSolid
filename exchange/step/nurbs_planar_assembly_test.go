@@ -24,6 +24,7 @@ func nurbsPlanarFixture(t testing.TB) []byte {
 	return b
 }
 func TestNURBSPlanarAssembly(t *testing.T) {
+	t.Parallel()
 	raw := nurbsPlanarFixture(t)
 	ctx := context.Background()
 	m, e := ReadNURBSPlanarAssembly(ctx, bytes.NewReader(raw), Limits{})
@@ -83,6 +84,7 @@ func TestNURBSPlanarAssembly(t *testing.T) {
 	}
 }
 func TestNURBSPlanarAssemblyReject(t *testing.T) {
+	t.Parallel()
 	raw := nurbsPlanarFixture(t)
 	m, e := ReadNURBSPlanarAssembly(context.Background(), bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -139,6 +141,7 @@ func TestNURBSPlanarAssemblyReject(t *testing.T) {
 	}
 }
 func TestNURBSPlanarAssemblyLimits(t *testing.T) {
+	t.Parallel()
 	raw := nurbsPlanarFixture(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -156,6 +159,7 @@ func TestNURBSPlanarAssemblyLimits(t *testing.T) {
 	}
 }
 func TestNURBSPlanarAssemblyLive(t *testing.T) {
+	t.Parallel()
 	raw := nurbsPlanarFixture(t)
 	m, e := ReadNURBSPlanarAssembly(context.Background(), bytes.NewReader(raw), Limits{})
 	if e != nil {

@@ -81,6 +81,7 @@ func TestUnequalBoreSTEP(t *testing.T) {
 }
 
 func TestUnequalBoreSTEPLimitsAndMalformed(t *testing.T) {
+	t.Parallel()
 	frame, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: 1})
 	body := UnequalBoreBody{Name: "unequal bores", Frame: frame, Dimensions: geom.Vec3{X: 20, Y: 24, Z: 18}, Crossing: geom.Vec3{X: 8, Y: 12, Z: 9}, XRadius: 4, ZRadius: 2}
 	var out bytes.Buffer
@@ -118,6 +119,7 @@ func TestUnequalBoreSTEPLimitsAndMalformed(t *testing.T) {
 }
 
 func TestUnequalBoreSplineAgreement(t *testing.T) {
+	t.Parallel()
 	frame, _ := geom.FrameFromNormal(geom.Vec3{X: 20.125, Y: -40.25, Z: 100.5}, geom.Vec3{Z: -1})
 	result, err := trimmed.BoxUnequalCrossedBores(context.Background(), frame,
 		geom.Vec3{X: 20, Y: 24, Z: 18}, geom.Vec3{X: 8.25, Y: 12.5, Z: 9}, 4.125, 2.25, 1e-9)

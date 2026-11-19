@@ -131,6 +131,7 @@ func checkFourConvexArcSource(t *testing.T, raw []byte) (RationalPosedGroupedPCu
 }
 
 func TestRepairFourConvexArcSource(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(fourConvexArcSource + ".step")
 	if err != nil {
 		t.Fatal(err)
@@ -162,6 +163,7 @@ func TestRepairFourConvexArcSource(t *testing.T) {
 }
 
 func TestRepairFourConvexArcRejectsChangedOwners(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(fourConvexArcSource + ".step")
 	if err != nil {
 		t.Fatal(err)
@@ -220,6 +222,7 @@ func checkFourConvexArcAutomaticPlane(t *testing.T, raw []byte, pairs [2][2]int6
 }
 
 func TestRepairFourConvexArcRejectsIndependentControls(t *testing.T) {
+	t.Parallel()
 	for _, suffix := range []string{"-nondyadic", "-automatic-plane"} {
 		t.Run(suffix[1:], func(t *testing.T) {
 			raw, err := os.ReadFile(fourConvexArcSource + suffix + ".step")
@@ -236,6 +239,7 @@ func TestRepairFourConvexArcRejectsIndependentControls(t *testing.T) {
 }
 
 func TestRepairFourConvexArcLive(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL")
 	if oracle == "" {
 		t.Skip("set PLAINSOLID_OCCT_CONVEX_ARC_ORIGINAL to the pinned author helper")

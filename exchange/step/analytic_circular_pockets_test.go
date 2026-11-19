@@ -10,6 +10,7 @@ import (
 )
 
 func TestAnalyticCircularPocketIndependent(t *testing.T) {
+	t.Parallel()
 	data, e := os.ReadFile("testdata/circular-pocket-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -31,6 +32,7 @@ func TestAnalyticCircularPocketIndependent(t *testing.T) {
 	}
 }
 func TestAnalyticCircularPocketSigned(t *testing.T) {
+	t.Parallel()
 	for _, h := range []float64{3, -3} {
 		for _, all := range []bool{false, true} {
 			m := circularBlindExtrusionFixture(t, h, all)
@@ -58,6 +60,7 @@ func TestAnalyticCircularPocketSigned(t *testing.T) {
 	}
 }
 func TestAnalyticCircularPocketRejects(t *testing.T) {
+	t.Parallel()
 	data, e := os.ReadFile("testdata/circular-pocket-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -133,6 +136,7 @@ func TestAnalyticCircularPocketRejects(t *testing.T) {
 	}
 }
 func TestAnalyticCircularPocketOCCT(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-circular-pocket")
 	data, e := os.ReadFile(source)
@@ -189,6 +193,7 @@ func FuzzReadAnalyticCircularPockets(f *testing.F) {
 }
 
 func TestAnalyticCircularPocketCommonEntryGuard(t *testing.T) {
+	t.Parallel()
 	// Exercise the role proof independently of pcurve rejection: relocate only the
 	// second source rim's declared cap owner. Mixed entries cannot be normalized
 	// into this descriptor even if subsequent geometric checks might be repaired.

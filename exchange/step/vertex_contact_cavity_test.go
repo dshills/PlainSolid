@@ -35,6 +35,7 @@ func checkExactSTEPVoidSource(t *testing.T, raw []byte) Model {
 }
 
 func TestPlanarVertexContactAssemblySTEPConcaveVoid(t *testing.T) {
+	t.Parallel()
 	src, err := os.ReadFile(planarConcaveVoidFixture)
 	if err != nil {
 		t.Fatal(err)
@@ -88,6 +89,7 @@ func TestPlanarVertexContactAssemblySTEPConcaveVoid(t *testing.T) {
 }
 
 func TestPlanarVertexContactAssemblySTEPVoidContact(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(planarConcaveVoidFixture)
 	if err != nil {
 		t.Fatal(err)
@@ -141,6 +143,7 @@ func TestPlanarVertexContactAssemblySTEPVoidContact(t *testing.T) {
 }
 
 func TestPlanarVertexContactAssemblySTEPConcaveVoidLive(t *testing.T) {
+	t.Parallel()
 	author := os.Getenv("PLAINSOLID_OCCT_PLANAR_CONTACT_AUTHOR")
 	if author == "" {
 		t.Skip("optional pinned OCCT nonconvex planar cavity author")

@@ -17,6 +17,7 @@ import (
 )
 
 func TestRemoveOccurrenceColorRestoresSource(t *testing.T) {
+	t.Parallel()
 	for _, file := range []string{"occt-ap242-palette-assembly.step", "occt-ap242-occurrence-colors.step"} {
 		raw, e := os.ReadFile("testdata/" + file)
 		if e != nil {
@@ -44,6 +45,7 @@ func TestRemoveOccurrenceColorRestoresSource(t *testing.T) {
 	}
 }
 func TestRemoveOccurrenceSharedFill(t *testing.T) {
+	t.Parallel()
 	for _, whole := range []bool{false, true} {
 		source := sharedOccurrenceColorSource(t, whole)
 		result, e := RemoveOccurrenceSurfaceColor(context.Background(), source, 386, Limits{})
@@ -74,6 +76,7 @@ func TestRemoveOccurrenceSharedFill(t *testing.T) {
 }
 
 func TestRemoveOccurrenceColorReject(t *testing.T) {
+	t.Parallel()
 	m, _ := occurrenceColorsNativeFixture(t)
 	source := m.Assembly.Assembly.Source
 	for _, id := range []int64{0, -1, 35, 41, 99999} {
@@ -123,6 +126,7 @@ func TestRemoveOccurrenceColorReject(t *testing.T) {
 	}
 }
 func TestRemoveOccurrenceColorLive(t *testing.T) {
+	t.Parallel()
 	original, _ := occurrenceColorsNativeFixture(t)
 	added, e := SetOccurrenceSurfaceColor(context.Background(), original.Assembly.Assembly.Source, 380, RGB{1, 1, 0}, Limits{})
 	if e != nil {

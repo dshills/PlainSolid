@@ -18,6 +18,7 @@ func ellipticalAnnulusFixture(t testing.TB) []byte {
 	return b
 }
 func TestEllipticalAnnulusFace(t *testing.T) {
+	t.Parallel()
 	raw := ellipticalAnnulusFixture(t)
 	f, e := ReadEllipticalAnnulusFace(bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -69,6 +70,7 @@ func TestEllipticalAnnulusFace(t *testing.T) {
 	}
 }
 func TestEllipticalAnnulusFaceReject(t *testing.T) {
+	t.Parallel()
 	raw := ellipticalAnnulusFixture(t)
 	for _, m := range [][2]string{{"#42 = FACE_BOUND('',#43,.F.)", "#42 = FACE_BOUND('',#43,.T.)"}, {"#54 = PCURVE('',#31,#55)", "#54 = PCURVE('',#25,#55)"}, {"#49,(#54)", "#49,(#30)"}, {"#49 = ELLIPSE('',#50,2.,1.)", "#49 = ELLIPSE('',#50,4.,1.)"}, {"#49 = ELLIPSE('',#50,2.,1.)", "#49 = ELLIPSE('',#50,3.,2.)"}, {"#56 = ELLIPSE('',#57,2.,1.)", "#56 = ELLIPSE('',#57,2.,1.00000000000000001)"}, {"#51 = CARTESIAN_POINT('',(1.,2.,3.))", "#51 = CARTESIAN_POINT('',(1.25,2.,3.))"}, {"#45,.T.", "#45,.F."}, {"#46,#46,#48,.T.", "#46,#46,#48,.F."}, {"#46 = VERTEX_POINT('',#47)", "#46 = VERTEX_POINT('',#23)"}, {"#18,#42", "#42,#18"}, {"#56),#60", "#37),#60"}} {
 		b := bytes.Replace(raw, []byte(m[0]), []byte(m[1]), 1)
@@ -129,6 +131,7 @@ func FuzzEllipticalAnnulusFace(f *testing.F) {
 }
 
 func TestEllipticalAnnulusContainment(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		a, b float64
 		ok   bool

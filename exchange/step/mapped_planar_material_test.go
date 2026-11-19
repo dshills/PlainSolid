@@ -22,6 +22,7 @@ func mappedPlanarSource(t testing.TB) []byte {
 	return b
 }
 func TestMappedPlanarMaterial(t *testing.T) {
+	t.Parallel()
 	raw := mappedPlanarSource(t)
 	m, e := ReadMappedPlanarMaterial(bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -50,6 +51,7 @@ func TestMappedPlanarMaterial(t *testing.T) {
 	}
 }
 func TestMappedPlanarMaterialRejects(t *testing.T) {
+	t.Parallel()
 	raw := mappedPlanarSource(t)
 	for _, tc := range []struct {
 		id, index int
@@ -98,6 +100,7 @@ func TestMappedPlanarMaterialRejects(t *testing.T) {
 	}
 }
 func TestMappedPlanarPcurveOwnership(t *testing.T) {
+	t.Parallel()
 	raw := mappedPlanarSource(t)
 	for _, mode := range []string{"owner", "offset", "orphan"} {
 		f, e := Parse(bytes.NewReader(raw), Limits{})
@@ -145,6 +148,7 @@ func TestMappedPlanarPcurveOwnership(t *testing.T) {
 }
 
 func TestOCCTMappedPlanarMaterial(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_DISK_BOUND_MASS")
 	if bin == "" {
 		t.Skip("optional pinned OCCT")

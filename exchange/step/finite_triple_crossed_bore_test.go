@@ -95,6 +95,7 @@ func TestFiniteTripleBoreSTEP(t *testing.T) {
 }
 
 func TestFiniteTripleBoreSTEPDecimalDepths(t *testing.T) {
+	t.Parallel()
 	for _, n := range []geom.Vec3{{Z: 1}, {Z: -1}, {X: 1}, {Y: -1}} {
 		f, _ := geom.FrameFromNormal(geom.Vec3{X: 16.25, Y: -32.5, Z: 48.125}, n)
 		m := TripleCrossedBoreModel{LengthUnit: .001, Body: TripleCrossedBoreBody{Name: "decimal floors", Frame: f, Dimensions: geom.Vec3{X: 20, Y: 16, Z: 12}, Crossing: geom.Vec3{X: 10, Y: 8, Z: 6}, Radius: 2, XBlindDepth: 16.2, YBlindDepth: 12.3, BlindDepth: 10.1, XOppositeCap: true, OppositeCap: true}}

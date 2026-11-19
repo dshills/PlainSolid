@@ -32,6 +32,7 @@ func placedAffineShell(t testing.TB, a geom.Affine) OrthogonalAffineSplineShellM
 	return m
 }
 func TestOrthogonalAffineSplineShell(t *testing.T) {
+	t.Parallel()
 	m := placedAffineShell(t, geom.Affine{{3, -4, 0, 7}, {4, 3, 0, 11}, {0, 0, 5, 13}})
 	var b bytes.Buffer
 	if e := WriteOrthogonalAffineSplineShells(&b, m); e != nil {
@@ -60,6 +61,7 @@ func TestOrthogonalAffineSplineShell(t *testing.T) {
 	}
 }
 func TestOrthogonalAffineSplineShellReject(t *testing.T) {
+	t.Parallel()
 	for _, a := range []geom.Affine{{{1, 1, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}}, {{3, math.Nextafter(-4, 0), 0, 7}, {4, 3, 0, 11}, {0, 0, 5, 13}}, {{-1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}}} {
 		m := placedAffineShell(t, a)
 		var b bytes.Buffer
@@ -73,6 +75,7 @@ func TestOrthogonalAffineSplineShellReject(t *testing.T) {
 	}
 }
 func TestOCCTOrthogonalAffineSplineShell(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-orthogonal-affine-spline-shell")
 	raw, e := os.ReadFile(source)
@@ -106,6 +109,7 @@ func TestOCCTOrthogonalAffineSplineShell(t *testing.T) {
 }
 
 func TestIndependentOrthogonalAffineSplineShell(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/orthogonal-affine-spline-shell.step")
 	if e != nil {
 		t.Fatal(e)
@@ -140,6 +144,7 @@ func FuzzOrthogonalAffineSplineShell(f *testing.F) {
 }
 
 func TestAffinePCurveSharedDomainReject(t *testing.T) {
+	t.Parallel()
 	raw, e := os.ReadFile("testdata/orthogonal-affine-spline-shell.step")
 	if e != nil {
 		t.Fatal(e)

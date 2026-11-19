@@ -17,6 +17,7 @@ func revolutionFixture(t *testing.T) []byte {
 	return b
 }
 func TestRevolutionSurfaceRoundtrip(t *testing.T) {
+	t.Parallel()
 	raw := revolutionFixture(t)
 	m, e := ReadRevolutionSurfaces(bytes.NewReader(raw), Limits{})
 	if e != nil {
@@ -65,6 +66,7 @@ func TestRevolutionSurfaceRoundtrip(t *testing.T) {
 	}
 }
 func TestRevolutionSurfaceRejectsSource(t *testing.T) {
+	t.Parallel()
 	raw := revolutionFixture(t)
 	for _, pair := range [][2]string{
 		{"#7,0.25,1.25,0.,1.,.T.,.T.", "#7,0.25,1.25,0.,1.,.F.,.T."},
@@ -113,6 +115,7 @@ func FuzzRevolutionSurfaces(f *testing.F) {
 }
 
 func TestRevolutionSurfaceExactSourceGates(t *testing.T) {
+	t.Parallel()
 	raw := revolutionFixture(t)
 	for _, pair := range [][2]string{{"(2.,0.,0.)", "(2.,1.,0.)"}, {"(4.,0.,1.)", "(4.,1.,1.)"}, {"(3.,0.,3.)", "(3.,1.,3.)"}, {"#15=CARTESIAN_POINT('',(0.,0.,0.));", "#15=CARTESIAN_POINT('',(0.,1.,0.));"}} {
 		raw = bytes.Replace(raw, []byte(pair[0]), []byte(pair[1]), 1)

@@ -16,6 +16,7 @@ import (
 )
 
 func TestOCCTMappedChainRectangularThreeLocalSupportKnotCells(t *testing.T) {
+	t.Parallel()
 	raw, err := os.ReadFile(threeLocalCellMappedChainPath)
 	if err != nil {
 		t.Fatal(err)
@@ -38,6 +39,7 @@ func TestOCCTMappedChainRectangularThreeLocalSupportKnotCellsClosedDisplay(t *te
 }
 
 func TestOCCTMappedChainRectangularThreeLocalSupportKnotCellsRejectsInvalidSource(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	raw, err := os.ReadFile(threeLocalCellMappedChainPath)
 	if err != nil {
@@ -91,6 +93,7 @@ func TestOCCTMappedChainRectangularThreeLocalSupportKnotCellsRejectsInvalidSourc
 }
 
 func TestOCCTMappedChainRectangularThreeLocalSupportKnotCellsLive(t *testing.T) {
+	t.Parallel()
 	author, reader := os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_THREE_CELLS_AUTHOR"), os.Getenv("PLAINSOLID_OCCT_MAPPED_CHAIN_STEP")
 	if author == "" || reader == "" {
 		t.Skip("optional pinned OCCT three-cell author and STEP consumer")

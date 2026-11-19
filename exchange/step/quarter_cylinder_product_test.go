@@ -25,6 +25,7 @@ func quarterProductDescriptor(t *testing.T) SplitCylinderDescriptor {
 	return SplitCylinderDescriptor{Name: "quarter posed", Frame: f, Radius: 2, Height: 3, LengthUnit: .001}
 }
 func TestQuarterCylinderProduct(t *testing.T) {
+	t.Parallel()
 	d := quarterProductDescriptor(t)
 	s, e := parametric.Cylinder(d.Frame, d.Radius, d.Height)
 	if e != nil {
@@ -79,6 +80,7 @@ func TestQuarterCylinderProduct(t *testing.T) {
 	}
 }
 func TestQuarterCylinderProductOCCT(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_SPLIT_CYLINDER")
 	if bin == "" {
 		t.Skip("optional OCCT")

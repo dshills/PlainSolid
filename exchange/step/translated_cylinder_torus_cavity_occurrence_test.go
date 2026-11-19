@@ -12,6 +12,7 @@ import (
 )
 
 func TestTranslatedCylinderTorusCavityObliqueOccurrence(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	var raw bytes.Buffer
 	WriteTranslatedCylinderTorusCavity(&raw, TranslatedCylinderTorusCavityBody{Name: "placed", MajorRadius: 5, MinorRadius: 2, CylinderRadius: 10, Lower: 0, Upper: 7, OffsetX: 1, OffsetY: -1, OffsetZ: 3}, .001)

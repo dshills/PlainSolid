@@ -12,6 +12,7 @@ import (
 )
 
 func TestOCCTExactEllipticalPrismCollection(t *testing.T) {
+	t.Parallel()
 	bin := os.Getenv("PLAINSOLID_OCCT_EXACT_ELLIPSE_COLLECTION")
 	if bin == "" {
 		t.Skip("optional pinned OCCT helper")

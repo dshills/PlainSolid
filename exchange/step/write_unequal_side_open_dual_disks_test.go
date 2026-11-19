@@ -82,6 +82,7 @@ func TestWriteUnequalSideOpenDualDiskProduct(t *testing.T) {
 	}
 }
 func TestWriteUnequalSideOpenDualDiskProductRejects(t *testing.T) {
+	t.Parallel()
 	edits := []struct {
 		name string
 		edit func(*UnequalSideOpenDualDiskDescriptor)
@@ -119,6 +120,7 @@ func TestWriteUnequalSideOpenDualDiskProductRejects(t *testing.T) {
 	}
 }
 func TestOCCTWriteUnequalSideOpenDualDiskProduct(t *testing.T) {
+	t.Parallel()
 	oracle := os.Getenv("PLAINSOLID_OCCT_OVERLAPPING_SIDE_POCKETS")
 	if oracle == "" {
 		t.Skip("optional independent OCCT helper")

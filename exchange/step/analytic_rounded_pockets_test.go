@@ -10,6 +10,7 @@ import (
 )
 
 func TestAnalyticRoundedPocketsNative(t *testing.T) {
+	t.Parallel()
 	for _, h := range []float64{3, -3} {
 		for _, mode := range []string{"stock", "through", "mixed", "blind"} {
 			t.Run(mode+real(h), func(t *testing.T) {
@@ -52,6 +53,7 @@ func TestAnalyticRoundedPocketsNative(t *testing.T) {
 	}
 }
 func TestAnalyticRoundedPocketsIndependent(t *testing.T) {
+	t.Parallel()
 	data, e := os.ReadFile("testdata/rounded-pocket-occt.step")
 	if e != nil {
 		t.Fatal(e)
@@ -66,6 +68,7 @@ func TestAnalyticRoundedPocketsIndependent(t *testing.T) {
 	}
 }
 func TestAnalyticRoundedPocketsOCCT(t *testing.T) {
+	t.Parallel()
 	source := filepath.Join(t.TempDir(), "source.step")
 	stepOracle(t, source, "write-step-rounded-pocket")
 	data, e := os.ReadFile(source)
@@ -112,6 +115,7 @@ func TestAnalyticRoundedPocketsOCCT(t *testing.T) {
 }
 
 func TestAnalyticRoundedPocketsRejects(t *testing.T) {
+	t.Parallel()
 	data, e := os.ReadFile("testdata/rounded-pocket-occt.step")
 	if e != nil {
 		t.Fatal(e)

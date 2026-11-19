@@ -22,6 +22,7 @@ func dagSharedEdit(t *testing.T) (DAGRationalMappedPlanarMaterials, RationalMapp
 	return a, RationalMappedPlacement{ItemID: id, Origin: rat3(30, 0, 0), XAxis: rat3(3, 4, 0), ZAxis: rat3(0, 0, 1)}
 }
 func TestEditedDAGRationalShared(t *testing.T) {
+	t.Parallel()
 	a, p := dagSharedEdit(t)
 	var before, out, after bytes.Buffer
 	if e := WriteDAGRationalMappedPlanarSource(&before, a.Source, Limits{}); e != nil {
@@ -69,6 +70,7 @@ func TestEditedDAGRationalShared(t *testing.T) {
 	}
 }
 func TestEditedDAGRationalReject(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"root-internal", "shared-root", "duplicate", "empty", "foreign", "limit"} {
 		t.Run(kind, func(t *testing.T) {
 			a, p := dagSharedEdit(t)
@@ -97,6 +99,7 @@ func TestEditedDAGRationalReject(t *testing.T) {
 	}
 }
 func TestEditedDAGRationalSharedRootAlias(t *testing.T) {
+	t.Parallel()
 	a, _ := dagSharedEdit(t)
 	shared := a.Occurrences[0].Path[1]
 	f := a.Source

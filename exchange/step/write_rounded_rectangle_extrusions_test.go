@@ -29,6 +29,7 @@ func roundedSTEPFixture(t *testing.T, height float64) RoundedRectangleExtrusionM
 }
 
 func TestWriteRoundedRectangleExtrusionsGraph(t *testing.T) {
+	t.Parallel()
 	var out bytes.Buffer
 	model := roundedSTEPFixture(t, -3)
 	if e := WriteRoundedRectangleExtrusions(&out, model); e != nil {
@@ -93,6 +94,7 @@ func TestWriteRoundedRectangleExtrusionsGraph(t *testing.T) {
 }
 
 func TestWriteRoundedRectangleExtrusionsOCCT(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("PLAINSOLID_OCCT_STEP") == "" {
 		t.Skip("optional OCCT")
 	}

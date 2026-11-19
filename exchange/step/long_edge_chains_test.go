@@ -17,6 +17,7 @@ func longEdgeChainFixture() LongEdgeChainModel {
 	return LongEdgeChainModel{LengthUnit: .001, Bodies: []LongEdgeChainBody{{LongEdgeTreatmentBody: LongEdgeTreatmentBody{Name: "PC5 actual chain", Length: 20, Width: 10, Height: 10, Radius: 1, TopSetback: 1, SideSetback: 1}, Bore: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 5, Y: 5}, Radius: 1}, Pocket: trimmed.ExtrusionRectangle{Min: geom.Vec2{X: 10, Y: 5}, Max: geom.Vec2{X: 13, Y: 8}}, Boss: trimmed.ExtrusionBoss{Footprint: trimmed.ExtrusionRectangle{Min: geom.Vec2{X: 15, Y: 5}, Max: geom.Vec2{X: 17, Y: 7}}, Height: 3, Upper: true}}}}
 }
 func TestLongEdgeChainTopology(t *testing.T) {
+	t.Parallel()
 	m := longEdgeChainFixture()
 	b := m.Bodies[0]
 	for _, full := range []bool{false, true} {
@@ -160,6 +161,7 @@ func TestLongEdgeChainTopology(t *testing.T) {
 	}
 }
 func TestLongEdgeChainOCCT(t *testing.T) {
+	t.Parallel()
 	m := longEdgeChainFixture()
 	b := m.Bodies[0]
 	for _, full := range []bool{false, true} {
@@ -208,6 +210,7 @@ func TestLongEdgeChainOCCT(t *testing.T) {
 }
 
 func TestLongEdgeChainIndependentOCCT(t *testing.T) {
+	t.Parallel()
 	m := longEdgeChainFixture()
 	for _, full := range []bool{false, true} {
 		source := filepath.Join(t.TempDir(), "independent.step")
@@ -257,6 +260,7 @@ func TestLongEdgeChainIndependentOCCT(t *testing.T) {
 	}
 }
 func TestLongEdgeChainRejects(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"length", "radius", "chamfer", "bore", "pocket", "boss", "unit", "name"} {
 		m := longEdgeChainFixture()
 		b := &m.Bodies[0]
@@ -303,6 +307,7 @@ func FuzzWriteLongEdgeTreatment(f *testing.F) {
 }
 
 func TestLongEdgeTreatmentUnequalOCCT(t *testing.T) {
+	t.Parallel()
 	for _, setback := range [][2]float64{{.5, 1.5}, {2, 1}, {1, 2}} {
 		b := longEdgeChainFixture().Bodies[0].LongEdgeTreatmentBody
 		b.TopSetback, b.SideSetback = setback[0], setback[1]
