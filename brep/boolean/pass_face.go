@@ -84,7 +84,7 @@ func (a *arrangement) extent(op, f int) (geom.Vec3, geom.Vec3) {
 // apart is the proof of separation of SP2 for two cylinder faces whose
 // axes are not parallel: their bounds grown by the filter margin do not
 // overlap, or their axis segments are farther apart than the two radii
-// and twice the margin (T4).
+// and twice the margin (T4), or subdivision separates them.
 func (a *arrangement) apart(fa, fb int) bool {
 	x, y := a.ops[0].faces[fa], a.ops[1].faces[fb]
 	if x.box.clear(y.box, a.t.margin) {
@@ -92,7 +92,80 @@ func (a *arrangement) apart(fa, fb int) bool {
 	}
 	p0, p1 := a.extent(0, fa)
 	q0, q1 := a.extent(1, fb)
-	return segmentDistance(p0, p1, q0, q1) > x.s.(cylinder).radius+y.s.(cylinder).radius+2*a.t.margin
+	if segmentDistance(p0, p1, q0, q1) > x.s.(cylinder).radius+y.s.(cylinder).radius+2*a.t.margin {
+		return true
+	}
+	p, q := patchOf(x.s.(cylinder), p0, p1), patchOf(y.s.(cylinder), q0, q1)
+	tests := separationTests
+	return a.separate(p, q, x.box, y.box, 2*separationDepth, &tests)
+}
+
+// patch is a rectangle of a cylinder: an interval of the angle about the
+// axis and an interval along it.
+type patch struct {
+	s              cylinder
+	a0, a1, v0, v1 float64
+}
+
+// patchOf is the whole turn of a cylinder between two points of its axis.
+func patchOf(s cylinder, from, to geom.Vec3) patch {
+	return patch{s, 0, 2 * math.Pi, s.axis().param(from), s.axis().param(to)}
+}
+
+// box holds the patch. Every point of an arc is within its sagitta of
+// its chord, and the patch is straight along the axis, so the box of the
+// four corners grown by the sagitta holds every point of it.
+func (p patch) box() bounds {
+	corner := func(angle, v float64) geom.Vec3 {
+		return p.s.axis().at(v).Add(p.s.frame.XAxis().Scale(p.s.radius * math.Cos(angle))).Add(p.s.frame.YAxis().Scale(p.s.radius * math.Sin(angle)))
+	}
+	return around(corner(p.a0, p.v0), corner(p.a1, p.v0), corner(p.a0, p.v1), corner(p.a1, p.v1)).grown(p.s.radius * (1 - math.Cos((p.a1-p.a0)/2)))
+}
+
+// The subdivision of SP2 halves each of the two patches at most
+// separationDepth times each way, the larger of the two at each step, and
+// makes at most separationTests comparisons of two boxes.
+const (
+	separationDepth = 12
+	separationTests = 20000
+)
+
+// separate proves that two cylinder faces do not come within twice the
+// filter margin of each other. Each face lies in a patch of its cylinder
+// and in its own bounds, so its points in a part of the patch lie in the
+// box of that part cut down to those bounds. Two parts whose boxes are
+// clear by the margin hold no pair of near points; otherwise the larger
+// part is halved both ways and its four quarters are tried. When the
+// depth or the number of tests is used up nothing is proved, and the
+// pair stays unsupported (SP3). No property of the faces is used but
+// their carriers and bounds.
+func (a *arrangement) separate(p, q patch, bp, bq bounds, depth int, tests *int) bool {
+	*tests--
+	x, y := p.box(), q.box()
+	x = bounds{geom.Vec3{X: math.Max(x.lo.X, bp.lo.X), Y: math.Max(x.lo.Y, bp.lo.Y), Z: math.Max(x.lo.Z, bp.lo.Z)}, geom.Vec3{X: math.Min(x.hi.X, bp.hi.X), Y: math.Min(x.hi.Y, bp.hi.Y), Z: math.Min(x.hi.Z, bp.hi.Z)}}
+	y = bounds{geom.Vec3{X: math.Max(y.lo.X, bq.lo.X), Y: math.Max(y.lo.Y, bq.lo.Y), Z: math.Max(y.lo.Z, bq.lo.Z)}, geom.Vec3{X: math.Min(y.hi.X, bq.hi.X), Y: math.Min(y.hi.Y, bq.hi.Y), Z: math.Min(y.hi.Z, bq.hi.Z)}}
+	empty := func(b bounds) bool {
+		// The bounds of a face are those of its points, so a part whose
+		// box misses them by the margin holds no point of the face.
+		return b.lo.X-b.hi.X > 2*a.t.margin || b.lo.Y-b.hi.Y > 2*a.t.margin || b.lo.Z-b.hi.Z > 2*a.t.margin
+	}
+	if empty(x) || empty(y) || x.clear(y, a.t.margin) {
+		return true
+	}
+	if depth == 0 || *tests <= 0 {
+		return false
+	}
+	size := func(p patch) float64 { return math.Max(p.s.radius*(p.a1-p.a0), math.Abs(p.v1-p.v0)) }
+	if size(p) < size(q) {
+		p, q, bp, bq = q, p, bq, bp
+	}
+	am, vm := (p.a0+p.a1)/2, (p.v0+p.v1)/2
+	for _, part := range [4]patch{{p.s, p.a0, am, p.v0, vm}, {p.s, am, p.a1, p.v0, vm}, {p.s, p.a0, am, vm, p.v1}, {p.s, am, p.a1, vm, p.v1}} {
+		if !a.separate(part, q, bp, bq, depth-1, tests) {
+			return false
+		}
+	}
+	return true
 }
 
 // rimNodes lists the nodes on the boundary of a face, each once.

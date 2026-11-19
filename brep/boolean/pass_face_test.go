@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"plainsolid/brep"
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
 )
@@ -302,5 +303,76 @@ func TestGapOfExactlyTheTolerance(t *testing.T) {
 	}
 	if want := math.Pi * 9 * 20; r.Solids != 1 || math.Abs(r.Volume-want) > 1e-5 || !(r.EdgeResidual <= r.Tolerance*(1+1e-6)) {
 		t.Fatalf("%d solids of volume %.12g with edge residual %g, want one of %.12g within %g", r.Solids, r.Volume, r.EdgeResidual, want, r.Tolerance)
+	}
+}
+
+// TestSeparationBySubdivision covers the third proof of SP2. Two bores
+// with perpendicular axes come close: their boxes overlap and their axis
+// segments are nearer than the two radii, but the walls do not meet, and
+// subdivision of the two walls proves it. The walls are those of
+// acceptance row T1-034: a bore of radius 2 along x from x = 13 to 22
+// about (y, z) = (7, 15), and one along y from y = -4 to 6 about
+// (x, z) = (12, 18.5). They pass within 0.04 of each other. When the
+// second is moved to cross the first, nothing is proved.
+func TestSeparationBySubdivision(t *testing.T) {
+	wall := func(origin, axis geom.Vec3, radius, length float64) patch {
+		t.Helper()
+		frame, err := geom.FrameFromNormal(origin, axis)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return patch{cylinder{frame, radius}, 0, 2 * math.Pi, 0, length}
+	}
+	a := &arrangement{ctx: context.Background(), t: tolerances{eps: 1e-7, margin: 4e-7, size: 40}}
+	first := wall(geom.Vec3{X: 22, Y: 7, Z: 15}, geom.Vec3{X: -1}, 2, 9)
+	firstBox := bounds{geom.Vec3{X: 13, Y: 5, Z: 13}, geom.Vec3{X: 22, Y: 9, Z: 17}}
+	for _, c := range []struct {
+		name  string
+		x, z  float64
+		apart bool
+	}{
+		{"the walls pass each other", 12, 18.5, true},
+		{"the walls cross", 15, 16, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			second := wall(geom.Vec3{X: c.x, Y: -4, Z: c.z}, geom.Vec3{Y: 1}, 2, 10)
+			secondBox := bounds{geom.Vec3{X: c.x - 2, Y: -4, Z: c.z - 2}, geom.Vec3{X: c.x + 2, Y: 6, Z: c.z + 2}}
+			tests := separationTests
+			if got := a.separate(first, second, firstBox, secondBox, 2*separationDepth, &tests); got != c.apart {
+				t.Fatalf("separate reports %v after %d tests, want %v", got, separationTests-tests, c.apart)
+			}
+		})
+	}
+	// Through Combine, with the operands of the row: the pair of walls
+	// is no longer unsupported. The cut is then assembled; at present
+	// trimmed's mesh check refuses that result, which is a limit of
+	// brep/trimmed and not of the proof.
+	bore := func(origin, axis geom.Vec3) trimmed.Solid {
+		t.Helper()
+		frame, err := geom.FrameFromNormal(origin, axis)
+		if err != nil {
+			t.Fatal(err)
+		}
+		c, err := parametric.Cylinder(frame, 2, 10)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s, err := trimmed.FromParametric(c)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	stock := lifted(t, box(t, 2, -3, 5, 22, 21, 23))
+	one, err := Combine(context.Background(), stock, bore(geom.Vec3{X: 23, Y: 7, Z: 15}, geom.Vec3{X: -1}), Cut, matrixOptions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	two, err := Combine(context.Background(), one.Solid, bore(geom.Vec3{X: 12, Y: -4, Z: 18.5}, geom.Vec3{Y: 1}), Cut, matrixOptions)
+	if errors.Is(err, ErrUnsupported) {
+		t.Fatalf("the walls are still an unsupported pair: %v", err)
+	}
+	if want := 20*24*18 - 72*math.Pi; err == nil && (two.Solids != 1 || math.Abs(two.Volume-want) > 1e-5) {
+		t.Fatalf("%d solids of volume %.10g, want one of %.10g", two.Solids, two.Volume, want)
 	}
 }
