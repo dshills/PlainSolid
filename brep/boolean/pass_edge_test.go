@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
 )
 
@@ -179,6 +180,60 @@ func TestSeamInFace(t *testing.T) {
 				}
 				if r.Solids != 1 || math.Abs(r.Volume-want) > 1e-6 {
 					t.Fatalf("%s: %d solids of volume %.9g, want one of %.9g", operationNames[op], r.Solids, r.Volume, want)
+				}
+			}
+		})
+	}
+}
+
+// TestTouchingAtAnEdge covers the touching contacts of X5 where a surface
+// is tangent at an edge of the other operand. The edge is a touching
+// contact only when both of its faces stay on one side of that surface.
+// Where one face is tangent to it and the other passes through it, the
+// operands cross there and the result is a manifold. The inputs are the
+// smallest ones the audit of the stress sets found for each kind.
+func TestTouchingAtAnEdge(t *testing.T) {
+	segment := math.Acos(0.5) - 0.5*math.Sqrt(0.75) // a unit disc beyond a chord at 0.5
+	for _, c := range []struct {
+		name string
+		a, b trimmed.Solid
+		want [3]float64 // union, common, cut; NaN for a result that is not a manifold
+	}{
+		// The cylinder is tangent to the plane x = 2.5 along the edge of
+		// the box at y = 1, and outside both faces of that edge.
+		{"a cylinder touching a box along its edge from outside",
+			lifted(t, box(t, 1, 1, 1.5, 2.5, 2.5, 2.5)), tube(t, 3.5, 1, 1, 1, 3),
+			[3]float64{math.NaN(), 0, 2.25}},
+		// The axis is in the face y = 4, so that face passes through the
+		// cylinder, which is tangent to the face x = 0 at their edge.
+		{"a cylinder centred on one face and tangent to the next at their edge",
+			lifted(t, box(t, 0, 0.5, 1, 4, 4, 2)), tube(t, 1, 4, 1.5, 1, 0.5),
+			[3]float64{14 + math.Pi/4, math.Pi / 4, 14 - math.Pi/4}},
+		// The wall is tangent to the face y = 1.5 from inside, which
+		// makes the cut a wall of no thickness. The edge of the box at
+		// z = 1 is tangent to the wall at one point, where the face
+		// z = 1 passes through the cylinder: no contact of its own.
+		{"an edge tangent to a wall at a point",
+			lifted(t, box(t, 1, 1.5, 1, 4, 4, 4)), tube(t, 1.5, 2.5, 0, 1, 2),
+			[3]float64{22.5 + 2*math.Pi - (math.Pi - segment), math.Pi - segment, math.NaN()}},
+		// The radial edge of the cap of the first cylinder, which the
+		// cap uses twice, is tangent to the wall of the second.
+		{"the radial edge of a cap tangent to a wall",
+			tube(t, 1.5, 2.5, 2, 1.5, 1), tube(t, 2, 3, 1, 0.5, 2),
+			[3]float64{2.25*math.Pi + 0.25*math.Pi, 0.25 * math.Pi, 2 * math.Pi}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			for op := Union; op <= Cut; op++ {
+				r, err := Combine(context.Background(), c.a, c.b, op, matrixOptions)
+				switch want := c.want[op]; {
+				case math.IsNaN(want):
+					if !errors.Is(err, ErrNonManifold) {
+						t.Fatalf("%s: got %v, want a refusal as non-manifold", operationNames[op], err)
+					}
+				case err != nil:
+					t.Fatalf("%s: %v", operationNames[op], err)
+				case math.Abs(r.Volume-want) > 1e-6:
+					t.Fatalf("%s: volume %.9g, want %.9g", operationNames[op], r.Volume, want)
 				}
 			}
 		})

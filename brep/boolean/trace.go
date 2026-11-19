@@ -90,13 +90,12 @@ func (a *arrangement) lay(c curve, fa, fb int, touching bool) error {
 				if e < 0 {
 					return fail(ErrInconsistent, "X6", "face %d of A and face %d of B meet along the boundary of one of them where it has no span", fa, fb)
 				}
+				// Whether the edge is a touching contact is X5's to say,
+				// which asks both faces of the edge: here only one of
+				// them is tangent to the other carrier, and the edge
+				// may well be where its second face passes through.
 				if in[1-i] == within {
-					record := a.lie(lying{op: i, edge: e, ends: ends, face: faces[1-i]})
-					if touching {
-						c := touch{node: -1, lie: record}
-						c.faces[i], c.faces[1-i] = a.owners[i][e][:], []int{faces[1-i]}
-						a.touches = append(a.touches, c)
-					}
+					a.lie(lying{op: i, edge: e, ends: ends, face: faces[1-i]})
 				}
 			}
 		}

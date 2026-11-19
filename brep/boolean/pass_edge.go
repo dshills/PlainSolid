@@ -251,7 +251,12 @@ func (a *arrangement) pierce(op, e, f int, h hit) error {
 				return err
 			}
 			a.loose[1-op][f] = append(a.loose[1-op][f], n)
-			if h.touching {
+			// The edge touches the carrier at the point. That is a
+			// touching contact of the operands only when the faces
+			// of the edge stay on one side of the carrier there; an
+			// edge that is tangent to a surface which one of its own
+			// faces passes through is a place where they cross.
+			if h.touching && a.oneSided(op, e, f, h.p) {
 				c := touch{node: n, lie: -1}
 				c.faces[op], c.faces[1-op] = a.owners[op][e][:], []int{f}
 				a.touches = append(a.touches, c)
@@ -286,22 +291,8 @@ func (a *arrangement) spanInFace(op, e int, from, to stop, f int) error {
 		return nil
 	}
 	record := a.lie(lying{op: op, edge: e, ends: [2]int{from.node, to.node}, face: f})
-	// A touching contact: both faces of the edge leave the span to one
-	// side of the carrier.
-	// A seam edge is used twice by one face, which leaves it to both
-	// sides: each use is asked for its own direction.
-	common := 0
-	owners := a.owners[op][e]
-	for k, own := range owners {
-		use := 0
-		if k == 1 && owners[0] == own {
-			use = 1
-		}
-		side := a.t.side(face.s, middle, a.inward(op, own, e, use, middle))
-		if side == 0 || common != 0 && side != common {
-			return nil
-		}
-		common = side
+	if !a.oneSided(op, e, f, middle) {
+		return nil
 	}
 	c := touch{node: -1, lie: record}
 	c.faces[op], c.faces[1-op] = a.owners[op][e][:], []int{f}
@@ -309,10 +300,55 @@ func (a *arrangement) spanInFace(op, e int, from, to stop, f int) error {
 	return nil
 }
 
-// inward is the direction in which face f of an operand leaves its
-// boundary edge e at point p: across the edge, into the face. Where the
-// face uses the edge more than once, use counts the uses to pass over.
-func (a *arrangement) inward(op, f, e, use int, p geom.Vec3) geom.Vec3 {
+// oneSided reports whether the boundary of an operand lies, near the
+// point p of its edge e, on one and the same side of the carrier of face
+// f of the other operand: the condition for a touching contact where an
+// edge lies in a face or meets it at a point (X5). Both uses of the edge
+// are asked, each for its own face; a seam is used twice by one face,
+// which leaves it to both sides.
+//
+// A face is judged by where its points near p lie, not by a direction at
+// p. The contacts this decides are tangent ones, where a direction that
+// leaves the edge is in the tangent plane of the carrier and tells
+// nothing, and where one face of the edge can lie along the carrier
+// while the other passes through it. A face with points on both sides
+// crosses the carrier. A face that lies on the carrier, as at a flush
+// corner, is on neither side: that is a same-surface matter and not a
+// touching contact. The edge is one-sided when every face of it is off
+// the carrier, crosses nowhere near p, and all are on one side.
+func (a *arrangement) oneSided(op, e, f int, p geom.Vec3) bool {
+	carrier := a.ops[1-op].faces[f].s
+	common := 0
+	owners := a.owners[op][e]
+	for k, own := range owners {
+		use := 0
+		if k == 1 && owners[0] == own {
+			use = 1
+		}
+		side := 0
+		for _, q := range a.near(op, own, e, use, p) {
+			switch d := carrier.offset(q); {
+			case d > a.t.eps && side < 0, d < -a.t.eps && side > 0:
+				return false // the face has points on both sides
+			case d > a.t.eps:
+				side = 1
+			case d < -a.t.eps:
+				side = -1
+			}
+		}
+		if side == 0 || common != 0 && side != common {
+			return false
+		}
+		common = side
+	}
+	return true
+}
+
+// near gives points of face f of an operand close to the point p of its
+// boundary edge e: a fan of chart steps from p into the face, from near
+// one direction of the edge round to near the other. Where the face uses
+// the edge more than once, use counts the uses to pass over.
+func (a *arrangement) near(op, f, e, use int, p geom.Vec3) []geom.Vec3 {
 	face := a.ops[op].faces[f]
 	ch := face.s.chart()
 	for i, loop := range face.loops {
@@ -323,16 +359,18 @@ func (a *arrangement) inward(op, f, e, use int, p geom.Vec3) geom.Vec3 {
 			if use--; use >= 0 {
 				continue
 			}
+			// The face is on the left of its boundary, so a quarter
+			// turn to the left of the heading points into it.
 			l := a.borders[op][f][i][k]
-			// A short step across the edge in the chart: on a curved
-			// carrier it shows to which side the face bends away.
 			h, _ := heading(ch, leg{l.c, l.c.param(p), l.t1})
 			q, step := ch.locate(p), a.t.size/1024
-			d, err := ch.lift(geom.Vec2{X: q.X - h.Y*step, Y: q.Y + h.X*step}).Sub(ch.lift(q)).Unit()
-			if err == nil {
-				return d
+			var out []geom.Vec3
+			for _, turn := range [5]float64{math.Pi / 6, math.Pi / 3, math.Pi / 2, 2 * math.Pi / 3, 5 * math.Pi / 6} {
+				s, c := math.Sincos(turn)
+				out = append(out, ch.lift(geom.Vec2{X: q.X + step*(c*h.X-s*h.Y), Y: q.Y + step*(c*h.Y+s*h.X)}))
 			}
+			return out
 		}
 	}
-	return geom.Vec3{}
+	return nil
 }
