@@ -55,6 +55,44 @@ func (a *arrangement) samePlace(x, y corner) bool {
 	return x.point == y.point && math.Hypot(x.at.X-y.at.X, x.at.Y-y.at.Y) <= a.points[x.point].radius
 }
 
+// quarter cuts every curved edge into arcs of at most a quarter turn, the
+// first step of B2, before M6 looks for corners: the ends of the arcs are
+// vertices of the result, and so corners that a divider can run to. The
+// loops of the sheets are rewritten in place to walk the arcs.
+func (a *arrangement) quarter(edges []element, sheets []sheet) []element {
+	var out []element
+	parts := table[[]int](edges)
+	for i, e := range edges {
+		from := e.a
+		legs := conditioned(e, 0)
+		for k, l := range legs {
+			to := e.b
+			if k+1 < len(legs) {
+				a.points = append(a.points, point{e.c.at(l.t1), a.t.eps})
+				to = len(a.points) - 1
+			}
+			parts[i] = append(parts[i], len(out))
+			out = append(out, element{e.c, l.t0, l.t1, from, to})
+			from = to
+		}
+	}
+	for _, sh := range sheets {
+		for i, loop := range sh.loops {
+			var walk []hop
+			for _, h := range loop {
+				for k := range parts[h.elem] {
+					if h.reversed {
+						k = len(parts[h.elem]) - 1 - k
+					}
+					walk = append(walk, hop{parts[h.elem][k], h.reversed})
+				}
+			}
+			sh.loops[i] = walk
+		}
+	}
+	return out
+}
+
 // cornersOf numbers the corners of a face, loop by loop, and reports
 // whether two of them are at one chart point. Two loops with a corner at
 // one chart point contradict F3 and M3.

@@ -80,7 +80,7 @@ func (a *arrangement) coalesce(pieces []piece, keep []kept) ([]element, []sheet,
 		sh.sources = sourcesOf(from)
 		sheets = append(sheets, sh)
 	}
-	return a.divide(a.chain(users, removed, sheets), sheets)
+	return a.divide(a.quarter(a.chain(users, removed, sheets), sheets), sheets)
 }
 
 // layout traces the boundary of the face that a list of kept pieces

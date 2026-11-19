@@ -186,11 +186,14 @@ var matrix = []struct {
 	{"C20", "cyl", func(t *testing.T) []config {
 		// As C19, but the base circle touches the edge x = 2 of the top.
 		// The faces around the point of contact form one cycle, so the
-		// union is a solid whose top face touches itself there. The hole
-		// in it is a circle with no corner but that point, so M6 finds
-		// no chord and returns ErrUnsupported. The row of section 11
-		// still says ErrNonManifold; M6 and N2 as amended govern.
-		return curved(cube(t), tube(t, 1.5, 1, 2, 0.5, 1), outcome{fails: ErrUnsupported}, nothing, solidOf(8, 1, 0, 6))
+		// union is a solid whose top face touches itself there; M6
+		// divides it in two, between a corner of the face and a vertex
+		// of the quarter-turn cut of the circle. Nine faces: five of
+		// the cube, the two parts of its top, the wall and the cap.
+		// The first cylinder has its vertex at the point of contact, the
+		// second a quarter turn from it.
+		want := [3]outcome{Union: solidOf(8+math.Pi/4, 1, 0, 9), Common: nothing, Cut: solidOf(8, 1, 0, 6)}
+		return []config{{a: cube(t), b: tube(t, 1.5, 1, 2, 0.5, 1), want: want}, {a: cube(t), b: tube(t, 1, 0.5, 2, 0.5, 1), want: want}}
 	}},
 	{"C22", "cyl", func(t *testing.T) []config {
 		// A cylinder entering the top face of A and ending inside it.

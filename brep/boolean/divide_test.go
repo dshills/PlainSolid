@@ -94,31 +94,38 @@ func TestDivide(t *testing.T) {
 		holes    int // holes over all faces afterwards
 		area     float64
 		err      error
+		cut      bool // the quarter-turn cut is made first, as coalesce makes it
 	}{
 		{"a rectangle less a triangle that touches its edge",
 			[][]geom.Vec3{{v(0, 0), v(1, 0), v(0.5, 1), v(1.5, 1), v(1, 0), v(4, 0), v(4, 4), v(0, 4)}},
-			[][2]geom.Vec3{{v(0, 0), v(0.5, 1)}}, 2, 0, 15.5, nil},
+			[][2]geom.Vec3{{v(0, 0), v(0.5, 1)}}, 2, 0, 15.5, nil, false},
 		{"the shortest chord continues a side and is passed over",
 			[][]geom.Vec3{{v(0, 2), v(8, 2), v(8, 3), v(2, 6), v(5, 9), v(8, 3), v(8, 12), v(0, 12)}},
-			[][2]geom.Vec3{{v(0, 2), v(2, 6)}}, 2, 0, 80 - 13.5, nil},
+			[][2]geom.Vec3{{v(0, 2), v(2, 6)}}, 2, 0, 80 - 13.5, nil, false},
 		{"a loop that passes three times through one point",
 			[][]geom.Vec3{{v(0, 0), v(2, 0), v(0.5, 1), v(1.5, 1.5), v(2, 0), v(2.5, 1.5), v(3.5, 1), v(2, 0), v(4, 0), v(4, 4), v(0, 4)}},
-			nil, 3, 0, 16 - 0.875 - 0.875, nil},
+			nil, 3, 0, 16 - 0.875 - 0.875, nil, false},
 		{"a hole that touches itself, and two chords of one length",
 			[][]geom.Vec3{{v(0, 0), v(6, 0), v(6, 6), v(0, 6)}, {v(3, 3), v(1, 2), v(1, 4), v(3, 3), v(5, 4), v(5, 2)}},
-			[][2]geom.Vec3{{v(1, 2), v(5, 2)}}, 2, 1, 36 - 4, nil},
+			[][2]geom.Vec3{{v(1, 2), v(5, 2)}}, 2, 1, 36 - 4, nil, false},
 		{"a round hole that touches an edge has no chord",
 			[][]geom.Vec3{{v(0, 0), v(2, 0), geom.Vec3{X: 2, Y: 1, Z: -1}, v(4, 0), v(4, 4), v(0, 4)}},
-			nil, 0, 0, 0, ErrUnsupported},
+			nil, 0, 0, 0, ErrUnsupported, false},
+		{"a round hole that touches an edge, cut into quarter turns",
+			[][]geom.Vec3{{v(0, 0), v(2, 0), geom.Vec3{X: 2, Y: 1, Z: -1}, v(4, 0), v(4, 4), v(0, 4)}},
+			[][2]geom.Vec3{{v(0, 0), v(1, 1)}}, 2, 0, 16 - math.Pi, nil, true},
 		{"two loops at one point",
 			[][]geom.Vec3{{v(0, 0), v(2, 0), v(4, 0), v(4, 4), v(0, 4)}, {v(2, 0), v(3, 2), v(1, 2)}},
-			nil, 0, 0, 0, ErrInconsistent},
+			nil, 0, 0, 0, ErrInconsistent, false},
 		{"a face that does not touch itself is left alone",
 			[][]geom.Vec3{{v(0, 0), v(4, 0), v(4, 4), v(0, 4)}, {v(1, 1), v(1, 2), v(2, 1)}},
-			nil, 1, 1, 15.5, nil},
+			nil, 1, 1, 15.5, nil, false},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			a, edges, sh := flat(t, c.loops)
+			if c.cut {
+				edges = a.quarter(edges, []sheet{sh})
+			}
 			before := len(edges)
 			edges, faces, err := a.divide(edges, []sheet{sh})
 			if !errors.Is(err, c.err) || c.err != nil {
@@ -141,7 +148,8 @@ func TestDivide(t *testing.T) {
 			for i, want := range c.dividers {
 				d := edges[before+i]
 				p, q := a.points[d.a].pos, a.points[d.b].pos
-				if forward, back := p == want[0] && q == want[1], p == want[1] && q == want[0]; !forward && !back {
+				near := func(x, y geom.Vec3) bool { return x.Distance(y) < 1e-12 }
+				if forward, back := near(p, want[0]) && near(q, want[1]), near(p, want[1]) && near(q, want[0]); !forward && !back {
 					t.Fatalf("divider %d runs from %v to %v, want %v to %v", i, p, q, want[0], want[1])
 				}
 			}
