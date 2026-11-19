@@ -6,17 +6,11 @@ T1-019 TestOverlapVolumePreservesOrdinaryQueriesAndCommonGeometry foundation: ar
 T1-020 TestOverlappingHoleUnionAxesSignsAndDepths foundation: arcs at a vertex
 T1-021 TestHoleUnionDuplicatesContainmentAndTripleOverlap foundation: arcs at a vertex
 T1-024 TestThroughUnionOpposedAxesAndInputOrders foundation: arcs at a vertex
-T1-025 TestOpposedBlindBoreMerge time over two seconds
 T1-027 TestOpposedBlindBoresIntersectAtDifferentDepths foundation: arcs at a vertex
 T1-028 TestOpposedBlindBoresMeetingAtOneLevel foundation: arcs at a vertex
 T1-029 TestObliqueThroughBoreScopeAndSTL foundation: other (trimmed mesh: edge not closed, as C23 union); foundation: other (trimmed tessellation budget on a result); time over two seconds
-T1-031 TestDisjointBoresSTEP time over two seconds
-T1-032 TestDisjointBlindBoresSTEP time over two seconds
-T1-033 TestFiniteDisjointBoresSTEP time over two seconds
-T1-034 TestRadialDisjointBoresSTEP foundation: other (trimmed mesh rejects a planar face, not the RL-1 pattern); time over two seconds
-T1-035 TestDisjointObliqueBoreScopeAndSTEP time over two seconds
-T1-037 TestPlacedSideCrossingBlindCylinderCut time over two seconds
-T1-041 TestSideNotchMixedBoreBatchIsAtomic foundation: other (trimmed mesh rejects a planar face, not the RL-1 pattern); foundation: other (Classify takes no unionArcUV p-curve of an imported operand); other: intake refuses the placement of an operand face; time over two seconds
+T1-034 TestRadialDisjointBoresSTEP foundation: other (trimmed mesh: a triangle on the seam of a cylinder wall)
+T1-041 TestSideNotchMixedBoreBatchIsAtomic foundation: other (trimmed mesh: a triangle on the seam of a cylinder wall); foundation: other (Classify takes no unionArcUV p-curve of an imported operand); other: intake refuses the placement of an operand face; time over two seconds
 T1-048 TestSideOpeningPairScopedAndSuccessive foundation: arcs at a vertex
 T1-049 TestSideOpeningPairOpposedScopes foundation: arcs at a vertex
 T1-050 TestSideOpeningPairDifferentStockSides foundation: arcs at a vertex
@@ -24,38 +18,34 @@ T1-051 TestSideOpeningCutsRetainHistoryAndAcceptFurtherHoles foundation: arcs at
 T1-052 TestSideOpeningCutsContinueStrictDualDisk foundation: arcs at a vertex
 T1-053 TestIntersectingCornerOpeningHoles foundation: arcs at a vertex; foundation: other (Classify takes no unionArcUV p-curve of an imported operand)
 T1-054 TestConcealedHoleSTEPAndFurtherCut foundation: arcs at a vertex; foundation: other (Classify takes no unionArcUV p-curve of an imported operand)
-T1-055 TestPlainCADSideOpenDualDiskCuts foundation: arcs at a vertex; time over two seconds
+T1-055 TestPlainCADSideOpenDualDiskCuts foundation: arcs at a vertex
 T1-056 TestPlainCADUnequalSideOpenDualDiskCuts foundation: arcs at a vertex
 T1-057 TestPlainCADOffCenterSideOpenDualDisk foundation: arcs at a vertex
 T1-058 TestPlainCADSideOpeningFallbackAtNonbinaryCrossing foundation: arcs at a vertex
 T1-059 TestPlainCADExactWallSideOpenDualDisk foundation: arcs at a vertex
 T1-060 TestPlainCADOffsetSideOpenDualDisk foundation: arcs at a vertex
 T1-061 TestPlainCADUnequalCenterSideOpenDualDisk foundation: arcs at a vertex
-T1-062 TestCircularStockFiniteEccentricHoleAndSTEP time over two seconds
-T1-063 TestCircularStockGroupedAndSuccessiveDisjointBores foundation: arcs at a vertex; time over two seconds
+T1-063 TestCircularStockGroupedAndSuccessiveDisjointBores foundation: arcs at a vertex
 T1-065 TestCircularStockDisjointOpposedBoresAndSTEP time over two seconds
-T1-066 TestCircularStockOverlappingOpposedAndSequentialBores foundation: arcs at a vertex; foundation: other (Classify takes no unionArcUV p-curve of an imported operand); time over two seconds
+T1-066 TestCircularStockOverlappingOpposedAndSequentialBores foundation: arcs at a vertex; foundation: other (Classify takes no unionArcUV p-curve of an imported operand)
 T1-067 TestCircularStockCoaxialOpposedSTEPAndThroughCut foundation: other (Classify takes no unionArcUV p-curve of an imported operand)
 T1-078 TestPatternOverlapUsesFiniteCylinderLens foundation: arcs at a vertex
-T1-083 TestPocketFloorCircleCutsAndCounterbore foundation: other (trimmed mesh rejects a planar face, not the RL-1 pattern); time over two seconds
-T1-086 TestIslandPocketFiniteSignedCaps time over two seconds
-T1-087 TestToFaceFiniteCoverageAndHoles other: to-face succeeds where the record fails; coverage of the profile is a contract failure that CO3 does not state
-T1-090 TestToFaceAnalyticCircularHoleCoverage other: to-face succeeds where the record fails; coverage of the profile is a contract failure that CO3 does not state
-T1-091 TestToFaceAnalyticCircleHoleExactGap other: to-face succeeds where the record fails; coverage of the profile is a contract failure that CO3 does not state
-T1-092 TestObliqueToFaceUsesCircularExtent foundation: other (trimmed tessellation budget on a result); other: to-face succeeds where the record fails; coverage of the profile is a contract failure that CO3 does not state; time over two seconds
+T1-083 TestPocketFloorCircleCutsAndCounterbore foundation: other (trimmed mesh: a triangle on the seam of a cylinder wall)
+T1-091 TestToFaceAnalyticCircleHoleExactGap other: the record separates a tool tangent to a hole from one 1e-15 away, a sub-tolerance feature (the kind RL-12 excludes); the tangent case has no chord for M6
+T1-092 TestObliqueToFaceUsesCircularExtent foundation: other (trimmed tessellation budget on a result); time over two seconds
 T2-001 TestCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
 T2-002 TestBlindCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
-T2-003 TestDoubleBlindCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair; time over two seconds
+T2-003 TestDoubleBlindCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
 T2-004 TestContainedCrossedBores Tier 2, not attempted; unsupported surface pair
-T2-005 TestClippedCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair; time over two seconds
+T2-005 TestClippedCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
 T2-006 TestTripleCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
-T2-007 TestBlindTripleCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair; time over two seconds
-T2-008 TestMultipleBlindTripleCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair; time over two seconds
+T2-007 TestBlindTripleCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
+T2-008 TestMultipleBlindTripleCrossedBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
 T2-009 TestCrossedCompanionBoreScopeAndSTEP Tier 2, not attempted; unsupported surface pair
 T2-010 TestCrossedObliqueBoreScope Tier 2, not attempted; unsupported surface pair
-T2-011 TestCrossedObliqueReciprocalScope Tier 2, not attempted; unsupported surface pair; time over two seconds
+T2-011 TestCrossedObliqueReciprocalScope Tier 2, not attempted; unsupported surface pair
 T2-013 TestCrossedObliqueBoreCoordinatePlacements Tier 2, not attempted; unsupported surface pair; foundation: other (trimmed mesh: edge not closed, as C23 union); time over two seconds
-T2-014 TestBlindCrossedObliqueBoreSTEPAndFurtherCut Tier 2, not attempted; unsupported surface pair; time over two seconds
-T2-015 TestConcealedCrossedObliqueBoreSTEPCanonical Tier 2, not attempted; unsupported surface pair; foundation: arcs at a vertex; time over two seconds
-T2-016 TestObliqueFloorCrossedBoreReimport Tier 2, not attempted; unsupported surface pair; time over two seconds
-T2-017 TestDoubleBlindCrossedObliqueBore Tier 2, not attempted; unsupported surface pair; time over two seconds
+T2-014 TestBlindCrossedObliqueBoreSTEPAndFurtherCut Tier 2, not attempted; unsupported surface pair
+T2-015 TestConcealedCrossedObliqueBoreSTEPCanonical Tier 2, not attempted; unsupported surface pair; foundation: arcs at a vertex
+T2-016 TestObliqueFloorCrossedBoreReimport Tier 2, not attempted; unsupported surface pair
+T2-017 TestDoubleBlindCrossedObliqueBore Tier 2, not attempted; unsupported surface pair

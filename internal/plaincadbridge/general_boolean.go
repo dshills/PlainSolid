@@ -19,10 +19,8 @@ import (
 // field is set, which only a test constructor does; the default bridge is
 // unchanged.
 
-// generalOptions are the tolerances the bridge passes to the general
-// Boolean (L4). The integration takes the sample budget that a result
-// with an oblique or annular cap needs to converge at 1e-9; the default
-// of four million samples runs out on those.
+// generalOptions are the tolerances of the bridge (L4). The integration
+// options serve only a solid whose measures have no closed form.
 var generalOptions = boolean.Options{
 	Linear:      1e-7,
 	Angular:     1e-9,
@@ -120,8 +118,7 @@ func generalOperand(s stored) (trimmed.Solid, error) {
 
 // putGeneral publishes a result of the general Boolean: the empty solid
 // as the legacy paths publish it, and any other as an analytic body that
-// holds the result solid, with the volume and area that the general
-// Boolean integrated for it.
+// holds the result solid, with the volume and area the result reports.
 func (b *Bridge) putGeneral(r boolean.Result) (Shape, error) {
 	if r.Solids == 0 {
 		return b.put(brep.Solid{})
@@ -158,12 +155,10 @@ func generalBody(body *analyticBody) bool {
 
 // generalBounds is the box of a solid bounded by planes and cylinders:
 // the box of its edges, each arc taken to its true extent. It holds
-// every face. A coordinate is a linear function of position; on a planar
-// face a linear function is greatest and least on the boundary, and on a
-// cylinder it is linear along each ruling, which ends on the boundary of
-// the face at both ends. trimmed.Solid.Bounds is wider on two counts: it
-// boxes the whole parameter rectangle of each face, and it pads the box
-// by the tolerance of the solid.
+// every face: a coordinate is linear in position, so on a planar face it
+// is extreme on the boundary, and on a cylinder it is linear along each
+// ruling, which ends on the boundary. trimmed.Solid.Bounds is wider: it
+// boxes the parameter rectangle of each face and pads by the tolerance.
 func generalBounds(s trimmed.Solid) (geom.Box, error) {
 	points := s.Vertices()
 	for _, e := range s.Edges() {
@@ -285,8 +280,8 @@ func generalOverlapVolume(ctx context.Context, a, c stored) (any, error) {
 // generalToFace is prismToFace and circleToFace as CO3 states them: the
 // common of the sweep, extended past the target plane, with a block one
 // face of which lies on the target plane. The target must still have a
-// face on that plane, and the whole profile must lie before the plane
-// along the sweep.
+// face on that plane, the whole profile must lie before the plane along
+// the sweep, and the target must cover the end of the tool.
 func (b *Bridge) generalToFace(ctx context.Context, target stored, q request) (Shape, error) {
 	origin, normal := q.Origin.vec(), q.Normal.vec()
 	err := errors.New("the target has no planar face to end on")
@@ -355,6 +350,31 @@ func (b *Bridge) generalToFace(ctx context.Context, target stored, q request) (S
 	r, err := generalCombine(ctx, sweep, stored{solid: block}, boolean.Common)
 	if err != nil {
 		return Shape{}, err
+	}
+	// Coverage (CO3): the end cap of the tool is every face of it whose
+	// corners all lie on the target plane. It is covered when no face of
+	// the union of the tool with the target, and none of their common,
+	// has the cap among its sources.
+	end := map[int]bool{}
+	for i, f := range r.Solid.Faces() {
+		end[i] = true
+		for _, u := range f.Outer {
+			p, err := f.Surface.Eval(u.UVStart.X, u.UVStart.Y)
+			end[i] = end[i] && err == nil && math.Abs(p.Sub(origin).Dot(n)) <= r.Solid.Tolerance()
+		}
+	}
+	for _, op := range [2]boolean.Operation{boolean.Union, boolean.Common} {
+		c, err := generalStep(ctx, r.Solid, &r.Properties, target, op)
+		if err != nil {
+			return Shape{}, err
+		}
+		for _, sources := range c.Sources {
+			for _, from := range sources {
+				if from[0] == 0 && end[from[1]] {
+					return Shape{}, errors.New("extrude to face failed: the termination face does not cover the projected profile")
+				}
+			}
+		}
 	}
 	return b.putGeneral(r)
 }

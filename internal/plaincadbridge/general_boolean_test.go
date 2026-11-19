@@ -164,6 +164,43 @@ func TestGeneralBooleanBounds(t *testing.T) {
 	}
 }
 
+// TestGeneralBooleanToFace covers the three rules of CO3 that fail a
+// to-face request: the face is gone, the profile is not before the
+// plane, and the target does not cover the end of the tool, which is
+// decided from the sources of the faces of two more Booleans.
+func TestGeneralBooleanToFace(t *testing.T) {
+	type q = map[string]any
+	plate := q{"op": "box", "min": vector{-5, -5, 10}, "max": vector{5, 5, 12}}
+	under := func(change q) q {
+		request := q{"op": "circleToFace", "b": "ps:1", "origin": vector{0, 0, 10}, "normal": vector{0, 0, -1}, "direction": vector{0, 0, 1}, "center": vector{0, 0, 0}, "radius": 1}
+		for k, v := range change {
+			request[k] = v
+		}
+		return request
+	}
+	for _, c := range []struct {
+		name    string
+		target  q
+		request q
+		ok      bool
+	}{
+		{"covered", plate, under(nil), true},
+		{"the end hangs over the edge of the face", plate, under(q{"center": vector{4.5, 0, 0}}), false},
+		{"the end lies over a hole of the face", q{"op": "prism", "outer": []vector{{-5, -5, 10}, {5, -5, 10}, {5, 5, 10}, {-5, 5, 10}}, "holes": [][]vector{{{-2, -2, 10}, {-2, 2, 10}, {2, 2, 10}, {2, -2, 10}}}, "offset": vector{0, 0, 2}}, under(nil), false},
+		{"the face looks away from the tool", plate, under(q{"origin": vector{0, 0, 12}, "normal": vector{0, 0, 1}}), false},
+		{"no face on the plane", plate, under(q{"origin": vector{0, 0, 11}}), false},
+		{"the profile is past the plane", plate, under(q{"center": vector{0, 0, 10.5}}), false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			b := newGeneral()
+			shape(t, b, c.target)
+			if a := ask(t, b, c.request); a.OK != c.ok || b.next != 1+map[bool]uint64{true: 1}[c.ok] {
+				t.Fatalf("ok %v with %d shapes, want %v (%+v)", a.OK, b.next, c.ok, a.Error)
+			}
+		})
+	}
+}
+
 // TestGeneralBooleanFailures fixes the bridge failure of each error of
 // the general Boolean, and of a stored shape the adapter does not take.
 func TestGeneralBooleanFailures(t *testing.T) {
