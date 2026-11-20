@@ -10,36 +10,24 @@ not append dated entries. The narrative that this page replaced is in git:
 
 ## Current state
 
-As of 2026-11-20, with kernel code at `8c30dbf1`.
+As of 2026-11-20, with kernel code at `c4fe8100`.
 
 | Check | Last result | Kernel commit |
 |---|---|---|
-| PlainCAD application with PlainSolid selected (app `efae4d2`) | Passed all eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract and 1,691 unit cases; none skipped or flaky | `b841cc75`, 2026-11-19 |
-| Complete Go suite with the research tag, macOS ARM64, Go 1.23.12 | 6,359 passed, 625 optional skips, 0 failed of 6,984 | `93099dfe`, 2026-11-19 |
+| PlainCAD application with PlainSolid selected (app `efae4d2`) | Passed all eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract and 1,691 unit cases; none skipped or flaky | `c4fe8100`, 2026-11-20 |
+| Complete Go suite with the research tag, macOS ARM64, Go 1.23.12 | 6,395 passed, 625 optional skips, 0 failed of 7,020 | `c4fe8100`, 2026-11-20 |
 | Complete Go suite, Linux ARM64, Go 1.26.0 | 6,018 passed, 599 optional skips, 0 failed | `c7afb429`, 2026-11-16 |
 | Complete Go suite with the race detector, macOS ARM64 | 5,557 passed, 580 optional skips, 0 failed | `ab33a412`, 2026-11-15 |
-| Default Go tier (`go test ./...`), macOS ARM64, Go 1.27.4 | All 58 packages with tests pass | `8c30dbf1`, 2026-11-20 |
+| Default Go tier (`go test ./...`), macOS ARM64, Go 1.27.4 | All 58 packages with tests pass | `c4fe8100`, 2026-11-20 |
 
 The PlainCAD application suites and the complete Go suite, slow tier and
-research code included, pass with the Go compiler mitigation, the general
-Boolean, the band mesher, the STEP writer and reader for boundaries of planes
-and cylinders, and the bridge's fallback to the general Boolean in place;
-`93099dfe` differs from `b841cc75` only in documents. Neither has been
-repeated since. Seven changes came after them: `16596a78` lets the default
-bridge import a STEP file it exported for a result of the general Boolean;
-`81160f7a` makes point classification in `brep/trimmed` take a ray that
-runs along a plane, a cylinder axis or a cone ruling as parallel, where it
-failed before; `3782cff6` completes the chamfer and fillet of a result
-of the general Boolean; `9ca9f026` gives such a result the bore callouts
-of a drawing, the mesh of the legacy bore path and exact bounds;
-`494b1a47`, with the three commits before it, has the general Boolean
-cross cylinders of equal radius whose axes meet
-([specification](../specs/general-boolean-crossing/SPEC.md)); `2685dfac`
-keeps a section circle at one height in the chart of its cylinder, which
-a pose off the coordinate axes needs; and `d27288fa` fillets round a cap
-of a result of the general Boolean. The Linux
-run and the race run have not been
-repeated since the commits shown.
+research code included, both pass on `c4fe8100`. That commit has the Go
+compiler mitigation, the general Boolean with cylinders of equal radius
+whose axes meet, the bridge's fallback to it, the STEP writer and reader
+for boundaries of planes and cylinders, and the chamfer and fillet of a
+result of the general Boolean. A complete Go run on `f95276ec`, the
+commit before it, failed on two tests; `c4fe8100` corrects both. The Linux
+run and the race run have not been repeated since the commits shown.
 
 The default build leaves out the research quarantine: 540 production files of
 `brep/trimmed` (94,416 lines) that no other package reaches, with their tests.
@@ -92,7 +80,7 @@ The gates PC0 to PC5 and their ordering are defined in
 existing PlainCAD end-to-end tests, listed in
 [PlainCAD readiness](PLAINCAD_READINESS.md). Those tests run inside the
 PlainCAD development, production and cross-browser suites, which last passed
-in full on kernel `b841cc75`. No PlainCAD case is known to fail.
+in full on kernel `c4fe8100`. No PlainCAD case is known to fail.
 
 The PlainSolid-backed app lives on the `codex/plainsolid-backend` branch of
 the sibling PlainCAD checkout. The acceptance inventory is a critical-path
