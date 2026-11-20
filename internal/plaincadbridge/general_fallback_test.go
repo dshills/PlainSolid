@@ -179,8 +179,8 @@ func TestGeneralFirst(t *testing.T) {
 		}
 		near(t, out.GeometryAssertions.Volume, c.from.GeometryAssertions.Volume-removed)
 		// The general Boolean cuts it (specs/general-boolean-quartic),
-		// and the body keeps its history, from which it is meshed and
-		// written to STEP.
+		// and the body keeps its history, from which it is written to
+		// STEP. Its mesh is the chart mesher's, within the budget.
 		if body := b.shapes[out.Handle].analytic; body == nil || !body.general || history(out) != 2 {
 			t.Fatalf("%s: the bore askew was not cut by the general Boolean with its history kept", c.name)
 		}
@@ -188,9 +188,7 @@ func TestGeneralFirst(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
-		// The mesh is the legacy bore body's, at the facet angle asked
-		// for: it is not refined to the budget of a general mesh.
-		if err := m.ValidateSolid(); err != nil || math.Abs(m.SignedVolume()-crossed) > 2e-3*crossed {
+		if err := m.ValidateSolid(); err != nil || math.Abs(float32MeshVolume(m)-crossed) > meshVolumeBudget*crossed {
 			t.Fatalf("%s: a mesh of volume %.10g, %v", c.name, m.SignedVolume(), err)
 		}
 		if _, err := b.exportSTEP([]string{out.Handle}); err != nil {

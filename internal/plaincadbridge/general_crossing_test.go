@@ -240,3 +240,34 @@ func TestGeneralCrossedResultUse(t *testing.T) {
 		})
 	}
 }
+
+// TestGeneralMeshOfUnequalCrossing meshes bodies whose faces are trimmed
+// along the curve in which bores of unequal radius meet: as cut, cut
+// again by a box through that curve, which leaves the body no bore
+// history to be meshed from, and that body mirrored. Each mesh is a
+// closed solid within the budget of a general mesh.
+func TestGeneralMeshOfUnequalCrossing(t *testing.T) {
+	type q = map[string]any
+	b := New()
+	stock := box(t, b, vector{}, vector{20, 24, 18})
+	wide := circle(t, b, vector{0, 12, 9}, vector{1, 0, 0}, 5, 20)
+	narrow := circle(t, b, vector{8, 13, 18}, vector{0, 0, -1}, 2, 18)
+	crossed := shape(t, b, q{"op": "cutMany", "a": stock.Handle, "tools": []string{wide.Handle, narrow.Handle}})
+	slab := box(t, b, vector{4, 10, 12}, vector{12, 30, 16})
+	notched := shape(t, b, q{"op": "cut", "a": crossed.Handle, "b": slab.Handle})
+	if body := b.shapes[notched.Handle].analytic; body == nil || !body.general || body.bores != nil {
+		t.Fatal("the notched body is not a general result without a bore history")
+	}
+	mirrored := shape(t, b, q{"op": "transform", "handle": notched.Handle, "matrix": [][]float64{{-1, 0, 0, 20}, {0, 1, 0, 0}, {0, 0, 1, 0}}})
+	for name, s := range map[string]Shape{"crossed": crossed, "notched": notched, "mirrored": mirrored} {
+		m, err := b.shapes[s.Handle].tessellate(request{})
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		volume := s.GeometryAssertions.Volume
+		if err := m.ValidateSolid(); err != nil || math.Abs(float32MeshVolume(m)-volume) > meshVolumeBudget*volume {
+			t.Fatalf("%s: %d triangles of volume %.10g against %.10g, %v", name, len(m.Triangles), float32MeshVolume(m), volume, err)
+		}
+		t.Logf("%s: %d triangles", name, len(m.Triangles))
+	}
+}

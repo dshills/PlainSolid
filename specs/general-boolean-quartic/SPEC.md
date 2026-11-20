@@ -252,9 +252,12 @@ counterclockwise about its own axis direction.
   cuts them with the general Boolean, with volumes and areas held to
   the values they held the legacy path to. Their bodies are meshed and
   written to STEP from the bore history (D1).
-- A8. Phase 3: such a body is meshed within the bridge's volume budget
-  and exports to STEP by the writers of the general path, and reads
-  back to the same volume and face count, with no use of its history.
+- A8. Phase 3, mesh: such a body is meshed as a closed solid within the
+  bridge's volume budget with no use of its history: as cut, cut again
+  by a tool that is not a bore, and mirrored.
+- A9. Phase 3, STEP: such a body exports to STEP by the writers of the
+  general path and reads back to the same volume and face count, with
+  no use of its history.
 
 ## 7. Amendments to the base and crossing specifications
 
@@ -282,8 +285,8 @@ own tests pass; the slow checks of A6 run once before the branch merges.
    passes and the bridge's default tier passes. Implemented on
    2026-11-20, with D1.
 3. Mesh and STEP: a mesher that finishes a face trimmed along a meeting
-   curve, and a STEP writer and reader for an edge on one. Done when A8
-   passes. Not started.
+   curve (D3), done on 2026-11-20 with A8; and a STEP writer and reader
+   for an edge on one, done when A9 passes and not started.
 
 What phase 2 found:
 
@@ -301,6 +304,21 @@ What phase 2 found:
   located against and cut further, and returns an explicit error when a
   mesh or a STEP file is asked of it. The legacy unequal and skew
   families therefore cannot be deleted until phase 3.
+- D3. The mesher is a new package, `brep/chartmesh`, and not a change
+  to `brep/trimmed`. It cuts every edge once into equal steps of its
+  parameter, so that both faces of an edge take the same points, and
+  meshes each face in its own chart: a plane on its boundary points
+  alone, a cylinder with inner sides halved where a triangle spans too
+  wide an angle about the axis or its normal leaves the surface normal
+  by more than the facet angle. Triangles are exchanged by the rule of
+  Delaunay in a chart squashed along the axis, since on a cylinder a
+  facet's error grows with how far it goes round the axis and not
+  along it; without that a tall wall with a hole was meshed in fifty
+  times the triangles. The bridge uses it for a general result with a
+  face trimmed along a meeting curve, and asks a finer facet angle of
+  it than of the mesher of `brep/trimmed` to reach the same budget.
+  With it the mesh of D1 no longer comes from the bore history, and a
+  body without one is meshed. The STEP file of D1 still does.
 - D2. Bridge tests that held a refusal of these pairs now hold the
   volume their common gives, and rule X11 of the edge-treatment
   specification lost its example of a bore across a fillet, which X8
@@ -327,5 +345,9 @@ Each is the owner's to change.
   along that leg (M1).
 - OD-Q4. `brep/trimmed` gains one exported interface (P1), which is the
   smallest change that lets `Classify` take the new p-curve.
-- OD-Q5. Mesh and STEP by the general path come last (phase 3). Until
-  then a drilled body takes both from its bore history (D1).
+- OD-Q5. STEP by the general path comes last (phase 3). Until then a
+  drilled body is written from its bore history (D1).
+- OD-Q6. The mesher is its own package and is used only for bodies with
+  a meeting curve (D3). It would mesh any result of the general Boolean
+  without a pole; whether it should replace the mesher of `brep/trimmed`
+  for those is not decided here.

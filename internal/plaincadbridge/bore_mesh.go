@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 
+	"plainsolid/brep/chartmesh"
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
@@ -95,31 +96,37 @@ const (
 // Where a finer mesh cannot be built within its limits, the finest that
 // was built is the answer.
 func (s stored) tessellateGeneral(o parametric.TessellationOptions) (mesh.Mesh, error) {
-	if old := legacyStock(s); old.bore != nil && meetingTrimmed(s.analytic.solid) {
-		return old.tessellateBore(o)
+	build, finest := s.analytic.tessellate, fineMeshAngle
+	if meetingTrimmed(s.analytic.solid) {
+		// The facets of the chart mesher span 1.8 times the facet angle
+		// about an axis, so the budget asks a finer angle of it.
+		build = func(o parametric.TessellationOptions) (mesh.Mesh, error) {
+			return chartmesh.Tessellate(context.Background(), s.analytic.solid, o)
+		}
+		finest = fineMeshAngle / 4
 	}
-	m, err := s.analytic.tessellate(o)
+	m, err := build(o)
 	if err != nil {
 		return m, err
 	}
 	volume := s.result.GeometryAssertions.Volume
 	budget := volume * meshVolumeBudget
 	angle := o.Angle
-	for angle > fineMeshAngle {
+	for angle > finest {
 		off := math.Abs(float32MeshVolume(m) - volume)
 		if off < budget {
 			break
 		}
-		next := max(fineMeshAngle, .8*angle*math.Sqrt(budget/off))
+		next := max(finest, .8*angle*math.Sqrt(budget/off))
 		if angle != o.Angle {
 			// The angle worked out from the first mesh was not enough.
-			next = fineMeshAngle
+			next = finest
 		}
 		fine := o
 		fine.Angle, angle = next, next
-		refined, err := s.analytic.tessellate(fine)
+		refined, err := build(fine)
 		if err != nil {
-			if next == fineMeshAngle {
+			if next == finest {
 				break
 			}
 			continue
@@ -141,9 +148,8 @@ func float32MeshVolume(m mesh.Mesh) float64 {
 // curve in which two cylinders of unequal radius or with skew axes meet
 // (specs/general-boolean-quartic). The mesher of brep/trimmed refines
 // every face evenly, and on such a face that folds where the curve runs
-// along the chart and then exceeds its limit of triangles. A drilled body
-// with such a face is meshed from its history, as the legacy bore body
-// is, until that mesher takes it.
+// along the chart and then exceeds its limit of triangles. A body with
+// such a face is meshed by brep/chartmesh, face by face in its charts.
 func meetingTrimmed(s trimmed.Solid) bool {
 	for _, f := range s.Faces() {
 		for _, loop := range append([][]trimmed.Use{f.Outer}, f.Holes...) {
