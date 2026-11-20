@@ -405,8 +405,26 @@ func (b *Bridge) generalJoinAll(ctx context.Context, targets []string, tool stor
 	if r.Solids != 1 {
 		return Shape{}, errors.New("the join requires connected solids: connect every selected target with the tool")
 	}
+	none := errors.New("the join added no volume beyond the selected target bodies")
 	if !removesMaterial(r.Volume, before) {
-		return Shape{}, errors.New("the join added no volume beyond the selected target bodies")
+		return Shape{}, none
+	}
+	// As for a cut (generalCut), volumes that differ by no more than the
+	// working tolerance times the area of the result do not settle
+	// whether the tool added material. It did if the tool less the
+	// targets is a solid.
+	if r.Volume-before <= generalOptions.Linear*r.Properties.Area {
+		if y, err := generalOperand(tool); err == nil {
+			o := generalOptions
+			o.KnownA, o.KnownB = generalKnown(tool), known
+			beyond, err := boolean.Combine(ctx, y, x, boolean.Cut, o)
+			if ctx.Err() != nil {
+				return Shape{}, ctx.Err()
+			}
+			if err == nil && beyond.Solids == 0 {
+				return Shape{}, none
+			}
+		}
 	}
 	return b.putGeneral(r)
 }

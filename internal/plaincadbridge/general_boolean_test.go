@@ -185,6 +185,34 @@ func TestGeneralCutRemovesMaterial(t *testing.T) {
 	}
 }
 
+// TestGeneralJoinAddsVolume holds the joins of the general bridge to the
+// contract that the tool adds material, where the volumes alone cannot
+// tell. A boss whose base is 5e-8 above the face it stands on is joined
+// to it, and the union is measured as built; a tool inside the two then
+// finds 1e-7 of volume more and adds none. A block a hundredth across on
+// the face adds less than the working tolerance times the area, and adds
+// it.
+func TestGeneralJoinAddsVolume(t *testing.T) {
+	b := newGeneral()
+	base := box(t, b, vector{-4, -4, 0}, vector{4, 4, 8})
+	boss := circle(t, b, vector{0, 0, 8 + 5e-8}, vector{0, 0, 1}, 1, 3)
+	join := func(tool Shape) answer {
+		return ask(t, b, map[string]any{"op": "joinAll", "handles": []string{base.Handle, boss.Handle}, "b": tool.Handle})
+	}
+	inside := box(t, b, vector{-.5, -.5, 6}, vector{.5, .5, 10})
+	before := len(b.shapes)
+	if reply := join(inside); reply.OK || len(b.shapes) != before {
+		t.Fatalf("a join whose tool is inside its targets was answered: %+v", reply.Result)
+	}
+	reply := join(box(t, b, vector{3, 3, 8}, vector{3.01, 3.01, 8.01}))
+	if !reply.OK {
+		t.Fatal(reply.Error)
+	}
+	if got := reply.Result.GeometryAssertions.Volume - (512 + 3*math.Pi); math.Abs(got-1e-6) > 2e-7 {
+		t.Fatalf("the join added %.6g, want 1e-06", got)
+	}
+}
+
 // TestGeneralBooleanTransform covers the one change to the transform
 // request (RL-2): a result with a sealed void is moved and published
 // again, with its measures, its solid count and the bounds of its

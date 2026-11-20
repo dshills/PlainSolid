@@ -801,6 +801,17 @@ that cut among them, and its result holds no shaft recipe for the thread
 to build from. The socket cut stays on its legacy path, and the two
 tests pass as they are on the default bridge.
 
+The two things left unlooked at above are settled. `joinAll` had the
+case of the repeated cut and is held to the same rule (RL-29). The batch
+with a bore across the notch, which the legacy path fails on with
+"parameter outside domain", is cut correctly by the general Boolean: for
+both places of the notch and both depths its volume is the closed form
+to twelve digits, and a quadrature of the openings, the integral over
+its boundary and 4,000 classified points agree. The last assertion of
+`TestSideNotchMixedBoreBatchIsAtomic` now takes either a refusal that
+publishes nothing or the whole cut at that volume, and the test passes
+with the general Boolean first.
+
 Of the 25 default-tier tests listed above, 23 are left: the 12 that
 require STEP bytes, the 9 that test the fallback itself,
 `TestPlainCADModeledThreadNative` under OD-10 and

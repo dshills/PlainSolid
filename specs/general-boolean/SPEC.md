@@ -1377,6 +1377,16 @@ the sources come from and that each is a face of the wall:
   finds a volume that differs by the gap times the area of the wall's
   end.
 
+  A `joinAll` is held to the same rule on the volume it must add. The
+  request names target bodies and one tool; the fold unites the targets
+  and then the tool, and the tool is what must add volume. The rule is
+  applied once, at that last step. Where the volume of the result is
+  above the volume of the union of the targets by no more than ε × the
+  area of the result, the adapter asks `Combine` for the tool less the
+  union of the targets. The join fails as one that adds no volume when
+  that is the empty solid, and stands otherwise, an error from `Combine`
+  included.
+
   Mass properties in a fold (RL-10). Each step passes, as the known mass
   properties of its first operand, the volume and the area that the
   result of the step before reported, so that an intermediate solid is
@@ -2331,7 +2341,10 @@ Rulings of 2026-11-19, as the trial came to its closing state:
   the far face was published as removing 1e-7 of volume. Section 12 has
   the rule: where the volumes differ by no more than ε × the area of the
   result, the common of the body and the tools decides. `joinAll`,
-  which must add volume, has not been looked at for the same case.
+  which must add volume, had the same case: a boss 5e-8 above the face
+  it is joined to, and then a tool inside the two, was published as
+  adding 1e-7. It is held to the same rule at its last step, with the
+  tool less the union of the targets in place of the common.
 
 ## 20. Open items
 

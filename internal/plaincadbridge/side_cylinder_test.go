@@ -364,9 +364,37 @@ func checkSideNotchMixedBoreBatch(t *testing.T, origin vector, depth float64) {
 	if origin == (vector{}) {
 		crossingCenter[0] = 1
 	}
+	// A batch with a bore of radius two and depth four across the notch
+	// cannot publish a partial result. Either it is refused and nothing is
+	// published, or it is cut whole, as one new shape. Its volume is then
+	// the stock less the through bore, the notch through its depth, and
+	// through the first four units the bore less what it shares with the
+	// notch. With the notch on a side face, the bore is a whole disk and
+	// they share the lens of two circles three apart. With the notch at
+	// the corner, the face x = 0 cuts the bore, and they share that lens
+	// of two circles √10 apart less its part beyond the face, which a
+	// stretch of the face, an arc of the notch and an arc of the bore
+	// bound.
+	notched, bore, shared := 9*math.Pi-(9*math.Acos(1./3)-math.Sqrt(8)), 4*math.Pi, 9*math.Acos(7./9)+4*math.Acos(1./3)-math.Sqrt(128)/2
+	if origin == (vector{}) {
+		d := math.Sqrt(10)
+		y := (45 + math.Sqrt(135)) / 20
+		x := 7.5 - 3*y
+		beyond := 4.5*(math.Atan2(y, x)-math.Pi/2) + 2*(4*math.Pi/3-(math.Atan2(y-3, x-1)+2*math.Pi)) + (3-math.Sqrt(3)-y+3*x)/2
+		notched, bore = 9*math.Pi/4, 8*math.Pi/3+math.Sqrt(3)
+		shared = 9*math.Acos(15/(6*d)) + 4*math.Acos(5/(4*d)) - math.Sqrt(135)/2 - beyond
+	}
 	crossing := circle(t, b, crossingCenter, vector{0, 0, 1}, 2, 4)
 	before := len(b.shapes)
-	if _, err := b.cutMany(stock.Handle, []string{notch.Handle, through.Handle, crossing.Handle}); err == nil || len(b.shapes) != before {
-		t.Fatal("intersecting notch batch did not reject atomically", err)
+	whole, err := b.cutMany(stock.Handle, []string{notch.Handle, through.Handle, crossing.Handle})
+	if err != nil {
+		if len(b.shapes) != before {
+			t.Fatal("the refused batch published a shape", err)
+		}
+		return
+	}
+	near(t, whole.GeometryAssertions.Volume, 3200-32*math.Pi-notched*math.Min(depth, 8)-(bore-shared)*4)
+	if len(b.shapes) != before+1 || whole.Bounds != stock.Bounds || whole.GeometryAssertions.SolidCount != 1 {
+		t.Fatal("the batch across the notch did not publish one whole shape", whole)
 	}
 }
