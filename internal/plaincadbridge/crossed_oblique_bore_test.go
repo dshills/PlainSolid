@@ -20,12 +20,12 @@ func TestCrossedObliqueBoreScope(t *testing.T) {
 	near(t, out.GeometryAssertions.Volume, 12800-260*math.Pi+160./3)
 	near(t, out.GeometryAssertions.SurfaceArea, 3520+242*math.Pi-80)
 	group, err := b.cutMany(stock.Handle, []string{oblique.Handle, cardinal.Handle})
-	if err != nil || group.GeometryAssertions != out.GeometryAssertions || group.Bounds != out.Bounds {
-		t.Fatal(group, out, err)
+	if err != nil {
+		t.Fatal(err)
 	}
+	sameShape(t, group, out)
 	near(t, overlapMeasure(t, b, group.Handle, oblique.Handle), 0)
-	body := b.shapes[group.Handle].bore
-	cap, err := body.planarFace(geom.Vec3{}, geom.Vec3{X: 1})
+	cap, err := planarFace(t, b, group.Handle, vector{}, vector{1, 0, 0})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,12 +61,14 @@ func TestCrossedObliqueReciprocalScope(t *testing.T) {
 		other := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": oblique.Handle})
 		reversed := shape(t, b, map[string]any{"op": "cut", "a": other.Handle, "b": cardinal.Handle})
 		group, err := b.cutMany(stock.Handle, []string{oblique.Handle, cardinal.Handle})
-		if err != nil || group.GeometryAssertions != out.GeometryAssertions || group.GeometryAssertions != reversed.GeometryAssertions {
-			t.Fatal(group, out, reversed, err)
+		if err != nil {
+			t.Fatal(err)
 		}
+		sameShape(t, group, out)
+		sameShape(t, group, reversed)
 		partial := circle(t, b, vector{1, 8, 20 - 12*sign}, vector{3, 0, 4 * sign}, 1, 4)
 		near(t, overlapMeasure(t, b, group.Handle, partial.Handle), 0)
-		cap, err := b.shapes[group.Handle].bore.planarFace(geom.Vec3{}, geom.Vec3{X: 1})
+		cap, err := planarFace(t, b, group.Handle, vector{}, vector{1, 0, 0})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -95,10 +97,13 @@ func TestCrossedObliquePairWithSeparatedOppositeZOpenings(t *testing.T) {
 	cardinal := circle(t, b, vector{25, 4, -2}, vector{0, 0, 1}, 1, 24)
 	oblique := circle(t, b, vector{1.5, 4, -2}, vector{3, 0, 4}, 1, 35)
 	out, err := b.cutMany(stock.Handle, []string{oblique.Handle, cardinal.Handle})
-	if err != nil || b.shapes[out.Handle].bore.disjointOblique == nil {
+	if err != nil {
 		t.Fatal(out, err)
 	}
+	// The bores are apart: each removes its own length of disk and adds
+	// its own wall, less its two openings, the oblique ones ellipses.
 	near(t, out.GeometryAssertions.Volume, 12000-45*math.Pi)
+	near(t, out.GeometryAssertions.SurfaceArea, 3200+85.5*math.Pi)
 }
 
 func TestCrossedObliqueBoreCoordinatePlacements(t *testing.T) {
@@ -131,7 +136,7 @@ func TestCrossedObliqueBoreCoordinatePlacements(t *testing.T) {
 				}
 				stretch := math.Hypot(ratio.X, ratio.Y) / ratio.X
 				near(t, part.GeometryAssertions.Volume, 22400-4*math.Pi*(70+20*stretch)+128*stretch/3)
-				opening, err := b.shapes[part.Handle].bore.planarFace(f.Origin(), f.XAxis())
+				opening, err := planarFace(t, b, part.Handle, coordinates(f.Origin()), coordinates(f.XAxis()))
 				if err != nil {
 					t.Fatal(axes, sign, ratio, err)
 				}
@@ -186,25 +191,26 @@ func TestBlindCrossedObliqueBoreSTEPAndFurtherCut(t *testing.T) {
 			t.Fatal(err)
 		}
 		got, err := b.importSTEP(string(raw))
-		if err != nil || got.GeometryAssertions != out.GeometryAssertions || got.Bounds != stock.Bounds {
+		if err != nil || got.Bounds != stock.Bounds {
 			t.Fatal(opposite, got, err)
 		}
+		sameShape(t, got, out)
 		again, err := b.exportSTEP([]string{got.Handle})
 		if err != nil || again.Base64 != saved.Base64 {
 			t.Fatal(opposite, err)
 		}
 		body := b.shapes[got.Handle]
-		floor, err := body.bore.planarFace(origin.vec().Add(axis.vec().Scale(28)), axis.vec().Scale(-1))
-		if err != nil || floor.Face != 22 || floor.Normal != coordinates(axis.vec().Scale(-1)) {
+		floor, err := planarFace(t, b, got.Handle, coordinates(origin.vec().Add(axis.vec().Scale(28))), coordinates(axis.vec().Scale(-1)))
+		if err != nil || floor.Normal != coordinates(axis.vec().Scale(-1)) {
 			t.Fatal(opposite, floor, err)
 		}
 		near(t, floor.Area, 4*math.Pi)
-		entry, err := body.bore.planarFace(origin.vec(), axis.vec())
+		entry, err := planarFace(t, b, got.Handle, origin, axis)
 		if err != nil {
 			t.Fatal(opposite, err)
 		}
 		near(t, entry.Area, 320-4*math.Pi)
-		exit, err := body.bore.planarFace(origin.vec().Add(axis.vec().Scale(40)), axis.vec())
+		exit, err := planarFace(t, b, got.Handle, coordinates(origin.vec().Add(axis.vec().Scale(40))), axis)
 		if err != nil {
 			t.Fatal(opposite, err)
 		}
@@ -279,9 +285,10 @@ func TestConcealedCrossedObliqueBoreSTEPCanonical(t *testing.T) {
 			{oblique.Handle, hiddenCardinal.Handle, hidden.Handle, cardinal.Handle, short.Handle, oblique.Handle},
 		} {
 			got, err := b.cutMany(stock.Handle, batch)
-			if err != nil || got.GeometryAssertions != want.GeometryAssertions {
-				t.Fatal(depth, got, err)
+			if err != nil {
+				t.Fatal(depth, err)
 			}
+			sameShape(t, got, want)
 			raw, err := b.exportSTEP([]string{got.Handle})
 			if err != nil || raw.Base64 != wantFile.Base64 {
 				t.Fatal("concealed cutter changed canonical STEP", depth, err)
@@ -291,9 +298,10 @@ func TestConcealedCrossedObliqueBoreSTEPCanonical(t *testing.T) {
 				t.Fatal(err)
 			}
 			imported, err := b.importSTEP(string(bytes))
-			if err != nil || imported.GeometryAssertions != want.GeometryAssertions {
-				t.Fatal(depth, imported, err)
+			if err != nil {
+				t.Fatal(depth, err)
 			}
+			sameShape(t, imported, want)
 			for _, cutter := range []Shape{hidden, short, hiddenCardinal} {
 				near(t, overlapMeasure(t, b, imported.Handle, cutter.Handle), 0)
 			}
@@ -350,8 +358,8 @@ func TestObliqueFloorCrossedBoreReimport(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		floor, err := body.bore.planarFace(origin.vec().Add(dir.Scale(23.75)), dir.Scale(-1))
-		if err != nil || floor.Face != 22 {
+		floor, err := planarFace(t, b, got.Handle, coordinates(origin.vec().Add(dir.Scale(23.75))), coordinates(dir.Scale(-1)))
+		if err != nil {
 			t.Fatal(opposite, floor, err)
 		}
 		near(t, floor.Area, 4*math.Pi)
@@ -360,7 +368,7 @@ func TestObliqueFloorCrossedBoreReimport(t *testing.T) {
 			entryX, exitX = exitX, entryX
 		}
 		for i, x := range []float64{entryX, exitX} {
-			face, err := body.bore.planarFace(geom.Vec3{X: x}, geom.Vec3{X: 1})
+			face, err := planarFace(t, b, got.Handle, vector{x, 0, 0}, vector{1, 0, 0})
 			if err != nil {
 				t.Fatal(opposite, err)
 			}
@@ -436,12 +444,12 @@ func TestDoubleBlindCrossedObliqueBore(t *testing.T) {
 			t.Fatal(opposite, err)
 		}
 		body := b.shapes[got.Handle]
-		cardinalFloor, err := body.bore.planarFace(origin.vec().Add(normal.vec().Scale(28)), normal.vec())
-		if err != nil || cardinalFloor.Face != 23 {
+		cardinalFloor, err := planarFace(t, b, got.Handle, coordinates(origin.vec().Add(normal.vec().Scale(28))), normal)
+		if err != nil {
 			t.Fatal(opposite, cardinalFloor, err)
 		}
-		obliqueFloor, err := body.bore.planarFace(geom.Vec3{X: 15, Y: 8, Z: 23.75}, geom.Vec3{X: .8, Z: .6})
-		if err != nil || obliqueFloor.Face != 22 {
+		obliqueFloor, err := planarFace(t, b, got.Handle, vector{15, 8, 23.75}, vector{.8, 0, .6})
+		if err != nil {
 			t.Fatal(opposite, obliqueFloor, err)
 		}
 		near(t, cardinalFloor.Area, 4*math.Pi)

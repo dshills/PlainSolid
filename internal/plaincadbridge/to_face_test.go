@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math"
 	"plainsolid/brep/parametric"
+	"plainsolid/geom"
 	"strings"
 	"testing"
 )
@@ -60,11 +61,18 @@ func TestToFaceCircleSignedAxesRetainsAnalyticSolid(t *testing.T) {
 			s := shape(t, b, map[string]any{"op": "circleToFace", "b": target.Handle, "origin": origin, "normal": n, "direction": n, "center": vector{}, "radius": 2})
 			near(t, s.GeometryAssertions.Volume, 40*math.Pi)
 			near(t, s.GeometryAssertions.SurfaceArea, 48*math.Pi)
-			c := b.shapes[s.Handle].cylinder
-			if c == nil {
-				t.Fatal("lost analytic cylinder")
+			solid := boundary(t, b, s.Handle)
+			curved := false
+			for _, f := range solid.Faces() {
+				base, _ := parametric.SurfaceMapping(f.Surface)
+				if _, ok := base.(geom.CylinderSurface); ok {
+					curved = true
+				}
 			}
-			mass, err := c.solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-10})
+			if !curved {
+				t.Fatal("the wall of the cylinder was faceted")
+			}
+			mass, err := solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-10})
 			if err != nil {
 				t.Fatal(err)
 			}

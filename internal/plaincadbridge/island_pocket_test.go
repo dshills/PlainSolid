@@ -30,16 +30,19 @@ func TestIslandPocketFiniteSignedCaps(t *testing.T) {
 				if math.Abs(cut.GeometryAssertions.Volume-(2612+27*math.Pi)) > 1e-9 || math.Abs(cut.GeometryAssertions.SurfaceArea-(1608+18*math.Pi)) > 1e-9 || cut.Bounds != stock.Bounds {
 					t.Fatal(axis, top, reverseTool, cut, stock.Bounds)
 				}
-				p := b.shapes[cut.Handle].analytic.islandPocket
-				wantFloor := 5.
+				// The floor of the pocket is the square less the island, at
+				// the level the tool ends in the stock, and faces out of it.
+				wantFloor, out := 5., 1.
 				if !top {
-					wantFloor = 3
+					wantFloor, out = 3, -1
 				}
-				actual := p.Frame.ToWorld(geom.Vec3{Z: p.Height - p.Depth})
-				if actual != frame.ToWorld(geom.Vec3{Z: wantFloor}) {
-					t.Fatal("wrong physical floor", actual, wantFloor)
+				floor, err := planarFace(t, b, cut.Handle, coordinates(frame.ToWorld(geom.Vec3{Z: wantFloor})), coordinates(axis))
+				if err != nil {
+					t.Fatal("no floor at the level the tool ends", wantFloor, err)
 				}
-				if b.shapes[stock.Handle].result.GeometryAssertions.Volume != 3200 {
+				near(t, floor.Area, 196-9*math.Pi)
+				near(t, floor.Normal.vec().Dot(axis), out)
+				if shape(t, b, map[string]any{"op": "inspect", "handle": stock.Handle}).GeometryAssertions.Volume != 3200 {
 					t.Fatal("source mutated")
 				}
 			}

@@ -23,8 +23,9 @@ func TestCrossedBoreScopeAndSTEP(t *testing.T) {
 		}
 		near(t, out.GeometryAssertions.Volume, wantVolume)
 		near(t, out.GeometryAssertions.SurfaceArea, wantArea)
-		if out.GeometryAssertions != successive.GeometryAssertions || out.Bounds != stock.Bounds {
-			t.Fatal(out, successive)
+		sameShape(t, out, successive)
+		if out.Bounds != stock.Bounds {
+			t.Fatal(out, stock)
 		}
 		// Direct and grouped operations retain the same support geometry.
 		first, err := b.exportSTEP([]string{out.Handle})
@@ -40,9 +41,10 @@ func TestCrossedBoreScopeAndSTEP(t *testing.T) {
 			t.Fatal(err)
 		}
 		recovered, err := b.importSTEP(string(bytes))
-		if err != nil || recovered.GeometryAssertions != out.GeometryAssertions || recovered.Bounds != out.Bounds {
-			t.Fatal(recovered, err)
+		if err != nil {
+			t.Fatal(err)
 		}
+		sameShape(t, recovered, out)
 		near(t, overlapMeasure(t, b, recovered.Handle, z.Handle), 0)
 		mesh, err := b.shapes[recovered.Handle].tessellate(request{})
 		if err != nil {

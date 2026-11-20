@@ -29,17 +29,18 @@ func TestThroughCircleCutAllAxesAndSigns(t *testing.T) {
 			if cut.Bounds != base.Bounds || cut.GeometryAssertions.SolidCount != 1 {
 				t.Fatal(cut)
 			}
-			body := b.shapes[cut.Handle].bore
+			solid := boundary(t, b, cut.Handle)
 			// Independently integrate the retained curved boundary, not its display.
-			p, err := body.solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+			p, err := solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 			if err != nil {
 				t.Fatal(err)
 			}
 			near(t, p.Volume, cut.GeometryAssertions.Volume)
 			near(t, p.Area, cut.GeometryAssertions.SurfaceArea)
 			found := false
-			for _, face := range body.solid.Faces() {
-				if _, ok := face.Surface.(geom.CylinderSurface); ok {
+			for _, face := range solid.Faces() {
+				base, _ := parametric.SurfaceMapping(face.Surface)
+				if _, ok := base.(geom.CylinderSurface); ok {
 					found = true
 				}
 			}

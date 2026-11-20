@@ -52,8 +52,8 @@ func TestObliqueThroughBoreScopeAndSTL(t *testing.T) {
 			}
 			near(t, cut.GeometryAssertions.Volume, wantVolume)
 			near(t, cut.GeometryAssertions.SurfaceArea, wantArea)
-			body := bridge.shapes[cut.Handle].bore
-			props, err := body.solid.MassProperties(context.Background(), parametric.IntegrationOptions{})
+			solid := boundary(t, bridge, cut.Handle)
+			props, err := solid.MassProperties(context.Background(), parametric.IntegrationOptions{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -64,16 +64,21 @@ func TestObliqueThroughBoreScopeAndSTL(t *testing.T) {
 				point, normal vector
 				opening       float64
 			}{{tc.entry, vector{0, 0, -1}, entryOpen}, {tc.exit, tc.exitNormal, exitOpen}} {
-				source, err := matchingPlanarFace(body.base, f.point.vec(), f.normal.vec())
+				// The face of the stock is still the face on its plane,
+				// facing the same way, less the opening.
+				source, err := planarFace(t, bridge, stock.Handle, f.point, f.normal)
 				if err != nil {
 					t.Fatal(err)
 				}
-				kept, err := body.planarFace(f.point.vec(), f.normal.vec())
-				if err != nil || source.Face != kept.Face {
-					t.Fatalf("opening changed original face %d to %d: %v", source.Face, kept.Face, err)
+				kept, err := planarFace(t, bridge, cut.Handle, f.point, f.normal)
+				if err != nil {
+					t.Fatal(err)
+				}
+				for i := range kept.Normal {
+					near(t, kept.Normal[i], source.Normal[i])
 				}
 				near(t, kept.Area, source.Area-f.opening)
-				if len(body.solid.Faces()[kept.Face].Holes) != 1 {
+				if len(solid.Faces()[kept.Face].Holes) != 1 {
 					t.Fatal("missing retained elliptical rim")
 				}
 			}

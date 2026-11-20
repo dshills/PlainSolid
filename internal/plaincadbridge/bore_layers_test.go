@@ -36,8 +36,8 @@ func TestUnequalDepthBoreAxesSignsAndCaps(t *testing.T) {
 				}
 				near(t, cut.GeometryAssertions.Volume, 1000-removed)
 				near(t, cut.GeometryAssertions.SurfaceArea, area)
-				body := b.shapes[cut.Handle].bore
-				p, err := body.solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+				solid := boundary(t, b, cut.Handle)
+				p, err := solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -46,7 +46,7 @@ func TestUnequalDepthBoreAxesSignsAndCaps(t *testing.T) {
 				for _, tc := range []struct{ depth, area, normal float64 }{{0, 100 - unionArea, -sign}, {3, unionArea - diskArea, -sign}} {
 					o := vector{}
 					o[axis] = (-5 + tc.depth) * sign
-					f, err := body.planarFace(o.vec(), n.vec())
+					f, err := planarFace(t, b, cut.Handle, o, n)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -55,7 +55,7 @@ func TestUnequalDepthBoreAxesSignsAndCaps(t *testing.T) {
 				}
 				o := vector{}
 				o[axis] = (-5 + deep) * sign
-				f, err := body.planarFace(o.vec(), n.vec())
+				f, err := planarFace(t, b, cut.Handle, o, n)
 				if err != nil {
 					t.Fatal(err)
 				}

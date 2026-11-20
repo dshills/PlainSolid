@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"plainsolid/brep/trimmed"
 	"plainsolid/exchange"
 )
 
@@ -73,6 +74,64 @@ func declined(t *testing.T, b *Bridge, diagnostic, op, target string, tools ...s
 		t.Fatalf("the %s was not answered by the general Boolean", op)
 	}
 	return answer
+}
+
+// boundary is the trimmed solid the bridge holds for a published shape,
+// whichever path made the shape. A test measures or meshes it to check a
+// result independently of the figures the bridge reports.
+func boundary(t *testing.T, b *Bridge, handle string) trimmed.Solid {
+	t.Helper()
+	s, ok := b.shapes[handle]
+	if !ok {
+		t.Fatalf("no shape %s", handle)
+	}
+	solid, err := generalOperand(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(solid.Faces()) == 0 {
+		t.Fatalf("shape %s holds an empty boundary", handle)
+	}
+	return solid
+}
+
+// planarFace asks the bridge for the one planar face of a shape on a
+// plane, as PlainCAD references a face.
+func planarFace(t *testing.T, b *Bridge, handle string, origin, normal vector) (PlanarFace, error) {
+	t.Helper()
+	data, err := json.Marshal(map[string]any{"op": "planarFace", "handle": handle, "origin": origin, "normal": normal})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reply struct {
+		OK     bool       `json:"ok"`
+		Result PlanarFace `json:"result"`
+		Error  *failure   `json:"error"`
+	}
+	if err := json.Unmarshal([]byte(b.Call(string(data))), &reply); err != nil {
+		t.Fatal(err)
+	}
+	if !reply.OK {
+		return PlanarFace{}, errors.New(reply.Error.Message)
+	}
+	return reply.Result, nil
+}
+
+// legacy publishes, on a default bridge, what the legacy paths alone give
+// for a Boolean. A test whose subject is a legacy function builds its stock
+// with it, so that the stock is in the legacy representation whichever path
+// the bridge would answer the same request with.
+func legacy(t *testing.T, b *Bridge, op string, a, c Shape) Shape {
+	t.Helper()
+	r, err := b.legacyBoolean(context.Background(), b.shapes[a.Handle], b.shapes[c.Handle], op)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, ok := r.(Shape)
+	if !ok {
+		t.Fatalf("the legacy %s published %T", op, r)
+	}
+	return s
 }
 
 func near(t *testing.T, a, b float64) {

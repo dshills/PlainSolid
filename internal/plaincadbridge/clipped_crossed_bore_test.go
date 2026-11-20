@@ -6,8 +6,6 @@ import (
 	"math"
 	"plainsolid/internal/slowtest"
 	"testing"
-
-	"plainsolid/geom"
 )
 
 func TestClippedCrossedBoreScopeAndSTEP(t *testing.T) {
@@ -42,9 +40,10 @@ func TestClippedCrossedBoreScopeAndSTEP(t *testing.T) {
 				near(t, overlapMeasure(t, b, before.Handle, z.Handle), depth*4*math.Pi-common)
 				after := shape(t, b, map[string]any{"op": "cut", "a": before.Handle, "b": z.Handle})
 				group, err := b.cutMany(stock.Handle, []string{z.Handle, x.Handle})
-				if err != nil || group.GeometryAssertions != after.GeometryAssertions {
-					t.Fatal(group, after, err)
+				if err != nil {
+					t.Fatal(err)
 				}
+				sameShape(t, group, after)
 				near(t, after.GeometryAssertions.Volume, wantVolume)
 				near(t, after.GeometryAssertions.SurfaceArea, wantArea)
 				file, err := b.exportSTEP([]string{after.Handle})
@@ -62,8 +61,7 @@ func TestClippedCrossedBoreScopeAndSTEP(t *testing.T) {
 				near(t, read.GeometryAssertions.Volume, wantVolume)
 				near(t, read.GeometryAssertions.SurfaceArea, wantArea)
 				near(t, overlapMeasure(t, b, read.Handle, z.Handle), 0)
-				body := b.shapes[read.Handle].bore
-				if _, err := body.planarFace(geom.Vec3{X: 10, Y: 8, Z: entry + depth*direction}, geom.Vec3{Z: 1}); err == nil {
+				if _, err := planarFace(t, b, read.Handle, vector{10, 8, entry + depth*direction}, vector{0, 0, 1}); err == nil {
 					t.Fatal("resolved two disconnected floor faces as one support")
 				}
 			})

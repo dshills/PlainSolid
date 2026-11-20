@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"plainsolid/brep/parametric"
+	"plainsolid/geom"
 	"testing"
 )
 
@@ -30,7 +31,7 @@ func TestRetainedJoinedXZFilletAndXYChamfer(t *testing.T) {
 			base := box(t, b, lo, hi)
 			tool := box(t, b, tl, th)
 			joined := shape(t, b, map[string]any{"op": "fuse", "a": base.Handle, "b": tool.Handle})
-			if !b.shapes[joined.Handle].edgeAvailable(start.vec(), end.vec()) {
+			if !available(t, b, joined.Handle, start, end) {
 				t.Fatal("authored edge unavailable")
 			}
 			out := shape(t, b, map[string]any{"op": op, "handle": joined.Handle, "edgeStart": start, "edgeEnd": end, "normal": normal, key: 1})
@@ -38,14 +39,16 @@ func TestRetainedJoinedXZFilletAndXYChamfer(t *testing.T) {
 			if out.Bounds != joined.Bounds {
 				t.Fatal(out.Bounds, joined.Bounds)
 			}
-			stored := b.shapes[out.Handle]
+			s := boundary(t, b, out.Handle)
 			if !fillet {
-				if !stored.planar() {
-					t.Fatal("exact planar chamfer path was replaced")
+				// A chamfer between planar faces makes planar faces only.
+				for _, f := range s.Faces() {
+					base, _ := parametric.SurfaceMapping(f.Surface)
+					if _, ok := base.(geom.PlaneSurface); !ok {
+						t.Fatal("a chamfer between planar faces made a curved face")
+					}
 				}
-				continue
 			}
-			s := stored.analytic.solid
 			p, e := s.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 			if e != nil {
 				t.Fatal(e)

@@ -4,8 +4,6 @@ import (
 	"encoding/base64"
 	"math"
 	"testing"
-
-	"plainsolid/geom"
 )
 
 func TestDisjointObliqueBoreScopeAndSTEP(t *testing.T) {
@@ -20,9 +18,11 @@ func TestDisjointObliqueBoreScopeAndSTEP(t *testing.T) {
 	one := shape(t, b, map[string]any{"op": "cut", "a": withoutZ.Handle, "b": z.Handle})
 	two := shape(t, b, map[string]any{"op": "cut", "a": withoutOblique.Handle, "b": o.Handle})
 	batch, err := b.cutMany(stock.Handle, []string{z.Handle, o.Handle})
-	if err != nil || batch.GeometryAssertions != one.GeometryAssertions || batch.GeometryAssertions != two.GeometryAssertions {
-		t.Fatal(batch, one, two, err)
+	if err != nil {
+		t.Fatal(err)
 	}
+	sameShape(t, batch, one)
+	sameShape(t, batch, two)
 	v := 8000 - math.Pi*(20+5*math.Sqrt(17))
 	a := 2400 + 2*math.Pi*(19+5*math.Sqrt(17)-math.Sqrt(17)/4)
 	near(t, batch.GeometryAssertions.Volume, v)
@@ -42,7 +42,7 @@ func TestDisjointObliqueBoreScopeAndSTEP(t *testing.T) {
 	near(t, got.GeometryAssertions.Volume, v)
 	near(t, got.GeometryAssertions.SurfaceArea, a)
 	near(t, overlapMeasure(t, b, got.Handle, z.Handle), 0)
-	cap, err := b.shapes[got.Handle].bore.planarFace(geom.Vec3{}, geom.Vec3{Z: 1})
+	cap, err := planarFace(t, b, got.Handle, vector{}, vector{0, 0, 1})
 	if err != nil {
 		t.Fatal(err)
 	}

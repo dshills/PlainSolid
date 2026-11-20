@@ -38,10 +38,10 @@ func TestOverlappingHoleUnionAxesSignsAndDepths(t *testing.T) {
 					wantArea -= 2 * area
 				}
 				near(t, cut.GeometryAssertions.SurfaceArea, wantArea)
-				body := b.shapes[cut.Handle].bore
+				solid := boundary(t, b, cut.Handle)
 				origin := vector{}
 				origin[axis] = -5 * sign
-				cap, err := body.planarFace(origin.vec(), n.vec())
+				cap, err := planarFace(t, b, cut.Handle, origin, n)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -49,7 +49,7 @@ func TestOverlappingHoleUnionAxesSignsAndDepths(t *testing.T) {
 				near(t, cap.Normal[axis], -sign)
 				if depth < 10 {
 					origin[axis] += sign * depth
-					floor, err := body.planarFace(origin.vec(), n.vec())
+					floor, err := planarFace(t, b, cut.Handle, origin, n)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -57,7 +57,7 @@ func TestOverlappingHoleUnionAxesSignsAndDepths(t *testing.T) {
 					near(t, floor.Normal[axis], -sign)
 				}
 
-				p, err := body.solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+				p, err := solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -102,8 +102,8 @@ func TestHoleUnionDuplicatesContainmentAndTripleOverlap(t *testing.T) {
 	area := perimeter + math.Sqrt(15)
 	near(t, result.GeometryAssertions.Volume, 800-8*area)
 	near(t, result.GeometryAssertions.SurfaceArea, 520+8*perimeter-2*area)
-	body := b.shapes[result.Handle].bore
-	p, err := body.solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+	solid := boundary(t, b, result.Handle)
+	p, err := solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,14 +177,14 @@ func TestThroughUnionOpposedAxesAndInputOrders(t *testing.T) {
 			}
 			near(t, cut.GeometryAssertions.Volume, 800-area*8)
 			near(t, cut.GeometryAssertions.SurfaceArea, 520+perimeter*8-2*area)
-			body := b.shapes[cut.Handle].bore
-			p, err := body.solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+			solid := boundary(t, b, cut.Handle)
+			p, err := solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 			if err != nil {
 				t.Fatal(err)
 			}
 			near(t, p.Volume, cut.GeometryAssertions.Volume)
 			for _, z := range []float64{0, 8} {
-				f, err := body.planarFace(vector{0, 0, z}.vec(), vector{0, 0, 1}.vec())
+				f, err := planarFace(t, b, cut.Handle, vector{0, 0, z}, vector{0, 0, 1})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -195,9 +195,12 @@ func TestThroughUnionOpposedAxesAndInputOrders(t *testing.T) {
 				}
 				near(t, f.Normal[2], want)
 			}
-			near(t, b.shapes[a.Handle].cylinder.frame.Origin().Z, 0)
-			near(t, b.shapes[c.Handle].cylinder.frame.Origin().Z, 8)
-			near(t, b.shapes[c.Handle].cylinder.frame.ZAxis().Z, -1)
+			// The cut leaves both tools as they were published.
+			for _, tool := range []Shape{a, c} {
+				if kept := shape(t, b, map[string]any{"op": "inspect", "handle": tool.Handle}); kept.Bounds != tool.Bounds || kept.GeometryAssertions != tool.GeometryAssertions {
+					t.Fatal("the cut changed a tool", kept, tool)
+				}
+			}
 			if cut.Bounds != base.Bounds {
 				t.Fatal("opposed-axis normalization changed bounds")
 			}

@@ -35,9 +35,6 @@ func TestFullTubeSTEPAndCoaxialCut(t *testing.T) {
 		near(t, got.Bounds.Min[i], body.Bounds.Min[i])
 		near(t, got.Bounds.Max[i], body.Bounds.Max[i])
 	}
-	if b.shapes[got.Handle].analytic.sector == nil {
-		t.Fatal("tube recipe not retained")
-	}
 	near(t, got.GeometryAssertions.Volume, 210*math.Pi)
 	near(t, got.GeometryAssertions.SurfaceArea, 182*math.Pi)
 	again, err := b.exportSTEP([]string{got.Handle})

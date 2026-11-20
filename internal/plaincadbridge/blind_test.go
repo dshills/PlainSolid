@@ -29,14 +29,14 @@ func TestBlindAllAxesAndSigns(t *testing.T) {
 			cut := shape(t, b, map[string]any{"op": "cut", "a": base.Handle, "b": tool.Handle})
 			near(t, cut.GeometryAssertions.Volume, 8000-60*math.Pi)
 			near(t, cut.GeometryAssertions.SurfaceArea, 2400+60*math.Pi)
-			body := b.shapes[cut.Handle].bore
-			p, err := body.solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+			solid := boundary(t, b, cut.Handle)
+			p, err := solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 			if err != nil {
 				t.Fatal(err)
 			}
 			near(t, p.Volume, cut.GeometryAssertions.Volume)
 			near(t, p.Area, cut.GeometryAssertions.SurfaceArea)
-			m, err := body.solid.Tessellate(context.Background(), parametric.TessellationOptions{Deflection: .05, Angle: .2})
+			m, err := solid.Tessellate(context.Background(), parametric.TessellationOptions{Deflection: .05, Angle: .2})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -62,9 +62,8 @@ func TestBlindScopedRaisedStockAndMixedRecipe(t *testing.T) {
 	cut := shape(t, b, map[string]any{"op": "cut", "a": base.Handle, "b": tool.Handle})
 	near(t, cut.GeometryAssertions.Volume, 2000-20*math.Pi)
 	near(t, cut.GeometryAssertions.SurfaceArea, 1000+20*math.Pi)
-	body := b.shapes[cut.Handle].bore
 	for _, tc := range []struct{ z, area, n float64 }{{20, 200 - 4*math.Pi, -1}, {25, 4 * math.Pi, -1}, {30, 200, 1}} {
-		f, err := body.planarFace(geom.Vec3{X: 35, Y: 5, Z: tc.z}, geom.Vec3{Z: 1})
+		f, err := planarFace(t, b, cut.Handle, vector{35, 5, tc.z}, vector{0, 0, 1})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -80,20 +79,20 @@ func TestBlindScopedRaisedStockAndMixedRecipe(t *testing.T) {
 	near(t, twice.GeometryAssertions.Volume, 2000-30*math.Pi)
 	near(t, twice.GeometryAssertions.SurfaceArea, 1000+38*math.Pi)
 	moved := shape(t, b, map[string]any{"op": "transform", "handle": twice.Handle, "matrix": [][]float64{{0, 0, 1, 7}, {1, 0, 0, 8}, {0, 1, 0, 9}}})
-	body = b.shapes[moved.Handle].bore
-	p, err := body.solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+	solid := boundary(t, b, moved.Handle)
+	p, err := solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 	if err != nil {
 		t.Fatal(err)
 	}
 	near(t, p.Volume, twice.GeometryAssertions.Volume)
 	near(t, p.Area, twice.GeometryAssertions.SurfaceArea)
-	f, err := body.planarFace(geom.Vec3{X: 32, Y: 43, Z: 14}, geom.Vec3{X: 1})
+	f, err := planarFace(t, b, moved.Handle, vector{32, 43, 14}, vector{1, 0, 0})
 	if err != nil {
 		t.Fatal(err)
 	}
 	near(t, f.Area, 4*math.Pi)
 	near(t, f.Normal[0], -1)
-	m, err := body.solid.Tessellate(context.Background(), parametric.TessellationOptions{Deflection: .05, Angle: .2})
+	m, err := solid.Tessellate(context.Background(), parametric.TessellationOptions{Deflection: .05, Angle: .2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,9 +127,13 @@ func TestBlindFloorNearExitReferenceIsAmbiguous(t *testing.T) {
 	base := box(t, b, vector{-4, -4, 0}, vector{4, 4, 8})
 	tool := circle(t, b, vector{0, 0, 0}, vector{0, 0, 1}, 1, 8-5e-8)
 	cut := shape(t, b, map[string]any{"op": "cut", "a": base.Handle, "b": tool.Handle})
-	body := b.shapes[cut.Handle].bore
-	if _, err := body.planarFace(geom.Vec3{Z: 8}, geom.Vec3{Z: 1}); err == nil {
-		t.Fatal("ambiguous floor/cap accepted")
+	// The floor is within tolerance of the far face. Either the two are two
+	// faces on one plane, and a reference to that plane is refused, or the
+	// floor is the far face, the bore is through, and the reference is the
+	// far face with its opening. A reference to the floor alone, or to a
+	// far face without an opening, is wrong.
+	if f, err := planarFace(t, b, cut.Handle, vector{0, 0, 8}, vector{0, 0, 1}); err == nil {
+		near(t, f.Area, 64-math.Pi)
 	}
 	before := len(b.shapes)
 	reply := b.Call(`{"op":"cut","a":"` + cut.Handle + `","b":"` + tool.Handle + `"}`)
@@ -153,14 +156,14 @@ func TestMultipleBlindPocketsRetainSharedCaps(t *testing.T) {
 		cut := shape(t, b, map[string]any{"op": "cut", "a": first.Handle, "b": c.Handle})
 		near(t, cut.GeometryAssertions.Volume, 2000-10*math.Pi)
 		near(t, cut.GeometryAssertions.SurfaceArea, 1000+20*math.Pi)
-		body := b.shapes[cut.Handle].bore
-		p, err := body.solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+		solid := boundary(t, b, cut.Handle)
+		p, err := solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 		if err != nil {
 			t.Fatal(err)
 		}
 		near(t, p.Volume, cut.GeometryAssertions.Volume)
 		near(t, p.Area, cut.GeometryAssertions.SurfaceArea)
-		m, err := body.solid.Tessellate(context.Background(), parametric.TessellationOptions{Deflection: .05, Angle: .2})
+		m, err := solid.Tessellate(context.Background(), parametric.TessellationOptions{Deflection: .05, Angle: .2})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -168,7 +171,7 @@ func TestMultipleBlindPocketsRetainSharedCaps(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, z := range []float64{0, 10} {
-			f, err := body.planarFace(geom.Vec3{Z: z}, geom.Vec3{Z: 1})
+			f, err := planarFace(t, b, cut.Handle, vector{0, 0, z}, vector{0, 0, 1})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -201,30 +204,30 @@ func TestGuidedOppositeEndBlindToolAllAxes(t *testing.T) {
 			cut := shape(t, b, map[string]any{"op": "cut", "a": base.Handle, "b": tool.Handle})
 			near(t, cut.GeometryAssertions.Volume, base.GeometryAssertions.Volume-16*math.Pi)
 			near(t, cut.GeometryAssertions.SurfaceArea, base.GeometryAssertions.SurfaceArea+16*math.Pi)
-			body := b.shapes[cut.Handle].bore
-			p, err := body.solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+			solid := boundary(t, b, cut.Handle)
+			p, err := solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 			if err != nil {
 				t.Fatal(err)
 			}
 			near(t, p.Volume, cut.GeometryAssertions.Volume)
 			near(t, p.Area, cut.GeometryAssertions.SurfaceArea)
-			v := geom.Vec3{X: o[0], Y: o[1], Z: o[2]}
-			normal := geom.Vec3{X: n[0], Y: n[1], Z: n[2]}
-			f, err := body.planarFace(v, normal)
+			f, err := planarFace(t, b, cut.Handle, o, n)
 			if err != nil {
 				t.Fatal(err)
 			}
 			near(t, f.Area, 4*math.Pi)
 			near(t, f.Normal[axis], sign)
-			m, err := body.solid.Tessellate(context.Background(), parametric.TessellationOptions{Deflection: .05, Angle: .2})
+			m, err := solid.Tessellate(context.Background(), parametric.TessellationOptions{Deflection: .05, Angle: .2})
 			if err != nil {
 				t.Fatal(err)
 			}
 			if err = m.ValidateSolid(); err != nil {
 				t.Fatal(err)
 			}
-			// Canonicalization never changes the original finite cylinder handle.
-			near(t, b.shapes[tool.Handle].cylinder.frame.Origin().Sub(v).Length(), 0)
+			// The cut leaves the tool as it was published.
+			if kept := shape(t, b, map[string]any{"op": "inspect", "handle": tool.Handle}); kept.Bounds != tool.Bounds || kept.GeometryAssertions != tool.GeometryAssertions {
+				t.Fatal("the cut changed its tool", kept, tool)
+			}
 		}
 	}
 }

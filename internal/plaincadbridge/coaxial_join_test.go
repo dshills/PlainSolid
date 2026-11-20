@@ -142,7 +142,20 @@ func TestCoaxialDispatchPlacementAndMeshBudget(t *testing.T) {
 	if b.shapes[joined.Handle].result.Bounds.Min != (vector{-3, -3, 0}) {
 		t.Fatal("placement mutated source")
 	}
-	body := b.shapes[result.Handle].analytic.coaxial
+	// The budget below is that of the legacy coaxial body. The legacy join
+	// builds one from the same parts, whichever path the bridge answered
+	// the requests above with.
+	matrix := [][]float64{{0, 0, 1, 7}, {1, 0, 0, 8}, {0, 1, 0, 9}}
+	stack, ok, e := b.fuseCoaxial(b.shapes[a.Handle], b.shapes[c.Handle])
+	if !ok || e != nil {
+		t.Fatal(ok, e)
+	}
+	placed := shape(t, b, map[string]any{"op": "transform", "handle": stack.Handle, "matrix": matrix})
+	whole, ok, e := b.fuseCoaxial(b.shapes[placed.Handle], b.shapes[tail.Handle])
+	if !ok || e != nil {
+		t.Fatal(ok, e)
+	}
+	body := b.shapes[whole.Handle].analytic.coaxial
 	options := parametric.TessellationOptions{Deflection: .5, Angle: .1, MaxSubdivisions: 128, MaxTriangles: 384}
 	m, e := body.tessellate(options)
 	if e != nil || len(m.Triangles) != 384 {

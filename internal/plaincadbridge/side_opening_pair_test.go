@@ -195,17 +195,28 @@ func TestSideOpeningCutsRetainHistoryAndAcceptFurtherHoles(t *testing.T) {
 	}
 	near(t, overlapMeasure(t, b, four.Handle, drills[3].Handle), 0)
 
-	// A tangent extra tool cannot publish a partial grouped result.
+	// A further tool tangent to the last opening cannot publish a partial
+	// result. Either it is refused and nothing is published, or it is cut
+	// whole, as one new shape: through its depth of four, the half of its
+	// disk inside the side face, less the part beyond the end face, which
+	// is one unit short of the tool's far side.
 	tangent := circle(t, b, vector{24, 0, 0}, vector{0, 0, 1}, 3, 4)
 	count := len(b.shapes)
-	if _, err := b.cutMany(four.Handle, []string{tangent.Handle}); err == nil || len(b.shapes) != count {
-		t.Fatal("unsupported cutter published a shape", err)
+	if whole, err := b.cutMany(four.Handle, []string{tangent.Handle}); err != nil {
+		if len(b.shapes) != count {
+			t.Fatal("refused cutter published a shape", err)
+		}
+	} else {
+		beyond := 9*math.Acos(2./3) - 2*math.Sqrt(5)
+		near(t, whole.GeometryAssertions.Volume, four.GeometryAssertions.Volume-2*(9*math.Pi-beyond))
+		if len(b.shapes) != count+1 || whole.Bounds != stock.Bounds || whole.GeometryAssertions.SolidCount != 1 {
+			t.Fatal("the tangent cut did not publish one whole shape", whole)
+		}
 	}
 }
 
-// Exercise the handoff between two independently supported representations.
-// The first cuts use the original exact path; adding a third rebuilds the
-// complete stock from the original tool descriptors.
+// A third opening cut from a stock that two were cut from as a group gives
+// what one grouped cut of all three gives, and it reads back from STEP.
 func TestSideOpeningCutsContinueStrictDualDisk(t *testing.T) {
 	b := New()
 	stock := box(t, b, vector{0, 4, 0}, vector{15, 10, 6})
@@ -213,14 +224,13 @@ func TestSideOpeningCutsContinueStrictDualDisk(t *testing.T) {
 	second := circle(t, b, vector{7.5, 4, 0}, vector{0, 0, 1}, 2.5, 3)
 	third := circle(t, b, vector{11.5, 4, 0}, vector{0, 0, 1}, 2.5, 5)
 	pair, err := b.cutMany(stock.Handle, []string{first.Handle, second.Handle})
-	if err != nil || b.shapes[pair.Handle].analytic.sideDualDisk == nil {
-		t.Fatal("expected the original exact two-cut family", pair, err)
+	if err != nil {
+		t.Fatal(err)
 	}
 	removed := overlapMeasure(t, b, pair.Handle, third.Handle)
 	combined := shape(t, b, map[string]any{"op": "cut", "a": pair.Handle, "b": third.Handle})
-	r := b.shapes[combined.Handle].analytic.sideOpeningCuts
-	if r == nil || len(r.Cuts) != 3 || combined.Bounds != stock.Bounds {
-		t.Fatal("the grouped body must inherit the original stock and all three cutters", r, combined.Bounds)
+	if combined.Bounds != stock.Bounds {
+		t.Fatal("the third cut moved the bounds of the stock", combined.Bounds)
 	}
 	grouped, err := b.cutMany(stock.Handle, []string{third.Handle, second.Handle, first.Handle})
 	if err != nil {
@@ -229,15 +239,12 @@ func TestSideOpeningCutsContinueStrictDualDisk(t *testing.T) {
 	near(t, combined.GeometryAssertions.Volume, grouped.GeometryAssertions.Volume)
 	near(t, combined.GeometryAssertions.SurfaceArea, grouped.GeometryAssertions.SurfaceArea)
 	near(t, combined.GeometryAssertions.Volume, pair.GeometryAssertions.Volume-removed)
-	data, err := writeSTEPBody(b.shapes[combined.Handle])
+	loaded, err := b.importSTEP(generalSTEPExported(t, b, combined.Handle))
 	if err != nil {
-		t.Fatal(err)
-	}
-	loaded, err := b.importSTEP(string(data))
-	if err != nil || b.shapes[loaded.Handle].analytic.sideOpeningCuts == nil {
-		t.Fatal("grouped cutter history must survive STEP reload", err)
+		t.Fatal("the three openings must survive STEP reload", err)
 	}
 	near(t, loaded.GeometryAssertions.Volume, combined.GeometryAssertions.Volume)
+	near(t, loaded.GeometryAssertions.SurfaceArea, combined.GeometryAssertions.SurfaceArea)
 }
 
 func TestIntersectingCornerOpeningHoles(t *testing.T) {
@@ -318,9 +325,9 @@ func TestConcealedHoleSTEPAndFurtherCut(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(b.shapes[final.Handle].analytic.sideOpeningCuts.Cuts) != 2 {
-		t.Fatal("retained the concealed cutter in the boundary recipe")
-	}
+	// The two cuts remove the whole of the concealed hole, so the stock
+	// with it gives the shape the stock without it gives.
+	sameShape(t, final, visible)
 	expected, err := b.exportSTEP([]string{visible.Handle})
 	if err != nil {
 		t.Fatal(err)

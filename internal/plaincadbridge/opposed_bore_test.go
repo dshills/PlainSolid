@@ -24,13 +24,17 @@ func TestOpposedBlindBoreMerge(t *testing.T) {
 				}
 				first := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": a.Handle})
 				result := shape(t, b, map[string]any{"op": "cut", "a": first.Handle, "b": c.Handle})
-				body := b.shapes[result.Handle].bore
+				// The two pockets overlap between the levels 0 and 1 and
+				// are one through bore: its wall and two openings, and no
+				// floor at either level.
 				near(t, result.GeometryAssertions.Volume, 1000-10*math.Pi)
-				if len(body.inputCylinders) != 2 || len(body.cylinders) != 1 || body.blind[0] {
-					t.Fatal("lineage", body)
-				}
-				if body.inputCylinders[0] != b.shapes[a.Handle].cylinder || body.inputCylinders[1] != b.shapes[c.Handle].cylinder {
-					t.Fatal("lost input order")
+				near(t, result.GeometryAssertions.SurfaceArea, 600+18*math.Pi)
+				for _, level := range []float64{0, 1} {
+					at := vector{}
+					at[axis] = level * sign
+					if f, err := planarFace(t, b, result.Handle, at, n); err == nil {
+						t.Fatal("a floor remains in the through bore", f)
+					}
 				}
 				before := len(b.shapes)
 				reply := b.Call(`{"op":"cut","a":"` + result.Handle + `","b":"` + c.Handle + `"}`)
@@ -55,7 +59,6 @@ func TestOpposedBlindBoreStrictOverlapAndUnrelated(t *testing.T) {
 	c := circle(t, b, vector{0, 0, 10}, vector{0, 0, -1}, 1, 6)
 	other := circle(t, b, vector{3, 0, 0}, vector{0, 0, 1}, .5, 2)
 	result := shape(t, b, map[string]any{"op": "cutMany", "a": s.Handle, "tools": []string{a.Handle, c.Handle, other.Handle}})
-	body := b.shapes[result.Handle].bore
 	mesh, err := b.shapes[result.Handle].tessellate(request{})
 	if err != nil {
 		t.Fatal(err)
@@ -64,13 +67,23 @@ func TestOpposedBlindBoreStrictOverlapAndUnrelated(t *testing.T) {
 		t.Fatal(err)
 	}
 	moved := shape(t, b, map[string]any{"op": "transform", "handle": result.Handle, "matrix": [][]float64{{0, 0, 1, 7}, {1, 0, 0, 8}, {0, 1, 0, 9}}})
-	if len(b.shapes[moved.Handle].bore.inputCylinders) != 3 {
-		t.Fatal("lost transformed lineage")
-	}
-	if len(body.inputCylinders) != 3 || len(body.blind) != 2 || body.blind[0] || !body.blind[1] {
-		t.Fatal("unrelated blind history")
-	}
+	// The opposed pair is one through bore and the third tool one pocket:
+	// the wall of each, two openings of the bore, and the pocket's floor in
+	// place of its opening. The floor is still referenced after a move.
 	near(t, result.GeometryAssertions.Volume, 1000-10.5*math.Pi)
+	near(t, result.GeometryAssertions.SurfaceArea, 600+20*math.Pi)
+	near(t, moved.GeometryAssertions.Volume, result.GeometryAssertions.Volume)
+	near(t, moved.GeometryAssertions.SurfaceArea, result.GeometryAssertions.SurfaceArea)
+	for _, floor := range []struct {
+		handle        string
+		point, normal vector
+	}{{result.Handle, vector{3, 0, 2}, vector{0, 0, 1}}, {moved.Handle, vector{9, 11, 9}, vector{1, 0, 0}}} {
+		f, err := planarFace(t, b, floor.handle, floor.point, floor.normal)
+		if err != nil {
+			t.Fatal(err)
+		}
+		near(t, f.Area, math.Pi/4)
+	}
 	for len(b.shapes) < MaxHandles {
 		shape(t, b, map[string]any{"op": "clone", "handle": s.Handle})
 	}

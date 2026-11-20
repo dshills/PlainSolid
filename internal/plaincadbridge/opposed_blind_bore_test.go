@@ -3,6 +3,7 @@ package plaincadbridge
 import (
 	"context"
 	"math"
+	"strings"
 	"testing"
 
 	"plainsolid/brep/parametric"
@@ -38,14 +39,11 @@ func TestOpposedBlindBoresIntersectAtDifferentDepths(t *testing.T) {
 			if batch.Bounds != base.Bounds || batch.GeometryAssertions.SolidCount != 1 {
 				t.Fatal(batch)
 			}
-			body := b.shapes[batch.Handle].bore
-			if body == nil || body.layered == nil || len(body.layered.FloorFaces) != 2 {
-				t.Fatal("opposed floor references missing")
-			}
+			solid := boundary(t, b, batch.Handle)
 			lowFloor, highFloor := low, high
 			lowFloor[axis], highFloor[axis] = 1, -2
 			for _, floor := range []struct{ origin, normal vector }{{lowFloor, m}, {highFloor, n}} {
-				f, err := body.planarFace(floor.origin.vec(), floor.normal.vec())
+				f, err := planarFace(t, b, batch.Handle, floor.origin, floor.normal)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -54,7 +52,7 @@ func TestOpposedBlindBoresIntersectAtDifferentDepths(t *testing.T) {
 					t.Fatalf("incorrect outward floor normal: %+v", f)
 				}
 			}
-			p, err := body.solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+			p, err := solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -91,30 +89,21 @@ func TestOpposedBlindBoresMeetingAtOneLevel(t *testing.T) {
 			}
 			near(t, hole.GeometryAssertions.Volume, 1000-10*disk)
 			near(t, hole.GeometryAssertions.SurfaceArea, 600+40*math.Pi-2*intersection)
-			s := b.shapes[hole.Handle]
-			h := s.bore.layered
-			if offset == 0 {
-				if len(h.FloorAreas) != 0 {
-					t.Fatal("coaxial meeting tools left an internal face")
-				}
-			} else {
-				if len(h.FloorAreas) != 2 {
-					t.Fatal("opposed crescent interfaces missing")
-				}
-				for _, area := range h.FloorAreas {
-					near(t, area, disk-intersection)
-				}
-				if _, err := s.bore.planarFace(vector{0, 0, 4}.vec(), vector{0, 0, 1}.vec()); err == nil {
-					t.Fatal("coincident opposite floor normals gave an unambiguous reference")
-				}
+			// Coaxial tools that meet leave no face at the level where
+			// they meet. Offset tools leave two crescents there that face
+			// opposite ways, which the surface area above counts, and a
+			// reference to their plane is ambiguous.
+			_, err := planarFace(t, b, hole.Handle, vector{0, 0, 4}, vector{0, 0, 1})
+			if err == nil || strings.Contains(err.Error(), "ambiguous") != (offset != 0) {
+				t.Fatalf("reference to the level where the tools meet, offset %v: %v", offset, err)
 			}
-			p, err := s.bore.solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
+			p, err := boundary(t, b, hole.Handle).MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 			if err != nil {
 				t.Fatal(err)
 			}
 			near(t, p.Volume, hole.GeometryAssertions.Volume)
 			near(t, p.Area, hole.GeometryAssertions.SurfaceArea)
-			m, err := s.tessellate(request{})
+			m, err := b.shapes[hole.Handle].tessellate(request{})
 			if err != nil {
 				t.Fatal(err)
 			}

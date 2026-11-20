@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"plainsolid/internal/slowtest"
+	"strings"
 	"testing"
 
 	"plainsolid/brep/trimmed"
@@ -214,18 +215,18 @@ func TestPlainCADSideOpeningFallbackAtNonbinaryCrossing(t *testing.T) {
 		t.Fatal("strict dual disk must reject without a partial publish", out, err)
 	}
 	out, err := b.cutMany(stock.Handle, []string{a.Handle, c.Handle})
-	if err != nil || len(b.shapes) != before+1 || b.shapes[out.Handle].analytic.sideOpeningCuts == nil || len(b.shapes[out.Handle].analytic.sideOpeningCuts.Cuts) != 2 || out.Bounds != stock.Bounds {
-		t.Fatal("analytic side-opening family must verify the represented topology independently", out, err)
+	if err != nil || len(b.shapes) != before+1 || out.Bounds != stock.Bounds {
+		t.Fatal("the two openings were not cut as one new shape on the stock", out, err)
 	}
 	want := 360 - 3*(6.25*(math.Pi-math.Acos(.5))+2.5*math.Sqrt(4.6875)/2)
 	near(t, out.GeometryAssertions.Volume, want)
-	data, err := writeSTEPBody(b.shapes[out.Handle])
-	if err != nil || bytes.Count(data, []byte("CYLINDRICAL_SURFACE(")) < 2 {
-		t.Fatal("analytic cylindrical supports must survive STEP export", err)
+	data := generalSTEPExported(t, b, out.Handle)
+	if strings.Count(data, "CYLINDRICAL_SURFACE(") < 2 {
+		t.Fatal("analytic cylindrical supports must survive STEP export")
 	}
-	reload, err := b.importSTEP(string(data))
-	if err != nil || b.shapes[reload.Handle].analytic.sideOpeningCuts == nil || len(b.shapes[reload.Handle].analytic.sideOpeningCuts.Cuts) != 2 || reload.Bounds != stock.Bounds {
-		t.Fatal("STEP readback must recover the original stock and both cutters", reload, err)
+	reload, err := b.importSTEP(data)
+	if err != nil || reload.Bounds != stock.Bounds {
+		t.Fatal("STEP readback must recover the stock with both openings", reload, err)
 	}
 	near(t, reload.GeometryAssertions.Volume, want)
 	mesh, err := b.shapes[out.Handle].tessellate(request{})

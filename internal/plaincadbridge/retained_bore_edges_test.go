@@ -21,20 +21,16 @@ func TestEditedHoleRetainsDownstreamChamfer(t *testing.T) {
 		stock = shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": tool.Handle})
 		out := shape(t, b, map[string]any{"op": "chamfer", "handle": stock.Handle, "edgeStart": vector{0, 0, 0}, "edgeEnd": vector{20, 0, 0}, "normal": vector{0, 0, 1}, "distance": .5})
 		near(t, out.GeometryAssertions.Volume, 2000-tc.w*math.Pi-2.5)
-		// The selected-edge path now replays retained cutters against the
-		// chamfered native planar base, preserving the layered bore owner.
-		owner := b.shapes[out.Handle].bore
-		source := b.shapes[stock.Handle].bore
-		if owner == nil || source == nil || owner.layered == nil || len(owner.cylinders) != 3 {
-			t.Fatal("lost retained layered bore ownership")
+		// The chamfer leaves the bores as they were: the step of the
+		// counterbore is still the ring between the two radii, and the
+		// stock it was cut from is unchanged.
+		step, err := planarFace(t, b, out.Handle, vector{5, 5, 1}, vector{0, 0, 1})
+		if err != nil {
+			t.Fatal(err)
 		}
-		for i, tool := range source.cylinders {
-			if owner.cylinders[i] != tool {
-				t.Fatal("changed original cutter lineage")
-			}
-		}
-		near(t, b.shapes[stock.Handle].result.GeometryAssertions.Volume, 2000-tc.w*math.Pi)
-		s := owner.solid
+		near(t, step.Area, (9-tc.r*tc.r)*math.Pi)
+		near(t, shape(t, b, map[string]any{"op": "inspect", "handle": stock.Handle}).GeometryAssertions.Volume, 2000-tc.w*math.Pi)
+		s := boundary(t, b, out.Handle)
 		p, e := s.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-8})
 		if e != nil {
 			t.Fatal(e)
@@ -63,7 +59,7 @@ func TestRetainedCavityEdgeTreatmentRejectsContactAtomically(t *testing.T) {
 	if !strings.Contains(reply, `"code":"UNSUPPORTED"`) || len(b.shapes) != before {
 		t.Fatal(reply)
 	}
-	if b.shapes[stock.Handle].bore == nil {
-		t.Fatal("lost input owner")
+	if kept := shape(t, b, map[string]any{"op": "inspect", "handle": stock.Handle}); kept != stock {
+		t.Fatal("the refused chamfer changed its stock", kept, stock)
 	}
 }

@@ -15,9 +15,6 @@ func TestPocketFloorCircleCutsAndCounterbore(t *testing.T) {
 		stock = shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": pocket.Handle})
 		hole := circle(t, b, vector{45, 25, 20}, vector{0, 0, -1}, 2, 20)
 		stock = shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": hole.Handle})
-		if b.shapes[stock.Handle].analytic.pockets == nil {
-			t.Fatal("lost original recipe")
-		}
 		var tool Shape
 		removed := 0.
 		switch kind {
@@ -33,7 +30,7 @@ func TestPocketFloorCircleCutsAndCounterbore(t *testing.T) {
 		}
 		out := shape(t, b, map[string]any{"op": "cutMany", "a": stock.Handle, "tools": []string{tool.Handle}})
 		near(t, out.GeometryAssertions.Volume, 48000-576-80*math.Pi-removed)
-		s := b.shapes[out.Handle].analytic.solid
+		s := boundary(t, b, out.Handle)
 		p, e := s.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 		if e != nil {
 			t.Fatal(kind, e)

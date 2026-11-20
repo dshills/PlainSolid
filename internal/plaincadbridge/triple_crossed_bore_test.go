@@ -20,9 +20,10 @@ func TestTripleCrossedBoreScopeAndSTEP(t *testing.T) {
 	near(t, overlapMeasure(t, b, pair.Handle, y.Handle), pair.GeometryAssertions.Volume-volume)
 	successive := shape(t, b, map[string]any{"op": "cut", "a": pair.Handle, "b": y.Handle})
 	grouped, err := b.cutMany(stock.Handle, []string{z.Handle, y.Handle, x.Handle, y.Handle})
-	if err != nil || grouped.GeometryAssertions != successive.GeometryAssertions || grouped.Bounds != stock.Bounds {
+	if err != nil || grouped.Bounds != stock.Bounds {
 		t.Fatal(grouped, successive, err)
 	}
+	sameShape(t, grouped, successive)
 	near(t, grouped.GeometryAssertions.Volume, volume)
 	near(t, grouped.GeometryAssertions.SurfaceArea, area)
 	file, err := b.exportSTEP([]string{grouped.Handle})
@@ -34,9 +35,10 @@ func TestTripleCrossedBoreScopeAndSTEP(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := b.importSTEP(string(data))
-	if err != nil || got.GeometryAssertions != grouped.GeometryAssertions || got.Bounds != stock.Bounds {
+	if err != nil || got.Bounds != stock.Bounds {
 		t.Fatal(got, err)
 	}
+	sameShape(t, got, grouped)
 	for _, tool := range []Shape{x, y, z} {
 		near(t, overlapMeasure(t, b, got.Handle, tool.Handle), 0)
 	}

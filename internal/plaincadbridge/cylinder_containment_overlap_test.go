@@ -14,9 +14,10 @@ func TestContainingCylinderOverlapCapture(t *testing.T) {
 	box := shape(t, b, map[string]any{"op": "box", "min": vector{10, 0, 0}, "max": vector{20, 10, 10}})
 	for _, ids := range [][2]string{{tool.Handle, box.Handle}, {box.Handle, tool.Handle}} {
 		r, e := b.overlapVolume(ids[0], ids[1])
-		if e != nil || r.(map[string]float64)["volume"] != 1000 {
+		if e != nil {
 			t.Fatal(r, e)
 		}
+		near(t, r.(map[string]float64)["volume"], 1000)
 	}
 	// Exact closed cap/radial inclusion: (3,4) lies on the radius-five wall.
 	f, _ := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{Z: -1})

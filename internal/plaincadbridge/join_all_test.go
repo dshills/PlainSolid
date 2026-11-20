@@ -63,10 +63,12 @@ func TestScopedJoinWithContainingRevolvedTool(t *testing.T) {
 	result := shape(t, b, map[string]any{
 		"op": "joinAll", "handles": []string{first.Handle, last.Handle, middle.Handle}, "b": tool.Handle,
 	})
+	// The tool holds all three boxes, so the join is the tool as a new shape.
 	near(t, result.GeometryAssertions.Volume, math.Pi*25*25*10)
-	if result.Handle == tool.Handle || result.Bounds != tool.Bounds || result.GeometryAssertions.SolidCount != 1 {
+	if result.Handle == tool.Handle || result.GeometryAssertions.SolidCount != 1 {
 		t.Fatal(result, tool)
 	}
+	sameShape(t, result, tool)
 	invoke(t, b, map[string]any{"op": "dispose", "handle": tool.Handle})
 	near(t, shape(t, b, map[string]any{"op": "inspect", "handle": result.Handle}).GeometryAssertions.Volume, result.GeometryAssertions.Volume)
 }

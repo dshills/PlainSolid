@@ -4,8 +4,6 @@ import (
 	"encoding/base64"
 	"math"
 	"testing"
-
-	"plainsolid/geom"
 )
 
 func TestBlindCrossedBoreScopeAndSTEP(t *testing.T) {
@@ -25,8 +23,9 @@ func TestBlindCrossedBoreScopeAndSTEP(t *testing.T) {
 		}
 		near(t, out.GeometryAssertions.Volume, wantVolume)
 		near(t, out.GeometryAssertions.SurfaceArea, wantArea)
-		if out.GeometryAssertions != successive.GeometryAssertions || out.Bounds != stock.Bounds {
-			t.Fatal(out, successive)
+		sameShape(t, out, successive)
+		if out.Bounds != stock.Bounds {
+			t.Fatal(out, stock)
 		}
 		first, err := b.exportSTEP([]string{out.Handle})
 		if err != nil {
@@ -41,14 +40,16 @@ func TestBlindCrossedBoreScopeAndSTEP(t *testing.T) {
 			t.Fatal(err)
 		}
 		recovered, err := b.importSTEP(string(data))
-		if err != nil || recovered.GeometryAssertions != out.GeometryAssertions || recovered.Bounds != out.Bounds {
-			t.Fatal(recovered, err)
+		if err != nil {
+			t.Fatal(err)
 		}
+		sameShape(t, recovered, out)
 		near(t, overlapMeasure(t, b, recovered.Handle, z.Handle), 0)
-		floor, err := b.shapes[recovered.Handle].bore.planarFace(geom.Vec3{X: 8, Y: 9, Z: 2}, geom.Vec3{Z: 1})
-		if err != nil || floor.Face != 6 {
-			t.Fatal(floor, err)
+		floor, err := planarFace(t, b, recovered.Handle, vector{8, 9, 2}, vector{0, 0, 1})
+		if err != nil {
+			t.Fatal(err)
 		}
 		near(t, floor.Area, 9*math.Pi)
+		near(t, floor.Normal[2], 1)
 	}
 }

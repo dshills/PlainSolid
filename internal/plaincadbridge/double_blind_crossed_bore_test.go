@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"math"
 	"testing"
-
-	"plainsolid/geom"
 )
 
 func TestDoubleBlindCrossedBoreScopeAndSTEP(t *testing.T) {
@@ -31,8 +29,12 @@ func TestDoubleBlindCrossedBoreScopeAndSTEP(t *testing.T) {
 				near(t, overlapMeasure(t, b, before.Handle, z.Handle), zDepth*9*math.Pi-144)
 				successive := shape(t, b, map[string]any{"op": "cut", "a": before.Handle, "b": z.Handle})
 				group, err := b.cutMany(stock.Handle, []string{z.Handle, x.Handle})
-				if err != nil || group.GeometryAssertions != successive.GeometryAssertions || group.Bounds != stock.Bounds {
-					t.Fatal(group, successive, err)
+				if err != nil {
+					t.Fatal(err)
+				}
+				sameShape(t, group, successive)
+				if group.Bounds != stock.Bounds {
+					t.Fatal(group, stock)
 				}
 				near(t, group.GeometryAssertions.Volume, 20.*24*18-(xDepth+zDepth)*9*math.Pi+144)
 				near(t, group.GeometryAssertions.SurfaceArea, 2.*(20*24+20*18+24*18)+(xDepth+zDepth)*6*math.Pi-144)
@@ -51,16 +53,12 @@ func TestDoubleBlindCrossedBoreScopeAndSTEP(t *testing.T) {
 				near(t, reloaded.GeometryAssertions.Volume, group.GeometryAssertions.Volume)
 				near(t, reloaded.GeometryAssertions.SurfaceArea, group.GeometryAssertions.SurfaceArea)
 				near(t, overlapMeasure(t, b, reloaded.Handle, z.Handle), 0)
-				body := b.shapes[reloaded.Handle].bore
-				for _, floor := range []struct {
-					origin, normal geom.Vec3
-					id             int
-				}{
-					{geom.Vec3{X: xOrigin + xSign*xDepth, Y: 9, Z: 7}, geom.Vec3{X: -xSign}, 15},
-					{geom.Vec3{X: 8, Y: 9, Z: zOrigin + zSign*zDepth}, geom.Vec3{Z: -zSign}, 6},
+				for _, floor := range []struct{ origin, normal vector }{
+					{vector{xOrigin + xSign*xDepth, 9, 7}, vector{-xSign, 0, 0}},
+					{vector{8, 9, zOrigin + zSign*zDepth}, vector{0, 0, -zSign}},
 				} {
-					face, err := body.planarFace(floor.origin, floor.normal)
-					if err != nil || face.Face != floor.id || face.Normal != coordinates(floor.normal) {
+					face, err := planarFace(t, b, reloaded.Handle, floor.origin, floor.normal)
+					if err != nil || face.Normal != floor.normal {
 						t.Fatal(face, err)
 					}
 					near(t, face.Area, 9*math.Pi)

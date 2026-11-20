@@ -4,8 +4,6 @@ import (
 	"encoding/base64"
 	"math"
 	"testing"
-
-	"plainsolid/geom"
 )
 
 func TestFarTangentCrossedBoreScopeAndSTEP(t *testing.T) {
@@ -36,8 +34,8 @@ func TestFarTangentCrossedBoreScopeAndSTEP(t *testing.T) {
 		if err != nil || got.Bounds != both.Bounds {
 			t.Fatal(op, got, err)
 		}
-		floor, err := b.shapes[got.Handle].bore.planarFace(geom.Vec3{X: 10, Y: 8, Z: entry + 8*sign}, geom.Vec3{Z: sign})
-		if err != nil || floor.Face != 6 || floor.Normal != (vector{0, 0, -sign}) {
+		floor, err := planarFace(t, b, got.Handle, vector{10, 8, entry + 8*sign}, vector{0, 0, sign})
+		if err != nil || floor.Normal != (vector{0, 0, -sign}) {
 			t.Fatal(op, floor, err)
 		}
 		near(t, floor.Area, 4*math.Pi)

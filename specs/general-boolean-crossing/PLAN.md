@@ -156,9 +156,11 @@ Phase 4 is committed as work in progress and stopped on A-C9.
   list.
 
 What A-C9 means for the owner's plan: the general Boolean now cuts what
-those tests cut, and the tests would have to be rewritten against
-behaviour before a bore family is moved, as the probe already found for
-the tests of plain bores.
+those tests cut, and the tests had to be rewritten against behaviour
+before a bore family is moved, as the probe already found for the tests
+of plain bores. They since are; `specs/general-boolean/ACCEPTANCE.md`
+says which of the eight pass with the general Boolean first and what
+the others still fail on.
 
 The owner had the branch merged to `main` as it stands on 2026-11-19.
 Of Phase 6, the capability summary of the README and the status and

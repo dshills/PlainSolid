@@ -56,7 +56,7 @@ func TestRetainedPlanarBoreFillRoofAndRedrill(t *testing.T) {
 }
 func verifyRetainedPlanarBore(t *testing.T, b *Bridge, s Shape) {
 	t.Helper()
-	native := b.shapes[s.Handle].analytic.solid
+	native := boundary(t, b, s.Handle)
 	p, e := native.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9})
 	if e != nil {
 		t.Fatal(e)
@@ -76,16 +76,16 @@ func TestRetainedPlanarBoreProofRejectsUnsafeDomains(t *testing.T) {
 	b := New()
 	stock := box(t, b, vector{}, vector{60, 40, 20})
 	pocket := box(t, b, vector{12, 12, 14}, vector{24, 20, 20})
-	stock = shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": pocket.Handle})
+	stock = legacy(t, b, "cut", stock, pocket)
 	hole := circle(t, b, vector{45, 25, 0}, vector{0, 0, 1}, 2, 20)
-	stock = shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": hole.Handle})
+	stock = legacy(t, b, "cut", stock, hole)
 	plug := circle(t, b, vector{45, 25, -1}, vector{0, 0, 1}, 3, 22)
 	_, _, handled, e := retainedPlanarBoolean(b.shapes[stock.Handle], b.shapes[plug.Handle], "fuse")
 	if !handled || e == nil {
 		t.Fatal("extending plug accepted")
 	}
 	roof := box(t, b, vector{11, 11, 18}, vector{25, 21, 20})
-	joined := shape(t, b, map[string]any{"op": "fuse", "a": stock.Handle, "b": roof.Handle})
+	joined := legacy(t, b, "fuse", stock, roof)
 	body := b.shapes[joined.Handle].analytic
 	if _, e = b.putAnalyticBody(&analyticBody{solid: body.solid, volume: body.volume, area: body.area}); e == nil {
 		t.Fatal("uncertified cavity accepted")

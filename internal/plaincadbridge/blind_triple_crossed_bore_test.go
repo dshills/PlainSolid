@@ -61,8 +61,8 @@ func TestBlindTripleCrossedBoreScopeAndSTEP(t *testing.T) {
 				}
 				near(t, got.GeometryAssertions.Volume, wantVolume)
 				near(t, got.GeometryAssertions.SurfaceArea, wantArea)
-				f, err := b.shapes[got.Handle].bore.planarFace(floor, normal)
-				if err != nil || f.Face != 6 || f.Normal != coordinates(normal) {
+				f, err := planarFace(t, b, got.Handle, coordinates(floor), coordinates(normal))
+				if err != nil || f.Normal != coordinates(normal) {
 					t.Fatal(f, err)
 				}
 				near(t, f.Area, 9*math.Pi)
@@ -124,7 +124,6 @@ func TestMultipleBlindTripleCrossedBoreScopeAndSTEP(t *testing.T) {
 		}
 		near(t, got.GeometryAssertions.Volume, wantVolume)
 		near(t, got.GeometryAssertions.SurfaceArea, wantArea)
-		index := 6
 		for _, axis := range [3]int{2, 0, 1} {
 			depth := depths[axis]
 			if depth == 0 {
@@ -135,12 +134,11 @@ func TestMultipleBlindTripleCrossedBoreScopeAndSTEP(t *testing.T) {
 			if axis == 1 {
 				p[axis], normal[axis] = 40-depth, 1
 			}
-			face, err := b.shapes[got.Handle].bore.planarFace(p.vec(), normal.vec())
-			if err != nil || face.Face != index || face.Normal != normal {
+			face, err := planarFace(t, b, got.Handle, p, normal)
+			if err != nil || face.Normal != normal {
 				t.Fatal(depths, axis, face, err)
 			}
 			near(t, face.Area, 9*math.Pi)
-			index++
 		}
 		for _, tool := range tools {
 			near(t, overlapMeasure(t, b, got.Handle, tool), 0)
@@ -153,18 +151,18 @@ func TestMultipleBlindTripleCrossedBoreScopeAndSTEP(t *testing.T) {
 		extended := shape(t, b, map[string]any{"op": "cut", "a": got.Handle, "b": deeper.Handle})
 		near(t, extended.GeometryAssertions.Volume, wantVolume-5.5*9*math.Pi)
 		near(t, extended.GeometryAssertions.SurfaceArea, wantArea+5.5*6*math.Pi)
-		for _, p := range []struct {
-			origin, normal geom.Vec3
-			id             int
-		}{
-			{geom.Vec3{X: 20, Y: 20, Z: 32}, geom.Vec3{Z: -1}, 6},
-			{geom.Vec3{X: 34, Y: 20, Z: 20}, geom.Vec3{X: -1}, 7},
-			{geom.Vec3{X: 20, Y: 10, Z: 20}, geom.Vec3{Y: 1}, 8},
+		// Each of the three floors is still one disk that faces back
+		// along its bore.
+		for _, p := range []struct{ origin, normal vector }{
+			{vector{20, 20, 32}, vector{0, 0, -1}},
+			{vector{34, 20, 20}, vector{-1, 0, 0}},
+			{vector{20, 10, 20}, vector{0, 1, 0}},
 		} {
-			face, err := b.shapes[extended.Handle].bore.planarFace(p.origin, p.normal)
-			if err != nil || face.Face != p.id {
+			face, err := planarFace(t, b, extended.Handle, p.origin, p.normal)
+			if err != nil || face.Normal != p.normal {
 				t.Fatal(p, face, err)
 			}
+			near(t, face.Area, 9*math.Pi)
 		}
 		through := circle(t, b, vector{40, 20, 20}, vector{-1, 0, 0}, 3, 40)
 		near(t, overlapMeasure(t, b, extended.Handle, through.Handle), 6*9*math.Pi)

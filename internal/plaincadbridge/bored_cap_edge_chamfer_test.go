@@ -22,12 +22,15 @@ func TestHoleEditLayeredSingleEdgeChamfer(t *testing.T) {
 			counter := shape(t, b, map[string]any{"op": "cut", "a": drilled.Handle, "b": cb.Handle})
 			out := shape(t, b, map[string]any{"op": "chamfer", "handle": counter.Handle, "normal": vector{0, 0, 1}, "distance": .5, "edges": []map[string]any{{"start": vector{0, 0, 0}, "end": vector{20, 0, 0}}}})
 			near(t, out.GeometryAssertions.Volume, 2000-tc.removed*math.Pi-2.5)
-			s := b.shapes[out.Handle]
-			if s.bore == nil || len(s.bore.cylinders) != 3 || s.bore.layered == nil {
-				t.Fatal("lost layered recipe")
+			// The chamfer leaves the bores as they were: the step of the
+			// counterbore is still the ring between the two radii.
+			step, err := planarFace(t, b, out.Handle, vector{5, 5, 1}, vector{0, 0, 1})
+			if err != nil {
+				t.Fatal(err)
 			}
-			near(t, b.shapes[counter.Handle].result.GeometryAssertions.Volume, 2000-tc.removed*math.Pi)
-			m, e := s.tessellate(request{})
+			near(t, step.Area, (9-tc.r*tc.r)*math.Pi)
+			near(t, shape(t, b, map[string]any{"op": "inspect", "handle": counter.Handle}).GeometryAssertions.Volume, 2000-tc.removed*math.Pi)
+			m, e := b.shapes[out.Handle].tessellate(request{})
 			if e != nil {
 				t.Fatal(e)
 			}

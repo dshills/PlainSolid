@@ -712,9 +712,9 @@ The bridge tests with their first bore cut by the general Boolean
 kept. Of the eight tests behind T2-001, 002, 003, 006, 009, 010, 011
 and 017, one passes as written (`TestCrossedCompanionBoreScopeAndSTEP`).
 None of the other seven is refused a cut, and every volume and area they
-print agrees to the last digit or two. They fail on what they assert of
-the legacy representation: four compare the results of two orders of
-cutting with `==` and differ in the last bits
+print agrees to the last digit or two. They failed on what they asserted
+of the legacy representation: four compared the results of two orders of
+cutting with `==` and differed in the last bits
 (`TestCrossedBoreScopeAndSTEP`, `TestCrossedObliqueReciprocalScope`,
 `TestDoubleBlindCrossedBoreScopeAndSTEP`,
 `TestTripleCrossedBoreScopeAndSTEP`); two read the bore recipe of the
@@ -722,4 +722,45 @@ result (`TestBlindCrossedBoreScopeAndSTEP`,
 `TestCrossedObliqueBoreScope`); one requires a STEP file to be byte for
 byte the same after an import and a second export
 (`TestDoubleBlindCrossedObliqueBore`).
+
+Those assertions are since rewritten against behaviour: two results are
+compared within the tolerance of A3, a face is asked for with the
+`planarFace` request, and a boundary is measured as the bridge holds it,
+whichever path made it. With the general Boolean first, four of the
+eight now pass. Three fail only where they require STEP files to be byte
+for byte the same, from two orders of cutting
+(`TestCrossedBoreScopeAndSTEP`, `TestBlindCrossedBoreScopeAndSTEP`) or
+after an import (`TestDoubleBlindCrossedObliqueBore`); whether that is
+required of the general Boolean is the owner's to decide. One fails on a
+defect: the STEP file of `TestCrossedObliqueReciprocalScope`, for the
+oblique bore that rises, is written and does not read back, the reader's
+validation reporting a fold in a curved trim.
+
+Over the whole default tier of the bridge, with the general Boolean
+first on the same scratch change, 60 of 267 tests failed before that
+rewrite and 25 fail after it:
+
+- 12 require STEP files to be byte for byte the same, 8 from two orders
+  or groupings of the same cuts and 4 after an import and a second
+  export. This is the decision above.
+- 9 test the fallback itself: they require that a legacy path answers,
+  or declines with its own diagnostic, or they compare the two bridges.
+  They change form when a family moves, not before.
+- 4 show a difference in behaviour. A cut repeated on a bore whose floor
+  is within tolerance of the far face is published as removing material,
+  1e-7 of volume, where the legacy path refuses it
+  (`TestBlindFloorNearExitReferenceIsAmbiguous`). The STEP file that does
+  not read back is above. A thread is refused on a general result
+  (`TestPlainCADModeledThreadNative`). A bore of another radius that
+  crosses is refused, which is OD-2, and no legacy path takes a general
+  result as its stock (`TestSkewCrossedBoreScopeAndSTEP`).
+
+In the slow tier 34 tests of the bridge were run the same way. 15 fail:
+3 on STEP bytes, 4 on OD-2, 4 that read the STEP product classes and
+recipes of the legacy side-opening family, and one each on the trace
+replay, on a thread, on a STEP file that does not read back
+(`TestClippedCrossedBoreScopeAndSTEP`, a floor that the crossing clips),
+and on a mirrored stock: the general Boolean refuses a general result
+that the `transform` request has reflected, its placement not being
+rigid (`TestSideNotchMixedBoreBatchIsAtomic`).
 

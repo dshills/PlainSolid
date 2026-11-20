@@ -9,7 +9,7 @@ func TestPocketChamferIndependentFallback(t *testing.T) {
 	b := New()
 	stock := box(t, b, vector{}, vector{40, 30, 10})
 	tool := box(t, b, vector{15, 10, 8}, vector{25, 20, 10})
-	pocket := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": tool.Handle})
+	pocket := legacy(t, b, "cut", stock, tool)
 	owner := b.shapes[pocket.Handle]
 	native, ok, e := owner.planarCutBoundary()
 	if e != nil || !ok {
