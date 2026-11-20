@@ -1,94 +1,94 @@
 {
-  "snapshot": "c4fe8100f5cbedfbce5b7c453dbff02f4855d974",
+  "snapshot": "2655b6423d8ca480c79f64d81e7ae8325ce9e547",
   "mode": "ordinary",
   "toolchain": "go version go1.23.12 darwin/arm64\nDarwin arm64",
   "summary": {
     "packagesPassed": 58,
     "packagesWithoutTests": 9,
-    "topLevelInventory": 7020,
-    "topLevelPasses": 6395,
+    "topLevelInventory": 7024,
+    "topLevelPasses": 6399,
     "topLevelSkips": 625,
     "trimmedPasses": 1726,
     "trimmedSkips": 51
   },
   "sourceArtifacts": [
     {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/packages.list",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/packages.list",
       "bytes": 1792,
       "sha256": "acf5b9194f8420b62df54269f8679cd6a9a5e149d7bd19061f9d9d613c031014"
     },
     {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/status.tsv",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/status.tsv",
       "bytes": 107,
       "sha256": "ddc9d663daac0f5c9553507d46a2c8d5dcfce76a1f7233a35b276139d398f1a1"
     },
     {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/run-commands.json",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/run-commands.json",
       "bytes": 74402,
       "sha256": "dac5b94af06636fbb8b9260a63552846b91645dd41b6f583ffcace73c7abd324"
     },
     {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/inventory-trimmed.jsonl",
-      "bytes": 268836,
-      "sha256": "f54ca7d3aa15f1d35b4c89792170e14ed3d45f78b1e457eb2ff135e3959b18cd"
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/inventory-trimmed.jsonl",
+      "bytes": 268847,
+      "sha256": "c8114b9e2a70b9cdc38249eb06eaef1f46db671fb99f8f97f90cdda80d3e9e06"
     },
     {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/inventory.jsonl",
-      "bytes": 792015,
-      "sha256": "c691ad15a2fd3cdbed75b1ad15bd9ae95157b1ee7a200380979bd00a02593d3a"
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/inventory.jsonl",
+      "bytes": 792584,
+      "sha256": "18bc6f90fb36d42b752e340645a7cc37044ef9e1c932623bd2ffdf4e6d85268b"
     },
     {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-0.list",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-0.list",
       "bytes": 8685,
       "sha256": "37079c63be7752e28fe35479e8651b066881cf008631fdb6f67781d6a0d07160"
     },
     {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-1.list",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-1.list",
       "bytes": 8701,
       "sha256": "5edcb572e91cd08250281373a729692d5739a473f59a40b8bbbb6ff959119bbc"
     },
     {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-2.list",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-2.list",
       "bytes": 8794,
       "sha256": "ee0342c6cd35d2940a1c2b1824618ce1f080fc83f3693def3fdcafa00adb285d"
     },
     {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-3.list",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-3.list",
       "bytes": 8763,
       "sha256": "5f6619c86da3a20b97efcd2ea3d486f4aec424c1502c3a2447e9ef0533c54511"
     },
     {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-4.list",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-4.list",
       "bytes": 8910,
       "sha256": "e639e3349bbc7850bb9ecdbdd9f2f139754371f2ea46f704782cdd0f982f4c08"
     },
     {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-5.list",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-5.list",
       "bytes": 8736,
       "sha256": "96e1207b4c8fbc922b277266f0b24fb675880019078ea3de70a53f23909d6a75"
     },
     {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-6.list",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-6.list",
       "bytes": 8964,
       "sha256": "3567223aa8405c9677ed407be835099c0db4f24cc1851d27b691282c4f4b64d9"
     },
     {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-7.list",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-7.list",
       "bytes": 8736,
       "sha256": "3bbd11018d7473da1f58952ab04b79efd87c4f3214c4cd096a3039ac54d80333"
     }
   ],
   "lanes": {
     "packages": {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/packages.jsonl",
-      "bytes": 9810233,
-      "sha256": "fa45c16a889a5d3eab02f7142cd667136df42ac52f7376f6aebee55f423dda44",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/packages.jsonl",
+      "bytes": 9832584,
+      "sha256": "c7beb3cdbc8aa1512cd905ab50bb39045dd3ed3e076f0a8bd54e6699a172663c",
       "topLevel": {
-        "pass": 4669,
+        "pass": 4673,
         "skip": 574
       },
       "includingSubtests": {
-        "pass": 10273,
+        "pass": 10298,
         "skip": 590
       },
       "terminalPackages": {
@@ -151,19 +151,19 @@
         "plainsolid/internal/stepmeasure": "pass",
         "plainsolid/internal/testgraphfixture": "skip",
         "plainsolid/exchange/step": "pass",
-        "plainsolid/mesh": "pass",
+        "plainsolid/intersect": "pass",
         "plainsolid/query": "pass",
         "plainsolid/scene": "pass",
         "plainsolid/section": "pass",
         "plainsolid/solid": "pass",
-        "plainsolid/tools/refgraph": "pass",
-        "plainsolid/intersect": "pass"
+        "plainsolid/mesh": "pass",
+        "plainsolid/tools/refgraph": "pass"
       }
     },
     "trimmed-0": {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-0.jsonl",
-      "bytes": 382884,
-      "sha256": "20d96c433d7907a70b079ba849366a322c986741a18021c2f34fba8f24194920",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-0.jsonl",
+      "bytes": 382855,
+      "sha256": "fa7d131563ded562271561e5fffa7d220a51e2e5d7e5c03c0e3e74ded1dd28e6",
       "topLevel": {
         "pass": 218,
         "skip": 5
@@ -177,9 +177,9 @@
       }
     },
     "trimmed-1": {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-1.jsonl",
-      "bytes": 401910,
-      "sha256": "a4ed3458cb4972d5c2c4ebd543636ad6c3ac421cdeb88b2c042be2237adc6864",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-1.jsonl",
+      "bytes": 401917,
+      "sha256": "84e71bbde2f953b22a984e0ecb38fcb85ca56f6faeaec4cbf51d1580348c8889",
       "topLevel": {
         "pass": 216,
         "skip": 6
@@ -193,9 +193,9 @@
       }
     },
     "trimmed-2": {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-2.jsonl",
-      "bytes": 353378,
-      "sha256": "41dae07a9d62b43d3c850fc7487cbb8d1ca820783704c9fb0a7cbd453864b47d",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-2.jsonl",
+      "bytes": 353354,
+      "sha256": "45a88705947560894cc60d6f038b066f4519ca5fba9d812004d5268ac41f403e",
       "topLevel": {
         "pass": 218,
         "skip": 4
@@ -209,9 +209,9 @@
       }
     },
     "trimmed-3": {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-3.jsonl",
-      "bytes": 353411,
-      "sha256": "e4046a56663975c3e06cd1a8427b9acfe7eb53a81d608a6795c5b396f0c87efc",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-3.jsonl",
+      "bytes": 353435,
+      "sha256": "fc765c35948c359ecaf6a784823d0ad0fcd4d8a9682c33dd5357746e1f8196a2",
       "topLevel": {
         "pass": 214,
         "skip": 8
@@ -225,9 +225,9 @@
       }
     },
     "trimmed-4": {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-4.jsonl",
-      "bytes": 433213,
-      "sha256": "4847e35a01a85e7fd5e2ac97be5ddbde7d2cb102a52d08eef0814ca1b7f5a56a",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-4.jsonl",
+      "bytes": 433223,
+      "sha256": "8611aff1550b90759a8a4294b0f7bfc25dec3ce7aa052ea73afb9dc0ae5ae433",
       "topLevel": {
         "pass": 214,
         "skip": 8
@@ -241,9 +241,9 @@
       }
     },
     "trimmed-5": {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-5.jsonl",
-      "bytes": 410039,
-      "sha256": "674c162ed43fb6d79a9cd5287c1640644c83266227e9ab6fda03de2247f42713",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-5.jsonl",
+      "bytes": 410017,
+      "sha256": "71eea622e0827064704486f12fb63dd9b896a9c957e1b0366df8ba121cd1f3fa",
       "topLevel": {
         "skip": 7,
         "pass": 215
@@ -257,9 +257,9 @@
       }
     },
     "trimmed-6": {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-6.jsonl",
-      "bytes": 337532,
-      "sha256": "5124cf0fea8a5a1554f5edde684c8daf21a020214b6441ffef0db9b747715193",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-6.jsonl",
+      "bytes": 337554,
+      "sha256": "a95c91b546b6403bb7d2983e4a58d27d8040cd0335aece51d581d4c9fc0eaef0",
       "topLevel": {
         "pass": 214,
         "skip": 8
@@ -273,9 +273,9 @@
       }
     },
     "trimmed-7": {
-      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-c4fe8100/trimmed-7.jsonl",
-      "bytes": 351249,
-      "sha256": "fd5d9f6b8c7af2c2dc14dcbaaffa7c9d1b84fa4c527df3af6493d5279b73473f",
+      "path": "/Users/dshills/Development/projects/PlainSolid/.worktrees/qualification/go-main-2655b642/trimmed-7.jsonl",
+      "bytes": 351245,
+      "sha256": "4495c203a3a01a518e54cbca77a1c1ad4f8d9357e6b57954ecac2f886f2c5558",
       "topLevel": {
         "pass": 217,
         "skip": 5
