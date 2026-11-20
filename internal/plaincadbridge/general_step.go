@@ -16,7 +16,8 @@ import (
 // of the general Boolean on either bridge. A result that a writer of
 // writeSTEPBody already takes keeps that writer and the reader that goes
 // with it. Any other is written by step.WriteTrimmedBoundary as the solid
-// stores it, and general reports that.
+// stores it, and general reports that; one it refuses is written from its
+// bore history where it has one.
 func writeGeneralSTEPBody(s stored) (data []byte, general bool, err error) {
 	if data, err := writeSTEPBody(s); err == nil {
 		return data, false, nil
@@ -24,6 +25,16 @@ func writeGeneralSTEPBody(s stored) (data []byte, general bool, err error) {
 	var out bytes.Buffer
 	if err := step.WriteTrimmedBoundary(&out, s.analytic.solid, .001, "PlainSolid"); err != nil {
 		if errors.Is(err, step.ErrTrimmedBoundary) {
+			// The boundary writer has no entity for the curve in which two
+			// cylinders of unequal radius or with skew axes meet (OD-Q5 of
+			// specs/general-boolean-quartic). A drilled body that has one
+			// is written from its history, by the writer of the legacy
+			// bore body, and reads back as that body.
+			if old := legacyStock(s); old.bore != nil {
+				if data, err := writeSTEPBody(old); err == nil {
+					return data, false, nil
+				}
+			}
 			return nil, true, &failureError{"UNSUPPORTED", "STEP export: " + err.Error()}
 		}
 		return nil, true, fmt.Errorf("STEP export: %w", err)

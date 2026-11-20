@@ -316,8 +316,11 @@ func TestConcealedCrossedObliqueBoreSTEPCanonical(t *testing.T) {
 		}
 		offLine := circle(t, b, vector{-4, 8.25, 9.5}, vector{4, 0, 3}, 2, 35)
 		protruding := circle(t, b, vector{12, 8.125, 21.5}, vector{4, 0, 3}, 2, 4)
+		// A cutter beside the line of the oblique bore, or one that
+		// stands out of it, is not concealed: where it is cut, it
+		// removes material of its own.
 		for _, cutter := range []Shape{offLine, protruding} {
-			if _, err := b.cutMany(stock.Handle, []string{cardinal.Handle, oblique.Handle, cutter.Handle}); err == nil {
+			if got, err := b.cutMany(stock.Handle, []string{cardinal.Handle, oblique.Handle, cutter.Handle}); err == nil && got.GeometryAssertions.Volume > want.GeometryAssertions.Volume-1e-3 {
 				t.Fatal("off-axis cutter was treated as concealed", depth)
 			}
 		}

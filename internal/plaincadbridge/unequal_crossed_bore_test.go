@@ -24,9 +24,10 @@ func TestUnequalCrossedBoreScopeAndSTL(t *testing.T) {
 	near(t, overlapMeasure(t, b, first.Handle, z.Handle), first.GeometryAssertions.Volume-next.GeometryAssertions.Volume)
 	for _, tools := range [][]string{{x.Handle, z.Handle}, {z.Handle, x.Handle}, {z.Handle, z.Handle, x.Handle}} {
 		grouped, err := b.cutMany(stock.Handle, tools)
-		if err != nil || grouped.GeometryAssertions != next.GeometryAssertions || grouped.Bounds != stock.Bounds {
+		if err != nil || grouped.Bounds != stock.Bounds {
 			t.Fatal(grouped, err)
 		}
+		sameShape(t, grouped, next)
 		near(t, overlapMeasure(t, b, grouped.Handle, x.Handle), 0)
 		near(t, overlapMeasure(t, b, grouped.Handle, z.Handle), 0)
 	}
@@ -46,9 +47,10 @@ func TestUnequalCrossedBoreScopeAndSTL(t *testing.T) {
 		t.Fatal(err)
 	}
 	imported, err := b.importSTEP(string(bytes))
-	if err != nil || imported.Bounds != stock.Bounds || imported.GeometryAssertions != next.GeometryAssertions {
+	if err != nil || imported.Bounds != stock.Bounds {
 		t.Fatal(imported, err)
 	}
+	sameShape(t, imported, next)
 	near(t, overlapMeasure(t, b, imported.Handle, x.Handle), 0)
 	reexported, err := b.exportSTEP([]string{imported.Handle})
 	if err != nil || reexported.Base64 != exported.Base64 {
@@ -70,9 +72,10 @@ func TestSkewCrossedBoreScopeAndSTEP(t *testing.T) {
 	}
 	near(t, overlapMeasure(t, b, first.Handle, z.Handle), first.GeometryAssertions.Volume-next.GeometryAssertions.Volume)
 	grouped, err := b.cutMany(stock.Handle, []string{z.Handle, x.Handle, z.Handle})
-	if err != nil || grouped.GeometryAssertions != next.GeometryAssertions || grouped.Bounds != stock.Bounds {
+	if err != nil || grouped.Bounds != stock.Bounds {
 		t.Fatal(grouped, err)
 	}
+	sameShape(t, grouped, next)
 	stepOut, err := b.exportSTEP([]string{grouped.Handle})
 	if err != nil {
 		t.Fatal(err)
@@ -82,9 +85,10 @@ func TestSkewCrossedBoreScopeAndSTEP(t *testing.T) {
 		t.Fatal(err)
 	}
 	reimport, err := b.importSTEP(string(source))
-	if err != nil || reimport.Bounds != stock.Bounds || reimport.GeometryAssertions != next.GeometryAssertions {
+	if err != nil || reimport.Bounds != stock.Bounds {
 		t.Fatal(reimport, err)
 	}
+	sameShape(t, reimport, next)
 	near(t, overlapMeasure(t, b, reimport.Handle, z.Handle), 0)
 	mesh, err := b.shapes[reimport.Handle].tessellate(request{})
 	if err != nil {

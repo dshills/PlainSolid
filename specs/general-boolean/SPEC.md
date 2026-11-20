@@ -10,9 +10,12 @@ has been supported since 2026-11-19 (RL-27), by
 [the crossing specification](../general-boolean-crossing/SPEC.md), which
 amends sections 7.4, 7.5 and 12 here. Since 2026-11-20 a placement that
 reflects is accepted (S4, RL-28), the default bridge asks the general
-path first for plain bores (OD-11), and a face of B within ε of a plane
-of A is seated on it (S7, RL-30). This document is a specification only
-and contains no implementation.
+path first for plain bores (OD-11), a face of B within ε of a plane
+of A is seated on it (S7, RL-30), and cylinders of unequal radius or
+with skew axes are cut
+([the quartic specification](../general-boolean-quartic/SPEC.md),
+RL-31). This document is a specification only and contains no
+implementation.
 
 ## 1. Purpose
 
@@ -701,10 +704,14 @@ Let d be the distance between two cylinder axes, r₁ ≥ r₂ their radii, and 
   faces that are not proved separate, and that are outside the rows of
   the table, return `ErrUnsupported`.
 - SP3. "Out", always `ErrUnsupported` unless SP2 applies: non-parallel
-  cylinders of unequal radius; non-parallel cylinders of equal radius whose
-  axes do not meet; and non-parallel cylinders of equal radius whose axes
-  meet at an angle of sine below 1/64. Equal radius and meeting axes are
-  judged together, as the row of the table states.
+  cylinders whose axes make an angle of sine below 1/64, and non-parallel
+  cylinders that are neither an equal pair nor a regular quartic pair,
+  which are those that touch or come within a sine of 1/64 of touching
+  ([the quartic specification](../general-boolean-quartic/SPEC.md),
+  section 2). Until 2026-11-20 every pair of unequal radius, and every
+  pair of equal radius whose axes do not meet, was out (OD-2). Equal
+  radius and meeting axes are judged together, as the row of the table
+  states.
 - SP4. The same-surface test is made node by node, before any other row of
   the table, for every pair of parallel planes and for every *candidate*
   pair of parallel cylinders. A pair of parallel cylinders is a candidate
@@ -2099,7 +2106,9 @@ is open. Each entry states the decision and where this document applies it.
   (RL-27).
 - OD-2. Unequal and skew crossed bores are out. Their intersection curves
   are quartic (SP3). Their constructors and five test files stay whatever
-  the trial's outcome (15.2).
+  the trial's outcome (15.2). Reversed on 2026-11-20 for regular pairs,
+  at the owner's instruction to start them (RL-31); it stands for pairs
+  that touch or nearly touch.
 - OD-3. A touching result is an error. A result whose boundary is not a
   manifold returns `ErrNonManifold` (7.9, section 11). This includes the
   union of two solids that touch only along an edge or at a vertex; the
@@ -2418,6 +2427,17 @@ Rulings of 2026-11-19, as the trial came to its closing state:
   rounding. `step.WriteTrimmedBoundary` writes a zero without a sign,
   since a carrier taken from A has negative zeros among the components
   of its axes.
+- RL-31. Quartic pairs are in, where they are regular. On 2026-11-20 the
+  owner asked for the skew and unequal-radius crossings to be started.
+  [The quartic specification](../general-boolean-quartic/SPEC.md) adds
+  one curve carrier, the closed curve in which two cylinders meet, with
+  its rows in the tables of 7.4 and 7.5 found by sampling, and amends
+  SP3, OD-2 and the statement of section 12 that no measure is a
+  quadrature: a face bounded by such a curve takes its share of the
+  measures by Gauss quadrature along that leg, and every other leg keeps
+  its closed form. `brep/trimmed` gained one exported interface so that
+  `Classify` crosses the new p-curve. The decisions that document takes
+  by default (its section 9) wait for the owner.
 
 ## 20. Open items
 

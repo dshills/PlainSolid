@@ -43,9 +43,10 @@ func TestFiniteUnequalCrossedBoreScopeAndSTEP(t *testing.T) {
 			near(t, overlapMeasure(t, b, before.Handle, z.Handle), before.GeometryAssertions.Volume-wantVolume)
 			successive := shape(t, b, map[string]any{"op": "cut", "a": before.Handle, "b": z.Handle})
 			grouped, err := b.cutMany(stock.Handle, []string{z.Handle, x.Handle})
-			if err != nil || grouped.GeometryAssertions != successive.GeometryAssertions {
+			if err != nil {
 				t.Fatal(grouped, successive, err)
 			}
+			sameShape(t, grouped, successive)
 			file, err := b.exportSTEP([]string{grouped.Handle})
 			if err != nil {
 				t.Fatal(err)

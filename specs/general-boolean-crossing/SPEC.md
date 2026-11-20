@@ -189,7 +189,10 @@ expected.
 ### 4.2 Out of scope
 
 - N1. Quartic pairs. A call that meets one returns `ErrUnsupported`, as
-  today (R1). OD-2 stands.
+  today (R1). OD-2 stands. Since 2026-11-20 a regular quartic pair is
+  cut, by
+  [the quartic specification](../general-boolean-quartic/SPEC.md); this
+  document still does not specify one.
 - N2. Any change to `brep/trimmed`, `geom` or `exchange/step`, and any
   change to what `brep/blend` does. One test of `brep/blend` and one
   sentence of its package comment said that two fillets meeting at a

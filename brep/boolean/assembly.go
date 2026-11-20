@@ -471,6 +471,15 @@ func (c trim) EvalUV(u float64) (geom.Vec2, error) {
 
 func (c trim) TurnsUV() []float64 { return c.turns }
 
+// DerivativeUV is the derivative of the curve by its own parameter, which
+// trimmed.Solid.MassProperties integrates along. The map to the stored
+// surface is linear, so it takes the velocity of the path as it takes
+// its point.
+func (c trim) DerivativeUV(u float64) (geom.Vec2, error) {
+	v := c.s.stored(c.p.speed(c.p.t0 + (c.p.t1-c.p.t0)*u))
+	return geom.Vec2{X: v.X * (c.p.t1 - c.p.t0), Y: v.Y * (c.p.t1 - c.p.t0)}, nil
+}
+
 // BoundsUV holds the curve: between two of its turns it is monotone in
 // both coordinates, so it reaches no farther than its values at them and
 // at its ends. brep/trimmed asks this of a p-curve it does not know.

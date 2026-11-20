@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"plainsolid/brep/parametric"
+	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
 	"plainsolid/mesh"
 )
@@ -94,6 +95,9 @@ const (
 // Where a finer mesh cannot be built within its limits, the finest that
 // was built is the answer.
 func (s stored) tessellateGeneral(o parametric.TessellationOptions) (mesh.Mesh, error) {
+	if old := legacyStock(s); old.bore != nil && meetingTrimmed(s.analytic.solid) {
+		return old.tessellateBore(o)
+	}
 	m, err := s.analytic.tessellate(o)
 	if err != nil {
 		return m, err
@@ -131,4 +135,24 @@ func float32MeshVolume(m mesh.Mesh) float64 {
 		vertices[i] = geom.Vec3{X: float64(float32(v.X)), Y: float64(float32(v.Y)), Z: float64(float32(v.Z))}
 	}
 	return (mesh.Mesh{Vertices: vertices, Triangles: m.Triangles}).SignedVolume()
+}
+
+// meetingTrimmed reports whether a face of the solid is trimmed along the
+// curve in which two cylinders of unequal radius or with skew axes meet
+// (specs/general-boolean-quartic). The mesher of brep/trimmed refines
+// every face evenly, and on such a face that folds where the curve runs
+// along the chart and then exceeds its limit of triangles. A drilled body
+// with such a face is meshed from its history, as the legacy bore body
+// is, until that mesher takes it.
+func meetingTrimmed(s trimmed.Solid) bool {
+	for _, f := range s.Faces() {
+		for _, loop := range append([][]trimmed.Use{f.Outer}, f.Holes...) {
+			for _, u := range loop {
+				if _, ok := u.Curve.(trimmed.MonotoneUV); ok {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }

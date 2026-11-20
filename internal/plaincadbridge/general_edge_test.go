@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
-	"strings"
 	"testing"
 	"time"
 
@@ -576,19 +575,14 @@ func TestGeneralFilletRefused(t *testing.T) {
 		out := shape(t, b, bottom(slotted, 1))
 		refused(t, b, bottom(out, 1), "UNSUPPORTED", "fillet"+lostEdge)
 	})
-	t.Run("X11, a bore across the fillet", func(t *testing.T) {
+	t.Run("X8, a bore across the fillet", func(t *testing.T) {
 		// The bore opens in the bottom face inside the reach of the
 		// fillet and leaves the edge whole. Its wall and the fillet are
-		// cylinders with crossing axes.
+		// cylinders with crossing axes, which the Boolean cuts
+		// (specs/general-boolean-quartic); the fillet is refused because
+		// the bore lies within its size.
 		bored := general(t, b, "cut", box(t, b, vector{}, vector{20, 10, 10}), circle(t, b, vector{9, 1, 0}, vector{0, 0, 1}, 0.5, 10))
-		count, next := len(b.shapes), b.next
-		a := ask(t, b, bottom(bored, 2))
-		if a.OK || a.Error == nil || a.Error.Code != "UNSUPPORTED" || !strings.HasPrefix(a.Error.Message, "fillet failed: boolean: unsupported input") {
-			t.Fatalf("ok %v, error %+v", a.OK, a.Error)
-		}
-		if len(b.shapes) != count || b.next != next {
-			t.Fatal("the refused request published a shape")
-		}
+		refused(t, b, bottom(bored, 2), "UNSUPPORTED", "fillet"+doesNotFit)
 	})
 }
 

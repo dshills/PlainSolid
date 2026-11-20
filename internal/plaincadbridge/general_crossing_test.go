@@ -48,10 +48,33 @@ func TestOverlapOf(t *testing.T) {
 	}
 }
 
+// cylindersCommon is the volume common to two cylinders of radii big and
+// small whose axes pass at distance d and make an angle of the sine
+// given (A2 of specs/general-boolean-quartic): the section at height y
+// along the common perpendicular is a parallelogram with half-widths
+// √(big² − y²) and √(small² − (y − d)²). The substitution
+// y = middle + half·sin φ takes the square roots out of the ends.
+func cylindersCommon(big, small, d, sine float64) float64 {
+	lo, hi := math.Max(-big, d-small), math.Min(big, d+small)
+	middle, half := (lo+hi)/2, (hi-lo)/2
+	f := func(phi float64) float64 {
+		s, c := math.Sincos(phi)
+		y := middle + half*s
+		return math.Sqrt(math.Max(big*big-y*y, 0)*math.Max(small*small-(y-d)*(y-d), 0)) * half * c
+	}
+	const n = 20000
+	h := math.Pi / n
+	sum := f(-math.Pi/2) + f(math.Pi/2)
+	for k := 1; k < n; k++ {
+		sum += float64(2+2*(k%2)) * f(-math.Pi/2+h*float64(k))
+	}
+	return 4 / sine * sum * h / 3
+}
+
 // TestGeneralOverlapOfCrossingBores measures the overlap of a stock that
 // has one bore with the tool of a bore across it. The common is the tool
-// less the part both bores share, which is two parts that meet at two
-// points.
+// less the part both bores share, which for equal radii is two parts
+// that meet at two points.
 func TestGeneralOverlapOfCrossingBores(t *testing.T) {
 	type q = map[string]any
 	for _, c := range []struct {
@@ -63,9 +86,11 @@ func TestGeneralOverlapOfCrossingBores(t *testing.T) {
 		secondHeight float64
 		radius       float64
 		want         float64
+		through      float64 // the length of the second bore inside the stock
+		sine         float64 // of the angle between the two axes
 	}{
-		{"right angle", vector{20, 24, 18}, [2]vector{{0, 9, 7}, {1, 0, 0}}, 20, [2]vector{{8, 9, 18}, {0, 0, -1}}, 18, 3, 18*9*math.Pi - 144},
-		{"slant", vector{20, 16, 40}, [2]vector{{10, 8, -2}, {0, 0, 1}}, 44, [2]vector{{-4, 8, 9.5}, {4, 0, 3}}, 35, 2, 100*math.Pi - 160./3},
+		{"right angle", vector{20, 24, 18}, [2]vector{{0, 9, 7}, {1, 0, 0}}, 20, [2]vector{{8, 9, 18}, {0, 0, -1}}, 18, 3, 18*9*math.Pi - 144, 18, 1},
+		{"slant", vector{20, 16, 40}, [2]vector{{10, 8, -2}, {0, 0, 1}}, 44, [2]vector{{-4, 8, 9.5}, {4, 0, 3}}, 35, 2, 100*math.Pi - 160./3, 25, 0.8},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			b := newGeneral()
@@ -79,12 +104,11 @@ func TestGeneralOverlapOfCrossingBores(t *testing.T) {
 			if len(b.shapes) != before {
 				t.Fatal("the overlap published a shape")
 			}
-			// A tool of another radius across the bore has no closed form,
-			// and its overlap is refused as the cut is.
+			// A tool of half the radius across the bore: the tool less
+			// what the two cylinders have in common.
 			other := circle(t, b, c.second[0], c.second[1], c.radius/2, c.secondHeight)
-			if r := ask(t, b, q{"op": "overlapVolume", "a": bored.Handle, "b": other.Handle}); r.OK || r.Error.Code != "UNSUPPORTED" {
-				t.Fatalf("overlap with a tool of another radius: ok=%v, %+v", r.OK, r.Error)
-			}
+			half := c.radius / 2
+			near(t, overlapMeasure(t, b, bored.Handle, other.Handle), math.Pi*half*half*c.through-cylindersCommon(c.radius, half, 0, c.sine))
 		})
 	}
 }
@@ -142,13 +166,11 @@ func TestInAnyOrder(t *testing.T) {
 
 // TestGeneralCutManyInAnyOrder cuts three bores from a block in every
 // order: a small one along z, a larger one along x across it, and one
-// along z that covers the small one. Taken small, across, covering, the
-// second meets the first along a curve with no closed form and waits for
-// the third. Taken with the small one after the one across it, the small
-// one waits for the covering one, and then lies in its hole, where it is
-// proved clear of what is left of the wall of the bore across. A request
-// that has a pair with no closed form in every order fails and publishes
-// nothing.
+// along z that covers the small one. The small one and the one across it
+// meet along the curves of specs/general-boolean-quartic, and once the
+// covering one is cut the small one lies in its hole. The two that cross
+// with unequal radii are also cut alone, in both orders, to the volume
+// their common gives.
 func TestGeneralCutManyInAnyOrder(t *testing.T) {
 	type q = map[string]any
 	b := newGeneral()
@@ -168,12 +190,9 @@ func TestGeneralCutManyInAnyOrder(t *testing.T) {
 		got := shape(t, b, q{"op": "cutMany", "a": stock.Handle, "tools": order})
 		near(t, got.GeometryAssertions.Volume, want)
 	}
-	before := len(b.shapes)
 	for _, order := range [][]string{{small.Handle, across.Handle}, {across.Handle, small.Handle}} {
-		r := ask(t, b, q{"op": "cutMany", "a": stock.Handle, "tools": order})
-		if r.OK || r.Error.Code != "UNSUPPORTED" || !strings.Contains(r.Error.Message, "not parallel") || len(b.shapes) != before {
-			t.Fatalf("tools %v: ok=%v, %+v", order, r.OK, r.Error)
-		}
+		got := shape(t, b, q{"op": "cutMany", "a": stock.Handle, "tools": order})
+		near(t, got.GeometryAssertions.Volume, 8000-20*math.Pi-80*math.Pi+cylindersCommon(2, 1, 0, 1))
 	}
 }
 

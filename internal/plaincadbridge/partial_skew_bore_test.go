@@ -26,9 +26,10 @@ func TestPartialSkewBoreScopeSTEPAndSTL(t *testing.T) {
 		}
 		near(t, overlapMeasure(t, b, first.Handle, z.Handle), first.GeometryAssertions.Volume-m.Volume)
 		grouped, err := b.cutMany(stock.Handle, []string{z.Handle, x.Handle, z.Handle})
-		if err != nil || grouped.GeometryAssertions != m || grouped.Bounds != stock.Bounds {
+		if err != nil || grouped.Bounds != stock.Bounds {
 			t.Fatal(grouped, err)
 		}
+		sameShape(t, grouped, next)
 		near(t, overlapMeasure(t, b, grouped.Handle, x.Handle), 0)
 		mesh, err := b.shapes[grouped.Handle].tessellate(request{})
 		if err != nil {
@@ -46,9 +47,10 @@ func TestPartialSkewBoreScopeSTEPAndSTL(t *testing.T) {
 			t.Fatal("STEP source exceeds application limits", len(source), err)
 		}
 		same, err := b.importSTEP(string(source))
-		if err != nil || same.Bounds != stock.Bounds || same.GeometryAssertions != m {
+		if err != nil || same.Bounds != stock.Bounds {
 			t.Fatal(same, err)
 		}
+		sameShape(t, same, next)
 		near(t, overlapMeasure(t, b, same.Handle, z.Handle), 0)
 		again, err := b.exportSTEP([]string{same.Handle})
 		if err != nil || again.Base64 != stepOut.Base64 {

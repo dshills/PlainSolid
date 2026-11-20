@@ -145,6 +145,15 @@ func TestQuarticBores(t *testing.T) {
 				if got.Solids != 1 || math.Abs(got.Volume-want) > 1e-9*w*depth*h {
 					t.Fatalf("%d solids, volume %.12g want %.12g", got.Solids, got.Volume, want)
 				}
+				// The integration of brep/trimmed over the stored faces
+				// and p-curves agrees with the measures of this package.
+				// It is the slower check, so one placement has it.
+				if !turned {
+					p, err := got.Solid.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-9, MaxSamples: 64000000})
+					if err != nil || math.Abs(p.Volume-got.Volume) > 1e-7*got.Volume || math.Abs(p.Area-got.Properties.Area) > 1e-7*got.Properties.Area {
+						t.Fatalf("integrated volume %.12g and area %.12g against %.12g and %.12g, %v", p.Volume, p.Area, got.Volume, got.Properties.Area, err)
+					}
+				}
 				if c.curves != 2 {
 					return
 				}

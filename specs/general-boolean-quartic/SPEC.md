@@ -233,10 +233,10 @@ counterclockwise about its own axis direction.
   cylinder parallel to the first, each chosen to pass through a meeting
   curve, and the volume holds to the same bound against the sum of its
   parts (S2).
-- A4. The matrix of section 11 of the base specification gains rows
-  for: a full pair, a partial pair, a pair that touches from inside
-  (refused), a pair that touches from outside (refused unless SP2
-  separates), and a pair at a sine below 1/64 (refused).
+- A4. Tests of this package hold a pair that touches from inside, one
+  that nearly does from either side of that, one that touches from
+  outside and one at a sine below 1/64 to `ErrUnsupported` with the
+  reason of R1. The full and partial pairs are those of A2.
 - A5. `trimmed.Solid.Classify` gives inside, outside and boundary at
   chosen points of a result of A2, including points whose rays cross a
   face trimmed by a meeting curve.
@@ -248,11 +248,13 @@ counterclockwise about its own axis direction.
   `TestUnequalCrossedBoreScopeAndSTL`,
   `TestPartialSkewBoreScopeSTEPAndSTL`,
   `TestFiniteUnequalCrossedBoreScopeAndSTEP`,
-  `TestFinitePartialSkewBoreScopeAndSTEP`) get the same volume, within
-  1e-9 of the stock's, when the default bridge cuts them with the
-  general Boolean, and a mesh within the bridge's volume budget.
-- A8. Phase 3: such a body exports to STEP and reads back to the same
-  volume and face count.
+  `TestFinitePartialSkewBoreScopeAndSTEP`) pass when the default bridge
+  cuts them with the general Boolean, with volumes and areas held to
+  the values they held the legacy path to. Their bodies are meshed and
+  written to STEP from the bore history (D1).
+- A8. Phase 3: such a body is meshed within the bridge's volume budget
+  and exports to STEP by the writers of the general path, and reads
+  back to the same volume and face count, with no use of its history.
 
 ## 7. Amendments to the base and crossing specifications
 
@@ -274,11 +276,35 @@ own tests pass; the slow checks of A6 run once before the branch merges.
 
 1. Kernel: the carrier (4.1), the tables (4.2), charts and measures
    (4.3), results (4.4), `brep/trimmed` (5). Done when A1 to A6 pass.
+   Implemented on 2026-11-20.
 2. Bridge: the default bridge cuts the pairs of S1 with the general
    Boolean and keeps `legacyStock` for what R1 refuses. Done when A7
-   passes and the bridge's default tier passes.
-3. STEP: writer and reader for an edge on a meeting curve. Done when A8
-   passes.
+   passes and the bridge's default tier passes. Implemented on
+   2026-11-20, with D1.
+3. Mesh and STEP: a mesher that finishes a face trimmed along a meeting
+   curve, and a STEP writer and reader for an edge on one. Done when A8
+   passes. Not started.
+
+What phase 2 found:
+
+- D1. `trimmed.Solid.Tessellate` does not finish a body with a face
+  trimmed along a meeting curve. It refines every face evenly; on such
+  a face the first refinement folds where the curve runs along the
+  chart direction, and the retries that hold the boundary fixed exceed
+  the limit of a million triangles before the wall is fine enough.
+  Cutting the curve into shorter arcs does not change that. The STEP
+  boundary writer has no entity for the curve. So a drilled body, which
+  has a bore history, is meshed and written to STEP from that history by
+  the legacy bore engine, as it was before this work, and reads back as
+  a legacy bore body. A body with a meeting curve and no history, such
+  as one cut again by a tool that is not a bore, can be measured,
+  located against and cut further, and returns an explicit error when a
+  mesh or a STEP file is asked of it. The legacy unequal and skew
+  families therefore cannot be deleted until phase 3.
+- D2. Bridge tests that held a refusal of these pairs now hold the
+  volume their common gives, and rule X11 of the edge-treatment
+  specification lost its example of a bore across a fillet, which X8
+  now refuses.
 
 Budget. `brep/boolean` grows by at most 900 lines outside test files,
 and `brep/trimmed` by at most 80. A phase that needs more stops and is
@@ -301,6 +327,5 @@ Each is the owner's to change.
   along that leg (M1).
 - OD-Q4. `brep/trimmed` gains one exported interface (P1), which is the
   smallest change that lets `Classify` take the new p-curve.
-- OD-Q5. STEP comes last (phase 3). Until then a body with such an edge
-  is refused by the STEP writer with an explicit error, where the legacy
-  body exported.
+- OD-Q5. Mesh and STEP by the general path come last (phase 3). Until
+  then a drilled body takes both from its bore history (D1).

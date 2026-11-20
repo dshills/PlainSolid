@@ -178,8 +178,23 @@ func TestGeneralFirst(t *testing.T) {
 			t.Fatalf("%s: %+v, want volume %.10g", c.name, out, crossed)
 		}
 		near(t, out.GeometryAssertions.Volume, c.from.GeometryAssertions.Volume-removed)
-		if b.shapes[out.Handle].bore == nil {
-			t.Fatalf("%s: the bore askew was not cut by the legacy bore engine", c.name)
+		// The general Boolean cuts it (specs/general-boolean-quartic),
+		// and the body keeps its history, from which it is meshed and
+		// written to STEP.
+		if body := b.shapes[out.Handle].analytic; body == nil || !body.general || history(out) != 2 {
+			t.Fatalf("%s: the bore askew was not cut by the general Boolean with its history kept", c.name)
+		}
+		m, err := b.shapes[out.Handle].tessellate(request{})
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		// The mesh is the legacy bore body's, at the facet angle asked
+		// for: it is not refined to the budget of a general mesh.
+		if err := m.ValidateSolid(); err != nil || math.Abs(m.SignedVolume()-crossed) > 2e-3*crossed {
+			t.Fatalf("%s: a mesh of volume %.10g, %v", c.name, m.SignedVolume(), err)
+		}
+		if _, err := b.exportSTEP([]string{out.Handle}); err != nil {
+			t.Fatalf("%s: %v", c.name, err)
 		}
 	}
 
