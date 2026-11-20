@@ -1,11 +1,13 @@
 package brep
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"math"
 	"plainsolid/geom"
+	"slices"
 	"sort"
 )
 
@@ -400,6 +402,13 @@ func triangulateRingsWork(ctx context.Context, outer []geom.Vec3, holes [][]geom
 				continue
 			}
 			p, q := points[a], points[b]
+			// A face with several hundred vertices has several hundred
+			// thousand candidates. Doubling the room copies them twice
+			// over in all; the smaller steps append takes at that size
+			// copy them five times over.
+			if len(candidates) == cap(candidates) {
+				candidates = slices.Grow(candidates, max(len(candidates), 64))
+			}
 			candidates = append(candidates, candidate{key, (p.X-q.X)*(p.X-q.X) + (p.Y-q.Y)*(p.Y-q.Y)})
 		}
 	}
@@ -459,8 +468,23 @@ func triangulateRingsWork(ctx context.Context, outer []geom.Vec3, holes [][]geom
 		}
 		return false
 	}
-	sort.SliceStable(candidates, func(i, j int) bool { return candidates[i].distance < candidates[j].distance })
-	for _, candidate := range candidates {
+	// Shortest first, and in the order found among equals. That order has
+	// one result, so sorting positions by distance and then position gives
+	// what sort.SliceStable gave, without its merges in place and its
+	// swaps through reflection, which were most of the time of a face with
+	// a few hundred vertices.
+	order := make([]int32, len(candidates))
+	for i := range order {
+		order[i] = int32(i)
+	}
+	slices.SortFunc(order, func(i, j int32) int {
+		if c := cmp.Compare(candidates[i].distance, candidates[j].distance); c != 0 {
+			return c
+		}
+		return cmp.Compare(i, j)
+	})
+	for _, at := range order {
+		candidate := candidates[at]
 		// A connected constrained triangulation has exactly this many edges.
 		// Further noncrossing diagonals cannot be added once it is complete.
 		if len(edges) == 2*len(points)+3*len(holes)-3 {

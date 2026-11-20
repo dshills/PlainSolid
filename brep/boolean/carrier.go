@@ -92,6 +92,16 @@ func (l leg) nearest(p geom.Vec3) geom.Vec3 {
 	return b
 }
 
+// box is bounds that hold the leg: its ends on a line, and on a conic the
+// whole of the conic.
+func (l leg) box() bounds {
+	if c, ok := l.c.(conic); ok {
+		reach := geom.Vec3{X: math.Hypot(c.a*c.x.X, c.b*c.y.X), Y: math.Hypot(c.a*c.x.Y, c.b*c.y.Y), Z: math.Hypot(c.a*c.x.Z, c.b*c.y.Z)}
+		return bounds{c.center.Sub(reach), c.center.Add(reach)}
+	}
+	return around(l.c.at(l.t0), l.c.at(l.t1))
+}
+
 // off is the distance from p to an unbounded curve carrier.
 func off(c curve, p geom.Vec3) float64 { return p.Distance(c.at(c.param(p))) }
 

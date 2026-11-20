@@ -121,3 +121,29 @@ func TestSplit(t *testing.T) {
 		}
 	})
 }
+
+// TestLegBox holds the box of a leg, by which probes leaves legs that are
+// too far unmeasured, to the two things that needs: every point of the leg
+// is in the box, and the distance from a point to the box is no more than
+// its distance to the leg.
+func TestLegBox(t *testing.T) {
+	arc := conic{center: geom.Vec3{X: 3, Y: -2, Z: 1}, x: geom.Vec3{X: 0.6, Y: 0.8}, y: geom.Vec3{X: -0.48, Y: 0.36, Z: 0.8}, a: 5, b: 2}
+	for _, l := range []leg{
+		{line{geom.Vec3{X: 1, Y: 2, Z: 3}, geom.Vec3{X: 2. / 3, Y: -1. / 3, Z: 2. / 3}}, -4, 9},
+		{arc, 0.3, 2.9},
+		{arc, 5, 1},
+	} {
+		box := l.box()
+		for k := 0; k <= 64; k++ {
+			p := l.c.at(l.t0 + (l.t1-l.t0)*float64(k)/64)
+			if d := box.distance(p); d > 1e-12 {
+				t.Errorf("a point of the leg is %.3g outside its box", d)
+			}
+		}
+		for _, p := range []geom.Vec3{{X: 40, Y: 3, Z: -7}, {X: 3, Y: -2, Z: 1}, {X: -9, Y: -9, Z: 9}, {X: 4, Y: 0.5, Z: 30}} {
+			if to, far := box.distance(p), p.Distance(l.nearest(p)); to > far+1e-12 {
+				t.Errorf("the box is %.6g from a point that is %.6g from the leg", to, far)
+			}
+		}
+	}
+}

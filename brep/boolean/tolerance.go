@@ -69,6 +69,13 @@ func (b bounds) grown(d float64) bounds {
 	return bounds{b.lo.Sub(pad), b.hi.Add(pad)}
 }
 
+// distance is the distance from a point to the bounds, zero inside them.
+func (b bounds) distance(p geom.Vec3) float64 {
+	out := func(lo, hi, v float64) float64 { return math.Max(0, math.Max(lo-v, v-hi)) }
+	x, y, z := out(b.lo.X, b.hi.X, p.X), out(b.lo.Y, b.hi.Y, p.Y), out(b.lo.Z, b.hi.Z, p.Z)
+	return math.Sqrt(x*x + y*y + z*z)
+}
+
 // clear reports whether two bounds, each grown by d, do not overlap.
 func (b bounds) clear(c bounds, d float64) bool {
 	return b.lo.X-c.hi.X > 2*d || c.lo.X-b.hi.X > 2*d ||

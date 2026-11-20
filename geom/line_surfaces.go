@@ -71,6 +71,28 @@ func localLine(line Line, frame Frame) (Vec3, Vec3, error) {
 	}
 	return origin, direction, nil
 }
+
+// lineMissesCylinder reports that a line, given in the frame of a cylinder
+// about the z axis, certainly does not meet it: the discriminant of the
+// quadratic that localQuadric forms from the same numbers is negative by
+// more than floating point can have got wrong. The exact arithmetic then
+// finds no root either, so IntersectLineCylinder returns what it would
+// have returned, without it. A false answer says nothing either way.
+//
+// The discriminant is b² − 4ac with a = dx² + dy², b = 2(ox·dx + oy·dy)
+// and c = ox² + oy² − r². Each of the fourteen operations that evaluate
+// it rounds by at most one part in 2⁵³ of its result, and no result
+// exceeds the sum of the magnitudes below, so the error is well under
+// 2⁻⁴⁶ of that sum.
+func lineMissesCylinder(o, d Vec3, radius float64) bool {
+	a := d.X*d.X + d.Y*d.Y
+	half := o.X*d.X + o.Y*d.Y
+	inner := o.X*o.X + o.Y*o.Y
+	discriminant := 4*half*half - 4*a*(inner-radius*radius)
+	magnitude := 4*(math.Abs(o.X*d.X)+math.Abs(o.Y*d.Y))*(math.Abs(o.X*d.X)+math.Abs(o.Y*d.Y)) + 4*a*(inner+radius*radius)
+	return a > 0 && discriminant < -0x1p-46*magnitude && !math.IsInf(magnitude, 0)
+}
+
 func localQuadric(origin, direction Vec3, radius, slope float64, cone bool) exactQuadratic {
 	q := exactQuadratic{new(big.Rat), new(big.Rat), new(big.Rat)}
 	for axis := 0; axis < 3; axis++ {
@@ -129,6 +151,9 @@ func IntersectLineCylinder(line Line, surface CylinderSurface, options LineSurfa
 	origin, direction, e := localLine(line, surface.frame)
 	if e != nil {
 		return result, e
+	}
+	if lineMissesCylinder(origin, direction, surface.radius) {
+		return result, nil
 	}
 	q := localQuadric(origin, direction, surface.radius, 0, false)
 	roots, coincident, tangent, precision, e := solveExactQuadratic(q, o.MaxPrecision)

@@ -296,6 +296,36 @@ func (a *arrangement) probes(p piece) []geom.Vec3 {
 		at    geom.Vec3
 		clear float64
 	}
+	// The clearance of a candidate is its distance to the nearest leg of
+	// the border. Every leg has a box that holds it, and a leg whose box
+	// is no nearer than a leg already measured is not measured: the
+	// least distance is the same. It is not followed below ε either,
+	// since such a candidate is dropped.
+	var legs []leg
+	var boxes []bounds
+	for _, loop := range border {
+		for _, l := range loop {
+			legs, boxes = append(legs, l), append(boxes, l.box())
+		}
+	}
+	clearance := func(at geom.Vec3) float64 {
+		first, least := 0, math.Inf(1)
+		for i, b := range boxes {
+			if d := b.distance(at); d < least {
+				first, least = i, d
+			}
+		}
+		clear := at.Distance(legs[first].nearest(at))
+		for i, l := range legs {
+			if clear <= a.t.eps {
+				break
+			}
+			if i != first && boxes[i].distance(at) < clear {
+				clear = math.Min(clear, at.Distance(l.nearest(at)))
+			}
+		}
+		return clear
+	}
 	var found []candidate
 	for axis := 0; axis < 2; axis++ {
 		pick := func(q geom.Vec2) (float64, float64) {
@@ -335,13 +365,7 @@ func (a *arrangement) probes(p piece) []geom.Vec3 {
 						q = geom.Vec2{X: q.Y, Y: q.X}
 					}
 					at := ch.lift(q)
-					clear := math.Inf(1)
-					for _, loop := range border {
-						for _, l := range loop {
-							clear = math.Min(clear, at.Distance(l.nearest(at)))
-						}
-					}
-					if clear > a.t.eps {
+					if clear := clearance(at); clear > a.t.eps {
 						found = append(found, candidate{at, clear})
 					}
 				}

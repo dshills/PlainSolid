@@ -79,18 +79,48 @@ const (
 )
 
 // tessellateGeneral meshes a result of the general Boolean and holds the
-// mesh to the budget that tessellateBore keeps for a single bore. Where the
-// second mesh cannot be built within its limits, the first is the answer.
+// mesh to the budget that tessellateBore keeps for a single bore.
+//
+// A mesh over the budget is made again with a smaller facet angle. The
+// volume a faceted round loses goes as the square of that angle, so the
+// angle that the budget needs follows from what the first mesh lost, and
+// the second mesh is made at four fifths of it, and no finer than
+// fineMeshAngle. Only if that mesh is over the budget too is one made at
+// fineMeshAngle. Meshing straight at fineMeshAngle, as tessellateBore
+// does for its one bore, took ten times as long for a plate with eight
+// bores as the mesh the budget needs: the planar faces are triangulated
+// in time that grows with the square of their vertices.
+//
+// Where a finer mesh cannot be built within its limits, the finest that
+// was built is the answer.
 func (s stored) tessellateGeneral(o parametric.TessellationOptions) (mesh.Mesh, error) {
 	m, err := s.analytic.tessellate(o)
-	fine := o
-	fine.Angle = min(o.Angle, fineMeshAngle)
-	volume := s.result.GeometryAssertions.Volume
-	if err != nil || fine.Angle == o.Angle || math.Abs(float32MeshVolume(m)-volume) < volume*meshVolumeBudget {
+	if err != nil {
 		return m, err
 	}
-	if refined, err := s.analytic.tessellate(fine); err == nil {
-		return refined, nil
+	volume := s.result.GeometryAssertions.Volume
+	budget := volume * meshVolumeBudget
+	angle := o.Angle
+	for angle > fineMeshAngle {
+		off := math.Abs(float32MeshVolume(m) - volume)
+		if off < budget {
+			break
+		}
+		next := max(fineMeshAngle, .8*angle*math.Sqrt(budget/off))
+		if angle != o.Angle {
+			// The angle worked out from the first mesh was not enough.
+			next = fineMeshAngle
+		}
+		fine := o
+		fine.Angle, angle = next, next
+		refined, err := s.analytic.tessellate(fine)
+		if err != nil {
+			if next == fineMeshAngle {
+				break
+			}
+			continue
+		}
+		m = refined
 	}
 	return m, nil
 }

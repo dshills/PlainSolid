@@ -199,3 +199,41 @@ func TestLineSurfaceRigidFrameInvariance(t *testing.T) {
 		}
 	}
 }
+
+// TestLineMissesCylinder holds the filter that IntersectLineCylinder asks
+// before its exact arithmetic to that arithmetic: where the filter says a
+// line misses, the exact quadratic has no root. The lines pass the
+// cylinder at distances from well inside to well outside its radius, the
+// nearest ones within a part in 10¹⁵ of it, where only the exact
+// arithmetic can tell, and the filter must then be silent or right. The
+// origin of a line is up to a hundred units along it, against radii down
+// to a four-hundredth, so the terms of the discriminant cancel as they do
+// for a ray from across a model. It must say that a line half a radius
+// clear, or farther, misses, or it saves nothing.
+func TestLineMissesCylinder(t *testing.T) {
+	random := rand.New(rand.NewSource(20261120))
+	spared := 0
+	for trial := 0; trial < 20000; trial++ {
+		radius := math.Exp(random.Float64()*12 - 6)
+		offset := radius * []float64{0.5, 1 - 1e-9, 1 - 1e-15, 1, 1 + 1e-15, 1 + 1e-12, 1 + 1e-9, 1 + 1e-6, 1.5, 40}[trial%10]
+		angle := random.Float64() * 2 * math.Pi
+		direction := Vec3{math.Cos(angle), math.Sin(angle), random.Float64()*4 - 2}
+		origin := Vec3{-direction.Y, direction.X, 0}.Scale(offset / math.Hypot(direction.X, direction.Y)).Add(direction.Scale(random.Float64()*200 - 100))
+		miss := lineMissesCylinder(origin, direction, radius)
+		roots, coincident, _, _, err := solveExactQuadratic(localQuadric(origin, direction, radius, 0, false), 256)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if miss && (len(roots) != 0 || coincident) {
+			t.Fatalf("trial %d: the filter says a line at %.17g from the axis of a cylinder of radius %.17g misses it, and the exact arithmetic finds %d roots", trial, offset, radius, len(roots))
+		}
+		if miss {
+			spared++
+		} else if trial%10 >= 8 {
+			t.Fatalf("trial %d: the filter does not spare a line at %.17g from the axis of a cylinder of radius %.17g", trial, offset, radius)
+		}
+	}
+	if spared < 4000 {
+		t.Fatalf("the filter spared %d of 20000 lines", spared)
+	}
+}

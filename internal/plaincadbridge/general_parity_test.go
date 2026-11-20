@@ -111,3 +111,55 @@ func TestGeneralBoundsEndAtFacePlanes(t *testing.T) {
 		t.Fatalf("bounds %+v on the general bridge and %+v on the default bridge, want %+v", general.result.Bounds, legacy.result.Bounds, want)
 	}
 }
+
+// TestGeneralMeshRefinesToTheBudget holds the mesh of a result with
+// several bores to the volume budget, and to no more facets than that
+// takes: its mesh at the angle asked for is over the budget, the mesh the
+// bridge gives is within it, and it has fewer triangles than a mesh at
+// fineMeshAngle, which the budget does not need here.
+func TestGeneralMeshRefinesToTheBudget(t *testing.T) {
+	b := New()
+	type q = map[string]any
+	stock := box(t, b, vector{}, vector{40, 20, 10})
+	bored := shape(t, b, q{"op": "cutMany", "a": stock.Handle, "tools": []string{
+		circle(t, b, vector{10, 10, 0}, vector{0, 0, 1}, 2, 10).Handle,
+		circle(t, b, vector{30, 10, 0}, vector{0, 0, 1}, 2, 10).Handle,
+	}})
+	s := b.shapes[bored.Handle]
+	volume := bored.GeometryAssertions.Volume
+	// A facet angle of 0.4 puts 32 facets round a bore. The bores are 3%
+	// of the volume, and 32 facets lose more of that than the budget has,
+	// 64 less, and fineMeshAngle asks for 256.
+	var asked request
+	asked.LinearDeflection.set, asked.LinearDeflection.value = true, .5
+	asked.AngularDeflection.set, asked.AngularDeflection.value = true, .4
+	options, err := tessellationOptions(asked)
+	if err != nil {
+		t.Fatal(err)
+	}
+	coarse, err := s.analytic.tessellate(options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if off := math.Abs(float32MeshVolume(coarse) - volume); off < volume*meshVolumeBudget {
+		t.Fatalf("the mesh at the angle asked for is within the budget, off by %.3g: the part does not exercise a second mesh", off)
+	}
+	options.Angle = fineMeshAngle
+	finest, err := s.analytic.tessellate(options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := s.tessellate(asked)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.ValidateSolid(); err != nil {
+		t.Fatal(err)
+	}
+	if off := math.Abs(float32MeshVolume(m) - volume); off >= volume*meshVolumeBudget {
+		t.Fatalf("the mesh is off the volume %.9g by %.3g, over the budget of %.3g", volume, off, volume*meshVolumeBudget)
+	}
+	if len(m.Triangles) <= len(coarse.Triangles) || len(m.Triangles) >= len(finest.Triangles) {
+		t.Fatalf("the mesh has %d triangles; the mesh at the angle asked for has %d and the finest %d", len(m.Triangles), len(coarse.Triangles), len(finest.Triangles))
+	}
+}

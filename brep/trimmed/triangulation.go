@@ -2,10 +2,13 @@ package trimmed
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
 	"plainsolid/brep/parametric"
+	"slices"
+	"sync"
 
 	"plainsolid/brep"
 	"plainsolid/geom"
@@ -19,6 +22,73 @@ func triangulateUV(rings [][]geom.Vec3) ([][3]geom.Vec2, error) {
 	return triangulateUVBounded(context.Background(), rings, brep.MaxHoledFaceVertices)
 }
 func triangulateUVBounded(ctx context.Context, rings [][]geom.Vec3, maximum int) ([][3]geom.Vec2, error) {
+	key := uvTriangulations.key(rings, maximum)
+	if out, ok := uvTriangulations.get(key); ok {
+		return out, nil
+	}
+	out, err := triangulateUVWork(ctx, rings, maximum)
+	if err == nil {
+		uvTriangulations.put(key, out)
+	}
+	return out, err
+}
+
+// uvTriangulations remembers triangulations that triangulateUVBounded has
+// made. A triangulation follows from the rings and the limit alone, so a
+// remembered one is the one that would be made again. A solid cut several
+// times is validated after each cut, and most of its faces are as they
+// were: of the 114 triangulations in the eight cuts of a plate with eight
+// bores, 89 repeat an earlier one. The memory is bounded by the vertices it
+// holds and is emptied when it is full.
+var uvTriangulations uvMemo
+
+type uvMemo struct {
+	mu       sync.Mutex
+	made     map[string][][3]geom.Vec2
+	vertices int
+}
+
+// uvMemoVertices bounds the ring vertices whose triangulations are kept.
+const uvMemoVertices = 1 << 16
+
+// key is the rings and the limit, coordinate for coordinate.
+func (*uvMemo) key(rings [][]geom.Vec3, maximum int) string {
+	n := 0
+	for _, r := range rings {
+		n += len(r)
+	}
+	key := make([]byte, 0, 8*(1+len(rings)+3*n))
+	key = binary.LittleEndian.AppendUint64(key, uint64(maximum))
+	for _, r := range rings {
+		key = binary.LittleEndian.AppendUint64(key, uint64(len(r)))
+		for _, p := range r {
+			key = binary.LittleEndian.AppendUint64(key, math.Float64bits(p.X))
+			key = binary.LittleEndian.AppendUint64(key, math.Float64bits(p.Y))
+			key = binary.LittleEndian.AppendUint64(key, math.Float64bits(p.Z))
+		}
+	}
+	return string(key)
+}
+
+// get returns a copy, since a caller may change what it is given.
+func (m *uvMemo) get(key string) ([][3]geom.Vec2, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out, ok := m.made[key]
+	return slices.Clone(out), ok
+}
+
+func (m *uvMemo) put(key string, out [][3]geom.Vec2) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.made == nil || m.vertices > uvMemoVertices {
+		m.made, m.vertices = map[string][][3]geom.Vec2{}, 0
+	}
+	m.made[key] = slices.Clone(out)
+	m.vertices += len(key) / 24
+}
+
+func triangulateUVWork(ctx context.Context, rings [][]geom.Vec3, maximum int) ([][3]geom.Vec2, error) {
 	uv := func(p geom.Vec3) geom.Vec2 { return geom.Vec2{X: p.X, Y: p.Y} }
 	turn := func(a, b, c geom.Vec3) int { n, _ := geom.Orient2D(uv(a), uv(b), uv(c)); return n }
 	clean := make([][]geom.Vec3, len(rings))
