@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"regexp"
 	"strings"
 	"testing"
 
 	"plainsolid/brep/boolean"
+	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/exchange/step"
 	"plainsolid/geom"
@@ -149,5 +151,92 @@ func TestReadTrimmedBoundaryRefusals(t *testing.T) {
 	}
 	if m, err := step.ReadTrimmedBoundary(bytes.NewReader(round.Bytes()), step.Limits{}, 1e-7); !errors.Is(err, step.ErrTrimmedBoundary) || !strings.Contains(err.Error(), "half a turn") {
 		t.Fatalf("read %d bodies from a cylinder with closed rims: %v", len(m.Bodies), err)
+	}
+}
+
+// TestReadTrimmedBoundaryCrossingBores reads back boxes with two bores of
+// equal radius that cross, cut in either order: an oblique bore across an
+// upright one, and a blind bore whose floor the other bore clips. The
+// walls of such a result are bounded by arcs of ellipses that run from
+// seam to seam.
+//
+// On a cylinder the reader gives every use the angle its loop has reached
+// and the height of its vertex, so a ruling has one angle and the uses
+// that meet at a vertex have one point. Where it took the point from an
+// arc's own evaluation, a ruling next to the arc was tilted by a unit in
+// the last place, and trimmed.NewSolid refused four of these solids for a
+// fold in its validation mesh.
+func TestReadTrimmedBoundaryCrossingBores(t *testing.T) {
+	type bores struct {
+		name          string
+		stock         geom.Vec3
+		first, second trimmed.Solid
+	}
+	var cases []bores
+	for _, sign := range []float64{1, -1} {
+		upright := boundaryCylinder(t, geom.Vec3{X: 10, Y: 8, Z: -2}, geom.Vec3{Z: 1}, 2, 44)
+		oblique := boundaryCylinder(t, geom.Vec3{X: -2, Y: 8, Z: 20 - 16*sign}, geom.Vec3{X: 3, Z: 4 * sign}, 2, 44)
+		name := "oblique bore that rises"
+		if sign < 0 {
+			name = "oblique bore that falls"
+		}
+		cases = append(cases, bores{name + ", cut first", geom.Vec3{X: 20, Y: 16, Z: 40}, oblique, upright}, bores{name + ", cut second", geom.Vec3{X: 20, Y: 16, Z: 40}, upright, oblique})
+	}
+	for _, depth := range []float64{4.8, 6, 7.2} {
+		for _, from := range []float64{0, 12} {
+			along := geom.Vec3{Z: 1}
+			name := "floor clipped from below"
+			if from > 0 {
+				along, name = geom.Vec3{Z: -1}, "floor clipped from above"
+			}
+			through := boundaryCylinder(t, geom.Vec3{Y: 8, Z: 6}, geom.Vec3{X: 1}, 2, 20)
+			blind := boundaryCylinder(t, geom.Vec3{X: 10, Y: 8, Z: from}, along, 2, depth)
+			name = fmt.Sprintf("%s at depth %g", name, depth)
+			cases = append(cases, bores{name + ", through bore first", geom.Vec3{X: 20, Y: 16, Z: 12}, through, blind}, bores{name + ", blind bore first", geom.Vec3{X: 20, Y: 16, Z: 12}, blind, through})
+		}
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			one, err := boolean.Combine(context.Background(), boundaryBox(t, geom.Vec3{}, c.stock), c.first, boolean.Cut, boundaryOptions)
+			if err != nil {
+				t.Fatal(err)
+			}
+			two, err := boolean.Combine(context.Background(), one.Solid, c.second, boolean.Cut, boundaryOptions)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var written bytes.Buffer
+			if err := step.WriteTrimmedBoundary(&written, two.Solid, .001, "a part"); err != nil {
+				t.Fatal(err)
+			}
+			m, err := step.ReadTrimmedBoundary(bytes.NewReader(written.Bytes()), step.Limits{}, boundaryOptions.Linear)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := m.Bodies[0].Solid
+			for fi, f := range got.Faces() {
+				base, _ := parametric.SurfaceMapping(f.Surface)
+				if _, ok := base.(geom.CylinderSurface); !ok {
+					continue
+				}
+				for _, loop := range append([][]trimmed.Use{f.Outer}, f.Holes...) {
+					for i, u := range loop {
+						if _, ok := got.Edges()[u.Edge].Curve.(geom.Line); ok && u.UVStart.X != u.UVEnd.X {
+							t.Errorf("face %d: the ruling of edge %d runs from angle %.17g to %.17g", fi, u.Edge, u.UVStart.X, u.UVEnd.X)
+						}
+						if next := loop[(i+1)%len(loop)]; u.UVEnd != next.UVStart {
+							t.Errorf("face %d: edge %d ends at %v and edge %d starts at %v", fi, u.Edge, u.UVEnd, next.Edge, next.UVStart)
+						}
+					}
+				}
+			}
+			r, err := boolean.Combine(context.Background(), got, trimmed.Solid{}, boolean.Union, boundaryOptions)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if p, want := r.Properties, two.Properties; r.Solids != 1 || math.Abs(p.Volume-want.Volume) > 1e-9*want.Volume || math.Abs(p.Area-want.Area) > 1e-9*want.Area {
+				t.Errorf("the read solid is %d solids of volume %.12g and area %.12g, the written one has %.12g and %.12g", r.Solids, p.Volume, p.Area, want.Volume, want.Area)
+			}
+		})
 	}
 }

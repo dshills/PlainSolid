@@ -529,6 +529,14 @@ type boundaryLoop struct {
 // plus the given number of turns, so each use starts where the one before
 // it ended; a loop that does not come back to its first angle goes around
 // the cylinder, and a face bounded by such loops has no seam to be cut at.
+//
+// On a cylinder every use starts and ends at the angle the loop has
+// reached and at the height of its vertex, so the uses that meet at a
+// vertex have one point there and a ruling has one angle. An arc's own
+// evaluation at its ends differs from that point by rounding, which
+// trimmed.NewSolid allows; taken as the point, it tilted the ruling next
+// to it by a unit in the last place, and the validation mesh folded on
+// the sliver.
 func (c boundaryChart) lay(vertices []geom.Vec3, loop []boundaryUse, turns float64) (boundaryLoop, error) {
 	out := boundaryLoop{uses: make([]trimmed.Use, len(loop))}
 	first := c.frame.ToLocal(vertices[loop[0].from()])
@@ -536,6 +544,7 @@ func (c boundaryChart) lay(vertices []geom.Vec3, loop []boundaryUse, turns float
 	begin := angle
 	out.lo, out.hi = angle, angle
 	var polygon []geom.Vec2
+	pinned := make([][2]geom.Vec2, len(loop))
 	for i, u := range loop {
 		use := trimmed.Use{Edge: u.index, Reversed: u.reversed}
 		from, to := c.frame.ToLocal(vertices[u.from()]), c.frame.ToLocal(vertices[u.to()])
@@ -552,6 +561,7 @@ func (c boundaryChart) lay(vertices []geom.Vec3, loop []boundaryUse, turns float
 		if u.reversed {
 			t0, t1 = t1, t0
 		}
+		pinned[i][0].X = angle
 		switch {
 		case c.radius == 0 && u.edge.line:
 			use.UVStart, use.UVEnd = geom.Vec2{X: from.X, Y: from.Y}, geom.Vec2{X: to.X, Y: to.Y}
@@ -607,7 +617,14 @@ func (c boundaryChart) lay(vertices []geom.Vec3, loop []boundaryUse, turns float
 					From: t0, To: t1,
 				}
 			}
+			pinned[i][1].X = end
 			angle = end
+		}
+		if c.radius > 0 {
+			if u.edge.line {
+				pinned[i][1].X = pinned[i][0].X
+			}
+			pinned[i][0].Y, pinned[i][1].Y = from.Z, to.Z
 		}
 		if arc, ok := use.Curve.(trimmed.EllipseUV); ok {
 			var err error
@@ -631,6 +648,21 @@ func (c boundaryChart) lay(vertices []geom.Vec3, loop []boundaryUse, turns float
 	}
 	if c.radius > 0 && math.Abs(angle-begin) > math.Pi {
 		return out, fmt.Errorf("%w: a loop goes around its cylinder, and the face has no seam", ErrTrimmedBoundary)
+	}
+	if c.radius > 0 {
+		// The angle comes back to where it began only to within rounding.
+		// The loop closes at the first angle: the rulings that end the
+		// loop are at it, and the use before them ends at it.
+		for i := len(loop) - 1; i >= 0; i-- {
+			pinned[i][1].X = begin
+			if !loop[i].edge.line {
+				break
+			}
+			pinned[i][0].X = begin
+		}
+		for i := range out.uses {
+			out.uses[i].UVStart, out.uses[i].UVEnd = pinned[i][0], pinned[i][1]
+		}
 	}
 	// The use after an arc starts where the arc ends, and every use ends
 	// where the next one starts; trimmed.NewSolid takes an arc whose own

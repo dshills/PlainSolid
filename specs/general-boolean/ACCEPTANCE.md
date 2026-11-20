@@ -771,3 +771,16 @@ it agrees, with errors of 1.6e-16 in volume and in area, and it takes
 2.8 to 2.9 s alone, so it is listed for its time. Of the 92 Tier 1 rows
 90 are in scope.
 
+The two STEP files that did not read back are since corrected as well,
+in the reader. On a cylinder it took the point of a vertex in the chart
+from the evaluation of an arc that ends there, which differs from the
+angle of the ruling next to it by a unit in the last place; the ruling
+was laid tilted by that much, and the validation mesh of `brep/trimmed`
+folded on the sliver. The reader now gives every use the angle its loop
+has reached and the height of its vertex. With the general Boolean
+first, `TestCrossedObliqueReciprocalScope` and
+`TestClippedCrossedBoreScopeAndSTEP` pass. `TestSideNotchMixedBoreBatchIsAtomic`
+then runs to its last assertion, that a batch with a bore across the
+notch is refused; the general Boolean cuts it, and whether that result
+is right has not been checked.
+
