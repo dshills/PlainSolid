@@ -2119,6 +2119,20 @@ is open. Each entry states the decision and where this document applies it.
   changes no default: the default bridge stays on the legacy path (L3),
   and the work on the mesher that the two rows need comes before any
   family is moved to the general path.
+- OD-10. Threads stay on the legacy path. Decided on 2026-11-20. The
+  bridge's `thread` request cuts nothing: it builds the threaded solid
+  from a recipe that the stock holds, which is a cylinder, a stepped
+  shaft, a tube or a block with a bore. A primitive gives the stock that
+  recipe, and one Boolean keeps it, the legacy cut of a socket into the
+  head of a stepped shaft (`cutShaftSocket`). A result of the general
+  Boolean holds no recipe, and a thread on one is refused as unsupported.
+  That cut is not a bore family and is not moved to the general path, so
+  moving the bore families leaves threads as they are. Two ways to
+  thread a general result were set aside: to recognize a stepped shaft
+  in a boundary, which is a function for one arrangement of inputs, and
+  to replace a complete cylinder face of any solid by a threaded band,
+  which is a mechanism of `brep/trimmed` that no bridge operation needs
+  while the socket cut stays where it is.
 
 ## 19. Rulings made under delegation
 

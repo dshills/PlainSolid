@@ -793,3 +793,16 @@ passes. Row T1-009, which is that test, stays excluded: its record has
 the area of a blind bore with a floor 5e-8 thick, and the general
 Boolean cuts through (C24).
 
+The thread is not a difference of the bore families (OD-10).
+`TestPlainCADModeledThreadNative`, and `TestPlainCADM3ThreadMesh` in the
+slow tier, thread a stepped shaft after a socket is cut into its head.
+The scratch change tried the general Boolean first for every Boolean,
+that cut among them, and its result holds no shaft recipe for the thread
+to build from. The socket cut stays on its legacy path, and the two
+tests pass as they are on the default bridge.
+
+Of the 25 default-tier tests listed above, 23 are left: the 12 that
+require STEP bytes, the 9 that test the fallback itself,
+`TestPlainCADModeledThreadNative` under OD-10 and
+`TestSkewCrossedBoreScopeAndSTEP` under OD-2.
+
