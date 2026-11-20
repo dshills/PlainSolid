@@ -127,8 +127,9 @@ func TestSurfaceTableCurved(t *testing.T) {
 		{"equal cylinders below the least angle", tube, stand(0, geom.Vec3{X: 1. / 128, Z: math.Sqrt(1 - 1./16384)}, 1), 0, 0, false, false, true},
 		{"cylinders equal and meeting within the tolerance", tube, stand(eps/4, geom.Vec3{Y: 1}, 1+eps/2), 0, 2, false, false, false},
 		{"radii and axes each within the tolerance, together beyond it", tube, stand(eps, geom.Vec3{Y: 1}, 1+eps/2), 0, 0, false, false, true},
-		{"equal cylinders whose axes pass each other", tube, stand(0.5, geom.Vec3{Y: 1}, 1), 0, 0, false, false, true},
-		{"unequal cylinders whose axes meet", tube, stand(0, geom.Vec3{X: 1}, 0.75), 0, 0, false, false, true},
+		{"equal cylinders whose axes pass each other", tube, stand(0.5, geom.Vec3{Y: 1}, 1), 0, 1, false, false, false},
+		{"unequal cylinders whose axes meet", tube, stand(0, geom.Vec3{X: 1}, 0.75), 0, 2, false, false, false},
+		{"unequal cylinders that touch from inside", tube, stand(0.25, geom.Vec3{Y: 1}, 0.75), 0, 0, false, false, true},
 	} {
 		p, err := surfacePair(c.a, c.b, tol)
 		if err != nil {

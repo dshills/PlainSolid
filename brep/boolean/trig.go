@@ -161,20 +161,7 @@ func (f trig) hits(tol float64) ([]trigHit, bool) {
 
 // zero finds by bisection a change of sign of f between lo, where it has
 // the sign given, and hi.
-func (f trig) zero(lo, hi float64, sign int) float64 {
-	for range 64 {
-		m := lo + (hi-lo)/2
-		if m <= lo || m >= hi {
-			break
-		}
-		if (f.at(m) > 0) == (sign > 0) {
-			lo = m
-		} else {
-			hi = m
-		}
-	}
-	return lo + (hi-lo)/2
-}
+func (f trig) zero(lo, hi float64, sign int) float64 { return zeroOf(f.at, lo, hi, sign) }
 
 // turn finds where f, coming from the side given, is farthest towards the
 // other side between lo and hi: at a sample of the interval, improved by

@@ -195,9 +195,11 @@ func TestCrossingCylinders(t *testing.T) {
 	}
 }
 
-// TestCrossingRefusals holds the pairs the row does not take to their
-// errors: unequal radii, axes that pass each other, radii and axes that
-// agree only separately. TestCrossingBores holds axes too nearly parallel.
+// TestCrossingRefusals holds the pair the row does not take to its
+// error: radii and axes that agree only separately, which is neither an
+// equal pair nor clear enough of touching to be a quartic pair in scope.
+// TestCrossingBores holds axes too nearly parallel, and TestQuarticBores
+// what unequal radii and axes that pass each other now give.
 func TestCrossingRefusals(t *testing.T) {
 	m := geom.Identity()
 	stock := crossingStock(t, m, crossingRectangle(8, 8), -4, 8)
@@ -213,9 +215,7 @@ func TestCrossingRefusals(t *testing.T) {
 		radius  float64
 		message string
 	}{
-		{"unequal radii", geom.Vec3{}, geom.Vec3{X: 1}, 0.75, "axes that are not parallel"},
-		{"axes that pass each other", geom.Vec3{Y: 0.5}, geom.Vec3{X: 1}, 1, "axes that are not parallel"},
-		{"radii and axes within the tolerance separately", geom.Vec3{Y: eps}, geom.Vec3{X: 1}, 1 + eps/2, "axes that are not parallel"},
+		{"radii and axes within the tolerance separately", geom.Vec3{Y: eps}, geom.Vec3{X: 1}, 1 + eps/2, "cylinders that nearly touch"},
 	} {
 		_, err := Combine(context.Background(), first.Solid, crossingRod(t, m, c.centre, c.axis, c.radius, 12), Cut, crossingOptions)
 		if !errors.Is(err, ErrUnsupported) || !strings.Contains(err.Error(), c.message) {

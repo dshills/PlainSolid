@@ -39,25 +39,38 @@ type chart interface {
 // base + lin·t + cos·cos t + sin·sin t, for t from t0 to t1. A line or a
 // conic in a plane and a generator, a section circle or a section ellipse
 // of a cylinder all have this form, and so has the p-curve
-// trimmed.EllipseUV.
+// trimmed.EllipseUV. The image of any other leg is free: it gives its
+// point and its velocity by evaluation, base is added to the point, and
+// the other terms are zero (H1 of specs/general-boolean-quartic).
 type path struct {
 	base, lin, cos, sin geom.Vec2
 	t0, t1              float64
+	free                func(t float64) (at, speed geom.Vec2)
 }
 
 func (p path) at(t float64) geom.Vec2 {
+	if p.free != nil {
+		q, _ := p.free(t)
+		return geom.Vec2{X: p.base.X + q.X, Y: p.base.Y + q.Y}
+	}
 	s, c := math.Sincos(t)
 	return geom.Vec2{X: p.base.X + p.lin.X*t + p.cos.X*c + p.sin.X*s, Y: p.base.Y + p.lin.Y*t + p.cos.Y*c + p.sin.Y*s}
 }
 
 // speed is the derivative of the path by its parameter.
 func (p path) speed(t float64) geom.Vec2 {
+	if p.free != nil {
+		_, v := p.free(t)
+		return v
+	}
 	s, c := math.Sincos(t)
 	return geom.Vec2{X: p.lin.X - p.cos.X*s + p.sin.X*c, Y: p.lin.Y - p.cos.Y*s + p.sin.Y*c}
 }
 
-// curved reports whether the path has a periodic part.
-func (p path) curved() bool { return p.cos != (geom.Vec2{}) || p.sin != (geom.Vec2{}) }
+// curved reports whether the path is anything but straight.
+func (p path) curved() bool {
+	return p.free != nil || p.cos != (geom.Vec2{}) || p.sin != (geom.Vec2{})
+}
 
 // moved is the path shifted along the first chart coordinate.
 func (p path) moved(d float64) path {
@@ -71,6 +84,13 @@ func (p path) heading() (geom.Vec2, float64) {
 	v := p.speed(p.t0)
 	s, c := math.Sincos(p.t0)
 	a := geom.Vec2{X: -p.cos.X*c - p.sin.X*s, Y: -p.cos.Y*c - p.sin.Y*s}
+	if p.free != nil {
+		// The change of the velocity across the start, by a central
+		// difference: the carrier runs on either side of the leg.
+		const h = 0x1p-17
+		before, after := p.speed(p.t0-h), p.speed(p.t0+h)
+		a = geom.Vec2{X: (after.X - before.X) / (2 * h), Y: (after.Y - before.Y) / (2 * h)}
+	}
 	n := math.Hypot(v.X, v.Y)
 	if n == 0 {
 		return geom.Vec2{}, 0
@@ -83,10 +103,14 @@ func (p path) heading() (geom.Vec2, float64) {
 }
 
 // pieces is the number of equal parts a path is cut into for sampling
-// and quadrature: one when it is straight, else parts of a 32nd of a turn.
+// and quadrature: one when it is straight, else parts of a 32nd of a
+// turn, and of a 64th for a free path.
 func (p path) pieces() int {
-	if !p.curved() {
+	switch {
+	case !p.curved():
 		return 1
+	case p.free != nil:
+		return int(math.Ceil(math.Abs(p.t1-p.t0)/(math.Pi/32))) + 1
 	}
 	return int(math.Ceil(math.Abs(p.t1-p.t0)/(math.Pi/16))) + 1
 }
@@ -103,18 +127,30 @@ func (p path) points() []geom.Vec2 {
 
 var gaussNodes = [5][2]float64{{0, 0.5688888888888889}, {-0.5384693101056831, 0.4786286704993665}, {0.5384693101056831, 0.4786286704993665}, {-0.9061798459386640, 0.2369268850561891}, {0.9061798459386640, 0.2369268850561891}}
 
-// integral is the line integral of f(q, dq/dt) dt along the path, by
-// Gauss quadrature on n equal parts of it.
-func (p path) integral(n int, f func(q, d geom.Vec2) float64) float64 {
+// gauss visits the nodes of a Gauss quadrature on n equal parts of the
+// path: at each, the point, the velocity and the weight, so that the sum
+// of weight·f(point, velocity) is the line integral of f dt.
+func (p path) gauss(n int, visit func(q, d geom.Vec2, weight float64)) {
 	h := (p.t1 - p.t0) / float64(n)
-	sum := 0.
 	for i := 0; i < n; i++ {
 		mid := p.t0 + h*(float64(i)+0.5)
 		for _, g := range gaussNodes {
 			t := mid + g[0]*h/2
-			sum += g[1] * h / 2 * f(p.at(t), p.speed(t))
+			if p.free == nil {
+				visit(p.at(t), p.speed(t), g[1]*h/2)
+				continue
+			}
+			q, d := p.free(t)
+			visit(geom.Vec2{X: q.X + p.base.X, Y: q.Y + p.base.Y}, d, g[1]*h/2)
 		}
 	}
+}
+
+// integral is the line integral of f(q, dq/dt) dt along the path, by
+// Gauss quadrature on n equal parts of it.
+func (p path) integral(n int, f func(q, d geom.Vec2) float64) float64 {
+	sum := 0.
+	p.gauss(n, func(q, d geom.Vec2, weight float64) { sum += weight * f(q, d) })
 	return sum
 }
 
@@ -207,8 +243,14 @@ func (c planeChart) chord(p, q geom.Vec2, _ float64) (leg, bool) {
 	return leg{line{from, dir}, 0, to.Distance(from)}, err == nil
 }
 func (c planeChart) image(l leg) path {
-	base, lin, cos, sin := l.c.terms()
-	return path{c.locate(base), c.flat(lin), c.flat(cos), c.flat(sin), l.t0, l.t1}
+	f, ok := l.c.(termed)
+	if !ok {
+		return path{t0: l.t0, t1: l.t1, free: func(t float64) (geom.Vec2, geom.Vec2) {
+			return c.locate(l.c.at(t)), c.flat(l.c.velocity(t))
+		}}
+	}
+	base, lin, cos, sin := f.terms()
+	return path{base: c.locate(base), lin: c.flat(lin), cos: c.flat(cos), sin: c.flat(sin), t0: l.t0, t1: l.t1}
 }
 func (c planeChart) flux(loops [][]leg) float64 {
 	return c.frame.Origin().Dot(c.frame.ZAxis()) * chartArea(c, loops) / 3

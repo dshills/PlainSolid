@@ -320,6 +320,14 @@ func build(ctx context.Context, points []point, edges []element, in []sheet, tau
 				if !p.curved() {
 					continue
 				}
+				if p.free != nil {
+					// B1 of specs/general-boolean-quartic: the image by
+					// evaluation. Its ends are set below, once those of
+					// the use are.
+					us[j].Curve = trim{p: p, s: sh.s}
+					us[j].UVStart, us[j].UVEnd = sh.s.stored(p.at(p.t0)), sh.s.stored(p.at(p.t1))
+					continue
+				}
 				// A path that was moved by whole periods of the chart is
 				// written as the unmoved arc at angles a whole number of
 				// turns on, so that it ends exactly where its neighbour
@@ -373,6 +381,10 @@ func build(ctx context.Context, points []point, edges []element, in []sheet, tau
 			}
 			for j := range us {
 				us[j].UVEnd = us[(j+1)%len(us)].UVStart
+				if c, ok := us[j].Curve.(trim); ok {
+					c.start, c.end, c.turns = us[j].UVStart, us[j].UVEnd, c.p.turns()
+					us[j].Curve = c
+				}
 			}
 			if i == 0 {
 				face.Outer = us
@@ -430,5 +442,79 @@ func conditioned(e element, round int) []leg {
 			out = append(out, leg{e.c, t0, t1})
 		}
 	}
+	return out
+}
+
+// trim is the p-curve of a use along a leg whose chart image is a free
+// path: the image by evaluation, in the parameters of the stored
+// surface. It gives the declared ends of its use at 0 and at 1, to the
+// last bit, and lists where either coordinate turns back, which is what
+// trimmed.Solid.Classify needs of it (trimmed.MonotoneUV).
+type trim struct {
+	p          path
+	s          surface
+	start, end geom.Vec2
+	turns      []float64
+}
+
+var _ trimmed.MonotoneUV = trim{}
+
+func (c trim) EvalUV(u float64) (geom.Vec2, error) {
+	switch u {
+	case 0:
+		return c.start, nil
+	case 1:
+		return c.end, nil
+	}
+	return c.s.stored(c.p.at(c.p.t0 + (c.p.t1-c.p.t0)*u)), nil
+}
+
+func (c trim) TurnsUV() []float64 { return c.turns }
+
+// BoundsUV holds the curve: between two of its turns it is monotone in
+// both coordinates, so it reaches no farther than its values at them and
+// at its ends. brep/trimmed asks this of a p-curve it does not know.
+func (c trim) BoundsUV() (geom.UVBox, error) {
+	box := geom.UVBox{Min: c.start, Max: c.start}
+	for _, u := range append(append([]float64{}, c.turns...), 1) {
+		q, _ := c.EvalUV(u)
+		box.Min = geom.Vec2{X: math.Min(box.Min.X, q.X), Y: math.Min(box.Min.Y, q.Y)}
+		box.Max = geom.Vec2{X: math.Max(box.Max.X, q.X), Y: math.Max(box.Max.Y, q.Y)}
+	}
+	return box, nil
+}
+
+// turns lists the places, as fractions of the path strictly between its
+// ends, at which either chart coordinate turns back: where a component
+// of the velocity changes sign between two of 16 samples, placed by
+// bisection. A change within a billionth of an end is the rounding of a
+// velocity that is zero there.
+func (p path) turns() []float64 {
+	const parts, edge = 16, 1e-9
+	var out []float64
+	for axis := range 2 {
+		speed := func(u float64) float64 {
+			v := p.speed(p.t0 + (p.t1-p.t0)*u)
+			return [2]float64{v.X, v.Y}[axis]
+		}
+		from, before := 0., speed(0)
+		for k := 1; k <= parts; k++ {
+			to := float64(k) / parts
+			after := speed(to)
+			if before != 0 && after != 0 && (before > 0) != (after > 0) {
+				sign := -1
+				if before > 0 {
+					sign = 1
+				}
+				if u := zeroOf(speed, from, to, sign); u > edge && u < 1-edge {
+					out = append(out, u)
+				}
+			}
+			if after != 0 {
+				from, before = to, after
+			}
+		}
+	}
+	sort.Float64s(out)
 	return out
 }

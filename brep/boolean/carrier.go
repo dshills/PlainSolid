@@ -16,6 +16,7 @@ const (
 	lineFamily
 	cylinderFamily
 	conicFamily
+	quarticFamily
 )
 
 // surface is the unbounded carrier of a face.
@@ -39,7 +40,9 @@ type surface interface {
 type curve interface {
 	family() family
 	at(t float64) geom.Vec3
-	// tangent is the unit direction of increasing parameter at t.
+	// velocity is the derivative of the point by the parameter at t, and
+	// tangent its unit direction.
+	velocity(t float64) geom.Vec3
 	tangent(t float64) geom.Vec3
 	// param is the parameter of the point of the carrier nearest p. On a
 	// closed carrier it lies in one period from zero.
@@ -49,13 +52,26 @@ type curve interface {
 	period() float64
 	// flipped is the same carrier with its parameter reversed.
 	flipped() curve
-	// terms writes the carrier as base + lin·t + cos·cos t + sin·sin t,
-	// the form in which a chart takes its image.
-	terms() (base, lin, cos, sin geom.Vec3)
 	// value is the curve and range an edge of the result stores between
 	// two vertices that lie on the carrier at t0 and t1 within tolerance
 	// (B6).
 	value(from, to geom.Vec3, t0, t1 float64) (geom.Curve, parametric.Interval, error)
+}
+
+// termed is a carrier that is base + lin·t + cos·cos t + sin·sin t, as a
+// line, a circle and an ellipse are. A chart takes the image of such a
+// carrier in the same form, and the measures have closed forms along it.
+type termed interface {
+	terms() (base, lin, cos, sin geom.Vec3)
+}
+
+// wound is a carrier that lies on cylinders and is not termed. It gives
+// its angle about the axis of one of them as a function continuous in
+// the parameter (H2 of specs/general-boolean-quartic), and bounds for a
+// part of itself.
+type wound interface {
+	turn(s cylinder, t float64) float64
+	box(t0, t1 float64) bounds
 }
 
 // leg is a directed part of a curve carrier, from parameter t0 to t1. On
@@ -92,12 +108,16 @@ func (l leg) nearest(p geom.Vec3) geom.Vec3 {
 	return b
 }
 
-// box is bounds that hold the leg: its ends on a line, and on a conic the
-// whole of the conic.
+// box is bounds that hold the leg: its ends on a line, on a conic the
+// whole of the conic, and on any other carrier what it gives for the
+// part.
 func (l leg) box() bounds {
-	if c, ok := l.c.(conic); ok {
+	switch c := l.c.(type) {
+	case conic:
 		reach := geom.Vec3{X: math.Hypot(c.a*c.x.X, c.b*c.y.X), Y: math.Hypot(c.a*c.x.Y, c.b*c.y.Y), Z: math.Hypot(c.a*c.x.Z, c.b*c.y.Z)}
 		return bounds{c.center.Sub(reach), c.center.Add(reach)}
+	case wound:
+		return c.box(l.t0, l.t1)
 	}
 	return around(l.c.at(l.t0), l.c.at(l.t1))
 }
@@ -119,12 +139,13 @@ func (s plane) stored(q geom.Vec2) geom.Vec2 { return q }
 // line is the carrier of a straight edge; its parameter is distance.
 type line struct{ origin, dir geom.Vec3 }
 
-func (c line) family() family            { return lineFamily }
-func (c line) at(t float64) geom.Vec3    { return c.origin.Add(c.dir.Scale(t)) }
-func (c line) tangent(float64) geom.Vec3 { return c.dir }
-func (c line) param(p geom.Vec3) float64 { return p.Sub(c.origin).Dot(c.dir) }
-func (c line) period() float64           { return 0 }
-func (c line) flipped() curve            { return line{c.origin, c.dir.Scale(-1)} }
+func (c line) family() family             { return lineFamily }
+func (c line) at(t float64) geom.Vec3     { return c.origin.Add(c.dir.Scale(t)) }
+func (c line) velocity(float64) geom.Vec3 { return c.dir }
+func (c line) tangent(float64) geom.Vec3  { return c.dir }
+func (c line) param(p geom.Vec3) float64  { return p.Sub(c.origin).Dot(c.dir) }
+func (c line) period() float64            { return 0 }
+func (c line) flipped() curve             { return line{c.origin, c.dir.Scale(-1)} }
 func (c line) terms() (base, lin, cos, sin geom.Vec3) {
 	return c.origin, c.dir, geom.Vec3{}, geom.Vec3{}
 }

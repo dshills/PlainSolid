@@ -84,6 +84,31 @@ func crossings(p path, x, y, period, guard float64) (int, bool) {
 				}
 			}
 		}
+		if p.free != nil {
+			// H3: where the first component of the velocity changes
+			// sign between two samples, placed by bisection.
+			n := p.pieces()
+			from, before := lo, p.speed(lo).X
+			for k := 1; k <= n; k++ {
+				to := lo + (hi-lo)*float64(k)/float64(n)
+				after := p.speed(to).X
+				if before != 0 && after != 0 && (before > 0) != (after > 0) {
+					a, b := from, to
+					for range 60 {
+						mid := a + (b-a)/2
+						if (p.speed(mid).X > 0) == (before > 0) {
+							a = mid
+						} else {
+							b = mid
+						}
+					}
+					cuts = append(cuts, a+(b-a)/2)
+				}
+				if after != 0 {
+					from, before = to, after
+				}
+			}
+		}
 		cuts = append(cuts, hi)
 		for i := 0; i+1 < len(cuts); i++ {
 			ta, tb := cuts[i], cuts[i+1]

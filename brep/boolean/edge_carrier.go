@@ -152,8 +152,12 @@ func edgeCarrier(e parametric.Edge, s1, s2 surface, t tolerances) (edge, error) 
 	if out.t1 = out.t0 + total; closed {
 		out.t1 = out.t0 + period
 	}
-	_, _, along, across := chosen.terms()
-	out.box = out.box.grown(math.Max(along.Length(), across.Length()) * (1 - math.Cos(total/(2*float64(edgeSamples-1)))))
+	if f, ok := chosen.(termed); ok {
+		_, _, along, across := f.terms()
+		out.box = out.box.grown(math.Max(along.Length(), across.Length()) * (1 - math.Cos(total/(2*float64(edgeSamples-1)))))
+	} else {
+		out.box = out.box.with(leg{out.c, out.t0, out.t1}.box())
+	}
 	return out, nil
 }
 

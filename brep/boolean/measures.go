@@ -156,6 +156,9 @@ func (c planeChart) moments(loops [][]leg) moments {
 	out := moments{ok: true}
 	for _, loop := range loops {
 		for _, p := range chain(c, loop) {
+			if p.free != nil {
+				return moments{} // no carrier of the class lies in a plane without a form
+			}
 			x, y, length := p.along()
 			dy := y.slope()
 			take := func(s series) float64 {
@@ -194,6 +197,24 @@ func (c cylinderChart) moments(loops [][]leg) moments {
 	out := moments{ok: true}
 	for _, loop := range loops {
 		for _, p := range chain(c, loop) {
+			if p.free != nil {
+				// M1 of specs/general-boolean-quartic: the same boundary
+				// integrals by quadrature, with θ and v read off the
+				// path. r·dθ is the step of the first chart coordinate.
+				turn := math.Abs(p.at(p.t1).X-p.at(p.t0).X) / r
+				p.gauss(p.pieces()+int(turn/(math.Pi/32)), func(q, d geom.Vec2, weight float64) {
+					sine, cosine := math.Sincos(q.X / r)
+					v, step := q.Y, -weight*d.X
+					out.area += v * step
+					out.volume += v * (c.frame.Origin().Dot(c.frame.XAxis())*cosine + c.frame.Origin().Dot(c.frame.YAxis())*sine + r) * step / 3
+					for i := range 3 {
+						e := ax[i]*cosine + ay[i]*sine
+						a := o[i] + r*e
+						out.first[i] += e * (a*a*v + a*az[i]*v*v + az[i]*az[i]*v*v*v/3) * step / 2
+					}
+				})
+				continue
+			}
 			_, v, length := p.along()
 			rate := p.lin.X / r
 			if rate == 0 {

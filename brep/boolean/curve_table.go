@@ -53,6 +53,11 @@ var curveRows = []curveRow{
 	{conicFamily, planeFamily, conicWithPlane},
 	{conicFamily, cylinderFamily, conicWithCylinder},
 	{conicFamily, conicFamily, conicWithConic},
+	{quarticFamily, planeFamily, quarticWithSurface},
+	{quarticFamily, cylinderFamily, quarticWithSurface},
+	{quarticFamily, lineFamily, quarticWithCurve},
+	{quarticFamily, conicFamily, quarticWithCurve},
+	{quarticFamily, quarticFamily, quarticWithCurve},
 }
 
 // curveMeets resolves a curve with a curve or a surface by the table. Two
@@ -335,4 +340,41 @@ func conicAcrossCylinder(k conic, s cylinder, t tolerances) meeting {
 		m.hits = append(m.hits, hit{p: p, t: k.param(p), gap: math.Abs(s.offset(p)), touching: h.touching})
 	}
 	return m
+}
+
+// quarticWithSurface meets the meeting curve of two cylinders with a
+// plane or a cylinder (T2 of specs/general-boolean-quartic): where the
+// signed distance from its point to the surface is zero within the
+// tolerance. A curve within the tolerance of the surface all the way
+// round may lie in it, as it does in each of its own two cylinders.
+func quarticWithSurface(c curve, with carrier, t tolerances) (meeting, error) {
+	q, s := c.(*quartic), with.(surface)
+	found, everywhere := zeros(func(u float64) float64 { return s.offset(q.at(u)) }, q.period(), t.eps)
+	m := meeting{alike: everywhere}
+	for _, h := range found {
+		p := q.at(h.t)
+		m.hits = append(m.hits, hit{p: p, t: h.t, gap: math.Abs(s.offset(p)), touching: h.touching})
+	}
+	return m, nil
+}
+
+// quarticWithCurve meets the meeting curve of two cylinders with a line,
+// a circle, an ellipse or another meeting curve (T3): where the distance
+// from its point to the other curve is least and at most four times the
+// tolerance. The passes hold each hit to their own bounds by its gap.
+// Two meeting curves within the tolerance all the way round are
+// candidates for an overlap.
+func quarticWithCurve(c curve, with carrier, t tolerances) (meeting, error) {
+	q, other := c.(*quartic), with.(curve)
+	fastest := 0.
+	for k := range 16 {
+		fastest = math.Max(fastest, q.velocity(q.period()*float64(k)/16).Length())
+	}
+	found, everywhere := minima(func(u float64) float64 { return off(other, q.at(u)) }, q.period(), 4*t.eps, t.eps, 2*fastest)
+	m := meeting{alike: everywhere}
+	for _, u := range found {
+		p := q.at(u)
+		m.hits = append(m.hits, hit{p: p, t: u, s: other.param(p), gap: off(other, p)})
+	}
+	return m, nil
 }

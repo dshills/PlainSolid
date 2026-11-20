@@ -362,6 +362,9 @@ func validateRayTrims(f Face) error {
 			if u.Curve == nil {
 				continue
 			}
+			if _, ok := u.Curve.(MonotoneUV); ok {
+				continue
+			}
 			c, ok := rayEllipseTrim(u.Curve)
 			if !ok || c.Linear.Y != 0 || math.Abs(c.From) > 8*math.Pi || math.Abs(c.To) > 8*math.Pi {
 				return fmt.Errorf("unsupported ray p-curve %T", u.Curve)
@@ -369,6 +372,22 @@ func validateRayTrims(f Face) error {
 		}
 	}
 	return nil
+}
+
+// MonotoneUV is a p-curve that lists the parameters strictly between 0
+// and 1, in increasing order, at which either of its coordinates turns
+// back. Between two neighbouring ones, and between an end and the nearest
+// one, it is monotone in both coordinates, so Classify and the ray
+// contacts cross it by the rule they apply to a part of an arc.
+type MonotoneUV interface {
+	PCurve
+	TurnsUV() []float64
+}
+
+// monotoneParts gives the parameters that cut a MonotoneUV into its
+// monotone parts, both ends included.
+func monotoneParts(c MonotoneUV) []float64 {
+	return append(append([]float64{0}, c.TurnsUV()...), 1)
 }
 
 func rayEllipseTrim(p PCurve) (EllipseUV, bool) {
@@ -480,7 +499,15 @@ func faceContains(f Face, p chartProjection, tol float64) (parametric.Location, 
 		lo, hi := coord(f.Outer[0].UVStart), coord(f.Outer[0].UVStart)
 		for _, u := range f.Outer {
 			lo, hi = min(lo, coord(u.UVStart)), max(hi, coord(u.UVStart))
-			if c, ok := rayEllipseTrim(u.Curve); ok {
+			if c, ok := u.Curve.(MonotoneUV); ok {
+				// Monotone between its parts, so its extent is that of
+				// their ends.
+				for _, t := range monotoneParts(c) {
+					if q, e := c.EvalUV(t); e == nil {
+						lo, hi = min(lo, coord(q)), max(hi, coord(q))
+					}
+				}
+			} else if c, ok := rayEllipseTrim(u.Curve); ok {
 				extent := math.Hypot(coord(c.Cos), coord(c.Sin))
 				a, b := coord(c.Center)+coord(c.Linear)*c.From, coord(c.Center)+coord(c.Linear)*c.To
 				lo, hi = min(lo, min(a, b)-extent), max(hi, max(a, b)+extent)
@@ -553,13 +580,17 @@ func trimCrossing(use Use, p geom.Vec2, xScale, yScale, tol float64) (int, bool,
 		return 0, false, nil
 	}
 	c, ok := rayEllipseTrim(use.Curve)
-	if !ok || c.Linear.Y != 0 || math.Abs(c.From) > 8*math.Pi || math.Abs(c.To) > 8*math.Pi {
+	monotone, free := use.Curve.(MonotoneUV)
+	if !free && (!ok || c.Linear.Y != 0 || math.Abs(c.From) > 8*math.Pi || math.Abs(c.To) > 8*math.Pi) {
 		return 0, false, fmt.Errorf("unsupported ray p-curve %T", use.Curve)
 	}
 	// Split the angular range at vertical extrema. Each remaining piece is
 	// monotone in Y and obeys the same half-open crossing rule as a line.
 	ts := []float64{0, 1}
-	if c.Cos.Y != 0 || c.Sin.Y != 0 {
+	inner := c.EvalUV
+	if free {
+		ts, inner = monotoneParts(monotone), monotone.EvalUV
+	} else if c.Cos.Y != 0 || c.Sin.Y != 0 {
 		start := math.Atan2(c.Sin.Y, c.Cos.Y)
 		lo, hi := min(c.From, c.To), max(c.From, c.To)
 		for k := math.Ceil((lo - start) / math.Pi); k <= math.Floor((hi-start)/math.Pi); k++ {
@@ -591,7 +622,7 @@ func trimCrossing(use Use, p geom.Vec2, xScale, yScale, tol float64) (int, bool,
 			sign = 1
 		case b.Y <= p.Y && p.Y < a.Y:
 			sign = -1
-		case a.Y == b.Y && math.Abs(a.Y-p.Y)*yScale <= tol && c.Cos.X == 0 && c.Sin.X == 0:
+		case !free && a.Y == b.Y && math.Abs(a.Y-p.Y)*yScale <= tol && c.Cos.X == 0 && c.Sin.X == 0:
 			if p.X >= min(a.X, b.X) && p.X <= max(a.X, b.X) {
 				return 0, true, nil
 			}
@@ -601,7 +632,7 @@ func trimCrossing(use Use, p geom.Vec2, xScale, yScale, tol float64) (int, bool,
 		}
 		for range 53 {
 			t := l + (r-l)/2
-			q, e := c.EvalUV(t)
+			q, e := inner(t)
 			if e != nil {
 				return 0, false, e
 			}
@@ -615,7 +646,7 @@ func trimCrossing(use Use, p geom.Vec2, xScale, yScale, tol float64) (int, bool,
 				r = t
 			}
 		}
-		q, e := c.EvalUV(l + (r-l)/2)
+		q, e := inner(l + (r-l)/2)
 		if e != nil {
 			return 0, false, e
 		}

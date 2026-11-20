@@ -279,8 +279,17 @@ func TestFacePassCurved(t *testing.T) {
 		if len(a.traces) != 0 || len(a.pairs) != 0 {
 			t.Fatalf("%d traces and %d pairs", len(a.traces), len(a.pairs))
 		}
-		// Crossing: unsupported, naming both faces (SP3).
-		if _, err := laid(t, upright, lying(0.3)); !errors.Is(err, ErrUnsupported) || !strings.Contains(err.Error(), "of A") || !strings.Contains(err.Error(), "of B") {
+		// Crossing: the walls meet along one closed curve, which the
+		// seams and rims of the two cut into traces.
+		a, err = laid(t, upright, lying(0.3))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(a.traces) == 0 || a.traces[0].c.family() != quarticFamily {
+			t.Fatalf("%d traces", len(a.traces))
+		}
+		// Touching from outside: unsupported, naming both faces (SP3).
+		if _, err := laid(t, upright, lying(1)); !errors.Is(err, ErrUnsupported) || !strings.Contains(err.Error(), "of A") || !strings.Contains(err.Error(), "of B") {
 			t.Fatalf("got %v, want ErrUnsupported naming a face of each operand", err)
 		}
 	})

@@ -23,6 +23,10 @@ type pairing struct {
 	// for cylinders of equal radius whose axes meet at too small an angle
 	// for their row.
 	open, narrow bool
+	// reason is set with open for two cylinders whose meeting curve is
+	// outside the scope of specs/general-boolean-quartic: the bound the
+	// pair fails, as the words that follow "are cylinders".
+	reason string
 }
 
 // surfaceRow is one family pair of the table of section 7.4. A surface
@@ -191,14 +195,14 @@ func cylinderWithCylinder(a, b surface, t tolerances) (pairing, error) {
 // planes; the mirror in either plane therefore takes the first cylinder
 // to one of the second's radius about a line that far from the second
 // axis, and each ellipse is on both within the tolerance. The ellipses
-// meet each other at two points (X7). Any other pair has no closed form
-// and is open; so is one whose axes are too nearly parallel, which is
-// narrow as well.
+// meet each other at two points (X7), and a pair of them whose axes are
+// too nearly parallel is open and narrow. Any other pair meets along
+// the curves of meetingCurves.
 func crossingCylinders(c, d cylinder, t tolerances) (pairing, error) {
 	zc, zd := c.frame.ZAxis(), d.frame.ZAxis()
 	p, q := nearestOnLines(c.axis(), d.axis())
 	if math.Abs(c.radius-d.radius)+p.Distance(q) > t.eps {
-		return pairing{open: true}, nil
+		return meetingCurves(c, d, t), nil
 	}
 	if zc.Cross(zd).Length() < minCrossingSine-t.angular {
 		return pairing{open: true, narrow: true}, nil

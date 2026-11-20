@@ -79,9 +79,27 @@ func (c cylinderChart) chord(p, q geom.Vec2, eps float64) (leg, bool) {
 // over. Around it, a conic that lies on the cylinder turns at the rate of
 // its own parameter, and a generator stays where it is.
 func (c cylinderChart) image(l leg) path {
-	base, lin, cos, sin := l.c.terms()
 	z := c.frame.ZAxis()
 	p := path{t0: l.t0, t1: l.t1}
+	f, ok := l.c.(termed)
+	if !ok {
+		// The place round the axis is the angle of the point, taken in
+		// the turn of the angle the carrier gives, which is continuous
+		// along it (H2).
+		w, _ := l.c.(wound)
+		p.free = func(t float64) (geom.Vec2, geom.Vec2) {
+			d, v := l.c.at(t).Sub(c.frame.Origin()), l.c.velocity(t)
+			x, y := d.Dot(c.frame.XAxis()), d.Dot(c.frame.YAxis())
+			angle := math.Atan2(y, x)
+			if w != nil {
+				angle += 2 * math.Pi * math.Round((w.turn(cylinder(c), t)-angle)/(2*math.Pi))
+			}
+			rate := (x*v.Dot(c.frame.YAxis()) - y*v.Dot(c.frame.XAxis())) / (x*x + y*y)
+			return geom.Vec2{X: c.radius * angle, Y: d.Dot(z)}, geom.Vec2{X: c.radius * rate, Y: v.Dot(z)}
+		}
+		return p
+	}
+	base, lin, cos, sin := f.terms()
 	p.base.Y, p.lin.Y, p.cos.Y, p.sin.Y = base.Sub(c.frame.Origin()).Dot(z), lin.Dot(z), cos.Dot(z), sin.Dot(z)
 	if cos == (geom.Vec3{}) && sin == (geom.Vec3{}) {
 		p.base.X = c.radius * c.angle(base.Sub(c.frame.Origin()))
