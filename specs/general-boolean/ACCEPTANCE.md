@@ -668,9 +668,10 @@ No Tier 2 row fails. Every Tier 1 row is as in the second record.
 
 Requests that the record refuses and the general Boolean answers, all in
 T2-014 and all classified as declined inputs (A4): lines 12 and 39, a
-cutter that deepens a blind bore from inside the stock, and lines 26 and
-53, a blind bore whose floor lies inside the crossing. They are in
-`legacy_refusals.txt`.
+cutter that deepens a blind bore from inside the stock, and line 53, a
+blind bore whose floor lies inside the crossing. Line 26, the image of
+line 53 from the other side, is refused by the general Boolean as well,
+with another error (below). All four are in `legacy_refusals.txt`.
 
 Oracle. `internal/occtcheck/testdata/general_boolean_cases.json` gained
 eight cases: one for each Tier 2 family (T2-001, T2-006, T2-010), the
@@ -680,13 +681,31 @@ reference, `TestGeneralBooleanOracle` compares 276 steps over 96 cases
 and all agree. Seven of the eight new cases agree at every step in
 validity, solid count, volume, area, centroid and face count; the
 largest volume difference among them is 1.4e-7 in 43,332, and the
-largest centroid distance 1.3e-10. The eighth, line 26 of T2-014 as the
-case file states it, has no result at its second step: `Combine` returns
-`ErrInconsistent`, "F3: two walks leave point 23 along one element". The
-same request is answered on the bridge, whose cylinders have their seams
-elsewhere. A blind bore whose floor lies inside the crossing can
-therefore fail with an explicit error depending on where a seam lies;
-its mirror image, line 53, agrees with the oracle.
+largest centroid distance 1.3e-10. The eighth, line 26 of T2-014, has
+no result at its second step: `Combine` returns `ErrInconsistent`, "F3:
+two walks leave point 23 along one element", and it does so on the
+bridge as well. Its image from the other side, line 53, agrees with the
+oracle, and so does line 26 itself with its two cuts in the other
+order.
+
+Correction, made on the branch `codex/crossing-robustness`. This record
+first said that line 26 is answered on the bridge and that the failure
+depends on where a seam lies. Neither is so. The acceptance replay
+passes line 26 because the record refuses it too, and the seam of the
+first bore passes through the tangent point of the case that works.
+
+What is known of such floors, from a survey of nine floor heights, from
+below and from above, in both orders of the two cuts. The two bores of
+T2-014 cross along two ellipses, the larger from height 16 to 24 and the
+smaller from 19 to 21. A floor outside the band from 19 to 21, or at
+20, is cut in every arrangement, to one volume. A floor strictly inside
+the band meets the smaller ellipse as well; it is cut in some
+arrangements and refused in others, as unsupported by M6 ("a face …
+touches itself"), as failing V1 ("invalid face … loop … size"), or, at
+21 where the rim touches the top of the smaller ellipse, as inconsistent
+by F3. Which arrangement fails changes with how the stock
+is built, a box or a prism of the same shape. Every volume returned in
+the band agrees with the other order and with the image; none is wrong.
 
 The bridge tests with their first bore cut by the general Boolean
 (A-C9 of the crossing specification), on a scratch change that was not

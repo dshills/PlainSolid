@@ -460,10 +460,14 @@ Made in the phase that implements each, not before:
 - A-C4. The requests of T2-014 that the record refuses and the general
   Boolean answers are classified as declined inputs (A4), listed in
   `legacy_refusals.txt`, and added to the oracle run (OD-C7). There are
-  four, at lines 12, 26, 39 and 53 of the trace: a cutter that deepens a
-  blind bore from inside the stock, and a blind bore whose floor lies
-  inside the crossing, each in two placements. OD-C7 was decided for the
-  first kind; the second came with section 6.4 and is treated the same.
+  three, at lines 12, 39 and 53 of the trace: a cutter that deepens a
+  blind bore from inside the stock, in two placements, and a blind bore
+  whose floor lies inside the crossing. OD-C7 was decided for the first
+  kind; the second came with section 6.4 and is treated the same. Line
+  26, the image of line 53, is listed with them and is refused by the
+  general Boolean too, with `ErrInconsistent`; the third record of
+  [the acceptance record](../general-boolean/ACCEPTANCE.md) says what is
+  known of such floors.
 - A-C5. The oracle run (A6) gains one case for each of the three Tier 2
   families, and each case A-C4 lists. The bounds are those of A6.
 - A-C6. The matrix of section 11 of the base specification gains rows

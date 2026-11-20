@@ -141,12 +141,12 @@ Phase 4 is committed as work in progress and stopped on A-C9.
   R-5.
 - The oracle (A-C5): eight cases added, with the helper built against
   the pinned reference. Seven agree at every step, face counts included.
-  The eighth, a blind bore whose floor lies inside the crossing, as the
-  case file states it, returns `ErrInconsistent` from F3 at its second
-  step; the bridge's own construction of the same request is answered,
-  and the mirror image of the case agrees with the oracle. That is a
-  limit to record: such a floor can fail, with an explicit error,
-  depending on where the seam of a tool lies.
+  The eighth, a blind bore whose floor lies inside the crossing, returns
+  `ErrInconsistent` from F3 at its second step, on the bridge as well;
+  its image from the other side agrees with the oracle. (This entry
+  first said the bridge answers it and blamed a seam; both were wrong,
+  and the third record of `ACCEPTANCE.md` has the correction and a
+  survey of such floors.)
 - A-C9 does not hold. With the first bore cut by the general Boolean,
   one of the eight tests passes as written. The other seven are cut
   correctly and fail on what they assert of the legacy representation:
@@ -162,13 +162,29 @@ the tests of plain bores.
 
 The owner had the branch merged to `main` as it stands on 2026-11-19.
 Of Phase 6, the capability summary of the README and the status and
-verification pages are done; sections 15.1 and 15.5, OD-1 and RL-22 of
-the base specification are not yet rewritten, and the third record of
-its `ACCEPTANCE.md` stands in for them.
+verification pages were done with the merge. The status line, section
+15.1, OD-1 and a ruling RL-27 that supersedes RL-22 were written into
+the base specification afterwards, on `codex/crossing-robustness`.
 
-Still open: the turned case of Phase 1 is skipped; a blind floor inside
-a crossing can fail depending on a seam (Phase 4); and A-C9 does not
-hold.
+After the merge, on the branch `codex/crossing-robustness`:
+
+- The turned case of Phase 1 passes and is no longer skipped. The cause
+  was in `brep/boolean` and not in `brep/trimmed`: the chart image of a
+  section circle carried the rounding of its axis vectors against the
+  cylinder's axis, about 1e-16 in a pose off the coordinate axes, as a
+  height that varies, so the corners of an outline along one rim were
+  not at one height. `cylinderChart.image` now takes such terms as
+  zero. No rule of the base specification changes, and the default
+  bridge's 3,118 trace responses are byte for byte the same.
+- Blind floors inside a crossing were surveyed and the record corrected
+  (`ACCEPTANCE.md`, third record). `TestCrossingFloorInTheCrossing`
+  holds floors outside the band of the smaller ellipse, and at its
+  middle, to one volume in both orders and for the image from the other
+  side.
+
+Still open: a blind floor strictly inside the band of the smaller
+crossing ellipse is refused in some arrangements (M6, V1 or F3); and
+A-C9 does not hold.
 
 ## Rules for every phase
 
@@ -374,15 +390,23 @@ the owner decides OD-C3 against it. Phase 6 is last.
 
 ## Open before the work can be called complete
 
-- The turned case of Phase 1 (ST-C6) is still skipped: two crossing
-  bores at a sine of 0.8 in a hexagonal prism off the coordinate axes,
-  which `trimmed.NewSolid` refuses. The specification admits the case
-  (A-C2), so Phase 6 cannot record the work as complete while it is
-  skipped. The owner chooses between a change in `brep/trimmed`, which
-  N2 puts outside this work; a change in how the Boolean places the
-  corners of an outline (section 7.10 of the base specification, U2);
-  or recording the case as a limit, which amends A-C2. Nothing is done
-  about it until then.
+- A blind floor strictly inside the band of the smaller crossing ellipse
+  (the third record of `specs/general-boolean/ACCEPTANCE.md`). The
+  refusals come from M6, V1 and F3 of the base specification, which U2
+  leaves as they stand, so what to do about them is the owner's: change
+  those rules, or record the band as outside what is supported. One of
+  them was looked into, the floor at 20.5 that fails V1. Such a floor
+  leaves thin faces of the bore wall between its rim and the smaller
+  ellipse. With the arcs as first cut one of them is a loop of two uses,
+  which `trimmed.NewSolid` does not take; with the arcs halved, as the
+  assembly then tries six times, its check of each face by a mesh folds
+  or meets a triangle of no area on the thin face, or runs out of its
+  budget. So this one is a limit of that check on thin faces, in
+  `brep/trimmed`, and no small change in `brep/boolean` was found for
+  it, unlike the turned case.
+- A-C9: the bridge tests of crossing bores assert the legacy
+  representation and would have to be rewritten before a bore family is
+  moved to the general Boolean.
 
 ## Risks
 

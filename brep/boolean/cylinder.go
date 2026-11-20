@@ -87,6 +87,15 @@ func (c cylinderChart) image(l leg) path {
 		p.base.X = c.radius * c.angle(base.Sub(c.frame.Origin()))
 		return p
 	}
+	// A section circle keeps one height. Its two axis vectors are across
+	// the axis, and their products with it are zero but for rounding,
+	// which a frame off the coordinate axes leaves at about 1e-16. Left
+	// in, they put the corners of an outline along one rim at heights
+	// that differ in the last bits, and trimmed.NewSolid then meets a
+	// triangle of no area among them.
+	if level := 0x1p-40 * (cos.Length() + sin.Length()); math.Abs(p.cos.Y) <= level && math.Abs(p.sin.Y) <= level {
+		p.cos.Y, p.sin.Y = 0, 0
+	}
 	p.base.X, p.lin.X = c.radius*c.angle(cos), c.radius
 	if cos.Cross(sin).Dot(z) < 0 {
 		p.lin.X = -c.radius

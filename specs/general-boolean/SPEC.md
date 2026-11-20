@@ -5,8 +5,11 @@ on 2026-11-18 and 2026-11-19 by the reviewing session, under the owner's
 delegation, are in section 19. On 2026-11-19 the owner declared the trial
 a pass with two recorded exceptions (OD-9), which confirms six of the
 rulings; the others wait for the owner to confirm or reverse them. Section
-20 lists what is open, and the plan states where the trial stands. This
-document is a specification only and contains no implementation.
+20 lists what is open, and the plan states where the trial stands. Tier 2
+has been supported since 2026-11-19 (RL-27), by
+[the crossing specification](../general-boolean-crossing/SPEC.md), which
+amends sections 7.4, 7.5 and 12 here. This document is a specification
+only and contains no implementation.
 
 ## 1. Purpose
 
@@ -1641,7 +1644,8 @@ Tier 1, required:
 | To face | `to_face_test.go`, `to_face_analytic_test.go`, `to_face_oblique_test.go` | 7 | Extrude a polygon or circle up to a planar face (CO3) | `brep.PrismToFace`, `trimmed.CylinderToFace` |
 
 Tier 2, in the trial by OD-1, attempted last and not required for a pass
-(15.5):
+(15.5); supported after the trial (RL-27), with the outcome of each row
+in the third record of [the acceptance record](ACCEPTANCE.md):
 
 | Family | Test files | Tests | Arrangement | Legacy path |
 |---|---|---|---|---|
@@ -2027,6 +2031,8 @@ is open. Each entry states the decision and where this document applies it.
   bridge tests and the crossed-bore constructors. The two ellipses meet at
   two points where the surfaces are tangent. Decided: Tier 2 is attempted
   last, as a test of SP5, and is not required for a pass (7.4, 15.1, 15.5).
+  After the trial the owner had Tier 2 specified and built on its own
+  (RL-27).
 - OD-2. Unequal and skew crossed bores are out. Their intersection curves
   are quartic (SP3). Their constructors and five test files stay whatever
   the trial's outcome (15.2).
@@ -2246,6 +2252,18 @@ Rulings of 2026-11-19, as the trial came to its closing state:
   its wall, was built and measured, did not help, and made one working
   mesh fail. It was not kept and was never part of this document; it is
   on `codex/general-boolean-rim-extremes-attempt` (`36758499`).
+- RL-27. Tier 2 is supported. This supersedes RL-22. On 2026-11-19 the
+  owner decided the open items of
+  [the crossing specification](../general-boolean-crossing/SPEC.md) and
+  had it built and merged. Fifteen of the 17 rows pass and two are
+  listed for time with every value right. The row of section 7.4 is in
+  force with a narrower condition and a least angle; section 7.5 has
+  the entry for a conic with a cylinder; SP2 has a further proof; CO1
+  and CO2 are amended; OP-5, OP-6 and OP-7 are closed. OD-2 stands:
+  cylinders of unequal radius, or with axes that do not meet, are out.
+  One limit is recorded with the rows: a blind floor strictly inside
+  the band of the smaller of the two crossing ellipses is refused in
+  some arrangements.
 
 ## 20. Open items
 
