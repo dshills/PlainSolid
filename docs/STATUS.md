@@ -10,21 +10,22 @@ not append dated entries. The narrative that this page replaced is in git:
 
 ## Current state
 
-As of 2026-11-20, with kernel code at `2655b642`.
+As of 2026-11-20, with kernel code at `d6dcbcfe`.
 
 | Check | Last result | Kernel commit |
 |---|---|---|
-| PlainCAD application with PlainSolid selected (app `efae4d2`) | Passed all eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract and 1,691 unit cases; none skipped or flaky | `2655b642`, 2026-11-20 |
-| Complete Go suite with the research tag, macOS ARM64, Go 1.23.12 | 6,399 passed, 625 optional skips, 0 failed of 7,024 | `2655b642`, 2026-11-20 |
+| PlainCAD application with PlainSolid selected (app `efae4d2`) | Passed all eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract and 1,691 unit cases; none skipped or flaky | `d6dcbcfe`, 2026-11-20 |
+| Complete Go suite with the research tag, macOS ARM64, Go 1.23.12 | 6,409 passed, 625 optional skips, 0 failed of 7,034 | `d6dcbcfe`, 2026-11-20 |
 | Complete Go suite, Linux ARM64, Go 1.26.0 | 6,018 passed, 599 optional skips, 0 failed | `c7afb429`, 2026-11-16 |
 | Complete Go suite with the race detector, macOS ARM64 | 5,557 passed, 580 optional skips, 0 failed | `ab33a412`, 2026-11-15 |
-| Default Go tier (`go test ./...`), macOS ARM64, Go 1.27.4 | All 58 packages with tests pass | `2655b642`, 2026-11-20 |
+| Default Go tier (`go test ./...`), macOS ARM64, Go 1.27.4 | All 58 packages with tests pass | `d6dcbcfe`, 2026-11-20 |
 
 The PlainCAD application suites and the complete Go suite, slow tier and
-research code included, both pass on `2655b642`. That commit has the Go
+research code included, both pass on `d6dcbcfe`. That commit has the Go
 compiler mitigation, the general Boolean with cylinders of equal radius
-whose axes meet and with mirrored operands, the bridge's fallback to it,
-the STEP writer and reader for boundaries of planes and cylinders, and
+whose axes meet and with mirrored operands, the bridge that asks it
+first for plain bores and falls back to it elsewhere, the STEP writer
+and reader for boundaries of planes and cylinders, and
 the chamfer and fillet of a result of the general Boolean. The Linux run
 and the race run have not been repeated since the commits shown.
 
@@ -79,7 +80,7 @@ The gates PC0 to PC5 and their ordering are defined in
 existing PlainCAD end-to-end tests, listed in
 [PlainCAD readiness](PLAINCAD_READINESS.md). Those tests run inside the
 PlainCAD development, production and cross-browser suites, which last passed
-in full on kernel `2655b642`. No PlainCAD case is known to fail.
+in full on kernel `d6dcbcfe`. No PlainCAD case is known to fail.
 
 The PlainSolid-backed app lives on the `codex/plainsolid-backend` branch of
 the sibling PlainCAD checkout. The acceptance inventory is a critical-path
