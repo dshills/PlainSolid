@@ -218,9 +218,11 @@ func TestBlindCrossedObliqueBoreSTEPAndFurtherCut(t *testing.T) {
 		}
 		near(t, overlapMeasure(t, b, got.Handle, cardinal.Handle), 0)
 		withoutCover := circle(t, b, coordinates(origin.vec().Add(axis.vec().Scale(26))), axis, 2, 5)
-		if _, err := b.cutMany(got.Handle, []string{withoutCover.Handle}); err == nil {
-			t.Fatal("in-stock cutter unexpectedly accepted as a replacement")
-		}
+		// No legacy path takes a cutter that starts inside the stock and
+		// deepens the bore. The general Boolean cuts it: three more of the
+		// bore's length, clear of the crossing.
+		deepened := declined(t, b, "blind or partial cuts are unsupported", "cutMany", got.Handle, withoutCover.Handle)
+		near(t, deepened.GeometryAssertions.Volume, out.GeometryAssertions.Volume-12*math.Pi)
 		for _, depth := range []float64{32, 40} {
 			deeper := circle(t, b, origin, axis, 2, depth)
 			near(t, overlapMeasure(t, b, got.Handle, deeper.Handle), (depth-28)*4*math.Pi)
@@ -242,8 +244,15 @@ func TestBlindCrossedObliqueBoreSTEPAndFurtherCut(t *testing.T) {
 			}
 		}
 		inside := circle(t, b, origin, axis, 2, 21)
-		if _, err := b.cutMany(stock.Handle, []string{through.Handle, inside.Handle}); err == nil {
-			t.Fatal("intersecting floor unexpectedly accepted")
+		// A floor inside the crossing: no legacy path represents it. The
+		// general Boolean cuts it in one placement and refuses it in the
+		// other (the third record of specs/general-boolean/ACCEPTANCE.md).
+		// Where it cuts, the volume is the one the pinned oracle gives.
+		if _, err := b.legacyCutMany(b.shapes[stock.Handle], []string{through.Handle, inside.Handle}); err == nil {
+			t.Fatal("intersecting floor accepted by a legacy path")
+		}
+		if floor, err := b.cutMany(stock.Handle, []string{through.Handle, inside.Handle}); err == nil {
+			near(t, floor.GeometryAssertions.Volume, 12260.9383119752)
 		}
 	}
 }

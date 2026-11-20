@@ -182,6 +182,31 @@ After the merge, on the branch `codex/crossing-robustness`:
   middle, to one volume in both orders and for the image from the other
   side.
 
+The complete Go suite, run on 2026-11-20 at `f95276ec` under Go 1.23.12
+at the owner's request, failed on two tests, and both are corrected on
+the branch `codex/suite-failures`:
+
+- `TestCrossingCylinders`, the union of two crossing cylinders off the
+  coordinate axes, failed V1 under Go 1.23.12 and passed under Go
+  1.27.4, which the default tier uses. It was the turned case again, one
+  step on: the corners of an outline along a rim, and the two ends of a
+  seam, took their place in the chart from the computed position of
+  each vertex, which differs in its last bits from one vertex to the
+  next. They now take the height of the section circle, and the place
+  of the ruling, from the carrier (B3 of the base specification). U2
+  left section 7.10 as it stood; this adds to B3.
+- `TestBlindCrossedObliqueBoreSTEPAndFurtherCut`, a slow test of the
+  legacy path, required two requests to be refused that the fallback
+  now answers (A-C4). It was not run when Phase 1 changed them, because
+  only the default tier and the general replays were run then. It now
+  requires the legacy path to decline and holds the answers to a closed
+  form and to the oracle's volume.
+
+A check this plan lacked: R-3 names the general replays only. A phase
+that changes what the default bridge answers must also run the slow
+tier of `internal/plaincadbridge`, under the release of Go the complete
+suite uses.
+
 Still open: a blind floor strictly inside the band of the smaller
 crossing ellipse is refused in some arrangements (M6, V1 or F3); and
 A-C9 does not hold.
@@ -211,6 +236,10 @@ A-C9 does not hold.
   `go test -v` before the commit. No phase changes `brep/boolean`'s
   validation V1 to V8, and every result in every test is one that
   `Combine` returned after it (U3).
+- R-3a. A phase that changes what the default bridge answers also runs
+  the whole slow tier of `internal/plaincadbridge`, with
+  `PLAINSOLID_SLOW=1`, under the release of Go the complete suite uses
+  (added on 2026-11-20; see State).
 - R-3. Slow tests after each phase, by name, with `PLAINSOLID_SLOW=1`:
   `TestGeneralBooleanAcceptance`, `TestGeneralBooleanTraces` and
   `TestGeneralStepExportTraces` in `internal/plaincadbridge`. Every

@@ -994,7 +994,15 @@ the arrangement. No geometric welding takes place at this stage.
   face at one chart point; M6 has removed every such pair before assembly.
 - B3. P-curves are straight for a line on a plane and for a line or circle
   on a cylinder, and `trimmed.EllipseUV` (`brep/trimmed/pcurve.go:14`) for a
-  circle or ellipse on a plane and for an ellipse on a cylinder.
+  circle or ellipse on a plane and for an ellipse on a cylinder. On a
+  cylinder both ends of a straight p-curve along a section circle are at
+  the height of that circle, and both ends of one along a ruling at the
+  place of that ruling round the axis, taken from the carrier and not
+  from the computed position of each vertex: positions computed vertex
+  by vertex differ in their last bits on a cylinder off the coordinate
+  axes, and corners in line but for that are refused by B4 (added on
+  2026-11-20, after the complete Go suite failed on it under one
+  release of Go and not another).
 - B4. The output solid is built with `trimmed.NewSolidContext`
   (`brep/trimmed/solid.go:110`) and the tolerance T6 states, τ + σ. An error from it is
   returned as `ErrValidation` wrapping that error, except a context error,

@@ -349,6 +349,28 @@ func build(ctx context.Context, points []point, edges []element, in []sheet, tau
 					us[(j+1)%len(us)].UVStart = us[j].UVEnd
 				}
 			}
+			// A use along a section circle of a cylinder is level in the
+			// chart, with both ends at the height of the circle, and a
+			// use along a ruling is upright, with both ends at the place
+			// of the ruling round the axis. The place of a vertex, and
+			// the end of an arc, carry the rounding of their own
+			// computation in that coordinate, and on a cylinder off the
+			// coordinate axes it differs from one vertex of a rim, or one
+			// end of a seam, to the next. Corners that are in line but
+			// for that rounding leave NewSolid a triangle of no area
+			// between them, in one release of Go and not in another.
+			if ch.period() > 0 {
+				for j, p := range paths {
+					next := &us[(j+1)%len(us)]
+					switch at := sh.s.stored(p.base); {
+					case p.curved():
+					case p.lin.Y == 0 && p.lin.X != 0:
+						us[j].UVStart.Y, next.UVStart.Y = at.Y, at.Y
+					case p.lin.X == 0 && p.lin.Y != 0:
+						us[j].UVStart.X, next.UVStart.X = at.X, at.X
+					}
+				}
+			}
 			for j := range us {
 				us[j].UVEnd = us[(j+1)%len(us)].UVStart
 			}
