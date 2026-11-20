@@ -112,11 +112,14 @@ func WriteTrimmedBoundary(w io.Writer, s trimmed.Solid, unit float64, name strin
 	}
 
 	return writeStandaloneWithUncertainty(w, unit, 0, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
+		// A zero is written without a sign: a carrier taken from the other
+		// operand, or turned over, has the same axes with negative zeros
+		// among their components, and the file should not differ for it.
 		point := func(p geom.Vec3) int64 {
-			return emit(fmt.Sprintf("CARTESIAN_POINT('',(%s,%s,%s))", real(p.X), real(p.Y), real(p.Z)))
+			return emit(fmt.Sprintf("CARTESIAN_POINT('',(%s,%s,%s))", real(p.X+0), real(p.Y+0), real(p.Z+0)))
 		}
 		direction := func(p geom.Vec3) int64 {
-			return emit(fmt.Sprintf("DIRECTION('',(%s,%s,%s))", real(p.X), real(p.Y), real(p.Z)))
+			return emit(fmt.Sprintf("DIRECTION('',(%s,%s,%s))", real(p.X+0), real(p.Y+0), real(p.Z+0)))
 		}
 		placement := func(f geom.Frame) int64 {
 			p, z, x := point(f.Origin()), direction(f.ZAxis()), direction(f.XAxis())

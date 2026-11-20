@@ -9,8 +9,9 @@ rulings; the others wait for the owner to confirm or reverse them. Section
 has been supported since 2026-11-19 (RL-27), by
 [the crossing specification](../general-boolean-crossing/SPEC.md), which
 amends sections 7.4, 7.5 and 12 here. Since 2026-11-20 a placement that
-reflects is accepted (S4, RL-28), and the default bridge asks the general
-path first for plain bores (OD-11). This document is a specification only
+reflects is accepted (S4, RL-28), the default bridge asks the general
+path first for plain bores (OD-11), and a face of B within ε of a plane
+of A is seated on it (S7, RL-30). This document is a specification only
 and contains no implementation.
 
 ## 1. Purpose
@@ -149,6 +150,21 @@ formats.
   is a precondition that intake does not test; see V7 for what is guaranteed
   when it is violated.
 - S6. A zero-value `trimmed.Solid` is the empty solid and is a valid operand.
+- S7. A planar face of B that lies within ε of the plane of a face of A
+  is seated on that plane (RL-30). The two planes are parallel as the
+  table of section 7.4 judges it, and the border of the face of B is
+  within ε of the plane of A, less a part in 2³⁰ for rounding, at every
+  sample by which I5 holds an edge to the carrier of its face. The
+  distance of a planar face from a plane is greatest on its border. Intake
+  then gives the face of B the carrier of the face of A, with its
+  orientation and its loops turned as for a reflecting placement (S4)
+  where the two planes face against each other. Its edges take their
+  carriers from that plane by I5, its vertices are moved onto those
+  carriers, and an edge that ends at a moved vertex ends there. B is so
+  changed by at most ε, on the faces that C24 to C27 call coincident,
+  and the result has those faces, their edges and their vertices in the
+  plane of A to rounding and not to the gap. A is taken as it is.
+  Cylinders that coincide are not seated.
 
 ### 4.2 Operations
 
@@ -2389,6 +2405,19 @@ Rulings of 2026-11-19, as the trial came to its closing state:
   it is joined to, and then a tool inside the two, was published as
   adding 1e-7. It is held to the same rule at its last step, with the
   tool less the union of the targets in place of the common.
+- RL-30. A face of B within ε of a plane of A is seated on it (S7). On
+  2026-11-20 the PlainCAD gates on the commit that moved the plain bores
+  failed in four development cases and in the production suite, all on
+  one thing: the STEP export of a posed plate with a through hole. The
+  application cuts such a hole with a cylinder 1e-7 longer than the
+  plate is thick, which is ε. The cap of the tool was coincident with
+  the far face (C24), and the result kept the rim of the tool, 1e-7 off
+  that face; the export was refused when the pose had rounded the gap to
+  just over the tolerance of the reader. The repeated cut of RL-29 had
+  the same cause. With S7 the result is that of a through bore to
+  rounding. `step.WriteTrimmedBoundary` writes a zero without a sign,
+  since a carrier taken from A has negative zeros among the components
+  of its axes.
 
 ## 20. Open items
 

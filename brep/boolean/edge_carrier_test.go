@@ -58,11 +58,11 @@ func TestEdgeCarrier(t *testing.T) {
 	plain := lifted(t, box(t, 0, 0, 0, 2, 2, 2))
 	t.Run("stored form does not matter", func(t *testing.T) {
 		hidden := restored(t, plain, func(_ int, c geom.Curve, lo, hi float64) geom.Curve { return opaque{base: c, lo: lo, hi: hi} })
-		want, err := intake(0, plain, tol)
+		want, err := intake(0, plain, tol, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		got, err := intake(0, hidden, tol)
+		got, err := intake(0, hidden, tol, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -79,7 +79,7 @@ func TestEdgeCarrier(t *testing.T) {
 		// plane, so its carrier comes from its samples.
 		split := lifted(t, polyhedron(t, []geom.Vec3{{}, {X: 2}, {X: 2, Y: 2}, {Y: 2}, {Z: 2}, {X: 2, Z: 2}, {X: 2, Y: 2, Z: 2}, {Y: 2, Z: 2}},
 			[][]int{{0, 3, 2, 1}, {4, 5, 6}, {4, 6, 7}, {0, 1, 5, 4}, {1, 2, 6, 5}, {2, 3, 7, 6}, {3, 0, 4, 7}}))
-		o, err := intake(0, split, tol)
+		o, err := intake(0, split, tol, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -115,7 +115,7 @@ func TestEdgeCarrier(t *testing.T) {
 		}
 		// The same at the very middle, on the edge alone.
 		edges := plain.Edges()
-		faces, err := intake(0, plain, tol)
+		faces, err := intake(0, plain, tol, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -243,7 +243,7 @@ func TestEdgeCarrierStoredForms(t *testing.T) {
 	for _, form := range []string{"sf1", "sf2", "sf3"} {
 		for _, placed := range []bool{false, true} {
 			s, m := stored(t, form, placed)
-			o, err := intake(0, s, tol)
+			o, err := intake(0, s, tol, nil)
 			if err != nil {
 				t.Fatalf("%s placed %v: %v", form, placed, err)
 			}

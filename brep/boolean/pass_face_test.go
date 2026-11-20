@@ -137,7 +137,7 @@ func laid(t *testing.T, x, y trimmed.Solid) (*arrangement, error) {
 	}
 	var ops [2]*operand
 	for i, s := range [2]trimmed.Solid{x, y} {
-		if ops[i], err = intake(i, s, tol); err != nil {
+		if ops[i], err = intake(i, s, tol, nil); err != nil {
 			t.Fatal(err)
 		}
 	}

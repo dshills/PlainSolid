@@ -232,3 +232,48 @@ func TestGeneralStepExportTraces(t *testing.T) {
 		t.Fatal("no result of the general Boolean at any exportStep request")
 	}
 }
+
+// TestThroughHoleWithMarginExports is the posed drilled plate of PlainCAD's
+// STEP export tests, by the requests PlainCAD issues. Its through hole is
+// cut with a cylinder 1e-7 longer than the plate is thick, which is the
+// working tolerance. The far end of the tool is seated on the far face
+// (S7), so the plate has the volume and area of a through bore and no
+// vertex off its faces, and it is exported after its pose together with
+// a body of a legacy path, and read back. Before the seat, the rim of
+// the bore lay 1e-7 off the face, and the export was refused once the
+// pose had rounded that to just over the tolerance of the reader.
+func TestThroughHoleWithMarginExports(t *testing.T) {
+	type q = map[string]any
+	b := New()
+	rim := shape(t, b, q{"op": "mixedExtrude", "profile": q{"origin": vector{10, 0, 0}, "normal": vector{0, -1, 0}, "xDirection": vector{-1, 0, 0}, "height": 5,
+		"kind": "capsule", "center": []float64{0, 0}, "right": []float64{20, 0}, "radius": 6, "innerRadius": 5}})
+	plate := shape(t, b, q{"op": "prism", "outer": []vector{{20, 10, 0}, {0, 10, 0}, {0, 0, 0}, {20, 0, 0}}, "holes": []any{}, "offset": vector{0, 0, 8}})
+	tool := circle(t, b, vector{10, 5, 0}, vector{0, 0, 1}, 2, 8.0000001)
+	near(t, overlapMeasure(t, b, plate.Handle, tool.Handle), 32*math.Pi)
+	holed := shape(t, b, q{"op": "cutMany", "a": plate.Handle, "tools": []string{tool.Handle}})
+	if off := math.Abs(holed.GeometryAssertions.Volume - (1600 - 32*math.Pi)); off > 1e-10 {
+		t.Fatalf("the volume is off that of a through bore by %.3g", off)
+	}
+	if off := math.Abs(holed.GeometryAssertions.SurfaceArea - (880 + 24*math.Pi)); off > 1e-10 {
+		t.Fatalf("the area is off that of a through bore by %.3g", off)
+	}
+	for _, v := range boundary(t, b, holed.Handle).Vertices() {
+		if v.Z != 0 && v.Z != 8 {
+			t.Fatalf("a vertex is at height %.17g, off both faces of the plate", v.Z)
+		}
+	}
+	placedRim := shape(t, b, q{"op": "transform", "handle": rim.Handle, "matrix": [][]float64{{0, 0, 1, 30}, {1, 0, 0, 40}, {0, 1, 0, 50}}})
+	placed := shape(t, b, q{"op": "transform", "handle": holed.Handle, "matrix": [][]float64{{0, -1, 0, -20}, {0, 0, 1, -30}, {-1, 0, 0, 15}}})
+	if placed.Bounds != (Bounds{Min: vector{-30, -30, -5}, Max: vector{-20, -22, 15}}) {
+		t.Fatal(placed.Bounds)
+	}
+	var export stepExport
+	if err := json.Unmarshal(invoke(t, b, q{"op": "exportStep", "handles": []string{placedRim.Handle, placed.Handle}}), &export); err != nil {
+		t.Fatal(err)
+	}
+	if len(export.After) != 2 {
+		t.Fatalf("the export read back %d bodies", len(export.After))
+	}
+	near(t, export.After[1].Volume, 1600-32*math.Pi)
+	sameShape(t, shape(t, b, q{"op": "importStep", "source": generalSTEPExported(t, b, placed.Handle)}), placed)
+}

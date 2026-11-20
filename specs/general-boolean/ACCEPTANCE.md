@@ -830,3 +830,13 @@ engine cutting the second bore from the history of the first. The trace
 replay on the legacy paths, `TestGeneralBooleanTraces`, runs on the
 legacy-first bridge and is unchanged.
 
+
+
+The PlainCAD gates were run on `107c36b7`, the commit that moved the
+plain bores. Six gates passed. The development suite failed 4 of 345
+cases and the production suite failed with it, all on the STEP export of
+a posed plate with a through hole, which the application cuts with a
+tool 1e-7 longer than the plate is thick. S7 and RL-30 of the
+specification have the cause and the correction. The requests of that
+export, as the application issues them, are
+`TestThroughHoleWithMarginExports`.

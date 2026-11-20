@@ -110,7 +110,7 @@ func TestMirroredIntake(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	o, err := intake(0, s, tol)
+	o, err := intake(0, s, tol, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -111,10 +111,10 @@ func TestPassEdgeOverlap(t *testing.T) {
 			t.Fatal(err)
 		}
 		var ops [2]*operand
-		if ops[0], err = intake(0, sa, tol); err != nil {
+		if ops[0], err = intake(0, sa, tol, nil); err != nil {
 			t.Fatal(err)
 		}
-		if ops[1], err = intake(1, sb, tol); err != nil {
+		if ops[1], err = intake(1, sb, tol, nil); err != nil {
 			t.Fatal(err)
 		}
 		a, err := newArrangement(context.Background(), ops, tol, o)

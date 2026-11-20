@@ -279,13 +279,15 @@ func TestGeneralBooleanAcceptance(t *testing.T) { generalBooleanAcceptanceOn(t, 
 // them first and the legacy paths answer the rest (OD-11), and holds
 // every checked response to the same comparison with its record. A row
 // that the pending list excludes for the general Boolean may pass here,
-// where a legacy path still answers it.
+// where a legacy path still answers it, and no row fails for its time:
+// A7 is a bound on the general Boolean, which the replay above measures.
 func TestDefaultBridgeAcceptance(t *testing.T) { generalBooleanAcceptanceOn(t, New, true) }
 
 // generalBooleanAcceptanceOn replays every acceptance row on bridges that
-// open makes. A row in the pending list that passes is an error unless
-// listedMayPass is set.
-func generalBooleanAcceptanceOn(t *testing.T, open func() *Bridge, listedMayPass bool) {
+// open makes. With mixed set, for a bridge on which legacy paths answer
+// some requests, a row in the pending list may pass and the time of a row
+// is logged and not judged.
+func generalBooleanAcceptanceOn(t *testing.T, open func() *Bridge, mixed bool) {
 	rows, pending, refusals := generalBooleanRows(t), generalBooleanPending(t), generalBooleanRefusals(t)
 	for _, tier := range []string{"T1", "T2"} {
 		t.Run(tier, func(t *testing.T) {
@@ -338,7 +340,7 @@ func generalBooleanAcceptanceOn(t *testing.T, open func() *Bridge, listedMayPass
 					// 1.6 s alone has taken 5.5 s there.
 					reason, listed := pending[row.id]
 					slow := elapsed > 2*time.Second
-					if a.first == "" && slow && slowtest.Enabled() && (listed || elapsed > 4*time.Second) {
+					if a.first == "" && slow && slowtest.Enabled() && !mixed && (listed || elapsed > 4*time.Second) {
 						a.failed, a.first, a.kinds = 1, fmt.Sprintf("A7: the row took %.2fs", elapsed.Seconds()), []string{"A7: over two seconds"}
 					}
 					switch {
@@ -348,7 +350,7 @@ func generalBooleanAcceptanceOn(t *testing.T, open func() *Bridge, listedMayPass
 						t.Errorf("%s: %d checked responses differ; first: %s\nkinds %s: %s", row.id, a.failed, a.first, row.id, strings.Join(a.kinds, " ;; "))
 					case listed && strings.HasPrefix(reason, "time over two seconds"):
 						t.Logf("pending %s: listed for its time, and took %.2fs in this run", row.id, elapsed.Seconds())
-					case listed && listedMayPass:
+					case listed && mixed:
 						t.Logf("%s is in the pending list and passes on this bridge", row.id)
 					case listed:
 						t.Errorf("%s is in the pending list and passes", row.id)

@@ -28,7 +28,7 @@ func taken(t *testing.T, x, y brep.Solid, change func(*Options)) ([2]*operand, t
 	}
 	var ops [2]*operand
 	for i, s := range [2]trimmed.Solid{sa, sb} {
-		if ops[i], err = intake(i, s, tol); err != nil {
+		if ops[i], err = intake(i, s, tol, nil); err != nil {
 			t.Fatal(err)
 		}
 	}

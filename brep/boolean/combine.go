@@ -59,7 +59,12 @@ func combine(ctx context.Context, a, b trimmed.Solid, op Operation, o Options) (
 	}
 	var ops [2]*operand
 	for i, s := range [2]trimmed.Solid{a, b} {
-		if ops[i], err = intake(i, s, t); err != nil {
+		// B is seated on A: A is taken in first, and as it is.
+		var onto *operand
+		if i == 1 && !empty[0] {
+			onto = ops[0]
+		}
+		if ops[i], err = intake(i, s, t, onto); err != nil {
 			return Result{}, err
 		}
 	}

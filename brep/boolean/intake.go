@@ -59,9 +59,15 @@ type operand struct {
 // fault (S5). A collapsed edge is accepted as the pole of a polar plane
 // chart and carries nothing into the arrangement (S3): it is left out of
 // the edges and of the loops.
-func intake(index int, s trimmed.Solid, t tolerances) (*operand, error) {
+//
+// onto is the other operand, when it has been taken in already. A planar
+// face that lies within ε of the plane of one of its faces is then seated
+// on that plane (S7): it takes that carrier, its edges take theirs from
+// it, and its vertices are moved onto them.
+func intake(index int, s trimmed.Solid, t tolerances, onto *operand) (*operand, error) {
 	o := &operand{solid: s, verts: s.Vertices()}
 	faces, edges := s.Faces(), s.Edges()
+	seated := make([]bool, len(faces))
 	owners := table[[]int](edges)
 	kept := filled(edges, -1)
 	next := 0
@@ -82,6 +88,34 @@ func intake(index int, s trimmed.Solid, t tolerances) (*operand, error) {
 		// set: its orientation is read against the other normal, and each
 		// loop is taken backwards, so that it keeps the face on its left
 		// in the chart of the carrier.
+		if own, ok := carrier.(plane); ok && onto != nil {
+			// The border of the face, at the samples by which I5 will
+			// hold each of its edges to the carrier of the face. The
+			// distance from a plane is greatest on the border.
+			border := func() []geom.Vec3 {
+				var points []geom.Vec3
+				for _, l := range append([][]trimmed.Use{f.Outer}, f.Holes...) {
+					for _, u := range l {
+						e := edges[u.Edge]
+						if e.Curve == nil {
+							points = append(points, o.verts[e.Start])
+							continue
+						}
+						for k := 0; k < edgeSamples; k++ {
+							if p, err := e.Curve.Eval(e.Range.Min + (e.Range.Max-e.Range.Min)*float64(k)/float64(edgeSamples-1)); err == nil {
+								points = append(points, p)
+							}
+						}
+					}
+				}
+				return points
+			}
+			if seat, against, ok := onto.seat(own, o.verts[edges[f.Outer[0].Edge].Start], border, t); ok {
+				// A plane that faces the other way has a chart that runs
+				// the other way round, as under a reflecting placement.
+				carrier, mirrored, seated[fi] = seat, mirrored != against, true
+			}
+		}
 		rec := face{s: carrier, reversed: f.Reversed != mirrored}
 		for _, l := range append([][]trimmed.Use{f.Outer}, f.Holes...) {
 			var loop []use
@@ -113,6 +147,7 @@ func intake(index int, s trimmed.Solid, t tolerances) (*operand, error) {
 		}
 		o.edges = append(o.edges, rec)
 	}
+	o.settle(edges, owners, kept, seated)
 	for fi := range o.faces {
 		f := &o.faces[fi]
 		f.box = o.edges[f.loops[0][0].edge].box
@@ -185,4 +220,77 @@ func placed(f geom.Frame, m geom.Affine, t tolerances) (frame geom.Frame, mirror
 		return geom.Frame{}, false, fail(ErrUnsupported, "intake", "the placement is degenerate: %v", err)
 	}
 	return frame, m.Determinant() < 0, nil
+}
+
+// seated bounds how far a face may be from a plane and be seated on it: ε,
+// less a part that keeps the samples of its edges within ε of the plane
+// after rounding (I5).
+const seatedShare = 1 - 0x1p-30
+
+// seat finds the plane of a face of the operand that a planar face of the
+// other operand lies on within ε: the planes are parallel as the table of
+// section 7.4 judges it, and every point of the border of the face is
+// within ε of the plane. One point of the face is tried first, since few
+// planes pass it. It reports whether the plane faces against the face's
+// own.
+func (o *operand) seat(own plane, first geom.Vec3, border func() []geom.Vec3, t tolerances) (plane, bool, bool) {
+	var points []geom.Vec3
+next:
+	for _, f := range o.faces {
+		other, ok := f.s.(plane)
+		if !ok || other == own || !(math.Abs(other.offset(first)) <= seatedShare*t.eps) {
+			continue
+		}
+		if p, err := planeWithPlane(other, own, t); err != nil || !p.alike {
+			continue
+		}
+		if points == nil {
+			points = border()
+		}
+		for _, c := range points {
+			if !(math.Abs(other.offset(c)) <= seatedShare*t.eps) {
+				continue next
+			}
+		}
+		return other, other.frame.ZAxis().Dot(own.frame.ZAxis()) < 0, true
+	}
+	return plane{}, false, false
+}
+
+// settle moves the vertices of seated faces onto the carriers their edges
+// took from the seat, and has every edge that ends at a moved vertex end
+// there. A vertex is moved once, onto the first such edge that ends at
+// it; the others pass through the same point within rounding, being cut
+// by the same plane.
+func (o *operand) settle(edges []parametric.Edge, owners [][]int, kept []int, seated []bool) {
+	moved := make([]bool, len(o.verts))
+	some := false
+	for ei, e := range edges {
+		if kept[ei] < 0 || !seated[owners[ei][0]] && !seated[owners[ei][1]] {
+			continue
+		}
+		c := o.edges[kept[ei]].c
+		for _, v := range [2]int{e.Start, e.End} {
+			if !moved[v] {
+				o.verts[v], moved[v], some = c.at(c.param(o.verts[v])), true, true
+			}
+		}
+	}
+	if !some {
+		return
+	}
+	for i := range o.edges {
+		e := &o.edges[i]
+		if !moved[e.start] && !moved[e.end] || e.closed() {
+			continue
+		}
+		near := func(v int, old float64) float64 {
+			at := e.c.param(o.verts[v])
+			if period := e.c.period(); period > 0 {
+				at += period * math.Round((old-at)/period)
+			}
+			return at
+		}
+		e.t0, e.t1 = near(e.start, e.t0), near(e.end, e.t1)
+	}
 }
