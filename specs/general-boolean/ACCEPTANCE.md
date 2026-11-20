@@ -760,7 +760,14 @@ In the slow tier 34 tests of the bridge were run the same way. 15 fail:
 recipes of the legacy side-opening family, and one each on the trace
 replay, on a thread, on a STEP file that does not read back
 (`TestClippedCrossedBoreScopeAndSTEP`, a floor that the crossing clips),
-and on a mirrored stock: the general Boolean refuses a general result
-that the `transform` request has reflected, its placement not being
+and on a mirrored stock: the general Boolean refused a general result
+that the `transform` request had reflected, its placement not being
 rigid (`TestSideNotchMixedBoreBatchIsAtomic`).
+
+That last one is since corrected: a placement may reflect (S4 as RL-28
+amends it). Row T1-041, which is that test and was excluded for its
+placement, is in scope. On the general bridge every checked response of
+it agrees, with errors of 1.6e-16 in volume and in area, and it takes
+2.8 to 2.9 s alone, so it is listed for its time. Of the 92 Tier 1 rows
+90 are in scope.
 

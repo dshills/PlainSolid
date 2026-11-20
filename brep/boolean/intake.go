@@ -2,6 +2,7 @@ package boolean
 
 import (
 	"math"
+	"slices"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
@@ -71,11 +72,17 @@ func intake(index int, s trimmed.Solid, t tolerances) (*operand, error) {
 		}
 	}
 	for fi, f := range faces {
-		carrier, polar, err := surfaceCarrier(f.Surface, t)
+		carrier, polar, mirrored, err := surfaceCarrier(f.Surface, t)
 		if err != nil {
 			return nil, fail(ErrUnsupported, "intake", "operand %s face %d: %v", operandName(index), fi, err)
 		}
-		rec := face{s: carrier, reversed: f.Reversed}
+		// The chart of a carrier under a placement that reflects runs the
+		// other way round than the chart the face is stored in, and its
+		// normal points the other way (S4). The face is the same point
+		// set: its orientation is read against the other normal, and each
+		// loop is taken backwards, so that it keeps the face on its left
+		// in the chart of the carrier.
+		rec := face{s: carrier, reversed: f.Reversed != mirrored}
 		for _, l := range append([][]trimmed.Use{f.Outer}, f.Holes...) {
 			var loop []use
 			for _, u := range l {
@@ -85,8 +92,11 @@ func intake(index int, s trimmed.Solid, t tolerances) (*operand, error) {
 					}
 					continue
 				}
-				loop = append(loop, use{kept[u.Edge], u.Reversed})
+				loop = append(loop, use{kept[u.Edge], u.Reversed != mirrored})
 				owners[u.Edge] = append(owners[u.Edge], fi)
+			}
+			if mirrored {
+				slices.Reverse(loop)
 			}
 			rec.loops = append(rec.loops, loop)
 		}
@@ -120,36 +130,40 @@ func intake(index int, s trimmed.Solid, t tolerances) (*operand, error) {
 }
 
 // surfaceCarrier recognizes a face by its surface value (S2) and applies
-// its placement, which must be rigid (S4). It also tells a plane stored
-// in the polar chart, whose normal points against the z axis of its
-// frame and whose pole is a collapsed edge.
-func surfaceCarrier(s geom.Surface, t tolerances) (surface, bool, error) {
+// its placement, which must keep lengths (S4). It tells a plane stored in
+// the polar chart, whose normal points against the z axis of its frame
+// and whose pole is a collapsed edge, and a placement that reflects.
+func surfaceCarrier(s geom.Surface, t tolerances) (carrier surface, polar, mirrored bool, err error) {
 	base, m := parametric.SurfaceMapping(s)
 	if polar, ok := parametric.PolarPlaneFrame(base); ok {
 		against, err := geom.NewFrame(polar.Origin(), polar.XAxis(), polar.ZAxis().Scale(-1))
 		if err != nil {
-			return nil, false, fail(ErrUnsupported, "intake", "the polar chart is degenerate: %v", err)
+			return nil, false, false, fail(ErrUnsupported, "intake", "the polar chart is degenerate: %v", err)
 		}
-		frame, err := placed(against, m, t)
-		return plane{frame}, true, err
+		frame, mirrored, err := placed(against, m, t)
+		return plane{frame}, true, mirrored, err
 	}
 	switch b := base.(type) {
 	case geom.PlaneSurface:
-		frame, err := placed(b.Frame(), m, t)
-		return plane{frame}, false, err
+		frame, mirrored, err := placed(b.Frame(), m, t)
+		return plane{frame}, false, mirrored, err
 	case geom.CylinderSurface:
 		own, radius := b.Parameters()
-		frame, err := placed(own, m, t)
-		return cylinder{frame, radius}, false, err
+		frame, mirrored, err := placed(own, m, t)
+		return cylinder{frame, radius}, false, mirrored, err
 	}
-	return nil, false, fail(ErrUnsupported, "intake", "a surface stored as %T is neither a plane nor a circular cylinder", base)
+	return nil, false, false, fail(ErrUnsupported, "intake", "a surface stored as %T is neither a plane nor a circular cylinder", base)
 }
 
-// placed maps a frame by a placement. The placement must be rigid within
-// the bound of S4; the mapped frame is made orthonormal again.
-func placed(f geom.Frame, m geom.Affine, t tolerances) (geom.Frame, error) {
+// placed maps a frame by a placement. The placement must keep lengths
+// within the bound of S4; the mapped frame is made orthonormal again. It
+// is the frame on the images of the origin, the x axis and the z axis. A
+// placement that reflects maps a right-handed frame to a left-handed one,
+// so the y axis of the frame returned is then against the image of the y
+// axis, and placed reports it.
+func placed(f geom.Frame, m geom.Affine, t tolerances) (frame geom.Frame, mirrored bool, err error) {
 	if m == geom.Identity() {
-		return f, nil
+		return f, false, nil
 	}
 	worst := 0.
 	for i := 0; i < 3; i++ {
@@ -163,12 +177,12 @@ func placed(f geom.Frame, m geom.Affine, t tolerances) (geom.Frame, error) {
 		}
 		worst = math.Max(worst, row)
 	}
-	if !(worst*t.size <= t.eps) || !(m.Determinant() > 0) {
-		return geom.Frame{}, fail(ErrUnsupported, "intake", "the placement is not rigid")
+	if !(worst*t.size <= t.eps) {
+		return geom.Frame{}, false, fail(ErrUnsupported, "intake", "the placement does not keep lengths")
 	}
-	frame, err := geom.NewFrame(m.Apply(f.Origin()), m.ApplyVector(f.XAxis()), m.ApplyVector(f.ZAxis()))
+	frame, err = geom.NewFrame(m.Apply(f.Origin()), m.ApplyVector(f.XAxis()), m.ApplyVector(f.ZAxis()))
 	if err != nil {
-		return geom.Frame{}, fail(ErrUnsupported, "intake", "the placement is degenerate: %v", err)
+		return geom.Frame{}, false, fail(ErrUnsupported, "intake", "the placement is degenerate: %v", err)
 	}
-	return frame, nil
+	return frame, m.Determinant() < 0, nil
 }

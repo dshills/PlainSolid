@@ -8,8 +8,9 @@ rulings; the others wait for the owner to confirm or reverse them. Section
 20 lists what is open, and the plan states where the trial stands. Tier 2
 has been supported since 2026-11-19 (RL-27), by
 [the crossing specification](../general-boolean-crossing/SPEC.md), which
-amends sections 7.4, 7.5 and 12 here. This document is a specification
-only and contains no implementation.
+amends sections 7.4, 7.5 and 12 here. Since 2026-11-20 a placement that
+reflects is accepted (S4, RL-28). This document is a specification only
+and contains no implementation.
 
 ## 1. Purpose
 
@@ -103,7 +104,8 @@ formats.
 - S2. Every face carrier is a plane or a circular cylinder. Accepted surface
   values are `geom.PlaneSurface`, the polar plane chart recognized by
   `parametric.PolarPlaneFrame`, `geom.CylinderSurface`, and any of these
-  under a rigid placement reported by `parametric.SurfaceMapping`. Unlike
+  under a placement that keeps lengths (S4), reported by
+  `parametric.SurfaceMapping`. Unlike
   an edge (S3), a face is recognized by its surface value, through these
   exported types and accessors, because nothing next to a face determines
   its carrier. A face stored as any other evaluator is outside the class
@@ -120,12 +122,26 @@ formats.
   through a surface. The carrier of an edge is derived by I5. Collapsed
   edges (nil curve, equal end vertices) are accepted only as the pole of a
   polar plane chart and carry no geometry into the arrangement.
-- S4. A placement is rigid when its linear part M satisfies
-  ‖MᵀM − I‖∞ × L ≤ ε and det M > 0, with L and ε of T1. Within this bound
-  the placed surface differs from a true plane or circular cylinder by no
-  more than about ε over the operands, and the carrier is built from M
-  with its columns made orthonormal. A placement outside the bound, such
-  as a non-uniform scaling, makes the face `ErrUnsupported` (S5).
+- S4. A placement keeps lengths when its linear part M satisfies
+  ‖MᵀM − I‖∞ × L ≤ ε, with L and ε of T1. Within this bound the placed
+  surface differs from a true plane or circular cylinder by no more than
+  about ε over the operands, and the carrier is built from M with its
+  columns made orthonormal. A placement outside the bound, such as a
+  non-uniform scaling, makes the face `ErrUnsupported` (S5).
+
+  A placement that reflects (det M < 0) is accepted on the same bound
+  (RL-28). `trimmed.Solid.Transformed` leaves a mirrored solid in that
+  form: every surface under the reflecting
+  placement, every face with its orientation flag turned, and the loops
+  as they were in the chart of the stored surface. The carrier of such a
+  face is the plane or cylinder in the frame on the images of the origin,
+  the x axis and the z axis of the stored frame. The normal of that
+  carrier is against the normal of the placed surface, and its chart runs
+  the other way round. Intake therefore reads the orientation of the face
+  turned once more and takes each loop backwards, each use with its
+  direction turned, so that the loop is a chain in the chart of the
+  carrier (I3) with the face on its left, as every other loop is.
+  Nothing after intake tells such a face from any other.
 - S5. An operand outside S1 to S4 is rejected with `ErrUnsupported` naming
   the first offending face or edge index, except where I5 names another
   error for an edge. Embedding (S1, no self-intersection)
@@ -1716,12 +1732,12 @@ Not acceptance cases, with the reason:
   tool tangent to a hole and the same tool 1e-15 away, which are one
   input at the working tolerance and get one outcome, while the record
   expects two.
-- An operand with a placement that is not rigid (S4, RL-19). The stock of
-  row T1-041 is a STEP import whose faces carry such a placement, so it
-  is outside the input class.
+- No row is excluded for a placement since RL-28. Row T1-041 mirrors a
+  notched stock with the `transform` request and cuts it again; RL-19
+  excluded it while S4 required det M > 0.
 
-  With T1-009, T1-091 and T1-041 excluded, 89 of the 92 frozen Tier 1
-  rows are in scope.
+  With T1-009 and T1-091 excluded, 90 of the 92 frozen Tier 1 rows are
+  in scope.
 
 ### 15.3 How a case is checked
 
@@ -2272,6 +2288,15 @@ Rulings of 2026-11-19, as the trial came to its closing state:
   One limit is recorded with the rows: a blind floor strictly inside
   the band of the smaller of the two crossing ellipses is refused in
   some arrangements.
+- RL-28. A placement that reflects is accepted. This amends S2 and S4
+  and withdraws the part of RL-19 that excluded T1-041. On 2026-11-20
+  the owner asked for it, after a run of the bridge tests with the general Boolean first
+  found that a general result mirrored by the `transform` request was
+  refused as stock. The change is at intake alone. T1-041 is in scope:
+  every checked response agrees, with the largest error 1.6e-16 in
+  volume and in area, and the row takes 2.8 to 2.9 seconds alone, so it
+  is listed for its time under A7 as T2-007 and T2-013 are. Whether that
+  listing stands is the owner's to confirm.
 
 ## 20. Open items
 

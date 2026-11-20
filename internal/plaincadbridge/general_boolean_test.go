@@ -102,6 +102,44 @@ func TestGeneralBooleanAdapter(t *testing.T) {
 	})
 }
 
+// TestGeneralMirroredStock cuts a general result that the transform
+// request has reflected (S4): a box with a side notch off its middle,
+// mirrored and moved, and then a blind bore. On the default bridge no
+// legacy path takes a general result as stock, so the fallback answers.
+func TestGeneralMirroredStock(t *testing.T) {
+	notched := 3200 - 6*(9*math.Pi-9*math.Acos(1./3)+math.Sqrt(8))
+	for name, open := range map[string]func() *Bridge{"general": newGeneral, "default": New} {
+		t.Run(name, func(t *testing.T) {
+			b := open()
+			stock := box(t, b, vector{}, vector{20, 20, 8})
+			notch := circle(t, b, vector{6, 1, 0}, vector{0, 0, 1}, 3, 6)
+			cut := general(t, b, "cut", stock, notch)
+			near(t, cut.GeometryAssertions.Volume, notched)
+			moved := shape(t, b, map[string]any{"op": "transform", "handle": cut.Handle, "matrix": [][]float64{{-1, 0, 0, 30}, {0, 1, 0, 2}, {0, 0, 1, 0}}})
+			near(t, moved.GeometryAssertions.Volume, notched)
+			near(t, moved.GeometryAssertions.SurfaceArea, cut.GeometryAssertions.SurfaceArea)
+			tool := circle(t, b, vector{25, 12, 0}, vector{0, 0, 1}, 2, 3)
+			var bored Shape
+			if name == "default" {
+				bored = declined(t, b, "", "cut", moved.Handle, tool.Handle)
+			} else {
+				bored = shape(t, b, map[string]any{"op": "cut", "a": moved.Handle, "b": tool.Handle})
+			}
+			near(t, bored.GeometryAssertions.Volume, notched-12*math.Pi)
+			near(t, bored.GeometryAssertions.SurfaceArea, moved.GeometryAssertions.SurfaceArea+12*math.Pi)
+			if bored.Bounds != (Bounds{Min: vector{10, 2, 0}, Max: vector{30, 22, 8}}) || bored.GeometryAssertions.SolidCount != 1 {
+				t.Fatal(bored)
+			}
+			// The notch is where the mirror put it, at x = 24: a tool in
+			// it removes nothing. At x = 16, where the move alone would
+			// have put it, a tool removes the part of its disk that lies
+			// in the stock, through its depth.
+			near(t, overlapMeasure(t, b, bored.Handle, circle(t, b, vector{24, 3, 0}, vector{0, 0, 1}, 2, 6).Handle), 0)
+			near(t, overlapMeasure(t, b, bored.Handle, circle(t, b, vector{16, 3, 0}, vector{0, 0, 1}, 2, 6).Handle), 16*math.Pi+6*math.Sqrt(3))
+		})
+	}
+}
+
 // TestGeneralBooleanTransform covers the one change to the transform
 // request (RL-2): a result with a sealed void is moved and published
 // again, with its measures, its solid count and the bounds of its
