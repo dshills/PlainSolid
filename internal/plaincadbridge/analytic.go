@@ -6,6 +6,7 @@ import (
 	"math"
 	"slices"
 
+	"plainsolid/brep"
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/exchange/step"
@@ -50,6 +51,44 @@ type analyticBody struct {
 	// general marks a body that putGeneral published: a result of the
 	// general Boolean, or a boundary read from STEP and passed through it.
 	general bool
+	// bores is set on a general body that is planar stock less cylinders.
+	bores *boreHistory
+}
+
+// boreHistory is what a result of the general Boolean was cut from, where
+// that is planar stock and cylinders only: the stock, and every cylinder
+// in the order it was cut. The legacy bore engine builds a body from just
+// these (newBore), so a further cylinder that the general Boolean cannot
+// cut from the result, such as one that crosses a bore askew, is still
+// cut (legacyStock).
+type boreHistory struct {
+	base      brep.Solid
+	cylinders []*cylinderBody
+}
+
+// with is the history after further cylinders.
+func (h *boreHistory) with(tools []stored) *boreHistory {
+	out := &boreHistory{base: h.base, cylinders: append([]*cylinderBody(nil), h.cylinders...)}
+	for _, c := range tools {
+		out.cylinders = append(out.cylinders, c.cylinder)
+	}
+	return out
+}
+
+// transformed moves the stock and the cylinders. A history that cannot be
+// moved is dropped: the body is then cut by the general Boolean alone.
+func (h *boreHistory) transformed(m geom.Affine) *boreHistory {
+	base, err := h.base.Transformed(m)
+	if err != nil {
+		return nil
+	}
+	out := &boreHistory{base: base, cylinders: make([]*cylinderBody, len(h.cylinders))}
+	for i, c := range h.cylinders {
+		if out.cylinders[i], err = c.transformed(m); err != nil {
+			return nil
+		}
+	}
+	return out
 }
 
 func (b *Bridge) putAnalytic(s trimmed.Solid, volume, area float64) (Shape, error) {
@@ -168,6 +207,9 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	if m != geom.Identity() {
 		// Original STEP entities describe their original world placement.
 		out.stepRevolution = nil
+	}
+	if a.bores != nil {
+		out.bores = a.bores.transformed(m)
 	}
 	if len(a.polygonExtrema) != 0 {
 		out.polygonExtrema = make([]geom.Vec3, len(a.polygonExtrema))

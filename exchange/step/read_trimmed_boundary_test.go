@@ -169,7 +169,7 @@ func TestReadTrimmedBoundaryRefusals(t *testing.T) {
 func TestReadTrimmedBoundaryCrossingBores(t *testing.T) {
 	type bores struct {
 		name          string
-		stock         geom.Vec3
+		min, max      geom.Vec3
 		first, second trimmed.Solid
 	}
 	var cases []bores
@@ -180,7 +180,7 @@ func TestReadTrimmedBoundaryCrossingBores(t *testing.T) {
 		if sign < 0 {
 			name = "oblique bore that falls"
 		}
-		cases = append(cases, bores{name + ", cut first", geom.Vec3{X: 20, Y: 16, Z: 40}, oblique, upright}, bores{name + ", cut second", geom.Vec3{X: 20, Y: 16, Z: 40}, upright, oblique})
+		cases = append(cases, bores{name + ", cut first", geom.Vec3{}, geom.Vec3{X: 20, Y: 16, Z: 40}, oblique, upright}, bores{name + ", cut second", geom.Vec3{}, geom.Vec3{X: 20, Y: 16, Z: 40}, upright, oblique})
 	}
 	for _, depth := range []float64{4.8, 6, 7.2} {
 		for _, from := range []float64{0, 12} {
@@ -192,12 +192,17 @@ func TestReadTrimmedBoundaryCrossingBores(t *testing.T) {
 			through := boundaryCylinder(t, geom.Vec3{Y: 8, Z: 6}, geom.Vec3{X: 1}, 2, 20)
 			blind := boundaryCylinder(t, geom.Vec3{X: 10, Y: 8, Z: from}, along, 2, depth)
 			name = fmt.Sprintf("%s at depth %g", name, depth)
-			cases = append(cases, bores{name + ", through bore first", geom.Vec3{X: 20, Y: 16, Z: 12}, through, blind}, bores{name + ", blind bore first", geom.Vec3{X: 20, Y: 16, Z: 12}, blind, through})
+			cases = append(cases, bores{name + ", through bore first", geom.Vec3{}, geom.Vec3{X: 20, Y: 16, Z: 12}, through, blind}, bores{name + ", blind bore first", geom.Vec3{}, geom.Vec3{X: 20, Y: 16, Z: 12}, blind, through})
 		}
 	}
+	// A pair along other coordinate axes. Read back, a midpoint of a seed
+	// of one wall lands on a vertex of its trim at the least level of
+	// trimmed.NewSolid's validation, and the solid is accepted at the next.
+	cases = append(cases, bores{"bores along x, the oblique one cut first", geom.Vec3{X: 4, Y: -8, Z: 16}, geom.Vec3{X: 74, Y: 8, Z: 36},
+		boundaryCylinder(t, geom.Vec3{X: 15, Z: 8}, geom.Vec3{X: 4, Z: 3}, 2, 150), boundaryCylinder(t, geom.Vec3{X: 2, Z: 26}, geom.Vec3{X: 1}, 2, 74)})
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			one, err := boolean.Combine(context.Background(), boundaryBox(t, geom.Vec3{}, c.stock), c.first, boolean.Cut, boundaryOptions)
+			one, err := boolean.Combine(context.Background(), boundaryBox(t, c.min, c.max), c.first, boolean.Cut, boundaryOptions)
 			if err != nil {
 				t.Fatal(err)
 			}

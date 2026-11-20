@@ -117,6 +117,27 @@ func planarFace(t *testing.T, b *Bridge, handle string, origin, normal vector) (
 	return reply.Result, nil
 }
 
+// sameSTEP requires two STEP exports to state one solid: each is read
+// back on the bridge, and the two shapes agree within the tolerance of
+// A3. Two results of the general Boolean that are one solid differ in the
+// last digits of their coordinates and in the order of their entities
+// with the order they were cut in, and so do a file and the export of
+// what was read from it; such files are not the same byte for byte.
+func sameSTEP(t *testing.T, b *Bridge, x, y stepExport) {
+	t.Helper()
+	var read [2]Shape
+	for i, file := range [2]stepExport{x, y} {
+		source, err := base64.StdEncoding.DecodeString(file.Base64)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if read[i], err = b.importSTEP(string(source)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	sameShape(t, read[0], read[1])
+}
+
 // legacy publishes, on a default bridge, what the legacy paths alone give
 // for a Boolean. A test whose subject is a legacy function builds its stock
 // with it, so that the stock is in the legacy representation whichever path

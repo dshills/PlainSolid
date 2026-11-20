@@ -26,8 +26,12 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 	if b.general {
 		return generalOverlapVolume(context.Background(), a, c)
 	}
+	general := func() (any, error) { return generalOverlapVolume(context.Background(), a, c) }
+	if !b.legacy && generalFirst("overlapVolume", a, c) {
+		return orLegacy(general, func() (any, error) { return legacyOverlapVolume(legacyStock(a), legacyStock(c)) })
+	}
 	result, err := legacyOverlapVolume(a, c)
-	return orGeneral(result, err, func() (any, error) { return generalOverlapVolume(context.Background(), a, c) })
+	return orGeneral(result, err, general)
 }
 
 // legacyOverlapVolume is overlapVolume by the proofs that each take one

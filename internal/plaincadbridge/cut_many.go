@@ -24,8 +24,12 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 	if b.general {
 		return b.generalCutMany(context.Background(), a, tools)
 	}
+	general := func() (Shape, error) { return b.generalCutMany(context.Background(), a, tools) }
+	if cutters, ok := b.all(tools); ok && !b.legacy && generalFirst("cutMany", a, cutters...) {
+		return orLegacy(general, func() (Shape, error) { return b.legacyCutMany(legacyStock(a), tools) })
+	}
 	result, err := b.legacyCutMany(a, tools)
-	return orGeneral(result, err, func() (Shape, error) { return b.generalCutMany(context.Background(), a, tools) })
+	return orGeneral(result, err, general)
 }
 
 // legacyCutMany is cutMany by the paths that each take one family of stock.

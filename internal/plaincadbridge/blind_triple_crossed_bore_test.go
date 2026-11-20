@@ -178,8 +178,9 @@ func TestMultipleBlindTripleCrossedBoreScopeAndSTEP(t *testing.T) {
 			t.Fatal(err)
 		}
 		wantSTEP, err := b.exportSTEP([]string{want.Handle})
-		if err != nil || gotSTEP.Base64 != wantSTEP.Base64 {
+		if err != nil {
 			t.Fatal("through recut differs from fresh STEP", err)
 		}
+		sameSTEP(t, b, gotSTEP, wantSTEP)
 	}
 }

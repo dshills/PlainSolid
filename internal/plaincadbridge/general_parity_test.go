@@ -14,7 +14,7 @@ import (
 func generalParityParts(t *testing.T, min, max, origin, axis vector, radius, height float64) (legacy, general stored) {
 	t.Helper()
 	var parts [2]stored
-	for i, b := range []*Bridge{New(), newGeneral()} {
+	for i, b := range []*Bridge{newLegacy(), newGeneral()} {
 		stock := box(t, b, min, max)
 		tool := circle(t, b, origin, axis, radius, height)
 		cut := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": tool.Handle})

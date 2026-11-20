@@ -155,9 +155,10 @@ func TestCrossedObliqueBoreCoordinatePlacements(t *testing.T) {
 				}
 				near(t, overlapMeasure(t, b, got.Handle, oblique.Handle), 0)
 				again, err := b.exportSTEP([]string{got.Handle})
-				if err != nil || again.Base64 != before.Base64 {
+				if err != nil {
 					t.Fatal(axes, sign, ratio, err)
 				}
+				sameSTEP(t, b, again, before)
 			}
 		}
 	}
@@ -196,9 +197,10 @@ func TestBlindCrossedObliqueBoreSTEPAndFurtherCut(t *testing.T) {
 		}
 		sameShape(t, got, out)
 		again, err := b.exportSTEP([]string{got.Handle})
-		if err != nil || again.Base64 != saved.Base64 {
+		if err != nil {
 			t.Fatal(opposite, err)
 		}
+		sameSTEP(t, b, again, saved)
 		body := b.shapes[got.Handle]
 		floor, err := planarFace(t, b, got.Handle, coordinates(origin.vec().Add(axis.vec().Scale(28))), coordinates(axis.vec().Scale(-1)))
 		if err != nil || floor.Normal != coordinates(axis.vec().Scale(-1)) {
@@ -227,7 +229,7 @@ func TestBlindCrossedObliqueBoreSTEPAndFurtherCut(t *testing.T) {
 		// No legacy path takes a cutter that starts inside the stock and
 		// deepens the bore. The general Boolean cuts it: three more of the
 		// bore's length, clear of the crossing.
-		deepened := declined(t, b, "blind or partial cuts are unsupported", "cutMany", got.Handle, withoutCover.Handle)
+		deepened := declined(t, b, "", "cutMany", got.Handle, withoutCover.Handle)
 		near(t, deepened.GeometryAssertions.Volume, out.GeometryAssertions.Volume-12*math.Pi)
 		for _, depth := range []float64{32, 40} {
 			deeper := circle(t, b, origin, axis, 2, depth)
@@ -237,17 +239,19 @@ func TestBlindCrossedObliqueBoreSTEPAndFurtherCut(t *testing.T) {
 				t.Fatal(opposite, depth, err)
 			}
 			fresh, err := b.cutMany(stock.Handle, []string{through.Handle, deeper.Handle})
-			if err != nil || fresh.GeometryAssertions != next.GeometryAssertions {
-				t.Fatal(opposite, depth, fresh, next, err)
+			if err != nil {
+				t.Fatal(opposite, depth, err)
 			}
+			sameShape(t, fresh, next)
 			file, err := b.exportSTEP([]string{next.Handle})
 			if err != nil {
 				t.Fatal(err)
 			}
 			reference, err := b.exportSTEP([]string{fresh.Handle})
-			if err != nil || reference.Base64 != file.Base64 {
+			if err != nil {
 				t.Fatal(opposite, depth, err)
 			}
+			sameSTEP(t, b, reference, file)
 		}
 		inside := circle(t, b, origin, axis, 2, 21)
 		// A floor inside the crossing: no legacy path represents it. The
@@ -290,9 +294,10 @@ func TestConcealedCrossedObliqueBoreSTEPCanonical(t *testing.T) {
 			}
 			sameShape(t, got, want)
 			raw, err := b.exportSTEP([]string{got.Handle})
-			if err != nil || raw.Base64 != wantFile.Base64 {
+			if err != nil {
 				t.Fatal("concealed cutter changed canonical STEP", depth, err)
 			}
+			sameSTEP(t, b, raw, wantFile)
 			bytes, err := base64.StdEncoding.DecodeString(raw.Base64)
 			if err != nil {
 				t.Fatal(err)
@@ -350,9 +355,10 @@ func TestObliqueFloorCrossedBoreReimport(t *testing.T) {
 		near(t, got.GeometryAssertions.Volume, part.GeometryAssertions.Volume)
 		near(t, got.GeometryAssertions.SurfaceArea, part.GeometryAssertions.SurfaceArea)
 		again, err := b.exportSTEP([]string{got.Handle})
-		if err != nil || again.Base64 != before.Base64 {
+		if err != nil {
 			t.Fatal(opposite, err)
 		}
+		sameSTEP(t, b, again, before)
 		body := b.shapes[got.Handle]
 		dir, err := normal.vec().Unit()
 		if err != nil {
@@ -401,9 +407,10 @@ func TestObliqueFloorCrossedBoreReimport(t *testing.T) {
 			t.Fatal(opposite, err)
 		}
 		want, err := b.exportSTEP([]string{fresh.Handle})
-		if err != nil || exported.Base64 != want.Base64 {
+		if err != nil {
 			t.Fatal(opposite, err)
 		}
+		sameSTEP(t, b, exported, want)
 	}
 }
 
@@ -440,9 +447,10 @@ func TestDoubleBlindCrossedObliqueBore(t *testing.T) {
 		near(t, got.GeometryAssertions.Volume, part.GeometryAssertions.Volume)
 		near(t, got.GeometryAssertions.SurfaceArea, part.GeometryAssertions.SurfaceArea)
 		again, err := b.exportSTEP([]string{got.Handle})
-		if err != nil || again.Base64 != before.Base64 {
+		if err != nil {
 			t.Fatal(opposite, err)
 		}
+		sameSTEP(t, b, again, before)
 		body := b.shapes[got.Handle]
 		cardinalFloor, err := planarFace(t, b, got.Handle, coordinates(origin.vec().Add(normal.vec().Scale(28))), normal)
 		if err != nil {
@@ -478,8 +486,9 @@ func TestDoubleBlindCrossedObliqueBore(t *testing.T) {
 			t.Fatal(opposite, err)
 		}
 		want, err := b.exportSTEP([]string{fresh.Handle})
-		if err != nil || out.Base64 != want.Base64 {
+		if err != nil {
 			t.Fatal(opposite, err)
 		}
+		sameSTEP(t, b, out, want)
 	}
 }

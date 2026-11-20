@@ -817,3 +817,16 @@ require STEP bytes, the 9 that test the fallback itself,
 `TestPlainCADModeledThreadNative` under OD-10 and
 `TestSkewCrossedBoreScopeAndSTEP` under OD-2.
 
+The plain bores have since moved (OD-11), and that list is closed. On
+the default bridge a cut of cylinders from planar stock, and any request
+on a result of it, goes to the general Boolean first. Eleven of the 12
+tests that required STEP bytes compare what the files read back to; the
+twelfth, `TestFullTubeSTEPAndCoaxialCut`, cuts a cylinder, stays with
+its legacy path and is unchanged. The 9 that
+test the fallback run on a bridge whose legacy paths answer first.
+`TestPlainCADModeledThreadNative` passes, since the socket cut is not of
+planar stock. `TestSkewCrossedBoreScopeAndSTEP` passes, the legacy bore
+engine cutting the second bore from the history of the first. The trace
+replay on the legacy paths, `TestGeneralBooleanTraces`, runs on the
+legacy-first bridge and is unchanged.
+

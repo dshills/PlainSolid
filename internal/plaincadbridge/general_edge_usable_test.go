@@ -147,7 +147,7 @@ func TestGeneralTreatmentAgreesWithLegacy(t *testing.T) {
 			[2]vector{{0, 0, 10}, {20, 0, 10}}, [2]vector{{20, 0, 10}, {20, 20, 10}}, [2]vector{{20, 20, 10}, {0, 20, 10}}, [2]vector{{0, 20, 10}, {0, 0, 10}})}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			b := New()
+			b := newLegacy()
 			stock := c.stock(t, b)
 			if body := b.shapes[stock.Handle].analytic; body != nil && b.generalResult(body) {
 				t.Fatal("the stock is a general result already: no legacy path treats it")

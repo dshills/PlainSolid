@@ -102,9 +102,10 @@ func TestObliqueThroughBoreScopeAndSTL(t *testing.T) {
 			near(t, imported.GeometryAssertions.Volume, wantVolume)
 			near(t, imported.GeometryAssertions.SurfaceArea, wantArea)
 			again, err := bridge.exportSTEP([]string{imported.Handle})
-			if err != nil || again.Base64 != stepModel.Base64 {
+			if err != nil {
 				t.Fatalf("oblique bore re-export changed the STEP graph: %v", err)
 			}
+			sameSTEP(t, bridge, again, stepModel)
 			var parsed struct{ Base64 string }
 			out := invoke(t, bridge, map[string]any{"op": "stl", "handle": cut.Handle, "linearDeflection": 0.02, "angularDeflection": 0.2})
 			if err := json.Unmarshal(out, &parsed); err != nil {

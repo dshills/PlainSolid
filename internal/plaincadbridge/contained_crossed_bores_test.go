@@ -36,9 +36,10 @@ func TestContainedCrossedBores(t *testing.T) {
 		t.Fatal(err)
 	}
 	other, err := b.exportSTEP([]string{baseOpen.Handle})
-	if err != nil || first.Base64 != other.Base64 {
+	if err != nil {
 		t.Fatal(err)
 	}
+	sameSTEP(t, b, first, other)
 	if _, err := b.cutMany(deeper.Handle, []string{short.Handle, blind.Handle}); err == nil {
 		t.Fatal("redundant set did not reject")
 	}

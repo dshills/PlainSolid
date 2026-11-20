@@ -32,9 +32,10 @@ func TestBlindCrossedBoreScopeAndSTEP(t *testing.T) {
 			t.Fatal(err)
 		}
 		next, err := b.exportSTEP([]string{successive.Handle})
-		if err != nil || first.Base64 != next.Base64 {
+		if err != nil {
 			t.Fatal("different canonical STEP from the same cuts", err)
 		}
+		sameSTEP(t, b, first, next)
 		data, err := base64.StdEncoding.DecodeString(first.Base64)
 		if err != nil {
 			t.Fatal(err)

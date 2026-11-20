@@ -189,7 +189,7 @@ func TestGeneralBooleanFoundation(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			b := New()
+			b := newLegacy()
 			var reported Shape
 			for _, request := range tc.requests {
 				var reply generalBooleanReply
@@ -288,7 +288,7 @@ func TestGeneralBooleanPublication(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			b := New()
+			b := newLegacy()
 			var legacy Shape
 			for _, request := range tc.requests {
 				call(t, b, request, &legacy)

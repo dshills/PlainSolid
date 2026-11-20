@@ -18,6 +18,16 @@ func newGeneral() *Bridge {
 	return b
 }
 
+// newLegacy is the constructor of a bridge on which the legacy paths
+// answer every request first and the general Boolean only where they
+// decline, which was the default bridge before the plain bores moved.
+// The tests of a legacy path, and of the fallback from one, use it.
+func newLegacy() *Bridge {
+	b := New()
+	b.legacy = true
+	return b
+}
+
 // answer is a response as a test reads it.
 type answer struct {
 	OK     bool     `json:"ok"`

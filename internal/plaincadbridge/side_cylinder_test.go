@@ -214,7 +214,7 @@ func TestSideNotchMixedBoreBatchIsAtomic(t *testing.T) {
 
 func TestSideNotchRetainsConnectedCoaxialCuts(t *testing.T) {
 	for _, origin := range []vector{{10, 1, 0}, {0, 0, 0}} {
-		b := New()
+		b := newLegacy()
 		stock := box(t, b, vector{}, vector{20, 20, 12})
 		lower := circle(t, b, origin, vector{0, 0, 1}, 3, 5)
 		middle := circle(t, b, vector{origin[0], origin[1], 4}, vector{0, 0, 1}, 3, 5)

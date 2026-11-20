@@ -14,10 +14,12 @@ import (
 	"plainsolid/geom"
 )
 
+// The subject is the legacy side-opening family, its recipe and its STEP
+// product, so the bridge is one whose legacy paths answer first.
 func TestPlainCADSideOpenDualDiskCuts(t *testing.T) {
 	slowtest.Skip(t)
 	for _, depth := range []float64{3, 6} {
-		bridge := New()
+		bridge := newLegacy()
 		stock := box(t, bridge, vector{0, 4, 0}, vector{10, 10, 6})
 		left := circle(t, bridge, vector{3.5, 4, 6}, vector{0, 0, -1}, 2.5, depth)
 		// Reversed drill direction, but the same clipped axial interval.
@@ -235,10 +237,12 @@ func TestPlainCADSideOpeningFallbackAtNonbinaryCrossing(t *testing.T) {
 	}
 }
 
+// The subject is the legacy side-opening family, its recipe and its STEP
+// product, so the bridge is one whose legacy paths answer first.
 func TestPlainCADExactWallSideOpenDualDisk(t *testing.T) {
 	slowtest.Skip(t)
 	for _, depth := range []float64{3, 6} {
-		b := New()
+		b := newLegacy()
 		stock := box(t, b, vector{}, vector{50, 22, 6})
 		a := circle(t, b, vector{20, 0, 0}, vector{0, 0, 1}, 13, depth)
 		c := circle(t, b, vector{24, 0, 0}, vector{0, 0, 1}, 15, depth)
@@ -286,10 +290,12 @@ func TestPlainCADExactWallSideOpenDualDisk(t *testing.T) {
 	}
 }
 
+// The subject is the legacy side-opening family, its recipe and its STEP
+// product, so the bridge is one whose legacy paths answer first.
 func TestPlainCADOffsetSideOpenDualDisk(t *testing.T) {
 	slowtest.Skip(t)
 	for i, depth := range []float64{3, 6} {
-		b := New()
+		b := newLegacy()
 		stock := box(t, b, vector{}, vector{40, 10, 6})
 		a := circle(t, b, vector{12.5, -7.5, 0}, vector{0, 0, 1}, 65.0/8, depth)
 		c := circle(t, b, vector{22, -7.5, depth}, vector{0, 0, -1}, 87.0/8, depth)
@@ -329,10 +335,12 @@ func TestPlainCADOffsetSideOpenDualDisk(t *testing.T) {
 	}
 }
 
+// The subject is the legacy side-opening family, its recipe and its STEP
+// product, so the bridge is one whose legacy paths answer first.
 func TestPlainCADUnequalCenterSideOpenDualDisk(t *testing.T) {
 	slowtest.Skip(t)
 	for i, depth := range []float64{3, 6} {
-		b := New()
+		b := newLegacy()
 		stock := box(t, b, vector{}, vector{60, 10, 6})
 		a := circle(t, b, vector{7, -3, 0}, vector{0, 0, 1}, 5, depth)
 		c := circle(t, b, vector{30, -20, depth}, vector{0, 0, -1}, 29, depth)

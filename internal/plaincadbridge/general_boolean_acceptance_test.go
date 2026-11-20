@@ -272,7 +272,20 @@ func generalBooleanDisplay(result json.RawMessage, stl bool, shapes map[string]A
 // response with its record (A2 to A4). It logs the accuracy each row
 // achieves (A8) and its elapsed time (A7). A row in the bridge pending
 // list is expected to fail (K7).
-func TestGeneralBooleanAcceptance(t *testing.T) {
+func TestGeneralBooleanAcceptance(t *testing.T) { generalBooleanAcceptanceOn(t, newGeneral, false) }
+
+// TestDefaultBridgeAcceptance replays the same rows on the default bridge,
+// where the general Boolean answers plain bores and what follows from
+// them first and the legacy paths answer the rest (OD-11), and holds
+// every checked response to the same comparison with its record. A row
+// that the pending list excludes for the general Boolean may pass here,
+// where a legacy path still answers it.
+func TestDefaultBridgeAcceptance(t *testing.T) { generalBooleanAcceptanceOn(t, New, true) }
+
+// generalBooleanAcceptanceOn replays every acceptance row on bridges that
+// open makes. A row in the pending list that passes is an error unless
+// listedMayPass is set.
+func generalBooleanAcceptanceOn(t *testing.T, open func() *Bridge, listedMayPass bool) {
 	rows, pending, refusals := generalBooleanRows(t), generalBooleanPending(t), generalBooleanRefusals(t)
 	for _, tier := range []string{"T1", "T2"} {
 		t.Run(tier, func(t *testing.T) {
@@ -289,7 +302,7 @@ func TestGeneralBooleanAcceptance(t *testing.T) {
 					t.Parallel()
 					start := time.Now()
 					a := generalBooleanAcceptance{volumes: map[string]Assertions{}}
-					replay := generalBooleanReplay{open: newGeneral}
+					replay := generalBooleanReplay{open: open}
 					for line, step := range loadGeneralBooleanTrace(t, row.function) {
 						reply, issued := replay.issue(t, step)
 						if step.New || !issued {
@@ -335,6 +348,8 @@ func TestGeneralBooleanAcceptance(t *testing.T) {
 						t.Errorf("%s: %d checked responses differ; first: %s\nkinds %s: %s", row.id, a.failed, a.first, row.id, strings.Join(a.kinds, " ;; "))
 					case listed && strings.HasPrefix(reason, "time over two seconds"):
 						t.Logf("pending %s: listed for its time, and took %.2fs in this run", row.id, elapsed.Seconds())
+					case listed && listedMayPass:
+						t.Logf("%s is in the pending list and passes on this bridge", row.id)
 					case listed:
 						t.Errorf("%s is in the pending list and passes", row.id)
 					case slow:

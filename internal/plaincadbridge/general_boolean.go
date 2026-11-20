@@ -45,7 +45,47 @@ func (b *Bridge) generalBoolean(ctx context.Context, a, c stored, op string) (Sh
 	if err != nil {
 		return Shape{}, err
 	}
+	if op == "cut" {
+		return b.putGeneralBores(r, generalHistory(a, c))
+	}
 	return b.putGeneral(r)
+}
+
+// generalHistory is the bore history of a cut by the general Boolean: of
+// planar stock, or of a result with a history, by cylinders only. Any
+// other cut has none.
+func generalHistory(a stored, tools ...stored) *boreHistory {
+	for _, c := range tools {
+		if c.cylinder == nil {
+			return nil
+		}
+	}
+	switch {
+	case a.planar() && len(a.solid.Faces()) > 0:
+		return (&boreHistory{base: a.solid}).with(tools)
+	case a.analytic != nil && a.analytic.general && a.analytic.bores != nil:
+		return a.analytic.bores.with(tools)
+	}
+	return nil
+}
+
+// legacyStock is a stored shape as the legacy paths take it. A result of
+// the general Boolean with a bore history is the bore body that the
+// legacy engine builds from the stock and the cylinders of the history;
+// its measures stay the ones the result was published with. Any other
+// shape, and a history the engine does not build, is the shape itself.
+// It is used where the general Boolean has failed a request and a legacy
+// path is asked, so that a bore the general Boolean cannot cut, such as
+// one that crosses another askew, is still cut.
+func legacyStock(s stored) stored {
+	if s.analytic == nil || !s.analytic.general || s.analytic.bores == nil {
+		return s
+	}
+	body, err := newBore(s.analytic.bores.base, s.analytic.bores.cylinders)
+	if err != nil {
+		return s
+	}
+	return stored{bore: body, result: s.result}
 }
 
 // generalCut holds a cut to the contract that the bridge's cuts share:
@@ -167,10 +207,16 @@ func generalOperand(s stored) (trimmed.Solid, error) {
 // holds the result solid, with the volume and area that the general
 // Boolean reports for it. The adapter does not integrate the result.
 func (b *Bridge) putGeneral(r boolean.Result) (Shape, error) {
+	return b.putGeneralBores(r, nil)
+}
+
+// putGeneralBores is putGeneral for a cut, with the bore history of the
+// result where it has one.
+func (b *Bridge) putGeneralBores(r boolean.Result, history *boreHistory) (Shape, error) {
 	if r.Solids == 0 {
 		return b.put(brep.Solid{})
 	}
-	return b.publishGeneral(&analyticBody{solid: r.Solid, volume: r.Properties.Volume, area: r.Properties.Area, general: true}, r.Solids)
+	return b.publishGeneral(&analyticBody{solid: r.Solid, volume: r.Properties.Volume, area: r.Properties.Area, general: true, bores: history}, r.Solids)
 }
 
 // publishGeneral stores an analytic body of any number of shells. It
@@ -190,7 +236,7 @@ func (b *Bridge) publishGeneral(body *analyticBody, solids int) (Shape, error) {
 // generalBody reports whether an analytic body is a solid with its measures
 // and no recipe of a legacy path, which is what publishGeneral stores.
 func generalBody(body *analyticBody) bool {
-	plain := analyticBody{solid: body.solid, volume: body.volume, area: body.area, general: body.general}
+	plain := analyticBody{solid: body.solid, volume: body.volume, area: body.area, general: body.general, bores: body.bores}
 	v, w := reflect.ValueOf(*body), reflect.ValueOf(plain)
 	for i := range v.NumField() {
 		if v.Field(i).IsZero() != w.Field(i).IsZero() {
@@ -331,7 +377,7 @@ func (b *Bridge) generalCutMany(ctx context.Context, a stored, tools []string) (
 	if err := generalCut(ctx, before, r, a, cutters...); err != nil {
 		return Shape{}, err
 	}
-	return b.putGeneral(r)
+	return b.putGeneralBores(r, generalHistory(a, cutters...))
 }
 
 // inAnyOrder applies n steps, each once, and returns nil when all are
@@ -582,6 +628,50 @@ func generalFailure(err error) error {
 		return err
 	}
 	return &failureError{code, err.Error()}
+}
+
+// generalFirst reports whether the default bridge asks the general
+// Boolean before a legacy path (L3). It does for the family of plain
+// bores, which is a cut of cylinders from planar stock, and for any
+// request with a result of the general Boolean among its operands, which
+// no legacy path takes.
+func generalFirst(op string, a stored, others ...stored) bool {
+	moved := func(s stored) bool { return s.analytic != nil && s.analytic.general }
+	if moved(a) {
+		return true
+	}
+	bore := (op == "cut" || op == "cutMany") && a.planar() && len(a.solid.Faces()) > 0
+	for _, c := range others {
+		if moved(c) {
+			return true
+		}
+		bore = bore && c.cylinder != nil
+	}
+	return bore && len(others) > 0
+}
+
+// all gets the stored shapes of a list of handles, and reports whether
+// every handle has one.
+func (b *Bridge) all(ids []string) ([]stored, bool) {
+	out := make([]stored, len(ids))
+	for i, id := range ids {
+		s, err := b.get(id)
+		if err != nil {
+			return nil, false
+		}
+		out[i] = s
+	}
+	return out, true
+}
+
+// orLegacy is the default bridge where the general Boolean is asked
+// first. What it gives is the answer. Where it fails, a legacy path is
+// asked, and its answer or its error is the answer.
+func orLegacy[T any](general func() (T, error), legacy func() (T, error)) (T, error) {
+	if r, err := general(); err == nil {
+		return r, nil
+	}
+	return legacy()
 }
 
 // orGeneral is the fallback of the default bridge. A legacy path answers

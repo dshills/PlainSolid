@@ -456,9 +456,22 @@ func newSolidContext(ctx context.Context, vertices []geom.Vec3, edges []parametr
 		}
 	}
 	if validateDisplay {
-		if _, err := s.refine(ctx, s.minimumLevel, 0, 0); err != nil {
+		// The display is validated at the least level the trims allow. A
+		// fold there can be an accident of that level: a midpoint of a
+		// seed lands on a vertex of a curved trim, or a corner between
+		// two arcs is cut the wrong way round. Tessellate goes on to
+		// finer levels after a fold, so the validation does too, twice,
+		// and the solid then starts from the level that passed.
+		level := s.minimumLevel
+		_, err := s.refine(ctx, level, 0, 0)
+		for err == errTrimFold && level < s.minimumLevel+2 {
+			level++
+			_, err = s.refine(ctx, level, 0, 0)
+		}
+		if err != nil {
 			return Solid{}, err
 		}
+		s.minimumLevel = level
 	}
 	if usesRationalEndpoints(s) {
 		if err := validateNativeExactQuadratics(ctx, s); err != nil {

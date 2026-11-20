@@ -9,7 +9,8 @@ rulings; the others wait for the owner to confirm or reverse them. Section
 has been supported since 2026-11-19 (RL-27), by
 [the crossing specification](../general-boolean-crossing/SPEC.md), which
 amends sections 7.4, 7.5 and 12 here. Since 2026-11-20 a placement that
-reflects is accepted (S4, RL-28). This document is a specification only
+reflects is accepted (S4, RL-28), and the default bridge asks the general
+path first for plain bores (OD-11). This document is a specification only
 and contains no implementation.
 
 ## 1. Purpose
@@ -2143,6 +2144,49 @@ is open. Each entry states the decision and where this document applies it.
   to replace a complete cylinder face of any solid by a threaded band,
   which is a mechanism of `brep/trimmed` that no bridge operation needs
   while the socket cut stays where it is.
+- OD-11. The plain bores move to the general path. Decided on
+  2026-11-20. This ends the part of L3 and of OD-9 that kept the default
+  bridge on the legacy paths; the selector of L3 stays for the tests.
+
+  On the default bridge the general path is asked first for two kinds of
+  request, and a legacy path only where `Combine` or the adapter fails
+  it. The first is a `cut` or a `cutMany` of cylinders from planar
+  stock. The second is a `cut`, `fuse`, `common`, `cutMany` or
+  `overlapVolume` with a result of the general path among its operands,
+  which no legacy path takes. Every other request is answered as before:
+  a legacy path first, and the general path where that declines the
+  request as unsupported. A bridge built by a second test constructor
+  keeps that older order for every request, for the tests of the legacy
+  paths and of the fallback.
+
+  Where the general path fails a request it is asked first for, and the
+  legacy path fails it too, the response is the failure of the legacy
+  path. The `transform` request republishes a result of the general
+  path through the adapter on every bridge, of one shell or of several,
+  as L3 describes for the selected bridge. The baseline of A2 and A3 is
+  the frozen record of each row: the replay that checks the records
+  against the legacy paths runs on the legacy-first bridge, and the rows
+  are replayed against their records on the general bridge and on the
+  default bridge.
+
+  A result of the general path that is planar stock less cylinders keeps
+  that stock and those cylinders, in order, through `clone` and
+  `transform`. Where the general path fails a request on such a result,
+  the legacy path is given the bore body that the legacy bore engine
+  builds from them, with the measures the result was published with. So
+  a bore that the general path does not cut, one of another radius or
+  with an axis that passes the first's (OD-2), is still cut, and the
+  result is then a legacy bore body.
+
+  STEP files are not required to be byte for byte the same. Two results
+  of the general path that are one solid differ in the last digits of
+  their coordinates and in the order of their entities with the order
+  they were cut in, and so do a file and the export of what was read
+  from it. They are required to state one solid: read back, the shapes
+  agree within the tolerance of A3. The STEP products of the legacy bore
+  families, with their names, their units and the recipes they restore,
+  are written by a legacy bore body and not by a result of the general
+  path.
 
 ## 19. Rulings made under delegation
 

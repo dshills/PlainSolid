@@ -143,7 +143,7 @@ func TestOverlapVolumeAtFullHandleCapacity(t *testing.T) {
 }
 
 func TestOverlapVolumePreservesOrdinaryQueriesAndCommonGeometry(t *testing.T) {
-	b := New()
+	b := newLegacy()
 	base := box(t, b, vector{-4, -4, 0}, vector{4, 4, 8})
 	planar := box(t, b, vector{0, 0, 0}, vector{8, 8, 8})
 	near(t, overlapMeasure(t, b, base.Handle, planar.Handle), 128)

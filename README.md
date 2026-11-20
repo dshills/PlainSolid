@@ -38,7 +38,8 @@ revolutions, circular sweeps, and elliptical lofts and extrusions.
 planes and cylinders, accepted on validation within tolerance; cylinders
 whose axes are not parallel are taken where their radii are equal and their
 axes meet, and an operand may be a mirrored solid. The PlainCAD
-bridge asks it only where its own paths decline a request. `brep/blend`
+bridge asks it first for plain bores, which are cylinders cut from planar
+stock, and elsewhere where its own paths decline a request. `brep/blend`
 chamfers and fillets straight edges between planar faces of such a result,
 convex or concave, by cutting or uniting with the same Boolean. General curved Booleans, arbitrary
 curved trim boundaries and broad CAD exchange remain open. See the

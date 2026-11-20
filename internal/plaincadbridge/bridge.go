@@ -166,6 +166,10 @@ type Bridge struct {
 	// general selects the general Boolean of brep/boolean for this
 	// bridge. Only a test constructor sets it.
 	general bool
+	// legacy has the legacy paths answer every request first, also where
+	// generalFirst names the general Boolean. Only a test constructor
+	// sets it, for the tests of the legacy paths and of the fallback.
+	legacy bool
 }
 
 func New() *Bridge { return &Bridge{shapes: make(map[string]stored)} }
@@ -392,6 +396,11 @@ func (b *Bridge) execute(q request) (any, error) {
 		}
 		if b.general {
 			return b.generalBoolean(ctx, a, c, q.Op)
+		}
+		if !b.legacy && generalFirst(q.Op, a, c) {
+			return orLegacy(func() (any, error) { return b.generalBoolean(ctx, a, c, q.Op) }, func() (any, error) {
+				return b.legacyBoolean(ctx, legacyStock(a), legacyStock(c), q.Op)
+			})
 		}
 		result, err := b.legacyBoolean(ctx, a, c, q.Op)
 		return orGeneral(result, err, func() (any, error) { return b.generalBoolean(ctx, a, c, q.Op) })
