@@ -1364,6 +1364,19 @@ the sources come from and that each is a face of the wall:
   volumes and the solid count of results and do not depend on the family
   of the operands (PC2).
 
+  Where a cut passes that measure and the two volumes differ by no more
+  than ε × the area of the result, the volumes do not settle it (RL-29):
+  a boundary known to ε accounts for a difference of that size. The
+  adapter then asks `Combine` for the common of the body and each tool.
+  The cut fails as one that removes no material when every common is the
+  empty solid. It stands when a common has a solid, and when `Combine`
+  returns an error for a common, since the volumes are then the only
+  evidence. The case this rule is for is a tool with a face within ε of a
+  face of the body (C24): the result is measured as built, with the wall
+  of the tool ending where the tool ended, and the same tool cut again
+  finds a volume that differs by the gap times the area of the wall's
+  end.
+
   Mass properties in a fold (RL-10). Each step passes, as the known mass
   properties of its first operand, the volume and the area that the
   result of the step before reported, so that an intermediate solid is
@@ -2297,6 +2310,14 @@ Rulings of 2026-11-19, as the trial came to its closing state:
   volume and in area, and the row takes 2.8 to 2.9 seconds alone, so it
   is listed for its time under A7 as T2-007 and T2-013 are. Whether that
   listing stands is the owner's to confirm.
+- RL-29. A cut that removes nothing, where the volumes differ within
+  tolerance. This adds to RL-15. On 2026-11-20 the owner asked for it,
+  after a run of the bridge tests with the general Boolean first found
+  that a tool cut a second time from a bore whose floor was within ε of
+  the far face was published as removing 1e-7 of volume. Section 12 has
+  the rule: where the volumes differ by no more than ε × the area of the
+  result, the common of the body and the tools decides. `joinAll`,
+  which must add volume, has not been looked at for the same case.
 
 ## 20. Open items
 

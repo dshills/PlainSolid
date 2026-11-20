@@ -140,6 +140,51 @@ func TestGeneralMirroredStock(t *testing.T) {
 	}
 }
 
+// TestGeneralCutRemovesMaterial holds the cuts of the general bridge to
+// the contract that a cut removes material, where the volumes alone
+// cannot tell. A bore whose floor is within tolerance of the far face is
+// cut through, and its wall ends where the tool ended, 5e-8 short; the
+// same tool again finds 1e-7 of volume more than the first result
+// reported and removes none. A tool a hundredth across removes less than
+// the working tolerance times the area of the stock, and removes it.
+func TestGeneralCutRemovesMaterial(t *testing.T) {
+	b := newGeneral()
+	base := box(t, b, vector{-4, -4, 0}, vector{4, 4, 8})
+	tool := circle(t, b, vector{0, 0, 0}, vector{0, 0, 1}, 1, 8-5e-8)
+	bored := shape(t, b, map[string]any{"op": "cut", "a": base.Handle, "b": tool.Handle})
+	near(t, bored.GeometryAssertions.Volume, 512-8*math.Pi)
+	inside := circle(t, b, vector{0, 0, 2}, vector{0, 0, 1}, .5, 3)
+	small := circle(t, b, vector{3, 3, 8}, vector{0, 0, -1}, .01, .01)
+	for _, c := range []struct {
+		name    string
+		request map[string]any
+		removed float64 // zero where the request is refused
+	}{
+		{"the same tool again", map[string]any{"op": "cut", "a": bored.Handle, "b": tool.Handle}, 0},
+		{"a tool inside the bore", map[string]any{"op": "cut", "a": bored.Handle, "b": inside.Handle}, 0},
+		{"both as a group", map[string]any{"op": "cutMany", "a": bored.Handle, "tools": []string{inside.Handle, tool.Handle}}, 0},
+		{"a small tool", map[string]any{"op": "cut", "a": bored.Handle, "b": small.Handle}, math.Pi * 1e-6},
+		{"a small tool in a group with one that removes nothing", map[string]any{"op": "cutMany", "a": bored.Handle, "tools": []string{tool.Handle, small.Handle}}, math.Pi * 1e-6},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			before := len(b.shapes)
+			reply := ask(t, b, c.request)
+			if c.removed == 0 {
+				if reply.OK || reply.Error.Code != "UNSUPPORTED" || len(b.shapes) != before {
+					t.Fatalf("a cut that removes nothing was answered: %+v %+v", reply.Result, reply.Error)
+				}
+				return
+			}
+			if !reply.OK {
+				t.Fatal(reply.Error)
+			}
+			if got := bored.GeometryAssertions.Volume - reply.Result.GeometryAssertions.Volume; math.Abs(got-c.removed) > 2e-7 {
+				t.Fatalf("removed %.6g, want %.6g", got, c.removed)
+			}
+		})
+	}
+}
+
 // TestGeneralBooleanTransform covers the one change to the transform
 // request (RL-2): a result with a sealed void is moved and published
 // again, with its measures, its solid count and the bounds of its

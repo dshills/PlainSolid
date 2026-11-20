@@ -40,7 +40,7 @@ var generalOperations = map[string]boolean.Operation{"fuse": boolean.Union, "com
 func (b *Bridge) generalBoolean(ctx context.Context, a, c stored, op string) (Shape, error) {
 	r, err := generalCombine(ctx, a, c, generalOperations[op])
 	if err == nil && op == "cut" {
-		err = generalCut(r.VolumeA, r)
+		err = generalCut(ctx, r.VolumeA, r, a, c)
 	}
 	if err != nil {
 		return Shape{}, err
@@ -50,11 +50,36 @@ func (b *Bridge) generalBoolean(ctx context.Context, a, c stored, op string) (Sh
 
 // generalCut holds a cut to the contract that the bridge's cuts share:
 // material remains, and some was removed.
-func generalCut(before float64, r boolean.Result) error {
+//
+// The two volumes settle it where they differ by more than a boundary
+// that is known to the working tolerance can account for, which is that
+// tolerance times the area of the result. Below that they cannot tell a
+// small cut from none. A face of a tool within tolerance of a face of the
+// stock is taken as that face, and the result is measured as it is built,
+// with the wall of the tool ending where the tool ended; the same tool
+// cut again then finds a volume that differs by the gap times the area of
+// the wall's end. There the cut removed material if the stock and one of
+// the tools have a solid in common, and the general Boolean is asked.
+func generalCut(ctx context.Context, before float64, r boolean.Result, stock stored, tools ...stored) error {
+	none := &failureError{"UNSUPPORTED", "Boolean cut removed no volume, or left no material"}
 	if r.Solids == 0 || !removesMaterial(before, r.Volume) {
-		return &failureError{"UNSUPPORTED", "Boolean cut removed no volume, or left no material"}
+		return none
 	}
-	return nil
+	if before-r.Volume > generalOptions.Linear*r.Properties.Area {
+		return nil
+	}
+	for _, tool := range tools {
+		common, err := generalCombineRaw(ctx, stock, tool, boolean.Common)
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		// A common that the general Boolean does not give leaves the
+		// volumes as the only evidence, and they say material was removed.
+		if err != nil || common.Solids > 0 {
+			return nil
+		}
+	}
+	return none
 }
 
 // generalCombine converts two stored shapes and combines them.
@@ -303,7 +328,7 @@ func (b *Bridge) generalCutMany(ctx context.Context, a stored, tools []string) (
 	if err != nil {
 		return Shape{}, generalFailure(err)
 	}
-	if err := generalCut(before, r); err != nil {
+	if err := generalCut(ctx, before, r, a, cutters...); err != nil {
 		return Shape{}, err
 	}
 	return b.putGeneral(r)

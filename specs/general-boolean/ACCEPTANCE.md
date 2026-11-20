@@ -784,3 +784,12 @@ then runs to its last assertion, that a batch with a bore across the
 notch is refused; the general Boolean cuts it, and whether that result
 is right has not been checked.
 
+The repeated cut is since corrected too (RL-29). Where the volumes of a
+cut differ by no more than the tolerance times the area of the result,
+the bridge asks the general Boolean for the common of the stock and
+each tool, and refuses the cut when every common is empty. With the
+general Boolean first, `TestBlindFloorNearExitReferenceIsAmbiguous`
+passes. Row T1-009, which is that test, stays excluded: its record has
+the area of a blind bore with a floor 5e-8 thick, and the general
+Boolean cuts through (C24).
+
