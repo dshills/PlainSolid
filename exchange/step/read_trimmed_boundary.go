@@ -720,8 +720,14 @@ func (c boundaryChart) lay(vertices []geom.Vec3, loop []boundaryUse, turns float
 				From: t0, To: t1,
 			}
 		case u.edge.line:
-			// A line on a cylinder is a ruling: it keeps its angle.
-			if line, ok := u.edge.Curve.(geom.Line); !ok || line.Direction().Cross(c.frame.ZAxis()).Length() > boundaryAngle {
+			// A line on a cylinder is a ruling: it keeps its angle. It is
+			// one where its direction is the axis, and also where its two
+			// ends are within the tolerance of one ruling, as the ends of
+			// a short edge between two vertices that are each on their
+			// curves within the tolerance may be while its direction is
+			// off the axis by more than rounding.
+			line, ok := u.edge.Curve.(geom.Line)
+			if !ok || line.Direction().Cross(c.frame.ZAxis()).Length() > boundaryAngle && math.Hypot(to.X-from.X, to.Y-from.Y) > c.tolerance {
 				return out, fmt.Errorf("%w: the line of edge %d is not a ruling of a cylinder that uses it", ErrTrimmedBoundary, u.index)
 			}
 			use.UVStart, use.UVEnd = geom.Vec2{X: angle, Y: from.Z}, geom.Vec2{X: angle, Y: to.Z}

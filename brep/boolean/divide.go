@@ -57,6 +57,10 @@ func (a *arrangement) divide(edges []element, sheets []sheet) ([]element, []shee
 					edges, pending = cut, append(parts, pending[1:]...)
 					continue
 				}
+				if cut, split, reached := a.toSeam(edges, face, corners, sole); reached {
+					edges, pending[0] = cut, split
+					continue
+				}
 				at := a.points[a.repeatedAt(corners)].pos
 				return nil, nil, fail(ErrUnsupported, "M6", "a face from the input faces %v touches itself at %v and no chord between two of its corners divides it", face.sources, at)
 			}
@@ -370,31 +374,7 @@ func (a *arrangement) acrossSeam(edges []element, face sheet, corners []corner, 
 			if !ok || !also || !(at > e.t0 && at < e.t1) {
 				continue
 			}
-			// The seam edge becomes two at the new vertex.
-			a.points = append(a.points, point{e.c.at(at), a.t.eps})
-			vertex := len(a.points) - 1
-			cut := append([]element(nil), edges...)
-			cut[h.elem] = element{e.c, e.t0, at, e.a, vertex}
-			cut = append(cut, element{e.c, at, e.t1, vertex, e.b})
-			upper := len(cut) - 1
-			var walk []hop
-			var leaves [2]int // where the outer loop leaves the vertex: on the left, on the right
-			for m, g := range outer {
-				switch {
-				case g.elem != h.elem:
-					walk = append(walk, g)
-					continue
-				case g.reversed:
-					walk = append(walk, hop{upper, true}, hop{h.elem, true})
-				default:
-					walk = append(walk, hop{h.elem, false}, hop{upper, false})
-				}
-				if m == k {
-					leaves[0] = len(walk) - 1
-				} else {
-					leaves[1] = len(walk) - 1
-				}
-			}
+			cut, walk, vertex, leaves := a.seamCut(edges, outer, k, at)
 			// (b) and (c), on the face with its seam cut and no divider.
 			split := sheet{s: face.s, reversed: face.reversed, loops: append([][]hop{walk}, face.loops[1:]...), sources: face.sources}
 			all, _, err := a.cornersOf(cut, split)
@@ -495,4 +475,103 @@ func (a *arrangement) acrossSeam(edges []element, face sheet, corners []corner, 
 	cut, loops, _ := build(chosen[0], chosen[1])
 	parts, err := a.apportion(cut, face, loops)
 	return cut, parts, err == nil, err
+}
+
+// seamCut cuts the seam edge that hop k of an outer loop walks, at
+// parameter at of its carrier, where a new point of the arrangement is
+// made. It gives the edges with the seam edge as two, the outer loop
+// over them, the new point, and where that loop leaves the point: after
+// hop k, and after the hop that walks the seam the other way.
+func (a *arrangement) seamCut(edges []element, outer []hop, k int, at float64) (cut []element, walk []hop, vertex int, leaves [2]int) {
+	seam := outer[k].elem
+	e := edges[seam]
+	a.points = append(a.points, point{e.c.at(at), a.t.eps})
+	vertex = len(a.points) - 1
+	cut = append([]element(nil), edges...)
+	cut[seam] = element{e.c, e.t0, at, e.a, vertex}
+	cut = append(cut, element{e.c, at, e.t1, vertex, e.b})
+	upper := len(cut) - 1
+	for m, g := range outer {
+		switch {
+		case g.elem != seam:
+			walk = append(walk, g)
+			continue
+		case g.reversed:
+			walk = append(walk, hop{upper, true}, hop{seam, true})
+		default:
+			walk = append(walk, hop{seam, false}, hop{upper, false})
+		}
+		if m == k {
+			leaves[0] = len(walk) - 1
+		} else {
+			leaves[1] = len(walk) - 1
+		}
+	}
+	return cut, walk, vertex, leaves
+}
+
+// toSeam is M6 for a face on a carrier that repeats whose outer loop
+// touches itself, when neither a chord between two corners nor a chord
+// across the seam divides it: the seam is cut at the height of a corner
+// of the outer loop, so that the chord round the carrier from that
+// corner to the seam is a chord between two corners. The height is
+// taken for which M6 then has the shortest chord, and the face is
+// returned with its seam cut there, for M6 to divide as any other. The
+// seam is cut only where it is an edge of this face alone, as in
+// acrossSeam.
+func (a *arrangement) toSeam(edges []element, face sheet, corners []corner, sole func(elem int) bool) ([]element, sheet, bool) {
+	ch := face.s.chart()
+	period := ch.period()
+	if period == 0 {
+		return edges, face, false
+	}
+	outer := face.loops[0]
+	rim := place(ch, legsOf(edges, face.loops))[0]
+	points := len(a.points)
+	build := func(k int, height float64) ([]element, sheet, float64, bool) {
+		e := edges[outer[k].elem]
+		at := e.c.param(ch.lift(geom.Vec2{X: rim[k].at(rim[k].t0).X, Y: height}))
+		if !(at > e.t0 && at < e.t1) {
+			return nil, sheet{}, 0, false
+		}
+		cut, walk, _, _ := a.seamCut(edges, outer, k, at)
+		split := sheet{s: face.s, reversed: face.reversed, loops: append([][]hop{walk}, face.loops[1:]...), sources: face.sources}
+		all, _, err := a.cornersOf(cut, split)
+		if err != nil {
+			return nil, sheet{}, 0, false
+		}
+		x, y, _, found := a.divider(cut, split, all)
+		return cut, split, math.Hypot(y.at.X-x.at.X, y.at.Y-x.at.Y), found
+	}
+	seam, level, best := -1, 0., math.Inf(1)
+	for k, h := range outer {
+		twin := -1
+		for m, other := range outer {
+			if m != k && other.elem == h.elem && other.reversed != h.reversed {
+				twin = m
+			}
+		}
+		if twin < 0 || twin < k || rim[k].curved() || !sole(h.elem) {
+			continue
+		}
+		from, to := rim[k].at(rim[k].t0), rim[k].at(rim[k].t1)
+		if math.Abs(math.Abs(rim[twin].at(rim[twin].t0).X-from.X)-period) > a.t.eps || math.Abs(to.X-from.X) > a.t.eps {
+			continue
+		}
+		for _, c := range corners {
+			if c.loop != 0 || !(c.at.Y > math.Min(from.Y, to.Y)+a.t.eps && c.at.Y < math.Max(from.Y, to.Y)-a.t.eps) {
+				continue
+			}
+			_, _, length, ok := build(k, c.at.Y)
+			a.points = a.points[:points]
+			if ok && length < best*(1-1e-12) {
+				seam, level, best = k, c.at.Y, length
+			}
+		}
+	}
+	if seam < 0 {
+		return edges, face, false
+	}
+	cut, split, _, _ := build(seam, level)
+	return cut, split, true
 }

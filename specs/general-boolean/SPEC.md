@@ -992,7 +992,8 @@ cut returns A with its vertex at the contact.
      stays inside it. Adding a vertex beyond those of the quarter-turn
      cut, to make a candidate, is not part of the trial, with one
      exception made since: on a cylinder, a chord round it that crosses
-     the seam of the face, which adds a vertex to the seam (K3 of
+     the seam of the face, or that runs from a corner to the seam,
+     which adds a vertex to the seam (K3 and Z1 of
      [the crossing specification](../general-boolean-crossing/SPEC.md)).
      If two
      different loops of one face hold corners at one chart point, the call
@@ -1032,8 +1033,11 @@ the arrangement. No geometric welding takes place at this stage.
   halved and not only those of the loop that failed, because the error
   from `NewSolid` does not reliably name the loop. If the solid is still
   refused after six halvings the call returns `ErrValidation` with the
-  first refusal, the one the quarter-turn arcs met. Conditioning never
-  moves geometry. Conditioning vertices are excluded from every topology count
+  first refusal, the one the quarter-turn arcs met. Since then one step
+  comes before the first attempt: an arc with a vertex of its face
+  between it and its chord is halved (Z2 of
+  [the crossing specification](../general-boolean-crossing/SPEC.md)).
+  Conditioning never moves geometry. Conditioning vertices are excluded from every topology count
   this document compares. Conditioning cannot separate two corners of a
   face at one chart point; M6 has removed every such pair before assembly.
 - B3. P-curves are straight for a line on a plane and for a line or circle

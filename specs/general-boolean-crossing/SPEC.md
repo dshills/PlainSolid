@@ -812,3 +812,117 @@ on the branch with the families removed (J5).
 - OD-C15. The 272 refusals of A-C18 are not part of this section. No
   legacy family cut them, so nothing is lost; they are the recorded
   limit of the status page, measured.
+
+## 15. Blind floors inside an oblique crossing
+
+Asked for by the owner on 2026-11-21, on the branch
+`codex/oblique-floors`: the 272 crossings of A-C18 that the general
+Boolean refuses and no legacy path ever cut. Section 13 governs this
+section as it governs itself.
+
+### 15.1 What was measured first
+
+Each of the 272 was asked again with the floor of the bore along the
+axis moved by 0.0137 and the floor of the oblique bore by 0.0071, each
+way and both together. 218 are then cut: they are exact contacts, a
+floor placed just where it touches the other bore or the curve in which
+the bores cross. 54 are refused however the floors are moved, all of
+them with both bores blind and both floors inside the crossing. Their
+causes are Z1 to Z3.
+
+### 15.2 Requirements
+
+- Z1. K3 is extended. Where the outer loop of a face on a cylinder
+  touches itself, and neither a chord between two of its corners nor a
+  chord across the seam (K3) divides the face, the seam must be cut at
+  the height of a corner of the outer loop, so that the chord round the
+  cylinder from that corner to the seam is a chord between two corners,
+  and M6 then divides the face as any other. Of the corners, the one is
+  taken for which M6 then has the shortest chord. The seam is cut only
+  where it is an edge of that face alone.
+- Z2. B2 of the base specification is amended. Before the first attempt
+  to build the solid, the arcs of an edge must be halved while a vertex
+  of a face that uses the edge lies between one of its arcs and the
+  chord of that arc, at most eight times for an edge. `trimmed.NewSolid`
+  reads the domain of a face as the polygon of its vertices, and a hole
+  nearer to the rim of its face than the rim's arcs stand off their
+  chords has a vertex outside that polygon. The halving of every arc of
+  the solid, at most six times, stays as it was for a solid that is
+  still refused.
+- Z3. The boundary reader of `exchange/step` must take a line on a
+  cylinder as a ruling where its direction is the axis within the
+  angular bound, as before, and also where its two ends are within the
+  tolerance of one ruling. A ruling that M6 makes ends at vertices that
+  are each on their curves only within the tolerance.
+
+### 15.3 Acceptance criteria
+
+- A-C19. Three crossings, one for each of Z1 to Z3, are cut as one
+  `cutMany` and written to STEP and read back; for the first two the
+  cut is the same in either order and its volume is that of the first
+  cut less the overlap of the second tool
+  (`TestBlindFloorsInsideAnObliqueCrossing`). Each fails on `main` at
+  `8453a7a7`. `TestUnder` covers the test Z2 makes of an arc.
+- A-C20. The sweep of A-C18 on the branch, 7,254 requests: the 6,830
+  answers of `main` are unchanged; 102 cuts that `main` refuses are
+  made, and with them the 52 overlap volumes asked on the way to those
+  that are successive cuts; 322 are refused by both, of which 152 are a
+  second tool
+  that removes nothing, 62 a floor that touches the other bore, which
+  is no manifold, and 108 a floor whose rim touches the curve in which
+  the bores cross. With the floors moved as in 15.1, all 272 are cut.
+  The sweep of A-C15: the 1,300 answers of `main` are unchanged and 4
+  cuts that it refuses are made. These checks are not automated.
+- A-C21. Of the 102 cuts: the three orders of each agree; each agrees
+  with its mirror image in the plane across the axis; 62 lie between
+  the answers `main` gives with the floors moved either way, and 4 on
+  the side of one; for each of the 66 made as successive cuts the
+  volume is that of the first cut less the overlap volume, which is
+  another operation; and the pinned OCCT build reads the STEP files of
+  all 36 made as one `cutMany` as valid solids, with their volume to
+  within 2.1e-8 of it and their area to within 1.2e-7.
+
+### 15.4 Decisions taken by default
+
+- OD-C17. The 170 exact contacts that are still refused are not part
+  of this section. The 108 where a rim touches the crossing curve fail
+  as an inconsistent arrangement, with the code `INTERNAL`; a contact
+  of two curves in one face is the tangency assembly that the status
+  page lists as open.
+- OD-C18. Z2 changes how a result is cut into arcs where a vertex lies
+  under an arc, and so the number of its vertices, and no geometry. A
+  result that needed the halving of every arc before now has fewer
+  vertices.
+- OD-C19. By Z3 a line whose ends are within the tolerance of a ruling
+  is read as that ruling, whatever its length. A line of a longer span
+  that leans by more than the angular bound and ends beyond the
+  tolerance is refused as before.
+
+### 15.5 The inputs of the sweeps
+
+The probes of A-C15 and A-C18 are not kept. Their inputs were these.
+
+- A-C15. A box from (0, 0, 0) to (20, 16, 12), and bores of radius r,
+  2 and 3, along x and z through (10, 8, 6). The bore along z from
+  either cap to a depth of 5 − r, 6 − r, 6 − r/2, 6, 6 + r/2, 6 + r,
+  7 + r or 12. The bore along x from either side to a depth of 20,
+  11 + r, 10 + r, 10 + r/2, 10, 10 − r/2 or 10 − r. A third bore, where
+  the bore along x is through from x = 0 and the bore along z is through
+  or 7 + r deep: none; along y through (10, 8, 6), through or 9 + r
+  deep; or of radius 1 along y through (17, ·, 2). Each as one `cutMany`
+  and as successive cuts.
+- A-C18. A box from (0, 0, 0) to (20, 16, 80), and bores of radius 2
+  through (10, 8, 40). The bore along z through, or from either cap
+  with its floor at 34, 37.5, 39, 39.5, 40, 40.5, 41, 42.5 or 46. The
+  oblique bore in the plane y = 8 at the direction ratios 4:3, 3:4, 12:5
+  and 5:12, with either slope and from either side, through, or with
+  its floor −u, −2.5, −1, 0, 1, 2.5 or u past the crossing along its
+  axis, u being 5 for the first two ratios and 13 for the others. Each
+  as one `cutMany`, as successive cuts in either order with the overlap
+  volume asked between them, and, where one bore is through, with a
+  third of radius 1 along y through (17, ·, 74). Then, in a cube of
+  side 40, one bore through the centre along (4, 0, 3), (3, 0, 4),
+  (12, 0, 5), (5, 0, 12), (1, 0, 1), (2, 0, 1), (4, 3, 0), (0, 3, 4),
+  (7, 0, 24) or (1, 0, 3), of radius 1.5, 2 or 3, alone, and with a
+  bore of radius 1.5 along z through (4, 4), through, and one from the
+  top at (36, 36), 12 deep.

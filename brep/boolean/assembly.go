@@ -204,8 +204,9 @@ func emit(ctx context.Context, points []point, edges []element, in []sheet, tau,
 		}
 	}
 	var first error
+	crowd := crowded(edges, in)
 	for round := 0; ; round++ {
-		b, err := build(ctx, points, edges, in, tau, slack, round)
+		b, err := build(ctx, points, edges, in, tau, slack, round, crowd)
 		if err == nil || ctx.Err() != nil {
 			return b, err
 		}
@@ -218,10 +219,88 @@ func emit(ctx context.Context, points []point, edges []element, in []sheet, tau,
 	}
 }
 
+// crowdedRounds bounds how often crowded halves the arcs of one edge.
+const crowdedRounds = 8
+
+// crowded gives, for each edge, how often its arcs are halved before the
+// first attempt of emit, so that no vertex of a face lies between an arc
+// of that face and the chord of the arc. trimmed.NewSolid reads the
+// domain of a face as the polygon of its vertices in the chart (B2). A
+// hole that comes nearer to the rim of its face than the rim's arcs
+// stand off their chords has a vertex outside that polygon, and the
+// face is refused though it is sound. Halving every arc of the solid
+// until the polygon holds it, as emit then does, reaches the limits of
+// a face before it reaches such a vertex; halving the arc it lies under
+// does not. An edge is halved at most crowdedRounds times.
+func crowded(edges []element, in []sheet) []int {
+	extra := table[int](edges)
+	for again := true; again; {
+		again = false
+		for _, sh := range in {
+			paths := place(sh.s.chart(), legsOf(edges, sh.loops))
+			// The vertices of the face in its chart, as its arcs stand.
+			var spots []geom.Vec2
+			for i, loop := range sh.loops {
+				for k, h := range loop {
+					for _, part := range conditioned(edges[h.elem], extra[h.elem]) {
+						spots = append(spots, paths[i][k].at(part.t0))
+					}
+					spots = append(spots, paths[i][k].at(edges[h.elem].t1))
+				}
+			}
+			for i, loop := range sh.loops {
+				for k, h := range loop {
+					if !paths[i][k].curved() || extra[h.elem] >= crowdedRounds {
+						continue
+					}
+					for _, part := range conditioned(edges[h.elem], extra[h.elem]) {
+						if under(paths[i][k], part.t0, part.t1, spots) {
+							extra[h.elem]++
+							again = true
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+	return extra
+}
+
+// under reports whether one of the spots lies strictly between the part
+// of a chart path from t0 to t1 and the chord of that part. The ends of
+// the part are not counted.
+func under(p path, t0, t1 float64, spots []geom.Vec2) bool {
+	const samples = 16
+	var ring [samples + 1]geom.Vec2
+	for i := range ring {
+		ring[i] = p.at(t0 + (t1-t0)*float64(i)/samples)
+	}
+	a, b := ring[0], ring[samples]
+	span := math.Hypot(b.X-a.X, b.Y-a.Y)
+	for _, s := range spots {
+		if math.Hypot(s.X-a.X, s.Y-a.Y) <= 1e-9*span || math.Hypot(s.X-b.X, s.Y-b.Y) <= 1e-9*span {
+			continue
+		}
+		inside := false
+		for i, q := range ring {
+			r := ring[(i+1)%len(ring)]
+			if (q.Y > s.Y) != (r.Y > s.Y) && s.X < q.X+(r.X-q.X)*(s.Y-q.Y)/(r.Y-q.Y) {
+				inside = !inside
+			}
+		}
+		if inside {
+			return true
+		}
+	}
+	return false
+}
+
 // build is one attempt of emit, with every curved edge cut into arcs of
-// at most a quarter turn halved round times. The points and edges the
-// sheets use are numbered in index order, conditioning vertices last.
-func build(ctx context.Context, points []point, edges []element, in []sheet, tau, slack float64, round int) (*body, error) {
+// at most a quarter turn, halved round times and as often again as
+// crowded says of it. The points and edges the sheets use are numbered
+// in index order, conditioning vertices last.
+func build(ctx context.Context, points []point, edges []element, in []sheet, tau, slack float64, round int, crowd []int) (*body, error) {
 	b := &body{tau: tau, slack: slack, sheets: in}
 	usedEdge, usedPoint := table[bool](edges), table[bool](points)
 	for _, sh := range in {
@@ -256,7 +335,7 @@ func build(ctx context.Context, points []point, edges []element, in []sheet, tau
 		}
 		e := edges[i]
 		from := vertexOf[e.a]
-		parts := conditioned(e, round)
+		parts := conditioned(e, round+crowd[i])
 		for k, part := range parts {
 			to := vertexOf[e.b]
 			if k+1 < len(parts) {
