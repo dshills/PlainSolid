@@ -26,12 +26,6 @@ func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, err
 		return s.bore.solid.TessellateCrossedWithDisjoint(ctx, o)
 	}
 	if p := s.bore.blindCrossed; p != nil {
-		if p.partialSkew() {
-			return s.bore.solid.TessellateFinitePartialSkewBores(ctx, o)
-		}
-		if p.radii[0] != p.radii[1] {
-			return s.bore.solid.TessellateFiniteSkewCrossedBores(ctx, o)
-		}
 		if p.clippedFloor {
 			switch {
 			case p.depth[1] < p.crossing.Z:
@@ -43,12 +37,6 @@ func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, err
 			}
 		}
 		return s.bore.solid.TessellateBlindCrossedBores(ctx, o)
-	}
-	if s.bore.partialSkew {
-		return s.bore.solid.TessellatePartialSkewBores(ctx, o)
-	}
-	if body := s.bore; body.crossed != nil && body.cylinders[0].radius != body.cylinders[1].radius {
-		return body.solid.TessellateUnequalCrossedBores(ctx, o)
 	}
 	if s.bore.oblique != nil {
 		return s.bore.solid.TessellateObliqueBore(ctx, o)

@@ -292,6 +292,8 @@ own tests pass; the slow checks of A6 run once before the branch merges.
    curve (D3), done on 2026-11-20 with A8; and a STEP writer and reader
    for an edge on one (section 10), implemented on 2026-11-20 on the
    branch `codex/meeting-step` with A9 to A13, and with D4 to D6.
+4. Retirement of the legacy unequal and skew families (section 11),
+   implemented on 2026-11-20 on the branch `codex/retire-skew-families`.
 
 What phase 2 found:
 
@@ -498,3 +500,69 @@ reader* `step.ReadTrimmedBoundary`.
 `exchange/step` grows by at most 300 lines outside test files and
 `brep/boolean` does not grow. Work stops and is reported when a body of
 A8 written by E2 does not read back by E3 within tolerance.
+
+## 11. Retirement of the legacy unequal and skew families
+
+Asked for by the owner on 2026-11-20, on the branch
+`codex/retire-skew-families`. The *families* are the paths of the legacy
+bore engine for two bores along coordinate axes of a box whose radii
+differ or whose axes pass each other, through or blind, with or without
+further bores apart from them.
+
+### 11.1 Requirements
+
+- L1. The bridge must no longer build such a pair by the legacy bore
+  engine: `newCrossedBore`, `newBlindCrossedBore` and
+  `newCrossedCompanionBore` take only two bores of one radius whose axes
+  meet, and decline any other, which the general Boolean cuts or
+  refuses (R1). The legacy paths for two bores of one radius whose axes
+  meet stay as they are.
+- L2. The code of the families must be deleted and not kept under the
+  `research` tag: the six source files of `brep/trimmed` named for
+  skew, partial-skew and unequal crossed bores with their tests, the
+  STEP writer and reader `exchange/step/unequal_bore.go` with the
+  spline fit that served it, and the options of the long-edge STEP
+  writer that only it used. `stopCrossedBoreCap`, which the paths that
+  stay use, moves to a file of its own. `brep/parametric` is not
+  touched: its commons of two cylinders are another family.
+- L3. A STEP file that `exportStep` wrote for such a body before this
+  change must still import. It states each edge where the two bores
+  meet as a spline on a `SURFACE_CURVE` with a p-curve on each
+  cylinder, which the boundary reader must read as it reads an
+  `INTERSECTION_CURVE` (E3). The default bridge must give the boundary
+  reader a source whose header names this kernel as the system that
+  wrote it, p-curves or not; any other source with p-curves is left, as
+  before, to the readers and repairs that check them.
+- L4. `go build -tags research ./...` and `go vet -tags research ./...`
+  must pass, and the deletion must leave no unused unexported code that
+  `main` did not have.
+
+### 11.2 Acceptance criteria
+
+- A15. The default and slow tiers of `internal/plaincadbridge` pass with
+  the families gone, the five tests of A7 among them.
+- A16. Five files written by the legacy writer on `main` at `2a4300ee`
+  (through bores of unequal radius; with skew axes; half out of each
+  other; one blind; with a third bore apart) import on a default bridge
+  as results of the general Boolean, with the volume and area the
+  legacy body was published with to within 1e-5, and are cut and
+  exported again (`TestLegacySkewSTEPStillImports`).
+- A17. A sweep of 816 cuts of two bores along coordinate axes (radii 3
+  to 5 and 2 to 5, offsets from none to past touching in steps of 0.5,
+  one bore through or blind at three depths) has the same 105 failures
+  on `main` and on the branch, every one a pair that touches. This
+  check is not automated; its probe is not kept.
+
+### 11.3 Decisions taken by default
+
+- OD-Q10. The files of L3 are read by the general reader on the
+  default bridge, on the word of their header. The header is not proof
+  of origin; the reader accepts only a boundary it can build and the
+  general Boolean then validates, whoever wrote the file.
+- OD-Q11. A pair that the general Boolean refuses has no legacy answer
+  any more. By A17 the legacy families answered none that it refuses,
+  among pairs along coordinate axes; the error such a pair returns is
+  now the last legacy refusal ("overlapping cylinders require parallel
+  axes") and not the one of the deleted family.
+- OD-Q12. The five fixtures of A16 are kept compressed, 566 KB in all.
+

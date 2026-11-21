@@ -81,12 +81,9 @@ func (s Solid) tessellateAnalyticAdaptiveAllocation(ctx context.Context, o param
 	return s.refineAnalyticMeshAllocation(ctx, o, true, preallocate)
 }
 
-// refineAnalyticMesh can omit the diagonal flips and final cleanup. It always
-// applies the same edge conformity, deflection, orientation and solid checks.
-func (s Solid) refineAnalyticMesh(ctx context.Context, o parametric.TessellationOptions, improve bool) (mesh.Mesh, error) {
-	return s.refineAnalyticMeshAllocation(ctx, o, improve, true)
-}
-
+// refineAnalyticMeshAllocation can omit the diagonal flips and final
+// cleanup. It always applies the same edge conformity, deflection,
+// orientation and solid checks.
 func (s Solid) refineAnalyticMeshAllocation(ctx context.Context, o parametric.TessellationOptions, improve, preallocate bool) (mesh.Mesh, error) {
 	m := mesh.Mesh{Vertices: s.Vertices()}
 	initial := s.seedTriangles()

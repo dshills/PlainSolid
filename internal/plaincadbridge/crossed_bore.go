@@ -16,8 +16,10 @@ type crossedBoreGeometry struct {
 	offset               float64
 }
 
-func (p crossedBoreGeometry) partialSkew() bool {
-	return math.Abs(p.offset) > math.Abs(p.radii[0]-p.radii[1])
+// skew reports a pair of unequal radius or whose axes do not meet, which
+// no legacy path builds.
+func (p crossedBoreGeometry) skew() bool {
+	return p.radii[0] != p.radii[1] || p.offset != 0
 }
 
 func crossedBoreFromSTEP(p crossedBoreGeometry, unit float64) (*boreBody, error) {
@@ -152,18 +154,14 @@ func newCrossedBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.Cylin
 	if !ok {
 		return nil, false, nil
 	}
-	ctx := context.Background()
-	var result trimmed.BoxCrossedBoresResult
-	var err error
-	if p.partialSkew() {
-		result, err = trimmed.BoxPartialSkewBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], p.radii[1], p.offset, 1e-9)
-	} else if p.radii[0] == p.radii[1] {
-		result, err = trimmed.BoxCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], 1e-9)
-	} else {
-		result, err = trimmed.BoxSkewCrossedBores(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], p.radii[1], p.offset, 1e-9)
+	// Two bores of unequal radius, or whose axes pass each other, are
+	// cut by the general Boolean alone (specs/general-boolean-quartic).
+	if p.skew() {
+		return nil, false, nil
 	}
+	result, err := trimmed.BoxCrossedBores(context.Background(), p.frame, p.dimensions, p.crossing, p.radii[0], 1e-9)
 	if err != nil {
 		return nil, true, err
 	}
-	return &boreBody{solid: result.Solid, base: base, cylinders: tools, cuts: cuts, spans: spans, blind: blind, crossed: &result, partialSkew: p.partialSkew()}, true, nil
+	return &boreBody{solid: result.Solid, base: base, cylinders: tools, cuts: cuts, spans: spans, blind: blind, crossed: &result}, true, nil
 }

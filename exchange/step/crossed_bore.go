@@ -65,7 +65,7 @@ func writeCrossedBore(w io.Writer, m CrossedBoreModel) error {
 			return err
 		}
 		limits := nativeLongEdgeLimits{86, 288, 176, 19, 8}
-		return writeNativeLongEdgeTopologyOptions(w, m.LengthUnit, p.Name, result.Solid, limits, true, 0)
+		return writeNativeLongEdgeTopologyOptions(w, m.LengthUnit, p.Name, result.Solid, limits, true)
 	case p.ClippedFloor:
 		if p.XBlindDepth != 0 || p.XOppositeCap || p.OppositeCap {
 			return geom.ErrDomain

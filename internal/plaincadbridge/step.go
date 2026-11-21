@@ -242,15 +242,6 @@ func (b *Bridge) importSTEPInUnits(source string, units stepFileUnit) (Shape, er
 		}
 		return b.putBore(body)
 	}
-	if m, e := step.ReadUnequalBore(r(), stepLimits()); e == nil {
-		p := m.Body
-		g := crossedBoreGeometry{frame: p.Frame, dimensions: p.Dimensions, crossing: p.Crossing, radii: [2]float64{p.XRadius, p.ZRadius}, offset: p.Offset}
-		body, err := crossedBoreToolsFromSTEP(g, [2]float64{p.XBlindDepth, p.ZBlindDepth}, [2]bool{p.XOppositeCap, p.ZOppositeCap}, p.Additional, m.LengthUnit)
-		if err != nil {
-			return Shape{}, err
-		}
-		return b.putBore(body)
-	}
 	if m, e := step.ReadSideNotch(r(), stepLimits()); e == nil {
 		p := m.Body
 		unit := m.LengthUnit
@@ -440,12 +431,16 @@ func (b *Bridge) importSTEPInUnits(source string, units stepFileUnit) (Shape, er
 	}
 	// The last reader takes a boundary of planes and cylinders from its
 	// entities and ignores p-curves. A general bridge tries it for every
-	// source. The default bridge tries it only for a source that states no
+	// source. The default bridge tries it for a source that states no
 	// p-curve, as a file that exportStep wrote for a result of the general
-	// Boolean does: a source with p-curves is left to the readers and the
-	// repairs that check them. Where it does not take the source, the
-	// default bridge refuses as it did before the reader existed.
-	if b.general || !strings.Contains(source, "PCURVE") {
+	// Boolean does, and for a source this kernel wrote, whose p-curves are
+	// its own: the files of bores of unequal radius or with skew axes
+	// from before the general Boolean cut them have no other reader
+	// (specs/general-boolean-quartic, section 11). Any other source with
+	// p-curves is left to the readers and the repairs that check them.
+	// Where the reader does not take the source, the default bridge
+	// refuses as it did before the reader existed.
+	if b.general || !strings.Contains(source, "PCURVE") || ownSTEP(source) {
 		if s, err := b.importGeneralSTEP(source); err == nil || b.general {
 			return s, err
 		}
@@ -539,13 +534,6 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		e = step.WriteCylinders(&out, step.CylinderModel{LengthUnit: .001, Bodies: []step.CylinderBody{{Name: "PlainSolid", Frame: c.frame, Radius: c.radius, Height: c.height}}})
 	case s.bore != nil && s.bore.blindCrossed != nil:
 		recipe := s.bore.blindCrossed
-		if recipe.radii[0] != recipe.radii[1] || recipe.partialSkew() {
-			p := step.UnequalBoreBody{Name: "PlainSolid", Frame: recipe.frame, Dimensions: recipe.dimensions, Crossing: recipe.crossing,
-				XRadius: recipe.radii[0], ZRadius: recipe.radii[1], Offset: recipe.offset,
-				XBlindDepth: recipe.depth[0], ZBlindDepth: recipe.depth[1], XOppositeCap: recipe.oppositeCap[0], ZOppositeCap: recipe.oppositeCap[1]}
-			e = step.WriteUnequalBore(&out, step.UnequalBoreModel{Body: p, LengthUnit: .001})
-			break
-		}
 		p := step.CrossedBoreBody{Name: "PlainSolid", Frame: recipe.frame, Dimensions: recipe.dimensions, Crossing: recipe.crossing, Radius: recipe.radii[0], BlindDepth: recipe.depth[1], OppositeCap: recipe.oppositeCap[1], XBlindDepth: recipe.depth[0], XOppositeCap: recipe.oppositeCap[0], ClippedFloor: recipe.clippedFloor}
 		e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: p, LengthUnit: .001})
 	case s.bore != nil && s.bore.tripleCrossed != nil:
@@ -555,13 +543,6 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		e = step.WriteTripleCrossedBore(&out, step.TripleCrossedBoreModel{Body: body, LengthUnit: .001})
 	case s.bore != nil && s.bore.crossedCompanions != nil:
 		p := s.bore.crossedCompanions
-		if p.radii[0] != p.radii[1] {
-			body := step.UnequalBoreBody{Name: "PlainSolid", Frame: p.frame, Dimensions: p.dimensions, Crossing: p.crossing,
-				XRadius: p.radii[0], ZRadius: p.radii[1], Offset: p.offset, XBlindDepth: p.depth[0], ZBlindDepth: p.depth[1],
-				XOppositeCap: p.oppositeCap[0], ZOppositeCap: p.oppositeCap[1], Additional: p.additional}
-			e = step.WriteUnequalBore(&out, step.UnequalBoreModel{Body: body, LengthUnit: .001})
-			break
-		}
 		body := step.CrossedBoreBody{Name: "PlainSolid", Frame: p.frame, Dimensions: p.dimensions, Crossing: p.crossing, Radius: p.radii[0], Additional: p.additional}
 		e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: body, LengthUnit: .001})
 	case s.bore != nil && s.bore.disjointOblique != nil:
@@ -583,13 +564,11 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		if !ok {
 			return nil, geom.ErrUnrepresentable
 		}
-		if recipe.radii[0] == recipe.radii[1] && !recipe.partialSkew() {
-			p := step.CrossedBoreBody{Name: "PlainSolid", Frame: recipe.frame, Dimensions: recipe.dimensions, Crossing: recipe.crossing, Radius: recipe.radii[0]}
-			e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: p, LengthUnit: .001})
-		} else {
-			p := step.UnequalBoreBody{Name: "PlainSolid", Frame: recipe.frame, Dimensions: recipe.dimensions, Crossing: recipe.crossing, XRadius: recipe.radii[0], ZRadius: recipe.radii[1], Offset: recipe.offset}
-			e = step.WriteUnequalBore(&out, step.UnequalBoreModel{Body: p, LengthUnit: .001})
+		if recipe.skew() {
+			return nil, geom.ErrUnrepresentable
 		}
+		p := step.CrossedBoreBody{Name: "PlainSolid", Frame: recipe.frame, Dimensions: recipe.dimensions, Crossing: recipe.crossing, Radius: recipe.radii[0]}
+		e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: p, LengthUnit: .001})
 	case s.bore != nil:
 		if s.bore.oblique != nil {
 			p, err := obliqueBoreSTEPRecipe(s.bore)
@@ -939,4 +918,11 @@ func (b *Bridge) putLongEdgeSTEP(p step.LongEdgeTreatmentBody, bore *trimmed.Ext
 		return b.putSTEPAnalytic(body.chain.Solid, unit)
 	}
 	return b.putEdge(body)
+}
+
+// ownSTEP reports a source whose header names this kernel as the system
+// that wrote it, as every writer of exchange/step states.
+func ownSTEP(source string) bool {
+	header, _, _ := strings.Cut(source, "ENDSEC;")
+	return strings.Contains(header, "'PlainSolid','PlainSolid'")
 }

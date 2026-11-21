@@ -11,9 +11,7 @@ import (
 
 type crossedCompanionGeometry struct {
 	crossedBoreGeometry
-	additional  []trimmed.CardinalThroughBore
-	depth       [2]float64
-	oppositeCap [2]bool
+	additional []trimmed.CardinalThroughBore
 }
 
 func newCrossedCompanionBore(base brep.Solid, tools []*cylinderBody, cuts []trimmed.CylinderCut, spans []float64, blind []bool) (*boreBody, bool) {
@@ -31,21 +29,18 @@ func newCrossedCompanionBore(base brep.Solid, tools []*cylinderBody, cuts []trim
 			if a.frame.ZAxis().Dot(b.frame.ZAxis()) != 0 {
 				continue
 			}
-			var recipe crossedCompanionGeometry
+			// A crossing with a blind bore had companions only where its
+			// radii were unequal, and such a pair is cut by the general
+			// Boolean alone (specs/general-boolean-quartic).
 			if blind[i] || blind[j] {
-				p, ok := blindCrossedRecipe(base, []*cylinderBody{a, b}, []float64{spans[i], spans[j]}, []bool{blind[i], blind[j]})
-				if !ok || p.radii[0] == p.radii[1] || p.partialSkew() {
-					continue
-				}
-				recipe.crossedBoreGeometry, recipe.depth, recipe.oppositeCap = p.crossedBoreGeometry, p.depth, p.oppositeCap
-			} else {
-				p, ok := crossedBoreRecipe(base, []*cylinderBody{a, b}, []bool{false, false})
-				if !ok || p.partialSkew() || p.radii[0] == p.radii[1] && p.offset != 0 {
-					continue
-				}
-				recipe.crossedBoreGeometry = p
+				continue
 			}
-			p := recipe.crossedBoreGeometry
+			var recipe crossedCompanionGeometry
+			p, ok := crossedBoreRecipe(base, []*cylinderBody{a, b}, []bool{false, false})
+			if !ok || p.skew() {
+				continue
+			}
+			recipe.crossedBoreGeometry = p
 			for k, tool := range tools {
 				if k == i || k == j {
 					continue
@@ -59,29 +54,8 @@ func newCrossedCompanionBore(base brep.Solid, tools []*cylinderBody, cuts []trim
 			if len(recipe.additional) != len(tools)-2 {
 				continue
 			}
-			ctx := context.Background()
-			var result trimmed.BoxCrossedBoresResult
 			floors := make([]int, len(tools))
-			var err error
-			switch {
-			case p.radii[0] == p.radii[1]:
-				result, err = trimmed.BoxCrossedBoresWithDisjoint(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], recipe.additional, 1e-9)
-			case recipe.depth[0] != 0 || recipe.depth[1] != 0:
-				var finite trimmed.FiniteSkewCrossedBoresResult
-				finite, err = trimmed.BoxFiniteSkewCrossedBoresWithDisjoint(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], p.radii[1], p.offset,
-					recipe.depth[0], recipe.depth[1], recipe.oppositeCap[0], recipe.oppositeCap[1], recipe.additional, 1e-9)
-				result = finite.BoxCrossedBoresResult
-				for _, k := range []int{i, j} {
-					if blind[k] {
-						floors[k] = finite.ZFloorFace
-						if tools[k].frame.ZAxis().Dot(p.frame.XAxis()) != 0 {
-							floors[k] = finite.XFloorFace
-						}
-					}
-				}
-			default:
-				result, err = trimmed.BoxSkewCrossedBoresWithDisjoint(ctx, p.frame, p.dimensions, p.crossing, p.radii[0], p.radii[1], p.offset, recipe.additional, 1e-9)
-			}
+			result, err := trimmed.BoxCrossedBoresWithDisjoint(context.Background(), p.frame, p.dimensions, p.crossing, p.radii[0], recipe.additional, 1e-9)
 			if err == nil {
 				return &boreBody{solid: result.Solid, base: base, cylinders: tools, cuts: cuts, spans: spans, blind: blind, floors: floors,
 					crossed: &result, crossedCompanions: &recipe}, true

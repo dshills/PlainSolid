@@ -79,7 +79,6 @@ type longEdgeCurve struct {
 	circle            bool
 	ellipse           bool
 	minorRadius       float64
-	unequal           *unequalBoreSplines
 	frame             geom.Frame
 	radius            float64
 	origin, direction geom.Vec3
@@ -130,34 +129,26 @@ func writeNativeLongEdgeTopology(w io.Writer, unit float64, name string, s trimm
 	return writeNativeLongEdgeTopologyBounded(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64})
 }
 func writeNativeLongEdgeTopologyBounded(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits) error {
-	return writeNativeLongEdgeTopologyOptions(w, unit, name, s, limits, false, 0)
+	return writeNativeLongEdgeTopologyOptions(w, unit, name, s, limits, false)
 }
 
 func writeNativeCrossedBoreTopology(w io.Writer, unit float64, name string, s trimmed.Solid) error {
-	return writeNativeLongEdgeTopologyOptions(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64}, true, 0)
+	return writeNativeLongEdgeTopologyOptions(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64}, true)
 }
 
-func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64) error {
-	return writeNativeLongEdgeTopologyWithDirection(w, unit, name, s, limits, crossed, unequalTolerance, nil)
+func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool) error {
+	return writeNativeLongEdgeTopologyWithDirection(w, unit, name, s, limits, crossed, nil)
 }
 
-func writeNativeLongEdgeTopologyWithDirection(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64, obliqueDirection *geom.Vec3) error {
-	return writeNativeLongEdgeTopologyWithFit(w, unit, name, s, limits, crossed, unequalTolerance, obliqueDirection, false)
+func writeNativeLongEdgeTopologyWithDirection(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, obliqueDirection *geom.Vec3) error {
+	return writeNativeLongEdgeTopologyConics(w, unit, name, s, limits, crossed, obliqueDirection, false)
 }
 
-func writeNativeFiniteUnequalBoreTopology(w io.Writer, unit float64, name string, s trimmed.Solid, tolerance float64) error {
-	return writeNativeLongEdgeTopologyWithFit(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64}, true, tolerance, nil, true)
+func writeNativeLongEdgeTopologyConics(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, obliqueDirection *geom.Vec3, crossedOblique bool) error {
+	return writeNativeMixedDisjointTopology(w, unit, name, s, limits, crossed, obliqueDirection, crossedOblique, nil)
 }
 
-func writeNativeLongEdgeTopologyWithFit(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64, obliqueDirection *geom.Vec3, compactFinite bool) error {
-	return writeNativeLongEdgeTopologyConics(w, unit, name, s, limits, crossed, unequalTolerance, obliqueDirection, compactFinite, false)
-}
-
-func writeNativeLongEdgeTopologyConics(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64, obliqueDirection *geom.Vec3, compactFinite, crossedOblique bool) error {
-	return writeNativeMixedDisjointTopology(w, unit, name, s, limits, crossed, unequalTolerance, obliqueDirection, compactFinite, crossedOblique, nil)
-}
-
-func writeNativeMixedDisjointTopology(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, unequalTolerance float64, obliqueDirection *geom.Vec3, compactFinite, crossedOblique bool, directions map[int]geom.Vec3) error {
+func writeNativeMixedDisjointTopology(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, obliqueDirection *geom.Vec3, crossedOblique bool, directions map[int]geom.Vec3) error {
 	if !utf8.ValidString(name) || len(name) > 4096 {
 		return geom.ErrInvalid
 	}
@@ -246,14 +237,6 @@ func writeNativeMixedDisjointTopology(w io.Writer, unit float64, name string, s 
 			continue
 		}
 		if crossed && os[0].use.Curve != nil && os[1].use.Curve != nil && surfaces[os[0].face].kind == "CYLINDRICAL_SURFACE" && surfaces[os[1].face].kind == "CYLINDRICAL_SURFACE" {
-			if unequalTolerance > 0 {
-				fitted, err := approximateUnequalBoreEdgeOptions(a, b, os, surfaces, unequalTolerance, compactFinite)
-				if err != nil {
-					return err
-				}
-				curves[i] = longEdgeCurve{unequal: fitted, same: true}
-				continue
-			}
 			curve, err := crossedBoreEdgeCurve(a, b, os, surfaces)
 			if err != nil {
 				return err
@@ -322,7 +305,7 @@ func writeNativeMixedDisjointTopology(w io.Writer, unit float64, name string, s 
 	// Preflight every owner representation before any bytes are written.
 	for i, os := range owners {
 		curve := curves[i]
-		if curve.ellipse || curve.unequal != nil {
+		if curve.ellipse {
 			continue
 		}
 		for _, owner := range os {
@@ -348,7 +331,7 @@ func writeNativeMixedDisjointTopology(w io.Writer, unit float64, name string, s 
 			}
 		}
 	}
-	return writeStandaloneWithUncertainty(w, unit, unequalTolerance, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
+	return writeStandaloneWithUncertainty(w, unit, 0, "", "ADVANCED_BREP_SHAPE_REPRESENTATION", func(emit func(string) int64) []int64 {
 		point3 := func(p geom.Vec3) int64 {
 			return emit(fmt.Sprintf("CARTESIAN_POINT('',(%s,%s,%s))", real(p.X), real(p.Y), real(p.Z)))
 		}
@@ -403,16 +386,7 @@ func writeNativeMixedDisjointTopology(w io.Writer, unit float64, name string, s 
 				edgeIDs[i] = emit(fmt.Sprintf("EDGE_CURVE('',#%d,#%d,#%d,%s)", vertexIDs[edge.Start], vertexIDs[edge.End], model, sense))
 				continue
 			}
-			if curve.unequal != nil {
-				model = emitUnequalBoreSpline(emit, curve.unequal.model, curve.unequal.smooth, curve.unequal.knots, point3)
-				if len(curve.unequal.knots) != 0 {
-					// The standard model-space curve defines the trim. The
-					// canonical reader independently reproves the matching
-					// native trim graph from the exact cylinder supports.
-					edgeIDs[i] = emit(fmt.Sprintf("EDGE_CURVE('',#%d,#%d,#%d,.T.)", vertexIDs[edge.Start], vertexIDs[edge.End], model))
-					continue
-				}
-			} else if curve.circle {
+			if curve.circle {
 				p := place(curve.frame)
 				model = emit(fmt.Sprintf("CIRCLE('',#%d,%s)", p, real(curve.radius)))
 			} else {
@@ -425,11 +399,7 @@ func writeNativeMixedDisjointTopology(w io.Writer, unit float64, name string, s 
 				surface := surfaces[owner.face]
 				u := owner.use
 				var geometry int64
-				if curve.unequal != nil {
-					geometry = emitUnequalBoreSpline(emit, curve.unequal.owners[j], curve.unequal.smooth, curve.unequal.knots, func(p geom.Vec3) int64 {
-						return point2(geom.Vec2{X: p.X, Y: p.Y})
-					})
-				} else if surface.kind == "PLANE" {
+				if surface.kind == "PLANE" {
 					if curve.circle {
 						p := surface.frame.ToLocal(curve.frame.Origin())
 						x := curve.frame.XAxis()

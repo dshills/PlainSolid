@@ -75,8 +75,10 @@ func generalHistory(a stored, tools ...stored) *boreHistory {
 // its measures stay the ones the result was published with. Any other
 // shape, and a history the engine does not build, is the shape itself.
 // It is used where the general Boolean has failed a request and a legacy
-// path is asked, so that a bore the general Boolean cannot cut, such as
-// one that crosses another askew, is still cut.
+// path is asked, so that a bore the general Boolean cannot cut and a
+// legacy path can is still cut. Two bores of unequal radius or with skew
+// axes are not among those: their legacy paths are gone
+// (specs/general-boolean-quartic, section 11).
 func legacyStock(s stored) stored {
 	if s.analytic == nil || !s.analytic.general || s.analytic.bores == nil {
 		return s

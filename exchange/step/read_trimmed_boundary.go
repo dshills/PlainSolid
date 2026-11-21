@@ -36,8 +36,9 @@ import (
 // cylinder without a seam to cut the face, or an edge that does not lie on
 // a face that uses it.
 //
-// An edge on an INTERSECTION_CURVE whose curve in space is a B-spline is
-// where the two cylinders it names meet. It is given that curve itself
+// An edge on an INTERSECTION_CURVE, or on a SURFACE_CURVE with two
+// p-curves, whose curve in space is a B-spline is where the two cylinders
+// it names meet. It is given that curve itself
 // (meeting.Curve), which the two cylinders fix; the spline says which of
 // their curves it is and which way it runs, and must be within the
 // tolerance of it.
@@ -228,16 +229,14 @@ func (b *boundaryReader) edge(id int64) (int, error) {
 	// A curve may come wrapped with its p-curves. The curve in space is
 	// the one that is read.
 	kind := b.kind(curve)
-	var between []int64 // what an intersection curve is between
+	var on *Value // what a curve on surfaces is stated to lie on
 	if kind == "SURFACE_CURVE" || kind == "SEAM_CURVE" || kind == "INTERSECTION_CURVE" {
 		wrapped, err := simple(b.file, curve, kind, 4)
 		if err != nil {
 			return 0, err
 		}
-		if kind == "INTERSECTION_CURVE" {
-			if between, err = listRefs(wrapped.Args[2], 1); err != nil {
-				return 0, err
-			}
+		if kind != "SEAM_CURVE" {
+			on = &wrapped.Args[2]
 		}
 		if curve, err = ref(wrapped.Args[1]); err != nil {
 			return 0, err
@@ -319,8 +318,16 @@ func (b *boundaryReader) edge(id int64) (int, error) {
 			return 0, fmt.Errorf("%w: edge #%d is an arc of more than half a turn, which the reader does not cut", ErrTrimmedBoundary, id)
 		}
 	default:
-		if between == nil {
+		// A curve that is none of those is read where the file says it
+		// lies on two surfaces: an INTERSECTION_CURVE, or a SURFACE_CURVE
+		// with a p-curve on each, as this kernel wrote the edges where
+		// two bores meet before it wrote them as intersection curves.
+		if on == nil {
 			return 0, fmt.Errorf("%w: edge #%d has a curve of kind %q", ErrTrimmedBoundary, id, kind)
+		}
+		between, err := listRefs(*on, 1)
+		if err != nil {
+			return 0, err
 		}
 		if err := b.met(id, curve, between, same, &out); err != nil {
 			return 0, err
@@ -340,8 +347,9 @@ func (b *boundaryReader) edge(id int64) (int, error) {
 	return b.edgeOf[id], nil
 }
 
-// met reads an edge on an INTERSECTION_CURVE whose curve in space is not a
-// line or a conic: the curve in which two cylinders meet. The cylinders
+// met reads an edge on a curve that is stated to lie on surfaces and whose
+// curve in space is not a line or a conic: the curve in which two
+// cylinders meet. The cylinders
 // are the two items the entity names, each a surface or a p-curve on one.
 // Of the curves they meet in, the edge has the one that 17 points of the
 // spline are within the tolerance of, in the direction those points run
@@ -349,7 +357,7 @@ func (b *boundaryReader) edge(id int64) (int, error) {
 // end vertex.
 func (b *boundaryReader) met(id, curve int64, between []int64, same bool, out *boundaryEdge) error {
 	if len(between) != 2 {
-		return fmt.Errorf("%w: edge #%d is on an intersection curve that does not name two surfaces", ErrTrimmedBoundary, id)
+		return fmt.Errorf("%w: edge #%d has a curve of kind %q that does not name two surfaces", ErrTrimmedBoundary, id, b.kind(curve))
 	}
 	var frames [2]geom.Frame
 	var radii [2]float64

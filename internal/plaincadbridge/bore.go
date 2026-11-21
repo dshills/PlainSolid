@@ -26,7 +26,6 @@ type boreBody struct {
 	union             *trimmed.CylinderUnionHistory
 	layered           *trimmed.LayeredBoreHistory
 	crossed           *trimmed.BoxCrossedBoresResult
-	partialSkew       bool
 	blindCrossed      *blindCrossedGeometry
 	crossedCompanions *crossedCompanionGeometry
 	tripleCrossed     *tripleCrossedGeometry
