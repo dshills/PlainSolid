@@ -6,8 +6,6 @@ import (
 	"math"
 	"plainsolid/internal/slowtest"
 	"testing"
-
-	"plainsolid/geom"
 )
 
 func TestFiniteUnequalCrossedBoreScopeAndSTEP(t *testing.T) {
@@ -61,16 +59,16 @@ func TestFiniteUnequalCrossedBoreScopeAndSTEP(t *testing.T) {
 			}
 			near(t, got.GeometryAssertions.Volume, wantVolume)
 			near(t, got.GeometryAssertions.SurfaceArea, wantArea)
-			body := b.shapes[got.Handle].bore
+			// The file is the boundary of the body and reads back as a
+			// result of the general Boolean, whose floors are planar
+			// faces a request can name.
 			if q[2] != 0 {
-				floor, err := body.planarFace(geom.Vec3{X: q[2], Y: 8, Z: 7}, geom.Vec3{X: 1})
-				if err != nil || floor.Face < 16 {
+				if floor, err := planarFace(t, b, got.Handle, vector{q[2], 8, 7}, vector{1, 0, 0}); err != nil {
 					t.Fatal(floor, err)
 				}
 			}
 			if q[3] != 0 {
-				floor, err := body.planarFace(geom.Vec3{X: 10, Y: 8, Z: 14 - q[3]}, geom.Vec3{Z: 1})
-				if err != nil || floor.Face < 16 {
+				if floor, err := planarFace(t, b, got.Handle, vector{10, 8, 14 - q[3]}, vector{0, 0, 1}); err != nil {
 					t.Fatal(floor, err)
 				}
 			}

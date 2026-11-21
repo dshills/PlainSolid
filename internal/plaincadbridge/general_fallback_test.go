@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"math"
+	"strings"
 	"testing"
 )
 
@@ -179,8 +180,10 @@ func TestGeneralFirst(t *testing.T) {
 		}
 		near(t, out.GeometryAssertions.Volume, c.from.GeometryAssertions.Volume-removed)
 		// The general Boolean cuts it (specs/general-boolean-quartic),
-		// and the body keeps its history, from which it is written to
-		// STEP. Its mesh is the chart mesher's, within the budget.
+		// and the body keeps its history. Its mesh is the chart
+		// mesher's, within the budget, and its STEP file is its own
+		// boundary, with the curves in which the bores meet, and reads
+		// back to the same part.
 		if body := b.shapes[out.Handle].analytic; body == nil || !body.general || history(out) != 2 {
 			t.Fatalf("%s: the bore askew was not cut by the general Boolean with its history kept", c.name)
 		}
@@ -191,9 +194,11 @@ func TestGeneralFirst(t *testing.T) {
 		if err := m.ValidateSolid(); err != nil || math.Abs(float32MeshVolume(m)-crossed) > meshVolumeBudget*crossed {
 			t.Fatalf("%s: a mesh of volume %.10g, %v", c.name, m.SignedVolume(), err)
 		}
-		if _, err := b.exportSTEP([]string{out.Handle}); err != nil {
-			t.Fatalf("%s: %v", c.name, err)
+		file := generalSTEPExported(t, b, out.Handle)
+		if !strings.Contains(file, "INTERSECTION_CURVE") {
+			t.Fatalf("%s: the STEP file is not the boundary of the body", c.name)
 		}
+		sameShape(t, shape(t, New(), q{"op": "importStep", "source": file}), out)
 	}
 
 	// A coaxial cut of a cylinder is not a plain bore: its legacy path

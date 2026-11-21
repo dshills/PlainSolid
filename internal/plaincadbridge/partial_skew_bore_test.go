@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"math"
 	"plainsolid/internal/slowtest"
+	"strings"
 	"testing"
 )
 
@@ -52,9 +53,18 @@ func TestPartialSkewBoreScopeSTEPAndSTL(t *testing.T) {
 		}
 		sameShape(t, same, next)
 		near(t, overlapMeasure(t, b, same.Handle, z.Handle), 0)
+		// The axis of the second bore lies on the wall of the first, so
+		// a turn of the curve in which they meet falls on a seam, and
+		// the general Boolean does not take such a body back. Its file
+		// is therefore still written from the bore history (D6 of
+		// specs/general-boolean-quartic), reads back as a legacy bore
+		// body and exports to the same bytes.
 		again, err := b.exportSTEP([]string{same.Handle})
 		if err != nil || again.Base64 != stepOut.Base64 {
 			t.Fatal("canonical STEP changed on re-export", err)
+		}
+		if strings.Contains(string(source), "INTERSECTION_CURVE") {
+			t.Fatalf("radii %v: the file is the boundary of the body, and D6 no longer holds", radii)
 		}
 	}
 }

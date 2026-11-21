@@ -250,14 +250,15 @@ counterclockwise about its own axis direction.
   `TestFiniteUnequalCrossedBoreScopeAndSTEP`,
   `TestFinitePartialSkewBoreScopeAndSTEP`) pass when the default bridge
   cuts them with the general Boolean, with volumes and areas held to
-  the values they held the legacy path to. Their bodies are meshed and
-  written to STEP from the bore history (D1).
+  the values they held the legacy path to. Their bodies were meshed and
+  written to STEP from the bore history (D1) until phase 3.
 - A8. Phase 3, mesh: such a body is meshed as a closed solid within the
   bridge's volume budget with no use of its history: as cut, cut again
   by a tool that is not a bore, and mirrored.
 - A9. Phase 3, STEP: such a body exports to STEP by the writers of the
   general path and reads back to the same volume and face count, with
-  no use of its history.
+  no use of its history. Section 10 states the form and the tests
+  (A10 to A13).
 
 ## 7. Amendments to the base and crossing specifications
 
@@ -286,7 +287,8 @@ own tests pass; the slow checks of A6 run once before the branch merges.
    2026-11-20, with D1.
 3. Mesh and STEP: a mesher that finishes a face trimmed along a meeting
    curve (D3), done on 2026-11-20 with A8; and a STEP writer and reader
-   for an edge on one, done when A9 passes and not started.
+   for an edge on one (section 10), implemented on 2026-11-20 on the
+   branch `codex/meeting-step` with A9 to A13, and with D4 to D6.
 
 What phase 2 found:
 
@@ -319,6 +321,33 @@ What phase 2 found:
   it than of the mesher of `brep/trimmed` to reach the same budget.
   With it the mesh of D1 no longer comes from the bore history, and a
   body without one is meshed. The STEP file of D1 still does.
+- D4. The boundary reader took the height of every vertex on a
+  cylinder from that vertex. Under a frame off the coordinate axes the
+  vertices along one rim then differed in the last bits, the corners of
+  the rim were not in line in the chart, and `trimmed.NewSolid` refused
+  one of the eight bodies of A11 for a fold in its validation mesh. The
+  reader now gives the vertices along a section across the axis the
+  height of that section's centre, as the Boolean's own charts do.
+- D5. The pinned OCCT build read the eight files of A11 through the
+  project's helper `tools/occtref/read_split_cylinder.cxx`: each is a
+  valid solid with the face count written and a volume within 1e-8 of
+  the kernel's, relative. This check is not automated.
+- D6. The general Boolean does not take one kind of its own results
+  as an operand: a body in which a meeting curve turns back about an
+  axis exactly on a seam of that cylinder, as it does where the axis of
+  one bore lies on the wall of the other and the axes are along the
+  coordinate axes (`TestPartialSkewBoreScopeSTEPAndSTL`). The vertex
+  there is placed within the tolerance of the turn, the seam stored
+  between its vertices leans from the axis by about 3e-9, and intake
+  ends with "two walks leave point … along one element". The legacy
+  fallback of the bridge had hidden this since phase 2: a further cut
+  of such a body is made by the legacy bore engine from its history.
+  The boundary reader refuses the same body for the leaning seam, and
+  reads it when that bound is relaxed to the tolerance, after which
+  the Boolean refuses it as above. So the export of such a body would
+  fail its read-back, and E4 keeps the history file for it. The legacy
+  unequal and skew families cannot be deleted until intake takes this
+  body.
 - D2. Bridge tests that held a refusal of these pairs now hold the
   volume their common gives, and rule X11 of the edge-treatment
   specification lost its example of a bore across a fillet, which X8
@@ -346,8 +375,118 @@ Each is the owner's to change.
 - OD-Q4. `brep/trimmed` gains one exported interface (P1), which is the
   smallest change that lets `Classify` take the new p-curve.
 - OD-Q5. STEP by the general path comes last (phase 3). Until then a
-  drilled body is written from its bore history (D1).
+  drilled body is written from its bore history (D1). Section 10 ends
+  that.
 - OD-Q6. The mesher is its own package and is used only for bodies with
   a meeting curve (D3). It would mesh any result of the general Boolean
   without a pole; whether it should replace the mesher of `brep/trimmed`
   for those is not decided here.
+- OD-Q7. The edge is written as an `INTERSECTION_CURVE` on its two
+  cylinders with a cubic B-spline in space (E2). The two surfaces fix
+  the curve, so the reader of this kernel recovers it exactly, and a
+  reader that knows only the spline has it to within half the tolerance
+  of the solid.
+- OD-Q8. The reader takes the curve from the two surfaces and uses the
+  spline only to choose among the curves of the pair and their
+  direction (E3). A file whose spline is farther from every such curve
+  than the tolerance of the read is refused, as a vertex off its curve
+  is.
+- OD-Q9. The geometry of the carrier moves to a package of its own,
+  `brep/meeting` (E1), so that `exchange/step` does not import
+  `brep/boolean`.
+
+## 10. STEP for an edge on a meeting curve
+
+Phase 3 of section 8. `step` is the package `exchange/step`; its
+*boundary writer* is `step.WriteTrimmedBoundary` and its *boundary
+reader* `step.ReadTrimmedBoundary`.
+
+### 10.1 Requirements
+
+- E1. A new package `brep/meeting` holds the geometry of section 4.1
+  with no dependency on `brep/boolean`: a type `Curve` that is a
+  `geom.Curve` by the parameter of C2; `Between`, which gives the
+  curves of two cylinders or the reason of R1 for which it gives none;
+  `Param`, the parameter of a point; `Turn`, the continuous angle of H2
+  about the axis of a frame; `Reversed`; and `Trim`, the p-curve of an
+  arc of a `Curve` in the angle and height of one of its cylinders,
+  which satisfies `trimmed.MonotoneUV` (P1). The carrier of
+  `brep/boolean` must delegate to it, and an edge of a result must
+  store a `meeting.Curve`. Nothing else in the behaviour of
+  `brep/boolean` changes: the tests of A1 to A5 pass as they are.
+- E2. The boundary writer must write an edge whose stored curve is
+  neither a line nor an ellipse, and whose two uses are on faces of two
+  cylinders, as an `EDGE_CURVE` on
+  `INTERSECTION_CURVE('',c,(s1,s2),.CURVE_3D.)`. s1 and s2 are the
+  `CYLINDRICAL_SURFACE` entities of the two faces. c is a
+  `B_SPLINE_CURVE_WITH_KNOTS` of degree 3 that follows the edge over
+  its parameter interval, cut into equal spans, and has the point and
+  the direction of the stored curve at the ends of every span; its
+  knots are the whole numbers from zero, double between the ends. The
+  spans are doubled,
+  from four, until at the quarter points of every span the spline is
+  within half the tolerance of the solid of the stored curve at the
+  same parameter. The writer must not inspect the Go type of the
+  stored curve. It must return an error that wraps
+  `step.ErrTrimmedBoundary`, and write nothing, when a use of such an
+  edge is on a plane, when a sample is farther than the writer's
+  tolerance from either cylinder, or when 4,096 spans do not reach the
+  bound.
+- E3. The boundary reader must read an `EDGE_CURVE` on an
+  `INTERSECTION_CURVE`. Where its curve in space is a `LINE`, `CIRCLE`
+  or `ELLIPSE` the edge is read as that curve. Otherwise the curve in
+  space must decode as a B-spline and the two associated items must be
+  two `CYLINDRICAL_SURFACE` entities, or `PCURVE` entities on them;
+  the edge then stores the curve of `meeting.Between` for the two
+  cylinders from which 17 evenly spaced points of the spline are all
+  within the tolerance of the read, run in the direction in which
+  those points advance along the edge, over the interval from the
+  parameter of its start vertex to that of its end vertex. A use of
+  the edge on one of the two cylinders gets a `meeting.Trim`. The
+  reader must return an error that wraps `step.ErrTrimmedBoundary` for
+  a pair `Between` gives no curve for (with its reason), for an arc of
+  more than half a period (as it does for an arc of a conic), and for
+  a use on a plane or on a cylinder the curve does not lie on; and one
+  that wraps `geom.ErrInvalid` when no curve of the pair is within
+  tolerance of the spline.
+- E4. `writeGeneralSTEPBody` of the bridge must write a general result
+  with a meeting curve by the boundary writer, to be read back by
+  `importGeneralSTEP`. It may write one from its bore history only
+  where the body has a history and the general Boolean does not take
+  the boundary file back (D6); a test must hold which bodies those
+  are.
+
+### 10.2 Acceptance criteria
+
+- A10. `brep/meeting`: for the four pairs of A1, every curve of
+  `Between` has 64 points within 1e-12 of both cylinders, `Param`
+  returns the parameter of each within 1e-9, and a `Trim` of each
+  quarter of it on each cylinder evaluates, lifted to the cylinder, to
+  within 1e-12 of the curve, with no turn of either coordinate between
+  two neighbours of its `TurnsUV`.
+- A11. `step`: each of the four pairs of A1 cut as two bores from a
+  prism, as placed and turned off the coordinate axes, written by the
+  boundary writer and read by the boundary reader at the linear
+  tolerance of the Boolean, has the same counts of faces, edges and
+  vertices, and united with the empty solid by the general Boolean has
+  a volume within 1e-9 of the stock volume of the body written; what
+  was read is written and read again to the same.
+- A12. `step`: a file of A11 edited so that (a) every pole of one
+  spline is moved by a thousand times the tolerance, or (b) an
+  `INTERSECTION_CURVE` names one surface, is refused with the error E3
+  names for it; and (c) the writer refuses a solid with an edge of an
+  unknown kind between two plane faces. The reader samples a spline at
+  17 points, so it does not see a change to one pole of many.
+- A13. Bridge: the bodies of A7 and A8 export to STEP with an
+  `INTERSECTION_CURVE` in the file, the export's read-back agrees with
+  the body in volume within the bridge's export tolerance, and the
+  file imports as a general result of the same face count. The two
+  bodies of `TestPartialSkewBoreScopeSTEPAndSTL` are the exception of
+  D6, and that test holds them to the history file. A file re-exported
+  from what was read is not held to the bytes of the first.
+
+### 10.3 Limits
+
+`exchange/step` grows by at most 300 lines outside test files and
+`brep/boolean` does not grow. Work stops and is reported when a body of
+A8 written by E2 does not read back by E3 within tolerance.

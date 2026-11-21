@@ -245,7 +245,9 @@ func TestGeneralCrossedResultUse(t *testing.T) {
 // along the curve in which bores of unequal radius meet: as cut, cut
 // again by a box through that curve, which leaves the body no bore
 // history to be meshed from, and that body mirrored. Each mesh is a
-// closed solid within the budget of a general mesh.
+// closed solid within the budget of a general mesh. Each is written to
+// STEP as its own boundary, with those curves, and the file reads back to
+// the same part (A13 of specs/general-boolean-quartic).
 func TestGeneralMeshOfUnequalCrossing(t *testing.T) {
 	type q = map[string]any
 	b := New()
@@ -269,5 +271,15 @@ func TestGeneralMeshOfUnequalCrossing(t *testing.T) {
 			t.Fatalf("%s: %d triangles of volume %.10g against %.10g, %v", name, len(m.Triangles), float32MeshVolume(m), volume, err)
 		}
 		t.Logf("%s: %d triangles", name, len(m.Triangles))
+		file := generalSTEPExported(t, b, s.Handle)
+		if !strings.Contains(file, "INTERSECTION_CURVE") {
+			t.Fatalf("%s: the STEP file is not the boundary of the body", name)
+		}
+		reader := New()
+		back := shape(t, reader, q{"op": "importStep", "source": file})
+		sameShape(t, back, s)
+		if got, want := len(reader.shapes[back.Handle].analytic.solid.Faces()), len(b.shapes[s.Handle].analytic.solid.Faces()); got != want {
+			t.Fatalf("%s: read back with %d faces of %d", name, got, want)
+		}
 	}
 }

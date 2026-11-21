@@ -38,7 +38,8 @@ revolutions, circular sweeps, and elliptical lofts and extrusions.
 planes and cylinders, accepted on validation within tolerance; cylinders
 whose axes are not parallel are taken at equal or unequal radius, with
 axes that meet or pass each other, unless they touch or nearly touch, and
-an operand may be a mirrored solid. The PlainCAD
+an operand may be a mirrored solid. Its results are written to STEP and
+read back as their own boundary. The PlainCAD
 bridge asks it first for plain bores, which are cylinders cut from planar
 stock, and elsewhere where its own paths decline a request. `brep/blend`
 chamfers and fillets straight edges between planar faces of such a result,

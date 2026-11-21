@@ -7,14 +7,16 @@ import (
 	"math"
 	"strings"
 
+	"plainsolid/brep/meeting"
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
 )
 
 // ReadTrimmedBoundary reads one MANIFOLD_SOLID_BREP whose faces lie on planes
-// and circular cylinders and whose edges are lines, circles and ellipses,
-// the class that WriteTrimmedBoundary writes, and builds the trimmed solid
+// and circular cylinders and whose edges are lines, circles, ellipses and
+// the curves in which two cylinders meet, the class that
+// WriteTrimmedBoundary writes, and builds the trimmed solid
 // its entities state. Nothing about the arrangement of the faces is
 // assumed, and nothing is regenerated and compared: each surface, curve,
 // vertex, edge, loop and face is taken from the file, and the solid is
@@ -33,6 +35,12 @@ import (
 // (a rim written as one closed edge is one), a loop that goes around its
 // cylinder without a seam to cut the face, or an edge that does not lie on
 // a face that uses it.
+//
+// An edge on an INTERSECTION_CURVE whose curve in space is a B-spline is
+// where the two cylinders it names meet. It is given that curve itself
+// (meeting.Curve), which the two cylinders fix; the spline says which of
+// their curves it is and which way it runs, and must be within the
+// tolerance of it.
 func ReadTrimmedBoundary(r io.Reader, l Limits, tolerance float64) (TrimmedModel, error) {
 	l, err := l.defaults()
 	if err != nil {
@@ -152,12 +160,15 @@ type boundaryReader struct {
 // boundaryEdge is an edge as the solid stores it, with its curve in the
 // form the charts need. The edge runs from its start to its end as the
 // parameter grows; a curve that the file runs the other way is turned over.
-// A conic is centre + a·cos t·x + b·sin t·y in its frame.
+// A conic is centre + a·cos t·x + b·sin t·y in its frame. An edge where
+// two cylinders meet has met set, and meet is its curve.
 type boundaryEdge struct {
 	parametric.Edge
 	line  bool
 	frame geom.Frame // of a conic
 	a, b  float64
+	met   bool
+	meet  meeting.Curve
 }
 
 func (b *boundaryReader) vertex(id int64) (int, error) {
@@ -217,10 +228,16 @@ func (b *boundaryReader) edge(id int64) (int, error) {
 	// A curve may come wrapped with its p-curves. The curve in space is
 	// the one that is read.
 	kind := b.kind(curve)
-	if kind == "SURFACE_CURVE" || kind == "SEAM_CURVE" {
+	var between []int64 // what an intersection curve is between
+	if kind == "SURFACE_CURVE" || kind == "SEAM_CURVE" || kind == "INTERSECTION_CURVE" {
 		wrapped, err := simple(b.file, curve, kind, 4)
 		if err != nil {
 			return 0, err
+		}
+		if kind == "INTERSECTION_CURVE" {
+			if between, err = listRefs(wrapped.Args[2], 1); err != nil {
+				return 0, err
+			}
 		}
 		if curve, err = ref(wrapped.Args[1]); err != nil {
 			return 0, err
@@ -302,7 +319,12 @@ func (b *boundaryReader) edge(id int64) (int, error) {
 			return 0, fmt.Errorf("%w: edge #%d is an arc of more than half a turn, which the reader does not cut", ErrTrimmedBoundary, id)
 		}
 	default:
-		return 0, fmt.Errorf("%w: edge #%d has a curve of kind %q", ErrTrimmedBoundary, id, kind)
+		if between == nil {
+			return 0, fmt.Errorf("%w: edge #%d has a curve of kind %q", ErrTrimmedBoundary, id, kind)
+		}
+		if err := b.met(id, curve, between, same, &out); err != nil {
+			return 0, err
+		}
 	}
 	for k, t := range [2]float64{out.Range.Min, out.Range.Max} {
 		p, err := out.Curve.Eval(t)
@@ -316,6 +338,112 @@ func (b *boundaryReader) edge(id int64) (int, error) {
 	b.edgeOf[id] = len(b.edges)
 	b.edges = append(b.edges, out)
 	return b.edgeOf[id], nil
+}
+
+// met reads an edge on an INTERSECTION_CURVE whose curve in space is not a
+// line or a conic: the curve in which two cylinders meet. The cylinders
+// are the two items the entity names, each a surface or a p-curve on one.
+// Of the curves they meet in, the edge has the one that 17 points of the
+// spline are within the tolerance of, in the direction those points run
+// along the edge, from the parameter of its start vertex to that of its
+// end vertex.
+func (b *boundaryReader) met(id, curve int64, between []int64, same bool, out *boundaryEdge) error {
+	if len(between) != 2 {
+		return fmt.Errorf("%w: edge #%d is on an intersection curve that does not name two surfaces", ErrTrimmedBoundary, id)
+	}
+	var frames [2]geom.Frame
+	var radii [2]float64
+	for k, sid := range between {
+		if b.kind(sid) == "PCURVE" {
+			on, err := simple(b.file, sid, "PCURVE", 3)
+			if err != nil {
+				return err
+			}
+			if sid, err = ref(on.Args[1]); err != nil {
+				return err
+			}
+		}
+		if kind := b.kind(sid); kind != "CYLINDRICAL_SURFACE" {
+			return fmt.Errorf("%w: edge #%d is where a surface of kind %q meets another, and only two cylinders are read", ErrTrimmedBoundary, id, kind)
+		}
+		var err error
+		if frames[k], radii[k], err = b.cylinder(sid); err != nil {
+			return err
+		}
+	}
+	spline, err := DecodeBSplineCurve(b.file, curve, b.limits.MaxVertices)
+	if err != nil {
+		return fmt.Errorf("%w: edge #%d has a curve of kind %q", ErrTrimmedBoundary, id, b.kind(curve))
+	}
+	curves, reason := meeting.Between(frames[0], radii[0], frames[1], radii[1], boundaryAngle, b.tolerance)
+	if len(curves) == 0 {
+		if reason == "" {
+			reason = "that are apart"
+		}
+		return fmt.Errorf("%w: edge #%d is where two cylinders %s meet", ErrTrimmedBoundary, id, reason)
+	}
+	const samples = 17
+	lo, hi := spline.Geometry.Domain()
+	points := make([]geom.Vec3, samples)
+	for k := range points {
+		u := float64(k) / (samples - 1)
+		if !same {
+			u = 1 - u
+		}
+		if points[k], err = spline.Geometry.Eval(lo + (hi-lo)*u); err != nil {
+			return err
+		}
+	}
+	found, least := 0, math.Inf(1)
+	for _, c := range curves {
+		worst := 0.
+		for _, p := range points {
+			q, _ := c.Eval(c.Param(p))
+			worst = math.Max(worst, q.Distance(p))
+		}
+		if least = math.Min(least, worst); worst <= b.tolerance {
+			out.meet = c
+			found++
+		}
+	}
+	if found != 1 {
+		return fmt.Errorf("edge #%d: its spline is %g from where its two cylinders meet: %w", id, least, geom.ErrInvalid)
+	}
+	advance := 0.
+	for k := 0; k+1 < samples; k++ {
+		advance += math.Remainder(out.meet.Param(points[k+1])-out.meet.Param(points[k]), 2*math.Pi)
+	}
+	if advance < 0 {
+		out.meet = out.meet.Reversed()
+	}
+	out.met, out.Curve = true, out.meet
+	out.Range = parametric.Interval{Min: out.meet.Param(b.vertices[out.Start]), Max: out.meet.Param(b.vertices[out.End])}
+	if out.Start == out.End || out.Range.Max <= out.Range.Min {
+		out.Range.Max += 2 * math.Pi
+	}
+	// As for an arc of a conic: the reader adds no vertex.
+	if out.Range.Max-out.Range.Min > math.Pi*(1+boundaryAngle) {
+		return fmt.Errorf("%w: edge #%d is an arc of more than half a turn, which the reader does not cut", ErrTrimmedBoundary, id)
+	}
+	return nil
+}
+
+// cylinder reads the frame and the radius of a CYLINDRICAL_SURFACE.
+func (b *boundaryReader) cylinder(id int64) (geom.Frame, float64, error) {
+	s, err := simple(b.file, id, "CYLINDRICAL_SURFACE", 3)
+	if err != nil {
+		return geom.Frame{}, 0, err
+	}
+	place, err := ref(s.Args[1])
+	if err != nil {
+		return geom.Frame{}, 0, err
+	}
+	frame, err := placement(b.file, place)
+	if err != nil {
+		return geom.Frame{}, 0, err
+	}
+	radius, err := numeric(s.Args[2])
+	return frame, radius, err
 }
 
 func (b *boundaryReader) kind(id int64) string {
@@ -361,19 +489,7 @@ func (b *boundaryReader) face(id int64) (trimmed.Face, error) {
 		}
 		chart = boundaryChart{frame: frame}
 	case "CYLINDRICAL_SURFACE":
-		s, err := simple(b.file, surfaceID, kind, 3)
-		if err != nil {
-			return trimmed.Face{}, err
-		}
-		place, err := ref(s.Args[1])
-		if err != nil {
-			return trimmed.Face{}, err
-		}
-		frame, err := placement(b.file, place)
-		if err != nil {
-			return trimmed.Face{}, err
-		}
-		radius, err := numeric(s.Args[2])
+		frame, radius, err := b.cylinder(surfaceID)
 		if err != nil {
 			return trimmed.Face{}, err
 		}
@@ -545,6 +661,7 @@ func (c boundaryChart) lay(vertices []geom.Vec3, loop []boundaryUse, turns float
 	out.lo, out.hi = angle, angle
 	var polygon []geom.Vec2
 	pinned := make([][2]geom.Vec2, len(loop))
+	level := make([]*float64, len(loop)) // of a use that keeps one height
 	for i, u := range loop {
 		use := trimmed.Use{Edge: u.index, Reversed: u.reversed}
 		from, to := c.frame.ToLocal(vertices[u.from()]), c.frame.ToLocal(vertices[u.to()])
@@ -563,6 +680,21 @@ func (c boundaryChart) lay(vertices []geom.Vec3, loop []boundaryUse, turns float
 		}
 		pinned[i][0].X = angle
 		switch {
+		case u.edge.met:
+			// Where two cylinders meet: on a face of either, at the angle
+			// the curve itself gives about that axis, taken in the turn
+			// the loop has reached.
+			for _, t := range [3]float64{t0, t0 + (t1-t0)/2, t1} {
+				p, _ := u.edge.meet.Eval(t)
+				if q := c.frame.ToLocal(p); c.radius == 0 || math.Abs(math.Hypot(q.X, q.Y)-c.radius) > c.tolerance {
+					return out, fmt.Errorf("%w: edge %d, where two cylinders meet, does not lie on a face that uses it", ErrTrimmedBoundary, u.index)
+				}
+			}
+			arc := u.edge.meet.Trim(c.frame, t0, t1, angle)
+			end, _ := arc.EvalUV(1)
+			use.Curve = arc
+			pinned[i][1].X = end.X
+			angle = end.X
 		case c.radius == 0 && u.edge.line:
 			use.UVStart, use.UVEnd = geom.Vec2{X: from.X, Y: from.Y}, geom.Vec2{X: to.X, Y: to.Y}
 		case c.radius == 0:
@@ -611,6 +743,7 @@ func (c boundaryChart) lay(vertices []geom.Vec3, loop []boundaryUse, turns float
 				// A section across the axis at one height is straight in
 				// the chart.
 				use.UVStart, use.UVEnd = geom.Vec2{X: angle, Y: from.Z}, geom.Vec2{X: end, Y: to.Z}
+				level[i] = &centre.Z
 			} else {
 				use.Curve = trimmed.EllipseUV{
 					Center: geom.Vec2{X: base, Y: centre.Z}, Cos: geom.Vec2{Y: x.Z}, Sin: geom.Vec2{Y: y.Z}, Linear: geom.Vec2{X: rate},
@@ -626,7 +759,7 @@ func (c boundaryChart) lay(vertices []geom.Vec3, loop []boundaryUse, turns float
 			}
 			pinned[i][0].Y, pinned[i][1].Y = from.Z, to.Z
 		}
-		if arc, ok := use.Curve.(trimmed.EllipseUV); ok {
+		if arc := use.Curve; arc != nil {
 			var err error
 			if use.UVStart, err = arc.EvalUV(0); err != nil {
 				return out, err
@@ -660,6 +793,17 @@ func (c boundaryChart) lay(vertices []geom.Vec3, loop []boundaryUse, turns float
 			}
 			pinned[i][0].X = begin
 		}
+		// A section across the axis has one height, that of its centre,
+		// and so have the vertices along it. Each taken from its own
+		// vertex, they differ in the last bits under a frame off the
+		// coordinate axes, and the corners along one rim are then not in
+		// line in the chart.
+		for i, h := range level {
+			if h != nil {
+				before, after := (i+len(loop)-1)%len(loop), (i+1)%len(loop)
+				pinned[i][0].Y, pinned[i][1].Y, pinned[before][1].Y, pinned[after][0].Y = *h, *h, *h, *h
+			}
+		}
 		for i := range out.uses {
 			out.uses[i].UVStart, out.uses[i].UVEnd = pinned[i][0], pinned[i][1]
 		}
@@ -674,6 +818,9 @@ func (c boundaryChart) lay(vertices []geom.Vec3, loop []boundaryUse, turns float
 	}
 	for i := range out.uses {
 		out.uses[i].UVEnd = out.uses[(i+1)%len(out.uses)].UVStart
+		if arc, ok := out.uses[i].Curve.(meeting.Trim); ok {
+			out.uses[i].Curve = arc.Pinned(out.uses[i].UVStart, out.uses[i].UVEnd)
+		}
 	}
 	for i, p := range polygon {
 		q := polygon[(i+1)%len(polygon)]
