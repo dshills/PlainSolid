@@ -10,7 +10,7 @@ not append dated entries. The narrative that this page replaced is in git:
 
 ## Current state
 
-As of 2026-11-21, with kernel code at `50310272`.
+As of 2026-11-21, with kernel code at `65d3f677`.
 
 | Check | Last result | Kernel commit |
 |---|---|---|
@@ -18,7 +18,7 @@ As of 2026-11-21, with kernel code at `50310272`.
 | Complete Go suite with the research tag, macOS ARM64, Go 1.23.12 | 6,358 passed, 625 optional skips, 0 failed of 6,983 | `7869e035`, 2026-11-21 |
 | Complete Go suite, Linux ARM64, Go 1.26.0 | 6,018 passed, 599 optional skips, 0 failed | `c7afb429`, 2026-11-16 |
 | Complete Go suite with the race detector, macOS ARM64 | 5,557 passed, 580 optional skips, 0 failed | `ab33a412`, 2026-11-15 |
-| Default Go tier (`go test ./...`), macOS ARM64, Go 1.27.4 | All 60 packages with tests pass | `50310272`, 2026-11-21 |
+| Default Go tier (`go test ./...`), macOS ARM64, Go 1.27.4 | All 60 packages with tests pass | `65d3f677`, 2026-11-21 |
 
 The PlainCAD application suites and the complete Go suite, slow tier and
 research code included, both pass on `7869e035`. That commit has the Go
@@ -28,9 +28,10 @@ asks it first and no longer has the legacy families for two bores that
 cross along coordinate axes, the chart mesher, the STEP writer and reader for boundaries of
 planes and cylinders with the edges where two cylinders meet, and the
 chamfer and fillet of a result of the general Boolean. The legacy
-oblique bore families were deleted after it, in `50310272`; on that
-commit the default tier and the slow tier of the changed packages pass,
-and the two complete runs were not repeated. The Linux run and the race
+oblique bore families were deleted after it, in `50310272`, and blind
+floors inside an oblique crossing were cut in `65d3f677`; on each of
+those commits the default tier and the slow tier of the changed
+packages pass, and the two complete runs were not repeated. The Linux run and the race
 run have not been repeated since the commits shown.
 
 The default build leaves out the research quarantine: 540 production files of
