@@ -13,15 +13,6 @@ import (
 
 func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, error) {
 	ctx := context.Background()
-	if s.bore.disjointOblique != nil {
-		return s.bore.solid.TessellateDisjointObliqueBores(ctx, o)
-	}
-	if s.bore.obliqueCrossing != nil {
-		return s.bore.solid.TessellateCrossedObliqueBores(ctx, o)
-	}
-	if s.bore.oblique != nil {
-		return s.bore.solid.TessellateObliqueBore(ctx, o)
-	}
 	// Keep the established single-rim refinement when a coarser mesh
 	// would lose more than the material-volume budget after STL rounding.
 	fine := o

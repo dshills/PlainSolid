@@ -11,7 +11,6 @@ import (
 
 	"plainsolid/brep/parametric"
 	"plainsolid/exchange"
-	"plainsolid/geom"
 )
 
 func TestObliqueThroughBoreScopeAndSTL(t *testing.T) {
@@ -129,6 +128,12 @@ func TestObliqueThroughBoreScopeAndSTL(t *testing.T) {
 	}
 }
 
+// TestObliqueThroughBoreRejectsIncompleteOpeningsAtomically keeps its name
+// from the legacy oblique bore path, which declined a tool that did not
+// cover both openings of the stock. That path is gone (section 14 of
+// specs/general-boolean-crossing), and the general Boolean cuts such a
+// tool as the finite cylinder it is. A tool that touches a side of the
+// stock along a line is still refused, and a refusal publishes nothing.
 func TestObliqueThroughBoreRejectsIncompleteOpeningsAtomically(t *testing.T) {
 	bridge := New()
 	stock := box(t, bridge, vector{}, vector{4, 5, 6})
@@ -136,68 +141,37 @@ func TestObliqueThroughBoreRejectsIncompleteOpeningsAtomically(t *testing.T) {
 		name           string
 		origin, axis   vector
 		radius, height float64
-		diagnostic     string
+		touches        bool
 	}{
-		{"entry generators uncovered", vector{1, 2, 0}, vector{1, 0, 3}, 0.35, 11, "does not cover both entire stock openings"},
-		{"exit generators uncovered", vector{0, 2, -3}, vector{1, 0, 3}, 0.35, 3 * math.Sqrt(10), "does not cover both entire stock openings"},
-		{"ellipse touches stock side", vector{0, 0.35, -3}, vector{1, 0, 3}, 0.35, 11, "requires strictly interior elliptical openings"},
+		{"entry generators uncovered", vector{1, 2, 0}, vector{1, 0, 3}, 0.35, 11, false},
+		{"exit generators uncovered", vector{0, 2, -3}, vector{1, 0, 3}, 0.35, 3 * math.Sqrt(10), false},
+		{"ellipse touches stock side", vector{0, 0.35, -3}, vector{1, 0, 3}, 0.35, 11, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			tool := circle(t, bridge, tc.origin, tc.axis, tc.radius, tc.height)
 			before, next := len(bridge.shapes), bridge.next
-			if _, err := legacyOverlapVolume(bridge.shapes[stock.Handle], bridge.shapes[tool.Handle]); err == nil || !strings.Contains(err.Error(), tc.diagnostic) {
-				t.Fatalf("invalid scope result: %v", err)
-			}
-			if _, err := bridge.legacyCutMany(bridge.shapes[stock.Handle], []string{tool.Handle}); err == nil || !strings.Contains(err.Error(), tc.diagnostic) {
-				t.Fatalf("invalid cutMany result: %v", err)
-			}
-			if _, err := bridge.curvedBoolean(bridge.shapes[stock.Handle], bridge.shapes[tool.Handle], "cut"); err == nil || !strings.Contains(err.Error(), tc.diagnostic) {
-				t.Fatalf("invalid cut result: %v", err)
-			}
-			if len(bridge.shapes) != before || bridge.next != next || bridge.shapes[stock.Handle].result != stock {
-				t.Fatal("rejection changed stock or leaked a handle")
-			}
-			// The bridge answers what the legacy paths decline here with
-			// the general Boolean. The overlap is measured in each case.
 			overlap := overlapMeasure(t, bridge, stock.Handle, tool.Handle)
-			if tc.name == "ellipse touches stock side" {
+			if tc.touches {
 				// The whole tool lies in the stock between its openings:
 				// a cylinder of length 2√10. It touches a side along a
 				// line, so the cut would not be a manifold and is refused.
 				near(t, overlap, math.Pi*tc.radius*tc.radius*2*math.Sqrt(10))
-				if _, err := bridge.cutMany(stock.Handle, []string{tool.Handle}); err == nil || !strings.Contains(err.Error(), tc.diagnostic) {
+				if _, err := bridge.cutMany(stock.Handle, []string{tool.Handle}); err == nil || !strings.Contains(err.Error(), "not a manifold") {
 					t.Fatalf("a cut that touches a side along a line: %v", err)
 				}
-				if len(bridge.shapes) != before || bridge.next != next {
-					t.Fatal("rejection leaked a handle")
+				if len(bridge.shapes) != before || bridge.next != next || bridge.shapes[stock.Handle].result != stock {
+					t.Fatal("rejection changed stock or leaked a handle")
 				}
 				return
 			}
-			cut := declined(t, bridge, tc.diagnostic, "cutMany", stock.Handle, tool.Handle)
+			cut, err := bridge.cutMany(stock.Handle, []string{tool.Handle})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if s := bridge.shapes[cut.Handle]; s.analytic == nil || !s.analytic.general {
+				t.Fatal("the cut was not answered by the general Boolean")
+			}
 			near(t, cut.GeometryAssertions.Volume, 120-overlap)
 		})
-	}
-}
-
-func TestObliqueFiniteCapContactProof(t *testing.T) {
-	frame, err := geom.FrameFromNormal(geom.Vec3{}, geom.Vec3{X: 1, Z: 1})
-	if err != nil {
-		t.Fatal(err)
-	}
-	tool, err := newCylinder(frame, 0.5, 4)
-	if err != nil {
-		t.Fatal(err)
-	}
-	r := tool.radius * math.Hypot(frame.XAxis().X, frame.YAxis().X)
-	plane := func(x float64) geom.Plane {
-		p, err := geom.NewPlane(geom.Vec3{X: x}, geom.Vec3{X: -1})
-		if err != nil {
-			t.Fatal(err)
-		}
-		return p
-	}
-	if !toolCapClearsOpening(tool, plane(r), 0) ||
-		toolCapClearsOpening(tool, plane(math.Nextafter(r, 0)), 0) {
-		t.Fatal("failed exact represented disk support equality/neighbor check")
 	}
 }

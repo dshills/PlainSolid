@@ -232,32 +232,6 @@ func legacyOverlapVolume(a, c stored) (any, error) {
 	base := a.solid
 	if a.bore != nil {
 		base = a.bore.base
-	} else if a.planar() {
-		body, handled, err := newObliqueThroughBore(base, c.cylinder)
-		if err != nil {
-			return nil, err
-		}
-		if handled {
-			return result(body.oblique.removedVolume)
-		}
-	}
-	if a.bore != nil && (a.bore.oblique != nil || a.bore.obliqueCrossing != nil || !cardinalFrame(c.cylinder.frame)) {
-		v, handled, err := overlapObliqueCrossedBore(a, c.cylinder)
-		if handled {
-			if err != nil {
-				return nil, err
-			}
-			return result(v)
-		}
-	}
-	if a.bore != nil {
-		v, handled, err := overlapDisjointObliqueBore(a, c.cylinder)
-		if handled {
-			if err != nil {
-				return nil, err
-			}
-			return result(v)
-		}
 	}
 	cut, start, end, err := boreSpan(base, c.cylinder, false)
 	if err != nil {

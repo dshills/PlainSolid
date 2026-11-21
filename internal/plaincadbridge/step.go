@@ -188,27 +188,6 @@ func (b *Bridge) importSTEPInUnits(source string, units stepFileUnit) (Shape, er
 		}
 		return b.putBore(body)
 	}
-	if m, e := step.ReadDisjointObliqueBores(r(), stepLimits()); e == nil {
-		body, err := disjointObliqueFromSTEP(m)
-		if err != nil {
-			return Shape{}, err
-		}
-		return b.putBore(body)
-	}
-	if m, e := step.ReadCrossedObliqueBore(r(), stepLimits()); e == nil {
-		body, err := crossedObliqueFromSTEP(m.Body, m.LengthUnit)
-		if err != nil {
-			return Shape{}, err
-		}
-		return b.putBore(body)
-	}
-	if m, e := step.ReadObliqueBore(r(), stepLimits()); e == nil {
-		body, err := obliqueBoreFromSTEP(m.Body, m.LengthUnit)
-		if err != nil {
-			return Shape{}, err
-		}
-		return b.putBore(body)
-	}
 	if m, e := step.ReadSideNotch(r(), stepLimits()); e == nil {
 		p := m.Body
 		unit := m.LengthUnit
@@ -499,29 +478,7 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	case s.cylinder != nil:
 		c := s.cylinder
 		e = step.WriteCylinders(&out, step.CylinderModel{LengthUnit: .001, Bodies: []step.CylinderBody{{Name: "PlainSolid", Frame: c.frame, Radius: c.radius, Height: c.height}}})
-	case s.bore != nil && s.bore.disjointOblique != nil:
-		m, err := disjointObliqueSTEPRecipe(s.bore)
-		if err != nil {
-			return nil, err
-		}
-		e = step.WriteDisjointObliqueBores(&out, m)
-	case s.bore != nil && s.bore.obliqueCrossing != nil:
-		p := s.bore.obliqueCrossing
-		body := step.CrossedObliqueBoreBody{Name: "PlainSolid", Frame: p.frame, Dimensions: p.dimensions, Crossing: p.crossing, Radius: p.radius,
-			BlindDepth: p.blindDepth, OppositeCap: p.oppositeCap, ObliqueFloor: p.obliqueFloor}
-		if p.axisRatio != (geom.Vec2{X: 4, Y: 3}) {
-			body.AxisRatio = p.axisRatio
-		}
-		e = step.WriteCrossedObliqueBore(&out, step.CrossedObliqueBoreModel{Body: body, LengthUnit: .001})
 	case s.bore != nil:
-		if s.bore.oblique != nil {
-			p, err := obliqueBoreSTEPRecipe(s.bore)
-			if err != nil {
-				return nil, err
-			}
-			e = step.WriteObliqueBore(&out, step.ObliqueBoreModel{Body: p, LengthUnit: .001})
-			break
-		}
 		var p step.CircularHoleExtrusionBody
 		p, e = boreSTEPRecipe(s.bore)
 		if e == nil {

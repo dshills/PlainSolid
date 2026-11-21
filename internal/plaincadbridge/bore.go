@@ -15,20 +15,16 @@ import (
 // The ordinary path uses perpendicular opening planes. The single oblique
 // through path retains its separate elliptical opening and wall measures.
 type boreBody struct {
-	inputCylinders  []*cylinderBody // exact pre-canonicalization tool lineage
-	solid           trimmed.Solid
-	base            brep.Solid
-	cylinders       []*cylinderBody
-	cuts            []trimmed.CylinderCut
-	spans           []float64
-	blind           []bool
-	floors          []int
-	union           *trimmed.CylinderUnionHistory
-	layered         *trimmed.LayeredBoreHistory
-	crossed         *trimmed.BoxCrossedBoresResult
-	oblique         *obliqueBore
-	obliqueCrossing *obliqueCrossedGeometry
-	disjointOblique *disjointObliqueGeometry
+	inputCylinders []*cylinderBody // exact pre-canonicalization tool lineage
+	solid          trimmed.Solid
+	base           brep.Solid
+	cylinders      []*cylinderBody
+	cuts           []trimmed.CylinderCut
+	spans          []float64
+	blind          []bool
+	floors         []int
+	union          *trimmed.CylinderUnionHistory
+	layered        *trimmed.LayeredBoreHistory
 	// again is the stock less the cylinders by the general Boolean, once
 	// recut has worked it out: the empty solid where it does not hold.
 	again *trimmed.Solid
@@ -98,7 +94,7 @@ func boreSpan(base brep.Solid, c *cylinderBody, through bool) (trimmed.CylinderC
 		}
 	}
 	if entry < 0 || exit < 0 || end <= start {
-		return unsupported("cylinder cut requires two parallel perpendicular opening planes")
+		return trimmed.CylinderCut{}, 0, 0, unclaimed("cylinder cut requires two parallel perpendicular opening planes")
 	}
 	if through {
 		finish := origin.Add(axis.Scale(c.height))
@@ -133,26 +129,6 @@ func sameCardinalBoreLine(a, b *cylinderBody) bool {
 }
 
 func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
-	if len(cylinders) == 1 {
-		if body, handled, err := newObliqueThroughBore(base, cylinders[0]); handled || err != nil {
-			return body, err
-		}
-	}
-	if len(cylinders) == 2 {
-		if body, handled, err := newObliqueCrossedBore(base, cylinders); handled {
-			return body, err
-		}
-	}
-	if len(cylinders) > 2 && len(cylinders) <= 32 {
-		if body, handled, err := newGroupedObliqueCrossing(base, cylinders); handled {
-			return body, err
-		}
-	}
-	if len(cylinders) >= 2 && len(cylinders) <= 3 {
-		if body, handled, err := newDisjointObliqueBore(base, cylinders); handled {
-			return body, err
-		}
-	}
 	if len(cylinders) > 32 {
 		return nil, &failureError{"LIMIT", "at most 32 cylindrical tools may be retained"}
 	}
@@ -268,20 +244,6 @@ func (body *boreBody) measures() (float64, float64, error) {
 		return 0, 0, err
 	}
 	volume, area := p.Volume, p.SurfaceArea
-	if h := body.oblique; h != nil {
-		volume -= h.removedVolume
-		area += h.wallArea - h.openingAreas[0] - h.openingAreas[1]
-		if !finite(volume) || !finite(area) || volume <= 0 || area <= 0 {
-			return 0, 0, errors.New("invalid oblique through-bore material measures")
-		}
-		return volume, area, nil
-	}
-	if h := body.disjointOblique; h != nil {
-		return volume - h.removed, area + h.areaDelta, nil
-	}
-	if h := body.crossed; h != nil {
-		return volume - h.RemovedVolume, area + h.SurfaceAreaDelta, nil
-	}
 	if h := body.layered; h != nil {
 		volume -= h.RemovedVolume
 		area += h.SurfaceAreaDelta
@@ -395,46 +357,12 @@ func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
 		return PlanarFace{}, err
 	}
 	baseFace := f.Face
-	if body.crossed != nil {
-		// The crossed constructor orders the box faces in its own frame.
-		found := false
-		for i, face := range body.solid.Faces() {
-			plane, ok := face.Surface.(geom.PlaneSurface)
-			if ok && math.Abs(plane.Frame().ZAxis().Dot(n)) == 1 &&
-				math.Abs(origin.Sub(plane.Frame().Origin()).Dot(n)) <= 1e-7 {
-				f.Face, found = i, true
-				break
-			}
-		}
-		if !found {
-			return PlanarFace{}, errors.New("retained planar support mismatch")
-		}
-	}
 	if _, ok := body.solid.Faces()[f.Face].Surface.(geom.PlaneSurface); !ok {
 		return PlanarFace{}, errors.New("retained planar support mismatch")
 	}
-	if h := body.disjointOblique; h != nil {
-		f.Area -= h.openings[baseFace]
-	} else if h := body.oblique; h != nil {
-		if body.cuts[0].Entry == baseFace {
-			f.Area -= h.openingAreas[0]
-		}
-		if body.cuts[0].Exit == baseFace {
-			f.Area -= h.openingAreas[1]
-		}
-	} else if h := body.obliqueCrossing; h != nil {
-		if (f.Face == 0 && (h.blindDepth == 0 || !h.oppositeCap)) || (f.Face == 1 && (h.blindDepth == 0 || h.oppositeCap)) {
-			f.Area -= math.Pi * h.radius * h.radius
-		}
-		if (f.Face == 3 && h.obliqueFloor <= 0) || (f.Face == 5 && h.obliqueFloor >= 0) {
-			coefficients, _ := trimmed.CrossedObliqueCoefficients(h.axisRatio)
-			f.Area -= coefficients.Stretch * math.Pi * h.radius * h.radius
-		}
-	} else {
-		for i, c := range body.cylinders {
-			if body.cuts[i].Entry == baseFace || (!body.blind[i] && body.cuts[i].Exit == baseFace) {
-				f.Area -= math.Pi * c.radius * c.radius
-			}
+	for i, c := range body.cylinders {
+		if body.cuts[i].Entry == baseFace || (!body.blind[i] && body.cuts[i].Exit == baseFace) {
+			f.Area -= math.Pi * c.radius * c.radius
 		}
 	}
 	if f.Area <= 1e-14 {

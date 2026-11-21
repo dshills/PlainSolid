@@ -16,8 +16,10 @@ import (
 // unequal radius or with skew axes, where each edge between two bores is
 // a spline (section 11 of specs/general-boolean-quartic). The rest are
 // bores of equal radius whose axes meet, one file for each family that
-// built them (section 13 of specs/general-boolean-crossing). The code
-// that wrote and read these files is gone. The default bridge now reads
+// built them (section 13 of specs/general-boolean-crossing), and the
+// last eight are bores with an oblique axis, alone, across a bore along
+// a coordinate axis, and apart from one (section 14). The code that
+// wrote and read these files is gone. The default bridge now reads
 // each as the boundary it states, to the volume and area the legacy body
 // was published with, as a result of the general Boolean that can be cut
 // and exported again.
@@ -26,6 +28,8 @@ func TestLegacyBoreSTEPStillImports(t *testing.T) {
 	skew := [2]vector{{-1, -1, 15}, {21, 25, 19}}
 	small := [2]vector{{-1, -1, 10}, {21, 17, 13}}
 	triple := [2]vector{{1, 3, 30}, {35, 41, 39}}
+	plate := [2]vector{{-1, -1, 5}, {5, 6, 7}}
+	tall := [2]vector{{-1, -1, 36}, {21, 17, 41}}
 	for _, c := range []struct {
 		name         string
 		volume, area float64
@@ -46,6 +50,14 @@ func TestLegacyBoreSTEPStillImports(t *testing.T) {
 		{"crossed-triple", 43331.84207018331, 9304.635906759748, triple},
 		{"crossed-triple-blind", 43614.58540900639, 9172.689015308977, triple},
 		{"crossed-companion", 61379.39846484098, 11328.38922153952, [2]vector{{-1, -1, 30}, {41, 41, 41}}},
+		{"oblique-through", 117.56602587488, 161.0970988637412, plate},
+		{"oblique-adjacent-caps", 118.7091902931713, 154.085245760764, plate},
+		{"oblique-crossed-through", 12036.51924339999, 4200.26542216873, tall},
+		{"oblique-crossed-reciprocal", 11949.57726605811, 4267.846535109757, tall},
+		{"oblique-crossed-blind", 12187.3156907723, 4074.601716025138, tall},
+		{"oblique-crossed-floor", 12115.05905973973, 4149.999939711293, tall},
+		{"oblique-crossed-double-blind", 12265.85550711204, 4024.336233567702, tall},
+		{"oblique-disjoint", 7872.402555211128, 2642.435145098857, [2]vector{{-1, -1, 17}, {21, 21, 21}}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()

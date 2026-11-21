@@ -71,12 +71,6 @@ func (s Solid) tessellateHelicalAllocation(ctx context.Context, o parametric.Tes
 	return s.tessellateAnalyticAdaptiveAllocation(ctx, o, preallocate)
 }
 
-// tessellateAnalyticAdaptive is shared only by separately qualified analytic
-// entry points. Callers validate options, normalize budgets and prove eligibility.
-func (s Solid) tessellateAnalyticAdaptive(ctx context.Context, o parametric.TessellationOptions) (mesh.Mesh, error) {
-	return s.tessellateAnalyticAdaptiveAllocation(ctx, o, true)
-}
-
 func (s Solid) tessellateAnalyticAdaptiveAllocation(ctx context.Context, o parametric.TessellationOptions, preallocate bool) (mesh.Mesh, error) {
 	return s.refineAnalyticMeshAllocation(ctx, o, true, preallocate)
 }

@@ -24,7 +24,7 @@
 {"req":{"handles":["ps:12"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
 {"req":{"handles":["ps:13"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
 {"req":{"height":21,"normal":[0,0,1],"op":"circle","origin":[10,8,0],"radius":2},"ok":true,"handle":"ps:14","result":{"valid":true,"volume":263.89378290154264,"surfaceArea":289.02652413026095,"solidCount":1,"bounds":{"min":[7.999999999978914,5.999999999978928,-2.1149213974509623e-11],"max":[12.000000000021087,10.000000000021073,21.000000000021153]}}}
-{"req":{"a":"ps:1","op":"cutMany","tools":["ps:3","ps:14"]},"ok":false,"direct":true,"code":"UNSUPPORTED"}
+{"req":{"a":"ps:1","op":"cutMany","tools":["ps:3","ps:14"]},"ok":false,"direct":true,"code":"INTERNAL"}
 {"new":true}
 {"req":{"max":[20,16,40],"min":[0,0,0],"op":"box"},"ok":true,"handle":"ps:1","result":{"valid":true,"volume":12800,"surfaceArea":3520,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,16,40]}}}
 {"req":{"height":28,"normal":[0,0,-1],"op":"circle","origin":[10,8,40],"radius":2},"ok":true,"handle":"ps:2","result":{"valid":true,"volume":351.85837720205683,"surfaceArea":376.99111843077515,"solidCount":1,"bounds":{"min":[7.999999999971914,5.999999999971928,11.999999999971713],"max":[12.000000000028088,10.000000000028074,40.000000000028294]}}}

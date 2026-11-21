@@ -11,7 +11,7 @@ var disjointBoreAxes = [3]geom.Vec3{{X: 1}, {Y: 1}, {Z: 1}}
 func disjointBoreSTEPRecipe(body *boreBody) (step.DisjointBoresBody, bool) {
 	var noRecipe step.DisjointBoresBody
 	vertices := body.base.Vertices()
-	if body.crossed != nil || body.union != nil || body.layered != nil ||
+	if body.union != nil || body.layered != nil ||
 		len(body.cylinders) < 2 || len(vertices) != 8 ||
 		len(body.base.Edges()) != 12 || len(body.base.Faces()) != 6 {
 		return noRecipe, false

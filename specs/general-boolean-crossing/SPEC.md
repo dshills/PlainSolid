@@ -718,3 +718,97 @@ and at every fallback from the general Boolean. The probe is not kept.
   a path without a family refused, its code from that path's to the
   general Boolean's. PlainCAD shows the code and the text and does not
   branch on either.
+
+## 14. Retirement of the legacy oblique bore families
+
+Asked for by the owner on 2026-11-21, on the branch
+`codex/retire-oblique-bores`. The *families* are the second item of
+section 3.3, a bore along a coordinate axis crossed by one of the same
+radius that is oblique in a coordinate plane at one of four direction
+ratios, through, blind, with an oblique floor or both; and with them
+the legacy paths for one oblique bore through a box and for an oblique
+bore with bores apart from it. Section 13 governs this section as it
+governs itself: K4 and K5 apply here unchanged.
+
+### 14.1 What was measured first
+
+The probe of section 13.1 was run again on `main` at `15dd53d7`. No
+request reached one of the families through the fallback from the
+general Boolean and was answered by it. They were reached on the bridge
+of the legacy tests; for a body their STEP reader had built from an old
+export, and later requests on it; and for the overlap volume of planar
+stock with an oblique cylinder, which the legacy path was asked first.
+
+A sweep of 7,254 requests on a default bridge was then run on `main` and
+on the branch with the families removed (J5).
+
+### 14.2 Requirements
+
+- J1. The bridge must no longer build the families. An oblique cylinder
+  is cut, and its overlap with a body measured, by the general Boolean
+  or refused.
+- J2. The code of the families must be deleted and not kept under the
+  `research` tag: the bridge's recipes, measures, face areas, mesh and
+  STEP branches for them; `exchange/step/oblique_bore.go`,
+  `crossed_oblique_bore.go` and `disjoint_oblique_bore.go` with their
+  curve files and tests, and the options of the long-edge STEP writer
+  that only they used; and the nine files of `brep/trimmed` that no
+  other package then reaches, `trimmed.BoxCrossedBoresResult` among
+  them.
+- J3. A STEP file that `exportStep` wrote for a body of the families
+  before this change must still import, as K6 requires of section 13.
+- J4. The legacy refusal "cylinder cut requires two parallel
+  perpendicular opening planes" is that of a path with no family for an
+  oblique cylinder, and K5 applies to it.
+- J5. K7 applies.
+
+### 14.3 Acceptance criteria
+
+- A-C16. The default and slow tiers of `internal/plaincadbridge` pass
+  with the families gone. Five recorded responses change: lines 16, 23,
+  43, 50 and 53 of `TestConcealedCrossedObliqueBoreSTEPCanonical.jsonl`,
+  each a redundant cut that is refused, have the code `UNSUPPORTED` of
+  the general Boolean where they had `INVALID` (K5). A sixth changes
+  the other way: line 27 of
+  `TestBlindCrossedObliqueBoreSTEPAndFurtherCut.jsonl`, a floor at the
+  top of the crossing, which the general Boolean fails as an
+  inconsistent arrangement, has its code `INTERNAL` where it had the
+  `UNSUPPORTED` of the deleted path (OD-C16). Two tests of the
+  deleted path change: `TestObliqueFiniteCapContactProof`, a test of a
+  deleted helper, is deleted, and
+  `TestObliqueThroughBoreRejectsIncompleteOpeningsAtomically` no longer
+  asks the deleted path for its diagnostics and keeps what it required
+  of the bridge.
+- A-C17. Eight files written by the legacy writer on `main` at
+  `15dd53d7` (one oblique bore through opposite and through adjacent
+  faces; crossed at 4:3 and at 3:4; with the bore along the axis blind;
+  with an oblique floor; with both; and with a bore apart) import on a
+  default bridge as results of the general Boolean, with the volume and
+  area the legacy body was published with to within 1e-5, and are cut
+  and exported again (`TestLegacyBoreSTEPStillImports`).
+- A-C18. The sweep: a bore along an axis, through or blind at nine
+  depths from either cap, and an oblique bore across it at the four
+  ratios, either slope and either sense, through or blind at seven
+  stations, as one `cutMany`, as successive cuts in either order with
+  the overlap volume asked between them, and with a third bore apart;
+  and one oblique bore in ten directions at three radii, alone and with
+  bores apart. `main` and the branch give the same answer to every one
+  of the 7,254: 6,830 cuts and overlap volumes agree to the nine digits
+  compared, and 424 are refused by both. Of those, 152 are a second tool
+  that removes nothing, and 272 are crossings where the floor of one
+  bore touches the other bore or the floors of both end inside the
+  crossing. This check is not automated; its probe is not kept.
+
+### 14.4 Decisions taken by default
+
+- OD-C13. The files of J3 are read in millimetres only, as OD-C9.
+- OD-C14. The eight fixtures of A-C17 are kept compressed, 59 KB.
+- OD-C16. By K5 a request that the general Boolean fails as
+  inconsistent, and that no legacy family takes, now returns that
+  failure with the code `INTERNAL`. Before, it returned the refusal of
+  a legacy family, which named a different fault. The failure is
+  explicit either way; the code now says that the kernel, and not the
+  request, is at fault.
+- OD-C15. The 272 refusals of A-C18 are not part of this section. No
+  legacy family cut them, so nothing is lost; they are the recorded
+  limit of the status page, measured.
