@@ -13,4 +13,4 @@
 {"req":{"a":"ps:1","op":"cutMany","tools":["ps:2","ps:6"]},"ok":true,"direct":true,"handle":"ps:10","result":{"valid":true,"volume":7709.5753124722905,"surfaceArea":3003.18578948924,"solidCount":1,"bounds":{"min":[0,0,0],"max":[20,24,18]}}}
 {"req":{"handles":["ps:9"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
 {"req":{"handles":["ps:10"],"op":"exportStep"},"ok":true,"direct":true,"unchecked":"STEP request (15.2 last item)"}
-{"req":{"a":"ps:8","op":"cutMany","tools":["ps:3","ps:4"]},"ok":false,"direct":true,"code":"INVALID"}
+{"req":{"a":"ps:8","op":"cutMany","tools":["ps:3","ps:4"]},"ok":false,"direct":true,"code":"UNSUPPORTED"}

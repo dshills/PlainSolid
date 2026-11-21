@@ -15,23 +15,23 @@ import (
 // The ordinary path uses perpendicular opening planes. The single oblique
 // through path retains its separate elliptical opening and wall measures.
 type boreBody struct {
-	inputCylinders    []*cylinderBody // exact pre-canonicalization tool lineage
-	solid             trimmed.Solid
-	base              brep.Solid
-	cylinders         []*cylinderBody
-	cuts              []trimmed.CylinderCut
-	spans             []float64
-	blind             []bool
-	floors            []int
-	union             *trimmed.CylinderUnionHistory
-	layered           *trimmed.LayeredBoreHistory
-	crossed           *trimmed.BoxCrossedBoresResult
-	blindCrossed      *blindCrossedGeometry
-	crossedCompanions *crossedCompanionGeometry
-	tripleCrossed     *tripleCrossedGeometry
-	oblique           *obliqueBore
-	obliqueCrossing   *obliqueCrossedGeometry
-	disjointOblique   *disjointObliqueGeometry
+	inputCylinders  []*cylinderBody // exact pre-canonicalization tool lineage
+	solid           trimmed.Solid
+	base            brep.Solid
+	cylinders       []*cylinderBody
+	cuts            []trimmed.CylinderCut
+	spans           []float64
+	blind           []bool
+	floors          []int
+	union           *trimmed.CylinderUnionHistory
+	layered         *trimmed.LayeredBoreHistory
+	crossed         *trimmed.BoxCrossedBoresResult
+	oblique         *obliqueBore
+	obliqueCrossing *obliqueCrossedGeometry
+	disjointOblique *disjointObliqueGeometry
+	// again is the stock less the cylinders by the general Boolean, once
+	// recut has worked it out: the empty solid where it does not hold.
+	again *trimmed.Solid
 }
 
 func exactDotDifference(a, b, n geom.Vec3) int {
@@ -236,7 +236,6 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 	}
 	s, history, err := trimmed.BoreCylinders(base, cuts, 1e-9)
 	if err != nil {
-		pair, pairCuts, pairSpans, pairBlind := retainedCrossedTools(cylinders, cuts, spans, blind)
 		depths := make([]float64, len(cylinders))
 		hasBlind := false
 		for i := range blind {
@@ -245,27 +244,11 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 				hasBlind = true
 			}
 		}
-		crossed, handled, crossedErr := newBlindCrossedBore(base, pair, pairCuts, pairSpans, pairBlind)
-		if handled && crossedErr == nil {
-			return crossed, nil
-		}
 		if hasBlind {
 			boundary, _, finiteFloors, finiteErr := trimmed.BoreFiniteCylinders(base, cuts, depths, 1e-9)
 			if finiteErr == nil {
 				return &boreBody{solid: boundary, base: base, cylinders: cylinders, cuts: cuts, spans: spans, blind: blind, floors: finiteFloors}, nil
 			}
-		}
-		if handled {
-			return nil, crossedErr
-		}
-		if result, handled, err := newCrossedBore(base, pair, pairCuts, pairSpans, pairBlind); handled {
-			return result, err
-		}
-		if result, handled := newTripleCrossedBore(base, pair, pairCuts, pairSpans, pairBlind); handled {
-			return result, nil
-		}
-		if result, handled := newCrossedCompanionBore(base, pair, pairCuts, pairSpans, pairBlind); handled {
-			return result, nil
 		}
 		return newUnionBore(base, cylinders, cuts, blind)
 	}
@@ -391,12 +374,6 @@ func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
 		p := c.frame.Origin().Add(c.frame.ZAxis().Scale(c.height))
 		axis := c.frame.ZAxis()
 		if math.Abs(math.Abs(axis.Dot(n))-1) <= 1e-9 && math.Abs(p.Sub(origin).Dot(axis)) <= 1e-7 {
-			if recipe := body.blindCrossed; recipe != nil && recipe.clippedFloor {
-				if recipe.depth[1] == recipe.crossing.Z {
-					return PlanarFace{}, errors.New("blind floor was fully removed by the through bore")
-				}
-				return PlanarFace{}, errors.New("planar face reference is ambiguous")
-			}
 			if floor != nil {
 				return PlanarFace{}, errors.New("planar face reference is ambiguous")
 			}

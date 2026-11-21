@@ -136,7 +136,7 @@ func generalCombine(ctx context.Context, a, c stored, op boolean.Operation) (boo
 // generalCombineRaw is generalCombine with the error as boolean.Combine
 // returned it, for a caller that decides on its kind.
 func generalCombineRaw(ctx context.Context, a, c stored, op boolean.Operation) (boolean.Result, error) {
-	x, err := generalOperand(a)
+	x, err := booleanOperand(ctx, a)
 	if err != nil {
 		return boolean.Result{}, err
 	}
@@ -156,7 +156,7 @@ func generalStep(ctx context.Context, x trimmed.Solid, known *parametric.Propert
 // generalStepRaw is generalStep with the error as boolean.Combine
 // returned it.
 func generalStepRaw(ctx context.Context, x trimmed.Solid, known *parametric.Properties, c stored, op boolean.Operation) (boolean.Result, error) {
-	y, err := generalOperand(c)
+	y, err := booleanOperand(ctx, c)
 	if err != nil {
 		return boolean.Result{}, err
 	}
@@ -202,6 +202,59 @@ func generalOperand(s stored) (trimmed.Solid, error) {
 		return trimmed.Solid{}, &failureError{"UNSUPPORTED", fmt.Sprintf("the stored shape has no trimmed solid (%v)", err)}
 	}
 	return t, nil
+}
+
+// booleanOperand is generalOperand for an operand of the general Boolean.
+// A body of the legacy bore engine is given as its stock less its
+// cylinders, cut again by the general Boolean. The legacy engine divides
+// the wall of a bore along rulings of its own choosing, and a later tool
+// that touches one leaves a face that touches itself at a point, which
+// the general Boolean does not take (M6); a wall as the general Boolean
+// divides it has no such ruling. Where the general Boolean does not cut
+// the stock by the cylinders to the volume of the legacy body, the
+// operand is the solid the legacy engine built.
+func booleanOperand(ctx context.Context, s stored) (trimmed.Solid, error) {
+	if s.bore != nil {
+		if t, ok := s.bore.recut(ctx); ok {
+			return t, nil
+		}
+	}
+	return generalOperand(s)
+}
+
+// recut is the stock of a bore body less its cylinders by the general
+// Boolean, and whether it has the volume the legacy engine measured. It
+// is worked out once for a body.
+func (body *boreBody) recut(ctx context.Context) (trimmed.Solid, bool) {
+	if body.again != nil {
+		return *body.again, body.again.Tolerance() != 0
+	}
+	want, _, err := body.measures()
+	x, e := trimmed.FromPlanar(body.base, generalOptions.Linear)
+	volume := math.NaN()
+	if err == nil && e == nil {
+		for _, c := range body.sourceCylinders() {
+			y, e := trimmed.FromParametric(c.solid)
+			if e != nil {
+				err = e
+				break
+			}
+			r, e := boolean.Combine(ctx, x, y, boolean.Cut, generalOptions)
+			if e != nil || r.Solids != 1 {
+				err = errors.Join(e, errors.New("not one solid"))
+				break
+			}
+			x, volume = r.Solid, r.Volume
+		}
+	}
+	if ctx.Err() != nil {
+		return trimmed.Solid{}, false
+	}
+	if err != nil || e != nil || !(math.Abs(volume-want) <= generalOptions.Volume*want) {
+		x = trimmed.Solid{}
+	}
+	body.again = &x
+	return x, x.Tolerance() != 0
 }
 
 // putGeneral publishes a result of the general Boolean: the empty solid
@@ -348,7 +401,7 @@ func generalBounds(s trimmed.Solid) (geom.Box, error) {
 // body as it stands is set aside and tried again after the others
 // (inAnyOrder). Nothing is published unless every tool is cut.
 func (b *Bridge) generalCutMany(ctx context.Context, a stored, tools []string) (Shape, error) {
-	x, err := generalOperand(a)
+	x, err := booleanOperand(ctx, a)
 	if err != nil {
 		return Shape{}, err
 	}
@@ -431,7 +484,7 @@ func (b *Bridge) generalJoinAll(ctx context.Context, targets []string, tool stor
 			return Shape{}, err
 		}
 		if i == 0 {
-			if x, err = generalOperand(c); err != nil {
+			if x, err = booleanOperand(ctx, c); err != nil {
 				return Shape{}, err
 			}
 			known = generalKnown(c)
@@ -462,7 +515,7 @@ func (b *Bridge) generalJoinAll(ctx context.Context, targets []string, tool stor
 	// whether the tool added material. It did if the tool less the
 	// targets is a solid.
 	if r.Volume-before <= generalOptions.Linear*r.Properties.Area {
-		if y, err := generalOperand(tool); err == nil {
+		if y, err := booleanOperand(ctx, tool); err == nil {
 			o := generalOptions
 			o.KnownA, o.KnownB = generalKnown(tool), known
 			beyond, err := boolean.Combine(ctx, y, x, boolean.Cut, o)
@@ -666,27 +719,53 @@ func (b *Bridge) all(ids []string) ([]stored, bool) {
 	return out, true
 }
 
+// unclaimedError is the refusal of a legacy path that has no family for
+// the request at all, as distinct from a family that took the request and
+// found a fault in it. It says nothing about the request, so where the
+// general Boolean has refused the request too, its refusal is the answer.
+type unclaimedError struct{ failureError }
+
+func (e *unclaimedError) Unwrap() error { return &e.failureError }
+
+// unclaimed is an unclaimedError with the code UNSUPPORTED.
+func unclaimed(message string) error {
+	return &unclaimedError{failureError{"UNSUPPORTED", message}}
+}
+
 // orLegacy is the default bridge where the general Boolean is asked
 // first. What it gives is the answer. Where it fails, a legacy path is
-// asked, and its answer or its error is the answer.
+// asked, and its answer or its error is the answer, except that the
+// refusal of the general Boolean stands where no legacy family takes the
+// request.
 func orLegacy[T any](general func() (T, error), legacy func() (T, error)) (T, error) {
-	if r, err := general(); err == nil {
+	r, err := general()
+	if err == nil {
 		return r, nil
 	}
-	return legacy()
+	l, refusal := legacy()
+	if errors.As(refusal, new(*unclaimedError)) {
+		return l, err
+	}
+	return l, refusal
 }
 
 // orGeneral is the fallback of the default bridge. A legacy path answers
 // first. Where it refuses the request as unsupported, the general Boolean
 // is tried, and what it gives is the answer. Where the general Boolean
-// fails as well, the answer is the legacy refusal, unchanged.
+// fails as well, the answer is the legacy refusal, unchanged, unless no
+// legacy family takes the request: then it is the refusal of the general
+// Boolean.
 func orGeneral[T any](legacy T, err error, general func() (T, error)) (T, error) {
 	var refusal *failureError
 	if !errors.As(err, &refusal) || refusal.code != "UNSUPPORTED" {
 		return legacy, err
 	}
-	if r, e := general(); e == nil {
+	r, e := general()
+	if e == nil {
 		return r, nil
+	}
+	if errors.As(err, new(*unclaimedError)) {
+		return legacy, e
 	}
 	return legacy, err
 }

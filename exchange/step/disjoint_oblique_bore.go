@@ -94,7 +94,7 @@ func writeDisjointObliqueBores(w io.Writer, m DisjointObliqueBoreModel) error {
 			dirs[f] = cuts[i].Direction
 		}
 	}
-	return writeNativeMixedDisjointTopology(w, m.LengthUnit, m.Name, s, nativeLongEdgeLimits{18, 48, 32, 4, 4}, false, nil, false, dirs)
+	return writeNativeMixedDisjointTopology(w, m.LengthUnit, m.Name, s, nativeLongEdgeLimits{18, 48, 32, 4, 4}, nil, false, dirs)
 }
 func ReadDisjointObliqueBores(r io.Reader, limits Limits) (DisjointObliqueBoreModel, error) {
 	f, rep, unit, ids, e := parseCanonicalCircularExtrusions(r, limits)

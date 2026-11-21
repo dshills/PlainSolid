@@ -990,7 +990,11 @@ cut returns A with its vertex at the contact.
      the tolerances of (b). A face with curved edges, or on a cylinder,
      can lack one outright, when no chord between two of its corners
      stays inside it. Adding a vertex beyond those of the quarter-turn
-     cut, to make a candidate, is not part of the trial. If two
+     cut, to make a candidate, is not part of the trial, with one
+     exception made since: on a cylinder, a chord round it that crosses
+     the seam of the face, which adds a vertex to the seam (K3 of
+     [the crossing specification](../general-boolean-crossing/SPEC.md)).
+     If two
      different loops of one face hold corners at one chart point, the call
      returns `ErrInconsistent`: F3 puts every passage of a piece through
      one point into one loop, and M3 keeps merging from changing that.

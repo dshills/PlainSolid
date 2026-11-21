@@ -148,7 +148,7 @@ func (b *Bridge) legacyCutMany(a stored, tools []string) (Shape, error) {
 		return b.put(solid)
 	}
 	if !circular || a.cylinder != nil || a.analytic != nil {
-		return Shape{}, &failureError{"UNSUPPORTED", "cutMany requires planar tools on planar stock or cylindrical tools on qualified stock"}
+		return Shape{}, unclaimed("cutMany requires planar tools on planar stock or cylindrical tools on qualified stock")
 	}
 	base := a.solid
 	var cylinders []*cylinderBody

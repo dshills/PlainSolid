@@ -19,25 +19,6 @@ func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, err
 	if s.bore.obliqueCrossing != nil {
 		return s.bore.solid.TessellateCrossedObliqueBores(ctx, o)
 	}
-	if s.bore.tripleCrossed != nil {
-		return s.bore.solid.TessellateTripleCrossedBores(ctx, o)
-	}
-	if s.bore.crossedCompanions != nil {
-		return s.bore.solid.TessellateCrossedWithDisjoint(ctx, o)
-	}
-	if p := s.bore.blindCrossed; p != nil {
-		if p.clippedFloor {
-			switch {
-			case p.depth[1] < p.crossing.Z:
-				return s.bore.solid.TessellateBeforeCrossedBores(ctx, o)
-			case p.depth[1] == p.crossing.Z:
-				return s.bore.solid.TessellateCenterCrossedBores(ctx, o)
-			default:
-				return s.bore.solid.TessellateClippedCrossedBores(ctx, o)
-			}
-		}
-		return s.bore.solid.TessellateBlindCrossedBores(ctx, o)
-	}
 	if s.bore.oblique != nil {
 		return s.bore.solid.TessellateObliqueBore(ctx, o)
 	}

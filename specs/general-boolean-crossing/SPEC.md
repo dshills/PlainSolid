@@ -579,3 +579,142 @@ The legacy recipes for equal radius that this work would let the owner
 delete are the constructors of section 3.3's first two items and their
 STEP writers and readers. The recipes for unequal radius and skew axes
 would stay.
+
+## 13. Retirement of the legacy families of equal radius
+
+Asked for by the owner on 2026-11-21, on the branch
+`codex/retire-equal-crossed`. The *families* are the first item of
+section 3.3: two bores of one radius along coordinate axes of a box whose
+axes meet, through, blind or double blind, with a floor inside the
+crossing (before the other axis, at it, past it, or touching the far
+side), with companions apart from them, and three concurrent bores. The
+second item of section 3.3, with one axis oblique, is not part of this
+section and stays as it is.
+
+Sections 4 to 10 bound the work that section 12 looked ahead from. This
+section is the later work, and where it differs from them it governs:
+K2 changes `brep/trimmed` and `exchange/step`, which N2 kept out of
+scope; K3 changes section 7.10 of the base specification, which U2 used
+as it stood and ST-C2 made a stop condition; and K5 changes a refusal
+into another refusal, which D3 and ST-C5 did not allow. D4 has not held
+since the default bridge began to ask the general Boolean first for
+plain bores.
+
+### 13.1 What was measured first
+
+The slow tier of `internal/plaincadbridge` was run on `main` at
+`92d4f323` with a log line at every call of a legacy bore constructor
+and at every fallback from the general Boolean. The probe is not kept.
+
+- The general Boolean failed 96 requests that it was asked first. In 91
+  the legacy path refused as well. In the other 5 the legacy path
+  answered, each time with a side-tangent blind bore, which is not one
+  of the families.
+- No request reached one of the families through that fallback and was
+  answered by it. The families were reached on the bridge of the legacy
+  tests, and on the default bridge only for a body that their STEP
+  reader had built from an old export, and for later requests on such a
+  body.
+- A sweep then found what the tests did not (K3).
+
+### 13.2 Requirements
+
+- K1. The bridge must no longer build the families. Where the plain
+  bore engine does not take a set of cylinders, the legacy bore path
+  asks only for bores that are apart with a blind one among them, and
+  for the union of parallel cylinders. A crossing pair is cut by the
+  general Boolean or refused.
+- K2. The code of the families must be deleted and not kept under the
+  `research` tag: the bridge's recipes and its STEP branches for them;
+  `exchange/step/crossed_bore.go`, `triple_crossed_bore.go` and
+  `crossed_bore_curve.go`, with the option of the long-edge STEP writer
+  that only they used; and the ten source files of `brep/trimmed` that
+  built them, with their tests. `trimmed.BoxCrossedBoresResult` stays,
+  because the oblique family returns it.
+- K3. M6 of the base specification is amended. A face on a cylinder
+  that touches itself, and that no chord between two of its corners
+  divides, must be divided by a chord round the cylinder between two
+  corners of one hole at one height that crosses the seam of the face,
+  where there is one that meets (a) to (d). The chord is two dividers
+  that meet at a new vertex of the seam, which is the one vertex M6
+  adds; each divider is tested for (b). The seam is cut only where it
+  is an edge of that face alone, walked once each way by its outer
+  loop. Each of the two faces keeps its part of the seam. The shortest
+  such chord is taken. A face with no such chord is refused as before.
+- K4. An operand of the general Boolean that is a body of the legacy
+  bore engine must be given as its stock less its cylinders, cut again
+  by the general Boolean, where that gives one solid with the volume of
+  the legacy body to within 1e-7 of it. Otherwise the operand is the
+  solid the legacy engine built. The legacy engine divides the wall of
+  a bore along rulings of its own choosing, and a tool that touches one
+  left a face that M6 could not divide. The cut is made once for a
+  body. Edge treatments keep the legacy solid, whose edges the caller
+  has been shown.
+- K5. Where the general Boolean and a legacy path both refuse a
+  request, and the legacy refusal is that of a path with no family for
+  the request, the answer must be the refusal of the general Boolean.
+  Three refusals are of that kind: "cutMany requires planar tools on
+  planar stock or cylindrical tools on qualified stock", "overlapping
+  cylinders require parallel axes" and "Boolean operation is outside
+  the supported analytic stock domain". Any other legacy refusal stands
+  as before.
+- K6. A STEP file that `exportStep` wrote for a body of the families
+  before this change must still import, by the boundary reader, on the
+  word of its header (L3 of specs/general-boolean-quartic).
+- K7. `go build -tags research ./...` and `go vet -tags research ./...`
+  must pass, the reference-graph check of `tools/ci/README.md` must
+  pass, and the deletion must leave no unused unexported code that
+  `main` did not have.
+
+### 13.3 Acceptance criteria
+
+- A-C10. The default and slow tiers of `internal/plaincadbridge` pass
+  with the families gone. One recorded response changes: line 16 of
+  `TestContainedCrossedBores.jsonl`, a redundant cut that is refused,
+  has the code `UNSUPPORTED` of the general Boolean where it had
+  `INVALID` (K5).
+- A-C11. Ten files written by the legacy writer on `main` at `92d4f323`
+  (through; blind; floor touching the far side, past the axis, at it
+  and before it; double blind; three bores through and with one blind;
+  with a companion) import on a default bridge as results of the
+  general Boolean, with the volume and area the legacy body was
+  published with to within 1e-5, and are cut and exported again
+  (`TestLegacyBoreSTEPStillImports`).
+- A-C12. A blind bore across a through bore, with its floor inside it
+  past the axis at three depths, is cut to one volume for the seam of
+  the through bore at 0, 10, 45, 180 and 300 degrees and in either
+  order (`TestCrossingFloorAcrossTheSeam`). Before K3 the cut was
+  refused wherever the seam lay between the two rulings in which the
+  floor ends.
+- A-C13. On the bridge of the legacy tests, a blind bore across a bore
+  that the legacy engine built, with its floor at the axis and past it,
+  has the overlap volume and the cut of a default bridge
+  (`TestLegacyBoreBodyCutAcross`).
+- A-C14. Two bores that touch along a line are refused with the reason
+  of the general Boolean (`TestRefusalOfTheGeneralBooleanStands`).
+- A-C15. A sweep of 1,712 cuts on a default bridge (radius 2 and 3; one
+  bore through or blind at eight depths from either cap; the other
+  through or blind at seven depths from either side; alone, with a
+  third bore through their crossing, through or blind, or with one
+  apart; as one `cutMany` and as successive cuts) was run on `main` and
+  on the branch. No cut that `main` makes is refused. The 1,272 that
+  both make agree to the nine digits compared. 28 that `main` refuses
+  are made, and each agrees with its mirror image where `main` makes
+  that. 412 are refused by both, every one a pair that touches or a
+  floor that touches. Before K3 the branch refused 20 that `main`
+  makes, all with the floor of one bore inside the other, past its
+  axis, and the seam between the rulings. This check is not automated;
+  its probe is not kept.
+
+### 13.4 Decisions taken by default
+
+- OD-C9. The files of K6 are read in millimetres only. The legacy
+  reader scaled a file that declared another unit; `exportStep` never
+  wrote one, and no test read one.
+- OD-C10. The ten fixtures of A-C11 are kept compressed, 124 KB in all.
+- OD-C11. K4 costs one cut for each cylinder of a legacy body, the
+  first time the body is an operand.
+- OD-C12. K5 changes the text of a refusal, and for a request that only
+  a path without a family refused, its code from that path's to the
+  general Boolean's. PlainCAD shows the code and the text and does not
+  branch on either.

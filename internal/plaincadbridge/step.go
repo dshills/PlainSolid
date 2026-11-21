@@ -188,39 +188,6 @@ func (b *Bridge) importSTEPInUnits(source string, units stepFileUnit) (Shape, er
 		}
 		return b.putBore(body)
 	}
-	if m, e := step.ReadTripleCrossedBore(r(), stepLimits()); e == nil {
-		p := m.Body
-		g := crossedBoreGeometry{frame: p.Frame, dimensions: p.Dimensions, crossing: p.Crossing, radii: [2]float64{p.Radius, p.Radius}}
-		depths := [3]float64{p.XBlindDepth, p.YBlindDepth, p.BlindDepth}
-		entries := [3]bool{p.XOppositeCap, p.YOppositeCap, p.OppositeCap}
-		body, err := crossedSTEPTools(g, depths, entries, nil, true, m.LengthUnit)
-		if err != nil {
-			return Shape{}, err
-		}
-		return b.putBore(body)
-	}
-	if m, e := step.ReadCrossedBore(r(), stepLimits()); e == nil {
-		p := m.Body
-		if len(p.Additional) != 0 {
-			body, err := crossedCompanionsFromSTEP(p, m.LengthUnit)
-			if err != nil {
-				return Shape{}, err
-			}
-			return b.putBore(body)
-		}
-		if p.BlindDepth > 0 {
-			body, err := blindCrossedFromSTEP(p, m.LengthUnit)
-			if err != nil {
-				return Shape{}, err
-			}
-			return b.putBore(body)
-		}
-		body, err := crossedBoreFromSTEP(crossedBoreGeometry{frame: p.Frame, dimensions: p.Dimensions, crossing: p.Crossing, radii: [2]float64{p.Radius, p.Radius}}, m.LengthUnit)
-		if err != nil {
-			return Shape{}, err
-		}
-		return b.putBore(body)
-	}
 	if m, e := step.ReadDisjointObliqueBores(r(), stepLimits()); e == nil {
 		body, err := disjointObliqueFromSTEP(m)
 		if err != nil {
@@ -532,19 +499,6 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	case s.cylinder != nil:
 		c := s.cylinder
 		e = step.WriteCylinders(&out, step.CylinderModel{LengthUnit: .001, Bodies: []step.CylinderBody{{Name: "PlainSolid", Frame: c.frame, Radius: c.radius, Height: c.height}}})
-	case s.bore != nil && s.bore.blindCrossed != nil:
-		recipe := s.bore.blindCrossed
-		p := step.CrossedBoreBody{Name: "PlainSolid", Frame: recipe.frame, Dimensions: recipe.dimensions, Crossing: recipe.crossing, Radius: recipe.radii[0], BlindDepth: recipe.depth[1], OppositeCap: recipe.oppositeCap[1], XBlindDepth: recipe.depth[0], XOppositeCap: recipe.oppositeCap[0], ClippedFloor: recipe.clippedFloor}
-		e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: p, LengthUnit: .001})
-	case s.bore != nil && s.bore.tripleCrossed != nil:
-		p := s.bore.tripleCrossed
-		body := step.TripleCrossedBoreBody{Name: "PlainSolid", Frame: p.frame, Dimensions: p.dimensions, Crossing: p.crossing, Radius: p.radii[0], BlindDepth: p.depths[2], OppositeCap: p.opposite[2],
-			XBlindDepth: p.depths[0], YBlindDepth: p.depths[1], XOppositeCap: p.opposite[0], YOppositeCap: p.opposite[1]}
-		e = step.WriteTripleCrossedBore(&out, step.TripleCrossedBoreModel{Body: body, LengthUnit: .001})
-	case s.bore != nil && s.bore.crossedCompanions != nil:
-		p := s.bore.crossedCompanions
-		body := step.CrossedBoreBody{Name: "PlainSolid", Frame: p.frame, Dimensions: p.dimensions, Crossing: p.crossing, Radius: p.radii[0], Additional: p.additional}
-		e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: body, LengthUnit: .001})
 	case s.bore != nil && s.bore.disjointOblique != nil:
 		m, err := disjointObliqueSTEPRecipe(s.bore)
 		if err != nil {
@@ -559,16 +513,6 @@ func writeSTEPBody(s stored) ([]byte, error) {
 			body.AxisRatio = p.axisRatio
 		}
 		e = step.WriteCrossedObliqueBore(&out, step.CrossedObliqueBoreModel{Body: body, LengthUnit: .001})
-	case s.bore != nil && s.bore.crossed != nil:
-		recipe, ok := crossedBoreRecipe(s.bore.base, s.bore.cylinders, s.bore.blind)
-		if !ok {
-			return nil, geom.ErrUnrepresentable
-		}
-		if recipe.skew() {
-			return nil, geom.ErrUnrepresentable
-		}
-		p := step.CrossedBoreBody{Name: "PlainSolid", Frame: recipe.frame, Dimensions: recipe.dimensions, Crossing: recipe.crossing, Radius: recipe.radii[0]}
-		e = step.WriteCrossedBore(&out, step.CrossedBoreModel{Body: p, LengthUnit: .001})
 	case s.bore != nil:
 		if s.bore.oblique != nil {
 			p, err := obliqueBoreSTEPRecipe(s.bore)

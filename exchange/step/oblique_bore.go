@@ -58,7 +58,7 @@ func writeObliqueBore(w io.Writer, m ObliqueBoreModel) error {
 		return err
 	}
 	limits := nativeLongEdgeLimits{10, 24, 16, 2, 4}
-	return writeNativeLongEdgeTopologyWithDirection(w, m.LengthUnit, p.Name, solid, limits, false, &p.Direction)
+	return writeNativeLongEdgeTopologyWithDirection(w, m.LengthUnit, p.Name, solid, limits, &p.Direction)
 }
 
 // Represent the direction by ratios, as STEP DIRECTION permits, and choose

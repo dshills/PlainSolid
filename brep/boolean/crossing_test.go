@@ -264,7 +264,10 @@ func TestClosedEdgeInAnyPose(t *testing.T) {
 // face … touches itself"), as failing V1 ("invalid face … loop … size"),
 // or, with the floor at 21 where it touches the top of the ellipse, as
 // inconsistent by F3. Every volume that is returned in the band agrees
-// with the other order and with the image; none is wrong.
+// with the other order and with the image; none is wrong. Since M6 takes
+// a chord across the seam (TestCrossingFloorAcrossTheSeam), the floors
+// from 19.2 to 20.8 that were tried in this arrangement are cut in both
+// orders; a floor at 19 or 21 is still refused in one.
 func TestCrossingFloorInTheCrossing(t *testing.T) {
 	m := geom.Identity()
 	stock := crossingStock(t, m, []geom.Vec2{{X: 0, Y: 0}, {X: 20, Y: 0}, {X: 20, Y: 16}, {X: 0, Y: 16}}, 0, 40)
@@ -295,6 +298,67 @@ func TestCrossingFloorInTheCrossing(t *testing.T) {
 		} {
 			if !crossingWithin(c.got, want) {
 				t.Errorf("floor at %g: %s: volume %.12g, want %.12g", floor, c.name, c.got, want)
+			}
+		}
+	}
+}
+
+// TestCrossingFloorAcrossTheSeam cuts a bore through a box and a blind
+// bore of the same radius across it whose floor lies inside the first
+// bore, past its axis. The wall of the through bore is then left in one
+// piece that touches itself at the two points where the bores cross, and
+// the only chord that divides it runs round the bore between the two
+// rulings where the floor ends. Where the seam of the bore lies between
+// those rulings the chord crosses it (M6, section 13 of
+// specs/general-boolean-crossing). Every placement of the seam, and
+// either order of the cuts, gives the volume of the placement with the
+// seam on the other side.
+func TestCrossingFloorAcrossTheSeam(t *testing.T) {
+	m := geom.Identity()
+	stock := crossingStock(t, m, []geom.Vec2{{X: 0, Y: 0}, {X: 20, Y: 0}, {X: 20, Y: 16}, {X: 0, Y: 16}}, 0, 12)
+	rod := func(origin, x, z geom.Vec3, l float64) trimmed.Solid {
+		t.Helper()
+		frame, err := geom.NewFrame(origin, x, z)
+		if err != nil {
+			t.Fatal(err)
+		}
+		round, err := parametric.Cylinder(frame, 2, l)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s, err := trimmed.FromParametric(round)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	through := func(degrees float64) trimmed.Solid {
+		s, c := math.Sincos(degrees * math.Pi / 180)
+		return rod(geom.Vec3{X: 10, Y: 8, Z: -1}, geom.Vec3{X: c, Y: s}, geom.Vec3{Z: 1}, 14)
+	}
+	cut := func(first, second trimmed.Solid) float64 {
+		t.Helper()
+		a, err := Combine(context.Background(), stock, first, Cut, crossingOptions)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := Combine(context.Background(), a.Solid, second, Cut, crossingOptions)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if b.Solids != 1 {
+			t.Fatalf("%d solids", b.Solids)
+		}
+		return b.Volume
+	}
+	for _, floor := range []float64{10.5, 11, 11.9} {
+		blind := rod(geom.Vec3{X: -1, Y: 8, Z: 6}, geom.Vec3{Y: 1}, geom.Vec3{X: 1}, floor+1)
+		want := cut(through(180), blind)
+		for _, seam := range []float64{0, 10, 45, 300} {
+			for i, got := range [2]float64{cut(through(seam), blind), cut(blind, through(seam))} {
+				if math.Abs(got-want) > crossingOptions.Volume*want {
+					t.Errorf("floor at %g, seam at %g, order %d: volume %.12g, want %.12g", floor, seam, i, got, want)
+				}
 			}
 		}
 	}

@@ -129,26 +129,18 @@ func writeNativeLongEdgeTopology(w io.Writer, unit float64, name string, s trimm
 	return writeNativeLongEdgeTopologyBounded(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64})
 }
 func writeNativeLongEdgeTopologyBounded(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits) error {
-	return writeNativeLongEdgeTopologyOptions(w, unit, name, s, limits, false)
+	return writeNativeLongEdgeTopologyWithDirection(w, unit, name, s, limits, nil)
 }
 
-func writeNativeCrossedBoreTopology(w io.Writer, unit float64, name string, s trimmed.Solid) error {
-	return writeNativeLongEdgeTopologyOptions(w, unit, name, s, nativeLongEdgeLimits{64, 256, 256, 5, 64}, true)
+func writeNativeLongEdgeTopologyWithDirection(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, obliqueDirection *geom.Vec3) error {
+	return writeNativeLongEdgeTopologyConics(w, unit, name, s, limits, obliqueDirection, false)
 }
 
-func writeNativeLongEdgeTopologyOptions(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool) error {
-	return writeNativeLongEdgeTopologyWithDirection(w, unit, name, s, limits, crossed, nil)
+func writeNativeLongEdgeTopologyConics(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, obliqueDirection *geom.Vec3, crossedOblique bool) error {
+	return writeNativeMixedDisjointTopology(w, unit, name, s, limits, obliqueDirection, crossedOblique, nil)
 }
 
-func writeNativeLongEdgeTopologyWithDirection(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, obliqueDirection *geom.Vec3) error {
-	return writeNativeLongEdgeTopologyConics(w, unit, name, s, limits, crossed, obliqueDirection, false)
-}
-
-func writeNativeLongEdgeTopologyConics(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, obliqueDirection *geom.Vec3, crossedOblique bool) error {
-	return writeNativeMixedDisjointTopology(w, unit, name, s, limits, crossed, obliqueDirection, crossedOblique, nil)
-}
-
-func writeNativeMixedDisjointTopology(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, crossed bool, obliqueDirection *geom.Vec3, crossedOblique bool, directions map[int]geom.Vec3) error {
+func writeNativeMixedDisjointTopology(w io.Writer, unit float64, name string, s trimmed.Solid, limits nativeLongEdgeLimits, obliqueDirection *geom.Vec3, crossedOblique bool, directions map[int]geom.Vec3) error {
 	if !utf8.ValidString(name) || len(name) > 4096 {
 		return geom.ErrInvalid
 	}
@@ -230,14 +222,6 @@ func writeNativeMixedDisjointTopology(w io.Writer, unit float64, name string, s 
 		}
 		if (obliqueDirection != nil || directions != nil) && os[0].use.Curve != nil && os[1].use.Curve != nil && surfaces[os[0].face].kind != surfaces[os[1].face].kind {
 			curve, err := obliqueBoreEdgeCurve(a, b, os, surfaces)
-			if err != nil {
-				return err
-			}
-			curves[i] = curve
-			continue
-		}
-		if crossed && os[0].use.Curve != nil && os[1].use.Curve != nil && surfaces[os[0].face].kind == "CYLINDRICAL_SURFACE" && surfaces[os[1].face].kind == "CYLINDRICAL_SURFACE" {
-			curve, err := crossedBoreEdgeCurve(a, b, os, surfaces)
 			if err != nil {
 				return err
 			}

@@ -29,7 +29,7 @@ func newUnionBore(base brep.Solid, cylinders []*cylinderBody, cuts []trimmed.Cyl
 	opposedBlind := false
 	for i, c := range cylinders {
 		if cuts[i].Direction != axis && cuts[i].Direction != axis.Scale(-1) {
-			return fail("overlapping cylinders require parallel axes")
+			return nil, unclaimed("overlapping cylinders require parallel axes")
 		}
 		if cuts[i].Direction != axis && !blind[i] {
 			finish := c.frame.Origin().Add(c.frame.ZAxis().Scale(c.height))

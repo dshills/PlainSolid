@@ -22,7 +22,20 @@ type corner struct {
 // loop.
 func (a *arrangement) divide(edges []element, sheets []sheet) ([]element, []sheet, error) {
 	var out []sheet
-	for _, sh := range sheets {
+	for si, sh := range sheets {
+		// sole reports an element that no other face walks.
+		sole := func(elem int) bool {
+			for j, other := range sheets {
+				for _, loop := range other.loops {
+					for _, h := range loop {
+						if j != si && h.elem == elem {
+							return false
+						}
+					}
+				}
+			}
+			return true
+		}
 		pending := []sheet{sh}
 		for len(pending) > 0 {
 			face := pending[0]
@@ -36,6 +49,14 @@ func (a *arrangement) divide(edges []element, sheets []sheet) ([]element, []shee
 			}
 			x, y, chord, found := a.divider(edges, face, corners)
 			if !found {
+				cut, parts, crossed, err := a.acrossSeam(edges, face, corners, sole)
+				if err != nil {
+					return nil, nil, err
+				}
+				if crossed {
+					edges, pending = cut, append(parts, pending[1:]...)
+					continue
+				}
 				at := a.points[a.repeatedAt(corners)].pos
 				return nil, nil, fail(ErrUnsupported, "M6", "a face from the input faces %v touches itself at %v and no chord between two of its corners divides it", face.sources, at)
 			}
@@ -227,7 +248,6 @@ func (a *arrangement) continues(legs [][]leg, chord leg, x, y corner) bool {
 // a loop of positive chart area is the outer loop of a face, and every
 // other loop is a hole of the smallest face that contains it (F4, M7).
 func (a *arrangement) parted(edges []element, face sheet, x, y corner) ([]sheet, error) {
-	ch := face.s.chart()
 	divider := len(edges) - 1
 	old := face.loops[x.loop]
 	first := append(append([]hop(nil), old[x.index:y.index]...), hop{divider, true})
@@ -238,6 +258,15 @@ func (a *arrangement) parted(edges []element, face sheet, x, y corner) ([]sheet,
 			loops = append(loops, loop)
 		}
 	}
+	return a.apportion(edges, face, loops)
+}
+
+// apportion makes the two faces of a divided face from its loops as the
+// dividers left them: a loop of positive chart area is the outer loop of
+// a face, and every other loop is a hole of the smallest face that
+// contains it (F4, M7).
+func (a *arrangement) apportion(edges []element, face sheet, loops [][]hop) ([]sheet, error) {
+	ch := face.s.chart()
 	areas := table[float64](loops)
 	var out []sheet
 	owner := filled(loops, -1)
@@ -284,4 +313,186 @@ func (a *arrangement) encloses(ch chart, edges []element, outer, hole []hop) boo
 		}
 	}
 	return inside
+}
+
+// acrossSeam is M6 for a face on a carrier that repeats, when no chord
+// between two of its corners divides it: a chord round the carrier,
+// between two corners of one hole at one height, that crosses the seam
+// of the face. In the chart such a chord is two segments, from the
+// corner on the left to the left edge of the face and from the right
+// edge to the corner on the right, and their two ends at the edges are
+// one point of the seam. That point becomes a vertex of the seam, the one
+// vertex M6 adds, and the two segments become dividers. The face is then
+// two faces, one on each side of the chord, each with its part of the
+// seam.
+//
+// The seam is cut only where it is an edge of this face alone, which
+// sole reports, walked once each way by the outer loop. Conditions (a)
+// to (d) of M6 hold of the chord as of any other, each segment being
+// tested for (b), and the shortest chord is taken.
+func (a *arrangement) acrossSeam(edges []element, face sheet, corners []corner, sole func(elem int) bool) ([]element, []sheet, bool, error) {
+	ch := face.s.chart()
+	period := ch.period()
+	if period == 0 || len(face.loops) < 2 {
+		return edges, nil, false, nil
+	}
+	legs := legsOf(edges, face.loops)
+	rim := place(ch, legs)[0]
+	outer := face.loops[0]
+	points := len(a.points)
+	// build makes the division by the chord between two corners, lo to
+	// the left of hi, and reports whether it is one.
+	build := func(lo, hi corner) ([]element, [][]hop, bool) {
+		for k, h := range outer {
+			twin := -1
+			for m, other := range outer {
+				if m != k && other.elem == h.elem && other.reversed != h.reversed {
+					twin = m
+				}
+			}
+			if twin < 0 || rim[k].curved() || !sole(h.elem) {
+				continue
+			}
+			// The hop on the left edge, its twin on the right, a whole
+			// turn apart, and the height of the chord strictly between
+			// the ends of the seam edge.
+			left, right := rim[k].at(rim[k].t0), rim[twin].at(rim[twin].t0)
+			from, to := left.Y, rim[k].at(rim[k].t1).Y
+			if math.Abs(right.X-left.X-period) > a.t.eps || math.Abs(rim[k].at(rim[k].t1).X-left.X) > a.t.eps ||
+				!(lo.at.Y > math.Min(from, to)+a.t.eps && lo.at.Y < math.Max(from, to)-a.t.eps) ||
+				!(lo.at.X > left.X+a.t.eps && hi.at.X < right.X-a.t.eps) {
+				continue
+			}
+			near, ok := ch.chord(lo.at, geom.Vec2{X: left.X, Y: lo.at.Y}, a.t.eps)
+			far, also := ch.chord(geom.Vec2{X: right.X, Y: hi.at.Y}, hi.at, a.t.eps)
+			e := edges[h.elem]
+			at := e.c.param(near.c.at(near.t1))
+			if !ok || !also || !(at > e.t0 && at < e.t1) {
+				continue
+			}
+			// The seam edge becomes two at the new vertex.
+			a.points = append(a.points, point{e.c.at(at), a.t.eps})
+			vertex := len(a.points) - 1
+			cut := append([]element(nil), edges...)
+			cut[h.elem] = element{e.c, e.t0, at, e.a, vertex}
+			cut = append(cut, element{e.c, at, e.t1, vertex, e.b})
+			upper := len(cut) - 1
+			var walk []hop
+			var leaves [2]int // where the outer loop leaves the vertex: on the left, on the right
+			for m, g := range outer {
+				switch {
+				case g.elem != h.elem:
+					walk = append(walk, g)
+					continue
+				case g.reversed:
+					walk = append(walk, hop{upper, true}, hop{h.elem, true})
+				default:
+					walk = append(walk, hop{h.elem, false}, hop{upper, false})
+				}
+				if m == k {
+					leaves[0] = len(walk) - 1
+				} else {
+					leaves[1] = len(walk) - 1
+				}
+			}
+			// (b) and (c), on the face with its seam cut and no divider.
+			split := sheet{s: face.s, reversed: face.reversed, loops: append([][]hop{walk}, face.loops[1:]...), sources: face.sources}
+			all, _, err := a.cornersOf(cut, split)
+			if err != nil {
+				return nil, nil, false
+			}
+			sides := legsOf(cut, split.loops)
+			seam := corner{point: vertex}
+			if !a.inside(ch, sides, all, near, lo, seam) || !a.inside(ch, sides, all, far, seam, hi) {
+				return nil, nil, false
+			}
+			for _, end := range []struct {
+				c     corner
+				along geom.Vec3
+			}{{lo, near.c.tangent(near.t0)}, {hi, far.c.tangent(far.t1)}} {
+				leave, arrive := legs[end.c.loop][end.c.index], cyclic(legs[end.c.loop], end.c.index-1)
+				if a.t.parallel(end.along, leave.c.tangent(leave.t0)) || a.t.parallel(end.along, arrive.c.tangent(arrive.t1)) {
+					return nil, nil, false
+				}
+			}
+			// The dividers, in arcs of at most a quarter turn.
+			var out, back, in, home []hop // lo to the seam and back, the seam to hi and back
+			for i, l := range [2]leg{near, far} {
+				ends := [2]int{lo.point, vertex}
+				if i == 1 {
+					ends = [2]int{vertex, hi.point}
+				}
+				arcs := conditioned(element{l.c, l.t0, l.t1, ends[0], ends[1]}, 0)
+				start := ends[0]
+				for n, arc := range arcs {
+					stop := ends[1]
+					if n+1 < len(arcs) {
+						a.points = append(a.points, point{l.c.at(arc.t1), a.t.eps})
+						stop = len(a.points) - 1
+					}
+					cut = append(cut, element{l.c, arc.t0, arc.t1, start, stop})
+					start = stop
+					if i == 0 {
+						out, back = append(out, hop{len(cut) - 1, false}), append([]hop{{len(cut) - 1, true}}, back...)
+					} else {
+						in, home = append(in, hop{len(cut) - 1, false}), append([]hop{{len(cut) - 1, true}}, home...)
+					}
+				}
+			}
+			// The hole from lo round to hi goes with the outer loop from
+			// the right edge round to the left, and the rest with the
+			// rest: every loop keeps the face on its left.
+			hole := face.loops[lo.loop]
+			round := func(loop []hop, from, to int) []hop {
+				var part []hop
+				for i := from; i != to; i = (i + 1) % len(loop) {
+					part = append(part, loop[i])
+				}
+				return part
+			}
+			first := append(append(append(round(hole, lo.index, hi.index), home...), round(walk, leaves[1], leaves[0])...), back...)
+			second := append(append(append(round(hole, hi.index, lo.index), out...), round(walk, leaves[0], leaves[1])...), in...)
+			loops := [][]hop{first, second}
+			for _, loop := range loops {
+				if !(chartArea(ch, legsOf(cut, [][]hop{loop})) > 0) {
+					return nil, nil, false
+				}
+			}
+			for i, loop := range face.loops {
+				if i != 0 && i != lo.loop {
+					loops = append(loops, loop)
+				}
+			}
+			return cut, loops, true
+		}
+		return nil, nil, false
+	}
+	var chosen [2]corner
+	best := math.Inf(1)
+	for i, cx := range corners {
+		for _, cy := range corners[i+1:] {
+			if cy.loop != cx.loop || cx.loop == 0 || a.samePlace(cx, cy) || math.Abs(cy.at.Y-cx.at.Y) > a.t.eps {
+				continue
+			}
+			lo, hi := cx, cy
+			if hi.at.X < lo.at.X {
+				lo, hi = hi, lo
+			}
+			length := period - (hi.at.X - lo.at.X)
+			if !(length < best*(1-1e-12)) || !a.separates(corners, cx, cy) {
+				continue
+			}
+			_, _, ok := build(lo, hi)
+			a.points = a.points[:points]
+			if ok {
+				chosen, best = [2]corner{lo, hi}, length
+			}
+		}
+	}
+	if math.IsInf(best, 1) {
+		return edges, nil, false, nil
+	}
+	cut, loops, _ := build(chosen[0], chosen[1])
+	parts, err := a.apportion(cut, face, loops)
+	return cut, parts, err == nil, err
 }

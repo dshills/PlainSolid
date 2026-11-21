@@ -115,7 +115,7 @@ func (b *Bridge) legacyBoolean(ctx context.Context, a, c stored, op string) (any
 		}
 	}
 	if a.analytic != nil || c.analytic != nil {
-		return nil, &failureError{"UNSUPPORTED", "Boolean operation is outside the supported analytic stock domain"}
+		return nil, unclaimed("Boolean operation is outside the supported analytic stock domain")
 	}
 	if result, handled, err := b.cornerCylinderBoolean(a, c, op); handled {
 		return result, err

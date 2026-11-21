@@ -79,7 +79,7 @@ func writeCrossedObliqueBore(w io.Writer, m CrossedObliqueBoreModel) error {
 	if err != nil {
 		return err
 	}
-	return writeNativeLongEdgeTopologyConics(w, m.LengthUnit, p.Name, r.Solid, nativeLongEdgeLimits{24, 96, 64, 2, 4}, false, nil, true)
+	return writeNativeLongEdgeTopologyConics(w, m.LengthUnit, p.Name, r.Solid, nativeLongEdgeLimits{24, 96, 64, 2, 4}, nil, true)
 }
 
 func ReadCrossedObliqueBore(r io.Reader, l Limits) (CrossedObliqueBoreModel, error) {
