@@ -10,6 +10,13 @@ import (
 	"testing"
 )
 
+func unionOracleNear(t *testing.T, actual, expected float64) {
+	t.Helper()
+	if math.Abs(actual-expected) > 1e-7*math.Max(1, math.Abs(expected)) {
+		t.Fatalf("got %.15g, expected %.15g", actual, expected)
+	}
+}
+
 func depthUnionBox(t *testing.T) brep.Solid {
 	t.Helper()
 	s, e := brep.Box(geom.Vec3{X: -10, Y: -10}, geom.Vec3{X: 10, Y: 10, Z: 10})

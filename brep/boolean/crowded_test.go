@@ -27,6 +27,7 @@ func TestUnder(t *testing.T) {
 		{"the ends of the arc are not counted", []geom.Vec2{{X: 2}, {Y: 2}}, [2]float64{0, math.Pi / 2}, false},
 		{"a vertex the halved arc stands clear of", []geom.Vec2{at(1.9)}, [2]float64{0, math.Pi / 4}, false},
 		{"walked the other way", []geom.Vec2{at(1.9)}, [2]float64{math.Pi / 2, 0}, true},
+		{"a vertex on the chord", []geom.Vec2{{X: 1, Y: 1}}, [2]float64{0, math.Pi / 2}, true},
 	} {
 		if got := under(quarter, c.part[0], c.part[1], c.spots); got != c.want {
 			t.Errorf("%s: got %v", c.name, got)

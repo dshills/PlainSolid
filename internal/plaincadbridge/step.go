@@ -597,7 +597,7 @@ func writeSTEPBody(s stored) ([]byte, error) {
 }
 
 func boreSTEPRecipe(a *boreBody) (step.CircularHoleExtrusionBody, error) {
-	if a.union != nil || a.layered != nil || len(a.cylinders) == 0 {
+	if len(a.cylinders) == 0 {
 		return step.CircularHoleExtrusionBody{}, &failureError{"UNSUPPORTED", "STEP overlapping bore export is not qualified"}
 	}
 	c := a.cylinders[0]

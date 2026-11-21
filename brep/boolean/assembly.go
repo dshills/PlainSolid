@@ -267,9 +267,10 @@ func crowded(edges []element, in []sheet) []int {
 	return extra
 }
 
-// under reports whether one of the spots lies strictly between the part
-// of a chart path from t0 to t1 and the chord of that part. The ends of
-// the part are not counted.
+// under reports whether one of the spots lies between the part of a
+// chart path from t0 to t1 and the chord of that part, or on the chord
+// itself, where the polygon of the vertices would touch itself. The ends
+// of the part are not counted.
 func under(p path, t0, t1 float64, spots []geom.Vec2) bool {
 	const samples = 16
 	var ring [samples + 1]geom.Vec2
@@ -281,6 +282,11 @@ func under(p path, t0, t1 float64, spots []geom.Vec2) bool {
 	for _, s := range spots {
 		if math.Hypot(s.X-a.X, s.Y-a.Y) <= 1e-9*span || math.Hypot(s.X-b.X, s.Y-b.Y) <= 1e-9*span {
 			continue
+		}
+		// On the chord: within a billionth of its length of the segment.
+		along := ((s.X-a.X)*(b.X-a.X) + (s.Y-a.Y)*(b.Y-a.Y)) / (span * span)
+		if across := ((s.X-a.X)*(b.Y-a.Y) - (s.Y-a.Y)*(b.X-a.X)) / span; along > 0 && along < 1 && math.Abs(across) <= 1e-9*span {
+			return true
 		}
 		inside := false
 		for i, q := range ring {

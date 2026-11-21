@@ -900,7 +900,11 @@ causes are Z1 to Z3.
 
 ### 15.5 The inputs of the sweeps
 
-The probes of A-C15 and A-C18 are not kept. Their inputs were these.
+The probes of A-C15, A-C18 and A-C23 are not kept. Each wrote the
+volume and the area of an answer to nine significant digits, and two
+answers are alike, or an answer its closed form, where both differ by
+less than 1e-8 of the value. The inputs of A-C23 are given with it;
+those of the other two were these.
 
 - A-C15. A box from (0, 0, 0) to (20, 16, 12), and bores of radius r,
   2 and 3, along x and z through (10, 8, 6). The bore along z from
@@ -926,3 +930,91 @@ The probes of A-C15 and A-C18 are not kept. Their inputs were these.
   (7, 0, 24) or (1, 0, 3), of radius 1.5, 2 or 3, alone, and with a
   bore of radius 1.5 along z through (4, 4), through, and one from the
   top at (36, 36), 12 deep.
+
+## 16. Retirement of the legacy unions of parallel bores
+
+Asked for by the owner on 2026-11-21, on the branch
+`codex/retire-bore-unions`. The *unions* are the legacy paths for bores
+along one direction of planar stock that overlap: side by side, one
+inside another, or on one axis at different radii and depths. They are
+`newUnionBore` of the bridge and `trimmed.BoreCylinderUnion` and
+`trimmed.BoreCylinderDepthUnion` behind it. Section 13 governs this
+section as it governs itself: K4 and K5 apply here unchanged.
+
+### 16.1 What was measured first
+
+In the probe of section 14.1 the union builders were reached through
+the fallback from the general Boolean in eleven tests and answered in
+none: every such request was a tool that removes nothing, which both
+refuse. They were reached besides only on the bridge of the legacy
+tests. The legacy STEP writer never wrote a union ("STEP overlapping
+bore export is not qualified"), so no old file holds one.
+
+A sweep of 3,253 requests on a default bridge was then run with and
+without the unions (A-C23).
+
+### 16.2 Requirements
+
+- Y1. The bridge must no longer build a union. Where the plain bore
+  engine does not take a set of cylinders, and they are not bores apart
+  with a blind one among them, the legacy bore path refuses, for two or
+  more cylinders with a refusal to which K5 applies. The general
+  Boolean cuts them or refuses.
+- Y2. `newUnionBore` and what only it used must be deleted and not kept
+  under the `research` tag: the union and layered histories of a bore
+  body with their measures and face areas, `trimmed.BoreCylinderUnion`
+  with its history type and its tests, and the profile builder that
+  only it called. `trimmed.BoreCylinderDepthUnion` stays, because the
+  stepped bore of `brep/trimmed` calls it, and so does the layered bore
+  of circular stock, which is another family.
+- Y3. Z2 is extended: a vertex of a face that lies on the chord of an
+  arc of that face, within a billionth of the chord's length, counts as
+  lying between the arc and the chord. The polygon of the vertices
+  touches itself there.
+- Y4. K7 applies.
+
+### 16.3 Acceptance criteria
+
+- A-C22. The default and slow tiers of `internal/plaincadbridge` pass
+  with the unions gone. Three recorded responses change: lines 7, 10
+  and 13 of
+  `TestContainedUnionAnchorChangeDoesNotPublishTinyReduction.jsonl`,
+  each a tool that removes nothing, have the code `UNSUPPORTED` of the
+  general Boolean where they had `INVALID` (K5).
+  `TestParallelBoresThatOverlap` cuts bores side by side, a counterbore
+  of three steps, a bore deepened, and a wider bore over one that
+  touches it from inside, each to its closed form as one `cutMany` and
+  as successive cuts; `TestParallelBoresThatTouch` holds the two
+  refusals.
+- A-C23. The sweep: a box from (0, 0, 0) to (40, 30, 20); a bore A of
+  radius 3 or 4 along z at (15, 15), through, 12 deep from the top or
+  12 deep from the bottom; a bore B of radius 2, 3 or 4 at a distance
+  of 0, 0.5, 1, 2, the radius of A, the sum of the radii less 0.5, the
+  sum, the sum and 1, and, where A is the wider, the difference of the
+  radii and that and 0.5; B through, 6, 12 or 15 deep from the top, or
+  6, 8 or 10 deep from the bottom; as one `cutMany` and as successive
+  cuts in either order with the overlap volume asked between them. With
+  them five stepped bores on one axis and thirty rows of three to five
+  bores at pitches from 3 to 6.5. Of the 3,253 requests, the 2,714
+  that `main` answers are answered alike; 22 that it refuses, each with
+  one bore touching the other from inside, are made; and 517 are
+  refused by both, 169 a tool that removes nothing and 348 bores that
+  touch from outside, which leave no manifold. Before Y3 one cut that
+  `main` makes was refused: a wider blind bore over a narrower one of
+  the same depth that touches it from inside. The volume of each of the
+  602 cuts with one footprint inside the other is its closed form to
+  the nine digits compared. The sweeps of A-C15 and A-C18 give on the
+  branch every answer they give on `main`. These checks are not
+  automated.
+
+### 16.4 Decisions taken by default
+
+- OD-C20. A redundant tool is now refused with the general Boolean's
+  "Boolean cut removed no volume, or left no material" and the code
+  `UNSUPPORTED`, where the union path said "cutMany must retain solid
+  material and collectively remove volume" or "cylindrical cut removed
+  no material" with `INVALID` or `UNSUPPORTED`.
+- OD-C21. A single cylinder that the plain bore engine does not take
+  keeps its refusal, "cylindrical cut is outside the strictly contained
+  convex-stock domain", to which K5 does not apply: it is the refusal
+  of the family of plain bores.

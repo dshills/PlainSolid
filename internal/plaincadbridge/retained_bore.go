@@ -10,7 +10,7 @@ import (
 )
 
 func rectangularBoredStock(body *boreBody, normal geom.Vec3, allowBlind bool) (geom.Frame, geom.Vec3, trimmed.ExtrusionCircle, bool) {
-	if body == nil || len(body.cylinders) != 1 || body.layered != nil || body.union != nil || body.blind[0] && !allowBlind {
+	if body == nil || len(body.cylinders) != 1 || body.blind[0] && !allowBlind {
 		return geom.Frame{}, geom.Vec3{}, trimmed.ExtrusionCircle{}, false
 	}
 	c := body.cylinders[0]

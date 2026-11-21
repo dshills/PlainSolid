@@ -23,8 +23,6 @@ type boreBody struct {
 	spans          []float64
 	blind          []bool
 	floors         []int
-	union          *trimmed.CylinderUnionHistory
-	layered        *trimmed.LayeredBoreHistory
 	// again is the stock less the cylinders by the general Boolean, once
 	// recut has worked it out: the empty solid where it does not hold.
 	again *trimmed.Solid
@@ -226,7 +224,13 @@ func newBore(base brep.Solid, cylinders []*cylinderBody) (*boreBody, error) {
 				return &boreBody{solid: boundary, base: base, cylinders: cylinders, cuts: cuts, spans: spans, blind: blind, floors: finiteFloors}, nil
 			}
 		}
-		return newUnionBore(base, cylinders, cuts, blind)
+		if len(cylinders) < 2 {
+			return nil, &failureError{"UNSUPPORTED", "cylindrical cut is outside the strictly contained convex-stock domain"}
+		}
+		// Bores that overlap or cross have no legacy path: the general
+		// Boolean cuts them or refuses them (sections 13 to 16 of
+		// specs/general-boolean-crossing).
+		return nil, unclaimed("cylinders that overlap or cross are cut by the general Boolean alone")
 	}
 	for i := range cylinders {
 		if blind[i] {
@@ -244,25 +248,6 @@ func (body *boreBody) measures() (float64, float64, error) {
 		return 0, 0, err
 	}
 	volume, area := p.Volume, p.SurfaceArea
-	if h := body.layered; h != nil {
-		volume -= h.RemovedVolume
-		area += h.SurfaceAreaDelta
-		if !finite(volume) || !finite(area) || volume <= 0 || area <= 0 {
-			return 0, 0, errors.New("invalid layered-cylinder measures")
-		}
-		return volume, area, nil
-	}
-	if u := body.union; u != nil {
-		volume -= u.Area * u.Depth
-		area += u.Perimeter * u.Depth
-		if !u.Blind {
-			area -= 2 * u.Area
-		}
-		if !finite(volume) || !finite(area) || volume <= 0 || area <= 0 {
-			return 0, 0, errors.New("invalid cylindrical union measures")
-		}
-		return volume, area, nil
-	}
 	for i, c := range body.cylinders {
 		volume -= math.Pi * c.radius * c.radius * body.spans[i]
 		area += 2 * math.Pi * c.radius * (body.spans[i] - c.radius)
@@ -317,12 +302,6 @@ func (body *boreBody) transformed(m geom.Affine) (*boreBody, error) {
 	return out, nil
 }
 func (body *boreBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
-	if h := body.layered; h != nil {
-		return body.cutPlanarFace(origin, normal, h.Entry, h.Exit, h.EntryRemovedArea, h.ExitRemovedArea, h.FloorFaces, h.FloorAreas)
-	}
-	if body.union != nil {
-		return body.unionPlanarFace(origin, normal)
-	}
 	n, err := normal.Unit()
 	if err != nil || !origin.IsFinite() {
 		return PlanarFace{}, errors.New("invalid planar reference")
