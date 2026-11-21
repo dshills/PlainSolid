@@ -19,13 +19,8 @@ import (
 // stores it, and general reports that: an edge where two cylinders of
 // unequal radius or with skew axes meet is written as an
 // INTERSECTION_CURVE on the two (section 10 of
-// specs/general-boolean-quartic).
-//
-// One kind of body is still written from its bore history, by the writer
-// of the legacy bore body: a drilled body with such an edge whose boundary
-// file the general Boolean does not take back (D6 of that specification).
-// Its export was accepted before the boundary writer took these edges and
-// would otherwise be refused at the read-back.
+// specs/general-boolean-quartic). Nothing is written from the bore
+// history of a body.
 func writeGeneralSTEPBody(s stored) (data []byte, general bool, err error) {
 	if data, err := writeSTEPBody(s); err == nil {
 		return data, false, nil
@@ -36,15 +31,6 @@ func writeGeneralSTEPBody(s stored) (data []byte, general bool, err error) {
 			return nil, true, &failureError{"UNSUPPORTED", "STEP export: " + err.Error()}
 		}
 		return nil, true, fmt.Errorf("STEP export: %w", err)
-	}
-	if meetingTrimmed(s.analytic.solid) {
-		if old := legacyStock(s); old.bore != nil {
-			if _, err := readGeneralSTEP(out.String()); err != nil {
-				if data, err := writeSTEPBody(old); err == nil {
-					return data, false, nil
-				}
-			}
-		}
 	}
 	if out.Len() > maxSTEPBytes {
 		return nil, true, &failureError{"LIMIT", "STEP export exceeds 1 MiB"}
@@ -69,18 +55,8 @@ func generalSTEPReadback(err error) error {
 // measures it in closed form, and gives it the stored form of a result, so
 // the imported body is published as a result of the general Boolean is.
 func (b *Bridge) importGeneralSTEP(source string) (Shape, error) {
-	r, err := readGeneralSTEP(source)
-	if err != nil {
-		return Shape{}, err
-	}
-	return b.putGeneral(r)
-}
-
-// readGeneralSTEP is the reading of importGeneralSTEP: the boundary, taken
-// by the general Boolean.
-func readGeneralSTEP(source string) (boolean.Result, error) {
-	refuse := func(why string) (boolean.Result, error) {
-		return boolean.Result{}, &failureError{"UNSUPPORTED", "STEP source is not a supported complete planar or analytic solid: " + why}
+	refuse := func(why string) (Shape, error) {
+		return Shape{}, &failureError{"UNSUPPORTED", "STEP source is not a supported complete planar or analytic solid: " + why}
 	}
 	m, err := step.ReadTrimmedBoundary(strings.NewReader(source), stepLimits(), generalOptions.Linear)
 	if err != nil {
@@ -91,7 +67,7 @@ func readGeneralSTEP(source string) (boolean.Result, error) {
 	}
 	r, err := boolean.Combine(context.Background(), m.Bodies[0].Solid, trimmed.Solid{}, boolean.Union, generalOptions)
 	if err != nil {
-		return boolean.Result{}, generalFailure(err)
+		return Shape{}, generalFailure(err)
 	}
-	return r, nil
+	return b.putGeneral(r)
 }

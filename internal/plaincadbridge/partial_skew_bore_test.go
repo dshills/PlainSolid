@@ -53,18 +53,20 @@ func TestPartialSkewBoreScopeSTEPAndSTL(t *testing.T) {
 		}
 		sameShape(t, same, next)
 		near(t, overlapMeasure(t, b, same.Handle, z.Handle), 0)
-		// The axis of the second bore lies on the wall of the first, so
-		// a turn of the curve in which they meet falls on a seam, and
-		// the general Boolean does not take such a body back. Its file
-		// is therefore still written from the bore history (D6 of
-		// specs/general-boolean-quartic), reads back as a legacy bore
-		// body and exports to the same bytes.
-		again, err := b.exportSTEP([]string{same.Handle})
-		if err != nil || again.Base64 != stepOut.Base64 {
-			t.Fatal("canonical STEP changed on re-export", err)
+		// The file is the boundary of the body, with the curve in which
+		// the bores meet, and what it reads back as exports again. The
+		// axis of the second bore lies on the wall of the first, so that
+		// curve turns back on a seam: the body is one the general
+		// Boolean did not take back until a touch was placed by its
+		// slope (D6 of specs/general-boolean-quartic).
+		if !strings.Contains(string(source), "INTERSECTION_CURVE") {
+			t.Fatalf("radii %v: the STEP file is not the boundary of the body", radii)
 		}
-		if strings.Contains(string(source), "INTERSECTION_CURVE") {
-			t.Fatalf("radii %v: the file is the boundary of the body, and D6 no longer holds", radii)
+		if body := b.shapes[same.Handle].analytic; body == nil || !body.general {
+			t.Fatalf("radii %v: the file did not read back as a result of the general Boolean", radii)
+		}
+		if _, err := b.exportSTEP([]string{same.Handle}); err != nil {
+			t.Fatal("re-export", err)
 		}
 	}
 }

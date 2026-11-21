@@ -32,6 +32,14 @@ func zeroOf(f func(float64) float64, lo, hi float64, sign int) float64 {
 
 // leastOf finds where f is least between lo and hi, by narrowing about
 // the least of 16 samples, and gives that value.
+//
+// Narrowing by values places a least value only as well as f tells two
+// places apart, which about a smooth least value, where f flattens, is
+// the square root of its rounding: a carrier that touches a line was
+// placed 1e-7 along it. A smooth least value is therefore placed again
+// where the slope of f changes sign (smoothLeast). A least value at a
+// corner of f, as the distance to a curve that is crossed has, is placed
+// by its values to the last bits and is left as it is.
 func leastOf(f func(float64) float64, lo, hi float64) (at, least float64) {
 	const samples = 16
 	least, at = math.Inf(1), lo
@@ -54,7 +62,34 @@ func leastOf(f func(float64) float64, lo, hi float64) (at, least float64) {
 		}
 	}
 	at = a + (b-a)/2
+	if t, ok := smoothLeast(f, at, (hi-lo)/1024); ok && t > lo && t < hi {
+		at = t
+	}
 	return at, f(at)
+}
+
+// smoothLeast places a least value of f that is near t and smooth there:
+// one about which f rises as the square of the distance, so that its rise
+// over h is four times its rise over half of h and not twice, as at a
+// corner. The place is where f(t+h) − f(t−h) changes sign, which is off
+// the least value by a part of h squared; the same for twice h is off by
+// four times that, and the two give the place without it. It reports
+// false for a corner, and where the differences do not hold a least value
+// between them.
+func smoothLeast(f func(float64) float64, t, h float64) (float64, bool) {
+	rise := func(h float64) float64 { return f(t-h) + f(t+h) - 2*f(t) }
+	if wide, narrow := rise(h), rise(h/2); !(narrow > 0 && wide > 3*narrow) {
+		return 0, false
+	}
+	var at [2]float64
+	for i, h := range [2]float64{h, 2 * h} {
+		slope := func(u float64) float64 { return f(u+h) - f(u-h) }
+		if !(slope(t-h) < 0 && slope(t+h) > 0) {
+			return 0, false
+		}
+		at[i] = zeroOf(slope, t-h, t+h, -1)
+	}
+	return (4*at[0] - at[1]) / 3, true
 }
 
 // zeros finds where f, of the given period, is zero within tol (T2). A

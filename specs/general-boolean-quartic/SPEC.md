@@ -133,7 +133,10 @@ counterclockwise about its own axis direction.
   is a least value of |f| among its own neighbours; the least value is
   then found by narrowing. Bisection and narrowing stop when the
   interval is no wider than two neighbouring floating-point numbers or
-  after 80 steps, and a value is compared with ε as computed. When
+  after 80 steps, and a value is compared with ε as computed. A least
+  value about which the function is smooth, rising over a step four
+  times what it rises over half the step and not twice, is then placed
+  where its slope changes sign (D6). When
   every sample is within ε the curve is reported as one that may lie in
   the surface (CC2's `alike`). There is no upper bound on the number of
   hits.
@@ -332,22 +335,27 @@ What phase 2 found:
   project's helper `tools/occtref/read_split_cylinder.cxx`: each is a
   valid solid with the face count written and a volume within 1e-8 of
   the kernel's, relative. This check is not automated.
-- D6. The general Boolean does not take one kind of its own results
-  as an operand: a body in which a meeting curve turns back about an
-  axis exactly on a seam of that cylinder, as it does where the axis of
-  one bore lies on the wall of the other and the axes are along the
-  coordinate axes (`TestPartialSkewBoreScopeSTEPAndSTL`). The vertex
-  there is placed within the tolerance of the turn, the seam stored
-  between its vertices leans from the axis by about 3e-9, and intake
-  ends with "two walks leave point … along one element". The legacy
-  fallback of the bridge had hidden this since phase 2: a further cut
-  of such a body is made by the legacy bore engine from its history.
-  The boundary reader refuses the same body for the leaning seam, and
-  reads it when that bound is relaxed to the tolerance, after which
-  the Boolean refuses it as above. So the export of such a body would
-  fail its read-back, and E4 keeps the history file for it. The legacy
-  unequal and skew families cannot be deleted until intake takes this
-  body.
+- D6. A cut that removes nothing returned a body the general Boolean
+  did not take as an operand again. Where the axis of one bore lies on
+  the wall of the other and the axes are along the coordinate axes
+  (`TestPartialSkewBoreScopeSTEPAndSTL`), the meeting curve turns back
+  about an axis exactly on a seam of that cylinder. Cutting the tool
+  of that bore again, as `cutMany` with a repeated tool does, meets
+  the curve with the seam of the tool, which touches it there. T3
+  placed that touch by the values of the distance alone, which about a
+  smooth least value tell places apart only to the square root of
+  their rounding: 1e-7 along the seam. The vertex, the mean of its
+  members, moved by 4.8e-8; from it the curve leaves at an angle to
+  the seam above the angular tolerance and, to the walk of the merge,
+  on the wrong side of it, and intake ended with "two walks leave
+  point … along one element". The legacy fallback of the bridge had
+  hidden this since phase 2. `leastOf` now places a smooth least value
+  where the slope changes sign, to about 1e-11, and leaves a least
+  value at a corner, which its values place to the last bits, as it
+  was (`TestLeastOf`, `TestQuarticTurnOnSeam`). The limit that
+  remains is of input, not of results: a body from elsewhere whose
+  vertex at such a touch is off it along the seam by more than the
+  angular tolerance allows is refused with the same error.
 - D2. Bridge tests that held a refusal of these pairs now hold the
   volume their common gives, and rule X11 of the edge-treatment
   specification lost its example of a bore across a fillet, which X8
@@ -449,12 +457,9 @@ reader* `step.ReadTrimmedBoundary`.
   a use on a plane or on a cylinder the curve does not lie on; and one
   that wraps `geom.ErrInvalid` when no curve of the pair is within
   tolerance of the spline.
-- E4. `writeGeneralSTEPBody` of the bridge must write a general result
-  with a meeting curve by the boundary writer, to be read back by
-  `importGeneralSTEP`. It may write one from its bore history only
-  where the body has a history and the general Boolean does not take
-  the boundary file back (D6); a test must hold which bodies those
-  are.
+- E4. `writeGeneralSTEPBody` of the bridge must no longer write a
+  general result from its bore history. A body of A7 or A8 is written
+  by the boundary writer and read back by `importGeneralSTEP`.
 
 ### 10.2 Acceptance criteria
 
@@ -480,10 +485,13 @@ reader* `step.ReadTrimmedBoundary`.
 - A13. Bridge: the bodies of A7 and A8 export to STEP with an
   `INTERSECTION_CURVE` in the file, the export's read-back agrees with
   the body in volume within the bridge's export tolerance, and the
-  file imports as a general result of the same face count. The two
-  bodies of `TestPartialSkewBoreScopeSTEPAndSTL` are the exception of
-  D6, and that test holds them to the history file. A file re-exported
-  from what was read is not held to the bytes of the first.
+  file imports as a general result of the same face count. A file
+  re-exported from what was read is not held to the bytes of the
+  first.
+- A14. `brep/boolean`: the two bodies of D6, cut again by the tool of
+  their first bore, keep every vertex within 1e-9 and are taken as an
+  operand again; a smooth least value is placed within 1e-9 and one at
+  a corner within 1e-14 (D6).
 
 ### 10.3 Limits
 

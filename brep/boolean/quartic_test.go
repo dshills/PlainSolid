@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"plainsolid/brep/parametric"
+	"plainsolid/brep/trimmed"
 	"plainsolid/geom"
 )
 
@@ -288,6 +289,75 @@ func TestQuarticClassify(t *testing.T) {
 		got, err := body.Classify(c.p, 1e-7)
 		if err != nil || got != c.where {
 			t.Errorf("%s: %v, %v, want %v", c.name, got, err, c.where)
+		}
+	}
+}
+
+// TestQuarticTurnOnSeam cuts two bores of which the axis of one lies on
+// the wall of the other, along coordinate axes, so that the curve in
+// which they meet turns back exactly on a seam of the first, and then
+// cuts the tool of the first bore again. That tool removes nothing; its
+// seam touches the curve where the curve turns. The touch must be placed
+// to well within the tolerance: placed 1e-7 along the seam, as it was
+// when a least distance was found by its values alone, it moved the
+// vertex there by half of that, and the body returned was one the
+// Boolean did not take as an operand again (D6 of
+// specs/general-boolean-quartic).
+func TestQuarticTurnOnSeam(t *testing.T) {
+	for _, small := range []float64{5, 4} {
+		body := crossingStock(t, geom.Identity(), []geom.Vec2{{}, {X: 40}, {X: 40, Y: 40}, {Y: 40}}, 0, 40)
+		first := crossingRod(t, geom.Identity(), geom.Vec3{X: 20, Y: 21, Z: 20}, geom.Vec3{Z: -1}, small, 40)
+		var bored Result
+		for _, tool := range []trimmed.Solid{first, crossingRod(t, geom.Identity(), geom.Vec3{X: 20, Y: 16, Z: 20}, geom.Vec3{X: 1}, 5, 40)} {
+			r, err := Combine(context.Background(), body, tool, Cut, crossingOptions)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bored, body = r, r.Solid
+		}
+		again, err := Combine(context.Background(), body, first, Cut, crossingOptions)
+		if err != nil {
+			t.Fatalf("radius %g: the first tool again: %v", small, err)
+		}
+		if !crossingWithin(again.Volume, bored.Volume) {
+			t.Fatalf("radius %g: volume %.12g after a cut that removes nothing from %.12g", small, again.Volume, bored.Volume)
+		}
+		for _, p := range again.Solid.Vertices() {
+			nearest := math.Inf(1)
+			for _, q := range body.Vertices() {
+				nearest = math.Min(nearest, p.Distance(q))
+			}
+			if nearest > 1e-9 {
+				t.Errorf("radius %g: the vertex at %v is %g from every vertex of the body cut", small, p, nearest)
+			}
+		}
+		taken, err := Combine(context.Background(), again.Solid, trimmed.Solid{}, Union, crossingOptions)
+		if err != nil {
+			t.Fatalf("radius %g: the result as an operand: %v", small, err)
+		}
+		if !crossingWithin(taken.Volume, bored.Volume) {
+			t.Fatalf("radius %g: volume %.12g taken again from %.12g", small, taken.Volume, bored.Volume)
+		}
+	}
+}
+
+// TestLeastOf places a smooth least value by its slope and a least value
+// at a corner by its values, each far nearer than the square root of the
+// rounding of the function.
+func TestLeastOf(t *testing.T) {
+	const at = 1.2345
+	for _, c := range []struct {
+		name   string
+		f      func(float64) float64
+		within float64
+	}{
+		{"smooth", func(u float64) float64 { d := u - at; return 3 + 0.05*d*d + 0.01*d*d*d }, 1e-9},
+		{"smooth, touching zero", func(u float64) float64 { d := u - at; return 0.05*d*d - 0.02*d*d*d }, 1e-9},
+		{"corner", func(u float64) float64 { d := u - at; return math.Abs(d) * (1 + 0.3*d) }, 1e-14},
+		{"rounded corner", func(u float64) float64 { d := u - at; return math.Hypot(d, 1e-6) }, 1e-9},
+	} {
+		if got, _ := leastOf(c.f, at-0.03, at+0.02); math.Abs(got-at) > c.within {
+			t.Errorf("%s: placed %g from the least value", c.name, got-at)
 		}
 	}
 }
