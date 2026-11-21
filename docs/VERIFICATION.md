@@ -54,7 +54,9 @@ and cross-browser suites, and the ordinary unit suite.
 
 The Linux and race rows predate the quarantine, the parallel tests in
 `exchange/step` and the mitigation. The default tier (`go test ./...`, Go
-1.27.4) passes at `7869e035` on all 60 packages with tests.
+1.27.4) passes at `50310272` on all 60 packages with tests. That commit
+deletes the legacy oblique bore families; the complete Go run and the
+PlainCAD run were not repeated on it.
 
 ## What these results do not establish
 
