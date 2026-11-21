@@ -54,12 +54,13 @@ and cross-browser suites, and the ordinary unit suite.
 
 The Linux and race rows predate the quarantine, the parallel tests in
 `exchange/step` and the mitigation. The default tier (`go test ./...`, Go
-1.27.4) passes at `2e615aa2` on all 60 packages with tests. Three
+1.27.4) passes at `d6f35c75` on all 60 packages with tests. Four
 commits follow the complete runs: `50310272` deletes the legacy oblique
 bore families, `65d3f677` changes how the general Boolean divides a
-face and cuts a result into arcs, and `2e615aa2` deletes the legacy
-unions of parallel bores. The complete Go run and the PlainCAD run were
-not repeated on any of them.
+face and cuts a result into arcs, `2e615aa2` deletes the legacy unions
+of parallel bores, and `d6f35c75` deletes the bridge's legacy bore
+body. The complete Go run and the PlainCAD run were not repeated on any
+of them.
 
 ## What these results do not establish
 
