@@ -1136,3 +1136,166 @@ body answered nothing that the fresh one refuses.
   ask the same requests. Keeping the five sweeps of sections 13 to 17
   as slow tests, each with the answers it recorded, would settle that.
   It has not been asked for and is not done.
+
+## 18. Retirement of the legacy side and corner families
+
+Asked for by the owner on 2026-11-21, on the branch
+`codex/retire-side-cylinders`. The *side and corner families* are the
+bridge's legacy paths for a cylinder that breaks out of a side or a
+corner of planar stock: the side notch, with the corner notch and the
+notch with bores; the side opening cuts, for two or more openings; and
+the two discs that cross and open one side, in six arrangements. Each
+had its own body, its own overlap, and its own STEP product. Section 13
+governs this section as it governs itself.
+
+### 18.1 What was measured first
+
+The bridge tests were run on `main` at `f3b72a14` with a log line where
+one of these families answers. On the default bridge none made a cut of
+planar stock: the general Boolean, asked first, made every one. The
+families answered three things. They gave the overlap of such a
+cylinder with planar stock, which is asked of a legacy path first. One
+test united a cylinder with stock at its corner. And `importStep` read
+an old file through one of eight readers into a legacy body, of which
+every later cut and overlap was then a legacy one.
+
+A sweep of 10,157 requests (18.5) was answered on `main`, then with
+the families taken out of the routing and the readers out of
+`importStep`. No request that `main` answers was lost.
+
+### 18.2 Requirements
+
+- V1. The bridge must hold no side notch, no side opening cuts and no
+  body of two crossing discs. Deleted with them are the cuts of the
+  three families, in a `cut` and in a `cutMany`; the union of a
+  cylinder with stock at its corner; the five overlaps of a cylinder
+  with planar stock at a side or a corner, and the three of a cylinder
+  with one of those bodies; their motion, their bounds, the mesh and
+  the face selection of the crossing discs; and their STEP export. A
+  request of this kind is refused by the legacy paths with a refusal to
+  which K5 applies, and the general Boolean answers it.
+- V2. `importStep` must no longer try `step.ReadSideNotch`,
+  `step.ReadSideOpeningCuts` or the six readers of the crossing-disc
+  products. A file one of them took is read by
+  `step.ReadTrimmedBoundary`, as K6 has it for the files of section 13,
+  and is a result of the general Boolean.
+- V3. `step.ReadTrimmedBoundary` takes the length unit in which the
+  solid is wanted, with the tolerance in that unit, and converts every
+  point and radius of a file that states another. The bridge asks for
+  millimetres. This replaces OD-C9 and OD-C13: a file of sections 13
+  to 17 that states another unit is read as well.
+- V4. Deleted outside the bridge, having no caller left: in
+  `exchange/step` the side notch and the side opening cuts, written
+  and read; in `brep/trimmed` `BoxSideCylinderThrough`,
+  `BoxSideCylinderBlind` and their forms with bores,
+  `BoxCornerCylinder`, `BoxCornerCylinderCutWithBores`,
+  `BoxCornerCylinderThrough`, and the side opening pair and cuts with
+  their overlaps. What stays: the crossing-disc products of
+  `exchange/step` and their builders and mesher in `brep/trimmed`,
+  which `document` and `scene` use, and the face-by-face builder that
+  the corner constructor shared with thirteen other files of
+  constructors.
+- V5. K7 applies.
+
+### 18.3 Acceptance criteria
+
+- A-C27. The default and slow tiers of `internal/plaincadbridge`,
+  `exchange/step` and `brep/trimmed` pass. Tests of what is deleted go
+  with it: the tests of the two STEP products and of the four
+  constructors in their own packages, and in the bridge the two tests
+  that wrote an old product in centimetres from its descriptor. Four
+  tests of the crossing discs and the test of a notch cut twice along
+  its axis ran on a legacy bridge to hold the family; they now run on
+  the default bridge and hold the volume, the area, the overlap, the
+  bounds, the mesh and the export of the same bodies. They no
+  longer require the old product in the file, a recipe on the body, a
+  refusal of a second notch apart from the first, or the two refusals
+  of OD-C26.
+- A-C28. Sixteen files written by the legacy writers on `main` at
+  `f3b72a14` import on a default bridge as results of the general
+  Boolean, with the volume and area the legacy reader gave them to nine
+  figures, and are cut and exported again
+  (`TestLegacySideSTEPStillImports`): a notch through and blind, at a
+  side and at a corner, one with bores; side opening cuts of unequal
+  discs through and blind, of two openings apart, and at a corner and
+  a side; and seven crossing-disc products, one for each arrangement
+  and for through and blind.
+- A-C29. The sweep of 18.5, not automated. Of its 10,157 requests the
+  9,335 that `main` answers are answered on the branch: 9,323 alike to
+  1e-8, and 12 overlaps within 2e-8 (OD-C28). 115 that `main` refuses
+  of a body read from an old file are made, and 707 are refused by
+  both, 42 of them in other words. On the branch the 936 requests made
+  of a body cut afresh and of the same body read from its old file get
+  the same answer from both: 803 are made alike and 133 refused alike.
+  The sweeps of A-C15, A-C18, A-C23 and A-C26 give on the branch every
+  answer they give on `main`.
+- A-C30. `TestReadTrimmedBoundaryCrossingBores` reads each of its parts again
+  from a file that states the same lengths in centimetres, and gets a
+  part ten times the size in millimetres. The acceptance row T1-040,
+  which imports a side notch with a blind bore written in centimetres
+  and cuts it, gives its recorded values on the default bridge and on
+  the general one.
+
+### 18.4 Decisions taken by default
+
+- OD-C26. The body of two crossing discs refused to give a face at a
+  point that lies in an opening of that face, and to give the side of
+  the stock at a point level with a blind floor. A result of the
+  general Boolean gives the face whose plane holds the point, as it
+  does for every other body. PlainCAD asks for a face at a point it
+  took from that face.
+- OD-C27. The legacy mesher of two crossing discs with centres at
+  different depths capped the turn of a facet at 0.025, so that a mesh
+  asked for at a deflection of 0.5 was within 0.3 of the volume. The
+  chart mesher gives the deflection asked for: on that body, of volume
+  2,787, it is within 0.82. The test holds a thousandth of the volume.
+- OD-C28. `overlapVolume` with the cylinder as the first operand, for
+  a tool that passes both faces of the stock by the tolerance, is the
+  volume of the tool at its own length, 2e-7 longer than the stock is
+  thick: the faces of the second operand are seated on the first
+  (S7). The legacy overlap gave the length of the stock. The two
+  differ by 2e-8 of the volume.
+- OD-C29. A body read from an old file of these families is written to
+  STEP as its boundary and no longer in the old product. The product
+  names `side-cut-exact-walls`, `side-cut-offset-disks` and
+  `side-cut-unequal-centers` are no longer written by the bridge.
+- OD-C30. As OD-C25: the sweep of 18.5 is a scratch test and its
+  answers are not kept in the repository.
+
+### 18.5 The inputs of the sweep
+
+The stock is 40 by 30 by 20, at the origin, moved to (1000, -700, 300),
+and turned 30 degrees about z. A tool along z has one of seven lengths.
+Three are as the application makes a hole: through all, from the far
+face to the face of the sketch and longer than the stock by 1e-7;
+through both, longer by 2e-7 and centred; and blind, eight deep from
+the face of the sketch. Four are as tests make them: flush with both
+faces, one beyond each, blind from the bottom, and blind from above the
+top.
+
+- One tool of radius 3, its centre at each of nine distances from the
+  side x = 0 (from 2 outside to 5 inside, with 2.9, 3 and 3.1) and
+  seven from the side y = 0 (the middle of the side, the corner, and
+  from 1 outside to 3.1 inside), on the stock at the origin with all
+  seven lengths and on the other two with the application's three at
+  nine of the centres. Asked of each: the overlap both ways round, the
+  union, the common, the cut and a `cutMany` of one; and of the cut, two
+  faces, a bore through the middle, a second opening on the same side
+  and a bore across, each with its overlap, an export and import, and
+  for two of the lengths a mesh, display edges, a drawing, a chamfer, a
+  fillet and a motion with a cut after it.
+- One tool along x across the edge where the side y = 0 meets the top,
+  at sixteen centres and three lengths, with the overlap, the union,
+  the cut and a bore after it.
+- Two tools that open the side x = 0, the second at three distances
+  from the side, five along it and two radii, both through, both blind,
+  or one of each: a `cutMany` of the two, one after the other with the
+  overlap between, a `cutMany` with a bore between them, and of the
+  result a bore, a third opening, both, and an export and import.
+- Thirty bodies as an old file has them, each cut afresh on a default
+  bridge and read from the file a legacy bridge wrote on `main`:
+  eighteen in the stock of the sweep, of which are asked what A-C26
+  asks of a body of plain bores, with six further tools, and twelve
+  crossing-disc bodies in the stocks of their tests, of which are asked
+  a face, three tools each way round, an export and import, a motion, a
+  copy, a mesh, display edges, a drawing and an inspection.

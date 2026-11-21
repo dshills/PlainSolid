@@ -55,7 +55,7 @@ func TestReadTrimmedBoundary(t *testing.T) {
 		} {
 			t.Run(v.name, func(t *testing.T) {
 				boundaryMeasured(t, []byte(v.file), c)
-				m, err := step.ReadTrimmedBoundary(strings.NewReader(v.file), step.Limits{}, boundaryOptions.Linear)
+				m, err := step.ReadTrimmedBoundary(strings.NewReader(v.file), step.Limits{}, .001, boundaryOptions.Linear)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -132,7 +132,7 @@ func TestReadTrimmedBoundaryRefusals(t *testing.T) {
 		{"no tolerance", func(*testing.T) string { return file }, 0, geom.ErrInvalid},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			m, err := step.ReadTrimmedBoundary(strings.NewReader(c.file(t)), step.Limits{}, c.tolerance)
+			m, err := step.ReadTrimmedBoundary(strings.NewReader(c.file(t)), step.Limits{}, .001, c.tolerance)
 			if err == nil || (c.want != nil && !errors.Is(err, c.want)) {
 				t.Fatalf("got %v and %d bodies, want %v", err, len(m.Bodies), c.want)
 			}
@@ -149,7 +149,7 @@ func TestReadTrimmedBoundaryRefusals(t *testing.T) {
 	if err := step.WriteCylinders(&round, step.CylinderModel{LengthUnit: .001, Bodies: []step.CylinderBody{{Name: "c", Frame: frame, Radius: 1.5, Height: 4}}}); err != nil {
 		t.Fatal(err)
 	}
-	if m, err := step.ReadTrimmedBoundary(bytes.NewReader(round.Bytes()), step.Limits{}, 1e-7); !errors.Is(err, step.ErrTrimmedBoundary) || !strings.Contains(err.Error(), "half a turn") {
+	if m, err := step.ReadTrimmedBoundary(bytes.NewReader(round.Bytes()), step.Limits{}, .001, 1e-7); !errors.Is(err, step.ErrTrimmedBoundary) || !strings.Contains(err.Error(), "half a turn") {
 		t.Fatalf("read %d bodies from a cylinder with closed rims: %v", len(m.Bodies), err)
 	}
 }
@@ -214,7 +214,7 @@ func TestReadTrimmedBoundaryCrossingBores(t *testing.T) {
 			if err := step.WriteTrimmedBoundary(&written, two.Solid, .001, "a part"); err != nil {
 				t.Fatal(err)
 			}
-			m, err := step.ReadTrimmedBoundary(bytes.NewReader(written.Bytes()), step.Limits{}, boundaryOptions.Linear)
+			m, err := step.ReadTrimmedBoundary(bytes.NewReader(written.Bytes()), step.Limits{}, .001, boundaryOptions.Linear)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -241,6 +241,26 @@ func TestReadTrimmedBoundaryCrossingBores(t *testing.T) {
 			}
 			if p, want := r.Properties, two.Properties; r.Solids != 1 || math.Abs(p.Volume-want.Volume) > 1e-9*want.Volume || math.Abs(p.Area-want.Area) > 1e-9*want.Area {
 				t.Errorf("the read solid is %d solids of volume %.12g and area %.12g, the written one has %.12g and %.12g", r.Solids, p.Volume, p.Area, want.Volume, want.Area)
+			}
+			// The same lengths stated in centimetres are a part ten times
+			// the size, and the reader gives it in the unit asked for.
+			written.Reset()
+			if err := step.WriteTrimmedBoundary(&written, two.Solid, .01, "a part"); err != nil {
+				t.Fatal(err)
+			}
+			m, err = step.ReadTrimmedBoundary(bytes.NewReader(written.Bytes()), step.Limits{}, .001, boundaryOptions.Linear)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if m.LengthUnit != .001 {
+				t.Errorf("the solid is stated in the unit %g", m.LengthUnit)
+			}
+			r, err = boolean.Combine(context.Background(), m.Bodies[0].Solid, trimmed.Solid{}, boolean.Union, boundaryOptions)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if p, v, a := r.Properties, 1000*two.Properties.Volume, 100*two.Properties.Area; r.Solids != 1 || math.Abs(p.Volume-v) > 1e-9*v || math.Abs(p.Area-a) > 1e-9*a {
+				t.Errorf("read from centimetres, the solid is %d solids of volume %.12g and area %.12g, want %.12g and %.12g", r.Solids, p.Volume, p.Area, v, a)
 			}
 		})
 	}

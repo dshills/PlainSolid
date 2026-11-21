@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"math"
-	"slices"
 
 	"plainsolid/brep/parametric"
 	"plainsolid/brep/trimmed"
@@ -18,35 +17,32 @@ import (
 type analyticBody struct {
 	planarBores *planarBoredStock
 	// Endpoints of the proved outer polygon; strictly interior holes cannot change extrema.
-	polygonExtrema  []geom.Vec3
-	solid           trimmed.Solid
-	patches         *parametric.Solid
-	rimPatches      bool
-	rimTreatment    *cylinderRimTreatment
-	sector          *radialSector
-	torus           *torusSweep
-	shaft           *trimmed.SteppedShaft
-	segment         *circularSegmentSweep
-	arcLoop         *arcLoopSupport
-	stepArcLoop     *stepArcLoopSupport
-	stepRevolution  *provedSTEPRevolution
-	helical         bool
-	lead            *leadPart
-	helicalMesh     *mesh.Mesh
-	stepRounded     *step.RoundedRectangleExtrusionBody
-	stepDisk        *step.DiskHoleExtrusionBody
-	sideNotch       *step.SideNotchBody
-	sideDualDisk    *sideDualDiskBody
-	sideOpeningCuts *step.SideOpeningCutsBody
-	layeredDisk     bool
-	pockets         *pocketStock
-	coaxial         *coaxialBody
-	rounded         *roundedStock
-	annular         *annularStock
-	threadStock     *planarThreadStock
-	islandPocket    *trimmed.RectangularIslandPocket
-	filletedCap     *filletedCapStock
-	volume, area    float64
+	polygonExtrema []geom.Vec3
+	solid          trimmed.Solid
+	patches        *parametric.Solid
+	rimPatches     bool
+	rimTreatment   *cylinderRimTreatment
+	sector         *radialSector
+	torus          *torusSweep
+	shaft          *trimmed.SteppedShaft
+	segment        *circularSegmentSweep
+	arcLoop        *arcLoopSupport
+	stepArcLoop    *stepArcLoopSupport
+	stepRevolution *provedSTEPRevolution
+	helical        bool
+	lead           *leadPart
+	helicalMesh    *mesh.Mesh
+	stepRounded    *step.RoundedRectangleExtrusionBody
+	stepDisk       *step.DiskHoleExtrusionBody
+	layeredDisk    bool
+	pockets        *pocketStock
+	coaxial        *coaxialBody
+	rounded        *roundedStock
+	annular        *annularStock
+	threadStock    *planarThreadStock
+	islandPocket   *trimmed.RectangularIslandPocket
+	filletedCap    *filletedCapStock
+	volume, area   float64
 	// general marks a body that putGeneral published: a result of the
 	// general Boolean, or a boundary read from STEP and passed through it.
 	general bool
@@ -73,10 +69,6 @@ func (b *Bridge) putAnalyticBody(body *analyticBody) (Shape, error) {
 		box = body.stepArcLoop.bounds
 	} else if body.segment != nil {
 		box, err = body.segment.bounds()
-	} else if body.sideNotch != nil {
-		box, err = sideNotchBounds(*body.sideNotch)
-	} else if body.sideDualDisk != nil {
-		box, err = body.sideDualDisk.bounds()
 	} else if body.coaxial != nil {
 		box, err = body.coaxial.bounds()
 	} else if body.islandPocket != nil {
@@ -101,26 +93,6 @@ func (a *analyticBody) tessellate(o parametric.TessellationOptions) (mesh.Mesh, 
 		if display, qualified, err := a.stepArcLoop.tessellate(o); qualified {
 			return display, err
 		}
-	}
-	if a.sideDualDisk != nil {
-		// The exact mesher re-proves cylinder and affine support identities
-		// from the boundary and never uses the recipe's radii as evidence.
-		source := trimmed.SideOpenDualDiskCut{Solid: a.sideDualDisk.boundary, WallFaces: a.sideDualDisk.walls}
-		angle := min(2*o.Angle, 1)
-		var rimSchedule []int
-		if a.sideDualDisk.offsetCenters() {
-			// PlainCAD fabricates the accepted model mesh. Curved segment
-			// volume accumulates along the axial wall, so cap its turn here.
-			angle = min(angle, .05)
-		} else if a.sideDualDisk.differentCenterY() {
-			angle = min(angle, .025)
-			rimSchedule = []int{64, 96, 128}
-		}
-		result, err := source.TessellateCertified(context.Background(), trimmed.SideOpenDualDiskMeshOptions{
-			Deflection: o.Deflection, AngularTurn: angle, RimSchedule: rimSchedule,
-			MaxRimIntervals: min(o.MaxSubdivisions, 256), MaxTriangles: min(o.MaxTriangles, 100000),
-		})
-		return result.Mesh, err
 	}
 	if a.coaxial != nil {
 		return a.coaxial.tessellate(o)
@@ -216,9 +188,6 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	out.sector = nil
 	out.stepRounded = nil
 	out.stepDisk = nil
-	out.sideNotch = nil
-	out.sideDualDisk = nil
-	out.sideOpeningCuts = nil
 	out.shaft = nil
 	out.pockets = nil
 	out.planarBores = nil
@@ -249,60 +218,6 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 		if e == nil && cardinalFrame(f) && f.YAxis() == m.ApplyVector(p.Frame.YAxis()) {
 			p.Frame = f
 			out.stepDisk = &p
-		}
-	}
-	if a.sideNotch != nil {
-		p := *a.sideNotch
-		x, y, z := m.ApplyVector(p.Frame.XAxis()), m.ApplyVector(p.Frame.YAxis()), m.ApplyVector(p.Frame.ZAxis())
-		if m.Determinant() < 0 {
-			if p.Left == 0 && p.Inset == 0 {
-				x, y = y, x
-				p.Right, p.Back = p.Back, p.Right
-			} else {
-				x = x.Scale(-1)
-				p.Left, p.Right = p.Right, p.Left
-			}
-			p.Through = append([]trimmed.ExtrusionCircle(nil), p.Through...)
-			p.Blind = append([]trimmed.ExtrusionBlindHole(nil), p.Blind...)
-			for i := range p.Through {
-				p.Through[i].Center = reflectedNotchCenter(p, p.Through[i].Center)
-			}
-			for i := range p.Blind {
-				p.Blind[i].Center = reflectedNotchCenter(p, p.Blind[i].Center)
-			}
-		}
-		f, e := geom.NewFrame(m.Apply(p.Frame.Origin()), x, z)
-		if e == nil && cardinalFrame(f) && f.YAxis() == y {
-			p.Frame = f
-			out.sideNotch = &p
-		}
-	}
-	if a.sideDualDisk != nil {
-		if p, ok := a.sideDualDisk.transformed(m); ok {
-			cut, e := p.solid()
-			if e != nil {
-				return nil, e
-			}
-			out.solid, out.sideDualDisk = cut.boundary, cut
-			return &out, nil
-		}
-	}
-	if a.sideOpeningCuts != nil {
-		p := *a.sideOpeningCuts
-		x, y, z := m.ApplyVector(p.Frame.XAxis()), m.ApplyVector(p.Frame.YAxis()), m.ApplyVector(p.Frame.ZAxis())
-		origin := m.Apply(p.Frame.Origin())
-		if m.Determinant() < 0 {
-			origin = origin.Add(x.Scale(p.Width))
-			x = x.Scale(-1)
-			p.Cuts = slices.Clone(p.Cuts)
-			for i := range p.Cuts {
-				p.Cuts[i].Center.X = p.Width - p.Cuts[i].Center.X
-			}
-		}
-		f, e := geom.NewFrame(origin, x, z)
-		if e == nil && cardinalFrame(f) && f.YAxis() == y {
-			p.Frame = f
-			out.sideOpeningCuts = &p
 		}
 	}
 	if a.stepRounded != nil {
@@ -373,17 +288,7 @@ func (a *analyticBody) transformed(m geom.Affine) (*analyticBody, error) {
 	return &out, nil
 }
 
-func reflectedNotchCenter(p step.SideNotchBody, center geom.Vec2) geom.Vec2 {
-	if p.Left == 0 && p.Inset == 0 {
-		return geom.Vec2{X: center.Y, Y: center.X}
-	}
-	return geom.Vec2{X: -center.X, Y: center.Y}
-}
-
 func (a *analyticBody) planarFace(origin, normal geom.Vec3) (PlanarFace, error) {
-	if a.sideDualDisk != nil {
-		return a.sideDualDisk.planarFace(origin, normal)
-	}
 	n, err := normal.Unit()
 	if err != nil || !origin.IsFinite() {
 		return PlanarFace{}, errors.New("invalid planar reference")

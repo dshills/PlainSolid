@@ -2,7 +2,6 @@ package plaincadbridge
 
 import (
 	"context"
-	"errors"
 	"math"
 
 	"plainsolid/brep/parametric"
@@ -77,32 +76,6 @@ func legacyOverlapVolume(a, c stored) (any, error) {
 		return result(removed)
 	}
 
-	dualStock, dualTool := a, c
-	if a.cylinder != nil && c.analytic != nil {
-		dualStock, dualTool = c, a
-	}
-	dualVolume, dualHandled, dualErr := overlapSideDualDisk(dualStock, dualTool)
-	if dualHandled && !errors.Is(dualErr, geom.ErrUnrepresentable) {
-		if dualErr != nil {
-			return nil, dualErr
-		}
-		return result(dualVolume)
-	}
-	if volume, handled, err := overlapSideOpeningCuts(dualStock, dualTool); handled {
-		if err != nil {
-			return nil, err
-		}
-		return result(volume)
-	}
-	if dualHandled {
-		return nil, dualErr
-	}
-	if volume, handled, err := overlapSideNotchBores(a, c); handled {
-		if err != nil {
-			return nil, err
-		}
-		return result(volume)
-	}
 	circularStock, circularTool := a, c
 	if a.cylinder != nil && c.analytic != nil {
 		circularStock, circularTool = c, a
@@ -191,29 +164,6 @@ func legacyOverlapVolume(a, c stored) (any, error) {
 		// qualifies capture queries when the tool encloses the whole stock.
 		if cylinderContainsPlanar(c.cylinder, a.solid) {
 			return result(a.result.GeometryAssertions.Volume)
-		}
-		if _, box, ok := sideCylinderThroughRecipe(a.solid, c.cylinder); ok {
-			v, _ := sideCylinderMeasures(box, c.cylinder.radius)
-			return result(v)
-		}
-		if _, box, ok := sideCylinderBlindRecipe(a.solid, c.cylinder); ok {
-			area, _ := sideCylinderSection(-box.Min.Y, c.cylinder.radius)
-			return result(area * c.cylinder.height)
-		}
-		if _, d, ok := cornerCylinderThroughRecipe(a.solid, c.cylinder); ok {
-			return result(math.Pi * c.cylinder.radius * c.cylinder.radius * d.Z / 4)
-		}
-		if _, _, ok := cornerCylinderBlindRecipe(a.solid, c.cylinder); ok {
-			r := c.cylinder.radius
-			return result(math.Pi * r * r * c.cylinder.height / 4)
-		}
-		if p, ok := cornerOpeningStock(a.solid, c.cylinder); ok {
-			circle, low, high, _ := sideOpeningCylinderSpan(p, c.cylinder)
-			volume, err := trimmed.BoxSideOpeningCutsOverlap(p.Frame, p.Width, p.Back, p.Length, nil, circle, low, high, sideOpeningTolerance)
-			if err != nil {
-				return nil, err
-			}
-			return result(volume)
 		}
 	}
 	if a.treated != nil || c.treated != nil {

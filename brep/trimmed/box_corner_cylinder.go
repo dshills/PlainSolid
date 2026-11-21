@@ -7,92 +7,8 @@ import (
 	"plainsolid/geom"
 )
 
-// BoxCornerCylinder cuts or fuses a finite cylinder centered at the lower-left
-// radial corner of rectangular stock [0,width]×[0,height]×[0,length] in frame.
-// Its axial interval is [0,depth], strictly shorter than the stock. The radius
-// must leave both opposite radial sides clear. The result retains analytic
-// cylindrical walls and circular cap trims, including the internal cut floor
-// or external union shoulder. This is a bounded constructor, not general CSG.
-func BoxCornerCylinder(ctx context.Context, frame geom.Frame, width, height, length, radius, depth float64, fuse bool, tolerance float64) (Solid, error) {
-	return boxCornerCylinder(ctx, frame, width, height, length, radius, depth, fuse, nil, nil, tolerance)
-}
-
-// BoxCornerCylinderCutWithBores cuts the stock corner and additional disjoint
-// contained bores. A depth equal to length opens both caps.
-func BoxCornerCylinderCutWithBores(ctx context.Context, frame geom.Frame, width, height, length, radius, depth float64, through []ExtrusionCircle, blind []ExtrusionBlindHole, tolerance float64) (Solid, error) {
-	if depth == length {
-		return boxCornerCylinderThrough(ctx, frame, width, height, length, radius, through, blind, tolerance)
-	}
-	return boxCornerCylinder(ctx, frame, width, height, length, radius, depth, false, through, blind, tolerance)
-}
-
-func boxCornerCylinder(ctx context.Context, frame geom.Frame, width, height, length, radius, depth float64, fuse bool, through []ExtrusionCircle, blind []ExtrusionBlindHole, tolerance float64) (Solid, error) {
-	if ctx == nil || !finite(width) || !finite(height) || !finite(length) || !finite(radius) || !finite(depth) || !finite(tolerance) || tolerance <= 0 {
-		return Solid{}, geom.ErrInvalid
-	}
-	if e := ctx.Err(); e != nil {
-		return Solid{}, e
-	}
-	pad := 8 * tolerance
-	if !finite(pad) || radius <= pad || depth <= pad || length-depth <= pad || width-radius <= pad || height-radius <= pad {
-		return Solid{}, geom.ErrDomain
-	}
-	if frame.XAxis().Length() == 0 || frame.ZAxis().Length() == 0 {
-		return Solid{}, geom.ErrInvalid
-	}
-	if e := validateNotchedBoxBores(ctx, frame, 0, width, 0, height, length, radius, pad, through, blind); e != nil {
-		return Solid{}, e
-	}
-	b := cornerCylinderBuilder{ctx: ctx, frame: frame, edgesByEnds: map[[2]int]int{}, verticesByPoint: map[geom.Vec3]int{}}
-	// Counterclockwise outer profile below the finite cylinder endpoint.
-	o, a, c, d, e := geom.Vec2{}, geom.Vec2{X: radius}, geom.Vec2{X: width}, geom.Vec2{X: width, Y: height}, geom.Vec2{Y: height}
-	rim := geom.Vec2{Y: radius}
-	lower := []geom.Vec2{a, c, d, e, rim}
-	arcs := map[int][2]float64{4: {math.Pi / 2, 0}}
-	if fuse {
-		lower = append(lower, geom.Vec2{X: -radius}, geom.Vec2{Y: -radius})
-		arcs = map[int][2]float64{4: {math.Pi / 2, math.Pi}, 5: {math.Pi, 3 * math.Pi / 2}, 6: {3 * math.Pi / 2, 2 * math.Pi}}
-	}
-	upper := []geom.Vec2{o, a, c, d, e, rim}
-	if err := b.horizontal(lower, arcs, 0, true, radius); err != nil {
-		return Solid{}, err
-	}
-	if err := b.horizontal(upper, nil, length, false, radius); err != nil {
-		return Solid{}, err
-	}
-	if fuse {
-		if err := b.horizontal([]geom.Vec2{o, rim, {X: -radius}, {Y: -radius}, a}, map[int][2]float64{1: {math.Pi / 2, math.Pi}, 2: {math.Pi, 3 * math.Pi / 2}, 3: {3 * math.Pi / 2, 2 * math.Pi}}, depth, false, radius); err != nil {
-			return Solid{}, err
-		}
-	} else {
-		if err := b.horizontal([]geom.Vec2{o, a, rim}, map[int][2]float64{1: {0, math.Pi / 2}}, depth, true, radius); err != nil {
-			return Solid{}, err
-		}
-	}
-	for i, p := range lower {
-		q := lower[(i+1)%len(lower)]
-		if arc, ok := arcs[i]; ok {
-			lo, hi := math.Min(arc[0], arc[1]), math.Max(arc[0], arc[1])
-			if err := b.cylinder(lo, hi, depth, radius, !fuse, p, q); err != nil {
-				return Solid{}, err
-			}
-		} else {
-			if err := b.wall(p, q, 0, depth); err != nil {
-				return Solid{}, err
-			}
-		}
-	}
-	for i, p := range upper {
-		if err := b.wall(p, upper[(i+1)%len(upper)], depth, length); err != nil {
-			return Solid{}, err
-		}
-	}
-	if e := b.addNotchedBoxBores(length, 1, through, blind); e != nil {
-		return Solid{}, e
-	}
-	return NewSolidContext(ctx, b.vertices, b.edges, b.faces, tolerance)
-}
-
+// cornerCylinderBuilder collects the vertices, edges and faces of a solid
+// of planes and cylinders that a constructor lays out face by face.
 type cornerCylinderBuilder struct {
 	ctx             context.Context
 	frame           geom.Frame
@@ -200,13 +116,6 @@ func (b *cornerCylinderBuilder) wall(p, q geom.Vec2, lo, hi float64) error {
 	}
 	return b.face(surface, points, uv, nil, false)
 }
-func (b *cornerCylinderBuilder) cylinder(lo, hi, depth, radius float64, reversed bool, p, q geom.Vec2) error {
-	if reversed {
-		p, q = q, p
-	}
-	return b.cylinderBand(lo, hi, 0, depth, radius, reversed, p, q)
-}
-
 func (b *cornerCylinderBuilder) cylinderBand(lo, hi, bottom, top, radius float64, reversed bool, p, q geom.Vec2) error {
 	surface, e := geom.NewCylinderSurface(b.frame, radius)
 	if e != nil {

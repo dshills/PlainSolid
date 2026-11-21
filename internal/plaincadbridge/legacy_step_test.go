@@ -106,6 +106,73 @@ func TestLegacyBoreSTEPStillImports(t *testing.T) {
 	}
 }
 
+// TestLegacySideSTEPStillImports reads STEP files that exportStep wrote
+// for cylinders that break out of the side or the corner of planar stock,
+// while the legacy families still built those bodies: the side notch
+// product, which also has the corner and the notch with bores; the side
+// opening cuts, for two or more openings on one side; and the products
+// for two discs that cross, one for each arrangement of their centres
+// and radii (section 18 of specs/general-boolean-crossing). The bridge
+// no longer has their readers. It reads each as the boundary it states,
+// to the volume and area the legacy body had, to nine figures, as a
+// result of the general Boolean that can be cut and exported again.
+func TestLegacySideSTEPStillImports(t *testing.T) {
+	type q = map[string]any
+	stock := [2]vector{{-1, -1, 17}, {41, 31, 21}}
+	for _, c := range []struct {
+		name         string
+		volume, area float64
+		slab         [2]vector // a box that overlaps the body
+	}{
+		{"notch-through", 23717.2567, 5240.22123, stock},
+		{"notch-blind-inset", 23839.807, 5246.45556, stock},
+		{"corner-through", 23858.6283, 5160.11061, stock},
+		{"corner-blind", 23943.4513, 5189.69911, stock},
+		{"notch-blind-then-bores", 23535.0443, 5554.12386, stock},
+		{"dual-unequal", 23611.4909, 5232.4765, stock},
+		{"dual-blind-unequal", 23816.7987, 5238.72978, stock},
+		{"openings-apart", 23773.8053, 5254.79645, stock},
+		{"corner-then-side", 23830.354, 5217.09734, stock},
+		{"dd-equal-blind", 309.481923, 321.214462, [2]vector{{-1, 3, 5}, {11, 11, 7}}},
+		{"dd-equal-through", 258.963846, 296.750205, [2]vector{{-1, 3, 5}, {11, 11, 7}}},
+		{"dd-unequal", 6422.3982, 3674.3013, [2]vector{{-1, -1, 5}, {61, 23, 7}}},
+		{"dd-offcenter", 3250.85545, 1971.52613, [2]vector{{-1, -1, 5}, {51, 13, 7}}},
+		{"dd-exactwall-blind", 5482.5573, 3113.50759, [2]vector{{-1, -1, 5}, {51, 23, 7}}},
+		{"dd-offset-blind", 2282.90274, 1405.43257, [2]vector{{-1, -1, 5}, {41, 11, 7}}},
+		{"dd-unequal-center-through", 1973.07114, 1530.13283, [2]vector{{-1, -1, 5}, {61, 11, 7}}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			packed, err := os.ReadFile(filepath.Join("testdata", "legacy-step", "side-"+c.name+".step.gz"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			unpacked, err := gzip.NewReader(bytes.NewReader(packed))
+			if err != nil {
+				t.Fatal(err)
+			}
+			source, err := io.ReadAll(unpacked)
+			if err != nil {
+				t.Fatal(err)
+			}
+			b := New()
+			read := shape(t, b, q{"op": "importStep", "source": string(source)})
+			if got := read.GeometryAssertions; !got.Valid || math.Abs(got.Volume-c.volume) > 1e-8*c.volume || math.Abs(got.SurfaceArea-c.area) > 1e-8*c.area {
+				t.Fatalf("read as %+v, want volume %.9g and area %.9g", got, c.volume, c.area)
+			}
+			if body := b.shapes[read.Handle].analytic; body == nil || !body.general {
+				t.Fatal("the file did not read as a result of the general Boolean")
+			}
+			slab := box(t, b, c.slab[0], c.slab[1])
+			cut := shape(t, b, q{"op": "cut", "a": read.Handle, "b": slab.Handle})
+			if cut.GeometryAssertions.Volume >= read.GeometryAssertions.Volume {
+				t.Fatal("a cut of the body read removed nothing")
+			}
+			generalSTEPExported(t, b, read.Handle)
+		})
+	}
+}
+
 // TestDisjointBoresSTEPInCentimetres reads two of those files in the
 // product for bores along more than one axis, states their lengths in
 // centimetres instead, and imports them: the body is ten times the size,

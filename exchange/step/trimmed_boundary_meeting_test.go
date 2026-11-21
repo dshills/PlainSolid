@@ -94,7 +94,7 @@ func TestTrimmedBoundaryMeetingCurves(t *testing.T) {
 					if !strings.Contains(written.String(), "INTERSECTION_CURVE") {
 						t.Fatal("no edge was written as an INTERSECTION_CURVE")
 					}
-					read, err := step.ReadTrimmedBoundary(bytes.NewReader(written.Bytes()), step.Limits{}, boundaryOptions.Linear)
+					read, err := step.ReadTrimmedBoundary(bytes.NewReader(written.Bytes()), step.Limits{}, .001, boundaryOptions.Linear)
 					if err != nil {
 						t.Fatalf("pass %d, %d bytes: %v", pass, written.Len(), err)
 					}
@@ -151,14 +151,14 @@ func TestTrimmedBoundaryMeetingRefusals(t *testing.T) {
 	if moved == file {
 		t.Fatal("no pole was moved")
 	}
-	if _, err := step.ReadTrimmedBoundary(strings.NewReader(moved), step.Limits{}, boundaryOptions.Linear); !errors.Is(err, geom.ErrInvalid) {
+	if _, err := step.ReadTrimmedBoundary(strings.NewReader(moved), step.Limits{}, .001, boundaryOptions.Linear); !errors.Is(err, geom.ErrInvalid) {
 		t.Errorf("a spline off the curve: %v", err)
 	}
 	one := regexp.MustCompile(`(INTERSECTION_CURVE\('',#\d+,\(#\d+),#\d+\)`).ReplaceAllString(file, "${1})")
 	if one == file {
 		t.Fatal("no intersection curve was edited")
 	}
-	if _, err := step.ReadTrimmedBoundary(strings.NewReader(one), step.Limits{}, boundaryOptions.Linear); !errors.Is(err, step.ErrTrimmedBoundary) {
+	if _, err := step.ReadTrimmedBoundary(strings.NewReader(one), step.Limits{}, .001, boundaryOptions.Linear); !errors.Is(err, step.ErrTrimmedBoundary) {
 		t.Errorf("an intersection curve on one surface: %v", err)
 	}
 

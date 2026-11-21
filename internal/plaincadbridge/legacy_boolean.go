@@ -31,14 +31,6 @@ func (b *Bridge) legacyBoolean(ctx context.Context, a, c stored, op string) (any
 	}
 
 	if op == "cut" {
-		if result, handled, err := b.cutSideOpeningFamilies(a, []stored{c}); handled {
-			return result, err
-		}
-		if a.analytic != nil && a.analytic.sideNotch != nil {
-			if result, handled, err := b.cutSideNotchBores(a, []stored{c}); handled {
-				return result, err
-			}
-		}
 		if result, handled, err := b.rectangularIslandPocket(a, c); handled {
 			return result, err
 		}
@@ -116,9 +108,6 @@ func (b *Bridge) legacyBoolean(ctx context.Context, a, c stored, op string) (any
 	}
 	if a.analytic != nil || c.analytic != nil {
 		return nil, unclaimed("Boolean operation is outside the supported analytic stock domain")
-	}
-	if result, handled, err := b.cornerCylinderBoolean(a, c, op); handled {
-		return result, err
 	}
 	if a.treated != nil || c.treated != nil {
 		return b.treatedBoolean(a, c, op)

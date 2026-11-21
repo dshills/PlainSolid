@@ -49,11 +49,6 @@ func (b *Bridge) legacyCutMany(a stored, tools []string) (Shape, error) {
 		if body, ok := tangentBlindBoreRecipe(a, c); ok {
 			return b.putTangentBlindBore(body)
 		}
-		if a.planar() && c.cylinder != nil {
-			if body, handled, err := b.cornerCylinderBoolean(a, c, "cut"); handled {
-				return body, err
-			}
-		}
 		if body, removed, handled, e := retainedPlanarBoolean(a, c, "cut"); handled {
 			if e != nil {
 				return Shape{}, e
@@ -95,12 +90,6 @@ func (b *Bridge) legacyCutMany(a stored, tools []string) (Shape, error) {
 		circular = circular && c.cylinder != nil
 	}
 	if circular {
-		if result, handled, err := b.cutSideOpeningFamilies(a, inputs); handled {
-			return result, err
-		}
-		if result, handled, err := b.cutSideNotchBores(a, inputs); handled {
-			return result, err
-		}
 		if result, handled, err := b.cutCircularStockBores(a, inputs); handled {
 			return result, err
 		}

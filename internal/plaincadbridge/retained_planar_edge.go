@@ -49,5 +49,10 @@ func (b *Bridge) treatRetainedPlanarEdge(s stored, q request, normal geom.Vec3, 
 	}
 	volume := s.result.GeometryAssertions.Volume - length*section
 	area := s.result.GeometryAssertions.SurfaceArea + length*(wall-2*size) - 2*section
-	return b.putNotchedStock(solid, volume, area, s.result.Bounds)
+	// Every extremum of the stock survives a treatment of one edge.
+	body := &analyticBody{solid: solid, volume: volume, area: area}
+	if !finite(volume) || !finite(area) || volume <= 0 || area <= 0 || len(solid.Topology().Shells) != 1 {
+		return Shape{}, unsupportedEdge("invalid treated stock measures")
+	}
+	return b.publish(stored{analytic: body, result: Shape{GeometryAssertions: Assertions{true, volume, area, 1}, Bounds: s.result.Bounds}})
 }

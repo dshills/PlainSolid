@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"math/big"
 	"strings"
 
 	"plainsolid/brep"
@@ -171,92 +170,12 @@ func (b *Bridge) importSTEPInUnits(source string, units stepFileUnit) (Shape, er
 		}
 		return b.putAnalyticBody(layeredCircularBody(s, p, h))
 	}
-	if m, e := step.ReadSideOpeningCuts(r(), stepLimits()); e == nil {
-		body, err := sideOpeningCutsBody(m.Body)
-		if err != nil {
-			return Shape{}, err
-		}
-		if m.LengthUnit != .001 {
-			return b.putSTEPAnalytic(body.solid, m.LengthUnit)
-		}
-		return b.putAnalyticBody(body)
-	}
 	if m, e := step.ReadDisjointBores(r(), stepLimits()); e == nil {
 		base, tools, err := disjointBoresFromSTEP(m.Body, m.LengthUnit)
 		if err != nil {
 			return Shape{}, err
 		}
 		return b.putBoredStock(base, tools)
-	}
-	if m, e := step.ReadSideNotch(r(), stepLimits()); e == nil {
-		p := m.Body
-		unit := m.LengthUnit
-		if m.LengthUnit != .001 {
-			scaled, err := scaleSTEPNotch(p, m.LengthUnit/.001)
-			if err == nil {
-				p, unit = scaled, .001
-			}
-		}
-		s, err := p.Solid(context.Background())
-		if err != nil && m.LengthUnit != .001 && unit == .001 {
-			p, unit = m.Body, m.LengthUnit
-			s, err = p.Solid(context.Background())
-		}
-		if err != nil {
-			return Shape{}, err
-		}
-		if unit != .001 {
-			return b.putSTEPAnalytic(s, unit)
-		}
-		properties, err := s.MassProperties(context.Background(), parametric.IntegrationOptions{RelativeTolerance: 1e-10})
-		if err != nil {
-			return Shape{}, err
-		}
-		return b.putAnalyticBody(&analyticBody{solid: s, sideNotch: &p, volume: properties.Volume, area: properties.Area})
-	}
-	if strings.Contains(source, "CYLINDRICAL_SURFACE") && strings.Contains(source, "SHAPE_DEFINITION_REPRESENTATION") {
-		if m, e := step.ReadSideOpenDualDiskProduct(context.Background(), r(), stepLimits(), 1e-9); e == nil {
-			p, e := m.Native.Measures()
-			if e != nil {
-				return Shape{}, e
-			}
-			return putSideDualDiskSTEPProduct(b, m.Descriptor, m.Native.Solid, m.Native.WallFaces, p, false)
-		}
-		if m, e := step.ReadUnequalSideOpenDualDiskProduct(context.Background(), r(), stepLimits(), 1e-9); e == nil {
-			p, e := m.Native.Measures()
-			if e != nil {
-				return Shape{}, e
-			}
-			return putSideDualDiskSTEPProduct(b, step.SideOpenDualDiskDescriptor(m.Descriptor), m.Native.Solid, m.Native.WallFaces, p, false)
-		}
-		if m, e := step.ReadGeneralSideOpenDualDiskProduct(context.Background(), r(), stepLimits(), 1e-9); e == nil {
-			p, e := m.Native.Measures()
-			if e != nil {
-				return Shape{}, e
-			}
-			return putSideDualDiskSTEPProduct(b, step.SideOpenDualDiskDescriptor(m.Descriptor), m.Native.Solid, m.Native.WallFaces, p, false)
-		}
-		if m, e := step.ReadExactWallSideOpenDualDiskProduct(context.Background(), r(), stepLimits(), 1e-9); e == nil {
-			p, e := m.Native.Measures()
-			if e != nil {
-				return Shape{}, e
-			}
-			return putSideDualDiskSTEPProduct(b, step.SideOpenDualDiskDescriptor(m.Descriptor), m.Native.Solid, m.Native.WallFaces, p, true)
-		}
-		if m, e := step.ReadOffsetSideOpenDualDiskProduct(context.Background(), r(), stepLimits(), 1e-9); e == nil {
-			p, e := m.Native.Measures()
-			if e != nil {
-				return Shape{}, e
-			}
-			return putSideDualDiskSTEPProduct(b, step.SideOpenDualDiskDescriptor(m.Descriptor), m.Native.Solid, m.Native.WallFaces, p, false)
-		}
-		if m, e := step.ReadUnequalCenterSideOpenDualDiskProduct(context.Background(), r(), stepLimits(), 1e-9); e == nil {
-			p, e := m.Native.Measures()
-			if e != nil {
-				return Shape{}, e
-			}
-			return putSideDualDiskSTEPProduct(b, m.Descriptor.SideOpenDualDiskDescriptor, m.Native.Solid, m.Native.WallFaces, p, false)
-		}
 	}
 	roundedReaders := []func() (step.RoundedRectangleExtrusionModel, error){
 		func() (step.RoundedRectangleExtrusionModel, error) {
@@ -410,31 +329,6 @@ func (b *Bridge) putSTEPCylinder(frame geom.Frame, radius, height, unit float64)
 	return b.putCylinder(cylinder)
 }
 
-func scaleSTEPNotch(p step.SideNotchBody, scale float64) (step.SideNotchBody, error) {
-	if !finite(scale) || scale <= 0 {
-		return step.SideNotchBody{}, geom.ErrInvalid
-	}
-	frame, err := geom.NewFrame(p.Frame.Origin().Scale(scale), p.Frame.XAxis(), p.Frame.ZAxis())
-	if err != nil {
-		return step.SideNotchBody{}, err
-	}
-	p.Frame = frame
-	p.Left, p.Right, p.Back, p.Inset = p.Left*scale, p.Right*scale, p.Back*scale, p.Inset*scale
-	p.Length, p.Radius, p.Depth = p.Length*scale, p.Radius*scale, p.Depth*scale
-	p.Through = append([]trimmed.ExtrusionCircle(nil), p.Through...)
-	p.Blind = append([]trimmed.ExtrusionBlindHole(nil), p.Blind...)
-	for i := range p.Through {
-		h := &p.Through[i]
-		h.Center.X, h.Center.Y, h.Radius = h.Center.X*scale, h.Center.Y*scale, h.Radius*scale
-	}
-	for i := range p.Blind {
-		h := &p.Blind[i]
-		h.Center.X, h.Center.Y, h.Radius = h.Center.X*scale, h.Center.Y*scale, h.Radius*scale
-		h.Depth *= scale
-	}
-	return p, nil
-}
-
 func (b *Bridge) putSTEPAnalytic(s trimmed.Solid, unit float64) (Shape, error) {
 	scale := unit / .001
 	if !finite(scale) || scale <= 0 {
@@ -484,33 +378,6 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		e = step.WriteLayeredDiskBores(&out, step.DiskHoleExtrusionModel{LengthUnit: .001, Bodies: []step.DiskHoleExtrusionBody{*s.analytic.stepDisk}})
 	case s.analytic != nil && s.analytic.stepDisk != nil:
 		e = step.WriteDiskHoleExtrusions(&out, step.DiskHoleExtrusionModel{LengthUnit: .001, Bodies: []step.DiskHoleExtrusionBody{*s.analytic.stepDisk}})
-	case s.analytic != nil && s.analytic.sideNotch != nil:
-		e = step.WriteSideNotch(&out, step.SideNotchModel{Body: *s.analytic.sideNotch, LengthUnit: .001})
-	case s.analytic != nil && s.analytic.sideDualDisk != nil:
-		p := s.analytic.sideDualDisk
-		d := step.SideOpenDualDiskDescriptor{
-			Name: "PlainSolid", Frame: p.frame, Min: p.min, Max: p.max, Discs: p.discs,
-			Height: p.height, Depth: p.depth, LengthUnit: .001, Tolerance: 1e-9,
-		}
-		if p.differentCenterY() {
-			var join [2]*big.Rat
-			join, e = p.unequalCenterJoin()
-			if e == nil {
-				e = step.WriteUnequalCenterSideOpenDualDiskProduct(context.Background(), &out, step.UnequalCenterSideOpenDualDiskDescriptor{SideOpenDualDiskDescriptor: d, Join: join})
-			}
-		} else if p.offsetCenters() {
-			e = step.WriteOffsetSideOpenDualDiskProduct(context.Background(), &out, step.OffsetSideOpenDualDiskDescriptor(d))
-		} else if p.exactWalls {
-			e = step.WriteExactWallSideOpenDualDiskProduct(context.Background(), &out, step.ExactWallSideOpenDualDiskDescriptor(d))
-		} else if d.Discs[0].Radius == d.Discs[1].Radius {
-			e = step.WriteSideOpenDualDiskProduct(context.Background(), &out, d)
-		} else if p.externalRadical() {
-			e = step.WriteGeneralSideOpenDualDiskProduct(context.Background(), &out, step.GeneralSideOpenDualDiskDescriptor(d))
-		} else {
-			e = step.WriteUnequalSideOpenDualDiskProduct(context.Background(), &out, step.UnequalSideOpenDualDiskDescriptor(d))
-		}
-	case s.analytic != nil && s.analytic.sideOpeningCuts != nil:
-		e = step.WriteSideOpeningCuts(&out, step.SideOpeningCutsModel{Body: *s.analytic.sideOpeningCuts, LengthUnit: .001})
 	case s.analytic != nil && s.analytic.stepRounded != nil:
 		e = step.WriteRoundedRectangleExtrusions(&out, step.RoundedRectangleExtrusionModel{LengthUnit: .001, Bodies: []step.RoundedRectangleExtrusionBody{*s.analytic.stepRounded}})
 	case s.analytic != nil && s.analytic.rounded != nil && s.analytic.rounded.isPlainExtrusion():

@@ -58,12 +58,11 @@ func (b *Bridge) importGeneralSTEP(source string) (Shape, error) {
 	refuse := func(why string) (Shape, error) {
 		return Shape{}, &failureError{"UNSUPPORTED", "STEP source is not a supported complete planar or analytic solid: " + why}
 	}
-	m, err := step.ReadTrimmedBoundary(strings.NewReader(source), stepLimits(), generalOptions.Linear)
+	// The bridge works in millimetres, and the reader converts a file
+	// that states another unit.
+	m, err := step.ReadTrimmedBoundary(strings.NewReader(source), stepLimits(), .001, generalOptions.Linear)
 	if err != nil {
 		return refuse(err.Error())
-	}
-	if m.LengthUnit != .001 {
-		return refuse("a general boundary is read in millimetres only")
 	}
 	r, err := boolean.Combine(context.Background(), m.Bodies[0].Solid, trimmed.Solid{}, boolean.Union, generalOptions)
 	if err != nil {

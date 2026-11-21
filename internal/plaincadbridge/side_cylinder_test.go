@@ -1,7 +1,6 @@
 package plaincadbridge
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"math"
@@ -9,9 +8,6 @@ import (
 	"testing"
 
 	"plainsolid/brep/parametric"
-	"plainsolid/brep/trimmed"
-	"plainsolid/exchange/step"
-	"plainsolid/geom"
 )
 
 func TestPlacedSideCrossingCircularCut(t *testing.T) {
@@ -128,43 +124,6 @@ func TestCornerBlindCutQualifiesEitherToolEndpoint(t *testing.T) {
 	}
 }
 
-func TestNotchedStockSTEPUnitsRetainRecipe(t *testing.T) {
-	b := New()
-	frame, err := geom.FrameFromNormal(geom.Vec3{X: 1, Y: 2, Z: 3}, geom.Vec3{Z: 1})
-	if err != nil {
-		t.Fatal(err)
-	}
-	notch := step.SideNotchBody{
-		Name: "corner bore", Frame: frame, Right: 20, Back: 20,
-		Length: 8, Radius: 3, Depth: 6,
-		Blind: []trimmed.ExtrusionBlindHole{{
-			ExtrusionCircle: trimmed.ExtrusionCircle{Center: geom.Vec2{X: 10, Y: 10}, Radius: 1},
-			Depth:           4, OppositeCap: true,
-		}},
-	}
-	var source bytes.Buffer
-	if err := step.WriteSideNotch(&source, step.SideNotchModel{Body: notch, LengthUnit: .01}); err != nil {
-		t.Fatal(err)
-	}
-	imported, err := b.importSTEP(source.String())
-	if err != nil {
-		t.Fatal(err)
-	}
-	near(t, imported.GeometryAssertions.Volume, (3200-17.5*math.Pi)*1000)
-	if imported.Bounds != (Bounds{Min: vector{10, 20, 30}, Max: vector{210, 220, 110}}) {
-		t.Fatal(imported.Bounds)
-	}
-	tool := circle(t, b, vector{150, 60, 30}, vector{0, 0, 1}, 10, 80)
-	cut, err := b.cutMany(imported.Handle, []string{tool.Handle})
-	if err != nil {
-		t.Fatal(err)
-	}
-	near(t, cut.GeometryAssertions.Volume, imported.GeometryAssertions.Volume-8000*math.Pi)
-	if _, err := b.exportSTEP([]string{cut.Handle}); err != nil {
-		t.Fatal(err)
-	}
-}
-
 func checkPlainCADSideNotchSTEP(t *testing.T, origin vector, depth float64) {
 	t.Helper()
 	b := New()
@@ -214,7 +173,7 @@ func TestSideNotchMixedBoreBatchIsAtomic(t *testing.T) {
 
 func TestSideNotchRetainsConnectedCoaxialCuts(t *testing.T) {
 	for _, origin := range []vector{{10, 1, 0}, {0, 0, 0}} {
-		b := newLegacy()
+		b := New()
 		stock := box(t, b, vector{}, vector{20, 20, 12})
 		lower := circle(t, b, origin, vector{0, 0, 1}, 3, 5)
 		middle := circle(t, b, vector{origin[0], origin[1], 4}, vector{0, 0, 1}, 3, 5)
@@ -223,10 +182,9 @@ func TestSideNotchRetainsConnectedCoaxialCuts(t *testing.T) {
 		blind := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": lower.Handle})
 		want := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": all.Handle})
 		near(t, overlapMeasure(t, b, blind.Handle, all.Handle), blind.GeometryAssertions.Volume-want.GeometryAssertions.Volume)
-		// The legacy notch holds one connected axial span and declines a
-		// second notch apart from the first. The general Boolean cuts it:
-		// the same footprint as the first, which is five deep, over four.
-		apart := declined(t, b, "coaxial notch cuts require connected axial spans", "cutMany", blind.Handle, upper.Handle)
+		// A second notch apart from the first, on the same axis: the same
+		// footprint as the first, which is five deep, over four.
+		apart := shape(t, b, map[string]any{"op": "cutMany", "a": blind.Handle, "tools": []string{upper.Handle}})
 		footprint := (stock.GeometryAssertions.Volume - blind.GeometryAssertions.Volume) / 5
 		near(t, apart.GeometryAssertions.Volume, blind.GeometryAssertions.Volume-4*footprint)
 		for _, tc := range []struct {

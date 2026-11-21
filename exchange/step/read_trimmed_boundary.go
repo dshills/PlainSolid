@@ -42,12 +42,17 @@ import (
 // (meeting.Curve), which the two cylinders fix; the spline says which of
 // their curves it is and which way it runs, and must be within the
 // tolerance of it.
-func ReadTrimmedBoundary(r io.Reader, l Limits, tolerance float64) (TrimmedModel, error) {
+//
+// The solid is given in the length unit asked for, in metres, and the
+// tolerance is in that unit. A file that states its lengths in another
+// unit has every point and radius converted as it is read; its directions
+// and angles are as written.
+func ReadTrimmedBoundary(r io.Reader, l Limits, unit, tolerance float64) (TrimmedModel, error) {
 	l, err := l.defaults()
 	if err != nil {
 		return TrimmedModel{}, err
 	}
-	if !(tolerance > 0) || math.IsInf(tolerance, 0) {
+	if !(tolerance > 0) || math.IsInf(tolerance, 0) || !(unit > 0) || math.IsInf(unit, 0) {
 		return TrimmedModel{}, geom.ErrInvalid
 	}
 	f, err := Parse(r, l)
@@ -98,7 +103,7 @@ func ReadTrimmedBoundary(r io.Reader, l Limits, tolerance float64) (TrimmedModel
 	if err != nil {
 		return TrimmedModel{}, err
 	}
-	unit, err := contextUnits(f, context)
+	written, err := contextUnits(f, context)
 	if err != nil {
 		return TrimmedModel{}, err
 	}
@@ -125,7 +130,7 @@ func ReadTrimmedBoundary(r io.Reader, l Limits, tolerance float64) (TrimmedModel
 	if len(faceIDs) > l.MaxFaces {
 		return TrimmedModel{}, errors.New("step: trimmed topology limit")
 	}
-	b := boundaryReader{file: f, limits: l, tolerance: tolerance, vertexOf: map[int64]int{}, edgeOf: map[int64]int{}}
+	b := boundaryReader{file: f, limits: l, tolerance: tolerance, scale: written / unit, vertexOf: map[int64]int{}, edgeOf: map[int64]int{}}
 	faces := make([]trimmed.Face, len(faceIDs))
 	for i, id := range faceIDs {
 		if faces[i], err = b.face(id); err != nil {
@@ -151,6 +156,7 @@ type boundaryReader struct {
 	file      *File
 	limits    Limits
 	tolerance float64
+	scale     float64 // the unit of the file in the unit of the solid
 	vertices  []geom.Vec3
 	vertexOf  map[int64]int
 	edges     []boundaryEdge
@@ -170,6 +176,15 @@ type boundaryEdge struct {
 	a, b  float64
 	met   bool
 	meet  meeting.Curve
+}
+
+// placed gives a frame of the file in the unit of the solid. A file in
+// that unit keeps its frames as they are written.
+func (b *boundaryReader) placed(f geom.Frame) (geom.Frame, error) {
+	if b.scale == 1 {
+		return f, nil
+	}
+	return geom.NewFrame(f.Origin().Scale(b.scale), f.XAxis(), f.ZAxis())
 }
 
 func (b *boundaryReader) vertex(id int64) (int, error) {
@@ -192,7 +207,7 @@ func (b *boundaryReader) vertex(id int64) (int, error) {
 		return 0, errors.New("step: trimmed topology limit")
 	}
 	b.vertexOf[id] = len(b.vertices)
-	b.vertices = append(b.vertices, p)
+	b.vertices = append(b.vertices, p.Scale(b.scale))
 	return b.vertexOf[id], nil
 }
 
@@ -254,6 +269,7 @@ func (b *boundaryReader) edge(id int64) (int, error) {
 		if !same {
 			along = along.Scale(-1)
 		}
+		origin = origin.Scale(b.scale)
 		line, err := geom.NewLine(origin, along)
 		if err != nil {
 			return 0, err
@@ -279,6 +295,9 @@ func (b *boundaryReader) edge(id int64) (int, error) {
 		if out.frame, err = placement(b.file, place); err != nil {
 			return 0, err
 		}
+		if out.frame, err = b.placed(out.frame); err != nil {
+			return 0, err
+		}
 		if out.a, err = numeric(c.Args[2]); err != nil {
 			return 0, err
 		}
@@ -287,6 +306,7 @@ func (b *boundaryReader) edge(id int64) (int, error) {
 				return 0, err
 			}
 		}
+		out.a, out.b = out.a*b.scale, out.b*b.scale
 		if !(out.a > 0 && out.b > 0) {
 			return 0, fmt.Errorf("edge #%d: radii %g and %g: %w", id, out.a, out.b, geom.ErrInvalid)
 		}
@@ -401,6 +421,7 @@ func (b *boundaryReader) met(id, curve int64, between []int64, same bool, out *b
 		if points[k], err = spline.Geometry.Eval(lo + (hi-lo)*u); err != nil {
 			return err
 		}
+		points[k] = points[k].Scale(b.scale)
 	}
 	found, least := 0, math.Inf(1)
 	for _, c := range curves {
@@ -450,8 +471,11 @@ func (b *boundaryReader) cylinder(id int64) (geom.Frame, float64, error) {
 	if err != nil {
 		return geom.Frame{}, 0, err
 	}
+	if frame, err = b.placed(frame); err != nil {
+		return geom.Frame{}, 0, err
+	}
 	radius, err := numeric(s.Args[2])
-	return frame, radius, err
+	return frame, radius * b.scale, err
 }
 
 func (b *boundaryReader) kind(id int64) string {
@@ -490,6 +514,9 @@ func (b *boundaryReader) face(id int64) (trimmed.Face, error) {
 	case "PLANE":
 		frame, err := planeFrame(b.file, surfaceID)
 		if err != nil {
+			return trimmed.Face{}, err
+		}
+		if frame, err = b.placed(frame); err != nil {
 			return trimmed.Face{}, err
 		}
 		if out.Surface, err = geom.NewPlaneSurface(frame); err != nil {
