@@ -26,23 +26,22 @@ accounts for most of the optional skips below.
 
 | Run | Kernel commit | Platform | Result | Evidence |
 |---|---|---|---|---|
-| Go, ordinary, with `-tags research` | `7869e035`, 2026-11-21 | macOS ARM64, Go 1.23.12 | 6,358 passed, 625 optional skips, 0 failed of 6,983 inventoried; 60 packages passed, 9 have no tests | [JSON](evidence/main-7869e035-qualification-2026-11-21.json) |
-| PlainCAD, app `efae4d2` | `7869e035`, 2026-11-21 | Chromium, Firefox and WebKit; WASM built with Go 1.27.4 | All eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract, 1,691 unit; none skipped, failed or flaky | [JSON](evidence/plaincad-main-7869e035-2026-11-21.json) |
+| Go, ordinary, with `-tags research` | `f8f22061`, 2026-11-21 | macOS ARM64, Go 1.23.12 | 6,341 passed, 625 optional skips, 0 failed of 6,966 inventoried; 60 packages passed, 9 have no tests | [JSON](evidence/main-f8f22061-qualification-2026-11-21.json) |
+| PlainCAD, app `efae4d2` | `f8f22061`, 2026-11-21 | Chromium, Firefox and WebKit; WASM built with Go 1.27.4 | All eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract, 1,691 unit; none skipped, failed or flaky | [JSON](evidence/plaincad-main-f8f22061-2026-11-21.json) |
 | Go, ordinary | `c7afb429`, 2026-11-16 | Linux ARM64, Go 1.26.0 | 6,018 passed, 599 optional skips, 0 failed of 6,617 inventoried | [JSON](evidence/native-linux-c7afb429-qualification-2026-11-16.json) |
 | Go, race detector | `ab33a412`, 2026-11-15 | macOS ARM64, Go 1.27.4 | 5,557 passed, 580 optional skips, 0 failed of 6,137 inventoried | [JSON](evidence/native-main-ab33a412-race-2026-11-15.json) |
 
-The first Go row and the PlainCAD row are one commit, `7869e035`. It has
+The first Go row and the PlainCAD row are one commit, `f8f22061`. It has
 the Go compiler mitigation (see the known defects on
 [the status page](STATUS.md)), the general Boolean of `brep/boolean` with
 planes and cylinders, cylinders of unequal radius or with skew axes
 included, the chart mesher of `brep/chartmesh`, the STEP writer and reader
 for boundaries of planes and cylinders with the edges where two cylinders
-meet, the bridge that asks the general Boolean first and no longer has the
-legacy families for two bores that cross along coordinate axes, and the
-chamfer and
+meet, the bridge that asks the general Boolean first and has no legacy
+bore body, and the chamfer and
 fillet of a result of the general Boolean in `brep/blend`. The Go run sets
 `PLAINSOLID_SLOW=1` and `-tags research`, so it covers the slow tier and the
-research quarantine; it took 51 minutes of wall time on four lanes. It used Go
+research quarantine; it took 49 minutes of wall time on four lanes. It used Go
 1.23.12 on purpose, because Go 1.25 and later can abort the research tests of
 `brep/trimmed` on this platform; a complete Go run under the current Go
 release has not been made since `9f95a188`. The PlainCAD run builds the WASM
@@ -54,13 +53,11 @@ and cross-browser suites, and the ordinary unit suite.
 
 The Linux and race rows predate the quarantine, the parallel tests in
 `exchange/step` and the mitigation. The default tier (`go test ./...`, Go
-1.27.4) passes at `d6f35c75` on all 60 packages with tests. Four
-commits follow the complete runs: `50310272` deletes the legacy oblique
-bore families, `65d3f677` changes how the general Boolean divides a
-face and cuts a result into arcs, `2e615aa2` deletes the legacy unions
-of parallel bores, and `d6f35c75` deletes the bridge's legacy bore
-body. The complete Go run and the PlainCAD run were not repeated on any
-of them.
+1.27.4) passes at `f8f22061` on all 60 packages with tests. The
+PlainCAD run on `deb6a124`, the commit before it, failed 45
+development and 26 production cases on holes through all; `f8f22061` is
+the correction, and the specification of the general Boolean has the
+cause (RL-32).
 
 ## What these results do not establish
 
