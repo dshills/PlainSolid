@@ -10,23 +10,24 @@ not append dated entries. The narrative that this page replaced is in git:
 
 ## Current state
 
-As of 2026-11-20, with kernel code at `d6dcbcfe`.
+As of 2026-11-21, with kernel code at `f516e28d`.
 
 | Check | Last result | Kernel commit |
 |---|---|---|
-| PlainCAD application with PlainSolid selected (app `efae4d2`) | Passed all eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract and 1,691 unit cases; none skipped or flaky | `d6dcbcfe`, 2026-11-20 |
-| Complete Go suite with the research tag, macOS ARM64, Go 1.23.12 | 6,409 passed, 625 optional skips, 0 failed of 7,034 | `d6dcbcfe`, 2026-11-20 |
+| PlainCAD application with PlainSolid selected (app `efae4d2`) | Passed all eight gates: 345 development, 66 production, 15 cross-browser, 4 WASM contract and 1,691 unit cases; none skipped or flaky | `f516e28d`, 2026-11-21 |
+| Complete Go suite with the research tag, macOS ARM64, Go 1.23.12 | 6,392 passed, 625 optional skips, 0 failed of 7,017 | `f516e28d`, 2026-11-21 |
 | Complete Go suite, Linux ARM64, Go 1.26.0 | 6,018 passed, 599 optional skips, 0 failed | `c7afb429`, 2026-11-16 |
 | Complete Go suite with the race detector, macOS ARM64 | 5,557 passed, 580 optional skips, 0 failed | `ab33a412`, 2026-11-15 |
-| Default Go tier (`go test ./...`), macOS ARM64, Go 1.27.4 | All 58 packages with tests pass | `d6dcbcfe`, 2026-11-20 |
+| Default Go tier (`go test ./...`), macOS ARM64, Go 1.27.4 | All 60 packages with tests pass | `f516e28d`, 2026-11-21 |
 
 The PlainCAD application suites and the complete Go suite, slow tier and
-research code included, both pass on `d6dcbcfe`. That commit has the Go
-compiler mitigation, the general Boolean with cylinders of equal radius
-whose axes meet and with mirrored operands, the bridge that asks it
-first for plain bores and falls back to it elsewhere, the STEP writer
-and reader for boundaries of planes and cylinders, and
-the chamfer and fillet of a result of the general Boolean. The Linux run
+research code included, both pass on `f516e28d`. That commit has the Go
+compiler mitigation, the general Boolean with planes and cylinders,
+cylinders of unequal radius or with skew axes included, the bridge that
+asks it first and no longer has the legacy bore families for those
+cylinders, the chart mesher, the STEP writer and reader for boundaries of
+planes and cylinders with the edges where two cylinders meet, and the
+chamfer and fillet of a result of the general Boolean. The Linux run
 and the race run have not been repeated since the commits shown.
 
 The default build leaves out the research quarantine: 540 production files of
@@ -37,8 +38,8 @@ linked into the PlainCAD bridge is unchanged by the quarantine: the same 7,138
 functions with the same sizes. Commands, evidence files and what the
 results do not establish are in [the verification record](VERIFICATION.md).
 
-Not qualified: native Windows runtime, the complete suite on the current
-commit, curved modeling beyond the subsets in the matrix below, independent
+Not qualified: native Windows runtime, the complete suite under the current
+Go release, curved modeling beyond the subsets in the matrix below, independent
 exchange beyond the listed families, and the release matrix in
 [the specification](SPECIFICATION.md).
 
@@ -80,7 +81,7 @@ The gates PC0 to PC5 and their ordering are defined in
 existing PlainCAD end-to-end tests, listed in
 [PlainCAD readiness](PLAINCAD_READINESS.md). Those tests run inside the
 PlainCAD development, production and cross-browser suites, which last passed
-in full on kernel `d6dcbcfe`. No PlainCAD case is known to fail.
+in full on kernel `f516e28d`. No PlainCAD case is known to fail.
 
 The PlainSolid-backed app lives on the `codex/plainsolid-backend` branch of
 the sibling PlainCAD checkout. The acceptance inventory is a critical-path
