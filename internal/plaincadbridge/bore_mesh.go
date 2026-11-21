@@ -11,27 +11,6 @@ import (
 	"plainsolid/mesh"
 )
 
-func (s stored) tessellateBore(o parametric.TessellationOptions) (mesh.Mesh, error) {
-	ctx := context.Background()
-	// Keep the established single-rim refinement when a coarser mesh
-	// would lose more than the material-volume budget after STL rounding.
-	fine := o
-	fine.Angle = min(o.Angle, fineMeshAngle)
-	if len(s.bore.cylinders) != 1 || fine.Angle == o.Angle {
-		return s.bore.solid.Tessellate(ctx, o)
-	}
-	m, err := s.bore.solid.Tessellate(ctx, o)
-	if err != nil {
-		return mesh.Mesh{}, err
-	}
-	volume := s.result.GeometryAssertions.Volume
-	tolerance := volume * meshVolumeBudget
-	if math.Abs(float32MeshVolume(m)-volume) < tolerance {
-		return m, nil
-	}
-	return s.bore.solid.Tessellate(ctx, fine)
-}
-
 // meshVolumeBudget is the part of the volume of a solid by which its mesh
 // may differ from it, after the rounding of an STL, before the solid is
 // meshed again at fineMeshAngle, the facet angle of that second mesh.

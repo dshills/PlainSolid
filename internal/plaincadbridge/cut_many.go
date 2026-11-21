@@ -26,7 +26,7 @@ func (b *Bridge) cutMany(target string, tools []string) (Shape, error) {
 	}
 	general := func() (Shape, error) { return b.generalCutMany(context.Background(), a, tools) }
 	if cutters, ok := b.all(tools); ok && !b.legacy && generalFirst("cutMany", a, cutters...) {
-		return orLegacy(general, func() (Shape, error) { return b.legacyCutMany(legacyStock(a), tools) })
+		return orLegacy(general, func() (Shape, error) { return b.legacyCutMany(a, tools) })
 	}
 	result, err := b.legacyCutMany(a, tools)
 	return orGeneral(result, err, general)
@@ -150,27 +150,9 @@ func (b *Bridge) legacyCutMany(a stored, tools []string) (Shape, error) {
 	if !circular || a.cylinder != nil || a.analytic != nil {
 		return Shape{}, unclaimed("cutMany requires planar tools on planar stock or cylindrical tools on qualified stock")
 	}
-	base := a.solid
-	var cylinders []*cylinderBody
-	if a.bore != nil {
-		base = a.bore.base
-		cylinders = append(cylinders, a.bore.sourceCylinders()...)
-	}
-	for _, tool := range inputs {
-		cylinders = append(cylinders, tool.cylinder)
-	}
-	body, err := newBore(base, cylinders)
-	if err != nil {
-		return Shape{}, err
-	}
-	volume, _, err := body.measures()
-	if err != nil {
-		return Shape{}, err
-	}
-	if volume <= 0 || !removesMaterial(a.result.GeometryAssertions.Volume, volume) {
-		return Shape{}, errors.New("cutMany must retain solid material and collectively remove volume")
-	}
-	return b.putBore(body)
+	// The general Boolean is asked first to cut cylinders from planar
+	// stock, and no legacy path cuts them.
+	return Shape{}, unclaimed("cylinders are cut from planar stock by the general Boolean alone")
 }
 
 // Match the application cut contract, so arithmetic roundoff in an idempotent

@@ -5,12 +5,18 @@ import (
 	"testing"
 )
 
-// The tests of this file hold a part cut by the general Boolean to what the
-// same part answers when a legacy path cut it: the bore callouts of its
-// drawing, the volume its mesh keeps, and its bounds.
+// The tests of this file hold a part cut by the general Boolean on a
+// general bridge to the same part on a bridge whose legacy paths answer
+// first, and to what its inputs say: the bore callouts of its drawing,
+// the volume its mesh keeps, and its bounds. A legacy path cut a plain
+// bore on the first of those bridges until the legacy bore engine was
+// deleted (section 17 of specs/general-boolean-crossing); the general
+// Boolean cuts it on both now, and a legacy path still cuts a bore along
+// an edge of the stock.
 
-// generalParityParts builds one part on a default bridge and on a general
-// bridge: a box and one cylindrical tool cut from it.
+// generalParityParts builds one part on a bridge whose legacy paths
+// answer first and on a general bridge: a box and one cylindrical tool cut
+// from it.
 func generalParityParts(t *testing.T, min, max, origin, axis vector, radius, height float64) (legacy, general stored) {
 	t.Helper()
 	var parts [2]stored
@@ -20,8 +26,8 @@ func generalParityParts(t *testing.T, min, max, origin, axis vector, radius, hei
 		cut := shape(t, b, map[string]any{"op": "cut", "a": stock.Handle, "b": tool.Handle})
 		parts[i] = b.shapes[cut.Handle]
 	}
-	if a := parts[0].analytic; a != nil && a.general || parts[1].analytic == nil || !parts[1].analytic.general {
-		t.Fatal("the default bridge did not cut with a legacy path, or the general bridge not with the general Boolean")
+	if parts[1].analytic == nil || !parts[1].analytic.general {
+		t.Fatal("the general bridge did not cut with the general Boolean")
 	}
 	return parts[0], parts[1]
 }
@@ -49,6 +55,8 @@ func TestGeneralDrawingBores(t *testing.T) {
 				t.Fatalf("bores %+v and warnings %v, where the legacy part has %+v", got.Bores, got.Warnings, want.Bores)
 			}
 			g, w := got.Bores[0], want.Bores[0]
+			near(t, g.Diameter, 4)
+			near(t, g.Length, c.height)
 			near(t, g.Diameter, w.Diameter)
 			near(t, g.Length, w.Length)
 			for i := range 3 {

@@ -17,15 +17,13 @@ import (
 
 // generalBooleanOperandSolid is the trimmed.Solid the general Boolean adapter
 // will read from a stored shape (specification L2): a planar solid lifts with
-// trimmed.FromPlanar, a cylinder with trimmed.FromParametric, and a bored or
+// trimmed.FromPlanar, a cylinder with trimmed.FromParametric, and an
 // analytic body holds one.
 func generalBooleanOperandSolid(t *testing.T, s stored) trimmed.Solid {
 	t.Helper()
 	var solid trimmed.Solid
 	var err error
 	switch {
-	case s.bore != nil:
-		solid = s.bore.solid
 	case s.analytic != nil:
 		solid = s.analytic.solid
 	case s.cylinder != nil:
@@ -144,7 +142,7 @@ func TestGeneralBooleanFoundation(t *testing.T) {
 			),
 		},
 		{
-			name: "bored box", kind: "bore",
+			name: "bored box", kind: "analytic",
 			requests: []string{
 				`{"op":"box","min":[0,0,0],"max":[10,10,10]}`,
 				`{"op":"circle","origin":[5,5,-1],"normal":[0,0,1],"radius":2,"height":12}`,
@@ -203,8 +201,6 @@ func TestGeneralBooleanFoundation(t *testing.T) {
 			s := b.shapes[reported.Handle]
 			kind := "planar"
 			switch {
-			case s.bore != nil:
-				kind = "bore"
 			case s.analytic != nil:
 				kind = "analytic"
 			case s.cylinder != nil:

@@ -160,7 +160,7 @@ func TestOverlapVolumePreservesOrdinaryQueriesAndCommonGeometry(t *testing.T) {
 	// The legacy paths have no geometry for the common of a tool with a
 	// bored stock and decline it. The general Boolean builds it: the unit
 	// disk less its lens with the unit bore one away, over a height of 4.
-	crescent := declined(t, b, "overlap with an existing bore is unresolved", "common", stock.Handle, second.Handle)
+	crescent := declined(t, b, "", "common", stock.Handle, second.Handle)
 	near(t, crescent.GeometryAssertions.Volume, 4*(math.Pi/3+math.Sqrt(3)/2))
 	grazing := circle(t, b, vector{3.5, 0, 0}, vector{0, 0, 1}, 1, 8)
 	before := len(b.shapes)

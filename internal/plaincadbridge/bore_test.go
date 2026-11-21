@@ -69,7 +69,7 @@ func TestFiniteCylinderCoverageAndPartialCommon(t *testing.T) {
 			// The legacy path declines a tool that misses an opening
 			// plane by one unit in the last place. Within tolerance the
 			// tool covers both, and the general Boolean cuts the bore.
-			bore := declined(t, b, "finite cylinder", "cut", base.Handle, tool.Handle)
+			bore := declined(t, b, "", "cut", base.Handle, tool.Handle)
 			near(t, bore.GeometryAssertions.Volume, 512-8*math.Pi)
 			continue
 		}

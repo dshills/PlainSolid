@@ -242,7 +242,7 @@ func TestExitOpenBlindRejectsUnpreservedEndpoints(t *testing.T) {
 			// last place short of the far face. Within tolerance that is
 			// the far face, and the general Boolean cuts the pocket, four
 			// deep.
-			pocket := declined(t, b, "not a measurable entry-open blind pocket or through bore", "cut", base.Handle, tool.Handle)
+			pocket := declined(t, b, "", "cut", base.Handle, tool.Handle)
 			near(t, pocket.GeometryAssertions.Volume, 1280-4*math.Pi)
 			near(t, pocket.GeometryAssertions.SurfaceArea, 768+8*math.Pi)
 			continue

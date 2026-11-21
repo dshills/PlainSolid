@@ -133,7 +133,6 @@ type Shape struct {
 type stored struct {
 	solid           brep.Solid
 	cylinder        *cylinderBody
-	bore            *boreBody
 	treated         *edgeBody
 	analytic        *analyticBody
 	tangent         *tangentBlindBore
@@ -143,7 +142,7 @@ type stored struct {
 }
 
 func (s stored) planar() bool {
-	return s.cylinder == nil && s.bore == nil && s.treated == nil && s.analytic == nil && s.tangent == nil && s.rationalStepArc == nil && s.mappedChainSTEP == nil
+	return s.cylinder == nil && s.treated == nil && s.analytic == nil && s.tangent == nil && s.rationalStepArc == nil && s.mappedChainSTEP == nil
 }
 
 type failure struct {
@@ -399,7 +398,7 @@ func (b *Bridge) execute(q request) (any, error) {
 		}
 		if !b.legacy && generalFirst(q.Op, a, c) {
 			return orLegacy(func() (any, error) { return b.generalBoolean(ctx, a, c, q.Op) }, func() (any, error) {
-				return b.legacyBoolean(ctx, legacyStock(a), legacyStock(c), q.Op)
+				return b.legacyBoolean(ctx, a, c, q.Op)
 			})
 		}
 		result, err := b.legacyBoolean(ctx, a, c, q.Op)
@@ -424,9 +423,6 @@ func (b *Bridge) execute(q request) (any, error) {
 			}
 			if s.treated != nil {
 				return s.treated.planarFace(q.Origin.vec(), q.Normal.vec())
-			}
-			if s.bore != nil {
-				return s.bore.planarFace(q.Origin.vec(), q.Normal.vec())
 			}
 			if s.cylinder != nil {
 				return s.cylinder.planarFace(q.Origin.vec(), q.Normal.vec())
@@ -489,13 +485,6 @@ func (b *Bridge) execute(q request) (any, error) {
 					return nil, err
 				}
 				return b.putEdge(body)
-			}
-			if s.bore != nil {
-				body, err := s.bore.transformed(m)
-				if err != nil {
-					return nil, err
-				}
-				return b.putBore(body)
 			}
 			if s.cylinder != nil {
 				c, err := s.cylinder.transformed(m)

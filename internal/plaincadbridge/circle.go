@@ -131,9 +131,6 @@ func (s stored) tessellate(q request) (mesh.Mesh, error) {
 	if s.treated != nil {
 		return s.treated.tessellate(o)
 	}
-	if s.bore != nil {
-		return s.tessellateBore(o)
-	}
 	if s.cylinder != nil {
 		// The compact axial mesh keeps circular volume accurate without
 		// subdividing the straight generators and the planar cap interiors.

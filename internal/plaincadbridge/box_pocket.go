@@ -66,14 +66,11 @@ func (b *Bridge) rectangularPocket(a, tool stored) (Shape, bool, error) {
 			return Shape{}, false, nil
 		}
 		extent = bounds
-	} else if a.planar() || a.bore != nil {
+	} else if a.planar() {
 		// Infer the entrance from whichever cardinal stock cap the tool spans.
 		// Its other axial end must be strictly interior.
 		found := false
 		source := a.solid
-		if a.bore != nil {
-			source = a.bore.base
-		}
 		for _, axis := range []geom.Vec3{{X: 1}, {X: -1}, {Y: 1}, {Y: -1}, {Z: 1}, {Z: -1}} {
 			f, err := geom.FrameFromNormal(geom.Vec3{}, axis)
 			if err != nil {
@@ -113,38 +110,8 @@ func (b *Bridge) rectangularPocket(a, tool stored) (Shape, bool, error) {
 	}
 	p.pockets = append(append([]trimmed.BoxBlindPocket(nil), p.pockets...), trimmed.BoxBlindPocket{
 		Footprint: trimmed.ExtrusionRectangle{Min: geom.Vec2{X: extent.Min.X, Y: extent.Min.Y}, Max: geom.Vec2{X: extent.Max.X, Y: extent.Max.Y}}, Floor: extent.Min.Z})
-	if a.bore != nil {
-		for _, cylinder := range a.bore.cylinders {
-			var err error
-			p, err = p.throughBore(cylinder)
-			if err != nil {
-				return Shape{}, true, err
-			}
-		}
-	}
 	result, err := b.putPocketStock(p)
 	return result, true, err
-}
-
-func (p pocketStock) throughBore(tool *cylinderBody) (pocketStock, error) {
-	fail := func() (pocketStock, error) {
-		return pocketStock{}, &failureError{"UNSUPPORTED", "pocket stock requires a disjoint full axial through bore"}
-	}
-	if tool == nil || len(p.bores) >= 32 {
-		return fail()
-	}
-	a, z := tool.frame.ZAxis(), p.frame.ZAxis()
-	if a != z && a != z.Scale(-1) {
-		return fail()
-	}
-	start, end := tool.frame.Origin(), tool.frame.Origin().Add(a.Scale(tool.height))
-	x, y := p.frame.ToLocal(start), p.frame.ToLocal(end)
-	if p.frame.ToWorld(x) != start || p.frame.ToWorld(y) != end || min(x.Z, y.Z) > 0 || max(x.Z, y.Z) < p.size.Z {
-		return fail()
-	}
-	p.bores = append(append([]trimmed.ExtrusionCircle(nil), p.bores...),
-		trimmed.ExtrusionCircle{Center: geom.Vec2{X: x.X, Y: x.Y}, Radius: tool.radius})
-	return p, nil
 }
 
 // A pocket-only box has a straight shared-edge graph. Preserve that graph

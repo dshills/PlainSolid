@@ -104,14 +104,8 @@ func TestGeneralTreatmentAgreesWithLegacy(t *testing.T) {
 		return shape(t, b, q{"op": "prism", "offset": vector{0, 0, 10},
 			"outer": []vector{{0, 0, 0}, {20, 0, 0}, {20, 10, 0}, {10, 10, 0}, {10, 20, 0}, {0, 20, 0}}})
 	}
-	bored := func(t *testing.T, b *Bridge) Shape {
-		return shape(t, b, q{"op": "cut", "a": plain(t, b).Handle, "b": circle(t, b, vector{5, 5, 0}, vector{0, 0, 1}, 2, 10).Handle})
-	}
 	pocketed := func(t *testing.T, b *Bridge) Shape {
 		return shape(t, b, q{"op": "cut", "a": box(t, b, vector{}, vector{40, 30, 10}).Handle, "b": box(t, b, vector{15, 10, 8}, vector{25, 20, 10}).Handle})
-	}
-	holed := func(t *testing.T, b *Bridge) Shape {
-		return shape(t, b, q{"op": "cut", "a": box(t, b, vector{}, vector{20, 20, 10}).Handle, "b": circle(t, b, vector{10, 10, 0}, vector{0, 0, 1}, 2, 10).Handle})
 	}
 	slab := func(t *testing.T, b *Bridge) Shape { return box(t, b, vector{}, vector{20, 20, 10}) }
 	top := [2]vector{{0, 0, 10}, {20, 0, 10}}
@@ -134,13 +128,8 @@ func TestGeneralTreatmentAgreesWithLegacy(t *testing.T) {
 			"edges": edges([2]vector{{20, 10, 0}, {20, 10, 10}}, [2]vector{{10, 10, 0}, {10, 10, 10}})}},
 		{"Q9, chamfer of a convex and a concave edge", l, q{"op": "chamfer", "normal": side, "direction": axis, "distance": 1.0,
 			"edges": edges([2]vector{{20, 10, 0}, {20, 10, 10}}, [2]vector{{10, 10, 0}, {10, 10, 10}})}},
-		{"a bored box, chamfer of a cap edge", bored, q{"op": "chamfer", "normal": axis, "distance": 0.5,
-			"edges": edges([2]vector{{0, 0, 0}, {20, 0, 0}})}},
-		{"a bored box, fillet of a cap edge", bored, q{"op": "fillet", "normal": axis, "radius": 1.0, "edges": edges(top)}},
 		{"Q5, chamfer of a cap edge", pocketed, q{"op": "chamfer", "normal": axis, "distance": 1.0, "edges": edges([2]vector{{0, 0, 10}, {40, 0, 10}})}},
 		{"Q5, fillet of a cap edge", pocketed, q{"op": "fillet", "normal": axis, "radius": 1.0, "edges": edges([2]vector{{0, 0, 10}, {40, 0, 10}})}},
-		{"Q6, chamfer of a cap perimeter", holed, q{"op": "capChamfer", "normal": axis, "distance": 1.0, "edges": edges(
-			[2]vector{{0, 0, 10}, {20, 0, 10}}, [2]vector{{20, 0, 10}, {20, 20, 10}}, [2]vector{{20, 20, 10}, {0, 20, 10}}, [2]vector{{0, 20, 10}, {0, 0, 10}})}},
 		// The legacy path fillets a cap perimeter on a plain box and not
 		// on one with a hole.
 		{"a box, fillet of a cap perimeter", slab, q{"op": "capFillet", "normal": axis, "radius": 1.0, "edges": edges(
@@ -166,6 +155,51 @@ func TestGeneralTreatmentAgreesWithLegacy(t *testing.T) {
 				t.Fatal("the lifted stock was not treated by the general mechanism")
 			}
 			sameShape(t, treated, legacy)
+		})
+	}
+}
+
+// TestGeneralTreatmentOfBoredStock treats edges of a box with a bore. The
+// legacy bore engine treated such stock until it was deleted (section 17
+// of specs/general-boolean-crossing), and TestGeneralTreatmentAgreesWithLegacy
+// held the general mechanism to it. The volumes and areas here are the
+// ones the legacy treatment gave at 65de8f83; the first two volumes are
+// also the closed forms 2000 − 40π − 2.5 and 2000 − 40π − 20(1 − π/4).
+func TestGeneralTreatmentOfBoredStock(t *testing.T) {
+	axis := vector{0, 0, 1}
+	edges := func(pairs ...[2]vector) []any {
+		var out []any
+		for _, p := range pairs {
+			out = append(out, edgeRef(p[0], p[1]))
+		}
+		return out
+	}
+	for _, c := range []struct {
+		name         string
+		size         vector
+		centre       vector
+		request      q
+		volume, area float64
+	}{
+		{"chamfer of a cap edge", vector{20, 10, 10}, vector{5, 5, 0}, q{"op": "chamfer", "normal": axis, "distance": 0.5,
+			"edges": edges([2]vector{{0, 0, 0}, {20, 0, 0}})}, 1871.8362938564082, 1094.4231005386043},
+		{"fillet of a cap edge", vector{20, 10, 10}, vector{5, 5, 0}, q{"op": "fillet", "normal": axis, "radius": 1.0,
+			"edges": edges([2]vector{{0, 0, 10}, {20, 0, 10}})}, 1870.044257124357, 1091.5176877775662},
+		{"chamfer of a cap perimeter", vector{20, 20, 10}, vector{10, 10, 0}, q{"op": "capChamfer", "normal": axis, "distance": 1.0, "edges": edges(
+			[2]vector{{0, 0, 10}, {20, 0, 10}}, [2]vector{{20, 0, 10}, {20, 20, 10}}, [2]vector{{20, 20, 10}, {0, 20, 10}}, [2]vector{{0, 20, 10}, {0, 0, 10}})},
+			3835.6696271897417, 1652.0111956552287},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			b := New()
+			stock := shape(t, b, q{"op": "cut", "a": box(t, b, vector{}, c.size).Handle, "b": circle(t, b, c.centre, axis, 2, 10).Handle})
+			request := q{"handle": stock.Handle}
+			for k, v := range c.request {
+				request[k] = v
+			}
+			got := shape(t, b, request).GeometryAssertions
+			if !got.Valid || got.SolidCount != 1 || generalBooleanError(got.Volume, c.volume) > 1e-7 || generalBooleanError(got.SurfaceArea, c.area) > 1e-7 {
+				t.Fatalf("got %+v, want volume %.12g and area %.12g", got, c.volume, c.area)
+			}
 		})
 	}
 }

@@ -221,10 +221,6 @@ func (s stored) edgeAvailable(start, end geom.Vec3) bool {
 		_, _, ok := trimmedEdge(s.treated.chain.Solid, s.treated.frame.ToLocal(start), s.treated.frame.ToLocal(end))
 		return ok
 	}
-	if s.bore != nil {
-		_, _, ok := trimmedEdge(s.bore.solid, start, end)
-		return ok
-	}
 	if s.analytic != nil {
 		if s.analytic.pockets != nil && len(s.analytic.pockets.bores) == 0 {
 			native, ok, e := s.planarCutBoundary()
@@ -377,7 +373,7 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 	if _, served := generalEdgeKinds[q.Op]; served && s.analytic != nil && b.generalResult(s.analytic) {
 		return b.generalTreatEdge(s, q, refs, normal, size)
 	}
-	if s.treated == nil && !s.planar() && s.bore == nil {
+	if s.treated == nil && !s.planar() {
 		return Shape{}, unsupportedEdge(q.Op + " failed: stock type is unsupported")
 	}
 	if q.Op == "chamfer" && q.Direction == nil && s.planar() && len(refs) == 1 && refs[0].Start != nil && refs[0].End != nil && len(s.solid.Vertices()) != 8 {
@@ -409,8 +405,6 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 		}
 		if s.treated != nil {
 			a, c, ok = trimmedEdge(s.treated.chain.Solid, s.treated.frame.ToLocal(start), s.treated.frame.ToLocal(end))
-		} else if s.bore != nil {
-			a, c, ok = trimmedEdge(s.bore.solid, start, end)
 		} else {
 			a, c, ok = planarEdge(s.solid, start, end)
 			if !ok && q.Op == "fillet" && len(refs) == 1 {
@@ -425,23 +419,11 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 		}
 		resolved[i] = [2]geom.Vec3{a, c}
 	}
-	if result, handled, err := b.chamferLayeredBoreEdge(s, q, resolved, normal); handled {
-		return result, err
-	}
 	var body edgeBody
 	if s.treated != nil {
 		body = *s.treated
 	} else {
 		base := s.solid
-		if s.bore != nil {
-			if len(s.bore.cylinders) == 0 {
-				return Shape{}, unsupportedEdge("retained bore has no cylinder recipe")
-			}
-			if _, _, _, ok := rectangularBoredStock(s.bore, normal, false); !ok && len(s.bore.cylinders) == 1 && !s.bore.blind[0] {
-				return Shape{}, unsupportedEdge(q.Op + " failed: retained bore does not qualify for edge treatment")
-			}
-			base = s.bore.base
-		}
 		body, err = inferEdgeStock(base, resolved[0][0], resolved[0][1], normal)
 		if err != nil {
 			if s.planar() && q.Direction != nil {
@@ -465,11 +447,6 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 				return b.treatRetainedPlanarEdge(s, q, normal, size, resolved[0])
 			}
 			return Shape{}, fmt.Errorf("%s failed: %w", q.Op, err)
-		}
-		if s.bore != nil && len(s.bore.cylinders) == 1 && !s.bore.blind[0] {
-			c := s.bore.cylinders[0]
-			center := body.frame.ToLocal(c.frame.Origin())
-			body.bore = &trimmed.ExtrusionCircle{Center: geom.Vec2{X: center.X, Y: center.Y}, Radius: c.radius}
 		}
 		for i, pair := range resolved {
 			resolved[i] = [2]geom.Vec3{body.frame.ToLocal(pair[0]), body.frame.ToLocal(pair[1])}
@@ -509,9 +486,6 @@ func (b *Bridge) treatEdge(s stored, q request) (Shape, error) {
 	next, err := rebuildEdge(body)
 	if err != nil {
 		return Shape{}, fmt.Errorf("%s failed: %w", q.Op, err)
-	}
-	if s.bore != nil && body.bore == nil {
-		return b.finishBoredEdges(s.bore, next)
 	}
 	return b.putEdge(next)
 }

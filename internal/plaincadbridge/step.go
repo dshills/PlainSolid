@@ -182,11 +182,11 @@ func (b *Bridge) importSTEPInUnits(source string, units stepFileUnit) (Shape, er
 		return b.putAnalyticBody(body)
 	}
 	if m, e := step.ReadDisjointBores(r(), stepLimits()); e == nil {
-		body, err := disjointBoresFromSTEP(m.Body, m.LengthUnit)
+		base, tools, err := disjointBoresFromSTEP(m.Body, m.LengthUnit)
 		if err != nil {
 			return Shape{}, err
 		}
-		return b.putBore(body)
+		return b.putBoredStock(base, tools)
 	}
 	if m, e := step.ReadSideNotch(r(), stepLimits()); e == nil {
 		p := m.Body
@@ -478,14 +478,6 @@ func writeSTEPBody(s stored) ([]byte, error) {
 	case s.cylinder != nil:
 		c := s.cylinder
 		e = step.WriteCylinders(&out, step.CylinderModel{LengthUnit: .001, Bodies: []step.CylinderBody{{Name: "PlainSolid", Frame: c.frame, Radius: c.radius, Height: c.height}}})
-	case s.bore != nil:
-		var p step.CircularHoleExtrusionBody
-		p, e = boreSTEPRecipe(s.bore)
-		if e == nil {
-			e = step.WriteCircularHoleExtrusions(&out, step.CircularHoleExtrusionModel{LengthUnit: .001, Bodies: []step.CircularHoleExtrusionBody{p}})
-		} else if mixed, ok := disjointBoreSTEPRecipe(s.bore); ok {
-			e = step.WriteDisjointBores(&out, step.DisjointBoresModel{Body: mixed, LengthUnit: .001})
-		}
 	case s.treated != nil:
 		e = writeLongEdgeSTEP(&out, s.treated)
 	case s.analytic != nil && s.analytic.layeredDisk && s.analytic.stepDisk != nil:
@@ -594,48 +586,6 @@ func writeSTEPBody(s stored) ([]byte, error) {
 		return nil, &failureError{"LIMIT", "STEP export exceeds 1 MiB"}
 	}
 	return out.Bytes(), nil
-}
-
-func boreSTEPRecipe(a *boreBody) (step.CircularHoleExtrusionBody, error) {
-	if len(a.cylinders) == 0 {
-		return step.CircularHoleExtrusionBody{}, &failureError{"UNSUPPORTED", "STEP overlapping bore export is not qualified"}
-	}
-	c := a.cylinders[0]
-	cut, start, end, e := boreSpan(a.base, c, false)
-	if e != nil {
-		return step.CircularHoleExtrusionBody{}, e
-	}
-	frame, e := geom.NewFrame(c.frame.Origin().Add(c.frame.ZAxis().Scale(start)), c.frame.XAxis(), c.frame.ZAxis())
-	if e != nil {
-		return step.CircularHoleExtrusionBody{}, e
-	}
-	p := step.CircularHoleExtrusionBody{Name: "PlainSolid", Frame: frame, Height: end - start}
-	edges, vertices := a.base.Edges(), a.base.Vertices()
-	for _, u := range a.base.Faces()[cut.Entry].Boundary {
-		edge := edges[u.Edge]
-		id := edge.Start
-		if u.Reversed {
-			id = edge.End
-		}
-		v := frame.ToLocal(vertices[id])
-		if v.Z != 0 || frame.ToWorld(v) != vertices[id] {
-			return p, geom.ErrUnrepresentable
-		}
-		p.Outer = append(p.Outer, geom.Vec2{X: v.X, Y: v.Y})
-	}
-	for i, tool := range a.cylinders {
-		if tool.frame.ZAxis() != frame.ZAxis() || a.cuts[i].Entry != cut.Entry || a.cuts[i].Exit != cut.Exit {
-			return p, geom.ErrDomain
-		}
-		v := frame.ToLocal(tool.frame.Origin())
-		hole := trimmed.ExtrusionCircle{Center: geom.Vec2{X: v.X, Y: v.Y}, Radius: tool.radius}
-		if a.blind[i] {
-			p.Blind = append(p.Blind, trimmed.ExtrusionBlindHole{ExtrusionCircle: hole, Depth: a.spans[i]})
-		} else {
-			p.Holes = append(p.Holes, hole)
-		}
-	}
-	return p, nil
 }
 
 type stepProof struct {
@@ -777,11 +727,7 @@ func (b *Bridge) putSTEPCircularRecipe(p step.CircularHoleExtrusionBody) (Shape,
 			return Shape{}, e
 		}
 	}
-	body, e := newBore(base, tools)
-	if e != nil {
-		return Shape{}, e
-	}
-	return b.putBore(body)
+	return b.putBoredStock(base, tools)
 }
 
 // Only the origin-anchored two-corner recipes verified by the native reader

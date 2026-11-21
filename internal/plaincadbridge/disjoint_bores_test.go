@@ -1,13 +1,9 @@
 package plaincadbridge
 
 import (
-	"bytes"
 	"encoding/base64"
 	"math"
 	"testing"
-
-	"plainsolid/exchange/step"
-	"plainsolid/geom"
 )
 
 func TestDisjointBoresSTEP(t *testing.T) {
@@ -58,33 +54,5 @@ func TestDisjointBoresSTEP(t *testing.T) {
 	}
 	if err := mesh.ValidateSolid(); err != nil {
 		t.Fatal(err)
-	}
-
-	// What follows is of the legacy STEP product for disjoint bores and of
-	// its units. A legacy bore body writes that product, and the legacy
-	// paths build one for this part from its stock and its bores.
-	if data, err = writeSTEPBody(legacyStock(b.shapes[successive.Handle])); err != nil {
-		t.Fatal(err)
-	}
-	p, err := step.ReadDisjointBores(bytes.NewReader(data), stepLimits())
-	if err != nil {
-		t.Fatal(err)
-	}
-	p.LengthUnit = .01
-	var scaled bytes.Buffer
-	if err := step.WriteDisjointBores(&scaled, p); err != nil {
-		t.Fatal(err)
-	}
-	got, err := b.importSTEP(scaled.String())
-	if err != nil {
-		t.Fatal(err)
-	}
-	near(t, got.GeometryAssertions.Volume, wantVolume*1000)
-	near(t, got.GeometryAssertions.SurfaceArea, wantArea*100)
-	scaledTool := circle(t, b, vector{230, 20, 100}, vector{-1, 0, 0}, 20, 220)
-	near(t, overlapMeasure(t, b, got.Handle, scaledTool.Handle), 0)
-	body, ok := disjointBoreSTEPRecipe(b.shapes[got.Handle].bore)
-	if !ok || body.Frame.Origin() != (geom.Vec3{X: 20, Y: -30, Z: 50}) {
-		t.Fatal("non-millimeter import lost its bore recipe")
 	}
 }

@@ -45,49 +45,7 @@ func (b *Bridge) generalBoolean(ctx context.Context, a, c stored, op string) (Sh
 	if err != nil {
 		return Shape{}, err
 	}
-	if op == "cut" {
-		return b.putGeneralBores(r, generalHistory(a, c))
-	}
 	return b.putGeneral(r)
-}
-
-// generalHistory is the bore history of a cut by the general Boolean: of
-// planar stock, or of a result with a history, by cylinders only. Any
-// other cut has none.
-func generalHistory(a stored, tools ...stored) *boreHistory {
-	for _, c := range tools {
-		if c.cylinder == nil {
-			return nil
-		}
-	}
-	switch {
-	case a.planar() && len(a.solid.Faces()) > 0:
-		return (&boreHistory{base: a.solid}).with(tools)
-	case a.analytic != nil && a.analytic.general && a.analytic.bores != nil:
-		return a.analytic.bores.with(tools)
-	}
-	return nil
-}
-
-// legacyStock is a stored shape as the legacy paths take it. A result of
-// the general Boolean with a bore history is the bore body that the
-// legacy engine builds from the stock and the cylinders of the history;
-// its measures stay the ones the result was published with. Any other
-// shape, and a history the engine does not build, is the shape itself.
-// It is used where the general Boolean has failed a request and a legacy
-// path is asked, so that a bore the general Boolean cannot cut and a
-// legacy path can is still cut. Two bores of unequal radius or with skew
-// axes are not among those: their legacy paths are gone
-// (specs/general-boolean-quartic, section 11).
-func legacyStock(s stored) stored {
-	if s.analytic == nil || !s.analytic.general || s.analytic.bores == nil {
-		return s
-	}
-	body, err := newBore(s.analytic.bores.base, s.analytic.bores.cylinders)
-	if err != nil {
-		return s
-	}
-	return stored{bore: body, result: s.result}
 }
 
 // generalCut holds a cut to the contract that the bridge's cuts share:
@@ -136,7 +94,7 @@ func generalCombine(ctx context.Context, a, c stored, op boolean.Operation) (boo
 // generalCombineRaw is generalCombine with the error as boolean.Combine
 // returned it, for a caller that decides on its kind.
 func generalCombineRaw(ctx context.Context, a, c stored, op boolean.Operation) (boolean.Result, error) {
-	x, err := booleanOperand(ctx, a)
+	x, err := generalOperand(a)
 	if err != nil {
 		return boolean.Result{}, err
 	}
@@ -156,7 +114,7 @@ func generalStep(ctx context.Context, x trimmed.Solid, known *parametric.Propert
 // generalStepRaw is generalStep with the error as boolean.Combine
 // returned it.
 func generalStepRaw(ctx context.Context, x trimmed.Solid, known *parametric.Properties, c stored, op boolean.Operation) (boolean.Result, error) {
-	y, err := booleanOperand(ctx, c)
+	y, err := generalOperand(c)
 	if err != nil {
 		return boolean.Result{}, err
 	}
@@ -182,8 +140,6 @@ func generalOperand(s stored) (trimmed.Solid, error) {
 	var t trimmed.Solid
 	var err error
 	switch {
-	case s.bore != nil:
-		t = s.bore.solid
 	case s.analytic != nil && s.analytic.patches != nil && s.analytic.solid.Tolerance() == 0:
 		t, err = trimmed.FromParametric(*s.analytic.patches)
 	case s.analytic != nil:
@@ -204,74 +160,15 @@ func generalOperand(s stored) (trimmed.Solid, error) {
 	return t, nil
 }
 
-// booleanOperand is generalOperand for an operand of the general Boolean.
-// A body of the legacy bore engine is given as its stock less its
-// cylinders, cut again by the general Boolean. The legacy engine divides
-// the wall of a bore along rulings of its own choosing, and a later tool
-// that touches one leaves a face that touches itself at a point, which
-// the general Boolean does not take (M6); a wall as the general Boolean
-// divides it has no such ruling. Where the general Boolean does not cut
-// the stock by the cylinders to the volume of the legacy body, the
-// operand is the solid the legacy engine built.
-func booleanOperand(ctx context.Context, s stored) (trimmed.Solid, error) {
-	if s.bore != nil {
-		if t, ok := s.bore.recut(ctx); ok {
-			return t, nil
-		}
-	}
-	return generalOperand(s)
-}
-
-// recut is the stock of a bore body less its cylinders by the general
-// Boolean, and whether it has the volume the legacy engine measured. It
-// is worked out once for a body.
-func (body *boreBody) recut(ctx context.Context) (trimmed.Solid, bool) {
-	if body.again != nil {
-		return *body.again, body.again.Tolerance() != 0
-	}
-	want, _, err := body.measures()
-	x, e := trimmed.FromPlanar(body.base, generalOptions.Linear)
-	volume := math.NaN()
-	if err == nil && e == nil {
-		for _, c := range body.sourceCylinders() {
-			y, e := trimmed.FromParametric(c.solid)
-			if e != nil {
-				err = e
-				break
-			}
-			r, e := boolean.Combine(ctx, x, y, boolean.Cut, generalOptions)
-			if e != nil || r.Solids != 1 {
-				err = errors.Join(e, errors.New("not one solid"))
-				break
-			}
-			x, volume = r.Solid, r.Volume
-		}
-	}
-	if ctx.Err() != nil {
-		return trimmed.Solid{}, false
-	}
-	if err != nil || e != nil || !(math.Abs(volume-want) <= generalOptions.Volume*want) {
-		x = trimmed.Solid{}
-	}
-	body.again = &x
-	return x, x.Tolerance() != 0
-}
-
 // putGeneral publishes a result of the general Boolean: the empty solid
 // as the legacy paths publish it, and any other as an analytic body that
 // holds the result solid, with the volume and area that the general
 // Boolean reports for it. The adapter does not integrate the result.
 func (b *Bridge) putGeneral(r boolean.Result) (Shape, error) {
-	return b.putGeneralBores(r, nil)
-}
-
-// putGeneralBores is putGeneral for a cut, with the bore history of the
-// result where it has one.
-func (b *Bridge) putGeneralBores(r boolean.Result, history *boreHistory) (Shape, error) {
 	if r.Solids == 0 {
 		return b.put(brep.Solid{})
 	}
-	return b.publishGeneral(&analyticBody{solid: r.Solid, volume: r.Properties.Volume, area: r.Properties.Area, general: true, bores: history}, r.Solids)
+	return b.publishGeneral(&analyticBody{solid: r.Solid, volume: r.Properties.Volume, area: r.Properties.Area, general: true}, r.Solids)
 }
 
 // publishGeneral stores an analytic body of any number of shells. It
@@ -291,7 +188,7 @@ func (b *Bridge) publishGeneral(body *analyticBody, solids int) (Shape, error) {
 // generalBody reports whether an analytic body is a solid with its measures
 // and no recipe of a legacy path, which is what publishGeneral stores.
 func generalBody(body *analyticBody) bool {
-	plain := analyticBody{solid: body.solid, volume: body.volume, area: body.area, general: body.general, bores: body.bores}
+	plain := analyticBody{solid: body.solid, volume: body.volume, area: body.area, general: body.general}
 	v, w := reflect.ValueOf(*body), reflect.ValueOf(plain)
 	for i := range v.NumField() {
 		if v.Field(i).IsZero() != w.Field(i).IsZero() {
@@ -401,15 +298,35 @@ func generalBounds(s trimmed.Solid) (geom.Box, error) {
 // body as it stands is set aside and tried again after the others
 // (inAnyOrder). Nothing is published unless every tool is cut.
 func (b *Bridge) generalCutMany(ctx context.Context, a stored, tools []string) (Shape, error) {
-	x, err := booleanOperand(ctx, a)
-	if err != nil {
-		return Shape{}, err
-	}
 	cutters := make([]stored, len(tools))
 	for i, id := range tools {
+		var err error
 		if cutters[i], err = b.get(id); err != nil {
 			return Shape{}, err
 		}
+	}
+	return b.generalCutStored(ctx, a, cutters)
+}
+
+// putBoredStock publishes planar stock less cylinders as the general
+// Boolean cuts it: what a STEP reader that recovers the stock and the
+// bores of a file builds.
+func (b *Bridge) putBoredStock(base brep.Solid, tools []*cylinderBody) (Shape, error) {
+	if len(tools) == 0 {
+		return b.put(base)
+	}
+	cutters := make([]stored, len(tools))
+	for i, tool := range tools {
+		cutters[i] = stored{cylinder: tool}
+	}
+	return b.generalCutStored(context.Background(), stored{solid: base}, cutters)
+}
+
+// generalCutStored is generalCutMany of stored shapes.
+func (b *Bridge) generalCutStored(ctx context.Context, a stored, cutters []stored) (Shape, error) {
+	x, err := generalOperand(a)
+	if err != nil {
+		return Shape{}, err
 	}
 	var r boolean.Result
 	before, known, cut := math.NaN(), generalKnown(a), false
@@ -432,7 +349,7 @@ func (b *Bridge) generalCutMany(ctx context.Context, a stored, tools []string) (
 	if err := generalCut(ctx, before, r, a, cutters...); err != nil {
 		return Shape{}, err
 	}
-	return b.putGeneralBores(r, generalHistory(a, cutters...))
+	return b.putGeneral(r)
 }
 
 // inAnyOrder applies n steps, each once, and returns nil when all are
@@ -484,7 +401,7 @@ func (b *Bridge) generalJoinAll(ctx context.Context, targets []string, tool stor
 			return Shape{}, err
 		}
 		if i == 0 {
-			if x, err = booleanOperand(ctx, c); err != nil {
+			if x, err = generalOperand(c); err != nil {
 				return Shape{}, err
 			}
 			known = generalKnown(c)
@@ -515,7 +432,7 @@ func (b *Bridge) generalJoinAll(ctx context.Context, targets []string, tool stor
 	// whether the tool added material. It did if the tool less the
 	// targets is a solid.
 	if r.Volume-before <= generalOptions.Linear*r.Properties.Area {
-		if y, err := booleanOperand(ctx, tool); err == nil {
+		if y, err := generalOperand(tool); err == nil {
 			o := generalOptions
 			o.KnownA, o.KnownB = generalKnown(tool), known
 			beyond, err := boolean.Combine(ctx, y, x, boolean.Cut, o)

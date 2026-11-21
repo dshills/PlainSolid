@@ -243,8 +243,8 @@ func TestGeneralCrossedResultUse(t *testing.T) {
 
 // TestGeneralMeshOfUnequalCrossing meshes bodies whose faces are trimmed
 // along the curve in which bores of unequal radius meet: as cut, cut
-// again by a box through that curve, which leaves the body no bore
-// history to be meshed from, and that body mirrored. Each mesh is a
+// again by a box through that curve, and that body mirrored. Each mesh
+// is a
 // closed solid within the budget of a general mesh. Each is written to
 // STEP as its own boundary, with those curves, and the file reads back to
 // the same part (A13 of specs/general-boolean-quartic).
@@ -257,8 +257,8 @@ func TestGeneralMeshOfUnequalCrossing(t *testing.T) {
 	crossed := shape(t, b, q{"op": "cutMany", "a": stock.Handle, "tools": []string{wide.Handle, narrow.Handle}})
 	slab := box(t, b, vector{4, 10, 12}, vector{12, 30, 16})
 	notched := shape(t, b, q{"op": "cut", "a": crossed.Handle, "b": slab.Handle})
-	if body := b.shapes[notched.Handle].analytic; body == nil || !body.general || body.bores != nil {
-		t.Fatal("the notched body is not a general result without a bore history")
+	if body := b.shapes[notched.Handle].analytic; body == nil || !body.general {
+		t.Fatal("the notched body is not a general result")
 	}
 	mirrored := shape(t, b, q{"op": "transform", "handle": notched.Handle, "matrix": [][]float64{{-1, 0, 0, 20}, {0, 1, 0, 0}, {0, 0, 1, 0}}})
 	for name, s := range map[string]Shape{"crossed": crossed, "notched": notched, "mirrored": mirrored} {

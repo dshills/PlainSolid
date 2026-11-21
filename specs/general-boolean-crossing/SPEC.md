@@ -863,11 +863,13 @@ causes are Z1 to Z3.
   cut less the overlap of the second tool
   (`TestBlindFloorsInsideAnObliqueCrossing`). Each fails on `main` at
   `8453a7a7`. `TestUnder` covers the test Z2 makes of an arc.
-- A-C20. The sweep of A-C18 on the branch, 7,254 requests: the 6,830
-  answers of `main` are unchanged; 102 cuts that `main` refuses are
-  made, and with them the 52 overlap volumes asked on the way to those
-  that are successive cuts; 322 are refused by both, of which 152 are a
-  second tool
+- A-C20. The sweep of A-C18 on the branch. Its 7,254 requests fall
+  into three: the 6,830 that `main` answers are answered alike; 102
+  cuts that `main` refuses are made; and 322 are refused by both. A
+  request for successive cuts also asks the overlap volume of the
+  second tool; in 52 of the 102 that volume, which `main` refuses, is
+  given as well, and these are not further requests. Of the 322, 152
+  are a second tool
   that removes nothing, 62 a floor that touches the other bore, which
   is no manifold, and 108 a floor whose rim touches the curve in which
   the bores cross. With the floors moved as in 15.1, all 272 are cut.
@@ -1018,3 +1020,119 @@ without the unions (A-C23).
   keeps its refusal, "cylindrical cut is outside the strictly contained
   convex-stock domain", to which K5 does not apply: it is the refusal
   of the family of plain bores.
+
+## 17. Retirement of the legacy bore body
+
+Asked for by the owner on 2026-11-21, on the branch
+`codex/retire-plain-bores`. The *bore body* is the bridge's own form of
+planar stock with cylindrical holes, built by its bore engine
+(`newBore`), with every path that built one or read one. Section 13
+governs this section as it governs itself, except K4, which W3
+withdraws.
+
+### 17.1 What was measured first
+
+The bridge tests were run on `main` at `65de8f83` with a log line where
+a bore body is published and where one is fetched. On the default bridge
+a bore body was published only by `importStep`, through the four readers
+of W1; the fallback from the general Boolean published none. The
+requests that fetched one were those made of such an imported body.
+
+A sweep then held, on `main`, a body imported from an old file against
+the same body freshly cut, operation by operation (A-C26). The imported
+body answered nothing that the fresh one refuses.
+
+### 17.2 Requirements
+
+- W1. The readers of files of plain bores
+  (`step.ReadCircularHoleExtrusions`,
+  `step.ReadAnalyticCircularThroughExtrusions`,
+  `step.ReadAnalyticCircularPocketExtrusions` and
+  `step.ReadDisjointBores`) recover the stock and the bores of a file.
+  The bridge must have the general Boolean cut that stock by those
+  bores, and publish its result. Where it does not cut them the import
+  is refused with its reason.
+- W2. The bridge must hold no bore body. Deleted with the type are the
+  bore engine, with its merging of opposed blind bores, its stop of a
+  blind bore and its proof of a blind bore that touches a side; the
+  measures, face areas, motion, mesh, display edges and drawing of a
+  bore body; the treatment of edges and of a cap of bored stock; the
+  union of a boss or of a box with bored stock; a pocket in bored
+  stock; the overlap of a cylinder with bored stock; and the STEP
+  recipes and the export of a bore body. A cylinder to be cut from
+  planar stock is refused by the legacy paths with a refusal to which
+  K5 applies, as is the overlap of a cylinder with stock that is not
+  planar.
+- W3. K4 is withdrawn: no body of the legacy bore engine is left to be
+  an operand. The bore history of a general result, which gave that
+  engine its stock, is deleted with it.
+- W4. What stays: in `brep/trimmed`, `BoreCylinders`,
+  `BoreFiniteCylinders`, `StopPerpendicularBore` and
+  `BoreCylinderAlong`, and in `exchange/step` the readers of W1 with
+  their writers, because a reader rebuilds the body of its file with
+  those builders to hold the file to it; and in the bridge the overlap
+  and the common of planar stock with a cylinder across one of its
+  faces, in closed form.
+- W5. `TestGeneralBooleanTraces` holds a response to its record to
+  1e-12 where a legacy path gives it. Where the response is a result
+  of the general Boolean it is held to 1e-7, the bound of the
+  acceptance (A3), and a bound of a shape to 1e-7 of a length of one or
+  more; a row that the acceptance excludes is excluded there too.
+- W6. K7 applies.
+
+### 17.3 Acceptance criteria
+
+- A-C24. The default and slow tiers of `internal/plaincadbridge` pass
+  with the bore body gone. Tests of what is deleted go with it: the two
+  tests of the proof of a touching blind bore, the test that opposed
+  bores of different support are not merged, and the test of K4. The
+  four tests of bores along more than one axis lose the part that wrote
+  the old product from a bore body; `TestDisjointBoresSTEPInCentimetres`
+  keeps its reading in another unit, from two fixtures. Three cases of
+  `TestGeneralTreatmentAgreesWithLegacy`, on bored stock, have no legacy
+  side any more; `TestGeneralTreatmentOfBoredStock` holds the general
+  mechanism to the volumes and areas the legacy treatment gave at
+  `65de8f83`. Three tests that named the wording of a legacy refusal
+  require only that a legacy path declines.
+- A-C25. Ten files written by the legacy writer on `main` at
+  `65de8f83` (one bore through, blind from either cap, along x and
+  blind along y; two through and two blind; bores along two and three
+  axes; one bore near an edge) import on a default bridge as results of
+  the general Boolean, with the volume and area the legacy body was
+  published with to within 1e-5, and are cut and exported again
+  (`TestLegacyBoreSTEPStillImports`).
+- A-C26. Two sweeps on `main` and on the branch, not automated. In the
+  first, fourteen bodies of plain bores in a box from (0, 0, 0) to
+  (40, 30, 20) are each cut afresh and, for the ten the legacy writer
+  exports, imported from the old file; of each are asked its faces, the
+  overlap and the cut of four further tools, a cut by two, a union with
+  a boss and with a box, a common, a pocket, a motion and a copy with a
+  cut after each, an export and import, a chamfer, a fillet, a cap
+  chamfer and fillet, a mesh, an STL, display edges, a drawing, a hole
+  rim and an inspection. Of the 841 requests the 683 that `main`
+  answers are answered alike; 15 that `main` refuses of an imported
+  body are made, ten fillets, four chamfers and a pocket; and 143 are
+  refused by both. In the second, a box and three prisms (a hexagon, an
+  L and a wedge) are each cut by one of 72 bores at four radii, as a
+  cut, as a `cutMany` of one and of two, with the overlap and the
+  common: of the 5,760 requests the 5,192 that `main` answers are
+  answered alike and 568 are refused by both. The sweeps of A-C15,
+  A-C18 and A-C23 give on the branch every answer they give on `main`.
+
+### 17.4 Decisions taken by default
+
+- OD-C22. A blind bore that touches a side of the stock was refused
+  with a proof of the contact, as a typed error with the faces
+  concerned. It is now refused by the general Boolean, which says that
+  the operands touch. PlainCAD reads neither.
+- OD-C23. A body imported from an old file of plain bores is a result
+  of the general Boolean. It is treated, cut and united as a fresh one
+  is, which by A-C26 is more than before, and it is written to STEP as
+  its boundary and no longer in the old product.
+- OD-C24. A file of W1 whose stock and bores the general Boolean does
+  not cut no longer imports. None was found.
+- OD-C25. The inputs of the sweeps of A-C23 and A-C26 are given in
+  outline only, and their probes are not kept, so another run may not
+  ask the same requests. Keeping the five sweeps of sections 13 to 17
+  as slow tests, each with the answers it recorded, would settle that.
+  It has not been asked for and is not done.

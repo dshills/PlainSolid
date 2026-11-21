@@ -51,10 +51,10 @@ func TestOpposedBlindBoreStrictOverlapAndUnrelated(t *testing.T) {
 	a := circle(t, b, vector{0, 0, 0}, vector{0, 0, 1}, 1, 5)
 	for _, h := range []float64{math.Nextafter(5, 0), 5, math.Nextafter(5, 6)} {
 		c := circle(t, b, vector{0, 0, 10}, vector{0, 0, -1}, 1, h)
-		_, ok := mergeOpposedBlindBores(b.shapes[s.Handle].solid, []*cylinderBody{b.shapes[a.Handle].cylinder, b.shapes[c.Handle].cylinder})
-		if ok != (h > 5) {
-			t.Fatal(h, ok)
-		}
+		// The floors are a hair apart, meet, or overlap by a hair: the
+		// two bores remove their two lengths either way.
+		pair := shape(t, b, map[string]any{"op": "cutMany", "a": s.Handle, "tools": []string{a.Handle, c.Handle}})
+		near(t, pair.GeometryAssertions.Volume, 1000-math.Pi*(5+h))
 	}
 	c := circle(t, b, vector{0, 0, 10}, vector{0, 0, -1}, 1, 6)
 	other := circle(t, b, vector{3, 0, 0}, vector{0, 0, 1}, .5, 2)
@@ -91,20 +91,5 @@ func TestOpposedBlindBoreStrictOverlapAndUnrelated(t *testing.T) {
 	reply := b.Call(`{"op":"cutMany","a":"` + s.Handle + `","tools":["` + a.Handle + `","` + c.Handle + `"]}`)
 	if !strings.Contains(reply, `"ok":false`) || len(b.shapes) != before {
 		t.Fatal(reply)
-	}
-}
-
-func TestOpposedBlindBoreRejectsDifferentSupport(t *testing.T) {
-	b := New()
-	s := box(t, b, vector{-5, -5, 0}, vector{5, 5, 10})
-	a := circle(t, b, vector{0, 0, 0}, vector{0, 0, 1}, 1, 6)
-	for _, tc := range []struct {
-		o vector
-		r float64
-	}{{vector{0, 0, 10}, 2}, {vector{math.SmallestNonzeroFloat64, 0, 10}, 1}} {
-		c := circle(t, b, tc.o, vector{0, 0, -1}, tc.r, 6)
-		if _, ok := mergeOpposedBlindBores(b.shapes[s.Handle].solid, []*cylinderBody{b.shapes[a.Handle].cylinder, b.shapes[c.Handle].cylinder}); ok {
-			t.Fatal("different support merged")
-		}
 	}
 }

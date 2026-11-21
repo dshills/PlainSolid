@@ -98,7 +98,7 @@ func (body *edgeBody) cutCandidate(tool stored, through bool) (*edgeBody, float6
 		result, err := rebuildEdge(next)
 		return result, lo, hi, err
 	}
-	if tool.bore != nil || tool.treated != nil {
+	if tool.treated != nil {
 		return nil, 0, 0, unsupportedEdge("treated-stock cut tool must be a cylinder or rectangular prism")
 	}
 	lo, hi, err := body.rectangleTool(tool.solid)
@@ -134,7 +134,7 @@ func (b *Bridge) treatedBoolean(a, c stored, op string) (any, error) {
 		}
 		return b.putEdge(next)
 	}
-	if op != "fuse" || c.cylinder != nil || c.bore != nil || c.treated != nil {
+	if op != "fuse" || c.cylinder != nil || c.treated != nil {
 		return nil, unsupportedEdge("treated-stock Boolean combination is outside the qualified domain")
 	}
 	if body.boss != nil {

@@ -286,9 +286,17 @@ func requireGeneralBooleanReply(t *testing.T, step generalBooleanStep, reply gen
 		}
 		number("volume", a.Volume, *want.Volume)
 		number("surfaceArea", a.SurfaceArea, *want.SurfaceArea)
+		// A bound is a coordinate, which may be zero: it is held to the
+		// bound of a length of one or more.
+		place := func(what string, got, recorded float64) {
+			t.Helper()
+			if math.Abs(got-recorded) > relative*math.Max(1, math.Max(math.Abs(got), math.Abs(recorded))) {
+				fail("%s %.17g, recorded %.17g", what, got, recorded)
+			}
+		}
 		for i := range 3 {
-			number("bounds.min", got.Bounds.Min[i], want.Bounds.Min[i])
-			number("bounds.max", got.Bounds.Max[i], want.Bounds.Max[i])
+			place("bounds.min", float64(got.Bounds.Min[i]), float64(want.Bounds.Min[i]))
+			place("bounds.max", float64(got.Bounds.Max[i]), float64(want.Bounds.Max[i]))
 		}
 	case want.Value != nil:
 		var got struct {
@@ -336,7 +344,7 @@ func TestGeneralBooleanTraces(t *testing.T) {
 	if len(names) == 0 {
 		t.Fatal("no traces under " + generalBooleanTraceDir)
 	}
-	refusals, row := generalBooleanRefusals(t), map[string]string{}
+	refusals, pending, row := generalBooleanRefusals(t), generalBooleanPending(t), map[string]string{}
 	for _, r := range generalBooleanRows(t) {
 		row[r.function] = r.id
 	}
@@ -365,7 +373,20 @@ func TestGeneralBooleanTraces(t *testing.T) {
 					t.Logf("fallback %s line %d: %.160s", row[name], line, reply.Result)
 					continue
 				}
-				requireGeneralBooleanReply(t, step, reply, 1e-12)
+				// A response of a legacy path is held to its record to
+				// the last digits. Where no legacy path answers any
+				// more, the general Boolean has, and its result is held
+				// to the bound of the acceptance (A3).
+				bound := 1e-12
+				if s, ok := replay.bridge.shapes[reply.Handle]; ok && s.analytic != nil && s.analytic.general {
+					bound = 1e-7
+					// A row that the acceptance excludes is excluded
+					// here too once the general Boolean answers it.
+					if strings.Contains(pending[row[name]], "excluded") && reply.OK == step.OK {
+						continue
+					}
+				}
+				requireGeneralBooleanReply(t, step, reply, bound)
 			}
 		})
 	}

@@ -44,8 +44,6 @@ func (s stored) drawingGeometry() (drawingGeometry, error) {
 		})
 		out.Warnings = append(out.Warnings, "The bore touches a stock side along a non-manifold contact edge.")
 		return out, nil
-	case s.bore != nil:
-		faces = s.bore.solid.Faces()
 	case s.treated != nil:
 		faces, mapping = s.treated.chain.Solid.Faces(), frameMap(s.treated.frame)
 	case s.analytic != nil:

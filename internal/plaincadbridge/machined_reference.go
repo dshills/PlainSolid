@@ -12,8 +12,6 @@ import (
 func (s stored) retainedTrimmed() (trimmed.Solid, geom.Affine, bool) {
 	m := geom.Identity()
 	switch {
-	case s.bore != nil:
-		return s.bore.solid, m, true
 	case s.treated != nil:
 		return s.treated.chain.Solid, frameMap(s.treated.frame), true
 	case s.analytic != nil:

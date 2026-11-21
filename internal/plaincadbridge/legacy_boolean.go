@@ -120,20 +120,10 @@ func (b *Bridge) legacyBoolean(ctx context.Context, a, c stored, op string) (any
 	if result, handled, err := b.cornerCylinderBoolean(a, c, op); handled {
 		return result, err
 	}
-	if op == "fuse" && a.bore != nil && c.cylinder != nil {
-		if result, handled, err := b.fuseCircularBoss(a.bore, c.cylinder); handled {
-			return result, err
-		}
-	}
-	if op == "fuse" && a.bore != nil && c.planar() {
-		if result, handled, err := b.fuseBoredStock(a.bore, c.solid); handled {
-			return result, err
-		}
-	}
 	if a.treated != nil || c.treated != nil {
 		return b.treatedBoolean(a, c, op)
 	}
-	if a.cylinder != nil || c.cylinder != nil || a.bore != nil || c.bore != nil {
+	if a.cylinder != nil || c.cylinder != nil {
 		return b.curvedBoolean(a, c, op)
 	}
 	if op == "fuse" {

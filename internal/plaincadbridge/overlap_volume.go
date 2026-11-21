@@ -28,7 +28,7 @@ func (b *Bridge) overlapVolume(aID, cID string) (any, error) {
 	}
 	general := func() (any, error) { return generalOverlapVolume(context.Background(), a, c) }
 	if !b.legacy && generalFirst("overlapVolume", a, c) {
-		return orLegacy(general, func() (any, error) { return legacyOverlapVolume(legacyStock(a), legacyStock(c)) })
+		return orLegacy(general, func() (any, error) { return legacyOverlapVolume(a, c) })
 	}
 	result, err := legacyOverlapVolume(a, c)
 	return orGeneral(result, err, general)
@@ -181,7 +181,7 @@ func legacyOverlapVolume(a, c stored) (any, error) {
 		return result(removed)
 	}
 	if a.analytic != nil || c.analytic != nil {
-		return nil, &failureError{"UNSUPPORTED", "overlap volume is outside the supported analytic stock domain"}
+		return nil, unclaimed("overlap volume is outside the supported analytic stock domain")
 	}
 	if a.cylinder != nil && c.planar() {
 		a, c = c, a
@@ -229,45 +229,21 @@ func legacyOverlapVolume(a, c stored) (any, error) {
 	if c.cylinder == nil || a.cylinder != nil {
 		return nil, &failureError{"UNSUPPORTED", "overlap volume requires planar stock or qualified bored stock and a cylindrical tool"}
 	}
-	base := a.solid
-	if a.bore != nil {
-		base = a.bore.base
+	if !a.planar() {
+		// A cylinder against stock that is not planar is measured by
+		// the general Boolean, which has been asked.
+		return nil, unclaimed("overlap volume requires planar stock and a cylindrical tool")
 	}
+	base := a.solid
 	cut, start, end, err := boreSpan(base, c.cylinder, false)
 	if err != nil {
 		return nil, err
 	}
 	lo, hi := math.Max(0, start), math.Min(c.cylinder.height, end)
-	if a.bore == nil {
-		if _, _, err := trimmed.BoreCylinderAlong(base, cut.Entry, cut.Exit, cut.AxisPoint, cut.Direction, cut.Radius, 1e-9); err != nil {
-			return nil, &failureError{"UNSUPPORTED", "overlap volume requires a strictly contained radial footprint: " + err.Error()}
-		}
-		return result(math.Pi * c.cylinder.radius * c.cylinder.radius * math.Max(0, hi-lo))
+	if _, _, err := trimmed.BoreCylinderAlong(base, cut.Entry, cut.Exit, cut.AxisPoint, cut.Direction, cut.Radius, 1e-9); err != nil {
+		return nil, &failureError{"UNSUPPORTED", "overlap volume requires a strictly contained radial footprint: " + err.Error()}
 	}
-	if hi <= lo {
-		return result(0)
-	}
-	// Independent entry-open walls retain each tool's exact plane stop.
-	for i, old := range a.bore.cylinders {
-		if cardinalBoreContainsTool(old, a.bore.blind[i], c.cylinder) {
-			return result(0)
-		}
-	}
-	tools := append(append([]*cylinderBody(nil), a.bore.cylinders...), c.cylinder)
-	body, err := newBore(base, tools)
-	if err != nil {
-		return nil, err
-	}
-	volume, _, err := body.measures()
-	if err != nil {
-		return nil, err
-	}
-	delta := a.result.GeometryAssertions.Volume - volume
-	tolerance := math.Max(1e-9, math.Abs(a.result.GeometryAssertions.Volume)*1e-10)
-	if !finite(delta) || delta < -tolerance || delta > math.Min(a.result.GeometryAssertions.Volume, c.result.GeometryAssertions.Volume)+tolerance {
-		return nil, errors.New("inconsistent overlap volume")
-	}
-	return result(math.Max(0, delta))
+	return result(math.Pi * c.cylinder.radius * c.cylinder.radius * math.Max(0, hi-lo))
 }
 
 func parallelCylinderOverlap(a, b *cylinderBody) (float64, error) {

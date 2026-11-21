@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"plainsolid/exchange/step"
 )
 
 // TestLegacyBoreSTEPStillImports reads STEP files that exportStep wrote
@@ -19,7 +21,9 @@ import (
 // built them (section 13 of specs/general-boolean-crossing), and the
 // last eight are bores with an oblique axis, alone, across a bore along
 // a coordinate axis, and apart from one (section 14). The code that
-// wrote and read these files is gone. The default bridge now reads
+// wrote and read these files is gone. The last ten are plain bores, which
+// their own readers still recognise; those readers now have the general
+// Boolean cut the stock by the bores they recover (section 17). The default bridge now reads
 // each as the boundary it states, to the volume and area the legacy body
 // was published with, as a result of the general Boolean that can be cut
 // and exported again.
@@ -29,6 +33,7 @@ func TestLegacyBoreSTEPStillImports(t *testing.T) {
 	small := [2]vector{{-1, -1, 10}, {21, 17, 13}}
 	triple := [2]vector{{1, 3, 30}, {35, 41, 39}}
 	plate := [2]vector{{-1, -1, 5}, {5, 6, 7}}
+	plain := [2]vector{{-1, -1, 17}, {41, 31, 21}}
 	tall := [2]vector{{-1, -1, 36}, {21, 17, 41}}
 	for _, c := range []struct {
 		name         string
@@ -58,6 +63,16 @@ func TestLegacyBoreSTEPStillImports(t *testing.T) {
 		{"oblique-crossed-floor", 12115.05905973973, 4149.999939711293, tall},
 		{"oblique-crossed-double-blind", 12265.85550711204, 4024.336233567702, tall},
 		{"oblique-disjoint", 7872.402555211128, 2642.435145098857, [2]vector{{-1, -1, 17}, {21, 21, 21}}},
+		{"plain-through", 23434.513322353836, 5520.442450666158, plain},
+		{"plain-blind-top", 23660.707993412303, 5426.194671058465, plain},
+		{"plain-blind-bottom", 23773.805328941533, 5350.7964473723105, plain},
+		{"plain-two-through", 23183.18591006665, 5746.637121724622, plain},
+		{"plain-two-blind", 23597.876140340504, 5489.026524130261, plain},
+		{"plain-x-through", 22869.026644707676, 5897.433569096934, plain},
+		{"plain-y-blind", 23604.159325647688, 5463.893782901542, plain},
+		{"plain-mixed-axes", 23246.01776313845, 5903.716754404114, plain},
+		{"plain-mixed-axes-blind", 23296.283245595885, 5878.584013175397, plain},
+		{"plain-near-the-edge", 23748.672587712816, 5426.194671058464, plain},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
@@ -88,5 +103,47 @@ func TestLegacyBoreSTEPStillImports(t *testing.T) {
 			}
 			generalSTEPExported(t, b, read.Handle)
 		})
+	}
+}
+
+// TestDisjointBoresSTEPInCentimetres reads two of those files in the
+// product for bores along more than one axis, states their lengths in
+// centimetres instead, and imports them: the body is ten times the size,
+// with the volume and the area that follow.
+func TestDisjointBoresSTEPInCentimetres(t *testing.T) {
+	for _, c := range []struct {
+		name         string
+		volume, area float64
+	}{
+		{"plain-mixed-axes", 23246.01776313845, 5903.716754404114},
+		{"plain-mixed-axes-blind", 23296.283245595885, 5878.584013175397},
+	} {
+		packed, err := os.ReadFile(filepath.Join("testdata", "legacy-step", c.name+".step.gz"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		unpacked, err := gzip.NewReader(bytes.NewReader(packed))
+		if err != nil {
+			t.Fatal(err)
+		}
+		model, err := step.ReadDisjointBores(unpacked, stepLimits())
+		if err != nil {
+			t.Fatal(c.name, err)
+		}
+		model.LengthUnit = .01
+		var scaled bytes.Buffer
+		if err := step.WriteDisjointBores(&scaled, model); err != nil {
+			t.Fatal(err)
+		}
+		b := New()
+		got, err := b.importSTEP(scaled.String())
+		if err != nil {
+			t.Fatal(c.name, err)
+		}
+		near(t, got.GeometryAssertions.Volume, c.volume*1000)
+		near(t, got.GeometryAssertions.SurfaceArea, c.area*100)
+		if body := b.shapes[got.Handle].analytic; body == nil || !body.general {
+			t.Fatal("the file did not read as a result of the general Boolean")
+		}
 	}
 }

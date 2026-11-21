@@ -144,8 +144,6 @@ func nativeDisplayEdges(s stored, maxSegments int, remaining *int) (displayEdges
 		}
 	case s.analytic != nil:
 		e = trimmedBody(s.analytic.solid)
-	case s.bore != nil:
-		e = trimmedBody(s.bore.solid)
 	case s.treated != nil:
 		transform = frameMap(s.treated.frame)
 		e = trimmedBody(s.treated.chain.Solid)
