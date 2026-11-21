@@ -10,8 +10,8 @@ has been supported since 2026-11-19 (RL-27), by
 [the crossing specification](../general-boolean-crossing/SPEC.md), which
 amends sections 7.4, 7.5 and 12 here. Since 2026-11-20 a placement that
 reflects is accepted (S4, RL-28), the default bridge asks the general
-path first for plain bores (OD-11), a face of B within ε of a plane
-of A is seated on it (S7, RL-30), and cylinders of unequal radius or
+path first for plain bores (OD-11), a face of B within 2ε of a plane
+of A is seated on it (S7, RL-30, RL-32), and cylinders of unequal radius or
 with skew axes are cut
 ([the quartic specification](../general-boolean-quartic/SPEC.md),
 RL-31). This document is a specification only and contains no
@@ -153,21 +153,29 @@ formats.
   is a precondition that intake does not test; see V7 for what is guaranteed
   when it is violated.
 - S6. A zero-value `trimmed.Solid` is the empty solid and is a valid operand.
-- S7. A planar face of B that lies within ε of the plane of a face of A
-  is seated on that plane (RL-30). The two planes are parallel as the
-  table of section 7.4 judges it, and the border of the face of B is
-  within ε of the plane of A, less a part in 2³⁰ for rounding, at every
-  sample by which I5 holds an edge to the carrier of its face. The
-  distance of a planar face from a plane is greatest on its border. Intake
-  then gives the face of B the carrier of the face of A, with its
-  orientation and its loops turned as for a reflecting placement (S4)
-  where the two planes face against each other. Its edges take their
-  carriers from that plane by I5, its vertices are moved onto those
-  carriers, and an edge that ends at a moved vertex ends there. B is so
-  changed by at most ε, on the faces that C24 to C27 call coincident,
-  and the result has those faces, their edges and their vertices in the
-  plane of A to rounding and not to the gap. A is taken as it is.
-  Cylinders that coincide are not seated.
+- S7. A planar face of B that lies within 2ε of the plane of a face of A
+  is seated on that plane (RL-30, RL-32). The two planes are parallel as
+  the table of section 7.4 judges it, and the border of the face of B is
+  within 2ε of the plane of A at every sample by which I5 holds an edge
+  to the carrier of its face. The distance of a planar face from a plane
+  is greatest on its border. The bound is the distance within which a
+  computed point is coincident with a node (T3): a face nearer than that
+  to a plane and not on it has vertices that are one node with points of
+  the plane, and the arrangement can then make neither one surface nor
+  two of them. Intake gives the face of B the carrier of the face of A,
+  with its orientation and its loops turned as for a reflecting placement
+  (S4) where the two planes face against each other. Its edges take their
+  carriers from that plane by I5, which holds an edge of a seated face to
+  its carriers within 2ε + σ and not ε; an edge that the face uses twice
+  has its samples taken in the plane first. Its vertices are moved onto
+  those carriers, and an edge that ends at a moved vertex ends there. B is
+  so changed by at most 2ε, on the faces that C24 to C27 call coincident
+  or tolerance-scale, and the result has those faces, their edges and
+  their vertices in the plane of A to rounding and not to the gap. A is
+  taken as it is. Cylinders that coincide are not seated. A face between
+  ε and 2ε from the plane is tolerance-scale (T8, condition 3), and the
+  result is the validated one of the two outcomes T8 allows: a floor or a
+  gap thinner than 2ε is not kept.
 
 ### 4.2 Operations
 
@@ -1356,7 +1364,7 @@ Face sources (P5) are checked on every row that returns a non-empty solid:
 each face has at least one source; the list has no duplicates and is in the
 order P5 states; each index names a face of its operand; and the carrier of
 each source face is the same surface as the carrier of the result face
-within τ. Five rows also fix the lists. Where a list below names the
+within τ, or within 2ε where the source is a face of B that S7 seated. Five rows also fix the lists. Where a list below names the
 lateral face of a cylinder, it means every stored face of that operand's
 wall, one or several by the stored form; what is fixed is which operands
 the sources come from and that each is a face of the wall:
@@ -2446,6 +2454,31 @@ Rulings of 2026-11-19, as the trial came to its closing state:
   its closed form. `brep/trimmed` gained one exported interface so that
   `Classify` crosses the new p-curve. The decisions that document takes
   by default (its section 9) wait for the owner.
+- RL-32. The reach of S7 is 2ε. On 2026-11-21 the PlainCAD gates on
+  `deb6a124`, the commit after the legacy bore body was retired, failed
+  45 development cases and 26 production cases. The thirteen whose
+  report carries the message of the kernel have K3 on a hole through
+  all; the others report a rebuild that failed or a control that stayed
+  disabled. The tool of such a hole is ε longer than the stock is
+  thick, and its far cap is ε beyond the far face as the application
+  computes it: rounding of the two coordinates puts the gap to either
+  side of ε, and S7 as RL-30 had it seated the cap on one side and not
+  on the other. Where it did not, the seam of the tool met the far plane
+  within 2ε of its own end, X5 took the end for that point (T3), the
+  end was not on the plane (X4), and the circle in which the tool
+  crosses the far face was lost. Until `d6f35c75` the legacy bore engine
+  cut these holes behind the general Boolean. A bound of ε with an
+  allowance for rounding was considered and not taken: the allowance of
+  T9 does not cover a model far from the origin (OP-9), and the far cap
+  of a small part a metre from the origin would be refused. With 2ε the
+  designed gap of ε is in the middle of the reach whatever the
+  coordinates are. What it costs is stated in S7: a floor or a gap
+  between ε and 2ε thick, which was kept where the cap was inside A, is
+  not kept, and a seated source face is up to 2ε from the result face
+  (section 11). The band outside A between ε and 2ε gave K3 before and
+  gives a through bore now. `TestSeatedFaces` and `TestThroughAllHole`
+  hold it, the second with the requests of the application at the
+  origin and far from it.
 
 ## 20. Open items
 

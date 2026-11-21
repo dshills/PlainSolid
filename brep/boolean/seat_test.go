@@ -10,16 +10,17 @@ import (
 )
 
 // TestSeatedFaces combines a box with a second operand that has a planar
-// face within ε of a face of the box, to either side of it (S7). The face
+// face within 2ε of a face of the box, to either side of it (S7). The face
 // is seated on the plane of the box: the result is measured as if the two
 // had been one plane, to rounding and not to the gap, and no vertex of the
-// result is off the planes of the box. A cylinder that ends there is a
+// result is off the planes of the box. A gap of ε, which rounding puts to
+// either side of the tolerance, is in the middle of the reach. A cylinder that ends there is a
 // through bore; a block that starts there, with its face against the
 // box's, is a boss.
 func TestSeatedFaces(t *testing.T) {
 	const pi = math.Pi
 	stock := crossingStock(t, geom.Identity(), []geom.Vec2{{}, {X: 20}, {X: 20, Y: 10}, {Y: 10}}, 0, 8)
-	for _, gap := range []float64{-9e-8, -5e-8, 5e-8, 9e-8, 1e-7} {
+	for _, gap := range []float64{-1.9e-7, -1.5e-7, -1e-7, -9e-8, -5e-8, 5e-8, 9e-8, 1e-7, 1.5e-7, 1.9e-7} {
 		// A bore from the bottom face that ends within ε of the top face.
 		bore := crossingRod(t, geom.Identity(), geom.Vec3{X: 10, Y: 5, Z: (8 + gap) / 2}, geom.Vec3{Z: 1}, 2, 8+gap)
 		// A block that stands on the top face, from within ε of it.

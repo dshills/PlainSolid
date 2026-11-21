@@ -179,6 +179,17 @@ func edgeCandidates(points []geom.Vec3, s1, s2 surface, t tolerances) ([]curve, 
 	if !pair.alike {
 		return pair.curves, nil
 	}
+	// One surface. Where it is a plane the samples are taken in it: the
+	// carrier of an edge lies in the carriers of its faces, and the
+	// stored curve of a face that was seated (S7) is as far from its
+	// plane as the face was.
+	if own, ok := s1.(plane); ok {
+		flat := make([]geom.Vec3, len(points))
+		for i, p := range points {
+			flat[i] = p.Sub(own.frame.ZAxis().Scale(own.offset(p)))
+		}
+		points = flat
+	}
 	a, b := 0, 0
 	for i := range points {
 		for j := i + 1; j < len(points); j++ {

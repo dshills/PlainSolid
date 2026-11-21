@@ -61,9 +61,9 @@ type operand struct {
 // the edges and of the loops.
 //
 // onto is the other operand, when it has been taken in already. A planar
-// face that lies within ε of the plane of one of its faces is then seated
-// on that plane (S7): it takes that carrier, its edges take theirs from
-// it, and its vertices are moved onto them.
+// face that lies within 2ε of the plane of one of its faces is then
+// seated on that plane (S7): it takes that carrier, its edges take theirs
+// from it, and its vertices are moved onto them.
 func intake(index int, s trimmed.Solid, t tolerances, onto *operand) (*operand, error) {
 	o := &operand{solid: s, verts: s.Vertices()}
 	faces, edges := s.Faces(), s.Edges()
@@ -141,7 +141,13 @@ func intake(index int, s trimmed.Solid, t tolerances, onto *operand) (*operand, 
 			continue
 		}
 		// trimmed.Solid gives every edge with a curve exactly two uses.
-		rec, err := edgeCarrier(e, o.faces[owners[ei][0]].s, o.faces[owners[ei][1]].s, t)
+		// An edge of a seated face is held to the plane it was moved to,
+		// from which its stored curve is as far as the face was (S7).
+		held := t
+		if seated[owners[ei][0]] || seated[owners[ei][1]] {
+			held.eps = t.reach() + t.slack()
+		}
+		rec, err := edgeCarrier(e, o.faces[owners[ei][0]].s, o.faces[owners[ei][1]].s, held)
 		if err != nil {
 			return nil, failAt(err, "operand %s edge %d", operandName(index), ei)
 		}
@@ -222,15 +228,17 @@ func placed(f geom.Frame, m geom.Affine, t tolerances) (frame geom.Frame, mirror
 	return frame, m.Determinant() < 0, nil
 }
 
-// seated bounds how far a face may be from a plane and be seated on it: ε,
-// less a part that keeps the samples of its edges within ε of the plane
-// after rounding (I5).
-const seatedShare = 1 - 0x1p-30
+// reach is how far a face may be from a plane and be seated on it (S7):
+// 2ε, the distance within which a point of the one is coincident with a
+// node of the other (T3). A face nearer than that and not seated has
+// vertices that are one node with points of the plane while the face
+// itself is not on it; a face farther away shares no node with the plane.
+func (t tolerances) reach() float64 { return 2 * t.eps }
 
 // seat finds the plane of a face of the operand that a planar face of the
-// other operand lies on within ε: the planes are parallel as the table of
-// section 7.4 judges it, and every point of the border of the face is
-// within ε of the plane. One point of the face is tried first, since few
+// other operand lies on within the reach: the planes are parallel as the
+// table of section 7.4 judges it, and every point of the border of the
+// face is within the reach of the plane. One point of the face is tried first, since few
 // planes pass it. It reports whether the plane faces against the face's
 // own.
 func (o *operand) seat(own plane, first geom.Vec3, border func() []geom.Vec3, t tolerances) (plane, bool, bool) {
@@ -238,7 +246,7 @@ func (o *operand) seat(own plane, first geom.Vec3, border func() []geom.Vec3, t 
 next:
 	for _, f := range o.faces {
 		other, ok := f.s.(plane)
-		if !ok || other == own || !(math.Abs(other.offset(first)) <= seatedShare*t.eps) {
+		if !ok || other == own || !(math.Abs(other.offset(first)) <= t.reach()) {
 			continue
 		}
 		if p, err := planeWithPlane(other, own, t); err != nil || !p.alike {
@@ -248,7 +256,7 @@ next:
 			points = border()
 		}
 		for _, c := range points {
-			if !(math.Abs(other.offset(c)) <= seatedShare*t.eps) {
+			if !(math.Abs(other.offset(c)) <= t.reach()) {
 				continue next
 			}
 		}

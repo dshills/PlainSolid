@@ -653,7 +653,8 @@ func leafBound(c config) float64 {
 // checkSources applies the face source checks of section 11 to a result:
 // every face has a source, the list is ordered A before B and then by
 // index without duplicates, each index names a face of its operand, and
-// each source face lies on the surface of the result face.
+// each source face lies on the surface of the result face, or within the
+// reach of S7 of it where the face was seated.
 func checkSources(r Result, c config) error {
 	faces := r.Solid.Faces()
 	if len(r.Sources) != len(faces) {
@@ -672,7 +673,13 @@ func checkSources(r Result, c config) error {
 			if k > 0 && (list[k-1][0] > s[0] || list[k-1][0] == s[0] && list[k-1][1] >= s[1]) {
 				return fmt.Errorf("face %d has sources %v out of order", i, list)
 			}
-			if d := surfaceGap(faces[i], inputs[s[0]][s[1]]); !(d <= tau) {
+			// A face of B that was seated on a plane of A is as far from
+			// the result face as it was from that plane: 2ε at most (S7).
+			bound := tau
+			if s[0] == 1 {
+				bound = math.Max(tau, 2*matrixEps)
+			}
+			if d := surfaceGap(faces[i], inputs[s[0]][s[1]]); !(d <= bound) {
 				return fmt.Errorf("face %d is %g from its source %v", i, d, s)
 			}
 		}
