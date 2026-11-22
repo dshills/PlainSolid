@@ -39,7 +39,7 @@ planes and cylinders, accepted on validation within tolerance; cylinders
 whose axes are not parallel are taken at equal or unequal radius, with
 axes that meet or pass each other, unless they touch or nearly touch, and
 an operand may be a mirrored solid. Its results are written to STEP and
-read back as their own boundary. The PlainCAD
+read back as their own boundary, in the length unit asked for. The PlainCAD
 bridge cuts plain bores, which are cylinders cut from planar stock, with
 it alone, and asks it elsewhere where its own paths decline a request. `brep/blend`
 chamfers and fillets straight edges between planar faces of such a result,
