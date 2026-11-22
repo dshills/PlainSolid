@@ -34,10 +34,10 @@ side or a corner of the stock are deleted. A STEP file that an earlier
 build wrote for such a body is read as the boundary it states. The Linux
 run and the race run have not been repeated since the commits shown.
 
-The default build leaves out the research quarantine: 540 production files of
-`brep/trimmed` (94,416 lines) that no other package reaches, with their tests.
+The default build leaves out the research quarantine: 544 production files of
+`brep/trimmed` (95,884 lines) that no other package reaches, with their tests.
 They start with `//go:build research` and build only with `-tags research`.
-The default test inventory is 5,998 cases; with the tag it is 6,909. The code
+The default test inventory is 6,010 cases; with the tag it is 6,933. The code
 linked into the PlainCAD bridge is unchanged by the quarantine: the same 7,138
 functions with the same sizes. Commands, evidence files and what the
 results do not establish are in [the verification record](VERIFICATION.md).
